@@ -1,4 +1,6 @@
 #include "raylib.h"
+#include <assert.h>
+#include <math.h>
 #include <stdio.h>
 
 #define WINDOW_SCALE 120
@@ -15,83 +17,96 @@ typedef struct Triangle {
 } Triangle;
 
 typedef struct Kite {
-  Triangle left;
-  Triangle right;
-
   Vector2 center;
-  float overlap;
-  float scale;
 
   Color body_color;
+  Triangle left;
+  Triangle right;
+  float overlap;
+  float inner_space;
+
   Color top_color;
+  Rectangle rec;
+  float spread;
+
+  float scale;
 } Kite;
 
-typedef struct Position {
-  Vector2 top_left;
-  Vector2 top_right;
-  Vector2 top_center;
-  Vector2 bottom_left;
-  Vector2 bottom_right;
-} Position;
-
-void draw_kite(Kite *kite, Position *pos, float center_rotation) {
+void draw_kite(Kite *kite, Vector2 *new__center_pos, float center_rotation) {
+  kite->center.x = new__center_pos->x;
+  kite->center.y = new__center_pos->y;
 
   // TODO: This thing is not implemented for the triangles
   // center_rotation = -45;
 
-  Vector2 vl1 = {.x = kite->left.v1.x + pos->top_left.x,
-                 .y = kite->left.v1.y + pos->top_left.y};
-  Vector2 vl2 = {.x = kite->left.v2.x + pos->bottom_left.x,
-                 .y = kite->left.v2.y + pos->bottom_left.y};
-  Vector2 vl3 = {.x = kite->left.v3.x + pos->top_center.x,
-                 .y = kite->left.v3.y + pos->top_center.y};
+  float cw = kite->right.v3.x - kite->left.v1.x;
+  float is = kite->inner_space;
+  float o = kite->overlap;
 
-  Vector2 vr1 = {.x = kite->right.v1.x + pos->top_center.x,
-                 .y = kite->right.v1.y + pos->top_center.y};
-  Vector2 vr2 = {.x = kite->right.v2.x + pos->bottom_right.x,
-                 .y = kite->right.v2.y + pos->bottom_right.y};
-  Vector2 vr3 = {.x = kite->right.v3.x + pos->top_right.x,
-                 .y = kite->right.v3.y + pos->top_right.y};
+  if (center_rotation == 0) {
+    kite->left.v1.x = new__center_pos->x - (cw / 2.f);
+    kite->left.v1.y = new__center_pos->y;
+    kite->left.v2.x = new__center_pos->x - is;
+    kite->left.v2.y = new__center_pos->y + is;
+    kite->left.v3.x = new__center_pos->x + o;
+    kite->left.v3.y = new__center_pos->y;
 
+    kite->right.v1.x = new__center_pos->x - o;
+    kite->right.v1.y = new__center_pos->y;
+    kite->right.v2.x = new__center_pos->x + is;
+    kite->right.v2.y = new__center_pos->y + is;
+    kite->right.v3.x = new__center_pos->x + (cw / 2.f);
+    kite->right.v3.y = new__center_pos->y;
+  } else {
+    assert(0 && "Rotation not IMPLEMENTED");
+    // Vector2 origin = {.x = kite->rec.width / 2.f, .y = 0};
+  }
 
   // Draw a color-filled triangle (vertex in counter-clockwise order!)
-  DrawTriangle(vl1, vl2, vl3, kite->body_color);
-  DrawTriangle(vr1, vr2, vr3, kite->body_color);
+  DrawTriangle(kite->left.v1, kite->left.v2, kite->left.v3, kite->body_color);
+  DrawTriangle(kite->right.v1, kite->right.v2, kite->right.v3,
+               kite->body_color);
 
-    // TODO: Move the Rectangle to the Kite struct and to the init function
-  float spread = 3;
-  Rectangle rec = {0};
-  rec.height = spread * 4;
-  rec.width = vr3.x - vl1.x + 2 * spread;
-  rec.x = vl1.x - spread + rec.width / 2;
-  rec.y = vl1.y - rec.height;
-  Vector2 origin = {.x = rec.width / 2, .y = 0};
-  DrawRectanglePro(rec, origin, center_rotation, kite->top_color);
+  kite->rec.height = kite->spread;
+  kite->rec.width = cw + kite->spread;
+  kite->rec.x = kite->left.v1.x - kite->spread / 2;
+  kite->rec.y = kite->left.v1.y - kite->rec.height;
+
+  Vector2 origin = {0};
+  DrawRectanglePro(kite->rec, origin, center_rotation, kite->top_color);
 }
 
 void kite_init(Kite *kite, Vector2 center) {
-  kite->body_color = RED;
-  kite->top_color = DARKGRAY;
-  kite->overlap = 4;
-  kite->scale = 8;
   kite->center.x = center.x;
   kite->center.y = center.y;
+  kite->body_color = RED;
+  kite->top_color = DARKGRAY;
+  kite->scale = 10.f;
+  kite->overlap = 4.f;
+  kite->inner_space = 20.f;
+  kite->spread = 1.f;
 
-  float scale = kite->scale;
-  float overlap = kite->overlap;
-  float inner_space = 13;
-  kite->left.v1 =
-      (Vector2){.x = center.x - scale * 20, .y = center.y + scale * 0};
-  kite->left.v2 = (Vector2){.x = center.x - scale * inner_space,
-                            .y = center.y + scale * inner_space};
-  kite->left.v3 =
-      (Vector2){.x = center.x + scale * overlap, .y = center.y + scale * 0};
-  kite->right.v1 =
-      (Vector2){.x = center.x - scale * overlap, .y = center.y + scale * 0};
-  kite->right.v2 = (Vector2){.x = center.x + scale * inner_space,
-                             .y = center.y + scale * inner_space};
-  kite->right.v3 =
-      (Vector2){.x = center.x + scale * 20, .y = center.y + scale * 0};
+  float cw = 20.f * kite->scale * 2;
+  kite->inner_space += kite->scale * kite->scale;
+  kite->overlap += kite->scale * 4;
+  kite->spread += kite->scale;
+
+  kite->left.v1 = (Vector2){.x = center.x - (cw / 2.f), .y = center.y};
+  kite->left.v2 = (Vector2){.x = center.x - kite->inner_space,
+                            .y = center.y + kite->inner_space};
+  kite->left.v3 = (Vector2){.x = center.x + kite->overlap, .y = center.y};
+
+  kite->right.v1 = (Vector2){.x = center.x - kite->overlap, .y = center.y};
+  kite->right.v2 = (Vector2){.x = center.x + kite->inner_space,
+                             .y = center.y + kite->inner_space};
+  kite->right.v3 = (Vector2){.x = center.x + (cw / 2.f), .y = center.y};
+
+  cw = kite->right.v3.x - kite->left.v1.x;
+
+  kite->rec.height = kite->spread;
+  kite->rec.width = cw + kite->spread;
+  kite->rec.x = kite->left.v1.x - kite->spread / 2;
+  kite->rec.y = kite->left.v1.y - kite->rec.height;
 }
 
 int main(void) {
@@ -101,18 +116,35 @@ int main(void) {
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(60);
 
-  Vector2 center = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
+  Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
 
-  printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(center));
+  Kite kite = {0};
+  kite_init(&kite, pos);
+  // TODO: Find a reasonable velocity
+  float velocity = 1;
+
+  printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(pos));
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
-    center.x = GetScreenWidth() / 2.f;
-    center.y = GetScreenHeight() / 2.f;
-    Kite kite = {0};
-    Position pos = {0};
 
-    kite_init(&kite, center);
+    if (IsKeyPressedRepeat(KEY_K)) {
+      pos.y -= 5 * velocity;
+      velocity *= velocity;
+    }
+    if (IsKeyPressedRepeat(KEY_J)) {
+      pos.y += 5 * velocity;
+      velocity *= velocity;
+    }
+    if (IsKeyPressedRepeat(KEY_L)) {
+      pos.x += 5 * velocity;
+      velocity *= velocity;
+    }
+    if (IsKeyPressedRepeat(KEY_H)) {
+      pos.x -= 5 * velocity;
+      velocity *= velocity;
+    }
+
     draw_kite(&kite, &pos, 0);
 
     EndDrawing();
