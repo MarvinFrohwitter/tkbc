@@ -1,6 +1,5 @@
 #include "raylib.h"
 #include <assert.h>
-#include <math.h>
 #include <stdio.h>
 
 #define WINDOW_SCALE 120
@@ -109,41 +108,56 @@ void kite_init(Kite *kite, Vector2 center) {
   kite->rec.y = kite->left.v1.y - kite->rec.height;
 }
 
+void input_handler(Vector2 *pos) {
+
+  float speed = 5;
+  float velocity = 1;
+  float friction = 2;
+
+  if (IsKeyDown(KEY_J) ||IsKeyDown(KEY_DOWN) ) {
+    pos->y += speed * velocity;
+    if (IsKeyDown(KEY_L)||IsKeyDown(KEY_RIGHT) )
+      pos->x += speed * velocity;
+    if (IsKeyDown(KEY_H)||IsKeyDown(KEY_LEFT))
+      pos->x -= speed * velocity;
+
+  } else if (IsKeyDown(KEY_K)||IsKeyDown(KEY_UP)) {
+    pos->y -= speed * velocity;
+    if (IsKeyDown(KEY_L)||IsKeyDown(KEY_RIGHT))
+      pos->x += speed * velocity;
+    if (IsKeyDown(KEY_H)||IsKeyDown(KEY_LEFT))
+      pos->x -= speed * velocity;
+
+  } else if (IsKeyDown(KEY_H)||IsKeyDown(KEY_LEFT)) {
+    pos->x -= speed * velocity;
+  } else if (IsKeyDown(KEY_L)||IsKeyDown(KEY_RIGHT)) {
+    pos->x += speed * velocity;
+  }
+
+  if (velocity <= speed / friction) {
+    velocity *= velocity;
+  }
+}
+
 int main(void) {
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-  SetTargetFPS(60);
+  SetTargetFPS(120);
 
   Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
 
   Kite kite = {0};
   kite_init(&kite, pos);
   // TODO: Find a reasonable velocity
-  float velocity = 1;
 
   printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(pos));
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
-    if (IsKeyPressedRepeat(KEY_K)) {
-      pos.y -= 5 * velocity;
-      velocity *= velocity;
-    }
-    if (IsKeyPressedRepeat(KEY_J)) {
-      pos.y += 5 * velocity;
-      velocity *= velocity;
-    }
-    if (IsKeyPressedRepeat(KEY_L)) {
-      pos.x += 5 * velocity;
-      velocity *= velocity;
-    }
-    if (IsKeyPressedRepeat(KEY_H)) {
-      pos.x -= 5 * velocity;
-      velocity *= velocity;
-    }
+    input_handler(&pos);
 
     draw_kite(&kite, &pos, 0);
 
