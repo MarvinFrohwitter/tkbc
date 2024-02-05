@@ -44,12 +44,6 @@ void draw_kite(Kite *k, Vector2 *position, float center_deg_rotation) {
   float is = k->inner_space;
   float o = k->overlap;
 
-  // Example
-  // float r = new__center_pos->x + (cw / 2.f);
-  // float phi = PI/4;
-  // float x = r*cosf(phi);
-  // float y = r*sinf(phi);
-
   // The difference between the angle 0 and the default downward interpolation
   float bl_angle = (PI * (360 - 42) / 180);
   float br_angle = (PI * (360 + 90 - 42) / 180);
@@ -77,18 +71,18 @@ void draw_kite(Kite *k, Vector2 *position, float center_deg_rotation) {
   DrawTriangle(k->left.v1, k->left.v2, k->left.v3, k->body_color);
   DrawTriangle(k->right.v1, k->right.v2, k->right.v3, k->body_color);
 
-  k->rec.height = k->spread;
-  k->rec.width = cw + k->spread;
-  k->rec.x = k->left.v1.x - k->spread / 2;
-  k->rec.y = k->left.v1.y - k->rec.height;
-
+  // Just use origin 0 and compute the new pos for the angel
   Vector2 origin = {0};
-  if (center_deg_rotation != 0) {
-    origin.x = k->spread;
-    origin.y = k->rec.height * 2;
-  }
-  DrawRectanglePro(k->rec, origin, -center_deg_rotation, k->top_color);
+  k->rec.height = k->spread;
+  k->rec.width = cw + k->spread * 2;
 
+  k->rec.x = position->x - ceilf(crealf((cw / 2.f + k->spread) * cexpf(I * phi)));
+  k->rec.y = position->y + ceilf(cimagf((cw / 2.f + k->spread) * cexpf(I * phi)));
+
+  // k->rec.x = k->left.v1.x + k->spread;
+  // k->rec.y = k->left.v1.y - k->rec.height;
+
+  DrawRectanglePro(k->rec, origin, -center_deg_rotation, k->top_color);
 }
 
 void kite_init(Kite *k, Vector2 position) {
@@ -167,7 +161,7 @@ int main(void) {
   SetTargetFPS(60);
 
   Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
-  Vector2 pos1 = {GetScreenWidth() / 2.f, GetScreenHeight() / 4.f};
+  Vector2 pos1 = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
   Vector2 pos2 = {GetScreenWidth() / 3.f, GetScreenHeight() / 4.f};
 
   Kite kite = {0};
@@ -184,12 +178,12 @@ int main(void) {
 
     input_handler(&pos);
 
+    // draw_kite(&kite1, &pos, 270);
+    // draw_kite(&kite, &pos1, 50);
+    // draw_kite(&kite, &pos2, 90);
+
     draw_kite(&kite, &pos1, 0);
-    draw_kite(&kite, &pos2, 180);
-
-    draw_kite(&kite, &pos, 70);
-    draw_kite(&kite, &pos2, 90);
-
+    draw_kite(&kite1, &pos, 180);
     EndDrawing();
   };
 
