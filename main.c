@@ -1,5 +1,4 @@
 #include "raylib.h"
-#include <assert.h>
 #include <complex.h>
 #include <math.h>
 #include <stdio.h>
@@ -33,38 +32,17 @@ typedef struct Kite {
   float spread;
 
   float scale;
+  float width;
+  // float height;
 } Kite;
 
-void draw_kite(Kite *kite, Vector2 *new__center_pos,
-               float center_deg_rotation) {
-  kite->center.x = new__center_pos->x;
-  kite->center.y = new__center_pos->y;
+void draw_kite(Kite *k, Vector2 *position, float center_deg_rotation) {
+  k->center.x = position->x;
+  k->center.y = position->y;
 
-  // TODO: This thing is not implemented for the triangles
-  float cw = sqrtf((kite->right.v3.y - kite->left.v1.y) *
-                       (kite->right.v3.y - kite->left.v1.y) +
-                   (kite->right.v3.x - kite->left.v1.x) *
-                       (kite->right.v3.x - kite->left.v1.x));
-
-  float is = kite->inner_space;
-  float o = kite->overlap;
-
-  // if (center_deg_rotation == 0) {
-  // if (e) {
-  //   kite->left.v1.x = new__center_pos->x - (cw / 2.f);
-  //   kite->left.v1.y = new__center_pos->y;
-  //   kite->left.v2.x = new__center_pos->x - is;
-  //   kite->left.v2.y = new__center_pos->y + is;
-  //   kite->left.v3.x = new__center_pos->x + o;
-  //   kite->left.v3.y = new__center_pos->y;
-
-  //   kite->right.v1.x = new__center_pos->x - o;
-  //   kite->right.v1.y = new__center_pos->y;
-  //   kite->right.v2.x = new__center_pos->x + is;
-  //   kite->right.v2.y = new__center_pos->y + is;
-  //   kite->right.v3.x = new__center_pos->x + (cw / 2.f);
-  //   kite->right.v3.y = new__center_pos->y;
-  // }
+  float cw = k->width;
+  float is = k->inner_space;
+  float o = k->overlap;
 
   // Example
   // float r = new__center_pos->x + (cw / 2.f);
@@ -72,118 +50,106 @@ void draw_kite(Kite *kite, Vector2 *new__center_pos,
   // float x = r*cosf(phi);
   // float y = r*sinf(phi);
 
-  //       |
-  //       |
-  //       |           x
-  //       |         / |
-  //       |        /  |
-  //       |       /   |
-  // ------|----------------
-  //       |
-
   // The difference between the angle 0 and the default downward interpolation
-  float bottom_right_interpolation = (PI * (360 - 42) / 180);
-  float bottom_left_interpolation = bottom_right_interpolation;
+  float bl_angle = (PI * (360 - 42) / 180);
+  float br_angle = (PI * (360 + 90 - 42) / 180);
   float phi = (PI * (center_deg_rotation) / 180);
 
-  kite->left.v1.x = new__center_pos->x - crealf((cw / 2.f) * cexpf(I * phi));
-  kite->left.v1.y = new__center_pos->y + cimagf((cw / 2.f) * cexpf(I * phi));
+  // LEFT Triangle
+  // Correct
+  k->left.v1.x = position->x - ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
+  k->left.v1.y = position->y + ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  k->left.v2.x = position->x - ceilf(crealf(is * cexpf(I * (phi - bl_angle))));
+  k->left.v2.y = position->y + ceilf(cimagf(is * cexpf(I * (phi - bl_angle))));
+  k->left.v3.x = position->x + ceilf(crealf(o * cexpf(I * phi)));
+  k->left.v3.y = position->y - ceilf(cimagf(o * cexpf(I * phi)));
 
-  kite->left.v2.x = new__center_pos->x -
-                    crealf(is * cexpf(I * (phi - bottom_left_interpolation)));
-  kite->left.v2.y = new__center_pos->y +
-                    cimagf(is * cexpf(I * (phi - bottom_left_interpolation)));
-
-  kite->left.v3.x = new__center_pos->x + crealf(o * cexpf(I * phi));
-  kite->left.v3.y = new__center_pos->y + cimagf(o * cexpf(I * phi));
-
-  kite->right.v1.x = new__center_pos->x - crealf(o * cexpf(I * phi));
-  kite->right.v1.y = new__center_pos->y + cimagf(o * cexpf(I * phi));
-
-  kite->right.v2.x = new__center_pos->x +
-                     crealf(is * cexpf(I * (phi - bottom_right_interpolation)));
-  kite->right.v2.y = new__center_pos->y +
-                     cimagf(is * cexpf(I * (phi - bottom_right_interpolation)));
-
-  kite->right.v3.x = new__center_pos->x + crealf((cw / 2.f) * cexpf(I * phi));
-  kite->right.v3.y = new__center_pos->y + cimagf((cw / 2.f) * cexpf(I * phi));
-  //  - + + + + - - + + + + -
+  // RIGHT Triangle
+  // Correct
+  k->right.v1.x = position->x - ceilf(crealf(o * cexpf(I * phi)));
+  k->right.v1.y = position->y + ceilf(cimagf(o * cexpf(I * phi)));
+  k->right.v2.x = position->x + ceilf(crealf(is * cexpf(I * (phi - br_angle))));
+  k->right.v2.y = position->y - ceilf(cimagf(is * cexpf(I * (phi - br_angle))));
+  k->right.v3.x = position->x + ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
+  k->right.v3.y = position->y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
 
   // Draw a color-filled triangle (vertex in counter-clockwise order!)
-  DrawTriangle(kite->left.v1, kite->left.v2, kite->left.v3, kite->body_color);
-  DrawTriangle(kite->right.v1, kite->right.v2, kite->right.v3,
-               kite->body_color);
+  DrawTriangle(k->left.v1, k->left.v2, k->left.v3, k->body_color);
+  DrawTriangle(k->right.v1, k->right.v2, k->right.v3, k->body_color);
 
-  kite->rec.height = kite->spread;
-  kite->rec.width = cw + kite->spread;
-  kite->rec.x = kite->left.v1.x - kite->spread / 2;
-  kite->rec.y = kite->left.v1.y - kite->rec.height;
+  k->rec.height = k->spread;
+  k->rec.width = cw + k->spread;
+  k->rec.x = k->left.v1.x - k->spread / 2;
+  k->rec.y = k->left.v1.y - k->rec.height;
 
   Vector2 origin = {0};
-  // Vector2 origin = {.x = kite->rec.width / 2.f, .y = 0};
-  DrawRectanglePro(kite->rec, origin, -center_deg_rotation, kite->top_color);
+  if (center_deg_rotation != 0) {
+    origin.x = k->spread;
+    origin.y = k->rec.height * 2;
+  }
+  DrawRectanglePro(k->rec, origin, -center_deg_rotation, k->top_color);
+
 }
 
-void kite_init(Kite *kite, Vector2 center) {
-  kite->center.x = center.x;
-  kite->center.y = center.y;
-  kite->body_color = TEAL;
-  kite->top_color = DARKGRAY;
-  kite->scale = 6.f;
-  kite->overlap = 8.f;
-  // kite->inner_space = 12.f;
-  kite->inner_space = 20.f;
-  kite->spread = 1.f;
+void kite_init(Kite *k, Vector2 position) {
+  k->center.x = position.x;
+  k->center.y = position.y;
+  k->body_color = TEAL;
+  k->top_color = DARKGRAY;
+  k->scale = 6.f;
+  k->overlap = 8.f;
+  k->inner_space = 20.f;
+  k->spread = 1.f;
 
-  float cw = 20.f * kite->scale * 2;
-  // kite->inner_space += kite->scale * kite->scale;
-  kite->inner_space *= kite->scale;
-  // kite->overlap += kite->scale * 4;
-  kite->overlap *= kite->scale;
-  kite->spread += kite->scale;
+  float cw = 20.f * k->scale * 2;
+  k->inner_space *= k->scale;
+  k->overlap *= k->scale;
+  k->spread += k->scale;
 
-  kite->left.v1 = (Vector2){.x = center.x - (cw / 2.f), .y = center.y};
-  kite->left.v2 = (Vector2){.x = center.x - kite->inner_space,
-                            .y = center.y + kite->inner_space};
-  kite->left.v3 = (Vector2){.x = center.x + kite->overlap, .y = center.y};
+  k->left.v1 = (Vector2){.x = position.x - (cw / 2.f), .y = position.y};
+  k->left.v2 = (Vector2){.x = position.x - k->inner_space,
+                         .y = position.y + k->inner_space};
+  k->left.v3 = (Vector2){.x = position.x + k->overlap, .y = position.y};
 
-  kite->right.v1 = (Vector2){.x = center.x - kite->overlap, .y = center.y};
-  kite->right.v2 = (Vector2){.x = center.x + kite->inner_space,
-                             .y = center.y + kite->inner_space};
-  kite->right.v3 = (Vector2){.x = center.x + (cw / 2.f), .y = center.y};
+  k->right.v1 = (Vector2){.x = position.x - k->overlap, .y = position.y};
+  k->right.v2 = (Vector2){.x = position.x + k->inner_space,
+                          .y = position.y + k->inner_space};
+  k->right.v3 = (Vector2){.x = position.x + (cw / 2.f), .y = position.y};
 
-  cw = kite->right.v3.x - kite->left.v1.x;
+  cw = sqrtf((k->right.v3.y - k->left.v1.y) * (k->right.v3.y - k->left.v1.y) +
+             (k->right.v3.x - k->left.v1.x) * (k->right.v3.x - k->left.v1.x));
+  k->width = cw;
 
-  kite->rec.height = kite->spread;
-  kite->rec.width = cw + kite->spread;
-  kite->rec.x = kite->left.v1.x - kite->spread / 2;
-  kite->rec.y = kite->left.v1.y - kite->rec.height;
+  k->rec.height = k->spread;
+  k->rec.width = k->width + k->spread;
+  k->rec.x = k->left.v1.x - k->spread / 2;
+  k->rec.y = k->left.v1.y - k->rec.height;
 }
 
-void input_handler(Vector2 *pos) {
+void input_handler(Vector2 *position) {
 
   float speed = 5;
   float velocity = 1;
   float friction = 100;
 
   if (IsKeyDown(KEY_J) || IsKeyDown(KEY_DOWN)) {
-    pos->y += speed * velocity;
+    position->y += speed * velocity;
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
-      pos->x += speed * velocity;
+      position->x += speed * velocity;
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
-      pos->x -= speed * velocity;
+      position->x -= speed * velocity;
 
   } else if (IsKeyDown(KEY_K) || IsKeyDown(KEY_UP)) {
-    pos->y -= speed * velocity;
+    position->y -= speed * velocity;
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
-      pos->x += speed * velocity;
+      position->x += speed * velocity;
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
-      pos->x -= speed * velocity;
+      position->x -= speed * velocity;
 
   } else if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-    pos->x -= speed * velocity;
+    position->x -= speed * velocity;
   } else if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-    pos->x += speed * velocity;
+    position->x += speed * velocity;
   }
 
   if (velocity <= speed / friction) {
@@ -201,7 +167,8 @@ int main(void) {
   SetTargetFPS(60);
 
   Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
-  Vector2 pos1 = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
+  Vector2 pos1 = {GetScreenWidth() / 2.f, GetScreenHeight() / 4.f};
+  Vector2 pos2 = {GetScreenWidth() / 3.f, GetScreenHeight() / 4.f};
 
   Kite kite = {0};
   Kite kite1 = {0};
@@ -217,10 +184,11 @@ int main(void) {
 
     input_handler(&pos);
 
-    // draw_kite(&kite, &pos, 9);
-    // draw_kite(&kite, &pos, 0);
-    draw_kite(&kite, &pos, 0);
-    draw_kite(&kite1, &pos1, 0);
+    draw_kite(&kite, &pos1, 0);
+    draw_kite(&kite, &pos2, 180);
+
+    draw_kite(&kite, &pos, 70);
+    draw_kite(&kite, &pos2, 90);
 
     EndDrawing();
   };
