@@ -45,8 +45,10 @@ void draw_kite(Kite *k, Vector2 *position, float center_deg_rotation) {
   float o = k->overlap;
 
   // The difference between the angle 0 and the default downward interpolation
-  float bl_angle = (PI * (360 - 42) / 180);
-  float br_angle = (PI * (360 + 90 - 42) / 180);
+  // TODO: Fix the angle thay are diffrenet.
+  float angle = 42;
+  float bl_angle = (PI * (360 - (90 - angle)) / 180);
+  float br_angle = (PI * (360 + (90 - angle)) / 180);
   float phi = (PI * (center_deg_rotation) / 180);
 
   // LEFT Triangle
@@ -71,16 +73,15 @@ void draw_kite(Kite *k, Vector2 *position, float center_deg_rotation) {
   DrawTriangle(k->left.v1, k->left.v2, k->left.v3, k->body_color);
   DrawTriangle(k->right.v1, k->right.v2, k->right.v3, k->body_color);
 
-  // Just use origin 0 and compute the new pos for the angel
+  // Just use origin 0 and compute the new position for the angel.
   Vector2 origin = {0};
-  k->rec.height = k->spread;
+  // Just an random suitable height and width that fits the scaling and spread.
+  k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
   k->rec.width = cw + k->spread * 2;
-
-  k->rec.x = position->x - ceilf(crealf((cw / 2.f + k->spread) * cexpf(I * phi)));
-  k->rec.y = position->y + ceilf(cimagf((cw / 2.f + k->spread) * cexpf(I * phi)));
-
-  // k->rec.x = k->left.v1.x + k->spread;
-  // k->rec.y = k->left.v1.y - k->rec.height;
+  k->rec.x =
+      position->x - ceilf(crealf((cw / 2.f + k->spread) * cexpf(I * phi)));
+  k->rec.y =
+      position->y + ceilf(cimagf((cw / 2.f + k->spread) * cexpf(I * phi)));
 
   DrawRectanglePro(k->rec, origin, -center_deg_rotation, k->top_color);
 }
@@ -90,15 +91,15 @@ void kite_init(Kite *k, Vector2 position) {
   k->center.y = position.y;
   k->body_color = TEAL;
   k->top_color = DARKGRAY;
-  k->scale = 6.f;
+  k->scale = 7.f;
   k->overlap = 8.f;
   k->inner_space = 20.f;
-  k->spread = 1.f;
+  k->spread = 0.2f;
 
   float cw = 20.f * k->scale * 2;
   k->inner_space *= k->scale;
   k->overlap *= k->scale;
-  k->spread += k->scale;
+  k->spread *= k->scale;
 
   k->left.v1 = (Vector2){.x = position.x - (cw / 2.f), .y = position.y};
   k->left.v2 = (Vector2){.x = position.x - k->inner_space,
