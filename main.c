@@ -28,7 +28,7 @@ int main(void) {
 
     pos_up = input_handler(&kite);
 
-    draw_kite(&kite, pos_up, 0);
+    draw_kite(&kite, kite.center, kite.center_rotation);
     draw_kite(&kite1, pos, 180);
     EndDrawing();
   };
@@ -40,6 +40,7 @@ int main(void) {
 void kite_update(Kite *k, Vector2 position, float center_deg_rotation) {
   k->center.x = position.x;
   k->center.y = position.y;
+  k->center_rotation = center_deg_rotation;
 
   float cw = k->width;
   float is = k->inner_space;
@@ -95,6 +96,7 @@ void kite_init(Kite *k) {
   k->center.y = 0;
   k->center.x = GetScreenWidth() / 2.f;
   k->center.y = GetScreenHeight() / 2.f;
+  k->speed = 1;
 
   k->body_color = TEAL;
   k->overlap = 8.f;
@@ -106,47 +108,60 @@ void kite_init(Kite *k) {
   k->width = 20.0f;
   k->height = 0.0f;
   k->scale = 7.f;
+  k->center_rotation = 0;
 
   k->overlap *= k->scale;
   k->inner_space *= k->scale;
   k->spread *= k->scale;
   k->width *= k->scale * 2;
 
-  Vector2 position = {.x = k->center.x, .y = k->center.y};
-  kite_update(k, position, 0);
+  kite_update(k, k->center, k->center_rotation);
 
   k->height = fabsf(k->left.v1.y - k->left.v2.y);
 }
 
 Vector2 input_handler(Kite *k) {
+  float velocity = 10;
+  velocity *= GetFrameTime();
+  velocity *= k->speed;
 
-  // TODO: Find a reasonable velocity
-  float speed = 5;
-  float velocity = 1;
-  float friction = 100;
-
-  if (IsKeyDown(KEY_J) || IsKeyDown(KEY_DOWN)) {
-    k->center.y += speed * velocity;
-    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
-      k->center.x += speed * velocity;
-    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
-      k->center.x -= speed * velocity;
-
-  } else if (IsKeyDown(KEY_K) || IsKeyDown(KEY_UP)) {
-    k->center.y -= speed * velocity;
-    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
-      k->center.x += speed * velocity;
-    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
-      k->center.x -= speed * velocity;
-
-  } else if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-    k->center.x -= speed * velocity;
-  } else if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-    k->center.x += speed * velocity;
+  if (IsKeyPressed(KEY_R) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    k->center_rotation += 45;
+  } else if (IsKeyPressed(KEY_R)) {
+    k->center_rotation -= 45;
   }
 
-  // if (velocity <= speed / friction) {
-  //   velocity *= velocity;
-  // }
+  if (IsKeyDown(KEY_P) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    if (k->speed > 0) {
+      k->speed -= 1;
+    }
+  } else if (IsKeyDown(KEY_P)) {
+    if (k->speed <= 100) {
+      k->speed += 1;
+    }
+  }
+
+  if (IsKeyDown(KEY_J) || IsKeyDown(KEY_DOWN)) {
+    k->center.y += velocity;
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
+      k->center.x += velocity;
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
+      k->center.x -= velocity;
+
+  } else if (IsKeyDown(KEY_K) || IsKeyDown(KEY_UP)) {
+    k->center.y -= velocity;
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
+      k->center.x += velocity;
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
+      k->center.x -= velocity;
+
+  } else if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+    k->center.x -= velocity;
+  } else if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+    k->center.x += velocity;
+  }
+
   return k->center;
 }

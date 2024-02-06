@@ -34,6 +34,9 @@ typedef struct Kite {
   float width;
   float height;
   float scale;
+  float center_rotation;
+
+  float speed;
 } Kite;
 
 void kite_init(Kite *k);
