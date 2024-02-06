@@ -28,8 +28,10 @@ int main(void) {
 
     pos_up = input_handler(&kite);
 
-    draw_kite(&kite, kite.center, kite.center_rotation);
-    draw_kite(&kite1, pos, 180);
+    // draw_kite(&kite, kite.center, kite.center_rotation, kite.tip_rotation);
+    // draw_kite(&kite, pos, kite.center_rotation, kite.tip_rotation);
+    draw_kite(&kite1, kite.center, 0, 70);
+    // draw_kite(&kite1, kite.center, 0, 180);
     EndDrawing();
   };
 
@@ -37,11 +39,34 @@ int main(void) {
   return 0;
 }
 
-void kite_update(Kite *k, Vector2 position, float center_deg_rotation) {
-  k->center.x = position.x;
-  k->center.y = position.y;
-  k->center_rotation = center_deg_rotation;
+void kite_tip_rotation(Kite *k, Vector2 position, float tip_deg_rotation) {
+  k->tip_rotation = tip_deg_rotation;
+  float cw = k->width;
 
+  float_t length = (cw / 2.f + k->spread);
+  float phi = (PI * (tip_deg_rotation) / 180);
+  Vector2 pos = {0};
+  // TODO: Move the body to the correct pos
+  //        base       + interpolation of the left tip + ...?
+  //                                                + 1- interpolation length
+  //                                           (that is something like below)
+  //                                               cw/2 - interpolation length
+  pos.x = position.x - ceilf(length) + ((length)*cexpf(I * phi));
+  pos.y = position.y + ceilf(length) - ((length)*cexpf(I * phi));
+
+  // kite_center_rotation(k, position, tip_deg_rotation);
+  kite_center_rotation(k, pos, tip_deg_rotation);
+
+  // NOTE: Should be done automatically
+  k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
+  k->rec.width = cw + k->spread * 2;
+  k->rec.x = position.x - ceilf((cw / 2.f + k->spread));
+  k->rec.y = position.y + ceilf((cw / 2.f + k->spread));
+}
+
+void kite_center_rotation(Kite *k, Vector2 position,
+                          float center_deg_rotation) {
+  k->center_rotation = center_deg_rotation;
   float cw = k->width;
   float is = k->inner_space;
   float o = k->overlap;
@@ -54,41 +79,64 @@ void kite_update(Kite *k, Vector2 position, float center_deg_rotation) {
 
   // LEFT Triangle
   // Correct
-  k->left.v1.x = k->center.x - ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
-  k->left.v1.y = k->center.y + ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
-  k->left.v2.x = k->center.x - ceilf(crealf(is * cexpf(I * (phi - bl_angle))));
-  k->left.v2.y = k->center.y + ceilf(cimagf(is * cexpf(I * (phi - bl_angle))));
-  k->left.v3.x = k->center.x + ceilf(crealf(o * cexpf(I * phi)));
-  k->left.v3.y = k->center.y - ceilf(cimagf(o * cexpf(I * phi)));
+  k->left.v1.x = position.x - ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
+  k->left.v1.y = position.y + ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  k->left.v2.x = position.x - ceilf(crealf(is * cexpf(I * (phi - bl_angle))));
+  k->left.v2.y = position.y + ceilf(cimagf(is * cexpf(I * (phi - bl_angle))));
+  k->left.v3.x = position.x + ceilf(crealf(o * cexpf(I * phi)));
+  k->left.v3.y = position.y - ceilf(cimagf(o * cexpf(I * phi)));
 
   // RIGHT Triangle
   // Correct
-  k->right.v1.x = k->center.x - ceilf(crealf(o * cexpf(I * phi)));
-  k->right.v1.y = k->center.y + ceilf(cimagf(o * cexpf(I * phi)));
-  k->right.v2.x = k->center.x + ceilf(crealf(is * cexpf(I * (phi - br_angle))));
-  k->right.v2.y = k->center.y - ceilf(cimagf(is * cexpf(I * (phi - br_angle))));
-  k->right.v3.x = k->center.x + ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
-  k->right.v3.y = k->center.y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  k->right.v1.x = position.x - ceilf(crealf(o * cexpf(I * phi)));
+  k->right.v1.y = position.y + ceilf(cimagf(o * cexpf(I * phi)));
+  k->right.v2.x = position.x + ceilf(crealf(is * cexpf(I * (phi - br_angle))));
+  k->right.v2.y = position.y - ceilf(cimagf(is * cexpf(I * (phi - br_angle))));
+  k->right.v3.x = position.x + ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
+  k->right.v3.y = position.y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
 
   // Just an random suitable height and width that fits the scaling and spread.
   k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
   k->rec.width = cw + k->spread * 2;
   k->rec.x =
-      k->center.x - ceilf(crealf((cw / 2.f + k->spread) * cexpf(I * phi)));
+      position.x - ceilf(crealf((cw / 2.f + k->spread) * cexpf(I * phi)));
   k->rec.y =
-      k->center.y + ceilf(cimagf((cw / 2.f + k->spread) * cexpf(I * phi)));
+      position.y + ceilf(cimagf((cw / 2.f + k->spread) * cexpf(I * phi)));
 }
 
-void draw_kite(Kite *k, Vector2 position, float center_deg_rotation) {
+void kite_update(Kite *k, Vector2 position, float center_deg_rotation,
+                 float tip_deg_rotation) {
+  k->center.x = position.x;
+  k->center.y = position.y;
+  k->center_rotation = center_deg_rotation;
+  k->tip_rotation = tip_deg_rotation;
 
-  kite_update(k, position, center_deg_rotation);
+  // TODO: ENABLE
+  // kite_center_rotation(k, position, center_deg_rotation);
+  kite_tip_rotation(k, position, tip_deg_rotation);
+}
+
+void draw_kite(Kite *k, Vector2 position, float center_deg_rotation,
+               float tip_deg_rotation) {
+  Vector2 origin = {0};
+
+  kite_update(k, position, center_deg_rotation, tip_deg_rotation);
+
   // Draw a color-filled triangle (vertex in counter-clockwise order!)
   DrawTriangle(k->left.v1, k->left.v2, k->left.v3, k->body_color);
   DrawTriangle(k->right.v1, k->right.v2, k->right.v3, k->body_color);
 
   // Just use origin 0 and compute the new position for the angel.
-  Vector2 origin = {0};
-  DrawRectanglePro(k->rec, origin, -center_deg_rotation, k->top_color);
+  if (k->center_rotation && k->tip_rotation) {
+    DrawRectanglePro(k->rec, origin, -k->center_rotation, k->top_color);
+    DrawRectanglePro(k->rec, origin, -k->tip_rotation, k->top_color);
+  } else if (k->center_rotation) {
+    DrawRectanglePro(k->rec, origin, -k->center_rotation, k->top_color);
+  } else if (k->tip_rotation) {
+    DrawRectanglePro(k->rec, origin, -k->tip_rotation, k->top_color);
+  } else {
+    DrawRectanglePro(k->rec, origin, 0, k->top_color);
+  }
 }
 
 void kite_init(Kite *k) {
@@ -96,7 +144,7 @@ void kite_init(Kite *k) {
   k->center.y = 0;
   k->center.x = GetScreenWidth() / 2.f;
   k->center.y = GetScreenHeight() / 2.f;
-  k->speed = 1;
+  k->speed = 30;
 
   k->body_color = TEAL;
   k->overlap = 8.f;
@@ -109,13 +157,14 @@ void kite_init(Kite *k) {
   k->height = 0.0f;
   k->scale = 7.f;
   k->center_rotation = 0;
+  k->tip_rotation = 0;
 
   k->overlap *= k->scale;
   k->inner_space *= k->scale;
   k->spread *= k->scale;
   k->width *= k->scale * 2;
 
-  kite_update(k, k->center, k->center_rotation);
+  kite_update(k, k->center, k->center_rotation, k->tip_rotation);
 
   k->height = fabsf(k->left.v1.y - k->left.v2.y);
 }

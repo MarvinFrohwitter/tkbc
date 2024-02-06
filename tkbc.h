@@ -4,7 +4,7 @@
 #include "raylib.h"
 
 #define TEAL                                                                   \
-  CLITERAL(Color) { 0, 128, 128, 255 } // Teal #define WINDOW_SCALE 120
+  CLITERAL(Color) { 0, 128, 128, 125 } // Teal #define WINDOW_SCALE 120
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
@@ -19,29 +19,39 @@ typedef struct Triangle {
 } Triangle;
 
 typedef struct Kite {
-  Vector2 center;
+  Vector2 center;        // The center position that is located at the center of the
+                         // top leading edge.
 
-  Color body_color;
-  Triangle left;
-  Triangle right;
-  float overlap;
-  float inner_space;
+  Color body_color;      // The color that is set for the kite body.
+  Triangle left;         // The left Triangle that forms the kite body.
+  Triangle right;        // The right Triangle that forms the kite body.
 
-  Color top_color;
-  Rectangle rec;
-  float spread;
+  float overlap;         // The overlap between the center position and the inner
+                         // triangle tip.
+  float inner_space;     // The distance between the bottom two tips. Calculated as
+                         // the length of the center position and the corresponding
+                         // tip.
 
-  float width;
-  float height;
-  float scale;
-  float center_rotation;
+  Color top_color;       // The color that is set for the leading edge.
+  Rectangle rec;         // The leading edge.
+  float spread;          // The overlap of the top leading edge to the side.
 
-  float speed;
+  float width;           // The width is dependent on the scale.
+  float height;          // The width is dependent on the scale.
+  float scale;           // The scale is recommended to set between 0 and 10.
+  float center_rotation; // The rotation is in degrees around the center position.
+  float tip_rotation;    // The rotation is in degrees around the left tip.
+
+  float speed;           // Kite movement speed set from 0 to 100.
 } Kite;
 
 void kite_init(Kite *k);
-void kite_update(Kite *k, Vector2 position, float center_deg_rotation);
-void draw_kite(Kite *k, Vector2 position, float center_deg_rotation);
+void kite_update(Kite *k, Vector2 position, float center_deg_rotation,
+                 float tip_deg_rotation);
+void kite_tip_rotation(Kite *k, Vector2 position, float tip_deg_rotation);
+void kite_center_rotation(Kite *k, Vector2 position, float center_deg_rotation);
+void draw_kite(Kite *k, Vector2 position, float center_deg_rotation,
+               float tip_deg_rotation);
 Vector2 input_handler(Kite *k);
 
 #endif // TKBC_H_
