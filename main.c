@@ -45,23 +45,21 @@ void kite_tip_rotation(Kite *k, Vector2 position, float tip_deg_rotation) {
 
   float_t length = (cw / 2.f + k->spread);
   float phi = (PI * (tip_deg_rotation) / 180);
-  Vector2 pos = {0};
-  // TODO: Move the body to the correct pos
-  //        base       + interpolation of the left tip + ...?
-  //                                                + 1- interpolation length
-  //                                           (that is something like below)
-  //                                               cw/2 - interpolation length
-  pos.x = position.x - ceilf(length) + ((length)*cexpf(I * phi));
-  pos.y = position.y + ceilf(length) - ((length)*cexpf(I * phi));
 
-  // kite_center_rotation(k, position, tip_deg_rotation);
+  Vector2 pos = {0};
+  // Move the rotation position to the left tip
+  pos.x = position.x - ceilf(length);
+  pos.y = position.y;
+  // Then rotate
+  pos.x += ceilf(crealf((length)*cexpf(I * phi)));
+  pos.y -= ceilf(cimagf((length)*cexpf(I * phi)));
+  // Just compute a center rotation instead at the new found pos
   kite_center_rotation(k, pos, tip_deg_rotation);
 
-  // NOTE: Should be done automatically
   k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
   k->rec.width = cw + k->spread * 2;
-  k->rec.x = position.x - ceilf((cw / 2.f + k->spread));
-  k->rec.y = position.y + ceilf((cw / 2.f + k->spread));
+  k->rec.x = position.x - ceilf(length);
+  k->rec.y = position.y;
 }
 
 void kite_center_rotation(Kite *k, Vector2 position,
@@ -179,6 +177,13 @@ Vector2 input_handler(Kite *k) {
     k->center_rotation += 45;
   } else if (IsKeyPressed(KEY_R)) {
     k->center_rotation -= 45;
+  }
+
+  if (IsKeyPressed(KEY_T) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    k->tip_rotation += 45;
+  } else if (IsKeyPressed(KEY_T)) {
+    k->tip_rotation -= 45;
   }
 
   if (IsKeyDown(KEY_P) &&
