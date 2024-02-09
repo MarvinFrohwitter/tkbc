@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "tkbc.h"
+#include <assert.h>
 #include <complex.h>
 #include <math.h>
 #include <stdio.h>
@@ -11,27 +12,21 @@ int main(void) {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(60);
-  Vector2 pos_up;
   Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
   printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(pos));
 
   Kite kite = {0};
-  Kite kite1 = {0};
   kite_init(&kite);
-  kite_init(&kite1);
-  kite1.body_color = RED;
-  kite.center.y += kite.height + 10;
-
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
-    pos_up = input_handler(&kite);
+    // kite_input_handler(&kite);
+    DrawCircle(kite.center.x, kite.center.y, 10, RED);
+    // TODO: The tip rotation function dose not update the center pos.
+    kite_tip_rotation(&kite, pos, 70, LEFT_TIP);
+    kite_draw_kite(&kite);
 
-    // draw_kite(&kite, kite.center, kite.center_rotation, kite.tip_rotation);
-    // draw_kite(&kite, pos, kite.center_rotation, kite.tip_rotation);
-    draw_kite(&kite1, kite.center, 0, 70);
-    // draw_kite(&kite1, kite.center, 0, 180);
     EndDrawing();
   };
 
@@ -39,41 +34,55 @@ int main(void) {
   return 0;
 }
 
-void kite_tip_rotation(Kite *k, Vector2 position, float tip_deg_rotation) {
-  k->tip_rotation = tip_deg_rotation;
-  float cw = k->width;
-
-  float_t length = (cw / 2.f + k->spread);
+void kite_tip_rotation(Kite *k, Vector2 position, float tip_deg_rotation,
+                       TIP tip) {
+  float_t length = (k->width / 2.f + k->spread);
   float phi = (PI * (tip_deg_rotation) / 180);
 
-  Vector2 pos = {0};
-  // Move the rotation position to the left tip
-  pos.x = position.x - ceilf(length);
-  pos.y = position.y;
-  // Then rotate
-  pos.x += ceilf(crealf((length)*cexpf(I * phi)));
-  pos.y -= ceilf(cimagf((length)*cexpf(I * phi)));
-  // Just compute a center rotation instead at the new found pos
-  kite_center_rotation(k, pos, tip_deg_rotation);
+  switch (tip) {
+  case LEFT_TIP: {
 
-  k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
-  k->rec.width = cw + k->spread * 2;
-  k->rec.x = position.x - ceilf(length);
-  k->rec.y = position.y;
+    // Move the rotation position to the left tip
+    position.x -= ceilf(length);
+    // // Then rotate
+    position.x += ceilf(crealf((length)*cexpf(I * phi)));
+    position.y -= ceilf(cimagf((length)*cexpf(I * phi)));
+  } break;
+  case RIGHT_TIP: {
+
+    // Move the rotation position to the right tip
+    position.x += ceilf(length);
+    // // Then rotate
+    position.x -= ceilf(crealf((length)*cexpf(I * phi)));
+    position.y += ceilf(cimagf((length)*cexpf(I * phi)));
+
+  } break;
+  default:
+    assert(0 && "The chosen TIP is not vallid!");
+    break;
+  }
+
+  // Just compute a center rotation instead at the new found position
+  kite_center_rotation(k, position, tip_deg_rotation);
 }
 
 void kite_center_rotation(Kite *k, Vector2 position,
                           float center_deg_rotation) {
+  // TODO: update is needed.
+  // k->center.x = position.x;
+  // k->center.y = position.y;
+
   k->center_rotation = center_deg_rotation;
   float cw = k->width;
   float is = k->inner_space;
   float o = k->overlap;
+  float_t length = (k->width / 2.f + k->spread);
 
   // The difference between the angle 0 and the default downward interpolation
   float angle = 42;
   float bl_angle = (PI * (360 - (90 - angle)) / 180);
   float br_angle = (PI * (360 + (90 - angle)) / 180);
-  float phi = (PI * (center_deg_rotation) / 180);
+  float phi = (PI * (k->center_rotation) / 180);
 
   // LEFT Triangle
   // Correct
@@ -95,46 +104,18 @@ void kite_center_rotation(Kite *k, Vector2 position,
 
   // Just an random suitable height and width that fits the scaling and spread.
   k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
-  k->rec.width = cw + k->spread * 2;
-  k->rec.x =
-      position.x - ceilf(crealf((cw / 2.f + k->spread) * cexpf(I * phi)));
-  k->rec.y =
-      position.y + ceilf(cimagf((cw / 2.f + k->spread) * cexpf(I * phi)));
+  k->rec.width = 2 * length;
+  k->rec.x = position.x - ceilf(crealf(length * cexpf(I * phi)));
+  k->rec.y = position.y + ceilf(cimagf(length * cexpf(I * phi)));
 }
 
-void kite_update(Kite *k, Vector2 position, float center_deg_rotation,
-                 float tip_deg_rotation) {
-  k->center.x = position.x;
-  k->center.y = position.y;
-  k->center_rotation = center_deg_rotation;
-  k->tip_rotation = tip_deg_rotation;
-
-  // TODO: ENABLE
-  // kite_center_rotation(k, position, center_deg_rotation);
-  kite_tip_rotation(k, position, tip_deg_rotation);
-}
-
-void draw_kite(Kite *k, Vector2 position, float center_deg_rotation,
-               float tip_deg_rotation) {
+void kite_draw_kite(Kite *k) {
   Vector2 origin = {0};
-
-  kite_update(k, position, center_deg_rotation, tip_deg_rotation);
 
   // Draw a color-filled triangle (vertex in counter-clockwise order!)
   DrawTriangle(k->left.v1, k->left.v2, k->left.v3, k->body_color);
   DrawTriangle(k->right.v1, k->right.v2, k->right.v3, k->body_color);
-
-  // Just use origin 0 and compute the new position for the angel.
-  if (k->center_rotation && k->tip_rotation) {
-    DrawRectanglePro(k->rec, origin, -k->center_rotation, k->top_color);
-    DrawRectanglePro(k->rec, origin, -k->tip_rotation, k->top_color);
-  } else if (k->center_rotation) {
-    DrawRectanglePro(k->rec, origin, -k->center_rotation, k->top_color);
-  } else if (k->tip_rotation) {
-    DrawRectanglePro(k->rec, origin, -k->tip_rotation, k->top_color);
-  } else {
-    DrawRectanglePro(k->rec, origin, 0, k->top_color);
-  }
+  DrawRectanglePro(k->rec, origin, -k->center_rotation, k->top_color);
 }
 
 void kite_init(Kite *k) {
@@ -155,36 +136,21 @@ void kite_init(Kite *k) {
   k->height = 0.0f;
   k->scale = 7.f;
   k->center_rotation = 0;
-  k->tip_rotation = 0;
 
   k->overlap *= k->scale;
   k->inner_space *= k->scale;
   k->spread *= k->scale;
   k->width *= k->scale * 2;
 
-  kite_update(k, k->center, k->center_rotation, k->tip_rotation);
+  kite_center_rotation(k, k->center, k->center_rotation);
 
   k->height = fabsf(k->left.v1.y - k->left.v2.y);
 }
 
-Vector2 input_handler(Kite *k) {
+void kite_input_handler(Kite *k) {
   float velocity = 10;
   velocity *= GetFrameTime();
   velocity *= k->speed;
-
-  if (IsKeyPressed(KEY_R) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    k->center_rotation += 45;
-  } else if (IsKeyPressed(KEY_R)) {
-    k->center_rotation -= 45;
-  }
-
-  if (IsKeyPressed(KEY_T) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    k->tip_rotation += 45;
-  } else if (IsKeyPressed(KEY_T)) {
-    k->tip_rotation -= 45;
-  }
 
   if (IsKeyDown(KEY_P) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
@@ -197,12 +163,31 @@ Vector2 input_handler(Kite *k) {
     }
   }
 
+  if (IsKeyPressed(KEY_R) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    kite_center_rotation(k, k->center, k->center_rotation + 45);
+    return;
+  } else if (IsKeyPressed(KEY_R)) {
+    kite_center_rotation(k, k->center, k->center_rotation - 45);
+    return;
+  }
+
+  if (IsKeyPressed(KEY_T) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    kite_tip_rotation(k, k->center, k->center_rotation + 45, LEFT_TIP);
+    return;
+  } else if (IsKeyPressed(KEY_T)) {
+    kite_tip_rotation(k, k->center, k->center_rotation - 45, LEFT_TIP);
+    return;
+  }
+
   if (IsKeyDown(KEY_J) || IsKeyDown(KEY_DOWN)) {
     k->center.y += velocity;
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
       k->center.x += velocity;
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
       k->center.x -= velocity;
+    kite_center_rotation(k, k->center, k->center_rotation);
 
   } else if (IsKeyDown(KEY_K) || IsKeyDown(KEY_UP)) {
     k->center.y -= velocity;
@@ -210,12 +195,13 @@ Vector2 input_handler(Kite *k) {
       k->center.x += velocity;
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
       k->center.x -= velocity;
+    kite_center_rotation(k, k->center, k->center_rotation);
 
   } else if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
     k->center.x -= velocity;
+    kite_center_rotation(k, k->center, k->center_rotation);
   } else if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
     k->center.x += velocity;
+    kite_center_rotation(k, k->center, k->center_rotation);
   }
-
-  return k->center;
 }
