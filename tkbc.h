@@ -46,12 +46,15 @@ typedef struct Kite {
 } Kite;
 
 typedef enum TIP { LEFT_TIP, RIGHT_TIP } TIP;
+typedef enum Orientation { KITE_Y, KITE_X } Orientation;
 
-void kite_init(Kite *k);
-void kite_tip_rotation(Kite *k, Vector2 position, float tip_deg_rotation,
+Kite *kite_init();
+void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
                        TIP tip);
-void kite_center_rotation(Kite *k, Vector2 position, float center_deg_rotation);
+void kite_center_rotation(Kite *k, Vector2 *position,
+                          float center_deg_rotation);
 void kite_draw_kite(Kite *k);
 void kite_input_handler(Kite *k);
+void kite_destroy(Kite *kite);
 
 #endif // TKBC_H_

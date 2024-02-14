@@ -4,6 +4,7 @@
 #include <complex.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(void) {
 
@@ -15,8 +16,7 @@ int main(void) {
   Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
   printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(pos));
 
-  Kite kite = {0};
-  kite_init(&kite);
+  Kite *kite = kite_init();
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
@@ -30,6 +30,7 @@ int main(void) {
     EndDrawing();
   };
 
+  kite_destroy(kite);
   CloseWindow();
   return 0;
 }
@@ -118,33 +119,54 @@ void kite_draw_kite(Kite *k) {
   DrawRectanglePro(k->rec, origin, -k->center_rotation, k->top_color);
 }
 
-void kite_init(Kite *k) {
-  k->center.x = 0;
-  k->center.y = 0;
-  k->center.x = GetScreenWidth() / 2.f;
-  k->center.y = GetScreenHeight() / 2.f;
-  k->speed = 30;
+void kite_destroy(Kite *kite) { free(kite); }
+Kite *kite_init() {
+  Kite *kite = calloc(1, sizeof(Kite));
+  kite->center.x = 0;
+  kite->center.y = 0;
+  kite->center.x = GetScreenWidth() / 2.f;
+  kite->center.y = GetScreenHeight() / 2.f;
+  kite->speed = 30;
 
-  k->body_color = TEAL;
-  k->overlap = 8.f;
-  k->inner_space = 20.f;
+  kite->body_color = TEAL;
+  kite->overlap = 8.f;
+  kite->inner_space = 20.f;
 
-  k->top_color = DARKGRAY;
-  k->spread = 0.2f;
+  kite->top_color = DARKGRAY;
+  kite->spread = 0.2f;
 
-  k->width = 20.0f;
-  k->height = 0.0f;
-  k->scale = 7.f;
-  k->center_rotation = 0;
+  kite->width = 20.0f;
+  kite->height = 0.0f;
+  kite->scale = 7.f;
+  kite->center_rotation = 0;
 
-  k->overlap *= k->scale;
-  k->inner_space *= k->scale;
-  k->spread *= k->scale;
-  k->width *= k->scale * 2;
+  kite->overlap *= kite->scale;
+  kite->inner_space *= kite->scale;
+  kite->spread *= kite->scale;
+  kite->width *= kite->scale * 2;
 
   kite_center_rotation(k, k->center, k->center_rotation);
 
-  k->height = fabsf(k->left.v1.y - k->left.v2.y);
+  kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
+  return kite;
+}
+
+int kite_check_boundary(Kite *kite, Orientation orientation) {
+  float width = GetScreenWidth();
+  float height = GetScreenHeight();
+  float x = kite->center.x;
+  float y = kite->center.y;
+  size_t padding = kite->width / 2;
+
+  switch (orientation) {
+  case KITE_X:
+    return x < width - padding && x > 0 + padding;
+  case KITE_Y:
+    return y < height - padding && y > 0 + padding;
+  default:
+    assert(0 && "UNREACHABLE");
+  }
+  return 0;
 }
 
 void kite_input_handler(Kite *k) {
