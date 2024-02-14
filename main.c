@@ -21,11 +21,10 @@ int main(void) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
-    // kite_input_handler(&kite);
-    DrawCircle(kite.center.x, kite.center.y, 10, RED);
-    // TODO: The tip rotation function dose not update the center pos.
-    kite_tip_rotation(&kite, pos, 70, LEFT_TIP);
-    kite_draw_kite(&kite);
+    kite_input_handler(kite);
+
+    kite_draw_kite(kite);
+    DrawCircle(kite->center.x, kite->center.y, 10, RED);
 
     EndDrawing();
   };
@@ -35,8 +34,15 @@ int main(void) {
   return 0;
 }
 
-void kite_tip_rotation(Kite *k, Vector2 position, float tip_deg_rotation,
+void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
                        TIP tip) {
+
+  Vector2 *pos = {0};
+  if (position != NULL)
+    pos = position;
+  else
+    pos = &k->center;
+
   float_t length = (k->width / 2.f + k->spread);
   float phi = (PI * (tip_deg_rotation) / 180);
 
@@ -44,18 +50,20 @@ void kite_tip_rotation(Kite *k, Vector2 position, float tip_deg_rotation,
   case LEFT_TIP: {
 
     // Move the rotation position to the left tip
-    position.x -= ceilf(length);
-    // // Then rotate
-    position.x += ceilf(crealf((length)*cexpf(I * phi)));
-    position.y -= ceilf(cimagf((length)*cexpf(I * phi)));
+    // With out it just flies a circle
+    pos->x -= ceilf(length);
+
+    // Then rotate
+    pos->x += ceilf(crealf((length)*cexpf(I * phi)));
+    pos->y -= ceilf(cimagf((length)*cexpf(I * phi)));
   } break;
   case RIGHT_TIP: {
 
     // Move the rotation position to the right tip
-    position.x += ceilf(length);
-    // // Then rotate
-    position.x -= ceilf(crealf((length)*cexpf(I * phi)));
-    position.y += ceilf(cimagf((length)*cexpf(I * phi)));
+    pos->x += ceilf(length);
+    // Then rotate
+    pos->x -= ceilf(crealf((length)*cexpf(I * phi)));
+    pos->y += ceilf(cimagf((length)*cexpf(I * phi)));
 
   } break;
   default:
@@ -64,14 +72,20 @@ void kite_tip_rotation(Kite *k, Vector2 position, float tip_deg_rotation,
   }
 
   // Just compute a center rotation instead at the new found position
-  kite_center_rotation(k, position, tip_deg_rotation);
+  kite_center_rotation(k, pos, tip_deg_rotation);
 }
 
-void kite_center_rotation(Kite *k, Vector2 position,
+void kite_center_rotation(Kite *k, Vector2 *position,
                           float center_deg_rotation) {
+  Vector2 *pos = {0};
+  if (position != NULL)
+    pos = position;
+  else
+    pos = &k->center;
+
   // TODO: update is needed.
-  // k->center.x = position.x;
-  // k->center.y = position.y;
+  k->center.x = pos->x;
+  k->center.y = pos->y;
 
   k->center_rotation = center_deg_rotation;
   float cw = k->width;
@@ -87,27 +101,27 @@ void kite_center_rotation(Kite *k, Vector2 position,
 
   // LEFT Triangle
   // Correct
-  k->left.v1.x = position.x - ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
-  k->left.v1.y = position.y + ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
-  k->left.v2.x = position.x - ceilf(crealf(is * cexpf(I * (phi - bl_angle))));
-  k->left.v2.y = position.y + ceilf(cimagf(is * cexpf(I * (phi - bl_angle))));
-  k->left.v3.x = position.x + ceilf(crealf(o * cexpf(I * phi)));
-  k->left.v3.y = position.y - ceilf(cimagf(o * cexpf(I * phi)));
+  k->left.v1.x = pos->x - ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
+  k->left.v1.y = pos->y + ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  k->left.v2.x = pos->x - ceilf(crealf(is * cexpf(I * (phi - bl_angle))));
+  k->left.v2.y = pos->y + ceilf(cimagf(is * cexpf(I * (phi - bl_angle))));
+  k->left.v3.x = pos->x + ceilf(crealf(o * cexpf(I * phi)));
+  k->left.v3.y = pos->y - ceilf(cimagf(o * cexpf(I * phi)));
 
   // RIGHT Triangle
   // Correct
-  k->right.v1.x = position.x - ceilf(crealf(o * cexpf(I * phi)));
-  k->right.v1.y = position.y + ceilf(cimagf(o * cexpf(I * phi)));
-  k->right.v2.x = position.x + ceilf(crealf(is * cexpf(I * (phi - br_angle))));
-  k->right.v2.y = position.y - ceilf(cimagf(is * cexpf(I * (phi - br_angle))));
-  k->right.v3.x = position.x + ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
-  k->right.v3.y = position.y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  k->right.v1.x = pos->x - ceilf(crealf(o * cexpf(I * phi)));
+  k->right.v1.y = pos->y + ceilf(cimagf(o * cexpf(I * phi)));
+  k->right.v2.x = pos->x + ceilf(crealf(is * cexpf(I * (phi - br_angle))));
+  k->right.v2.y = pos->y - ceilf(cimagf(is * cexpf(I * (phi - br_angle))));
+  k->right.v3.x = pos->x + ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
+  k->right.v3.y = pos->y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
 
   // Just an random suitable height and width that fits the scaling and spread.
   k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
   k->rec.width = 2 * length;
-  k->rec.x = position.x - ceilf(crealf(length * cexpf(I * phi)));
-  k->rec.y = position.y + ceilf(cimagf(length * cexpf(I * phi)));
+  k->rec.x = pos->x - ceilf(crealf(length * cexpf(I * phi)));
+  k->rec.y = pos->y + ceilf(cimagf(length * cexpf(I * phi)));
 }
 
 void kite_draw_kite(Kite *k) {
@@ -145,7 +159,7 @@ Kite *kite_init() {
   kite->spread *= kite->scale;
   kite->width *= kite->scale * 2;
 
-  kite_center_rotation(k, k->center, k->center_rotation);
+  kite_center_rotation(kite, NULL, kite->center_rotation);
 
   kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
   return kite;
@@ -187,21 +201,23 @@ void kite_input_handler(Kite *k) {
 
   if (IsKeyPressed(KEY_R) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    kite_center_rotation(k, k->center, k->center_rotation + 45);
-    return;
+    kite_center_rotation(k, NULL, k->center_rotation + 45);
   } else if (IsKeyPressed(KEY_R)) {
-    kite_center_rotation(k, k->center, k->center_rotation - 45);
-    return;
+    kite_center_rotation(k, NULL, k->center_rotation - 45);
   }
-
   if (IsKeyPressed(KEY_T) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    kite_tip_rotation(k, k->center, k->center_rotation + 45, LEFT_TIP);
-    return;
+    kite_tip_rotation(k, NULL, k->center_rotation + 45, LEFT_TIP);
   } else if (IsKeyPressed(KEY_T)) {
-    kite_tip_rotation(k, k->center, k->center_rotation - 45, LEFT_TIP);
-    return;
+    kite_tip_rotation(k, NULL, k->center_rotation - 45, LEFT_TIP);
   }
+
+  // if (!kite_check_boundary(k, KITE_Y)) {
+  //   return;
+  // }
+  // if (!kite_check_boundary(k, KITE_Y)) {
+  //   return;
+  // }
 
   if (IsKeyDown(KEY_J) || IsKeyDown(KEY_DOWN)) {
     k->center.y += velocity;
@@ -209,7 +225,7 @@ void kite_input_handler(Kite *k) {
       k->center.x += velocity;
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
       k->center.x -= velocity;
-    kite_center_rotation(k, k->center, k->center_rotation);
+    kite_center_rotation(k, NULL, k->center_rotation);
 
   } else if (IsKeyDown(KEY_K) || IsKeyDown(KEY_UP)) {
     k->center.y -= velocity;
@@ -217,13 +233,13 @@ void kite_input_handler(Kite *k) {
       k->center.x += velocity;
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
       k->center.x -= velocity;
-    kite_center_rotation(k, k->center, k->center_rotation);
+    kite_center_rotation(k, NULL, k->center_rotation);
 
   } else if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
     k->center.x -= velocity;
-    kite_center_rotation(k, k->center, k->center_rotation);
+    kite_center_rotation(k, NULL, k->center_rotation);
   } else if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
     k->center.x += velocity;
-    kite_center_rotation(k, k->center, k->center_rotation);
+    kite_center_rotation(k, NULL, k->center_rotation);
   }
 }
