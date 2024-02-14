@@ -1,5 +1,5 @@
 CC = cc
-LIBS = -lraylib
+LIBS = -lraylib -lm
 CFLAGS = -x c -O3 -pedantic -Wall -Wextra -std=c11 -ggdb
 
 all: options tkbc tkb.c.o

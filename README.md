@@ -6,5 +6,6 @@
 ### Build
 ```Shell
 $ make
+$ ./tkbc
 ```
 

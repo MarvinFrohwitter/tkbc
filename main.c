@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <complex.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -49,9 +50,14 @@ void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
   switch (tip) {
   case LEFT_TIP: {
 
-    // Move the rotation position to the left tip
     // With out it just flies a circle
-    pos->x -= ceilf(length);
+    // Just this is bicycle
+
+    // pos->x -= ceilf(length);
+
+    // Move the rotation position to the left tip
+    pos->x = k->left.v1.x;
+    pos->y = k->left.v1.y;
 
     // Then rotate
     pos->x += ceilf(crealf((length)*cexpf(I * phi)));
@@ -59,8 +65,11 @@ void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
   } break;
   case RIGHT_TIP: {
 
+    // pos->x += ceilf(length);
+
     // Move the rotation position to the right tip
-    pos->x += ceilf(length);
+    pos->x = k->right.v3.x;
+    pos->y = k->right.v3.y;
     // Then rotate
     pos->x -= ceilf(crealf((length)*cexpf(I * phi)));
     pos->y += ceilf(cimagf((length)*cexpf(I * phi)));
@@ -83,7 +92,6 @@ void kite_center_rotation(Kite *k, Vector2 *position,
   else
     pos = &k->center;
 
-  // TODO: update is needed.
   k->center.x = pos->x;
   k->center.y = pos->y;
 
@@ -183,6 +191,7 @@ int kite_check_boundary(Kite *kite, Orientation orientation) {
   return 0;
 }
 
+bool interrupt = false;
 void kite_input_handler(Kite *k) {
   float velocity = 10;
   velocity *= GetFrameTime();
@@ -205,11 +214,26 @@ void kite_input_handler(Kite *k) {
   } else if (IsKeyPressed(KEY_R)) {
     kite_center_rotation(k, NULL, k->center_rotation - 45);
   }
+
   if (IsKeyPressed(KEY_T) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    kite_tip_rotation(k, NULL, k->center_rotation + 45, LEFT_TIP);
+    interrupt = true;
+
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+      kite_tip_rotation(k, NULL, k->center_rotation + 45, RIGHT_TIP);
+    }
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+      kite_tip_rotation(k, NULL, k->center_rotation + 45, LEFT_TIP);
+    }
   } else if (IsKeyPressed(KEY_T)) {
-    kite_tip_rotation(k, NULL, k->center_rotation - 45, LEFT_TIP);
+    interrupt = true;
+
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+      kite_tip_rotation(k, NULL, k->center_rotation - 45, RIGHT_TIP);
+    }
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+      kite_tip_rotation(k, NULL, k->center_rotation - 45, LEFT_TIP);
+    }
   }
 
   // if (!kite_check_boundary(k, KITE_Y)) {
@@ -218,6 +242,22 @@ void kite_input_handler(Kite *k) {
   // if (!kite_check_boundary(k, KITE_Y)) {
   //   return;
   // }
+
+  // TODO: fixed angel rotations with locking like key F for FIX and otherwise
+  // angle smothe with like 1 degre or 5 and do maybe IsKeyReleased fot T,
+  // because the locked state can be checked.
+
+  // if (IsKeyReleased(KEY_T)) {
+  //   interrupt = false;
+  // }
+
+  if (IsKeyUp(KEY_T) && IsKeyUp(KEY_H) && IsKeyUp(KEY_L)) {
+    interrupt = false;
+  }
+
+  if (interrupt) {
+    return;
+  }
 
   if (IsKeyDown(KEY_J) || IsKeyDown(KEY_DOWN)) {
     k->center.y += velocity;
