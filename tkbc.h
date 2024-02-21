@@ -45,16 +45,26 @@ typedef struct Kite {
   float speed; // Kite movement speed set from 0 to 100.
 } Kite;
 
+typedef struct State {
+  Kite *kite;
+  float velocity;
+
+  bool interrupt_movement;
+  bool interrupt_smothness;
+  bool fixed;
+  bool iscenter;
+} State;
+
 typedef enum TIP { LEFT_TIP, RIGHT_TIP } TIP;
 typedef enum Orientation { KITE_Y, KITE_X } Orientation;
 
-Kite *kite_init();
+State *kite_init();
 void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
                        TIP tip);
 void kite_center_rotation(Kite *k, Vector2 *position,
                           float center_deg_rotation);
 void kite_draw_kite(Kite *k);
-void kite_input_handler(Kite *k);
+void kite_input_handler(State *s);
 void kite_destroy(Kite *kite);
 
 #endif // TKBC_H_
