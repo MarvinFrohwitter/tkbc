@@ -67,4 +67,5 @@ void kite_draw_kite(Kite *k);
 void kite_input_handler(State *s);
 void kite_destroy(Kite *kite);
 
+float kite_clamp(float z, float a, float b);
 #endif // TKBC_H_

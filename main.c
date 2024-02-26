@@ -286,6 +286,7 @@ void kite_input_handler(State *s) {
     }
   }
 
+  // TODO: Think about the clamp in terms of a tip rotation
   if (IsKeyDown(KEY_T) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
     // s->interrupt_movement = true;
@@ -412,28 +413,6 @@ void kite_input_handler(State *s) {
     }
   }
 
-  // TODO: Better viewport checking
-  // int viewport_padding = s->kite->width > s->kite->height ? s->kite->width/2
-  // : s->kite->height;
-  int viewport_padding = 0;
-  Rectangle viewport = {0 + viewport_padding, 0 + viewport_padding,
-                        GetScreenWidth() - 2 * viewport_padding,
-                        GetScreenHeight() - 2 * viewport_padding};
-  bool viewport_boundary = true;
-  if (!CheckCollisionPointRec(s->kite->center, viewport)) {
-    viewport_boundary = false;
-  }
-
-  if (!viewport_boundary) {
-    return;
-  }
-  // if (!kite_check_bous->kite->center_Y)) {
-  //   return;
-  // }
-  // if (!kite_check_boundary(k, KITE_Y)) {
-  //   return;
-  // }
-
   if (!s->iscenter) {
     if (IsKeyUp(KEY_T) && IsKeyUp(KEY_H) && IsKeyUp(KEY_L)) {
       s->interrupt_movement = false;
@@ -449,27 +428,48 @@ void kite_input_handler(State *s) {
     return;
   }
 
+  int viewport_padding =
+      s->kite->width > s->kite->height ? s->kite->width / 2 : s->kite->height;
+  Vector2 window = {GetScreenWidth(), GetScreenHeight()};
+  window.x -= viewport_padding;
+  window.y -= viewport_padding;
+
   if (IsKeyDown(KEY_J) || IsKeyDown(KEY_DOWN)) {
-    s->kite->center.y += s->velocity;
+    s->kite->center.y =
+        kite_clamp(s->kite->center.y + s->velocity, viewport_padding, window.y);
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
-      s->kite->center.x += s->velocity;
+      s->kite->center.x = kite_clamp(s->kite->center.x + s->velocity,
+                                     viewport_padding, window.x);
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
-      s->kite->center.x -= s->velocity;
+      s->kite->center.x = kite_clamp(s->kite->center.x - s->velocity,
+                                     viewport_padding, window.x);
+
     kite_center_rotation(s->kite, NULL, s->kite->center_rotation);
 
   } else if (IsKeyDown(KEY_K) || IsKeyDown(KEY_UP)) {
-    s->kite->center.y -= s->velocity;
+    s->kite->center.y =
+        kite_clamp(s->kite->center.y - s->velocity, viewport_padding, window.y);
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
-      s->kite->center.x += s->velocity;
+      s->kite->center.x = kite_clamp(s->kite->center.x + s->velocity,
+                                     viewport_padding, window.x);
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
-      s->kite->center.x -= s->velocity;
+      s->kite->center.x = kite_clamp(s->kite->center.x - s->velocity,
+                                     viewport_padding, window.x);
     kite_center_rotation(s->kite, NULL, s->kite->center_rotation);
 
   } else if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-    s->kite->center.x -= s->velocity;
+    s->kite->center.x =
+        kite_clamp(s->kite->center.x - s->velocity, viewport_padding, window.x);
     kite_center_rotation(s->kite, NULL, s->kite->center_rotation);
   } else if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-    s->kite->center.x += s->velocity;
+    s->kite->center.x =
+        kite_clamp(s->kite->center.x + s->velocity, viewport_padding, window.x);
     kite_center_rotation(s->kite, NULL, s->kite->center_rotation);
   }
+}
+
+float kite_clamp(float z, float a, float b) {
+
+  float s = z < a ? a : z;
+  return s < b ? s : b;
 }
