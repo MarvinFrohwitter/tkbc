@@ -17,12 +17,19 @@ int main(void) {
   Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
   printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(pos));
 
+  Image background_image = LoadImage("./assets/raw.png");
+  Texture2D background_texture = LoadTextureFromImage(background_image);
 
   State *state = kite_init();
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
+    float scale_width = (float)GetScreenWidth() / background_texture.width;
+    float scale_height = (float)GetScreenHeight() / background_texture.height;
+    float scale = fmaxf(scale_width, scale_height);
+    DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
+    // DrawTexture(background_texture, 0, 0, WHITE);
     kite_input_handler(state);
 
     kite_draw_kite(state->kite);
