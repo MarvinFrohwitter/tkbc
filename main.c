@@ -17,6 +17,7 @@ int main(void) {
   Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
   printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(pos));
 
+
   State *state = kite_init();
   while (!WindowShouldClose()) {
     BeginDrawing();
@@ -25,44 +26,57 @@ int main(void) {
     kite_input_handler(state);
 
     kite_draw_kite(state->kite);
-    DrawCircle(state->kite->center.x, state->kite->center.y, 10, RED);
+    // DrawCircle(state->kite->center.x, state->kite->center.y, 10, RED);
 
     EndDrawing();
   };
 
-  kite_destroy(state->kite);
+  kite_destroy(state);
+
   CloseWindow();
   return 0;
 }
-void kite_circle_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
-                          TIP tip) {
+void kite_circle_rotation(Kite *k, Vector2 *position, float deg_rotation,
+                          TIP tip, bool below) {
   Vector2 *pos = {0};
   if (position != NULL)
     pos = position;
   else
     pos = &k->center;
 
-  float_t length = (k->width / 2.f + k->spread);
-  float phi = (PI * (tip_deg_rotation) / 180);
+  // TODO: Change back to full circle size
+  // float_t length = k->height;
+  float_t length = k->height / 2;
+  float phi = (PI * (deg_rotation) / 180);
+  float center_angle = 0;
+  if (below) {
+    center_angle = (PI * (360 - 270) / 180);
+  } else {
+    center_angle = (PI * (360 - 90) / 180);
+  }
+
+  // center rotation point;
+  pos->x += ceilf(crealf((length)*cexpf(I * center_angle)));
+  pos->y += ceilf(cimagf((length)*cexpf(I * center_angle)));
 
   switch (tip) {
   case LEFT_TIP: {
 
-    // Then rotate
-    pos->x += ceilf(crealf((length)*cexpf(I * phi)));
-    pos->y -= ceilf(cimagf((length)*cexpf(I * phi)));
-  } break;
-  case RIGHT_TIP: {
     pos->x -= ceilf(crealf((length)*cexpf(I * phi)));
     pos->y += ceilf(cimagf((length)*cexpf(I * phi)));
 
+    kite_center_rotation(k, pos, deg_rotation);
+  } break;
+  case RIGHT_TIP: {
+
+    pos->x += ceilf(crealf((length)*cexpf(I * phi)));
+    pos->y -= ceilf(cimagf((length)*cexpf(I * phi)));
+
+    kite_center_rotation(k, pos, deg_rotation);
   } break;
   default:
     assert(0 && "The chosen TIP is not vallid!");
-    break;
   }
-  // Just compute a center rotation instead at the new found position
-  kite_center_rotation(k, pos, tip_deg_rotation);
 }
 
 void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
@@ -169,14 +183,17 @@ void kite_draw_kite(Kite *k) {
   DrawRectanglePro(k->rec, origin, -k->center_rotation, k->top_color);
 }
 
-void kite_destroy(Kite *kite) { free(kite); }
+void kite_destroy(State *state) {
+  free(state->kite);
+  free(state);
+}
 State *kite_init() {
   State *state = calloc(1, sizeof(State));
 
   state->iscenter = false;
   state->fixed = true;
   state->interrupt_movement = false;
-  state->interrupt_smothness = false;
+  state->interrupt_smoothness = false;
   state->velocity = 10;
 
   state->kite = calloc(1, sizeof(Kite));
@@ -234,186 +251,34 @@ void kite_input_handler(State *s) {
   s->velocity *= GetFrameTime();
   s->velocity *= s->kite->speed;
 
-  if (IsKeyUp(KEY_R) && IsKeyUp(KEY_T)) {
-    s->interrupt_smothness = false;
-  }
+  // Hard reset to top left corner angel 0, position (0,0)
+  if (IsKeyDown(KEY_SPACE))
+    kite_center_rotation(s->kite, &(CLITERAL(Vector2){.x = 0, .y = 0}), 0);
 
-  if (s->interrupt_smothness) {
+  if (IsKeyDown(KEY_N))
+    kite_center_rotation(s->kite, NULL, 0);
+
+  if (IsKeyUp(KEY_R) && IsKeyUp(KEY_T)) {
+    s->interrupt_smoothness = false;
+  }
+  if (s->interrupt_smoothness) {
     return;
   }
 
-  if (IsKeyDown(KEY_P) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    if (s->kite->speed > 0) {
-      s->kite->speed -= 1;
-    }
-  } else if (IsKeyDown(KEY_P)) {
-    if (s->kite->speed <= 100) {
-      s->kite->speed += 1;
-    }
-  }
-
+  kite_input_check_speed(s);
   if (IsKeyPressed(KEY_F)) {
     s->fixed = !s->fixed;
     return;
   }
 
-  if (IsKeyDown(KEY_R) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    s->iscenter = true;
-
-    if (!s->fixed) {
-      kite_center_rotation(s->kite, NULL, s->kite->center_rotation + 1);
-    } else {
-      if (!s->interrupt_smothness) {
-        s->interrupt_movement = true;
-        kite_center_rotation(s->kite, NULL, s->kite->center_rotation + 45);
-      }
-      s->interrupt_smothness = true;
-    }
-
-  } else if (IsKeyDown(KEY_R)) {
-    s->iscenter = true;
-
-    if (!s->fixed) {
-      kite_center_rotation(s->kite, NULL, s->kite->center_rotation - 1);
-    } else {
-      if (!s->interrupt_smothness) {
-        s->interrupt_movement = true;
-        kite_center_rotation(s->kite, NULL, s->kite->center_rotation - 45);
-      }
-      s->interrupt_smothness = true;
-    }
-  }
-
-  // TODO: Think about the clamp in terms of a tip rotation
-  if (IsKeyDown(KEY_T) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    // s->interrupt_movement = true;
-
-    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-
-      if (!s->fixed) {
-        kite_tip_rotation(s->kite, NULL, s->kite->center_rotation + 1,
-                          RIGHT_TIP);
-      } else {
-        if (!s->interrupt_smothness) {
-          s->interrupt_movement = true;
-          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation + 45,
-                            RIGHT_TIP);
-        }
-        s->interrupt_smothness = true;
-      }
-    }
-
-    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-      if (!s->fixed) {
-        kite_tip_rotation(s->kite, NULL, s->kite->center_rotation + 1,
-                          LEFT_TIP);
-      } else {
-        if (!s->interrupt_smothness) {
-          s->interrupt_movement = true;
-          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation + 45,
-                            LEFT_TIP);
-        }
-        s->interrupt_smothness = true;
-      }
-    }
-  } else if (IsKeyDown(KEY_T)) {
-    // s->interrupt_movement = true;
-
-    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-      if (!s->fixed) {
-        kite_tip_rotation(s->kite, NULL, s->kite->center_rotation - 1,
-                          RIGHT_TIP);
-      } else {
-        if (!s->interrupt_smothness) {
-          s->interrupt_movement = true;
-          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation - 45,
-                            RIGHT_TIP);
-        }
-        s->interrupt_smothness = true;
-      }
-    }
-    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-      if (!s->fixed) {
-        kite_tip_rotation(s->kite, NULL, s->kite->center_rotation - 1,
-                          LEFT_TIP);
-      } else {
-        if (!s->interrupt_smothness) {
-          s->interrupt_movement = true;
-          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation - 45,
-                            LEFT_TIP);
-        }
-        s->interrupt_smothness = true;
-      }
-    }
-  }
-
-  if (IsKeyDown(KEY_C) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    // s->interrupt_movement = true;
-
-    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-
-      if (!s->fixed) {
-        kite_circle_rotation(s->kite, NULL, s->kite->center_rotation + 1,
-                          RIGHT_TIP);
-      } else {
-        if (!s->interrupt_smothness) {
-          s->interrupt_movement = true;
-          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation + 45,
-                            RIGHT_TIP);
-        }
-        s->interrupt_smothness = true;
-      }
-    }
-
-    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-      if (!s->fixed) {
-        kite_circle_rotation(s->kite, NULL, s->kite->center_rotation + 1,
-                          LEFT_TIP);
-      } else {
-        if (!s->interrupt_smothness) {
-          s->interrupt_movement = true;
-          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation + 45,
-                            LEFT_TIP);
-        }
-        s->interrupt_smothness = true;
-      }
-    }
-  } else if (IsKeyDown(KEY_C)) {
-    // s->interrupt_movement = true;
-
-    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-      if (!s->fixed) {
-        kite_circle_rotation(s->kite, NULL, s->kite->center_rotation - 1,
-                          RIGHT_TIP);
-      } else {
-        if (!s->interrupt_smothness) {
-          s->interrupt_movement = true;
-          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation - 45,
-                            RIGHT_TIP);
-        }
-        s->interrupt_smothness = true;
-      }
-    }
-    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-      if (!s->fixed) {
-        kite_circle_rotation(s->kite, NULL, s->kite->center_rotation - 1,
-                          LEFT_TIP);
-      } else {
-        if (!s->interrupt_smothness) {
-          s->interrupt_movement = true;
-          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation - 45,
-                            LEFT_TIP);
-        }
-        s->interrupt_smothness = true;
-      }
-    }
-  }
+  kite_input_check_rotation(s);
+  kite_input_check_tip_turn(s);
+  kite_input_check_circle(s);
 
   if (!s->iscenter) {
+    // NOTE: Currently not check for arrow KEY_RIGHT and KEY_LEFT, so that you
+    // can still move the kite with no interrupt but with steps of 45 degrees
+    // angle.
     if (IsKeyUp(KEY_T) && IsKeyUp(KEY_H) && IsKeyUp(KEY_L)) {
       s->interrupt_movement = false;
     }
@@ -423,11 +288,174 @@ void kite_input_handler(State *s) {
       s->interrupt_movement = false;
     }
   }
-
   if (s->interrupt_movement) {
     return;
   }
 
+  kite_input_check_movement(s);
+}
+
+void kite_input_check_rotation(State *s) {
+
+  if (IsKeyDown(KEY_R) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    s->iscenter = true;
+
+    if (!s->fixed) {
+      kite_center_rotation(s->kite, NULL, s->kite->center_rotation + 1);
+    } else {
+      if (!s->interrupt_smoothness) {
+        s->interrupt_movement = true;
+        kite_center_rotation(s->kite, NULL, s->kite->center_rotation + 45);
+      }
+      s->interrupt_smoothness = true;
+    }
+
+  } else if (IsKeyDown(KEY_R)) {
+    s->iscenter = true;
+
+    if (!s->fixed) {
+      kite_center_rotation(s->kite, NULL, s->kite->center_rotation - 1);
+    } else {
+      if (!s->interrupt_smoothness) {
+        s->interrupt_movement = true;
+        kite_center_rotation(s->kite, NULL, s->kite->center_rotation - 45);
+      }
+      s->interrupt_smoothness = true;
+    }
+  }
+}
+
+void kite_input_check_tip_turn(State *s) {
+  // TODO: Think about the clamp in terms of a tip rotation
+  if (IsKeyDown(KEY_T) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+
+      if (!s->fixed) {
+        kite_tip_rotation(s->kite, NULL, s->kite->center_rotation + 1,
+                          RIGHT_TIP);
+      } else {
+        if (!s->interrupt_smoothness) {
+          s->interrupt_movement = true;
+          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation + 45,
+                            RIGHT_TIP);
+        }
+        s->interrupt_smoothness = true;
+      }
+    }
+
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+      if (!s->fixed) {
+        kite_tip_rotation(s->kite, NULL, s->kite->center_rotation + 1,
+                          LEFT_TIP);
+      } else {
+        if (!s->interrupt_smoothness) {
+          s->interrupt_movement = true;
+          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation + 45,
+                            LEFT_TIP);
+        }
+        s->interrupt_smoothness = true;
+      }
+    }
+  } else if (IsKeyDown(KEY_T)) {
+
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+      if (!s->fixed) {
+        kite_tip_rotation(s->kite, NULL, s->kite->center_rotation - 1,
+                          RIGHT_TIP);
+      } else {
+        if (!s->interrupt_smoothness) {
+          s->interrupt_movement = true;
+          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation - 45,
+                            RIGHT_TIP);
+        }
+        s->interrupt_smoothness = true;
+      }
+    }
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+      if (!s->fixed) {
+        kite_tip_rotation(s->kite, NULL, s->kite->center_rotation - 1,
+                          LEFT_TIP);
+      } else {
+        if (!s->interrupt_smoothness) {
+          s->interrupt_movement = true;
+          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation - 45,
+                            LEFT_TIP);
+        }
+        s->interrupt_smoothness = true;
+      }
+    }
+  }
+}
+
+void kite_input_check_circle(State *s) {
+  if (IsKeyPressed(KEY_C) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+
+    s->interrupt_movement = true;
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+
+      if (!s->fixed) {
+        kite_circle_rotation(s->kite, NULL, s->kite->center_rotation + 1,
+                             RIGHT_TIP, false);
+      } else {
+        if (!s->interrupt_smoothness) {
+          s->interrupt_movement = true;
+          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation + 45,
+                               RIGHT_TIP, false);
+        }
+        s->interrupt_smoothness = true;
+      }
+    }
+
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+      if (!s->fixed) {
+        kite_circle_rotation(s->kite, NULL, s->kite->center_rotation - 1,
+                             LEFT_TIP, false);
+      } else {
+        if (!s->interrupt_smoothness) {
+          s->interrupt_movement = true;
+          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation - 45,
+                               LEFT_TIP, false);
+        }
+        s->interrupt_smoothness = true;
+      }
+    }
+  } else if (IsKeyPressed(KEY_C)) {
+    s->interrupt_movement = true;
+
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+      if (!s->fixed) {
+        kite_circle_rotation(s->kite, NULL, s->kite->center_rotation - 1,
+                             RIGHT_TIP, true);
+      } else {
+        if (!s->interrupt_smoothness) {
+          s->interrupt_movement = true;
+          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation - 45,
+                               RIGHT_TIP, true);
+        }
+        s->interrupt_smoothness = true;
+      }
+    }
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+      if (!s->fixed) {
+        kite_circle_rotation(s->kite, NULL, s->kite->center_rotation + 1,
+                             LEFT_TIP, true);
+      } else {
+        if (!s->interrupt_smoothness) {
+          s->interrupt_movement = true;
+          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation + 45,
+                               LEFT_TIP, true);
+        }
+        s->interrupt_smoothness = true;
+      }
+    }
+  }
+}
+
+void kite_input_check_movement(State *s) {
   int viewport_padding =
       s->kite->width > s->kite->height ? s->kite->width / 2 : s->kite->height;
   Vector2 window = {GetScreenWidth(), GetScreenHeight()};
@@ -465,6 +493,19 @@ void kite_input_handler(State *s) {
     s->kite->center.x =
         kite_clamp(s->kite->center.x + s->velocity, viewport_padding, window.x);
     kite_center_rotation(s->kite, NULL, s->kite->center_rotation);
+  }
+}
+
+void kite_input_check_speed(State *s) {
+  if (IsKeyDown(KEY_P) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    if (s->kite->speed > 0) {
+      s->kite->speed -= 1;
+    }
+  } else if (IsKeyDown(KEY_P)) {
+    if (s->kite->speed <= 100) {
+      s->kite->speed += 1;
+    }
   }
 }
 

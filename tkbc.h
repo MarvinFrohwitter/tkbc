@@ -4,7 +4,7 @@
 #include "raylib.h"
 
 #define TEAL                                                                   \
-  CLITERAL(Color) { 0, 128, 128, 125 } // Teal #define WINDOW_SCALE 120
+  CLITERAL(Color) { 0, 128, 128, 255 } // Teal #define WINDOW_SCALE 120
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
@@ -50,7 +50,7 @@ typedef struct State {
   float velocity;
 
   bool interrupt_movement;
-  bool interrupt_smothness;
+  bool interrupt_smoothness;
   bool fixed;
   bool iscenter;
 } State;
@@ -59,13 +59,21 @@ typedef enum TIP { LEFT_TIP, RIGHT_TIP } TIP;
 typedef enum Orientation { KITE_Y, KITE_X } Orientation;
 
 State *kite_init();
+void kite_destroy(State *state);
 void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
                        TIP tip);
 void kite_center_rotation(Kite *k, Vector2 *position,
                           float center_deg_rotation);
+void kite_circle_rotation(Kite *k, Vector2 *position, float deg_rotation,
+                          TIP tip, bool below);
 void kite_draw_kite(Kite *k);
 void kite_input_handler(State *s);
-void kite_destroy(Kite *kite);
+void kite_input_check_rotation(State *s);
+void kite_input_check_tip_turn(State *s);
+void kite_input_check_circle(State *s);
+void kite_input_check_movement(State *s);
+void kite_input_check_speed(State *s);
 
 float kite_clamp(float z, float a, float b);
+
 #endif // TKBC_H_
