@@ -7,13 +7,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "./tkbc_scripts/first.tkb.c"
+
 int main(void) {
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-  SetTargetFPS(60);
+  SetTargetFPS(TARGET_FPS);
   Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
   printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(pos));
 
@@ -29,17 +31,19 @@ int main(void) {
     float scale_height = (float)GetScreenHeight() / background_texture.height;
     float scale = fmaxf(scale_width, scale_height);
     DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
-    // DrawTexture(background_texture, 0, 0, WHITE);
-    kite_input_handler(state);
 
     kite_draw_kite(state->kite);
-    // DrawCircle(state->kite->center.x, state->kite->center.y, 10, RED);
+    kite_input_handler(state);
 
+    // if (state->interrupt_script) {
+    //   kite_script_input(state);
+    // }
+
+    DrawFPS(pos.x, 10);
     EndDrawing();
   };
 
   kite_destroy(state);
-
   CloseWindow();
   return 0;
 }
@@ -197,11 +201,12 @@ void kite_destroy(State *state) {
 State *kite_init() {
   State *state = calloc(1, sizeof(State));
 
+  state->velocity = 10;
   state->iscenter = false;
   state->fixed = true;
   state->interrupt_movement = false;
   state->interrupt_smoothness = false;
-  state->velocity = 10;
+  state->interrupt_script = true;
 
   state->kite = calloc(1, sizeof(Kite));
 
@@ -520,4 +525,66 @@ float kite_clamp(float z, float a, float b) {
 
   float s = z < a ? a : z;
   return s < b ? s : b;
+}
+
+// ===========================================================================
+// ========================== Script Handler =================================
+// ===========================================================================
+
+void kite_script_begin(State *state) {
+  state->interrupt_script = true;
+  SetTargetFPS(1);
+}
+void kite_script_end(State *state) {
+  state->interrupt_script = false;
+  SetTargetFPS(TARGET_FPS);
+}
+
+void kite_script_move(Kite *kite, float steps_x, float steps_y,
+                      PARAMETERS parameters) {
+
+  Vector2 pos = {0};
+
+  switch (parameters) {
+  case FIXED: {
+  final_pos:
+    pos.x = steps_x;
+    pos.y = steps_y;
+    kite_center_rotation(kite, &pos, 0);
+    kite_draw_kite(kite);
+  } break;
+  case SMOOTH: {
+
+    size_t maxiter = fmaxf(fabsf(steps_x), fabsf(steps_y));
+    float iter_space_x = fabsf(steps_x) / maxiter;
+    float iter_space_y = fabsf(steps_x) / maxiter;
+
+    // TODO: What we do if the x and y are diffrent
+    assert(steps_x == steps_y);
+    for (size_t i = 0; i < maxiter; ++i) {
+
+      if (floorf(pos.x) != steps_x) {
+        pos.x = steps_x > 0 ? pos.x + iter_space_x : pos.x - iter_space_x;
+      }
+
+      if (floorf(pos.y) != steps_y) {
+        pos.y = steps_y > 0 ? pos.y + iter_space_y : pos.y - iter_space_y;
+      }
+      if (steps_x == 0)
+        pos.x = steps_x;
+      if (steps_y == 0)
+        pos.y = steps_y;
+
+      kite_center_rotation(kite, &pos, 0);
+      kite_draw_kite(kite);
+    }
+
+    // Just in case the rounding of the iterations is not enough to reach the
+    // final position.
+    goto final_pos;
+
+  } break;
+  default:
+    assert(0 && "ERROR: kite_script_move: UNREACHABLE");
+  }
 }
