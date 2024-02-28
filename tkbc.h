@@ -8,6 +8,7 @@
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
+#define TARGET_FPS 60
 
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
@@ -53,10 +54,15 @@ typedef struct State {
   bool interrupt_smoothness;
   bool fixed;
   bool iscenter;
+  bool interrupt_script;
 } State;
 
 typedef enum TIP { LEFT_TIP, RIGHT_TIP } TIP;
 typedef enum Orientation { KITE_Y, KITE_X } Orientation;
+
+// ===========================================================================
+// ========================== Kite Declarations ==============================
+// ===========================================================================
 
 State *kite_init();
 void kite_destroy(State *state);
@@ -75,5 +81,21 @@ void kite_input_check_movement(State *s);
 void kite_input_check_speed(State *s);
 
 float kite_clamp(float z, float a, float b);
+
+// ===========================================================================
+// ========================== Script Handler =================================
+// ===========================================================================
+
+typedef enum PARAMETERS {
+  FIXED,
+  SMOOTH,
+} PARAMETERS;
+
+void kite_script_input(State *state);
+void kite_script_begin(State *state);
+void kite_script_end(State *state);
+
+void kite_script_move(Kite *kite, float steps_x, float steps_y,
+                      PARAMETERS parameters);
 
 #endif // TKBC_H_

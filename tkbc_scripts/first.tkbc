@@ -1,0 +1,8 @@
+move 5 smooth
+move 5 fixed
+rotate 45 smooth
+rotate 45 fixed
+rotatetip left 45 smooth
+rotatetip left 45 fixed
+rotatetip right 45 smooth
+rotatetip right 45 fixed
