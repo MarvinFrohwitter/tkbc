@@ -32,13 +32,16 @@ int main(void) {
     float scale = fmaxf(scale_width, scale_height);
     DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
 
-    kite_draw_kite(state->kite);
-    kite_input_handler(state);
-
     // if (state->interrupt_script) {
-    //   kite_script_input(state);
+    //   // kite_script_input(state);
+    // } else {
+    //   // kite_draw_kite(state->kite);
     // }
 
+    kite_script_input(state);
+
+    kite_draw_kite(state->kite);
+    kite_input_handler(state);
     DrawFPS(pos.x, 10);
     EndDrawing();
   };
@@ -207,6 +210,7 @@ State *kite_init() {
   state->interrupt_movement = false;
   state->interrupt_smoothness = false;
   state->interrupt_script = true;
+  state->instruction_counter = 0;
 
   state->kite = calloc(1, sizeof(Kite));
 
@@ -559,7 +563,7 @@ void kite_script_move(Kite *kite, float steps_x, float steps_y,
     float iter_space_x = fabsf(steps_x) / maxiter;
     float iter_space_y = fabsf(steps_x) / maxiter;
 
-    // TODO: What we do if the x and y are diffrent
+    // TODO: What we do if the x and y are different
     assert(steps_x == steps_y);
     for (size_t i = 0; i < maxiter; ++i) {
 
@@ -586,5 +590,83 @@ void kite_script_move(Kite *kite, float steps_x, float steps_y,
   } break;
   default:
     assert(0 && "ERROR: kite_script_move: UNREACHABLE");
+  }
+}
+
+void kite_script_rotate(Kite *kite, float angle, PARAMETERS parameters) {
+
+  switch (parameters) {
+  case FIXED: {
+    kite_center_rotation(kite, NULL, angle);
+    kite_draw_kite(kite);
+  } break;
+  case SMOOTH: {
+    if (angle < 0) {
+      for (size_t i = 0; i >= angle; --i) {
+        kite_center_rotation(kite, NULL, kite->center_rotation + i);
+        kite_draw_kite(kite);
+      }
+    } else {
+      for (size_t i = 0; i <= angle; ++i) {
+        kite_center_rotation(kite, NULL, kite->center_rotation + i);
+        kite_draw_kite(kite);
+      }
+    }
+
+    // Just in case because we accept floats that could potentially be not an
+    // integer. Draw the rest of the rotation.
+    kite_center_rotation(kite, NULL, angle);
+    kite_draw_kite(kite);
+
+  } break;
+  default:
+    assert(0 && "ERROR: kite_script_rotate: UNREACHABLE");
+  }
+}
+
+void kite_script_rotate_tip(Kite *kite, TIP tip, float angle,
+                            PARAMETERS parameters) {
+
+  switch (parameters) {
+  case FIXED: {
+    switch (tip) {
+    case LEFT_TIP:
+    case RIGHT_TIP:
+      kite_tip_rotation(kite, NULL, angle, tip);
+      kite_draw_kite(kite);
+      break;
+    default:
+      assert(0 && "ERROR: kite_script_rotate_tip: FIXED: UNREACHABLE");
+    }
+
+  } break;
+  case SMOOTH: {
+    switch (tip) {
+    case LEFT_TIP:
+    case RIGHT_TIP:
+      if (angle < 0) {
+        for (size_t i = 0; i >= angle; --i) {
+          kite_tip_rotation(kite, NULL, kite->center_rotation + angle, tip);
+          kite_draw_kite(kite);
+        }
+      } else {
+        for (size_t i = 0; i <= angle; ++i) {
+          kite_tip_rotation(kite, NULL, kite->center_rotation + angle, tip);
+          kite_draw_kite(kite);
+        }
+      }
+      break;
+    default:
+      assert(0 && "ERROR: kite_script_rotate_tip: SMOOTH: UNREACHABLE");
+    }
+
+    // Just in case because we accept floats that could potentially be not an
+    // integer. Draw the rest of the rotation.
+    kite_tip_rotation(kite, NULL, angle, tip);
+    kite_draw_kite(kite);
+
+  } break;
+  default:
+    assert(0 && "ERROR: kite_script_rotate_tip: UNREACHABLE");
   }
 }

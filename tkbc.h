@@ -54,7 +54,9 @@ typedef struct State {
   bool interrupt_smoothness;
   bool fixed;
   bool iscenter;
+
   bool interrupt_script;
+  int instruction_counter;
 } State;
 
 typedef enum TIP { LEFT_TIP, RIGHT_TIP } TIP;
@@ -97,5 +99,8 @@ void kite_script_end(State *state);
 
 void kite_script_move(Kite *kite, float steps_x, float steps_y,
                       PARAMETERS parameters);
+void kite_script_rotate(Kite *kite, float angle, PARAMETERS parameters);
+void kite_script_rotate_tip(Kite *kite, TIP tip, float angle,
+                            PARAMETERS parameters);
 
 #endif // TKBC_H_
