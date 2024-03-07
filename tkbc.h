@@ -43,12 +43,14 @@ typedef struct Kite {
   float
       center_rotation; // The rotation is in degrees around the center position.
 
-  float speed; // Kite movement speed set from 0 to 100.
+  float fly_speed; // Kite movement speed set from 0 to 100.
+  float turn_speed; // Kite turn speed set from 0 to 100.
 } Kite;
 
 typedef struct State {
   Kite *kite;
-  float velocity;
+  float fly_velocity;
+  float turn_velocity;
 
   bool interrupt_movement;
   bool interrupt_smoothness;
