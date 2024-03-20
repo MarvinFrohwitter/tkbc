@@ -65,11 +65,10 @@ int main(void) {
 
     if (IsFileDropped()) {
       FilePathList file_path_list = LoadDroppedFiles();
-      for (size_t i = 0; i < file_path_list.count; ++i) {
-        fprintf(stderr, "ERROR: FILE: PATH :MUSIC: %s\n",
-                file_path_list.paths[i]);
-
+      for (size_t i = 0; i < file_path_list.count && i < 1; ++i) {
         char *file_path = file_path_list.paths[i];
+        fprintf(stderr, "ERROR: FILE: PATH :MUSIC: %s\n",
+                file_path);
         kite_sound = LoadSound(file_path);
       }
       UnloadDroppedFiles(file_path_list);
