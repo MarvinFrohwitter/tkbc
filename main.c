@@ -6,9 +6,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "./tkbc_scripts/first.tkb.c"
-Wave kite_wave;
 Sound kite_sound;
 
 int main(void) {
@@ -28,10 +28,6 @@ int main(void) {
   InitAudioDevice();
   if (IsAudioDeviceReady()) {
     SetMasterVolume(40);
-  }
-  kite_wave = LoadWave("./assets/Quest-of-Power.mp3");
-  if (IsWaveReady(kite_wave)) {
-    kite_sound = LoadSoundFromWave(kite_wave);
   }
 
   State *state = kite_init();
@@ -67,13 +63,24 @@ int main(void) {
       EndDrawing();
     }
 
+    if (IsFileDropped()) {
+      FilePathList file_path_list = LoadDroppedFiles();
+      for (size_t i = 0; i < file_path_list.count; ++i) {
+        fprintf(stderr, "ERROR: FILE: PATH :MUSIC: %s\n",
+                file_path_list.paths[i]);
+
+        char *file_path = file_path_list.paths[i];
+        kite_sound = LoadSound(file_path);
+      }
+      UnloadDroppedFiles(file_path_list);
+    }
+
     kite_input_handler(state);
   };
 
   kite_destroy(state);
   StopSound(kite_sound);
   UnloadSound(kite_sound);
-  UnloadWave(kite_wave);
   CloseAudioDevice();
   CloseWindow();
   return 0;
