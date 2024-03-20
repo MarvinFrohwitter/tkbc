@@ -117,7 +117,7 @@ void kite_circle_rotation(Kite *k, Vector2 *position, float deg_rotation,
     kite_center_rotation(k, pos, deg_rotation);
   } break;
   default:
-    assert(0 && "The chosen TIP is not vallid!");
+    assert(0 && "The chosen TIP is not valid!");
   }
 }
 
@@ -160,7 +160,7 @@ void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
 
   } break;
   default:
-    assert(0 && "The chosen TIP is not vallid!");
+    assert(0 && "The chosen TIP is not valid!");
     break;
   }
 
@@ -210,7 +210,9 @@ void kite_center_rotation(Kite *k, Vector2 *position,
   k->right.v3.y = pos->y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
 
   // Just an random suitable height and width that fits the scaling and spread.
-  k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
+  // k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
+  // k->rec.height = 2 * PI * k->spread;
+  k->rec.height = 2 * PI * logf(k->scale);
   k->rec.width = 2 * length;
   k->rec.x = pos->x - ceilf(crealf(length * cexpf(I * phi)));
   k->rec.y = pos->y + ceilf(cimagf(length * cexpf(I * phi)));
@@ -259,7 +261,8 @@ State *kite_init() {
 
   state->kite->width = 20.0f;
   state->kite->height = 0.0f;
-  state->kite->scale = 7.f;
+  // state->kite->scale = 7.f;
+  state->kite->scale = 4.f;
   state->kite->center_rotation = 0;
 
   state->kite->overlap *= state->kite->scale;
