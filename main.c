@@ -8,6 +8,8 @@
 #include <stdlib.h>
 
 #include "./tkbc_scripts/first.tkb.c"
+Wave kite_wave;
+Sound kite_sound;
 
 int main(void) {
 
@@ -16,37 +18,63 @@ int main(void) {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(TARGET_FPS);
+  SetExitKey(KEY_ESCAPE);
   Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
   printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(pos));
 
   Image background_image = LoadImage("./assets/raw.png");
   Texture2D background_texture = LoadTextureFromImage(background_image);
 
+  InitAudioDevice();
+  if (IsAudioDeviceReady()) {
+    SetMasterVolume(40);
+  }
+  kite_wave = LoadWave("./assets/Quest-of-Power.mp3");
+  if (IsWaveReady(kite_wave)) {
+    kite_sound = LoadSoundFromWave(kite_wave);
+  }
+
   State *state = kite_init();
+  state->interrupt_script = false;
   while (!WindowShouldClose()) {
-    BeginDrawing();
-    ClearBackground(SKYBLUE);
 
-    float scale_width = (float)GetScreenWidth() / background_texture.width;
-    float scale_height = (float)GetScreenHeight() / background_texture.height;
-    float scale = fmaxf(scale_width, scale_height);
-    DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
+    if (state->interrupt_script) {
+      BeginDrawing();
+      ClearBackground(SKYBLUE);
+      // Factor out the kite_script_begin and kite_script_end functions to the
+      // key-handler.
+      kite_script_begin(state);
 
-    // if (state->interrupt_script) {
-    //   // kite_script_input(state);
-    // } else {
-    //   // kite_draw_kite(state->kite);
-    // }
+      kite_script_input(state);
+      kite_draw_kite(state->kite);
 
-    kite_script_input(state);
+      if (state->instruction_counter >= state->instruction_count) {
+        kite_script_end(state);
+      }
 
-    kite_draw_kite(state->kite);
+      DrawFPS(pos.x, 10);
+      EndDrawing();
+    } else {
+      BeginDrawing();
+
+      float scale_width = (float)GetScreenWidth() / background_texture.width;
+      float scale_height = (float)GetScreenHeight() / background_texture.height;
+      float scale = fmaxf(scale_width, scale_height);
+      DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
+
+      kite_draw_kite(state->kite);
+      DrawFPS(pos.x, 10);
+      EndDrawing();
+    }
+
     kite_input_handler(state);
-    DrawFPS(pos.x, 10);
-    EndDrawing();
   };
 
   kite_destroy(state);
+  StopSound(kite_sound);
+  UnloadSound(kite_sound);
+  UnloadWave(kite_wave);
+  CloseAudioDevice();
   CloseWindow();
   return 0;
 }
@@ -272,6 +300,8 @@ void kite_input_handler(State *s) {
   s->turn_velocity *= s->kite->turn_speed;
   s->fly_velocity *= GetFrameTime();
   s->fly_velocity *= s->kite->fly_speed;
+
+  kite_sound_handler();
 
   // Hard reset to top left corner angel 0, position (0,0)
   if (IsKeyDown(KEY_SPACE))
@@ -557,6 +587,25 @@ float kite_clamp(float z, float a, float b) {
 
   float s = z < a ? a : z;
   return s < b ? s : b;
+}
+
+// ===========================================================================
+// ========================== Sound Handler ==================================
+// ===========================================================================
+
+void kite_sound_handler() {
+
+  if (IsKeyPressed(KEY_S) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    StopSound(kite_sound);
+  } else if (IsKeyPressed(KEY_S)) {
+    PlaySound(kite_sound);
+  } else if (IsKeyPressed(KEY_M) &&
+             (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    ResumeSound(kite_sound);
+  } else if (IsKeyPressed(KEY_M)) {
+    PauseSound(kite_sound);
+  }
 }
 
 // ===========================================================================
