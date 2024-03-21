@@ -10,11 +10,90 @@
 
 #include "./tkbc_scripts/first.tkb.c"
 Sound kite_sound;
+#define KITE_ARRAY_LEN 4
+State kite_array[KITE_ARRAY_LEN];
+
+void kite_array_start_pos() {
+  int kite_width = kite_array[0].kite->width;
+  int kite_heigt = kite_array[0].kite->height;
+
+  int viewport_padding = kite_width > kite_heigt ? kite_width / 2 : kite_heigt;
+
+  Vector2 start_pos = {.y = GetScreenHeight() - 2 * viewport_padding,
+                       .x = GetScreenWidth() / 2.0f -
+                            KITE_ARRAY_LEN * kite_width + kite_width / 2.0f};
+
+  for (size_t i = 0; i < KITE_ARRAY_LEN; ++i) {
+    kite_center_rotation(kite_array[i].kite, &start_pos, 0);
+    start_pos.x += 2 * kite_width;
+
+    kite_array[i].kite_input_handler_active = false;
+  }
+}
+
+void kite_gen_kites(State *s1, State *s2, State *s3, State *s4) {
+  s1 = kite_init();
+  s2 = kite_init();
+  s3 = kite_init();
+  s4 = kite_init();
+  kite_array[0] = *s1;
+  kite_array[1] = *s2;
+  kite_array[2] = *s3;
+  kite_array[3] = *s4;
+
+  s1->kite->body_color = PURPLE;
+  s2->kite->body_color = BLUE;
+  s3->kite->body_color = GREEN;
+  s4->kite->body_color = RED;
+
+  kite_array_start_pos();
+}
+
+void kite_array_destroy_kites() {
+  for (size_t i = 0; i < KITE_ARRAY_LEN; ++i) {
+    kite_destroy(&kite_array[i]);
+  }
+}
+
+void kite_draw_kite_array() {
+  for (size_t i = 0; i < KITE_ARRAY_LEN; ++i) {
+    kite_draw_kite(kite_array[i].kite);
+  }
+}
+
+bool kite_array_check_interupt_script() {
+  for (size_t i = 0; i < KITE_ARRAY_LEN; ++i) {
+    if (kite_array[i].interrupt_script) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void kite_array_input_handler() {
+
+  if (IsKeyPressed(KEY_ONE)) {
+    kite_array[0].kite_input_handler_active =
+        !kite_array[0].kite_input_handler_active;
+  } else if (IsKeyPressed(KEY_TWO)) {
+    kite_array[1].kite_input_handler_active =
+        !kite_array[1].kite_input_handler_active;
+  } else if (IsKeyPressed(KEY_THREE)) {
+    kite_array[2].kite_input_handler_active =
+        !kite_array[2].kite_input_handler_active;
+  } else if (IsKeyPressed(KEY_FOUR)) {
+    kite_array[3].kite_input_handler_active =
+        !kite_array[3].kite_input_handler_active;
+  }
+
+  for (size_t i = 0; i < KITE_ARRAY_LEN; ++i) {
+    kite_input_handler(&kite_array[i]);
+  }
+}
 
 int main(void) {
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
-
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(TARGET_FPS);
@@ -22,7 +101,8 @@ int main(void) {
   Vector2 pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
   printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(pos));
 
-  Image background_image = LoadImage("./assets/raw.png");
+  Image background_image =
+      LoadImage("/home/marvin/Entwicklung/c/tkbc/src/assets/raw.png");
   Texture2D background_texture = LoadTextureFromImage(background_image);
 
   InitAudioDevice();
@@ -30,35 +110,38 @@ int main(void) {
     SetMasterVolume(40);
   }
 
-  State *state = kite_init();
-  state->interrupt_script = false;
+  State kite_criss = {0};
+  State kite_tim = {0};
+  State kite_heiner = {0};
+  State kite_marvin = {0};
+  kite_gen_kites(&kite_criss, &kite_tim, &kite_heiner, &kite_marvin);
+
   while (!WindowShouldClose()) {
 
-    if (state->interrupt_script) {
+    if (kite_array_check_interupt_script()) {
       BeginDrawing();
       ClearBackground(SKYBLUE);
       // Factor out the kite_script_begin and kite_script_end functions to the
       // key-handler.
-      kite_script_begin(state);
+      kite_script_begin(&kite_marvin);
 
-      kite_script_input(state);
-      kite_draw_kite(state->kite);
+      kite_script_input(&kite_marvin);
+      kite_draw_kite(kite_marvin.kite);
 
-      if (state->instruction_counter >= state->instruction_count) {
-        kite_script_end(state);
+      if (kite_marvin.instruction_counter >= kite_marvin.instruction_count) {
+        kite_script_end(&kite_marvin);
       }
 
       DrawFPS(pos.x, 10);
       EndDrawing();
     } else {
       BeginDrawing();
-
       float scale_width = (float)GetScreenWidth() / background_texture.width;
       float scale_height = (float)GetScreenHeight() / background_texture.height;
       float scale = fmaxf(scale_width, scale_height);
       DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
 
-      kite_draw_kite(state->kite);
+      kite_draw_kite_array();
       DrawFPS(pos.x, 10);
       EndDrawing();
     }
@@ -67,17 +150,16 @@ int main(void) {
       FilePathList file_path_list = LoadDroppedFiles();
       for (size_t i = 0; i < file_path_list.count && i < 1; ++i) {
         char *file_path = file_path_list.paths[i];
-        fprintf(stderr, "ERROR: FILE: PATH :MUSIC: %s\n",
-                file_path);
+        fprintf(stderr, "ERROR: FILE: PATH :MUSIC: %s\n", file_path);
         kite_sound = LoadSound(file_path);
       }
       UnloadDroppedFiles(file_path_list);
     }
-
-    kite_input_handler(state);
+    kite_sound_handler();
+    kite_array_input_handler();
   };
 
-  kite_destroy(state);
+  kite_array_destroy_kites();
   StopSound(kite_sound);
   UnloadSound(kite_sound);
   CloseAudioDevice();
@@ -237,24 +319,29 @@ void kite_destroy(State *state) {
   free(state->kite);
   free(state);
 }
+
 State *kite_init() {
   State *state = calloc(1, sizeof(State));
 
+  state->kite_input_handler_active = false;
   state->fly_velocity = 10;
-  state->turn_velocity = 1;
+  state->turn_velocity = 10;
   state->iscenter = false;
   state->fixed = true;
   state->interrupt_movement = false;
   state->interrupt_smoothness = false;
-  state->interrupt_script = true;
+  state->interrupt_script = false;
   state->instruction_counter = 0;
+  state->instruction_count = 0;
 
   state->kite = calloc(1, sizeof(Kite));
 
   state->kite->center.x = 0;
   state->kite->center.y = 0;
+
   state->kite->center.x = GetScreenWidth() / 2.f;
   state->kite->center.y = GetScreenHeight() / 2.f;
+
   state->kite->fly_speed = 30;
   state->kite->turn_speed = 30;
 
@@ -279,6 +366,14 @@ State *kite_init() {
   kite_center_rotation(state->kite, NULL, state->kite->center_rotation);
 
   state->kite->height = fabsf(state->kite->left.v1.y - state->kite->left.v2.y);
+
+  int viewport_padding = state->kite->width > state->kite->height
+                             ? state->kite->width / 2
+                             : state->kite->height;
+
+  Vector2 start_pos = {.y = GetScreenHeight() - 2 * viewport_padding,
+                       .x = state->kite->center.x};
+  kite_center_rotation(state->kite, &start_pos, state->kite->center_rotation);
   return state;
 }
 
@@ -301,6 +396,9 @@ int kite_check_boundary(Kite *kite, Orientation orientation) {
 }
 
 void kite_input_handler(State *s) {
+  if (!s->kite_input_handler_active) {
+    return;
+  }
   s->iscenter = false;
   s->fly_velocity = 10;
   s->turn_velocity = 1;
@@ -310,11 +408,9 @@ void kite_input_handler(State *s) {
   s->fly_velocity *= GetFrameTime();
   s->fly_velocity *= s->kite->fly_speed;
 
-  kite_sound_handler();
-
   // Hard reset to top left corner angel 0, position (0,0)
   if (IsKeyDown(KEY_SPACE))
-    kite_center_rotation(s->kite, &(CLITERAL(Vector2){.x = 0, .y = 0}), 0);
+    kite_array_start_pos();
 
   if (IsKeyDown(KEY_N))
     kite_center_rotation(s->kite, NULL, 0);
@@ -641,7 +737,6 @@ void kite_script_move(Kite *kite, float steps_x, float steps_y,
     pos.x = steps_x;
     pos.y = steps_y;
     kite_center_rotation(kite, &pos, 0);
-    kite_draw_kite(kite);
   } break;
   case SMOOTH: {
 
@@ -666,7 +761,6 @@ void kite_script_move(Kite *kite, float steps_x, float steps_y,
         pos.y = steps_y;
 
       kite_center_rotation(kite, &pos, 0);
-      kite_draw_kite(kite);
     }
 
     // Just in case the rounding of the iterations is not enough to reach the
@@ -684,25 +778,21 @@ void kite_script_rotate(Kite *kite, float angle, PARAMETERS parameters) {
   switch (parameters) {
   case FIXED: {
     kite_center_rotation(kite, NULL, angle);
-    kite_draw_kite(kite);
   } break;
   case SMOOTH: {
     if (angle < 0) {
       for (size_t i = 0; i >= angle; --i) {
         kite_center_rotation(kite, NULL, kite->center_rotation + i);
-        kite_draw_kite(kite);
       }
     } else {
       for (size_t i = 0; i <= angle; ++i) {
         kite_center_rotation(kite, NULL, kite->center_rotation + i);
-        kite_draw_kite(kite);
       }
     }
 
     // Just in case because we accept floats that could potentially be not an
     // integer. Draw the rest of the rotation.
     kite_center_rotation(kite, NULL, angle);
-    kite_draw_kite(kite);
 
   } break;
   default:
@@ -719,7 +809,6 @@ void kite_script_rotate_tip(Kite *kite, TIP tip, float angle,
     case LEFT_TIP:
     case RIGHT_TIP:
       kite_tip_rotation(kite, NULL, angle, tip);
-      kite_draw_kite(kite);
       break;
     default:
       assert(0 && "ERROR: kite_script_rotate_tip: FIXED: UNREACHABLE");
@@ -733,12 +822,10 @@ void kite_script_rotate_tip(Kite *kite, TIP tip, float angle,
       if (angle < 0) {
         for (size_t i = 0; i >= angle; --i) {
           kite_tip_rotation(kite, NULL, kite->center_rotation + angle, tip);
-          kite_draw_kite(kite);
         }
       } else {
         for (size_t i = 0; i <= angle; ++i) {
           kite_tip_rotation(kite, NULL, kite->center_rotation + angle, tip);
-          kite_draw_kite(kite);
         }
       }
       break;
@@ -749,7 +836,6 @@ void kite_script_rotate_tip(Kite *kite, TIP tip, float angle,
     // Just in case because we accept floats that could potentially be not an
     // integer. Draw the rest of the rotation.
     kite_tip_rotation(kite, NULL, angle, tip);
-    kite_draw_kite(kite);
 
   } break;
   default:

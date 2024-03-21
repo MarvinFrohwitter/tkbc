@@ -43,7 +43,7 @@ typedef struct Kite {
   float
       center_rotation; // The rotation is in degrees around the center position.
 
-  float fly_speed; // Kite movement speed set from 0 to 100.
+  float fly_speed;  // Kite movement speed set from 0 to 100.
   float turn_speed; // Kite turn speed set from 0 to 100.
 } Kite;
 
@@ -57,8 +57,10 @@ typedef struct State {
   bool fixed;
   bool iscenter;
 
+  bool kite_input_handler_active;
   bool interrupt_script;
   int instruction_counter;
+  int instruction_count;
 } State;
 
 typedef enum TIP { LEFT_TIP, RIGHT_TIP } TIP;
@@ -85,6 +87,17 @@ void kite_input_check_movement(State *s);
 void kite_input_check_speed(State *s);
 
 float kite_clamp(float z, float a, float b);
+
+// ===========================================================================
+// ========================== Custom Kite Creation ===========================
+// ===========================================================================
+
+void kite_gen_kites(State *s1, State *s2, State *s3, State *s4);
+void kite_array_destroy_kites();
+void kite_draw_kite_array();
+bool kite_array_check_interupt_script();
+void kite_array_input_handler();
+void kite_array_start_pos();
 
 // ===========================================================================
 // ========================== Sound Handler ==================================
