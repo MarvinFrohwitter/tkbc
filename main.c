@@ -428,6 +428,8 @@ void kite_input_handler(State *s) {
     return;
   }
 
+  kite_input_check_mouse(s);
+
   kite_input_check_rotation(s);
   kite_input_check_tip_turn(s);
   kite_input_check_circle(s);
@@ -450,6 +452,16 @@ void kite_input_handler(State *s) {
   }
 
   kite_input_check_movement(s);
+}
+
+void kite_input_check_mouse(State *s) {
+  Vector2 mouse_pos = GetMousePosition();
+
+  if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+    kite_center_rotation(s->kite, &mouse_pos, s->kite->center_rotation);
+  } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    kite_center_rotation(s->kite, &mouse_pos, s->kite->center_rotation);
+  }
 }
 
 void kite_input_check_rotation(State *s) {
