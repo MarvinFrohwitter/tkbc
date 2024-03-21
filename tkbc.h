@@ -85,6 +85,7 @@ void kite_input_check_tip_turn(State *s);
 void kite_input_check_circle(State *s);
 void kite_input_check_movement(State *s);
 void kite_input_check_speed(State *s);
+void kite_input_check_mouse(State *s);
 
 float kite_clamp(float z, float a, float b);
 
