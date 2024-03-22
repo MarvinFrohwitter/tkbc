@@ -24,6 +24,9 @@ void kite_array_start_pos() {
                             KITE_ARRAY_LEN * kite_width + kite_width / 2.0f};
 
   for (size_t i = 0; i < KITE_ARRAY_LEN; ++i) {
+    kite_set_state_defaults(&kite_array[i]);
+    kite_set_kite_defaults(kite_array[i].kite, false);
+
     kite_center_rotation(kite_array[i].kite, &start_pos, 0);
     start_pos.x += 2 * kite_width;
 
@@ -41,12 +44,12 @@ void kite_gen_kites(State *s1, State *s2, State *s3, State *s4) {
   kite_array[2] = *s3;
   kite_array[3] = *s4;
 
+  kite_array_start_pos();
+
   s1->kite->body_color = PURPLE;
   s2->kite->body_color = BLUE;
   s3->kite->body_color = GREEN;
   s4->kite->body_color = RED;
-
-  kite_array_start_pos();
 }
 
 void kite_array_destroy_kites() {
@@ -320,8 +323,7 @@ void kite_destroy(State *state) {
   free(state);
 }
 
-State *kite_init() {
-  State *state = calloc(1, sizeof(State));
+void kite_set_state_defaults(State *state) {
 
   state->kite_input_handler_active = false;
   state->fly_velocity = 10;
@@ -333,39 +335,48 @@ State *kite_init() {
   state->interrupt_script = false;
   state->instruction_counter = 0;
   state->instruction_count = 0;
+}
 
+void kite_set_kite_defaults(Kite *kite, bool is_generated) {
+  kite->center.x = 0;
+  kite->center.y = 0;
+
+  kite->center.x = GetScreenWidth() / 2.f;
+  kite->center.y = GetScreenHeight() / 2.f;
+
+  kite->fly_speed = 30;
+  kite->turn_speed = 30;
+
+  if (is_generated) {
+    kite->body_color = TEAL;
+  }
+  kite->overlap = 8.f;
+  kite->inner_space = 20.f;
+
+  kite->top_color = DARKGRAY;
+  kite->spread = 0.2f;
+
+  kite->width = 20.0f;
+  kite->height = 0.0f;
+  kite->scale = 4.f;
+  kite->center_rotation = 0;
+
+  kite->overlap *= kite->scale;
+  kite->inner_space *= kite->scale;
+  kite->spread *= kite->scale;
+  kite->width *= kite->scale * 2;
+
+  kite_center_rotation(kite, NULL, kite->center_rotation);
+
+  kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
+}
+
+State *kite_init() {
+  State *state = calloc(1, sizeof(State));
+
+  kite_set_state_defaults(state);
   state->kite = calloc(1, sizeof(Kite));
-
-  state->kite->center.x = 0;
-  state->kite->center.y = 0;
-
-  state->kite->center.x = GetScreenWidth() / 2.f;
-  state->kite->center.y = GetScreenHeight() / 2.f;
-
-  state->kite->fly_speed = 30;
-  state->kite->turn_speed = 30;
-
-  state->kite->body_color = TEAL;
-  state->kite->overlap = 8.f;
-  state->kite->inner_space = 20.f;
-
-  state->kite->top_color = DARKGRAY;
-  state->kite->spread = 0.2f;
-
-  state->kite->width = 20.0f;
-  state->kite->height = 0.0f;
-  // state->kite->scale = 7.f;
-  state->kite->scale = 4.f;
-  state->kite->center_rotation = 0;
-
-  state->kite->overlap *= state->kite->scale;
-  state->kite->inner_space *= state->kite->scale;
-  state->kite->spread *= state->kite->scale;
-  state->kite->width *= state->kite->scale * 2;
-
-  kite_center_rotation(state->kite, NULL, state->kite->center_rotation);
-
-  state->kite->height = fabsf(state->kite->left.v1.y - state->kite->left.v2.y);
+  kite_set_kite_defaults(state->kite, true);
 
   int viewport_padding = state->kite->width > state->kite->height
                              ? state->kite->width / 2
