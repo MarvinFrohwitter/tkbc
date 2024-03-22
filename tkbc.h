@@ -72,6 +72,9 @@ typedef enum Orientation { KITE_Y, KITE_X } Orientation;
 
 State *kite_init();
 void kite_destroy(State *state);
+void kite_set_state_defaults(State *state);
+void kite_set_kite_defaults(Kite *kite, bool is_generated);
+
 void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
                        TIP tip);
 void kite_center_rotation(Kite *k, Vector2 *position,
