@@ -30,10 +30,20 @@ void kite_array_start_pos() {
     kite_center_rotation(kite_array[i].kite, &start_pos, 0);
     start_pos.x += 2 * kite_width;
 
-    kite_array[i].kite_input_handler_active = false;
+    // kite_array[i].kite_input_handler_active = false;
   }
 }
 
+/**
+ * @brief The function kite_gen_kites() initializes the amount of kites that are
+ * provided in the arguments and inserts them in the global kite_array. It also
+ * sets a different color for each kite, rather than the default color.
+ *
+ * @param s1 The first complete state of a kite.
+ * @param s2 The second complete state of a kite.
+ * @param s3 The third complete state of a kite.
+ * @param s4 The fourth complete state of a kite.
+ */
 void kite_gen_kites(State *s1, State *s2, State *s3, State *s4) {
   s1 = kite_init();
   s2 = kite_init();
@@ -89,7 +99,15 @@ bool kite_array_check_interrupt_script() {
   return false;
 }
 
+/**
+ * @brief The function kite_array_input_handler() handles the kite switching and
+ * calls the kite_input_handler() for each kite in the global kite_array.
+ */
 void kite_array_input_handler() {
+
+  if (IsKeyPressed(KEY_B)) {
+    TakeScreenshot("1.png");
+  }
 
   if (IsKeyPressed(KEY_ONE)) {
     kite_array[0].kite_input_handler_active =
@@ -110,6 +128,11 @@ void kite_array_input_handler() {
   }
 }
 
+/**
+ * @brief The main function that handles the event loop and the sound loading.
+ *
+ * @return int Returns 1 if no errors occur, otherwise none zero.
+ */
 int main(void) {
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
@@ -185,6 +208,15 @@ int main(void) {
   CloseWindow();
   return 0;
 }
+/**
+ * @brief [TODO:description]
+ *
+ * @param k [TODO:parameter]
+ * @param position [TODO:parameter]
+ * @param deg_rotation [TODO:parameter]
+ * @param tip [TODO:parameter]
+ * @param below [TODO:parameter]
+ */
 void kite_circle_rotation(Kite *k, Vector2 *position, float deg_rotation,
                           TIP tip, bool below) {
   Vector2 *pos = {0};
@@ -228,6 +260,15 @@ void kite_circle_rotation(Kite *k, Vector2 *position, float deg_rotation,
   }
 }
 
+/**
+ * @brief The function kite_tip_rotation() computes the new position of the kite
+ * and its corresponding structure values with a tip rotation.
+ *
+ * @param k The kite that is going to be modified.
+ * @param position The new position of the kite at the center of the leading edge.
+ * @param tip_deg_rotation The angle in degrees that is added to the current angle.
+ * @param tip The tip chosen left or right around where the kite is turning.
+ */
 void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
                        TIP tip) {
 
@@ -275,6 +316,13 @@ void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
   kite_center_rotation(k, pos, tip_deg_rotation);
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param k [TODO:parameter]
+ * @param position [TODO:parameter]
+ * @param center_deg_rotation [TODO:parameter]
+ */
 void kite_center_rotation(Kite *k, Vector2 *position,
                           float center_deg_rotation) {
   Vector2 *pos = {0};
@@ -325,6 +373,11 @@ void kite_center_rotation(Kite *k, Vector2 *position,
   k->rec.y = pos->y + ceilf(cimagf(length * cexpf(I * phi)));
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param k [TODO:parameter]
+ */
 void kite_draw_kite(Kite *k) {
   Vector2 origin = {0};
 
@@ -334,11 +387,21 @@ void kite_draw_kite(Kite *k) {
   DrawRectanglePro(k->rec, origin, -k->center_rotation, k->top_color);
 }
 
+/**
+ * @brief The function kite_destroy() frees the memory for the given state.
+ *
+ * @param state The current state of a kite.
+ */
 void kite_destroy(State *state) {
   free(state->kite);
   free(state);
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param state [TODO:parameter]
+ */
 void kite_set_state_defaults(State *state) {
 
   state->kite_input_handler_active = false;
@@ -353,12 +416,20 @@ void kite_set_state_defaults(State *state) {
   state->instruction_count = 0;
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param kite [TODO:parameter]
+ * @param is_generated [TODO:parameter]
+ */
 void kite_set_kite_defaults(Kite *kite, bool is_generated) {
-  kite->center.x = 0;
-  kite->center.y = 0;
+  if (is_generated) {
+    kite->center.x = 0;
+    kite->center.y = 0;
 
-  kite->center.x = GetScreenWidth() / 2.f;
-  kite->center.y = GetScreenHeight() / 2.f;
+    kite->center.x = GetScreenWidth() / 2.f;
+    kite->center.y = GetScreenHeight() / 2.f;
+  }
 
   kite->fly_speed = 30;
   kite->turn_speed = 30;
@@ -387,6 +458,11 @@ void kite_set_kite_defaults(Kite *kite, bool is_generated) {
   kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @return [TODO:return]
+ */
 State *kite_init() {
   State *state = calloc(1, sizeof(State));
 
@@ -404,6 +480,13 @@ State *kite_init() {
   return state;
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param kite [TODO:parameter]
+ * @param orientation [TODO:parameter]
+ * @return [TODO:return]
+ */
 int kite_check_boundary(Kite *kite, Orientation orientation) {
   float width = GetScreenWidth();
   float height = GetScreenHeight();
@@ -422,6 +505,11 @@ int kite_check_boundary(Kite *kite, Orientation orientation) {
   return 0;
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param s [TODO:parameter]
+ */
 void kite_input_handler(State *s) {
   if (!s->kite_input_handler_active) {
     return;
@@ -481,6 +569,11 @@ void kite_input_handler(State *s) {
   kite_input_check_movement(s);
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param s [TODO:parameter]
+ */
 void kite_input_check_mouse(State *s) {
   Vector2 mouse_pos = GetMousePosition();
 
@@ -491,6 +584,11 @@ void kite_input_check_mouse(State *s) {
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param s [TODO:parameter]
+ */
 void kite_input_check_rotation(State *s) {
 
   if (IsKeyDown(KEY_R) &&
@@ -524,6 +622,11 @@ void kite_input_check_rotation(State *s) {
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param s [TODO:parameter]
+ */
 void kite_input_check_tip_turn(State *s) {
   // TODO: Think about the clamp in terms of a tip rotation
   if (IsKeyDown(KEY_T) &&
@@ -592,6 +695,11 @@ void kite_input_check_tip_turn(State *s) {
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param s [TODO:parameter]
+ */
 void kite_input_check_circle(State *s) {
   if (IsKeyPressed(KEY_C) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
@@ -661,6 +769,11 @@ void kite_input_check_circle(State *s) {
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param s [TODO:parameter]
+ */
 void kite_input_check_movement(State *s) {
   int viewport_padding =
       s->kite->width > s->kite->height ? s->kite->width / 2 : s->kite->height;
@@ -702,6 +815,11 @@ void kite_input_check_movement(State *s) {
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param s [TODO:parameter]
+ */
 void kite_input_check_speed(State *s) {
 
   if (IsKeyDown(KEY_P) &&
@@ -727,6 +845,14 @@ void kite_input_check_speed(State *s) {
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param z [TODO:parameter]
+ * @param a [TODO:parameter]
+ * @param b [TODO:parameter]
+ * @return [TODO:return]
+ */
 float kite_clamp(float z, float a, float b) {
 
   float s = z < a ? a : z;
@@ -737,6 +863,9 @@ float kite_clamp(float z, float a, float b) {
 // ========================== Sound Handler ==================================
 // ===========================================================================
 
+/**
+ * @brief [TODO:description]
+ */
 void kite_sound_handler() {
 
   if (IsKeyPressed(KEY_S) &&
@@ -756,6 +885,11 @@ void kite_sound_handler() {
 // ========================== Script Handler =================================
 // ===========================================================================
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param state [TODO:parameter]
+ */
 void kite_script_begin(State *state) {
   state->interrupt_script = true;
   SetTargetFPS(1);
@@ -765,6 +899,14 @@ void kite_script_end(State *state) {
   SetTargetFPS(TARGET_FPS);
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param kite [TODO:parameter]
+ * @param steps_x [TODO:parameter]
+ * @param steps_y [TODO:parameter]
+ * @param parameters [TODO:parameter]
+ */
 void kite_script_move(Kite *kite, float steps_x, float steps_y,
                       PARAMETERS parameters) {
 
@@ -812,6 +954,13 @@ void kite_script_move(Kite *kite, float steps_x, float steps_y,
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param kite [TODO:parameter]
+ * @param angle [TODO:parameter]
+ * @param parameters [TODO:parameter]
+ */
 void kite_script_rotate(Kite *kite, float angle, PARAMETERS parameters) {
 
   switch (parameters) {
@@ -839,6 +988,14 @@ void kite_script_rotate(Kite *kite, float angle, PARAMETERS parameters) {
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param kite [TODO:parameter]
+ * @param tip [TODO:parameter]
+ * @param angle [TODO:parameter]
+ * @param parameters [TODO:parameter]
+ */
 void kite_script_rotate_tip(Kite *kite, TIP tip, float angle,
                             PARAMETERS parameters) {
 
