@@ -54,8 +54,7 @@ void kite_gen_kites(State *s1, State *s2, State *s3, State *s4) {
   kite_array[2] = *s3;
   kite_array[3] = *s4;
 
-  kite_custom_slide();
-  // kite_array_start_pos();
+  kite_array_start_pos();
 
   s1->kite->body_color = BLUE;
   s2->kite->body_color = GREEN;
