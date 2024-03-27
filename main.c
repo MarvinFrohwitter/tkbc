@@ -44,27 +44,43 @@ void kite_gen_kites(State *s1, State *s2, State *s3, State *s4) {
   kite_array[2] = *s3;
   kite_array[3] = *s4;
 
-  kite_array_start_pos();
+  kite_custom_slide();
+  // kite_array_start_pos();
 
-  s1->kite->body_color = PURPLE;
-  s2->kite->body_color = BLUE;
-  s3->kite->body_color = GREEN;
+  s1->kite->body_color = BLUE;
+  s2->kite->body_color = GREEN;
+  s3->kite->body_color = PURPLE;
   s4->kite->body_color = RED;
 }
 
+/**
+ * @brief The function kite_array_destroy_kites() frees all the kites that are
+ * currently in the global kite_array.
+ */
 void kite_array_destroy_kites() {
   for (size_t i = 0; i < KITE_ARRAY_LEN; ++i) {
     kite_destroy(&kite_array[i]);
   }
 }
 
+/**
+ * @brief The function kite_draw_kite_array() draws every kite with its
+ * corresponding position on the canvas.
+ */
 void kite_draw_kite_array() {
   for (size_t i = 0; i < KITE_ARRAY_LEN; ++i) {
     kite_draw_kite(kite_array[i].kite);
   }
 }
 
-bool kite_array_check_interupt_script() {
+/**
+ * @brief The function kite_array_check_interrupt_script() checks if one of the
+ * kites that are currently in the kite_array has interrupt_script set to true.
+ *
+ * @return boolean Returns true if one of the kites of the global kite_array has
+ * set the value interrupt_script, otherwise false.
+ */
+bool kite_array_check_interrupt_script() {
   for (size_t i = 0; i < KITE_ARRAY_LEN; ++i) {
     if (kite_array[i].interrupt_script) {
       return true;
@@ -121,7 +137,7 @@ int main(void) {
 
   while (!WindowShouldClose()) {
 
-    if (kite_array_check_interupt_script()) {
+    if (kite_array_check_interrupt_script()) {
       BeginDrawing();
       ClearBackground(SKYBLUE);
       // Factor out the kite_script_begin and kite_script_end functions to the

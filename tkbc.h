@@ -99,7 +99,7 @@ float kite_clamp(float z, float a, float b);
 void kite_gen_kites(State *s1, State *s2, State *s3, State *s4);
 void kite_array_destroy_kites();
 void kite_draw_kite_array();
-bool kite_array_check_interupt_script();
+bool kite_array_check_interrupt_script();
 void kite_array_input_handler();
 void kite_array_start_pos();
 
