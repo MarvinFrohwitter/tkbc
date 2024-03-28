@@ -208,25 +208,28 @@ int main(void) {
   return 0;
 }
 /**
- * @brief [TODO:description]
+ * @brief The function kite_circle_rotation() computes the rotation as a ball
+ * below and above.
  *
- * @param k [TODO:parameter]
- * @param position [TODO:parameter]
- * @param deg_rotation [TODO:parameter]
- * @param tip [TODO:parameter]
- * @param below [TODO:parameter]
+ * @param kite The kite for which the calculation will happen.
+ * @param position The new position for the kite at the center of the leading
+ * edge or NULL for internal center position of the kite structure.
+ * @param deg_rotation The kite rotation in degrees.
+ * @param tip The tip that will be chosen to calculate the beginning of the
+ * circle.
+ * @param below The area where the rotation will happen.
  */
-void kite_circle_rotation(Kite *k, Vector2 *position, float deg_rotation,
+void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
                           TIP tip, bool below) {
   Vector2 *pos = {0};
   if (position != NULL)
     pos = position;
   else
-    pos = &k->center;
+    pos = &kite->center;
 
   // TODO: Change back to full circle size
   // float_t length = k->height;
-  float_t length = k->height / 2;
+  float_t length = kite->height / 2;
   float phi = (PI * (deg_rotation) / 180);
   float center_angle = 0;
   if (below) {
@@ -245,14 +248,14 @@ void kite_circle_rotation(Kite *k, Vector2 *position, float deg_rotation,
     pos->x -= ceilf(crealf((length)*cexpf(I * phi)));
     pos->y += ceilf(cimagf((length)*cexpf(I * phi)));
 
-    kite_center_rotation(k, pos, deg_rotation);
+    kite_center_rotation(kite, pos, deg_rotation);
   } break;
   case RIGHT_TIP: {
 
     pos->x += ceilf(crealf((length)*cexpf(I * phi)));
     pos->y -= ceilf(cimagf((length)*cexpf(I * phi)));
 
-    kite_center_rotation(k, pos, deg_rotation);
+    kite_center_rotation(kite, pos, deg_rotation);
   } break;
   default:
     assert(0 && "The chosen TIP is not valid!");
@@ -263,21 +266,23 @@ void kite_circle_rotation(Kite *k, Vector2 *position, float deg_rotation,
  * @brief The function kite_tip_rotation() computes the new position of the kite
  * and its corresponding structure values with a tip rotation.
  *
- * @param k The kite that is going to be modified.
- * @param position The new position of the kite at the center of the leading edge.
- * @param tip_deg_rotation The angle in degrees that is added to the current angle.
+ * @param kite The kite that is going to be modified.
+ * @param position The new position for the kite at the center of the leading
+ * edge or NULL for internal center position of the kite structure.
+ * @param tip_deg_rotation The angle in degrees.
+ * angle.
  * @param tip The tip chosen left or right around where the kite is turning.
  */
-void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
+void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
                        TIP tip) {
 
   Vector2 *pos = {0};
   if (position != NULL)
     pos = position;
   else
-    pos = &k->center;
+    pos = &kite->center;
 
-  float_t length = (k->width / 2.f + k->spread);
+  float_t length = (kite->width / 2.f + kite->spread);
   float phi = (PI * (tip_deg_rotation) / 180);
 
   switch (tip) {
@@ -287,8 +292,8 @@ void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
     // pos->x -= ceilf(length);
 
     // Move the rotation position to the left tip
-    pos->x = k->left.v1.x;
-    pos->y = k->left.v1.y;
+    pos->x = kite->left.v1.x;
+    pos->y = kite->left.v1.y;
 
     // Then rotate
     pos->x += ceilf(crealf((length)*cexpf(I * phi)));
@@ -299,8 +304,8 @@ void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
     // pos->x += ceilf(length);
 
     // Move the rotation position to the right tip
-    pos->x = k->right.v3.x;
-    pos->y = k->right.v3.y;
+    pos->x = kite->right.v3.x;
+    pos->y = kite->right.v3.y;
     // Then rotate
     pos->x -= ceilf(crealf((length)*cexpf(I * phi)));
     pos->y += ceilf(cimagf((length)*cexpf(I * phi)));
@@ -312,78 +317,80 @@ void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
   }
 
   // Just compute a center rotation instead at the new found position
-  kite_center_rotation(k, pos, tip_deg_rotation);
+  kite_center_rotation(kite, pos, tip_deg_rotation);
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function kite_center_rotation() computes all the internal points
+ * for the kite and it's new position as well as the angle.
  *
- * @param k [TODO:parameter]
- * @param position [TODO:parameter]
- * @param center_deg_rotation [TODO:parameter]
+ * @param kite The kite that is going to be modified.
+ * @param position The new position for the kite at the center of the leading
+ * edge or NULL for internal center position of the kite structure.
+ * @param center_deg_rotation The rotation of the kite.
  */
-void kite_center_rotation(Kite *k, Vector2 *position,
+void kite_center_rotation(Kite *kite, Vector2 *position,
                           float center_deg_rotation) {
   Vector2 *pos = {0};
   if (position != NULL)
     pos = position;
   else
-    pos = &k->center;
+    pos = &kite->center;
 
-  k->center.x = pos->x;
-  k->center.y = pos->y;
+  kite->center.x = pos->x;
+  kite->center.y = pos->y;
 
-  k->center_rotation = center_deg_rotation;
-  float cw = k->width;
-  float is = k->inner_space;
-  float o = k->overlap;
-  float_t length = (k->width / 2.f + k->spread);
+  kite->center_rotation = center_deg_rotation;
+  float cw = kite->width;
+  float is = kite->inner_space;
+  float o = kite->overlap;
+  float_t length = (kite->width / 2.f + kite->spread);
 
   // The difference between the angle 0 and the default downward interpolation
   float angle = 42;
   float bl_angle = (PI * (360 - (90 - angle)) / 180);
   float br_angle = (PI * (360 + (90 - angle)) / 180);
-  float phi = (PI * (k->center_rotation) / 180);
+  float phi = (PI * (kite->center_rotation) / 180);
 
   // LEFT Triangle
   // Correct
-  k->left.v1.x = pos->x - ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
-  k->left.v1.y = pos->y + ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
-  k->left.v2.x = pos->x - ceilf(crealf(is * cexpf(I * (phi - bl_angle))));
-  k->left.v2.y = pos->y + ceilf(cimagf(is * cexpf(I * (phi - bl_angle))));
-  k->left.v3.x = pos->x + ceilf(crealf(o * cexpf(I * phi)));
-  k->left.v3.y = pos->y - ceilf(cimagf(o * cexpf(I * phi)));
+  kite->left.v1.x = pos->x - ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
+  kite->left.v1.y = pos->y + ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  kite->left.v2.x = pos->x - ceilf(crealf(is * cexpf(I * (phi - bl_angle))));
+  kite->left.v2.y = pos->y + ceilf(cimagf(is * cexpf(I * (phi - bl_angle))));
+  kite->left.v3.x = pos->x + ceilf(crealf(o * cexpf(I * phi)));
+  kite->left.v3.y = pos->y - ceilf(cimagf(o * cexpf(I * phi)));
 
   // RIGHT Triangle
   // Correct
-  k->right.v1.x = pos->x - ceilf(crealf(o * cexpf(I * phi)));
-  k->right.v1.y = pos->y + ceilf(cimagf(o * cexpf(I * phi)));
-  k->right.v2.x = pos->x + ceilf(crealf(is * cexpf(I * (phi - br_angle))));
-  k->right.v2.y = pos->y - ceilf(cimagf(is * cexpf(I * (phi - br_angle))));
-  k->right.v3.x = pos->x + ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
-  k->right.v3.y = pos->y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  kite->right.v1.x = pos->x - ceilf(crealf(o * cexpf(I * phi)));
+  kite->right.v1.y = pos->y + ceilf(cimagf(o * cexpf(I * phi)));
+  kite->right.v2.x = pos->x + ceilf(crealf(is * cexpf(I * (phi - br_angle))));
+  kite->right.v2.y = pos->y - ceilf(cimagf(is * cexpf(I * (phi - br_angle))));
+  kite->right.v3.x = pos->x + ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
+  kite->right.v3.y = pos->y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
 
   // Just an random suitable height and width that fits the scaling and spread.
   // k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
   // k->rec.height = 2 * PI * k->spread;
-  k->rec.height = 2 * PI * logf(k->scale);
-  k->rec.width = 2 * length;
-  k->rec.x = pos->x - ceilf(crealf(length * cexpf(I * phi)));
-  k->rec.y = pos->y + ceilf(cimagf(length * cexpf(I * phi)));
+  kite->rec.height = 2 * PI * logf(kite->scale);
+  kite->rec.width = 2 * length;
+  kite->rec.x = pos->x - ceilf(crealf(length * cexpf(I * phi)));
+  kite->rec.y = pos->y + ceilf(cimagf(length * cexpf(I * phi)));
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function kite_draw_kite() draws all the components of the kite.
  *
- * @param k [TODO:parameter]
+ * @param kite The kite that is going to be modified.
  */
-void kite_draw_kite(Kite *k) {
+void kite_draw_kite(Kite *kite) {
   Vector2 origin = {0};
 
   // Draw a color-filled triangle (vertex in counter-clockwise order!)
-  DrawTriangle(k->left.v1, k->left.v2, k->left.v3, k->body_color);
-  DrawTriangle(k->right.v1, k->right.v2, k->right.v3, k->body_color);
-  DrawRectanglePro(k->rec, origin, -k->center_rotation, k->top_color);
+  DrawTriangle(kite->left.v1, kite->left.v2, kite->left.v3, kite->body_color);
+  DrawTriangle(kite->right.v1, kite->right.v2, kite->right.v3, kite->body_color);
+  DrawRectanglePro(kite->rec, origin, -kite->center_rotation, kite->top_color);
 }
 
 /**
@@ -397,9 +404,10 @@ void kite_destroy(State *state) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function kite_set_state_defaults() sets all the default settings
+ * for a kite.
  *
- * @param state [TODO:parameter]
+ * @param state The state for which the values will be changed to defaults.
  */
 void kite_set_state_defaults(State *state) {
 
@@ -416,10 +424,12 @@ void kite_set_state_defaults(State *state) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function kite_set_kite_defaults() sets all the internal default of
+ * the kite and computes the internal corner points of the kite.
  *
- * @param kite [TODO:parameter]
- * @param is_generated [TODO:parameter]
+ * @param kite The kite that is going to be modified.
+ * @param is_generated Chooses the information if the function is called by a
+ * generator or as a reset of the values.
  */
 void kite_set_kite_defaults(Kite *kite, bool is_generated) {
   if (is_generated) {
@@ -458,9 +468,10 @@ void kite_set_kite_defaults(Kite *kite, bool is_generated) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function kite_init() allocates the memory for a kite and it's
+ * corresponding state and gives back the state structure.
  *
- * @return [TODO:return]
+ * @return state The new allocated state.
  */
 State *kite_init() {
   State *state = calloc(1, sizeof(State));
@@ -507,116 +518,116 @@ int kite_check_boundary(Kite *kite, Orientation orientation) {
 /**
  * @brief [TODO:description]
  *
- * @param s [TODO:parameter]
+ * @param state [TODO:parameter]
  */
-void kite_input_handler(State *s) {
-  if (!s->kite_input_handler_active) {
+void kite_input_handler(State *state) {
+  if (!state->kite_input_handler_active) {
     return;
   }
-  s->iscenter = false;
-  s->fly_velocity = 10;
-  s->turn_velocity = 1;
+  state->iscenter = false;
+  state->fly_velocity = 10;
+  state->turn_velocity = 1;
 
-  s->turn_velocity *= GetFrameTime();
-  s->turn_velocity *= s->kite->turn_speed;
-  s->fly_velocity *= GetFrameTime();
-  s->fly_velocity *= s->kite->fly_speed;
+  state->turn_velocity *= GetFrameTime();
+  state->turn_velocity *= state->kite->turn_speed;
+  state->fly_velocity *= GetFrameTime();
+  state->fly_velocity *= state->kite->fly_speed;
 
   // Hard reset to top left corner angel 0, position (0,0)
   if (IsKeyDown(KEY_SPACE))
     kite_array_start_pos();
 
   if (IsKeyDown(KEY_N))
-    kite_center_rotation(s->kite, NULL, 0);
+    kite_center_rotation(state->kite, NULL, 0);
 
   if (IsKeyUp(KEY_R) && IsKeyUp(KEY_T)) {
-    s->interrupt_smoothness = false;
+    state->interrupt_smoothness = false;
   }
-  if (s->interrupt_smoothness) {
+  if (state->interrupt_smoothness) {
     return;
   }
 
-  kite_input_check_speed(s);
+  kite_input_check_speed(state);
   if (IsKeyPressed(KEY_F)) {
-    s->fixed = !s->fixed;
+    state->fixed = !state->fixed;
     return;
   }
 
-  kite_input_check_mouse(s);
+  kite_input_check_mouse(state);
 
-  kite_input_check_rotation(s);
-  kite_input_check_tip_turn(s);
-  kite_input_check_circle(s);
+  kite_input_check_rotation(state);
+  kite_input_check_tip_turn(state);
+  kite_input_check_circle(state);
 
-  if (!s->iscenter) {
+  if (!state->iscenter) {
     // NOTE: Currently not check for arrow KEY_RIGHT and KEY_LEFT, so that you
     // can still move the kite with no interrupt but with steps of 45 degrees
     // angle.
     if (IsKeyUp(KEY_T) && IsKeyUp(KEY_H) && IsKeyUp(KEY_L)) {
-      s->interrupt_movement = false;
+      state->interrupt_movement = false;
     }
   } else {
-    s->iscenter = false;
+    state->iscenter = false;
     if (IsKeyUp(KEY_R)) {
-      s->interrupt_movement = false;
+      state->interrupt_movement = false;
     }
   }
-  if (s->interrupt_movement) {
+  if (state->interrupt_movement) {
     return;
   }
 
-  kite_input_check_movement(s);
+  kite_input_check_movement(state);
 }
 
 /**
  * @brief [TODO:description]
  *
- * @param s [TODO:parameter]
+ * @param state [TODO:parameter]
  */
-void kite_input_check_mouse(State *s) {
+void kite_input_check_mouse(State *state) {
   Vector2 mouse_pos = GetMousePosition();
 
   if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
-    kite_center_rotation(s->kite, &mouse_pos, s->kite->center_rotation);
+    kite_center_rotation(state->kite, &mouse_pos, state->kite->center_rotation);
   } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    kite_center_rotation(s->kite, &mouse_pos, s->kite->center_rotation);
+    kite_center_rotation(state->kite, &mouse_pos, state->kite->center_rotation);
   }
 }
 
 /**
  * @brief [TODO:description]
  *
- * @param s [TODO:parameter]
+ * @param state [TODO:parameter]
  */
-void kite_input_check_rotation(State *s) {
+void kite_input_check_rotation(State *state) {
 
   if (IsKeyDown(KEY_R) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    s->iscenter = true;
+    state->iscenter = true;
 
-    if (!s->fixed) {
-      kite_center_rotation(s->kite, NULL,
-                           s->kite->center_rotation + 1 + s->turn_velocity);
+    if (!state->fixed) {
+      kite_center_rotation(state->kite, NULL,
+                           state->kite->center_rotation + 1 + state->turn_velocity);
     } else {
-      if (!s->interrupt_smoothness) {
-        s->interrupt_movement = true;
-        kite_center_rotation(s->kite, NULL, s->kite->center_rotation + 45);
+      if (!state->interrupt_smoothness) {
+        state->interrupt_movement = true;
+        kite_center_rotation(state->kite, NULL, state->kite->center_rotation + 45);
       }
-      s->interrupt_smoothness = true;
+      state->interrupt_smoothness = true;
     }
 
   } else if (IsKeyDown(KEY_R)) {
-    s->iscenter = true;
+    state->iscenter = true;
 
-    if (!s->fixed) {
-      kite_center_rotation(s->kite, NULL,
-                           s->kite->center_rotation - 1 - s->turn_velocity);
+    if (!state->fixed) {
+      kite_center_rotation(state->kite, NULL,
+                           state->kite->center_rotation - 1 - state->turn_velocity);
     } else {
-      if (!s->interrupt_smoothness) {
-        s->interrupt_movement = true;
-        kite_center_rotation(s->kite, NULL, s->kite->center_rotation - 45);
+      if (!state->interrupt_smoothness) {
+        state->interrupt_movement = true;
+        kite_center_rotation(state->kite, NULL, state->kite->center_rotation - 45);
       }
-      s->interrupt_smoothness = true;
+      state->interrupt_smoothness = true;
     }
   }
 }
@@ -624,71 +635,71 @@ void kite_input_check_rotation(State *s) {
 /**
  * @brief [TODO:description]
  *
- * @param s [TODO:parameter]
+ * @param state [TODO:parameter]
  */
-void kite_input_check_tip_turn(State *s) {
+void kite_input_check_tip_turn(State *state) {
   // TODO: Think about the clamp in terms of a tip rotation
   if (IsKeyDown(KEY_T) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
 
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
 
-      if (!s->fixed) {
-        kite_tip_rotation(s->kite, NULL,
-                          s->kite->center_rotation + 1 + s->turn_velocity,
+      if (!state->fixed) {
+        kite_tip_rotation(state->kite, NULL,
+                          state->kite->center_rotation + 1 + state->turn_velocity,
                           RIGHT_TIP);
       } else {
-        if (!s->interrupt_smoothness) {
-          s->interrupt_movement = true;
-          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation + 45,
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_tip_rotation(state->kite, NULL, state->kite->center_rotation + 45,
                             RIGHT_TIP);
         }
-        s->interrupt_smoothness = true;
+        state->interrupt_smoothness = true;
       }
     }
 
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-      if (!s->fixed) {
-        kite_tip_rotation(s->kite, NULL,
-                          s->kite->center_rotation + 1 + s->turn_velocity,
+      if (!state->fixed) {
+        kite_tip_rotation(state->kite, NULL,
+                          state->kite->center_rotation + 1 + state->turn_velocity,
                           LEFT_TIP);
       } else {
-        if (!s->interrupt_smoothness) {
-          s->interrupt_movement = true;
-          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation + 45,
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_tip_rotation(state->kite, NULL, state->kite->center_rotation + 45,
                             LEFT_TIP);
         }
-        s->interrupt_smoothness = true;
+        state->interrupt_smoothness = true;
       }
     }
   } else if (IsKeyDown(KEY_T)) {
 
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-      if (!s->fixed) {
-        kite_tip_rotation(s->kite, NULL,
-                          s->kite->center_rotation - 1 - s->turn_velocity,
+      if (!state->fixed) {
+        kite_tip_rotation(state->kite, NULL,
+                          state->kite->center_rotation - 1 - state->turn_velocity,
                           RIGHT_TIP);
       } else {
-        if (!s->interrupt_smoothness) {
-          s->interrupt_movement = true;
-          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation - 45,
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_tip_rotation(state->kite, NULL, state->kite->center_rotation - 45,
                             RIGHT_TIP);
         }
-        s->interrupt_smoothness = true;
+        state->interrupt_smoothness = true;
       }
     }
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-      if (!s->fixed) {
-        kite_tip_rotation(s->kite, NULL,
-                          s->kite->center_rotation - 1 - s->turn_velocity,
+      if (!state->fixed) {
+        kite_tip_rotation(state->kite, NULL,
+                          state->kite->center_rotation - 1 - state->turn_velocity,
                           LEFT_TIP);
       } else {
-        if (!s->interrupt_smoothness) {
-          s->interrupt_movement = true;
-          kite_tip_rotation(s->kite, NULL, s->kite->center_rotation - 45,
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_tip_rotation(state->kite, NULL, state->kite->center_rotation - 45,
                             LEFT_TIP);
         }
-        s->interrupt_smoothness = true;
+        state->interrupt_smoothness = true;
       }
     }
   }
@@ -697,72 +708,72 @@ void kite_input_check_tip_turn(State *s) {
 /**
  * @brief [TODO:description]
  *
- * @param s [TODO:parameter]
+ * @param state [TODO:parameter]
  */
-void kite_input_check_circle(State *s) {
+void kite_input_check_circle(State *state) {
   if (IsKeyPressed(KEY_C) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
 
-    s->interrupt_movement = true;
+    state->interrupt_movement = true;
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
 
-      if (!s->fixed) {
-        kite_circle_rotation(s->kite, NULL,
-                             s->kite->center_rotation + 1 + s->turn_velocity,
+      if (!state->fixed) {
+        kite_circle_rotation(state->kite, NULL,
+                             state->kite->center_rotation + 1 + state->turn_velocity,
                              RIGHT_TIP, false);
       } else {
-        if (!s->interrupt_smoothness) {
-          s->interrupt_movement = true;
-          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation + 45,
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_circle_rotation(state->kite, NULL, state->kite->center_rotation + 45,
                                RIGHT_TIP, false);
         }
-        s->interrupt_smoothness = true;
+        state->interrupt_smoothness = true;
       }
     }
 
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-      if (!s->fixed) {
-        kite_circle_rotation(s->kite, NULL,
-                             s->kite->center_rotation - 1 - s->turn_velocity,
+      if (!state->fixed) {
+        kite_circle_rotation(state->kite, NULL,
+                             state->kite->center_rotation - 1 - state->turn_velocity,
                              LEFT_TIP, false);
       } else {
-        if (!s->interrupt_smoothness) {
-          s->interrupt_movement = true;
-          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation - 45,
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_circle_rotation(state->kite, NULL, state->kite->center_rotation - 45,
                                LEFT_TIP, false);
         }
-        s->interrupt_smoothness = true;
+        state->interrupt_smoothness = true;
       }
     }
   } else if (IsKeyPressed(KEY_C)) {
-    s->interrupt_movement = true;
+    state->interrupt_movement = true;
 
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-      if (!s->fixed) {
-        kite_circle_rotation(s->kite, NULL,
-                             s->kite->center_rotation - 1 - s->turn_velocity,
+      if (!state->fixed) {
+        kite_circle_rotation(state->kite, NULL,
+                             state->kite->center_rotation - 1 - state->turn_velocity,
                              RIGHT_TIP, true);
       } else {
-        if (!s->interrupt_smoothness) {
-          s->interrupt_movement = true;
-          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation - 45,
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_circle_rotation(state->kite, NULL, state->kite->center_rotation - 45,
                                RIGHT_TIP, true);
         }
-        s->interrupt_smoothness = true;
+        state->interrupt_smoothness = true;
       }
     }
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-      if (!s->fixed) {
-        kite_circle_rotation(s->kite, NULL,
-                             s->kite->center_rotation + 1 + s->turn_velocity,
+      if (!state->fixed) {
+        kite_circle_rotation(state->kite, NULL,
+                             state->kite->center_rotation + 1 + state->turn_velocity,
                              LEFT_TIP, true);
       } else {
-        if (!s->interrupt_smoothness) {
-          s->interrupt_movement = true;
-          kite_circle_rotation(s->kite, NULL, s->kite->center_rotation + 45,
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_circle_rotation(state->kite, NULL, state->kite->center_rotation + 45,
                                LEFT_TIP, true);
         }
-        s->interrupt_smoothness = true;
+        state->interrupt_smoothness = true;
       }
     }
   }
@@ -771,75 +782,75 @@ void kite_input_check_circle(State *s) {
 /**
  * @brief [TODO:description]
  *
- * @param s [TODO:parameter]
+ * @param state [TODO:parameter]
  */
-void kite_input_check_movement(State *s) {
+void kite_input_check_movement(State *state) {
   int viewport_padding =
-      s->kite->width > s->kite->height ? s->kite->width / 2 : s->kite->height;
+      state->kite->width > state->kite->height ? state->kite->width / 2 : state->kite->height;
   Vector2 window = {GetScreenWidth(), GetScreenHeight()};
   window.x -= viewport_padding;
   window.y -= viewport_padding;
 
   if (IsKeyDown(KEY_J) || IsKeyDown(KEY_DOWN)) {
-    s->kite->center.y = kite_clamp(s->kite->center.y + s->fly_velocity,
+    state->kite->center.y = kite_clamp(state->kite->center.y + state->fly_velocity,
                                    viewport_padding, window.y);
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
-      s->kite->center.x = kite_clamp(s->kite->center.x + s->fly_velocity,
+      state->kite->center.x = kite_clamp(state->kite->center.x + state->fly_velocity,
                                      viewport_padding, window.x);
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
-      s->kite->center.x = kite_clamp(s->kite->center.x - s->fly_velocity,
+      state->kite->center.x = kite_clamp(state->kite->center.x - state->fly_velocity,
                                      viewport_padding, window.x);
 
-    kite_center_rotation(s->kite, NULL, s->kite->center_rotation);
+    kite_center_rotation(state->kite, NULL, state->kite->center_rotation);
 
   } else if (IsKeyDown(KEY_K) || IsKeyDown(KEY_UP)) {
-    s->kite->center.y = kite_clamp(s->kite->center.y - s->fly_velocity,
+    state->kite->center.y = kite_clamp(state->kite->center.y - state->fly_velocity,
                                    viewport_padding, window.y);
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
-      s->kite->center.x = kite_clamp(s->kite->center.x + s->fly_velocity,
+      state->kite->center.x = kite_clamp(state->kite->center.x + state->fly_velocity,
                                      viewport_padding, window.x);
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
-      s->kite->center.x = kite_clamp(s->kite->center.x - s->fly_velocity,
+      state->kite->center.x = kite_clamp(state->kite->center.x - state->fly_velocity,
                                      viewport_padding, window.x);
-    kite_center_rotation(s->kite, NULL, s->kite->center_rotation);
+    kite_center_rotation(state->kite, NULL, state->kite->center_rotation);
 
   } else if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-    s->kite->center.x = kite_clamp(s->kite->center.x - s->fly_velocity,
+    state->kite->center.x = kite_clamp(state->kite->center.x - state->fly_velocity,
                                    viewport_padding, window.x);
-    kite_center_rotation(s->kite, NULL, s->kite->center_rotation);
+    kite_center_rotation(state->kite, NULL, state->kite->center_rotation);
   } else if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-    s->kite->center.x = kite_clamp(s->kite->center.x + s->fly_velocity,
+    state->kite->center.x = kite_clamp(state->kite->center.x + state->fly_velocity,
                                    viewport_padding, window.x);
-    kite_center_rotation(s->kite, NULL, s->kite->center_rotation);
+    kite_center_rotation(state->kite, NULL, state->kite->center_rotation);
   }
 }
 
 /**
  * @brief [TODO:description]
  *
- * @param s [TODO:parameter]
+ * @param state [TODO:parameter]
  */
-void kite_input_check_speed(State *s) {
+void kite_input_check_speed(State *state) {
 
   if (IsKeyDown(KEY_P) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    if (s->kite->fly_speed > 0) {
-      s->kite->fly_speed -= 1;
+    if (state->kite->fly_speed > 0) {
+      state->kite->fly_speed -= 1;
     }
   } else if (IsKeyDown(KEY_P)) {
-    if (s->kite->fly_speed <= 100) {
-      s->kite->fly_speed += 1;
+    if (state->kite->fly_speed <= 100) {
+      state->kite->fly_speed += 1;
     }
   }
 
   if (IsKeyDown(KEY_O) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
-    if (s->kite->turn_speed > 0) {
-      s->kite->turn_speed -= 1;
+    if (state->kite->turn_speed > 0) {
+      state->kite->turn_speed -= 1;
     }
   } else if (IsKeyDown(KEY_O)) {
-    if (s->kite->turn_speed <= 100) {
-      s->kite->turn_speed += 1;
+    if (state->kite->turn_speed <= 100) {
+      state->kite->turn_speed += 1;
     }
   }
 }
