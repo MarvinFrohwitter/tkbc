@@ -75,20 +75,20 @@ void kite_destroy(State *state);
 void kite_set_state_defaults(State *state);
 void kite_set_kite_defaults(Kite *kite, bool is_generated);
 
-void kite_tip_rotation(Kite *k, Vector2 *position, float tip_deg_rotation,
+void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
                        TIP tip);
-void kite_center_rotation(Kite *k, Vector2 *position,
+void kite_center_rotation(Kite *kite, Vector2 *position,
                           float center_deg_rotation);
-void kite_circle_rotation(Kite *k, Vector2 *position, float deg_rotation,
+void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
                           TIP tip, bool below);
-void kite_draw_kite(Kite *k);
-void kite_input_handler(State *s);
-void kite_input_check_rotation(State *s);
-void kite_input_check_tip_turn(State *s);
-void kite_input_check_circle(State *s);
-void kite_input_check_movement(State *s);
-void kite_input_check_speed(State *s);
-void kite_input_check_mouse(State *s);
+void kite_draw_kite(Kite *kite);
+void kite_input_handler(State *state);
+void kite_input_check_rotation(State *state);
+void kite_input_check_tip_turn(State *state);
+void kite_input_check_circle(State *state);
+void kite_input_check_movement(State *state);
+void kite_input_check_speed(State *state);
+void kite_input_check_mouse(State *state);
 
 float kite_clamp(float z, float a, float b);
 
