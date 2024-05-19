@@ -12,10 +12,10 @@ options:
 
 
 tkbc:
-	${CC} -I ../raylib-5.0/src/ ${CFLAGS} ${LIBS} -o tkbc main.c
+	${CC} -I ../raylib-5.0/src/ ${CFLAGS} ${LIBS} -o tkbc main.c tkbc.c multi-kite.c kite-script-handler.c
 
-tkb.c.o:
-	${CC} -I ../raylib-5.0/src/ ${CFLAGS} ${LIBS} -c main.c -o $@
+# tkb.c.o:
+# 	${CC} -I ../raylib-5.0/src/ ${CFLAGS} ${LIBS} -c main.c -o $@
 
 
 clean:
