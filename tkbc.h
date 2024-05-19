@@ -1,8 +1,8 @@
 #ifndef TKBC_H_
 #define TKBC_H_
 
-#include <stdio.h>
 #include "raylib.h"
+#include <stdio.h>
 
 #define TEAL                                                                   \
   CLITERAL(Color) { 0, 128, 128, 255 } // Teal #define WINDOW_SCALE 120
@@ -116,7 +116,7 @@ void kite_defer_sound(Sound sound);
 // ========================== Script Handler =================================
 // ===========================================================================
 
-typedef enum PARAMETERS {
+typedef enum {
   FIXED,
   SMOOTH,
 } PARAMETERS;

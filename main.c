@@ -5,7 +5,6 @@
 #include "raylib.h"
 #include "tkbc.h"
 
-
 /**
  * @brief The main function that handles the event loop and the sound loading.
  *
@@ -37,13 +36,13 @@ int main(void) {
     ClearBackground(SKYBLUE);
 
 #ifdef LOADIMAGE
-      float scale_width = (float)GetScreenWidth() / background_texture.width;
-      float scale_height = (float)GetScreenHeight() / background_texture.height;
-      float scale = fmaxf(scale_width, scale_height);
-      DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
+    float scale_width = (float)GetScreenWidth() / background_texture.width;
+    float scale_height = (float)GetScreenHeight() / background_texture.height;
+    float scale = fmaxf(scale_width, scale_height);
+    DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
 #endif /* ifdef LOADIMAGE */
 
-      kite_draw_kite_array();
+    kite_draw_kite_array();
     DrawFPS(center_pos.x, 10);
     EndDrawing();
 
