@@ -1,6 +1,7 @@
 #ifndef TKBC_H_
 #define TKBC_H_
 
+#include <stdio.h>
 #include "raylib.h"
 
 #define TEAL                                                                   \
@@ -107,7 +108,9 @@ void kite_array_start_pos();
 // ========================== Sound Handler ==================================
 // ===========================================================================
 
-void kite_sound_handler();
+void kite_sound_handler(Sound *kite_sound);
+Sound kite_sound_init(size_t master_volume);
+void kite_defer_sound(Sound sound);
 
 // ===========================================================================
 // ========================== Script Handler =================================
