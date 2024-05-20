@@ -294,7 +294,7 @@ Env *kite_env_init() {
   }
 
   env->window_height = GetScreenHeight();
-  env->window_height = GetScreenWidth();
+  env->window_width = GetScreenWidth();
   return env;
 }
 
