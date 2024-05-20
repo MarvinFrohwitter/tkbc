@@ -10,7 +10,6 @@
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 #define TARGET_FPS 60
 
-
 /**
  * @brief The main function that handles the event loop and the sound loading.
  *
