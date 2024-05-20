@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "kite_utils.h"
 #include "raylib.h"
 #include "tkbc.h"
 
@@ -37,9 +38,21 @@ int main(void) {
 
   kite_gen_kites(env, 4);
 
+  Kite_Indexs ki = {0};
+  kite_da_append(&ki, 2);
+  kite_da_append(&ki, 0);
+
+  kite_register_frame(
+      env, kite_gen_frame(KITE_MOVE, ki,
+                          &(CLITERAL(Move_Action){.position.x = 100,
+                                                  .position.y = 100,
+                                                  .parameters = FIXED}),
+                          0.1));
+
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
+    kite_update_frames(env);
 
 #ifdef LOADIMAGE
     float scale_width = (float)GetScreenWidth() / background_texture.width;

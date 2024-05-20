@@ -2,10 +2,176 @@
 // ========================== Script Handler =================================
 // ===========================================================================
 
+#include "kite_utils.h"
 #include "tkbc.h"
 #include <assert.h>
 #include <math.h>
+#include <raylib.h>
 #include <stddef.h>
+
+Frame *kite_frame_init() {
+  Frame *frame = calloc(1, sizeof(*frame));
+  if (frame == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+  frame->kite_index_array = calloc(1, sizeof(*frame->kite_index_array));
+  if (frame->kite_index_array == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
+  return frame;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param kind [TODO:parameter]
+ * @param kite_indexs [TODO:parameter]
+ * @param raw_action [TODO:parameter]
+ * @param duration [TODO:parameter]
+ * @return [TODO:return]
+ */
+Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs, void *raw_action, float duration) {
+
+  // TODO: Variadic function for the kite numbers.
+
+  void *action;
+  Frame *frame = kite_frame_init();
+  switch (kind) {
+  case KITE_MOVE: {
+    action = (Move_Action *)raw_action;
+
+  } break;
+  case KITE_ROTATION: {
+    action = (Rotation_Action *)raw_action;
+  } break;
+  case KITE_TIP_ROTATION: {
+    action = (Tip_Rotation_Action *)raw_action;
+  } break;
+  default:
+    action = (Move_Action *)raw_action;
+    break;
+  }
+
+  for (size_t i = 0; i < kite_indexs.count; ++i) {
+    kite_da_append(frame->kite_index_array, kite_indexs.items[i]);
+  }
+  frame->duration = duration;
+  frame->kind = kind;
+  frame->action = action;
+  return frame;
+}
+
+void kite_register_frame(Env *env, Frame *frame) {
+  // TODO: Variadic function
+  kite_da_append(env->frames, *frame);
+  env->frames->frame_counter++;
+}
+
+/**
+ * @brief The function kite_array_destroy_frames() frees all the allocated
+ * actions in every frame in the array.
+ *
+ * @param env The global state of the application.
+ */
+void kite_array_destroy_frames(Env *env) {
+  for (size_t i = 0; i < env->frames->count; ++i) {
+    free(env->frames->items[i].action);
+  }
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param frame [TODO:parameter]
+ */
+void kite_frame_reset(Frame *frame) {
+  frame->duration = 0;
+  frame->action = NULL;
+  frame->kite_index_array = NULL;
+  frame->kind = KITE_ACTION;
+  frame->index = 0;
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ */
+void kite_update_frames(Env *env) {
+  for (size_t i = 0; i < env->frames->count; ++i) {
+    Frame *frame = &env->frames->items[i];
+    if (frame->duration <= 1 && frame->duration != 0) {
+      frame->duration *= GetFrameTime();
+      kite_render_frame(env, frame);
+
+    } else {
+      kite_frame_reset(&env->frames->items[i]);
+    }
+  }
+}
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param frame [TODO:parameter]
+ */
+void kite_render_frame(Env *env, Frame *frame) {
+  switch (frame->kind) {
+  case KITE_MOVE: {
+
+    Move_Action *action = frame->action;
+
+    for (size_t i = 0;
+         i < env->frames->items[frame->index].kite_index_array->count; ++i) {
+      size_t current_kite_index =
+          env->frames->items[frame->index].kite_index_array->items[i];
+      Kite *kite = env->kite_array->items[current_kite_index].kite;
+
+      kite_script_move(kite, action->position.x, action->position.y,
+                       action->parameters);
+    }
+
+  } break;
+  case KITE_ROTATION: {
+
+    Rotation_Action *action = frame->action;
+
+    for (size_t i = 0;
+         i < env->frames->items[frame->index].kite_index_array->count; ++i) {
+      size_t current_kite_index =
+          env->frames->items[frame->index].kite_index_array->items[i];
+      Kite *kite = env->kite_array->items[current_kite_index].kite;
+
+      kite_script_rotate(kite, action->angle, action->parameters);
+    }
+  } break;
+  case KITE_TIP_ROTATION: {
+  } break;
+
+    Tip_Rotation_Action *action = frame->action;
+
+    for (size_t i = 0;
+         i < env->frames->items[frame->index].kite_index_array->count; ++i) {
+      size_t current_kite_index =
+          env->frames->items[frame->index].kite_index_array->items[i];
+      Kite *kite = env->kite_array->items[current_kite_index].kite;
+
+      kite_script_rotate_tip(kite, action->tip, action->angle,
+                             action->parameters);
+    }
+  default:
+    break;
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 /**
  * @brief [TODO:description]

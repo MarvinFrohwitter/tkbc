@@ -67,7 +67,12 @@ typedef struct {
   size_t capacity;
 } States;
 
-typedef enum { KITE_MOVE, KITE_ROTATION, KITE_TIP_ROTATION } Action_Kind;
+typedef enum {
+  KITE_ACTION,
+  KITE_MOVE,
+  KITE_ROTATION,
+  KITE_TIP_ROTATION
+} Action_Kind;
 typedef enum {
   FIXED,
   SMOOTH,
@@ -94,9 +99,17 @@ typedef struct {
 
 } Move_Action;
 
+
 typedef struct {
+  size_t *items;
+  size_t count;
+  size_t capacity;
+} Kite_Indexs;
+
+typedef struct {
+  Kite_Indexs *kite_index_array;
   size_t index;
-  size_t duration;
+  float duration;
   Action_Kind kind;
   void *action;
 } Frame;
@@ -105,6 +118,8 @@ typedef struct {
   Frame *items;
   size_t count;
   size_t capacity;
+
+  size_t frame_counter;
 } Frames;
 
 typedef struct {
@@ -114,7 +129,6 @@ typedef struct {
   size_t window_height;
 
 } Env;
-
 
 // ===========================================================================
 // ========================== Kite Declarations ==============================
@@ -160,13 +174,23 @@ void kite_array_start_pos(Env *env);
 // ========================== Sound Handler ==================================
 // ===========================================================================
 
-void kite_sound_handler(Sound *kite_sound);
 Sound kite_sound_init(size_t master_volume);
 void kite_defer_sound(Sound sound);
+void kite_sound_handler(Sound *kite_sound);
 
 // ===========================================================================
 // ========================== Script Handler =================================
 // ===========================================================================
+
+Frame *kite_frame_init();
+Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
+                      void *raw_action, float duration);
+void kite_frame_reset(Frame *frame);
+void kite_register_frame(Env *env, Frame *frame);
+void kite_render_frame(Env *env, Frame *frame);
+
+void kite_update_frames(Env *env);
+void kite_array_destroy_frames(Env *env);
 
 void kite_script_input(State *state);
 void kite_script_begin(State *state);
