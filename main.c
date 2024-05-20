@@ -5,6 +5,12 @@
 #include "raylib.h"
 #include "tkbc.h"
 
+#define WINDOW_SCALE 120
+#define SCREEN_WIDTH 16 * WINDOW_SCALE
+#define SCREEN_HEIGHT 9 * WINDOW_SCALE
+#define TARGET_FPS 60
+
+
 /**
  * @brief The main function that handles the event loop and the sound loading.
  *
@@ -28,8 +34,10 @@ int main(void) {
 
   Sound kite_sound = kite_sound_init(40);
 
-  kite_gen_kites(&CLITERAL(State){0}, &CLITERAL(State){0}, &CLITERAL(State){0},
-                 &CLITERAL(State){0});
+  Env *env = kite_env_init();
+
+  kite_gen_kites(env, &CLITERAL(State){0}, &CLITERAL(State){0},
+                 &CLITERAL(State){0}, &CLITERAL(State){0});
 
   while (!WindowShouldClose()) {
     BeginDrawing();
@@ -42,15 +50,15 @@ int main(void) {
     DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
 #endif /* ifdef LOADIMAGE */
 
-    kite_draw_kite_array();
+    kite_draw_kite_array(env);
     DrawFPS(center_pos.x, 10);
     EndDrawing();
 
     kite_sound_handler(&kite_sound);
-    kite_array_input_handler();
+    kite_array_input_handler(env);
   };
 
-  kite_array_destroy_kites();
+  kite_env_destroy(env);
   kite_defer_sound(kite_sound);
   CloseWindow();
   return 0;
