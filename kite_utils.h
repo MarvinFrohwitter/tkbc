@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
+
 #define kite_da_append(da, item)                                                    \
   do {                                                                         \
     if ((da)->count >= (da)->capacity) {                                       \

@@ -36,8 +36,7 @@ int main(void) {
 
   Env *env = kite_env_init();
 
-  kite_gen_kites(env, &CLITERAL(State){0}, &CLITERAL(State){0},
-                 &CLITERAL(State){0}, &CLITERAL(State){0});
+  kite_gen_kites(env, 4);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
