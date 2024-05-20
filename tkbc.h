@@ -149,7 +149,7 @@ float kite_clamp(float z, float a, float b);
 // ========================== Custom Kite Creation ===========================
 // ===========================================================================
 
-void kite_gen_kites(Env *env, State *s1, State *s2, State *s3, State *s4);
+void kite_gen_kites(Env *env, size_t kite_count);
 void kite_array_destroy_kites(Env *env);
 void kite_draw_kite_array(Env *env);
 bool kite_array_check_interrupt_script(Env *env);

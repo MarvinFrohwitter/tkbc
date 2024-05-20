@@ -301,7 +301,7 @@ Env *kite_env_init() {
 /**
  * @brief The function kite_env_destroy() frees the memory for the given state.
  *
- * @param env The Env that is the global state of the application.
+ * @param env The global state of the application.
  */
 void kite_env_destroy(Env *env) {
   kite_array_destroy_kites(env);
@@ -375,6 +375,7 @@ int kite_check_boundary(Kite *kite, ORIENTATION orientation) {
  * @brief The function kite_input_handler() handles all the keyboard input that
  * is provided to control the given state.
  *
+ * @param env The global state of the application.
  * @param state The current state of a kite that should be handled.
  */
 void kite_input_handler(Env *env, State *state) {
