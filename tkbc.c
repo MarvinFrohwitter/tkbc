@@ -202,9 +202,7 @@ void kite_draw_kite(Kite *kite) {
  *
  * @param state The current state of a kite.
  */
-void kite_kite_destroy(State *state) {
-  free(state->kite);
-}
+void kite_kite_destroy(State *state) { free(state->kite); }
 
 /**
  * @brief The function kite_set_state_defaults() sets all the default settings
@@ -305,9 +303,10 @@ Env *kite_env_init() {
  */
 void kite_env_destroy(Env *env) {
   kite_array_destroy_kites(env);
-
   free(env->kite_array->items);
   free(env->kite_array);
+
+  kite_array_destroy_frames(env);
   free(env->frames->items);
   free(env->frames);
   free(env);
