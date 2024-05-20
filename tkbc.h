@@ -6,21 +6,17 @@
 
 #define TEAL                                                                   \
   CLITERAL(Color) { 0, 128, 128, 255 } // Teal #define WINDOW_SCALE 120
-#define WINDOW_SCALE 120
-#define SCREEN_WIDTH 16 * WINDOW_SCALE
-#define SCREEN_HEIGHT 9 * WINDOW_SCALE
-#define TARGET_FPS 60
 
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
 
-typedef struct Triangle {
+typedef struct {
   Vector2 v1;
   Vector2 v2;
   Vector2 v3;
 } Triangle;
 
-typedef struct Kite {
+typedef struct {
   Vector2 center; // The center position that is located at the center of the
                   // top leading edge.
 
@@ -48,7 +44,8 @@ typedef struct Kite {
   float turn_speed; // Kite turn speed set from 0 to 100.
 } Kite;
 
-typedef struct State {
+typedef struct {
+  size_t id;
   Kite *kite;
   float fly_velocity;
   float turn_velocity;
@@ -64,15 +61,69 @@ typedef struct State {
   int instruction_count;
 } State;
 
-typedef enum TIP { LEFT_TIP, RIGHT_TIP } TIP;
-typedef enum Orientation { KITE_Y, KITE_X } Orientation;
+typedef struct {
+  State *items;
+  size_t count;
+  size_t capacity;
+} States;
+
+typedef enum { KITE_MOVE, KITE_ROTATION, KITE_TIP_ROTATION } Action_Kind;
+typedef enum {
+  FIXED,
+  SMOOTH,
+} PARAMETERS;
+typedef enum { LEFT_TIP, RIGHT_TIP } TIP;
+typedef enum { KITE_Y, KITE_X } ORIENTATION;
+
+typedef struct {
+  float angle;
+  PARAMETERS parameters;
+  TIP tip;
+
+} Tip_Rotation_Action;
+
+typedef struct {
+  float angle;
+  PARAMETERS parameters;
+
+} Rotation_Action;
+
+typedef struct {
+  Vector2 position;
+  PARAMETERS parameters;
+
+} Move_Action;
+
+typedef struct {
+  size_t index;
+  size_t duration;
+  Action_Kind kind;
+  void *action;
+} Frame;
+
+typedef struct {
+  Frame *items;
+  size_t count;
+  size_t capacity;
+} Frames;
+
+typedef struct {
+  Frames *frames;
+  States *kite_array;
+  size_t window_width;
+  size_t window_height;
+
+} Env;
+
 
 // ===========================================================================
 // ========================== Kite Declarations ==============================
 // ===========================================================================
 
-State *kite_init();
-void kite_destroy(State *state);
+Env *kite_env_init();
+void kite_env_destroy(Env *env);
+State *kite_kite_init();
+void kite_kite_destroy(State *state);
 void kite_set_state_defaults(State *state);
 void kite_set_kite_defaults(Kite *kite, bool is_generated);
 
@@ -83,7 +134,7 @@ void kite_center_rotation(Kite *kite, Vector2 *position,
 void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
                           TIP tip, bool below);
 void kite_draw_kite(Kite *kite);
-void kite_input_handler(State *state);
+void kite_input_handler(Env *env, State *state);
 void kite_input_check_rotation(State *state);
 void kite_input_check_tip_turn(State *state);
 void kite_input_check_circle(State *state);
@@ -91,18 +142,19 @@ void kite_input_check_movement(State *state);
 void kite_input_check_speed(State *state);
 void kite_input_check_mouse(State *state);
 
+int kite_check_boundary(Kite *kite, ORIENTATION orientation);
 float kite_clamp(float z, float a, float b);
 
 // ===========================================================================
 // ========================== Custom Kite Creation ===========================
 // ===========================================================================
 
-void kite_gen_kites(State *s1, State *s2, State *s3, State *s4);
-void kite_array_destroy_kites();
-void kite_draw_kite_array();
-bool kite_array_check_interrupt_script();
-void kite_array_input_handler();
-void kite_array_start_pos();
+void kite_gen_kites(Env *env, State *s1, State *s2, State *s3, State *s4);
+void kite_array_destroy_kites(Env *env);
+void kite_draw_kite_array(Env *env);
+bool kite_array_check_interrupt_script(Env *env);
+void kite_array_input_handler(Env *env);
+void kite_array_start_pos(Env *env);
 
 // ===========================================================================
 // ========================== Sound Handler ==================================
@@ -115,11 +167,6 @@ void kite_defer_sound(Sound sound);
 // ===========================================================================
 // ========================== Script Handler =================================
 // ===========================================================================
-
-typedef enum {
-  FIXED,
-  SMOOTH,
-} PARAMETERS;
 
 void kite_script_input(State *state);
 void kite_script_begin(State *state);

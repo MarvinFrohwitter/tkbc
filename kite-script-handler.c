@@ -2,24 +2,18 @@
 // ========================== Script Handler =================================
 // ===========================================================================
 
-#include <assert.h>
-#include <stddef.h>
-#include <math.h>
 #include "tkbc.h"
+#include <assert.h>
+#include <math.h>
+#include <stddef.h>
 
 /**
  * @brief [TODO:description]
  *
  * @param state [TODO:parameter]
  */
-void kite_script_begin(State *state) {
-  state->interrupt_script = true;
-  SetTargetFPS(1);
-}
-void kite_script_end(State *state) {
-  state->interrupt_script = false;
-  SetTargetFPS(TARGET_FPS);
-}
+void kite_script_begin(State *state) { state->interrupt_script = true; }
+void kite_script_end(State *state) { state->interrupt_script = false; }
 
 /**
  * @brief [TODO:description]

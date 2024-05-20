@@ -198,13 +198,12 @@ void kite_draw_kite(Kite *kite) {
 }
 
 /**
- * @brief The function kite_destroy() frees the memory for the given state.
+ * @brief The function kite_kite_destroy() frees the memory for the given state.
  *
  * @param state The current state of a kite.
  */
-void kite_destroy(State *state) {
+void kite_kite_destroy(State *state) {
   free(state->kite);
-  free(state);
 }
 
 /**
@@ -215,6 +214,7 @@ void kite_destroy(State *state) {
  */
 void kite_set_state_defaults(State *state) {
 
+  state->id = 0;
   state->kite_input_handler_active = false;
   state->fly_velocity = 10;
   state->turn_velocity = 10;
@@ -272,16 +272,66 @@ void kite_set_kite_defaults(Kite *kite, bool is_generated) {
 }
 
 /**
- * @brief The function kite_init() allocates the memory for a kite and it's
+ * @brief The function kite_env_init() initializes a new Env.
+ *
+ * @return The new allocated Env.
+ */
+Env *kite_env_init() {
+  Env *env = calloc(1, sizeof(*env));
+  if (env == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+  env->kite_array = calloc(1, sizeof(*env->kite_array));
+  if (env->kite_array == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+  env->frames = calloc(1, sizeof(*env->frames));
+  if (env->frames == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
+  env->window_height = GetScreenHeight();
+  env->window_height = GetScreenWidth();
+  return env;
+}
+
+/**
+ * @brief The function kite_env_destroy() frees the memory for the given state.
+ *
+ * @param env The Env that is the global state of the application.
+ */
+void kite_env_destroy(Env *env) {
+  kite_array_destroy_kites(env);
+
+  free(env->kite_array->items);
+  free(env->kite_array);
+  free(env->frames->items);
+  free(env->frames);
+  free(env);
+}
+
+/**
+ * @brief The function kite_kite_init() allocates the memory for a kite and it's
  * corresponding state and gives back the state structure.
  *
  * @return state The new allocated state.
  */
-State *kite_init() {
-  State *state = calloc(1, sizeof(State));
+State *kite_kite_init() {
+  State *state = calloc(1, sizeof(*state));
+  if (state == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
 
   kite_set_state_defaults(state);
-  state->kite = calloc(1, sizeof(Kite));
+  state->kite = calloc(1, sizeof(*state->kite));
+  if (state->kite == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
   kite_set_kite_defaults(state->kite, true);
 
   int viewport_padding = state->kite->width > state->kite->height
@@ -303,7 +353,7 @@ State *kite_init() {
  * are.
  * @return True if the kite is in the window, otherwise false.
  */
-int kite_check_boundary(Kite *kite, Orientation orientation) {
+int kite_check_boundary(Kite *kite, ORIENTATION orientation) {
   float width = GetScreenWidth();
   float height = GetScreenHeight();
   float x = kite->center.x;
@@ -327,7 +377,7 @@ int kite_check_boundary(Kite *kite, Orientation orientation) {
  *
  * @param state The current state of a kite that should be handled.
  */
-void kite_input_handler(State *state) {
+void kite_input_handler(Env *env, State *state) {
   if (!state->kite_input_handler_active) {
     return;
   }
@@ -342,7 +392,7 @@ void kite_input_handler(State *state) {
 
   // Hard reset to top left corner angel 0, position (0,0)
   if (IsKeyDown(KEY_SPACE))
-    kite_array_start_pos();
+    kite_array_start_pos(env);
 
   if (IsKeyDown(KEY_N))
     kite_center_rotation(state->kite, NULL, 0);
