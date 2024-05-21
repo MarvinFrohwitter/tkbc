@@ -5,9 +5,10 @@
 #include "kite_utils.h"
 #include "tkbc.h"
 #include <assert.h>
-#include <math.h>
-#include <raylib.h>
+#include <raymath.h>
+#include <stdarg.h>
 #include <stddef.h>
+#include <stdio.h>
 
 Frame *kite_frame_init() {
   Frame *frame = calloc(1, sizeof(*frame));
@@ -33,7 +34,8 @@ Frame *kite_frame_init() {
  * @param duration [TODO:parameter]
  * @return [TODO:return]
  */
-Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs, void *raw_action, float duration) {
+Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
+                      void *raw_action, float duration) {
 
   // TODO: Variadic function for the kite numbers.
 
@@ -61,11 +63,21 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs, void *raw_actio
   frame->duration = duration;
   frame->kind = kind;
   frame->action = action;
+  frame->finished = false;
   return frame;
 }
 
+void kite_register_frames(Env *env, size_t frame_count, ...) {
+
+  va_list args;
+  va_start(args, frame_count);
+  for (size_t i = 0; i < frame_count; ++i) {
+    kite_register_frame(env, va_arg(args, Frame *));
+  }
+  va_end(args);
+}
+
 void kite_register_frame(Env *env, Frame *frame) {
-  // TODO: Variadic function
   kite_da_append(env->frames, *frame);
   env->frames->frame_counter++;
 }
@@ -105,9 +117,8 @@ void kite_frame_reset(Frame *frame) {
 void kite_update_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
     Frame *frame = &env->frames->items[i];
-    if (frame->duration <= 1 && frame->duration != 0) {
-      frame->duration *= GetFrameTime();
-      kite_render_frame(env, frame);
+    if (!frame->finished) {
+      kite_render_frame(env, frame, frame->duration);
 
     } else {
       kite_frame_reset(&env->frames->items[i]);
@@ -122,7 +133,7 @@ void kite_update_frames(Env *env) {
  * @param env [TODO:parameter]
  * @param frame [TODO:parameter]
  */
-void kite_render_frame(Env *env, Frame *frame) {
+void kite_render_frame(Env *env, Frame *frame, float duration) {
   switch (frame->kind) {
   case KITE_MOVE: {
 
@@ -134,8 +145,11 @@ void kite_render_frame(Env *env, Frame *frame) {
           env->frames->items[frame->index].kite_index_array->items[i];
       Kite *kite = env->kite_array->items[current_kite_index].kite;
 
-      kite_script_move(kite, action->position.x, action->position.y,
-                       action->parameters);
+      kite_script_move(kite, action->position, duration);
+
+      if (Vector2Equals(kite->center, action->position)) {
+        frame->finished = true;
+      }
     }
 
   } break;
@@ -149,7 +163,7 @@ void kite_render_frame(Env *env, Frame *frame) {
           env->frames->items[frame->index].kite_index_array->items[i];
       Kite *kite = env->kite_array->items[current_kite_index].kite;
 
-      kite_script_rotate(kite, action->angle, action->parameters);
+      kite_script_rotate(kite, action->angle, duration);
     }
   } break;
   case KITE_TIP_ROTATION: {
@@ -163,8 +177,7 @@ void kite_render_frame(Env *env, Frame *frame) {
           env->frames->items[frame->index].kite_index_array->items[i];
       Kite *kite = env->kite_array->items[current_kite_index].kite;
 
-      kite_script_rotate_tip(kite, action->tip, action->angle,
-                             action->parameters);
+      kite_script_rotate_tip(kite, action->tip, action->angle, duration);
     }
   default:
     break;
@@ -172,6 +185,8 @@ void kite_render_frame(Env *env, Frame *frame) {
 }
 
 // ---------------------------------------------------------------------------
+
+float kite_lerp(float a, float b, float t) { return a + (t * (b - a)); }
 
 /**
  * @brief [TODO:description]
@@ -187,53 +202,27 @@ void kite_script_end(State *state) { state->interrupt_script = false; }
  * @param kite [TODO:parameter]
  * @param steps_x [TODO:parameter]
  * @param steps_y [TODO:parameter]
- * @param parameters [TODO:parameter]
+ * @param duration [TODO:parameter]
  */
-void kite_script_move(Kite *kite, float steps_x, float steps_y,
-                      PARAMETERS parameters) {
+void kite_script_move(Kite *kite, Vector2 position, float duration){
 
-  Vector2 pos = {0};
-
-  switch (parameters) {
-  case FIXED: {
-  final_pos:
-    pos.x = steps_x;
-    pos.y = steps_y;
-    kite_center_rotation(kite, &pos, 0);
-  } break;
-  case SMOOTH: {
-
-    size_t maxiter = fmaxf(fabsf(steps_x), fabsf(steps_y));
-    float iter_space_x = fabsf(steps_x) / maxiter;
-    float iter_space_y = fabsf(steps_x) / maxiter;
-
-    // TODO: What we do if the x and y are different
-    assert(steps_x == steps_y);
-    for (size_t i = 0; i < maxiter; ++i) {
-
-      if (floorf(pos.x) != steps_x) {
-        pos.x = steps_x > 0 ? pos.x + iter_space_x : pos.x - iter_space_x;
-      }
-
-      if (floorf(pos.y) != steps_y) {
-        pos.y = steps_y > 0 ? pos.y + iter_space_y : pos.y - iter_space_y;
-      }
-      if (steps_x == 0)
-        pos.x = steps_x;
-      if (steps_y == 0)
-        pos.y = steps_y;
-
-      kite_center_rotation(kite, &pos, 0);
-    }
-
-    // Just in case the rounding of the iterations is not enough to reach the
-    // final position.
-    goto final_pos;
-
-  } break;
-  default:
-    assert(0 && "ERROR: kite_script_move: UNREACHABLE");
+  if (duration == 0) {
+    kite_center_rotation(kite, &position, 0);
+    return;
   }
+
+  Vector2 begin = Vector2Normalize(kite->center);
+  Vector2 begin0to2 = Vector2AddValue(begin, 1);
+  Vector2 begin0to1 = Vector2Scale(begin0to2, 0.5);
+
+  Vector2 end = Vector2Normalize(position);
+  Vector2 end0to2 = Vector2AddValue(end, 1);
+  Vector2 end0to1 = Vector2Scale(end0to2, 0.5);
+
+  Vector2 it = Vector2Lerp(begin0to1, end0to1, duration);
+  Vector2 interpolation = Vector2Add(kite->center, it);
+
+  kite_center_rotation(kite, &interpolation, 0);
 }
 
 /**
@@ -241,33 +230,25 @@ void kite_script_move(Kite *kite, float steps_x, float steps_y,
  *
  * @param kite [TODO:parameter]
  * @param angle [TODO:parameter]
- * @param parameters [TODO:parameter]
+ * @param duration [TODO:parameter]
  */
-void kite_script_rotate(Kite *kite, float angle, PARAMETERS parameters) {
+void kite_script_rotate(Kite *kite, float angle, float duration) {
 
-  switch (parameters) {
-  case FIXED: {
-    kite_center_rotation(kite, NULL, angle);
-  } break;
-  case SMOOTH: {
-    if (angle < 0) {
-      for (size_t i = 0; i >= angle; --i) {
-        kite_center_rotation(kite, NULL, kite->center_rotation + i);
-      }
-    } else {
-      for (size_t i = 0; i <= angle; ++i) {
-        kite_center_rotation(kite, NULL, kite->center_rotation + i);
-      }
+  kite_center_rotation(kite, NULL, angle);
+
+  if (angle < 0) {
+    for (size_t i = 0; i >= angle; --i) {
+      kite_center_rotation(kite, NULL, kite->center_rotation + i);
     }
-
-    // Just in case because we accept floats that could potentially be not an
-    // integer. Draw the rest of the rotation.
-    kite_center_rotation(kite, NULL, angle);
-
-  } break;
-  default:
-    assert(0 && "ERROR: kite_script_rotate: UNREACHABLE");
+  } else {
+    for (size_t i = 0; i <= angle; ++i) {
+      kite_center_rotation(kite, NULL, kite->center_rotation + i);
+    }
   }
+
+  // Just in case because we accept floats that could potentially be not an
+  // integer. Draw the rest of the rotation.
+  kite_center_rotation(kite, NULL, angle);
 }
 
 /**
@@ -276,47 +257,55 @@ void kite_script_rotate(Kite *kite, float angle, PARAMETERS parameters) {
  * @param kite [TODO:parameter]
  * @param tip [TODO:parameter]
  * @param angle [TODO:parameter]
- * @param parameters [TODO:parameter]
+ * @param duration [TODO:parameter]
  */
-void kite_script_rotate_tip(Kite *kite, TIP tip, float angle,
-                            PARAMETERS parameters) {
+void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration) {
 
-  switch (parameters) {
-  case FIXED: {
-    switch (tip) {
-    case LEFT_TIP:
-    case RIGHT_TIP:
-      kite_tip_rotation(kite, NULL, angle, tip);
-      break;
-    default:
-      assert(0 && "ERROR: kite_script_rotate_tip: FIXED: UNREACHABLE");
-    }
+  switch (tip) {
+  case LEFT_TIP:
+  case RIGHT_TIP:
+    kite_tip_rotation(kite, NULL, angle, tip);
+    break;
+  default:
+    assert(0 && "ERROR: kite_script_rotate_tip: FIXED: UNREACHABLE");
+  }
 
-  } break;
-  case SMOOTH: {
-    switch (tip) {
-    case LEFT_TIP:
-    case RIGHT_TIP:
-      if (angle < 0) {
-        for (size_t i = 0; i >= angle; --i) {
-          kite_tip_rotation(kite, NULL, kite->center_rotation + angle, tip);
-        }
-      } else {
-        for (size_t i = 0; i <= angle; ++i) {
-          kite_tip_rotation(kite, NULL, kite->center_rotation + angle, tip);
-        }
+  switch (tip) {
+  case LEFT_TIP:
+  case RIGHT_TIP:
+    if (angle < 0) {
+      for (size_t i = 0; i >= angle; --i) {
+        kite_tip_rotation(kite, NULL, kite->center_rotation + angle, tip);
       }
-      break;
-    default:
-      assert(0 && "ERROR: kite_script_rotate_tip: SMOOTH: UNREACHABLE");
+    } else {
+      for (size_t i = 0; i <= angle; ++i) {
+        kite_tip_rotation(kite, NULL, kite->center_rotation + angle, tip);
+      }
     }
 
     // Just in case because we accept floats that could potentially be not an
     // integer. Draw the rest of the rotation.
     kite_tip_rotation(kite, NULL, angle, tip);
-
-  } break;
-  default:
-    assert(0 && "ERROR: kite_script_rotate_tip: UNREACHABLE");
   }
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param index_count [TODO:parameter]
+ * @return [TODO:return]
+ */
+Kite_Indexs kite_indexs_append(size_t index_count, ...) {
+
+  Kite_Indexs ki = {0};
+
+  va_list args;
+  va_start(args, index_count);
+
+  for (size_t i = 0; i < index_count; ++i) {
+    kite_da_append(&ki, va_arg(args, int));
+  }
+  va_end(args);
+
+  return ki;
 }

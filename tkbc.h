@@ -7,6 +7,7 @@
 #define TEAL                                                                   \
   CLITERAL(Color) { 0, 128, 128, 255 } // Teal #define WINDOW_SCALE 120
 
+
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
 
@@ -82,23 +83,19 @@ typedef enum { KITE_Y, KITE_X } ORIENTATION;
 
 typedef struct {
   float angle;
-  PARAMETERS parameters;
   TIP tip;
 
 } Tip_Rotation_Action;
 
 typedef struct {
   float angle;
-  PARAMETERS parameters;
 
 } Rotation_Action;
 
 typedef struct {
   Vector2 position;
-  PARAMETERS parameters;
 
 } Move_Action;
-
 
 typedef struct {
   size_t *items;
@@ -112,6 +109,7 @@ typedef struct {
   float duration;
   Action_Kind kind;
   void *action;
+  bool finished;
 } Frame;
 
 typedef struct {
@@ -158,6 +156,7 @@ void kite_input_check_mouse(State *state);
 
 int kite_check_boundary(Kite *kite, ORIENTATION orientation);
 float kite_clamp(float z, float a, float b);
+float kite_lerp(float a, float b, float t);
 
 // ===========================================================================
 // ========================== Custom Kite Creation ===========================
@@ -187,7 +186,8 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
                       void *raw_action, float duration);
 void kite_frame_reset(Frame *frame);
 void kite_register_frame(Env *env, Frame *frame);
-void kite_render_frame(Env *env, Frame *frame);
+void kite_register_frames(Env *env, size_t frame_count, ...);
+void kite_render_frame(Env *env, Frame *frame, float duration);
 
 void kite_update_frames(Env *env);
 void kite_array_destroy_frames(Env *env);
@@ -196,10 +196,10 @@ void kite_script_input(State *state);
 void kite_script_begin(State *state);
 void kite_script_end(State *state);
 
-void kite_script_move(Kite *kite, float steps_x, float steps_y,
-                      PARAMETERS parameters);
-void kite_script_rotate(Kite *kite, float angle, PARAMETERS parameters);
-void kite_script_rotate_tip(Kite *kite, TIP tip, float angle,
-                            PARAMETERS parameters);
+void kite_script_move(Kite *kite, Vector2 position, float duration);
+void kite_script_rotate(Kite *kite, float angle, float duration);
+void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration);
+
+Kite_Indexs kite_indexs_append(size_t index_count, ...);
 
 #endif // TKBC_H_
