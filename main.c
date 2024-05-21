@@ -2,8 +2,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "kite_utils.h"
-#include "raylib.h"
 #include "tkbc.h"
 
 #define WINDOW_SCALE 120
@@ -38,16 +36,20 @@ int main(void) {
 
   kite_gen_kites(env, 4);
 
-  Kite_Indexs ki = {0};
-  kite_da_append(&ki, 2);
-  kite_da_append(&ki, 0);
-
-  kite_register_frame(
-      env, kite_gen_frame(KITE_MOVE, ki,
-                          &(CLITERAL(Move_Action){.position.x = 100,
-                                                  .position.y = 100,
-                                                  .parameters = FIXED}),
-                          0.1));
+  // TODO: The next overides the old kite array
+  kite_register_frames(
+      env, 1,
+      // kite_gen_frame(KITE_MOVE, kite_indexs_append(2, 1, 2),
+      //                &(CLITERAL(Move_Action){.position.x = 10,
+      //                                        .position.y = 10,
+      //                                        }),
+      //                10),
+      kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 3),
+                     &(CLITERAL(Move_Action){
+                         .position.x = 0,
+                         .position.y = 0,
+                     }),
+                     10));
 
   while (!WindowShouldClose()) {
     BeginDrawing();
