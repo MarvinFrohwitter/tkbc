@@ -266,6 +266,9 @@ void kite_set_kite_defaults(Kite *kite, bool is_generated) {
   kite_center_rotation(kite, NULL, kite->center_rotation);
 
   kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
+
+  kite->remaining_angle = 0;
+  kite->segments = 0;
 }
 
 /**
@@ -302,11 +305,11 @@ Env *kite_env_init() {
  */
 void kite_env_destroy(Env *env) {
   kite_array_destroy_kites(env);
-  free(env->kite_array->items);
+  free(env->kite_array->elements);
   free(env->kite_array);
 
-  kite_array_destroy_frames(env);
-  free(env->frames->items);
+  // kite_array_destroy_frames(env);
+  free(env->frames->elements);
   free(env->frames);
   free(env);
 }

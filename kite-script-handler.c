@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 Frame *kite_frame_init() {
   Frame *frame = calloc(1, sizeof(*frame));
@@ -58,8 +59,13 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
   }
 
   for (size_t i = 0; i < kite_indexs.count; ++i) {
-    kite_da_append(frame->kite_index_array, kite_indexs.items[i]);
+    kite_dap(frame->kite_index_array, kite_indexs.elements[i]);
+    printf("%zu", kite_indexs.elements[i].index);
   }
+
+  // Note: Just for safety and should be set by calloc anyway.
+  frame->index = 0;
+
   frame->duration = duration;
   frame->kind = kind;
   frame->action = action;
@@ -72,13 +78,39 @@ void kite_register_frames(Env *env, size_t frame_count, ...) {
   va_list args;
   va_start(args, frame_count);
   for (size_t i = 0; i < frame_count; ++i) {
-    kite_register_frame(env, va_arg(args, Frame *));
+    Frame *frame = va_arg(args, Frame *);
+    kite_register_frame(env, frame);
+    for (size_t j = 0; j < env->frames->elements[i].kite_index_array->count; ++j) {
+      fprintf(stderr,"The frame array index kites : by the registration %zu:",
+             env->frames->elements[i].kite_index_array->elements[j].index);
+    }
   }
   va_end(args);
 }
 
 void kite_register_frame(Env *env, Frame *frame) {
-  kite_da_append(env->frames, *frame);
+
+  kite_dap(env->frames, *frame);
+
+  for (size_t i = 0; i < env->frames->count; ++i) {
+    for (size_t j = 0; j < env->frames->elements[i].kite_index_array->count; ++j) {
+      printf("The index :%zu",
+             env->frames->elements[i].kite_index_array->elements[j].index);
+    }
+  }
+
+  env->frames->elements[env->frames->count].index = env->frames->count;
+
+  if (frame->kind == KITE_ROTATION) {
+    for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
+      Rotation_Action *ra = frame->action;
+
+      env->kite_array->elements[frame->kite_index_array->elements[i].index]
+          .kite->segments = frame->duration;
+      env->kite_array->elements[frame->kite_index_array->elements[i].index]
+          .kite->remaining_angle = ra->angle;
+    }
+  }
   env->frames->frame_counter++;
 }
 
@@ -90,7 +122,7 @@ void kite_register_frame(Env *env, Frame *frame) {
  */
 void kite_array_destroy_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
-    free(env->frames->items[i].action);
+    free(env->frames->elements[i].action);
   }
 }
 
@@ -104,7 +136,8 @@ void kite_frame_reset(Frame *frame) {
   frame->action = NULL;
   frame->kite_index_array = NULL;
   frame->kind = KITE_ACTION;
-  frame->index = 0;
+  // TODO: Think about removing the frame from the array completely
+  // frame->index = 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,12 +149,12 @@ void kite_frame_reset(Frame *frame) {
  */
 void kite_update_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
-    Frame *frame = &env->frames->items[i];
+    Frame *frame = &env->frames->elements[i];
     if (!frame->finished) {
-      kite_render_frame(env, frame, frame->duration);
+      kite_render_frame(env, frame);
 
     } else {
-      kite_frame_reset(&env->frames->items[i]);
+      kite_frame_reset(&env->frames->elements[i]);
     }
   }
 }
@@ -133,19 +166,20 @@ void kite_update_frames(Env *env) {
  * @param env [TODO:parameter]
  * @param frame [TODO:parameter]
  */
-void kite_render_frame(Env *env, Frame *frame, float duration) {
+void kite_render_frame(Env *env, Frame *frame) {
   switch (frame->kind) {
   case KITE_MOVE: {
 
     Move_Action *action = frame->action;
+    Frame *env_frame = &env->frames->elements[frame->index];
+    printf("The index :%zu", env_frame->kite_index_array->count);
+    assert(env_frame->kite_index_array->count > 0);
 
-    for (size_t i = 0;
-         i < env->frames->items[frame->index].kite_index_array->count; ++i) {
-      size_t current_kite_index =
-          env->frames->items[frame->index].kite_index_array->items[i];
-      Kite *kite = env->kite_array->items[current_kite_index].kite;
+    for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
+      size_t current_kite_index = env_frame->kite_index_array->elements[i].index;
+      Kite *kite = env->kite_array->elements[current_kite_index].kite;
 
-      kite_script_move(kite, action->position, duration);
+      kite_script_move(kite, action->position, frame->duration);
 
       if (Vector2Equals(kite->center, action->position)) {
         frame->finished = true;
@@ -158,28 +192,37 @@ void kite_render_frame(Env *env, Frame *frame, float duration) {
     Rotation_Action *action = frame->action;
 
     for (size_t i = 0;
-         i < env->frames->items[frame->index].kite_index_array->count; ++i) {
+         i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
       size_t current_kite_index =
-          env->frames->items[frame->index].kite_index_array->items[i];
-      Kite *kite = env->kite_array->items[current_kite_index].kite;
+          env->frames->elements[frame->index].kite_index_array->elements[i].index;
+      Kite *kite = env->kite_array->elements[current_kite_index].kite;
 
-      kite_script_rotate(kite, action->angle, duration);
+      kite_script_rotate(kite, action->angle, frame->duration);
+
+      if (action->angle == kite->center_rotation) {
+        frame->finished = true;
+      }
     }
   } break;
   case KITE_TIP_ROTATION: {
-  } break;
 
     Tip_Rotation_Action *action = frame->action;
 
     for (size_t i = 0;
-         i < env->frames->items[frame->index].kite_index_array->count; ++i) {
+         i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
       size_t current_kite_index =
-          env->frames->items[frame->index].kite_index_array->items[i];
-      Kite *kite = env->kite_array->items[current_kite_index].kite;
+          env->frames->elements[frame->index].kite_index_array->elements[i].index;
+      Kite *kite = env->kite_array->elements[current_kite_index].kite;
 
-      kite_script_rotate_tip(kite, action->tip, action->angle, duration);
+      kite_script_rotate_tip(kite, action->tip, action->angle, frame->duration);
+
+      if (action->angle == kite->center_rotation) {
+        frame->finished = true;
+      }
     }
+  } break;
   default:
+    assert(0 && "UNREACHABLE kite_render_frame()");
     break;
   }
 }
@@ -204,7 +247,7 @@ void kite_script_end(State *state) { state->interrupt_script = false; }
  * @param steps_y [TODO:parameter]
  * @param duration [TODO:parameter]
  */
-void kite_script_move(Kite *kite, Vector2 position, float duration){
+void kite_script_move(Kite *kite, Vector2 position, float duration) {
 
   if (duration == 0) {
     kite_center_rotation(kite, &position, 0);
@@ -220,9 +263,8 @@ void kite_script_move(Kite *kite, Vector2 position, float duration){
   Vector2 end0to1 = Vector2Scale(end0to2, 0.5);
 
   Vector2 it = Vector2Lerp(begin0to1, end0to1, duration);
-  Vector2 interpolation = Vector2Add(kite->center, it);
 
-  kite_center_rotation(kite, &interpolation, 0);
+  kite_center_rotation(kite, &it, 0);
 }
 
 /**
@@ -234,21 +276,17 @@ void kite_script_move(Kite *kite, Vector2 position, float duration){
  */
 void kite_script_rotate(Kite *kite, float angle, float duration) {
 
-  kite_center_rotation(kite, NULL, angle);
-
-  if (angle < 0) {
-    for (size_t i = 0; i >= angle; --i) {
-      kite_center_rotation(kite, NULL, kite->center_rotation + i);
-    }
-  } else {
-    for (size_t i = 0; i <= angle; ++i) {
-      kite_center_rotation(kite, NULL, kite->center_rotation + i);
-    }
+  // if (duration == 0 || kite->segments == 0) {
+  if (duration == 0) {
+    kite_center_rotation(kite, NULL, angle);
+    return;
   }
 
-  // Just in case because we accept floats that could potentially be not an
-  // integer. Draw the rest of the rotation.
-  kite_center_rotation(kite, NULL, angle);
+  kite_center_rotation(kite, NULL, kite->center_rotation + angle);
+
+  // TODO: Just in case because we accept floats that could potentially be not
+  // an integer. Draw the rest of the rotation. kite_center_rotation(kite,
+  // NULL, angle);
 }
 
 /**
@@ -303,7 +341,7 @@ Kite_Indexs kite_indexs_append(size_t index_count, ...) {
   va_start(args, index_count);
 
   for (size_t i = 0; i < index_count; ++i) {
-    kite_da_append(&ki, va_arg(args, int));
+    kite_dap(&ki, va_arg(args, Index));
   }
   va_end(args);
 
