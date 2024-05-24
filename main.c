@@ -38,18 +38,16 @@ int main(void) {
 
   // TODO: The next overides the old kite array
   kite_register_frames(
-      env, 1,
-      // kite_gen_frame(KITE_MOVE, kite_indexs_append(2, 1, 2),
-      //                &(CLITERAL(Move_Action){.position.x = 10,
-      //                                        .position.y = 10,
-      //                                        }),
-      //                10),
+      env, 2,
+      kite_gen_frame(KITE_ROTATION, kite_indexs_append(2, 1, 2),
+                     &(CLITERAL(Rotation_Action){.angle = 90}), 10),
       kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 3),
                      &(CLITERAL(Move_Action){
-                         .position.x = 0,
-                         .position.y = 0,
+                         .position.x = 10,
+                         .position.y = 10,
                      }),
-                     10));
+                     20)
+  );
 
   while (!WindowShouldClose()) {
     BeginDrawing();

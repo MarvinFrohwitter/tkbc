@@ -7,7 +7,6 @@
 #define TEAL                                                                   \
   CLITERAL(Color) { 0, 128, 128, 255 } // Teal #define WINDOW_SCALE 120
 
-
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
 
@@ -18,6 +17,11 @@ typedef struct {
 } Triangle;
 
 typedef struct {
+  // Script only use
+  float segments;        // The rotation steps.
+  float remaining_angle; // The remaining rotation angle.
+
+  // ------------------------------------------------------------------------
   Vector2 center; // The center position that is located at the center of the
                   // top leading edge.
 
@@ -43,6 +47,7 @@ typedef struct {
 
   float fly_speed;  // Kite movement speed set from 0 to 100.
   float turn_speed; // Kite turn speed set from 0 to 100.
+
 } Kite;
 
 typedef struct {
@@ -63,7 +68,7 @@ typedef struct {
 } State;
 
 typedef struct {
-  State *items;
+  State *elements;
   size_t count;
   size_t capacity;
 } States;
@@ -98,7 +103,11 @@ typedef struct {
 } Move_Action;
 
 typedef struct {
-  size_t *items;
+  size_t index;
+} Index;
+
+typedef struct {
+  Index *elements;
   size_t count;
   size_t capacity;
 } Kite_Indexs;
@@ -113,7 +122,7 @@ typedef struct {
 } Frame;
 
 typedef struct {
-  Frame *items;
+  Frame *elements;
   size_t count;
   size_t capacity;
 
@@ -187,7 +196,7 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
 void kite_frame_reset(Frame *frame);
 void kite_register_frame(Env *env, Frame *frame);
 void kite_register_frames(Env *env, size_t frame_count, ...);
-void kite_render_frame(Env *env, Frame *frame, float duration);
+void kite_render_frame(Env *env, Frame *frame);
 
 void kite_update_frames(Env *env);
 void kite_array_destroy_frames(Env *env);

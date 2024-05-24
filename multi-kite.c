@@ -14,8 +14,8 @@ void kite_array_start_pos(Env *env) {
   assert(env->kite_array->count != 0);
 
   size_t kites_count = env->kite_array->count;
-  float kite_width = env->kite_array->items[0].kite->width;
-  float kite_heigt = env->kite_array->items[0].kite->height;
+  float kite_width = env->kite_array->elements[0].kite->width;
+  float kite_heigt = env->kite_array->elements[0].kite->height;
   int viewport_padding = kite_width > kite_heigt ? kite_width / 2 : kite_heigt;
 
   Vector2 start_pos = {.y = GetScreenHeight() - 2 * viewport_padding,
@@ -23,9 +23,9 @@ void kite_array_start_pos(Env *env) {
                             kite_width / 2.0f};
 
   for (size_t i = 0; i < kites_count; ++i) {
-    kite_set_state_defaults(&env->kite_array->items[i]);
-    kite_set_kite_defaults(env->kite_array->items[i].kite, false);
-    kite_center_rotation(env->kite_array->items[i].kite, &start_pos, 0);
+    kite_set_state_defaults(&env->kite_array->elements[i]);
+    kite_set_kite_defaults(env->kite_array->elements[i].kite, false);
+    kite_center_rotation(env->kite_array->elements[i].kite, &start_pos, 0);
     start_pos.x += 2 * kite_width;
   }
 }
@@ -42,9 +42,9 @@ void kite_gen_kites(Env *env, size_t kite_count) {
   Color color_array[] = {BLUE, GREEN, PURPLE, RED, TEAL};
 
   for (size_t i = 0; i < kite_count; ++i) {
-    kite_da_append(env->kite_array, *kite_kite_init());
-    env->kite_array->items[i].id = i;
-    env->kite_array->items[i].kite->body_color =
+    kite_dap(env->kite_array, *kite_kite_init());
+    env->kite_array->elements[i].id = i;
+    env->kite_array->elements[i].kite->body_color =
         color_array[i % ARRAY_LENGTH(color_array)];
   }
 
@@ -59,7 +59,7 @@ void kite_gen_kites(Env *env, size_t kite_count) {
  */
 void kite_array_destroy_kites(Env *env) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    kite_kite_destroy(&env->kite_array->items[i]);
+    kite_kite_destroy(&env->kite_array->elements[i]);
   }
 }
 
@@ -71,7 +71,7 @@ void kite_array_destroy_kites(Env *env) {
  */
 void kite_draw_kite_array(Env *env) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    kite_draw_kite(env->kite_array->items[i].kite);
+    kite_draw_kite(env->kite_array->elements[i].kite);
   }
 }
 
@@ -86,7 +86,7 @@ void kite_draw_kite_array(Env *env) {
  */
 bool kite_array_check_interrupt_script(Env *env) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->items[i].interrupt_script) {
+    if (env->kite_array->elements[i].interrupt_script) {
       return true;
     }
   }
@@ -108,13 +108,13 @@ void kite_array_input_handler(Env *env) {
   // To only handle 9 kites controlable by the keyboard.
   for (size_t i = 1; i <= 9; ++i) {
     if (IsKeyPressed(i + 48)) {
-      env->kite_array->items[i - 1].kite_input_handler_active =
-          !env->kite_array->items[i - 1].kite_input_handler_active;
+      env->kite_array->elements[i - 1].kite_input_handler_active =
+          !env->kite_array->elements[i - 1].kite_input_handler_active;
     }
   }
 
   // To handle all of the kites currently registered in the kite array.
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    kite_input_handler(env, &env->kite_array->items[i]);
+    kite_input_handler(env, &env->kite_array->elements[i]);
   }
 }
