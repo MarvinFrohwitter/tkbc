@@ -38,8 +38,6 @@ Frame *kite_frame_init() {
 Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
                       void *raw_action, float duration) {
 
-  // TODO: Variadic function for the kite numbers.
-
   void *action;
   Frame *frame = kite_frame_init();
   switch (kind) {
@@ -60,7 +58,6 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
 
   for (size_t i = 0; i < kite_indexs.count; ++i) {
     kite_dap(frame->kite_index_array, kite_indexs.elements[i]);
-    printf("%zu", kite_indexs.elements[i].index);
   }
 
   // Note: Just for safety and should be set by calloc anyway.
@@ -80,10 +77,6 @@ void kite_register_frames(Env *env, size_t frame_count, ...) {
   for (size_t i = 0; i < frame_count; ++i) {
     Frame *frame = va_arg(args, Frame *);
     kite_register_frame(env, frame);
-    for (size_t j = 0; j < env->frames->elements[i].kite_index_array->count; ++j) {
-      fprintf(stderr,"The frame array index kites : by the registration %zu:",
-             env->frames->elements[i].kite_index_array->elements[j].index);
-    }
   }
   va_end(args);
 }
@@ -92,14 +85,8 @@ void kite_register_frame(Env *env, Frame *frame) {
 
   kite_dap(env->frames, *frame);
 
-  for (size_t i = 0; i < env->frames->count; ++i) {
-    for (size_t j = 0; j < env->frames->elements[i].kite_index_array->count; ++j) {
-      printf("The index :%zu",
-             env->frames->elements[i].kite_index_array->elements[j].index);
-    }
-  }
-
-  env->frames->elements[env->frames->count].index = env->frames->count;
+  assert(env->frames->count != 0);
+  env->frames->elements[env->frames->count - 1].index = env->frames->count - 1;
 
   if (frame->kind == KITE_ROTATION) {
     for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
@@ -172,11 +159,11 @@ void kite_render_frame(Env *env, Frame *frame) {
 
     Move_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
-    printf("The index :%zu", env_frame->kite_index_array->count);
     assert(env_frame->kite_index_array->count > 0);
 
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
-      size_t current_kite_index = env_frame->kite_index_array->elements[i].index;
+      size_t current_kite_index =
+          env_frame->kite_index_array->elements[i].index;
       Kite *kite = env->kite_array->elements[current_kite_index].kite;
 
       kite_script_move(kite, action->position, frame->duration);
@@ -193,8 +180,9 @@ void kite_render_frame(Env *env, Frame *frame) {
 
     for (size_t i = 0;
          i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
-      size_t current_kite_index =
-          env->frames->elements[frame->index].kite_index_array->elements[i].index;
+      size_t current_kite_index = env->frames->elements[frame->index]
+                                      .kite_index_array->elements[i]
+                                      .index;
       Kite *kite = env->kite_array->elements[current_kite_index].kite;
 
       kite_script_rotate(kite, action->angle, frame->duration);
@@ -210,8 +198,9 @@ void kite_render_frame(Env *env, Frame *frame) {
 
     for (size_t i = 0;
          i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
-      size_t current_kite_index =
-          env->frames->elements[frame->index].kite_index_array->elements[i].index;
+      size_t current_kite_index = env->frames->elements[frame->index]
+                                      .kite_index_array->elements[i]
+                                      .index;
       Kite *kite = env->kite_array->elements[current_kite_index].kite;
 
       kite_script_rotate_tip(kite, action->tip, action->angle, frame->duration);

@@ -41,7 +41,7 @@ int main(void) {
       env, 2,
       kite_gen_frame(KITE_ROTATION, kite_indexs_append(2, 1, 2),
                      &(CLITERAL(Rotation_Action){.angle = 90}), 10),
-      kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 3),
+      kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 0),
                      &(CLITERAL(Move_Action){
                          .position.x = 10,
                          .position.y = 10,
