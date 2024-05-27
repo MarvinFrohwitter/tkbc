@@ -308,7 +308,7 @@ void kite_env_destroy(Env *env) {
   free(env->kite_array->elements);
   free(env->kite_array);
 
-  // kite_array_destroy_frames(env);
+  kite_frames_reset(env);
   free(env->frames->elements);
   free(env->frames);
   free(env);
