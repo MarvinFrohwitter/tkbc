@@ -1,4 +1,5 @@
 #include <complex.h>
+#include <raylib.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -38,7 +39,9 @@ int main(void) {
 
   // TODO: The next overides the old kite array
   kite_register_frames(
-      env, 2,
+      env, 5,
+      kite_gen_frame(KITE_ROTATION, kite_indexs_append(1, 1),
+                     &(CLITERAL(Rotation_Action){.angle = 90}), 5),
       kite_gen_frame(KITE_ROTATION, kite_indexs_append(2, 1, 2),
                      &(CLITERAL(Rotation_Action){.angle = 90}), 10),
       kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 0),
@@ -46,13 +49,31 @@ int main(void) {
                          .position.x = 10,
                          .position.y = 10,
                      }),
-                     20)
-  );
+                     20),
+      kite_script_wait(3),
+      kite_script_frames_quit(5)
+    );
 
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
     kite_update_frames(env);
+
+    // TODO: Append a default frame for the start and call the registration for
+    // that frame in the kite_script_begin() function and set it to finished.
+
+    // kite_register_frames(env, 1, kite_script_wait(3));
+
+    kite_register_frames(
+        env, 2,
+        kite_gen_frame(KITE_ROTATION, kite_indexs_append(1, 3),
+                       &(CLITERAL(Rotation_Action){.angle = 40}), 0),
+        kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 0),
+                       &(CLITERAL(Move_Action){
+                           .position.x = 300,
+                           .position.y = 500,
+                       }),
+                       0));
 
 #ifdef LOADIMAGE
     float scale_width = (float)GetScreenWidth() / background_texture.width;
