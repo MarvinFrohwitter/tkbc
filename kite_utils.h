@@ -29,4 +29,13 @@
     (dynamic_array)->count = (dynamic_array)->count + 1;                       \
   } while (0)
 
+#define action_alloc(type)                                                     \
+  do {                                                                         \
+    action = calloc(1, sizeof(type));                                          \
+    if (action == NULL) {                                                      \
+      fprintf(stderr, "ERROR: No more memory can be allocated.\n");            \
+      return NULL;                                                             \
+    }                                                                          \
+  } while (0)
+
 #endif // KITE_UTILS_H_

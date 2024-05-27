@@ -75,6 +75,8 @@ typedef struct {
 
 typedef enum {
   KITE_ACTION,
+  KITE_QUIT,
+  KITE_WAIT,
   KITE_MOVE,
   KITE_ROTATION,
   KITE_TIP_ROTATION
@@ -89,18 +91,21 @@ typedef enum { KITE_Y, KITE_X } ORIENTATION;
 typedef struct {
   float angle;
   TIP tip;
-
 } Tip_Rotation_Action;
 
 typedef struct {
   float angle;
-
 } Rotation_Action;
 
 typedef struct {
   Vector2 position;
-
 } Move_Action;
+
+typedef struct {
+  double starttime;
+} Wait_Action;
+
+typedef Wait_Action Quit_Action;
 
 typedef struct {
   size_t index;
@@ -193,12 +198,16 @@ void kite_sound_handler(Sound *kite_sound);
 Frame *kite_frame_init();
 Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
                       void *raw_action, float duration);
+Frame *kite_script_wait(float duration);
+Frame *kite_script_frames_quit(float duration);
+
 void kite_frame_reset(Frame *frame);
 void kite_register_frame(Env *env, Frame *frame);
 void kite_register_frames(Env *env, size_t frame_count, ...);
 void kite_render_frame(Env *env, Frame *frame);
 
 void kite_update_frames(Env *env);
+bool kite_check_finished_frames(Env *env);
 void kite_array_destroy_frames(Env *env);
 void kite_frames_reset(Env *env);
 

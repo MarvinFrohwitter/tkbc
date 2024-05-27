@@ -5,6 +5,7 @@
 #include "kite_utils.h"
 #include "tkbc.h"
 #include <assert.h>
+#include <raylib.h>
 #include <raymath.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -43,16 +44,20 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
   Frame *frame = kite_frame_init();
   switch (kind) {
   case KITE_MOVE: {
+    action_alloc(Move_Action);
     action = (Move_Action *)raw_action;
 
   } break;
   case KITE_ROTATION: {
+    action_alloc(Rotation_Action);
     action = (Rotation_Action *)raw_action;
   } break;
   case KITE_TIP_ROTATION: {
+    action_alloc(Tip_Rotation_Action);
     action = (Tip_Rotation_Action *)raw_action;
   } break;
   default:
+    action_alloc(Move_Action);
     action = (Move_Action *)raw_action;
     break;
   }
@@ -61,9 +66,6 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
     kite_dap(frame->kite_index_array, kite_indexs.elements[i]);
   }
 
-  // Note: Just for safety and should be set by calloc anyway.
-  frame->index = 0;
-
   frame->duration = duration;
   frame->kind = kind;
   frame->action = action;
@@ -71,7 +73,50 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
   return frame;
 }
 
+Frame *kite_script_wait(float duration) {
+  Wait_Action *action;
+  action_alloc(Wait_Action);
+  action->starttime = GetTime();
+
+  Frame *frame = kite_frame_init();
+  frame->finished = false;
+  frame->duration = duration;
+  frame->kind = KITE_WAIT;
+  frame->action = action;
+  frame->kite_index_array = NULL;
+
+  return frame;
+}
+
+/**
+ * @brief The function that quits all the current registered frames after the
+ * duration.
+ *
+ * @param duration [TODO:parameter]
+ * @return [TODO:return]
+ */
+Frame *kite_script_frames_quit(float duration) {
+  Quit_Action *action;
+  action_alloc(Quit_Action);
+  action->starttime = GetTime();
+
+  Frame *frame = kite_frame_init();
+  frame->finished = false;
+  frame->duration = duration;
+  frame->kind = KITE_QUIT;
+  frame->action = action;
+  frame->kite_index_array = NULL;
+
+  return frame;
+}
+
 void kite_register_frames(Env *env, size_t frame_count, ...) {
+
+  if (kite_check_finished_frames(env)) {
+    kite_frames_reset(env);
+  } else {
+    return;
+  }
 
   va_list args;
   va_start(args, frame_count);
@@ -110,7 +155,6 @@ void kite_register_frame(Env *env, Frame *frame) {
  */
 void kite_array_destroy_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
-    // free(env->frames->elements[i].action);
     free(env->frames->elements[i].kite_index_array);
   }
 }
@@ -134,9 +178,11 @@ void kite_frame_reset(Frame *frame) {
  * @param frame [TODO:parameter]
  */
 void kite_frames_reset(Env *env) {
-  kite_array_destroy_frames(env);
-  env->frames->count = 0;
-  env->frames->frame_counter = 0;
+  if (env->frames->count != 0) {
+    kite_array_destroy_frames(env);
+    env->frames->count = 0;
+    env->frames->frame_counter = 0;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +203,16 @@ void kite_update_frames(Env *env) {
     }
   }
 }
+
+bool kite_check_finished_frames(Env *env) {
+  for (size_t i = 0; i < env->frames->count; ++i) {
+    if (!env->frames->elements[i].finished) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 
 /**
@@ -167,6 +223,29 @@ void kite_update_frames(Env *env) {
  */
 void kite_render_frame(Env *env, Frame *frame) {
   switch (frame->kind) {
+  case KITE_WAIT: {
+    Wait_Action *action = frame->action;
+    if (frame->duration <= 0) {
+      frame->finished = true;
+    } else {
+      double current_time = GetTime();
+      frame->duration -= current_time - action->starttime;
+      action->starttime = current_time;
+    }
+
+  } break;
+  case KITE_QUIT: {
+    Quit_Action *action = frame->action;
+    if (frame->duration <= 0) {
+      frame->finished = true;
+      kite_frames_reset(env);
+    } else {
+      double current_time = GetTime();
+      frame->duration -= current_time - action->starttime;
+      action->starttime = current_time;
+    }
+
+  } break;
   case KITE_MOVE: {
 
     Move_Action *action = frame->action;
