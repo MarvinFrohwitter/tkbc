@@ -200,6 +200,7 @@ void kite_render_frame(Env *env, Frame *frame);
 
 void kite_update_frames(Env *env);
 void kite_array_destroy_frames(Env *env);
+void kite_frames_reset(Env *env);
 
 void kite_script_input(State *state);
 void kite_script_begin(State *state);

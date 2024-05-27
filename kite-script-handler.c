@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 Frame *kite_frame_init() {
   Frame *frame = calloc(1, sizeof(*frame));
@@ -109,7 +110,8 @@ void kite_register_frame(Env *env, Frame *frame) {
  */
 void kite_array_destroy_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
-    free(env->frames->elements[i].action);
+    // free(env->frames->elements[i].action);
+    free(env->frames->elements[i].kite_index_array);
   }
 }
 
@@ -119,12 +121,22 @@ void kite_array_destroy_frames(Env *env) {
  * @param frame [TODO:parameter]
  */
 void kite_frame_reset(Frame *frame) {
+  frame->finished = true;
   frame->duration = 0;
-  frame->action = NULL;
-  frame->kite_index_array = NULL;
   frame->kind = KITE_ACTION;
   // TODO: Think about removing the frame from the array completely
   // frame->index = 0;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param frame [TODO:parameter]
+ */
+void kite_frames_reset(Env *env) {
+  kite_array_destroy_frames(env);
+  env->frames->count = 0;
+  env->frames->frame_counter = 0;
 }
 
 // ---------------------------------------------------------------------------
