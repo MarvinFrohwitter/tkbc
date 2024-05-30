@@ -108,6 +108,9 @@ void kite_array_input_handler(Env *env) {
   // To only handle 9 kites controlable by the keyboard.
   for (size_t i = 1; i <= 9; ++i) {
     if (IsKeyPressed(i + 48)) {
+      // TODO: Remove the kite from the kite array in every frame.
+      // not clearing all the frames
+      kite_frames_reset(env);
       env->kite_array->elements[i - 1].kite_input_handler_active =
           !env->kite_array->elements[i - 1].kite_input_handler_active;
     }
