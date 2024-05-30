@@ -334,15 +334,15 @@ void kite_script_move(Kite *kite, Vector2 position, float duration) {
     return;
   }
 
-  Vector2 begin = Vector2Normalize(kite->center);
-  Vector2 begin0to2 = Vector2AddValue(begin, 1);
-  Vector2 begin0to1 = Vector2Scale(begin0to2, 0.5);
+  if (Vector2Equals(kite->center, position)) {
+    kite_center_rotation(kite, &position, 0);
+    return;
+  }
 
-  Vector2 end = Vector2Normalize(position);
-  Vector2 end0to2 = Vector2AddValue(end, 1);
-  Vector2 end0to1 = Vector2Scale(end0to2, 0.5);
-
-  Vector2 it = Vector2Lerp(begin0to1, end0to1, duration);
+  Vector2 d = Vector2Subtract(position, kite->center);
+  Vector2 dnorm = Vector2Normalize(d);
+  Vector2 dnormscale = Vector2Scale(dnorm, duration);
+  Vector2 it = Vector2Add(kite->center, dnormscale);
 
   kite_center_rotation(kite, &it, 0);
 }
