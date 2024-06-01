@@ -267,8 +267,9 @@ void kite_set_kite_defaults(Kite *kite, bool is_generated) {
 
   kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
 
+  kite->old_angle = kite->center_rotation;
   kite->remaining_angle = 0;
-  kite->segments = 0;
+  kite->segment_size = 0;
 }
 
 /**

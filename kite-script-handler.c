@@ -137,11 +137,13 @@ void kite_register_frame(Env *env, Frame *frame) {
   if (frame->kind == KITE_ROTATION) {
     for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
       Rotation_Action *ra = frame->action;
+      Kite *kite =
+          env->kite_array->elements[frame->kite_index_array->elements[i].index]
+              .kite;
 
-      env->kite_array->elements[frame->kite_index_array->elements[i].index]
-          .kite->segments = frame->duration;
-      env->kite_array->elements[frame->kite_index_array->elements[i].index]
-          .kite->remaining_angle = ra->angle;
+      kite->segment_size = ra->angle / frame->duration;
+      kite->remaining_angle = ra->angle;
+      kite->old_angle = kite->center_rotation;
     }
   }
   env->frames->frame_counter++;
@@ -330,12 +332,12 @@ void kite_script_end(State *state) { state->interrupt_script = false; }
 void kite_script_move(Kite *kite, Vector2 position, float duration) {
 
   if (duration == 0) {
-    kite_center_rotation(kite, &position, 0);
+    kite_center_rotation(kite, &position, kite->center_rotation);
     return;
   }
 
   if (Vector2Equals(kite->center, position)) {
-    kite_center_rotation(kite, &position, 0);
+    kite_center_rotation(kite, &position, kite->center_rotation);
     return;
   }
 
@@ -356,17 +358,16 @@ void kite_script_move(Kite *kite, Vector2 position, float duration) {
  */
 void kite_script_rotate(Kite *kite, float angle, float duration) {
 
-  // if (duration == 0 || kite->segments == 0) {
-  if (duration == 0) {
-    kite_center_rotation(kite, NULL, angle);
+  if (duration == 0 || kite->remaining_angle <= 0) {
+    kite_center_rotation(kite, NULL, kite->old_angle + angle);
     return;
   }
 
-  kite_center_rotation(kite, NULL, kite->center_rotation + angle);
+  kite->remaining_angle -= kite->segment_size * GetFrameTime();
+  float doneangle = angle - kite->remaining_angle;
+  float current_angle = doneangle + kite->segment_size;
 
-  // TODO: Just in case because we accept floats that could potentially be not
-  // an integer. Draw the rest of the rotation. kite_center_rotation(kite,
-  // NULL, angle);
+  kite_center_rotation(kite, NULL, kite->old_angle + current_angle);
 }
 
 /**
