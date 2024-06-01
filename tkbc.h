@@ -18,8 +18,9 @@ typedef struct {
 
 typedef struct {
   // Script only use
-  float segments;        // The rotation steps.
+  float segment_size;    // The rotation steps.
   float remaining_angle; // The remaining rotation angle.
+  float old_angle;       // The rotation angle before the frame interpolation has stated.
 
   // ------------------------------------------------------------------------
   Vector2 center; // The center position that is located at the center of the

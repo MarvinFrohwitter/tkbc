@@ -41,17 +41,17 @@ int main(void) {
   kite_register_frames(
       env, 5,
       kite_gen_frame(KITE_ROTATION, kite_indexs_append(1, 1),
-                     &(CLITERAL(Rotation_Action){.angle = 90}), 5),
-      kite_gen_frame(KITE_ROTATION, kite_indexs_append(2, 1, 2),
                      &(CLITERAL(Rotation_Action){.angle = 90}), 10),
-      kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 0),
+      kite_gen_frame(KITE_ROTATION, kite_indexs_append(2, 3, 2),
+                     &(CLITERAL(Rotation_Action){.angle = 90}), 10),
+      kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 1),
                      &(CLITERAL(Move_Action){
-                         .position.x = 10,
-                         .position.y = 10,
+                         .position.x = 100,
+                         .position.y = 100,
                      }),
-                     20),
+                     2),
       kite_script_wait(3),
-      kite_script_frames_quit(5)
+      kite_script_frames_quit(50)
     );
 
   while (!WindowShouldClose()) {
@@ -64,16 +64,16 @@ int main(void) {
 
     // kite_register_frames(env, 1, kite_script_wait(3));
 
-    kite_register_frames(
-        env, 2,
-        kite_gen_frame(KITE_ROTATION, kite_indexs_append(1, 3),
-                       &(CLITERAL(Rotation_Action){.angle = 40}), 0),
-        kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 0),
-                       &(CLITERAL(Move_Action){
-                           .position.x = 300,
-                           .position.y = 500,
-                       }),
-                       0));
+    // kite_register_frames(
+    //     env, 2,
+    //     kite_gen_frame(KITE_ROTATION, kite_indexs_append(1, 3),
+    //                    &(CLITERAL(Rotation_Action){.angle = 40}), 0),
+    //     kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 0),
+    //                    &(CLITERAL(Move_Action){
+    //                        .position.x = 300,
+    //                        .position.y = 500,
+    //                    }),
+    //                    0));
 
 #ifdef LOADIMAGE
     float scale_width = (float)GetScreenWidth() / background_texture.width;
