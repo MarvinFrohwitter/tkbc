@@ -41,9 +41,9 @@ int main(void) {
   kite_register_frames(
       env, 6,
       kite_gen_frame(KITE_ROTATION, kite_indexs_append(1, 1),
-                     &(CLITERAL(Rotation_Action){.angle = 90}), 10),
-      kite_gen_frame(KITE_ROTATION, kite_indexs_append(2, 1, 2),
-                     &(CLITERAL(Rotation_Action){.angle = 90}), 10),
+                     &(CLITERAL(Rotation_Action){.angle = 90}), 5),
+      kite_gen_frame(KITE_ROTATION, kite_indexs_append(1, 1),
+                     &(CLITERAL(Rotation_Action){.angle = 90}), 5),
       kite_gen_frame(
           KITE_TIP_ROTATION, kite_indexs_append(1, 3),
           &(CLITERAL(Tip_Rotation_Action){.angle = 90, .tip = LEFT_TIP}), 5),

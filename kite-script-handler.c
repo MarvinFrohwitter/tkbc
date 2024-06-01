@@ -135,8 +135,9 @@ void kite_register_frames(Env *env, size_t frame_count, ...) {
                        ->elements[frame->kite_index_array->elements[i].index]  \
                        .kite;                                                  \
                                                                                \
-      kite->segment_size = ra->angle / frame->duration;                        \
-      kite->remaining_angle = ra->angle;                                       \
+      kite->segment_size += ra->angle / frame->duration;                       \
+      kite->remaining_angle += ra->angle;                                      \
+      kite->angle_sum += ra->angle;                                            \
       kite->old_angle = kite->center_rotation;                                 \
       kite->old_center = kite->center;                                         \
     }                                                                          \
@@ -293,9 +294,16 @@ void kite_render_frame(Env *env, Frame *frame) {
 
       kite_script_rotate(kite, action->angle, frame->duration);
 
-      if (action->angle == kite->center_rotation) {
+      if (kite->remaining_angle <= 0 ||
+          FloatEquals(kite->old_angle + kite->angle_sum,
+                      kite->center_rotation)) {
         frame->finished = true;
         kite->old_angle = kite->center_rotation;
+        kite->old_center = kite->center;
+
+        kite->angle_sum = 0;
+        kite->remaining_angle = 0;
+        kite->segment_size = 0;
       }
     }
   } break;
@@ -312,10 +320,16 @@ void kite_render_frame(Env *env, Frame *frame) {
 
       kite_script_rotate_tip(kite, action->tip, action->angle, frame->duration);
 
-      if (action->angle == kite->center_rotation) {
+      if (kite->remaining_angle <= 0 ||
+          FloatEquals(kite->old_angle + kite->angle_sum,
+                      kite->center_rotation)) {
         frame->finished = true;
         kite->old_angle = kite->center_rotation;
         kite->old_center = kite->center;
+
+        kite->angle_sum = 0;
+        kite->remaining_angle = 0;
+        kite->segment_size = 0;
       }
     }
   } break;
@@ -380,8 +394,16 @@ void kite_script_move(Kite *kite, Vector2 position, float duration) {
  */
 void kite_script_rotate(Kite *kite, float angle, float duration) {
 
-  if (duration <= 0 || kite->remaining_angle <= 0) {
+  if (duration <= 0) {
     kite_center_rotation(kite, NULL, kite->old_angle + angle);
+    kite->angle_sum -= angle;
+    kite->remaining_angle -= angle;
+    kite->segment_size -= angle / duration;
+    return;
+  }
+
+  if (kite->remaining_angle <= 0) {
+    kite_center_rotation(kite, NULL, kite->old_angle + kite->angle_sum);
     return;
   }
 
@@ -389,7 +411,10 @@ void kite_script_rotate(Kite *kite, float angle, float duration) {
   float doneangle = angle - kite->remaining_angle;
   float current_angle = doneangle + kite->segment_size;
 
-  kite_center_rotation(kite, NULL, kite->old_angle + current_angle);
+  if (kite->remaining_angle <= 0)
+    kite_center_rotation(kite, NULL, kite->old_angle + kite->angle_sum);
+  else
+    kite_center_rotation(kite, NULL, kite->old_angle + current_angle);
 }
 
 /**
@@ -402,8 +427,16 @@ void kite_script_rotate(Kite *kite, float angle, float duration) {
  */
 void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration) {
 
-  if (duration <= 0 || kite->remaining_angle <= 0) {
+  if (duration <= 0) {
     kite_tip_rotation(kite, NULL, kite->old_angle + angle, tip);
+    kite->angle_sum -= angle;
+    kite->remaining_angle -= angle;
+    kite->segment_size -= angle / duration;
+    return;
+  }
+
+  if (kite->remaining_angle <= 0) {
+    kite_tip_rotation(kite, NULL, kite->old_angle + kite->angle_sum, tip);
     return;
   }
 
@@ -411,10 +444,14 @@ void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration) {
   float doneangle = angle - kite->remaining_angle;
   float current_angle = doneangle + kite->segment_size;
 
-  // Provided the old postion, because the kite center moves as a circle around
-  // the old fixed position.
-  kite_tip_rotation(kite, &kite->old_center, kite->old_angle + current_angle,
-                    tip);
+  // Provided the old postion, because the kite center moves as a circle
+  // around the old fixed position.
+  if (kite->remaining_angle <= 0)
+    kite_tip_rotation(kite, &kite->old_center,
+                      kite->old_angle + kite->angle_sum, tip);
+  else
+    kite_tip_rotation(kite, &kite->old_center, kite->old_angle + current_angle,
+                      tip);
 }
 
 /**

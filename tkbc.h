@@ -9,6 +9,7 @@
 
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
+#define EPSILON 0.001f
 
 typedef struct {
   Vector2 v1;
@@ -18,10 +19,13 @@ typedef struct {
 
 typedef struct {
   // Script only use
-  float segment_size;    // The rotation steps.
+  float segment_size; // The rotation steps.
+  float angle_sum; // The sum of angles of all frames where the kite is part of.
   float remaining_angle; // The remaining rotation angle.
-  float old_angle;       // The rotation angle before the frame interpolation has stated.
-  Vector2 old_center;    // The old position before the frame interpolation has stated.
+  float old_angle; // The rotation angle before the frame interpolation has
+                   // stated.
+  Vector2
+      old_center; // The old position before the frame interpolation has stated.
 
   // ------------------------------------------------------------------------
   Vector2 center; // The center position that is located at the center of the
