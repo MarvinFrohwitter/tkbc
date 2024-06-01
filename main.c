@@ -42,18 +42,18 @@ int main(void) {
       env, 6,
       kite_gen_frame(KITE_ROTATION, kite_indexs_append(1, 1),
                      &(CLITERAL(Rotation_Action){.angle = 90}), 10),
-      kite_gen_frame(KITE_ROTATION, kite_indexs_append(2, 0, 2),
+      kite_gen_frame(KITE_ROTATION, kite_indexs_append(2, 1, 2),
                      &(CLITERAL(Rotation_Action){.angle = 90}), 10),
       kite_gen_frame(
           KITE_TIP_ROTATION, kite_indexs_append(1, 3),
           &(CLITERAL(Tip_Rotation_Action){.angle = 90, .tip = LEFT_TIP}), 5),
 
-      kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 1),
+      kite_gen_frame(KITE_MOVE, kite_indexs_append(1, 0),
                      &(CLITERAL(Move_Action){
                          .position.x = 100,
                          .position.y = 100,
                      }),
-                     2),
+                     12),
       kite_script_wait(3), kite_script_frames_quit(50));
 
   State *marvin = kite_kite_init();

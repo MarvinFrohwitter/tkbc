@@ -360,9 +360,15 @@ void kite_script_move(Kite *kite, Vector2 position, float duration) {
   Vector2 d = Vector2Subtract(position, kite->center);
   Vector2 dnorm = Vector2Normalize(d);
   Vector2 dnormscale = Vector2Scale(dnorm, duration);
-  Vector2 it = Vector2Add(kite->center, dnormscale);
 
-  kite_center_rotation(kite, &it, 0);
+  // TODO: Prevent the overshooting of the vector adding
+  if (Vector2Length(dnormscale) >=
+      Vector2Length(Vector2Subtract(position, kite->center))) {
+    kite_center_rotation(kite, &position, kite->center_rotation);
+  } else {
+    Vector2 it = Vector2Add(kite->center, dnormscale);
+    kite_center_rotation(kite, &it, kite->center_rotation);
+  }
 }
 
 /**
