@@ -24,9 +24,10 @@ void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
                           TIP tip, bool below) {
   Vector2 *pos = {0};
 
-  if (position != NULL)
+  if (position != NULL) {
     pos = position;
-  else
+    kite_center_rotation(kite, pos, kite->center_rotation);
+  } else
     pos = &kite->center;
 
   // TODO: Change back to full circle size
@@ -79,9 +80,10 @@ void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
                        TIP tip) {
 
   Vector2 *pos = {0};
-  if (position != NULL)
+  if (position != NULL) {
     pos = position;
-  else
+    kite_center_rotation(kite, pos, kite->center_rotation);
+  } else
     pos = &kite->center;
 
   float_t length = (kite->width / 2.f + kite->spread);
@@ -267,6 +269,7 @@ void kite_set_kite_defaults(Kite *kite, bool is_generated) {
 
   kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
 
+  kite->old_center = kite->center;
   kite->old_angle = kite->center_rotation;
   kite->remaining_angle = 0;
   kite->segment_size = 0;
