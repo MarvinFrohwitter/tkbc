@@ -110,7 +110,39 @@ void kite_array_input_handler(Env *env) {
     if (IsKeyPressed(i + 48)) {
       // TODO: Remove the kite from the kite array in every frame.
       // not clearing all the frames
-      kite_frames_reset(env);
+
+      for (size_t j = 0; j < env->frames->count; ++j) {
+
+        Kite_Indexs new_kite_index_array = {0};
+        Frame *frame = &env->frames->elements[j];
+
+        if (frame->kite_index_array == NULL) {
+          continue;
+        }
+
+        for (size_t k = 0; k < frame->kite_index_array->count; ++k) {
+          if (i - 1 != frame->kite_index_array->elements[k].index) {
+            kite_dap(&new_kite_index_array,
+                     frame->kite_index_array->elements[k]);
+          }
+        }
+
+        if (new_kite_index_array.count != 0) {
+          // If there are kites left in the frame
+
+          frame->kite_index_array->count = 0;
+          kite_dapc(frame->kite_index_array, new_kite_index_array.elements,
+                    new_kite_index_array.count);
+
+          free(new_kite_index_array.elements);
+        } else {
+          // If there are no kites left in the frame
+          // for the cases KITE_MOVE, KITE_ROTATION, KITE_TIP_ROTATION
+          frame->finished = true;
+          frame->kite_index_array = NULL;
+        }
+      }
+
       env->kite_array->elements[i - 1].kite_input_handler_active =
           !env->kite_array->elements[i - 1].kite_input_handler_active;
     }

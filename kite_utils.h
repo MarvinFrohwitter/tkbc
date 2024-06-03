@@ -29,6 +29,33 @@
     (dynamic_array)->count = (dynamic_array)->count + 1;                       \
   } while (0)
 
+#define kite_dapc(dynamic_array, new_elements, new_elements_count)             \
+  do {                                                                         \
+    if (new_elements != NULL) {                                                \
+      if ((dynamic_array)->capacity <                                          \
+          (dynamic_array)->count + new_elements_count) {                       \
+        if ((dynamic_array)->capacity == 0) {                                  \
+          (dynamic_array)->capacity = DAP_CAP;                                 \
+        }                                                                      \
+        while ((dynamic_array)->capacity <                                     \
+               (dynamic_array)->count + new_elements_count) {                  \
+          (dynamic_array)->capacity = (dynamic_array)->capacity * 2;           \
+        }                                                                      \
+        (dynamic_array)->elements = realloc(                                   \
+            (dynamic_array)->elements,                                         \
+            sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);   \
+        if ((dynamic_array)->elements == NULL) {                               \
+          printf(                                                              \
+              "The allocation for the dynamic array has failed in: %s: %d\n",  \
+              __FILE__, __LINE__);                                             \
+        }                                                                      \
+      }                                                                        \
+      memcpy((dynamic_array)->elements + (dynamic_array)->count, new_elements, \
+             sizeof(*(dynamic_array)->elements) * new_elements_count);         \
+      (dynamic_array)->count = (dynamic_array)->count + new_elements_count;    \
+    }                                                                          \
+  } while (0)
+
 #define action_alloc(type)                                                     \
   do {                                                                         \
     action = calloc(1, sizeof(type));                                          \

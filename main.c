@@ -40,7 +40,7 @@ int main(void) {
   // TODO: The next overides the old kite array
   kite_register_frames(
       env, 6,
-      kite_gen_frame(KITE_ROTATION, kite_indexs_append(1, 1),
+      kite_gen_frame(KITE_ROTATION, kite_indexs_append(2, 0, 1),
                      &(CLITERAL(Rotation_Action){.angle = 90}), 5),
       kite_gen_frame(KITE_ROTATION, kite_indexs_append(1, 1),
                      &(CLITERAL(Rotation_Action){.angle = 90}), 5),
@@ -54,7 +54,7 @@ int main(void) {
                          .position.y = 100,
                      }),
                      12),
-      kite_script_wait(3), kite_script_frames_quit(50));
+      kite_script_wait(7), kite_script_frames_quit(50));
 
   State *marvin = kite_kite_init();
   kite_center_rotation(marvin->kite, &center_pos, 0);
