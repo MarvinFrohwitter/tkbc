@@ -54,7 +54,7 @@ int main(void) {
                          .position.y = 100,
                      }),
                      12),
-      kite_script_wait(7), kite_script_frames_quit(50));
+      kite_script_wait(1), kite_script_frames_quit(7));
 
   State *marvin = kite_kite_init();
   kite_center_rotation(marvin->kite, &center_pos, 0);
