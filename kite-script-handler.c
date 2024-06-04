@@ -220,6 +220,12 @@ void kite_update_frames(Env *env) {
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @return [TODO:return]
+ */
 bool kite_check_finished_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
     if (!env->frames->elements[i].finished) {
@@ -227,6 +233,23 @@ bool kite_check_finished_frames(Env *env) {
     }
   }
   return true;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @return [TODO:return]
+ */
+size_t kite_check_finished_frames_count(Env *env) {
+  int count = 0;
+  for (size_t i = 0; i < env->frames->count; ++i) {
+    if (env->frames->elements[i].finished) {
+      count++;
+    }
+  }
+
+  return count;
 }
 
 // ---------------------------------------------------------------------------
@@ -243,6 +266,7 @@ void kite_render_frame(Env *env, Frame *frame) {
     Wait_Action *action = frame->action;
     if (frame->duration <= 0) {
       frame->finished = true;
+      frame->duration = 0;
     } else {
       double current_time = GetTime();
       frame->duration -= current_time - action->starttime;
@@ -251,6 +275,13 @@ void kite_render_frame(Env *env, Frame *frame) {
 
   } break;
   case KITE_QUIT: {
+
+    if (kite_check_finished_frames_count(env) == env->frames->count - 1) {
+      frame->finished = true;
+      kite_frames_reset(env);
+      break;
+    }
+
     Quit_Action *action = frame->action;
     if (frame->duration <= 0) {
       frame->finished = true;
@@ -277,6 +308,18 @@ void kite_render_frame(Env *env, Frame *frame) {
 
       if (Vector2Equals(kite->center, action->position)) {
         frame->finished = true;
+
+        {
+          // Every kite in the frame should get sync at the end of the frame.
+          for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
+            size_t current_kite_index = env->frames->elements[frame->index]
+                                            .kite_index_array->elements[i]
+                                            .index;
+            Kite *kite = env->kite_array->elements[current_kite_index].kite;
+            kite_script_move(kite, action->position, 0);
+          }
+        }
+        break;
       }
     }
 
@@ -298,12 +341,25 @@ void kite_render_frame(Env *env, Frame *frame) {
           FloatEquals(kite->old_angle + kite->angle_sum,
                       kite->center_rotation)) {
         frame->finished = true;
+
+        {
+          // Every kite in the frame should get sync at the end of the frame.
+          for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
+            size_t current_kite_index = env->frames->elements[frame->index]
+                                            .kite_index_array->elements[i]
+                                            .index;
+            Kite *kite = env->kite_array->elements[current_kite_index].kite;
+            kite_script_rotate(kite, action->angle, 0);
+          }
+        }
+
         kite->old_angle = kite->center_rotation;
         kite->old_center = kite->center;
 
         kite->angle_sum = 0;
         kite->remaining_angle = 0;
         kite->segment_size = 0;
+        break;
       }
     }
   } break;
@@ -324,12 +380,25 @@ void kite_render_frame(Env *env, Frame *frame) {
           FloatEquals(kite->old_angle + kite->angle_sum,
                       kite->center_rotation)) {
         frame->finished = true;
+
+        {
+          // Every kite in the frame should get sync at the end of the frame.
+          for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
+            size_t current_kite_index = env->frames->elements[frame->index]
+                                            .kite_index_array->elements[i]
+                                            .index;
+            Kite *kite = env->kite_array->elements[current_kite_index].kite;
+            kite_script_rotate_tip(kite, action->tip, action->angle, 0);
+          }
+        }
+
         kite->old_angle = kite->center_rotation;
         kite->old_center = kite->center;
 
         kite->angle_sum = 0;
         kite->remaining_angle = 0;
         kite->segment_size = 0;
+        break;
       }
     }
   } break;
@@ -375,7 +444,6 @@ void kite_script_move(Kite *kite, Vector2 position, float duration) {
   Vector2 dnorm = Vector2Normalize(d);
   Vector2 dnormscale = Vector2Scale(dnorm, duration);
 
-  // TODO: Prevent the overshooting of the vector adding
   if (Vector2Length(dnormscale) >=
       Vector2Length(Vector2Subtract(position, kite->center))) {
     kite_center_rotation(kite, &position, kite->center_rotation);
@@ -444,7 +512,7 @@ void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration) {
   float doneangle = angle - kite->remaining_angle;
   float current_angle = doneangle + kite->segment_size;
 
-  // Provided the old postion, because the kite center moves as a circle
+  // Provided the old position, because the kite center moves as a circle
   // around the old fixed position.
   if (kite->remaining_angle <= 0)
     kite_tip_rotation(kite, &kite->old_center,

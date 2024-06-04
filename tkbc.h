@@ -148,6 +148,7 @@ typedef struct {
 
 } Env;
 
+
 // ===========================================================================
 // ========================== Kite Declarations ==============================
 // ===========================================================================
@@ -214,6 +215,7 @@ void kite_render_frame(Env *env, Frame *frame);
 
 void kite_update_frames(Env *env);
 bool kite_check_finished_frames(Env *env);
+size_t kite_check_finished_frames_count(Env *env);
 void kite_array_destroy_frames(Env *env);
 void kite_frames_reset(Env *env);
 
