@@ -222,8 +222,6 @@ void kite_set_state_defaults(State *state) {
   state->interrupt_movement = false;
   state->interrupt_smoothness = false;
   state->interrupt_script = false;
-  state->instruction_counter = 0;
-  state->instruction_count = 0;
 }
 
 /**

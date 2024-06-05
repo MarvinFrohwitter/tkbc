@@ -171,7 +171,6 @@ void kite_register_frame(Env *env, Frame *frame) {
   default:
     break;
   }
-  env->frames->frame_counter++;
 }
 
 /**
@@ -195,8 +194,6 @@ void kite_frame_reset(Frame *frame) {
   frame->finished = true;
   frame->duration = 0;
   frame->kind = KITE_ACTION;
-  // TODO: Think about removing the frame from the array completely
-  // frame->index = 0;
 }
 
 /**

@@ -69,8 +69,6 @@ typedef struct {
 
   bool kite_input_handler_active;
   bool interrupt_script;
-  int instruction_counter;
-  int instruction_count;
 } State;
 
 typedef struct {
