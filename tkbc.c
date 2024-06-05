@@ -221,7 +221,6 @@ void kite_set_state_defaults(State *state) {
   state->fixed = true;
   state->interrupt_movement = false;
   state->interrupt_smoothness = false;
-  state->interrupt_script = false;
 }
 
 /**
@@ -295,9 +294,15 @@ Env *kite_env_init() {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
   }
+  env->index_blocks = calloc(1, sizeof(*env->index_blocks));
+  if (env->index_blocks == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
 
   env->window_height = GetScreenHeight();
   env->window_width = GetScreenWidth();
+  env->interrupt_script = false;
   return env;
 }
 
@@ -310,6 +315,8 @@ void kite_env_destroy(Env *env) {
   kite_array_destroy_kites(env);
   free(env->kite_array->elements);
   free(env->kite_array);
+
+  free(env->index_blocks->elements);
 
   kite_frames_reset(env);
   free(env->frames->elements);

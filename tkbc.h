@@ -68,7 +68,6 @@ typedef struct {
   bool iscenter;
 
   bool kite_input_handler_active;
-  bool interrupt_script;
 } State;
 
 typedef struct {
@@ -135,17 +134,27 @@ typedef struct {
   size_t count;
   size_t capacity;
 
-  size_t frame_counter;
+  size_t block_index;
 } Frames;
 
 typedef struct {
-  Frames *frames;
+  size_t *elements;
+  size_t count;
+  size_t capacity;
+
+} Index_Blocks;
+
+typedef struct {
   States *kite_array;
+
+  Frames *frames;
+  Index_Blocks *index_blocks;
+  bool interrupt_script;
+
   size_t window_width;
   size_t window_height;
 
 } Env;
-
 
 // ===========================================================================
 // ========================== Kite Declarations ==============================
@@ -184,7 +193,6 @@ float kite_lerp(float a, float b, float t);
 void kite_gen_kites(Env *env, size_t kite_count);
 void kite_array_destroy_kites(Env *env);
 void kite_draw_kite_array(Env *env);
-bool kite_array_check_interrupt_script(Env *env);
 void kite_array_input_handler(Env *env);
 void kite_array_start_pos(Env *env);
 
@@ -207,8 +215,9 @@ Frame *kite_script_wait(float duration);
 Frame *kite_script_frames_quit(float duration);
 
 void kite_frame_reset(Frame *frame);
+void kite_register_frames(Env *env, size_t block_index, size_t frame_count,
+                          ...);
 void kite_register_frame(Env *env, Frame *frame);
-void kite_register_frames(Env *env, size_t frame_count, ...);
 void kite_render_frame(Env *env, Frame *frame);
 
 void kite_update_frames(Env *env);
@@ -217,9 +226,9 @@ size_t kite_check_finished_frames_count(Env *env);
 void kite_array_destroy_frames(Env *env);
 void kite_frames_reset(Env *env);
 
-void kite_script_input(State *state);
-void kite_script_begin(State *state);
-void kite_script_end(State *state);
+void kite_script_input(Env *env);
+void kite_script_begin(Env *env);
+void kite_script_end(Env *env);
 
 void kite_script_move(Kite *kite, Vector2 position, float duration);
 void kite_script_rotate(Kite *kite, float angle, float duration);

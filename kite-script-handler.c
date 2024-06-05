@@ -121,14 +121,20 @@ Frame *kite_script_frames_quit(float duration) {
   return frame;
 }
 
-void kite_register_frames(Env *env, size_t frame_count, ...) {
+void kite_register_frames(Env *env, size_t block_index, size_t frame_count,
+                          ...) {
 
-  if (kite_check_finished_frames(env)) {
-    kite_frames_reset(env);
-  } else {
+  if (!kite_check_finished_frames(env)) {
     return;
   }
 
+  for (size_t i = 0; i < env->index_blocks->count; ++i) {
+    if (block_index == env->index_blocks->elements[i]) {
+      return;
+    }
+  }
+
+  kite_frames_reset(env);
   va_list args;
   va_start(args, frame_count);
   for (size_t i = 0; i < frame_count; ++i) {
@@ -136,6 +142,9 @@ void kite_register_frames(Env *env, size_t frame_count, ...) {
     kite_register_frame(env, frame);
   }
   va_end(args);
+
+  env->frames->block_index = block_index;
+  kite_dap(env->index_blocks, block_index);
 }
 
 #define kite_ra_setup(type)                                                    \
@@ -205,7 +214,6 @@ void kite_frames_reset(Env *env) {
   if (env->frames->count != 0) {
     kite_array_destroy_frames(env);
     env->frames->count = 0;
-    env->frames->frame_counter = 0;
   }
 }
 
@@ -425,8 +433,16 @@ float kite_lerp(float a, float b, float t) { return a + (t * (b - a)); }
  *
  * @param state [TODO:parameter]
  */
-void kite_script_begin(State *state) { state->interrupt_script = true; }
-void kite_script_end(State *state) { state->interrupt_script = false; }
+void kite_script_begin(Env *env) {
+  env->interrupt_script = true;
+  kite_register_frames(env, 0, 1, kite_script_wait(0));
+}
+void kite_script_end(Env *env) {
+  // env->index_blocks->count = 0;
+  env->interrupt_script = false;
+
+  return;
+}
 
 /**
  * @brief [TODO:description]
