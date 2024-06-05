@@ -76,24 +76,6 @@ void kite_draw_kite_array(Env *env) {
 }
 
 /**
- * @brief The function kite_array_check_interrupt_script() checks if one of the
- * kites that are currently in the kite_array has interrupt_script set to true.
- *
- *
- * @param env The global state of the application.
- * @return boolean Returns true if one of the kites of the global kite_array has
- * set the value interrupt_script, otherwise false.
- */
-bool kite_array_check_interrupt_script(Env *env) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].interrupt_script) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
  * @brief The function kite_array_input_handler() handles the kite switching and
  * calls the kite_input_handler() for each kite in the global kite_array.
  *
