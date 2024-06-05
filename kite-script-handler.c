@@ -44,22 +44,33 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
   Frame *frame = kite_frame_init();
   switch (kind) {
   case KITE_MOVE: {
+
     action_alloc(Move_Action);
-    action = (Move_Action *)raw_action;
+    ((Move_Action *)action)->position.x =
+        ((Move_Action *)raw_action)->position.x;
+    ((Move_Action *)action)->position.y =
+        ((Move_Action *)raw_action)->position.y;
 
   } break;
   case KITE_ROTATION: {
+
     action_alloc(Rotation_Action);
-    action = (Rotation_Action *)raw_action;
+    ((Rotation_Action *)action)->angle = ((Rotation_Action *)raw_action)->angle;
+
   } break;
   case KITE_TIP_ROTATION: {
+
     action_alloc(Tip_Rotation_Action);
-    action = (Tip_Rotation_Action *)raw_action;
+    ((Tip_Rotation_Action *)action)->tip =
+        ((Tip_Rotation_Action *)raw_action)->tip;
+
+    ((Tip_Rotation_Action *)action)->angle =
+        ((Tip_Rotation_Action *)raw_action)->angle;
+
   } break;
-  default:
-    action_alloc(Move_Action);
-    action = (Move_Action *)raw_action;
-    break;
+  default: {
+    assert(0 && "UNREACHABLE kite_gen_frame()");
+  } break;
   }
 
   for (size_t i = 0; i < kite_indexs.count; ++i) {
