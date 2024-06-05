@@ -87,7 +87,7 @@ void kite_array_input_handler(Env *env) {
     TakeScreenshot("1.png");
   }
 
-  // To only handle 9 kites controlable by the keyboard.
+  // To only handle 9 kites controllable by the keyboard.
   for (size_t i = 1; i <= 9; ++i) {
     if (IsKeyPressed(i + 48)) {
 
