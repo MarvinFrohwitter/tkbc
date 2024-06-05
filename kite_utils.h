@@ -20,8 +20,10 @@
                                               (dynamic_array)->capacity);      \
                                                                                \
       if ((dynamic_array)->elements == NULL) {                                 \
-        printf("The allocation for the dynamic array has failed in: %s: %d\n", \
-               __FILE__, __LINE__);                                            \
+        fprintf(                                                               \
+            stderr,                                                            \
+            "The allocation for the dynamic array has failed in: %s: %d\n",    \
+            __FILE__, __LINE__);                                               \
       }                                                                        \
     }                                                                          \
                                                                                \
@@ -45,7 +47,8 @@
             (dynamic_array)->elements,                                         \
             sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);   \
         if ((dynamic_array)->elements == NULL) {                               \
-          printf(                                                              \
+          fprintf(                                                             \
+              stderr,                                                          \
               "The allocation for the dynamic array has failed in: %s: %d\n",  \
               __FILE__, __LINE__);                                             \
         }                                                                      \
