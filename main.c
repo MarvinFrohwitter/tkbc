@@ -13,12 +13,13 @@
 /**
  * @brief The main function that handles the event loop and the sound loading.
  *
- * @return int Returns 1 if no errors occur, otherwise none zero.
+ * @return int Returns 0 if no errors occur.
  */
 int main(void) {
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
+  // SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(TARGET_FPS);
   SetExitKey(KEY_ESCAPE);
