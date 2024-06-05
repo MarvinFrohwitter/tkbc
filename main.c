@@ -23,7 +23,7 @@ int main(void) {
   SetTargetFPS(TARGET_FPS);
   SetExitKey(KEY_ESCAPE);
   Vector2 center_pos = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f};
-  printf("The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(center_pos));
+  fprintf(stdout, "The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(center_pos));
 
 #ifdef LOADIMAGE
   Image background_image =
