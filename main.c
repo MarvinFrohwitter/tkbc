@@ -38,19 +38,12 @@ int main(void) {
   Env *env = kite_env_init();
   kite_gen_kites(env, 4);
 
-  // State *marvin = kite_kite_init();
-  // kite_center_rotation(marvin->kite, &center_pos, 0);
-
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
     kite_script_input(env);
     kite_update_frames(env);
-
-    // center_pos.y += 1;
-    // kite_tip_rotation(marvin->kite, &center_pos, 30, LEFT_TIP);
-    // kite_draw_kite(marvin->kite);
 
 #ifdef LOADIMAGE
     float scale_width = (float)GetScreenWidth() / background_texture.width;

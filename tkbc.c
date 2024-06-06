@@ -22,13 +22,13 @@
  */
 void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
                           TIP tip, bool below) {
-  Vector2 *pos = {0};
 
   if (position != NULL) {
-    pos = position;
-    kite_center_rotation(kite, pos, kite->center_rotation);
-  } else
-    pos = &kite->center;
+    kite_center_rotation(kite, position, kite->center_rotation);
+  }
+
+  Vector2 pos = {0};
+  pos = kite->center;
 
   // TODO: Change back to full circle size
   // float_t length = k->height;
@@ -42,23 +42,31 @@ void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
   }
 
   // center rotation point;
-  pos->x += ceilf(crealf((length)*cexpf(I * center_angle)));
-  pos->y += ceilf(cimagf((length)*cexpf(I * center_angle)));
+  pos.x += ceilf(crealf((length)*cexpf(I * center_angle)));
+  pos.y += ceilf(cimagf((length)*cexpf(I * center_angle)));
 
   switch (tip) {
   case LEFT_TIP: {
 
-    pos->x -= ceilf(crealf((length)*cexpf(I * phi)));
-    pos->y += ceilf(cimagf((length)*cexpf(I * phi)));
+    // With out it just flies a circle
+    // pos->x -= ceilf(length);
 
-    kite_center_rotation(kite, pos, deg_rotation);
+    // Move the rotation position to the left tip
+    pos.x = kite->left.v1.x;
+    pos.y = kite->left.v1.y;
+    // Then rotate
+    pos.x += ceilf(crealf((length)*cexpf(I * phi)));
+    pos.y -= floorf(cimagf((length)*cexpf(I * phi)));
   } break;
   case RIGHT_TIP: {
 
-    pos->x += ceilf(crealf((length)*cexpf(I * phi)));
-    pos->y -= ceilf(cimagf((length)*cexpf(I * phi)));
+    // Move the rotation position to the right tip
+    pos.x = kite->right.v3.x;
+    pos.y = kite->right.v3.y;
+    // Then rotate
+    pos.x -= ceilf(crealf((length)*cexpf(I * phi)));
+    pos.y += floorf(cimagf((length)*cexpf(I * phi)));
 
-    kite_center_rotation(kite, pos, deg_rotation);
   } break;
   default:
     assert(0 && "The chosen TIP is not valid!");
@@ -66,8 +74,8 @@ void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
 }
 
 /**
- * @brief The function kite_tip_rotation() computes the new position of the kite
- * and its corresponding structure values with a tip rotation.
+ * @brief The function kite_tip_rotation() computes the new position of the
+ * kite and its corresponding structure values with a tip rotation.
  *
  * @param kite The kite that is going to be modified.
  * @param position The new position for the kite at the center of the leading
@@ -79,40 +87,32 @@ void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
 void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
                        TIP tip) {
 
-  Vector2 *pos = {0};
   if (position != NULL) {
-    pos = position;
-    kite_center_rotation(kite, pos, kite->center_rotation);
-  } else
-    pos = &kite->center;
+    kite_center_rotation(kite, position, kite->center_rotation);
+  }
 
   float_t length = (kite->width / 2.f + kite->spread);
   float phi = (PI * (tip_deg_rotation) / 180);
 
+  Vector2 pos = {0};
   switch (tip) {
   case LEFT_TIP: {
 
-    // With out it just flies a circle
-    // pos->x -= ceilf(length);
-
     // Move the rotation position to the left tip
-    pos->x = kite->left.v1.x;
-    pos->y = kite->left.v1.y;
-
+    pos.x = kite->left.v1.x;
+    pos.y = kite->left.v1.y;
     // Then rotate
-    pos->x += ceilf(crealf((length)*cexpf(I * phi)));
-    pos->y -= ceilf(cimagf((length)*cexpf(I * phi)));
+    pos.x += ceilf(crealf((length)*cexpf(I * phi)));
+    pos.y -= floorf(cimagf((length)*cexpf(I * phi)));
   } break;
   case RIGHT_TIP: {
 
-    // pos->x += ceilf(length);
-
     // Move the rotation position to the right tip
-    pos->x = kite->right.v3.x;
-    pos->y = kite->right.v3.y;
+    pos.x = kite->right.v3.x;
+    pos.y = kite->right.v3.y;
     // Then rotate
-    pos->x -= ceilf(crealf((length)*cexpf(I * phi)));
-    pos->y += ceilf(cimagf((length)*cexpf(I * phi)));
+    pos.x -= ceilf(crealf((length)*cexpf(I * phi)));
+    pos.y += floorf(cimagf((length)*cexpf(I * phi)));
 
   } break;
   default:
@@ -121,7 +121,7 @@ void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
   }
 
   // Just compute a center rotation instead at the new found position
-  kite_center_rotation(kite, pos, tip_deg_rotation);
+  kite_center_rotation(kite, &pos, tip_deg_rotation);
 }
 
 /**
@@ -135,14 +135,17 @@ void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
  */
 void kite_center_rotation(Kite *kite, Vector2 *position,
                           float center_deg_rotation) {
-  Vector2 *pos = {0};
-  if (position != NULL)
-    pos = position;
-  else
-    pos = &kite->center;
+  Vector2 pos = {0};
+  if (position != NULL) {
+    pos.x = position->x;
+    pos.y = position->y;
+  } else {
+    pos.x = kite->center.x;
+    pos.y = kite->center.y;
+  }
 
-  kite->center.x = pos->x;
-  kite->center.y = pos->y;
+  kite->center.x = pos.x;
+  kite->center.y = pos.y;
 
   kite->center_rotation = center_deg_rotation;
   float cw = kite->width;
@@ -156,31 +159,32 @@ void kite_center_rotation(Kite *kite, Vector2 *position,
   float br_angle = (PI * (360 + (90 - angle)) / 180);
   float phi = (PI * (kite->center_rotation) / 180);
 
+  // TODO: check for floorf as in the rotation function
   // LEFT Triangle
   // Correct
-  kite->left.v1.x = pos->x - ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
-  kite->left.v1.y = pos->y + ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
-  kite->left.v2.x = pos->x - ceilf(crealf(is * cexpf(I * (phi - bl_angle))));
-  kite->left.v2.y = pos->y + ceilf(cimagf(is * cexpf(I * (phi - bl_angle))));
-  kite->left.v3.x = pos->x + ceilf(crealf(o * cexpf(I * phi)));
-  kite->left.v3.y = pos->y - ceilf(cimagf(o * cexpf(I * phi)));
+  kite->left.v1.x = pos.x - ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
+  kite->left.v1.y = pos.y + ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  kite->left.v2.x = pos.x - ceilf(crealf(is * cexpf(I * (phi - bl_angle))));
+  kite->left.v2.y = pos.y + ceilf(cimagf(is * cexpf(I * (phi - bl_angle))));
+  kite->left.v3.x = pos.x + ceilf(crealf(o * cexpf(I * phi)));
+  kite->left.v3.y = pos.y - ceilf(cimagf(o * cexpf(I * phi)));
 
   // RIGHT Triangle
   // Correct
-  kite->right.v1.x = pos->x - ceilf(crealf(o * cexpf(I * phi)));
-  kite->right.v1.y = pos->y + ceilf(cimagf(o * cexpf(I * phi)));
-  kite->right.v2.x = pos->x + ceilf(crealf(is * cexpf(I * (phi - br_angle))));
-  kite->right.v2.y = pos->y - ceilf(cimagf(is * cexpf(I * (phi - br_angle))));
-  kite->right.v3.x = pos->x + ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
-  kite->right.v3.y = pos->y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  kite->right.v1.x = pos.x - ceilf(crealf(o * cexpf(I * phi)));
+  kite->right.v1.y = pos.y + ceilf(cimagf(o * cexpf(I * phi)));
+  kite->right.v2.x = pos.x + ceilf(crealf(is * cexpf(I * (phi - br_angle))));
+  kite->right.v2.y = pos.y - ceilf(cimagf(is * cexpf(I * (phi - br_angle))));
+  kite->right.v3.x = pos.x + ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
+  kite->right.v3.y = pos.y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
 
-  // Just an random suitable height and width that fits the scaling and spread.
-  // k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
+  // Just an random suitable height and width that fits the scaling and
+  // spread. k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
   // k->rec.height = 2 * PI * k->spread;
   kite->rec.height = 2 * PI * logf(kite->scale);
   kite->rec.width = 2 * length;
-  kite->rec.x = pos->x - ceilf(crealf(length * cexpf(I * phi)));
-  kite->rec.y = pos->y + ceilf(cimagf(length * cexpf(I * phi)));
+  kite->rec.x = pos.x - ceilf(crealf(length * cexpf(I * phi)));
+  kite->rec.y = pos.y + ceilf(cimagf(length * cexpf(I * phi)));
 }
 
 /**
@@ -199,7 +203,8 @@ void kite_draw_kite(Kite *kite) {
 }
 
 /**
- * @brief The function kite_kite_destroy() frees the memory for the given state.
+ * @brief The function kite_kite_destroy() frees the memory for the given
+ * state.
  *
  * @param state The current state of a kite.
  */
@@ -224,8 +229,8 @@ void kite_set_state_defaults(State *state) {
 }
 
 /**
- * @brief The function kite_set_kite_defaults() sets all the internal default of
- * the kite and computes the internal corner points of the kite.
+ * @brief The function kite_set_kite_defaults() sets all the internal default
+ * of the kite and computes the internal corner points of the kite.
  *
  * @param kite The kite that is going to be modified.
  * @param is_generated Chooses the information if the function is called by a
@@ -307,7 +312,8 @@ Env *kite_env_init() {
 }
 
 /**
- * @brief The function kite_env_destroy() frees the memory for the given state.
+ * @brief The function kite_env_destroy() frees the memory for the given
+ * state.
  *
  * @param env The global state of the application.
  */
@@ -325,8 +331,8 @@ void kite_env_destroy(Env *env) {
 }
 
 /**
- * @brief The function kite_kite_init() allocates the memory for a kite and it's
- * corresponding state and gives back the state structure.
+ * @brief The function kite_kite_init() allocates the memory for a kite and
+ * it's corresponding state and gives back the state structure.
  *
  * @return state The new allocated state.
  */
@@ -356,8 +362,8 @@ State *kite_kite_init() {
 }
 
 /**
- * @brief The function kite_check_boundary() checks if the kite is still in the
- * displayed window in the given orientation of the kite.
+ * @brief The function kite_check_boundary() checks if the kite is still in
+ * the displayed window in the given orientation of the kite.
  *
  * @param kite The kite that is going to be modified.
  * @param orientation The orientation of the kite, to determine where the tips
@@ -383,8 +389,8 @@ int kite_check_boundary(Kite *kite, ORIENTATION orientation) {
 }
 
 /**
- * @brief The function kite_input_handler() handles all the keyboard input that
- * is provided to control the given state.
+ * @brief The function kite_input_handler() handles all the keyboard input
+ * that is provided to control the given state.
  *
  * @param env The global state of the application.
  * @param state The current state of a kite that should be handled.
@@ -508,8 +514,8 @@ void kite_input_check_rotation(State *state) {
 }
 
 /**
- * @brief The function kite_input_check_tip_turn() handles the corresponding tip
- * turn rotation invoked by the key input.
+ * @brief The function kite_input_check_tip_turn() handles the corresponding
+ * tip turn rotation invoked by the key input.
  *
  * @param state The current state of a kite that should be handled.
  */
@@ -720,8 +726,8 @@ void kite_input_check_movement(State *state) {
 }
 
 /**
- * @brief The function kite_input_check_speed() controls the turn speed and the
- * fly speed of the kite corresponding to the key presses.
+ * @brief The function kite_input_check_speed() controls the turn speed and
+ * the fly speed of the kite corresponding to the key presses.
  *
  * @param state The current state of a kite that should be handled.
  */
@@ -751,15 +757,15 @@ void kite_input_check_speed(State *state) {
 }
 
 /**
- * @brief The function kite_clamp() checks if the point z is between the range a
- * and b and if not returns the closer point of thous.
+ * @brief The function kite_clamp() checks if the point z is between the range
+ * a and b and if not returns the closer point of thous.
  *
  * @param z The value to check for the range a and b.
  * @param a The minimum range value.
  * @param b The maximum range value.
- * @return float The given value z if is in between the range a and b, otherwise
- * if the value of z is less than a, the value of a will be returned or b if the
- * value is lager than to b.
+ * @return float The given value z if is in between the range a and b,
+ * otherwise if the value of z is less than a, the value of a will be returned
+ * or b if the value is lager than to b.
  */
 float kite_clamp(float z, float a, float b) {
 
