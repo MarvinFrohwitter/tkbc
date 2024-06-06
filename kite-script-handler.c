@@ -536,14 +536,13 @@ void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration) {
   float doneangle = angle - kite->remaining_angle;
   float current_angle = doneangle + kite->segment_size;
 
-  // Provided the old position, because the kite center moves as a circle
-  // around the old fixed position.
   if (kite->remaining_angle <= 0)
+    // Provided the old position, because the kite center moves as a circle
+    // around the old fixed position.
     kite_tip_rotation(kite, &kite->old_center,
                       kite->old_angle + kite->angle_sum, tip);
   else
-    kite_tip_rotation(kite, &kite->old_center, kite->old_angle + current_angle,
-                      tip);
+    kite_tip_rotation(kite, NULL, kite->old_angle + current_angle, tip);
 }
 
 /**
