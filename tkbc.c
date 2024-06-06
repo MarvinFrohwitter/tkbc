@@ -43,7 +43,7 @@ void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
 
   // center rotation point;
   pos.x += ceilf(crealf((length)*cexpf(I * center_angle)));
-  pos.y += ceilf(cimagf((length)*cexpf(I * center_angle)));
+  pos.y += floorf(cimagf((length)*cexpf(I * center_angle)));
 
   switch (tip) {
   case LEFT_TIP: {
@@ -92,6 +92,7 @@ void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
   }
 
   float_t length = (kite->width / 2.f + kite->spread);
+  length = floorf(length);
   float phi = (PI * (tip_deg_rotation) / 180);
 
   Vector2 pos = {0};
@@ -152,6 +153,7 @@ void kite_center_rotation(Kite *kite, Vector2 *position,
   float is = kite->inner_space;
   float o = kite->overlap;
   float_t length = (kite->width / 2.f + kite->spread);
+  length = floorf(length);
 
   // The difference between the angle 0 and the default downward interpolation
   float angle = 42;
@@ -163,20 +165,20 @@ void kite_center_rotation(Kite *kite, Vector2 *position,
   // LEFT Triangle
   // Correct
   kite->left.v1.x = pos.x - ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
-  kite->left.v1.y = pos.y + ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  kite->left.v1.y = pos.y + floorf(cimagf((cw / 2.f) * cexpf(I * phi)));
   kite->left.v2.x = pos.x - ceilf(crealf(is * cexpf(I * (phi - bl_angle))));
-  kite->left.v2.y = pos.y + ceilf(cimagf(is * cexpf(I * (phi - bl_angle))));
+  kite->left.v2.y = pos.y + floorf(cimagf(is * cexpf(I * (phi - bl_angle))));
   kite->left.v3.x = pos.x + ceilf(crealf(o * cexpf(I * phi)));
-  kite->left.v3.y = pos.y - ceilf(cimagf(o * cexpf(I * phi)));
+  kite->left.v3.y = pos.y - floorf(cimagf(o * cexpf(I * phi)));
 
   // RIGHT Triangle
   // Correct
   kite->right.v1.x = pos.x - ceilf(crealf(o * cexpf(I * phi)));
-  kite->right.v1.y = pos.y + ceilf(cimagf(o * cexpf(I * phi)));
+  kite->right.v1.y = pos.y + floorf(cimagf(o * cexpf(I * phi)));
   kite->right.v2.x = pos.x + ceilf(crealf(is * cexpf(I * (phi - br_angle))));
-  kite->right.v2.y = pos.y - ceilf(cimagf(is * cexpf(I * (phi - br_angle))));
+  kite->right.v2.y = pos.y - floorf(cimagf(is * cexpf(I * (phi - br_angle))));
   kite->right.v3.x = pos.x + ceilf(crealf((cw / 2.f) * cexpf(I * phi)));
-  kite->right.v3.y = pos.y - ceilf(cimagf((cw / 2.f) * cexpf(I * phi)));
+  kite->right.v3.y = pos.y - floorf(cimagf((cw / 2.f) * cexpf(I * phi)));
 
   // Just an random suitable height and width that fits the scaling and
   // spread. k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
@@ -184,7 +186,7 @@ void kite_center_rotation(Kite *kite, Vector2 *position,
   kite->rec.height = 2 * PI * logf(kite->scale);
   kite->rec.width = 2 * length;
   kite->rec.x = pos.x - ceilf(crealf(length * cexpf(I * phi)));
-  kite->rec.y = pos.y + ceilf(cimagf(length * cexpf(I * phi)));
+  kite->rec.y = pos.y + floorf(cimagf(length * cexpf(I * phi)));
 }
 
 /**
