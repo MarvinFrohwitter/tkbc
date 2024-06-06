@@ -527,11 +527,6 @@ void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration) {
     return;
   }
 
-  if (kite->remaining_angle <= 0) {
-    kite_tip_rotation(kite, NULL, kite->old_angle + kite->angle_sum, tip);
-    return;
-  }
-
   kite->remaining_angle -= kite->segment_size * GetFrameTime();
   float doneangle = angle - kite->remaining_angle;
   float current_angle = doneangle + kite->segment_size;
