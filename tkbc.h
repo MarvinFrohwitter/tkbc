@@ -81,6 +81,7 @@ typedef enum {
   KITE_QUIT,
   KITE_WAIT,
   KITE_MOVE,
+  KITE_MOVE_ADD,
   KITE_ROTATION,
   KITE_TIP_ROTATION
 } Action_Kind;
@@ -103,6 +104,8 @@ typedef struct {
 typedef struct {
   Vector2 position;
 } Move_Action;
+
+typedef Move_Action Move_Add_Action;
 
 typedef struct {
   double starttime;
@@ -149,6 +152,7 @@ typedef struct {
 
   Frames *frames;
   Index_Blocks *index_blocks;
+  size_t global_block_index;
   bool interrupt_script;
 
   size_t window_width;
@@ -215,8 +219,7 @@ Frame *kite_script_wait(float duration);
 Frame *kite_script_frames_quit(float duration);
 
 void kite_frame_reset(Frame *frame);
-void kite_register_frames(Env *env, size_t block_index, size_t frame_count,
-                          ...);
+void kite_register_frames(Env *env, size_t frame_count, ...);
 void kite_register_frame(Env *env, Frame *frame);
 void kite_render_frame(Env *env, Frame *frame);
 
@@ -235,5 +238,15 @@ void kite_script_rotate(Kite *kite, float angle, float duration);
 void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration);
 
 Kite_Indexs kite_indexs_append(size_t index_count, ...);
+
+// ===========================================================================
+// ========================== Script Team Figures ============================
+// ===========================================================================
+
+void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array);
+void kite_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
+                               float box_size, float duration);
+void kite_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
+                                float box_size, float duration);
 
 #endif // TKBC_H_

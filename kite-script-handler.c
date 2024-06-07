@@ -43,8 +43,8 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
   void *action;
   Frame *frame = kite_frame_init();
   switch (kind) {
+  case KITE_MOVE_ADD:
   case KITE_MOVE: {
-
     action_alloc(Move_Action);
     ((Move_Action *)action)->position.x =
         ((Move_Action *)raw_action)->position.x;
@@ -121,8 +121,8 @@ Frame *kite_script_frames_quit(float duration) {
   return frame;
 }
 
-void kite_register_frames(Env *env, size_t block_index, size_t frame_count,
-                          ...) {
+void kite_register_frames(Env *env, size_t frame_count, ...) {
+  size_t block_index = env->global_block_index++;
 
   if (!kite_check_finished_frames(env)) {
     return;
@@ -171,6 +171,16 @@ void kite_register_frame(Env *env, Frame *frame) {
   env->frames->elements[env->frames->count - 1].index = env->frames->count - 1;
 
   switch (frame->kind) {
+  case KITE_MOVE:
+  case KITE_MOVE_ADD: {
+    for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
+      Kite *kite =
+          env->kite_array->elements[frame->kite_index_array->elements[i].index]
+              .kite;
+      kite->old_center = kite->center;
+    }
+
+  } break;
   case KITE_ROTATION: {
     kite_ra_setup(Rotation_Action);
   } break;
@@ -309,6 +319,45 @@ void kite_render_frame(Env *env, Frame *frame) {
     }
 
   } break;
+  case KITE_MOVE_ADD: {
+
+    Move_Add_Action *action = frame->action;
+    Frame *env_frame = &env->frames->elements[frame->index];
+    assert(env_frame->kite_index_array->count > 0);
+
+    for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
+      size_t current_kite_index =
+          env_frame->kite_index_array->elements[i].index;
+      Kite *kite = env->kite_array->elements[current_kite_index].kite;
+
+      // Description of the calculation for the position
+      // kite.center + (action->position - (kite.center - kite->old_center))
+      // kite.center + (action->position - kite.center + kite->old_center)
+      // kite.center + action->position - kite.center + kite->old_center
+
+      kite_script_move(kite, Vector2Add(kite->old_center, action->position),
+                       frame->duration);
+
+      if (Vector2Equals(kite->center,
+                        Vector2Add(kite->old_center, action->position))) {
+        frame->finished = true;
+
+        {
+          // Every kite in the frame should get sync at the end of the frame.
+          for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
+            size_t current_kite_index = env->frames->elements[frame->index]
+                                            .kite_index_array->elements[i]
+                                            .index;
+            Kite *kite = env->kite_array->elements[current_kite_index].kite;
+            kite_script_move(kite,
+                             Vector2Add(kite->old_center, action->position), 0);
+          }
+        }
+        break;
+      }
+    }
+
+  } break;
   case KITE_MOVE: {
 
     Move_Action *action = frame->action;
@@ -369,6 +418,7 @@ void kite_render_frame(Env *env, Frame *frame) {
           }
         }
 
+        // TODO: Remove all of it because the registration updates it.
         kite->old_angle = kite->center_rotation;
         kite->old_center = kite->center;
 
@@ -435,13 +485,12 @@ float kite_lerp(float a, float b, float t) { return a + (t * (b - a)); }
  */
 void kite_script_begin(Env *env) {
   env->interrupt_script = true;
-  kite_register_frames(env, 0, 1, kite_script_wait(0));
+  env->global_block_index = 0;
+  kite_register_frames(env, 1, kite_script_wait(0));
 }
 void kite_script_end(Env *env) {
   // env->index_blocks->count = 0;
   env->interrupt_script = false;
-
-  return;
 }
 
 /**
