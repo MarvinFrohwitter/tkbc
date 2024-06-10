@@ -22,8 +22,11 @@ void kite_script_input(Env *env) {
   // configuration option or give the function a parameter.
   // kite_script_team_grid(env, kite_index_array);
 
-  kite_script_team_box_left(env, kite_indexs_append(4, 0, 1, 2, 3), 300, 2);
-  kite_script_team_box_right(env, kite_indexs_append(4, 0, 1, 2, 3), 300, 2);
+  // kite_script_team_box_left(env, kite_indexs_append(4, 0, 1, 2, 3), 300, 2);
+  // kite_script_team_box_right(env, kite_indexs_append(4, 0, 1, 2, 3), 300, 2);
+
+  kite_script_team_dimond_left(env, kite_indexs_append(4, 0, 1, 2, 3), 300, 2);
+  kite_script_team_dimond_right(env, kite_indexs_append(4, 0, 1, 2, 3), 300, 2);
 
   // kite_register_frames(
   //     env, 6,

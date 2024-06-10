@@ -91,6 +91,7 @@ typedef enum {
 } PARAMETERS;
 typedef enum { LEFT_TIP, RIGHT_TIP } TIP;
 typedef enum { KITE_Y, KITE_X } ORIENTATION;
+typedef enum { LEFT, RIGHT } DIRECTION;
 
 typedef struct {
   float angle;
@@ -244,9 +245,20 @@ Kite_Indexs kite_indexs_append(size_t index_count, ...);
 // ===========================================================================
 
 void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array);
+
+void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
+                          DIRECTION direction, float angle, float box_size,
+                          float duration);
 void kite_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
                                float box_size, float duration);
 void kite_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
                                 float box_size, float duration);
 
+void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
+                             DIRECTION direction, float angle, float box_size,
+                             float duration);
+void kite_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
+                                  float box_size, float duration);
+void kite_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
+                                   float box_size, float duration);
 #endif // TKBC_H_
