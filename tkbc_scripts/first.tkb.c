@@ -10,7 +10,7 @@ void kite_script_input(Env *env) {
 
   kite_register_frames(env, 3,
                        kite_gen_frame(KITE_MOVE_ADD,
-                                      kite_indexs_append(4, 0, 1, 2, 3),
+                                      kite_indexs_append(9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
                                       &(CLITERAL(Move_Add_Action){
                                           .position.x = 0,
                                           .position.y = -300,
@@ -22,11 +22,15 @@ void kite_script_input(Env *env) {
   // configuration option or give the function a parameter.
   // kite_script_team_grid(env, kite_index_array);
 
+  kite_script_team_grid(env, kite_indexs_append(9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
+                        3, 3, 200, 100, 10);
+
   // kite_script_team_box_left(env, kite_indexs_append(4, 0, 1, 2, 3), 300, 2);
   // kite_script_team_box_right(env, kite_indexs_append(4, 0, 1, 2, 3), 300, 2);
 
-  kite_script_team_dimond_left(env, kite_indexs_append(4, 0, 1, 2, 3), 300, 2);
-  kite_script_team_dimond_right(env, kite_indexs_append(4, 0, 1, 2, 3), 300, 2);
+  // kite_script_team_dimond_left(env, kite_indexs_append(4, 0, 1, 2, 3), 300,
+  // 2); kite_script_team_dimond_right(env, kite_indexs_append(4, 0, 1, 2, 3),
+  // 300, 2);
 
   // kite_register_frames(
   //     env, 6,

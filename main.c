@@ -36,7 +36,7 @@ int main(void) {
   Sound kite_sound = kite_sound_init(40);
 
   Env *env = kite_env_init();
-  kite_gen_kites(env, 4);
+  kite_gen_kites(env, 9);
 
   while (!WindowShouldClose()) {
     BeginDrawing();

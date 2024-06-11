@@ -1,9 +1,47 @@
+#include "kite_utils.h"
 #include "tkbc.h"
+
 #include <assert.h>
 #include <math.h>
+#include <raylib.h>
 
-void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array) {
-  assert(0 && "UNIMPLEMENTED");
+void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
+                           size_t columns, size_t v_padding, size_t h_padding,
+                           float duration) {
+
+  int w = GetScreenWidth();
+  int h = GetScreenHeight();
+
+  assert(env->kite_array->count > 0 && "No kites in the kite array!");
+  Kite *kite = env->kite_array->elements[0].kite;
+  float full_kite_width = kite->width + kite->spread;
+  float full_kite_height = kite->height;
+
+  float x_space = h_padding + full_kite_width;
+  float y_space = v_padding + full_kite_height;
+
+  Vector2 anchor = {.x = w / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
+                    .y = h / 2.0 - ((rows / 2.0) * y_space - y_space / 2)};
+
+  Frames frames = {0};
+  size_t i = 0;
+  for (size_t column = 0; column < columns; ++column) {
+    for (size_t row = 0; row < rows; ++row) {
+      if (kite_index_array.count <= i) {
+        break;
+      }
+      Frame *frame =
+          kite_gen_frame(KITE_MOVE, kite_indexs_append(1, i++),
+                         &(CLITERAL(Move_Action){
+                             .position.x = anchor.x + x_space * column,
+                             .position.y = anchor.y + y_space * row,
+                         }),
+                         duration);
+      kite_dap(&frames, *frame);
+    }
+  }
+
+  kite_register_frames_array(env, &frames);
 }
 
 void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
