@@ -1,6 +1,7 @@
 #ifndef KITE_UTILS_H_
 #define KITE_UTILS_H_
 #include <assert.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -67,5 +68,8 @@
       return NULL;                                                             \
     }                                                                          \
   } while (0)
+
+#define kite_indexs_append(...)                                                \
+  kite__indexs_append(0, __VA_ARGS__, ((Index){.index = INT_MAX}))
 
 #endif // KITE_UTILS_H_

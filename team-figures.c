@@ -31,7 +31,7 @@ void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
         break;
       }
       Frame *frame =
-          kite_gen_frame(KITE_MOVE, kite_indexs_append(1, i++),
+          kite_gen_frame(KITE_MOVE, kite_indexs_append(i++),
                          &(CLITERAL(Move_Action){
                              .position.x = anchor.x + x_space * column,
                              .position.y = anchor.y + y_space * row,
