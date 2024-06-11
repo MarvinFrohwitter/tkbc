@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include <stdio.h>
+#include "kite_utils.h"
 
 #define TEAL                                                                   \
   CLITERAL(Color) { 0, 128, 128, 255 } // Teal #define WINDOW_SCALE 120
@@ -239,7 +240,7 @@ void kite_script_move(Kite *kite, Vector2 position, float duration);
 void kite_script_rotate(Kite *kite, float angle, float duration);
 void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration);
 
-Kite_Indexs kite_indexs_append(size_t index_count, ...);
+Kite_Indexs kite__indexs_append(size_t index_count, ...);
 
 // ===========================================================================
 // ========================== Script Team Figures ============================

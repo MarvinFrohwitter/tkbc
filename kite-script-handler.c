@@ -602,15 +602,17 @@ void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration) {
  * @param index_count [TODO:parameter]
  * @return [TODO:return]
  */
-Kite_Indexs kite_indexs_append(size_t index_count, ...) {
-
+Kite_Indexs kite__indexs_append(size_t index_count, ...) {
   Kite_Indexs ki = {0};
 
   va_list args;
   va_start(args, index_count);
-
-  for (size_t i = 0; i < index_count; ++i) {
-    kite_dap(&ki, va_arg(args, Index));
+  for (;;) {
+    Index index = va_arg(args, Index);
+    if (INT_MAX != index.index)
+      kite_dap(&ki, index);
+    else
+      break;
   }
   va_end(args);
 
