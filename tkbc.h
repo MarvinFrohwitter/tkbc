@@ -46,7 +46,7 @@ typedef struct {
   float spread;    // The overlap of the top leading edge to the side.
 
   float width;  // The width is dependent on the scale.
-  float height; // The width is dependent on the scale.
+  float height; // The height is dependent on the scale.
   float scale;  // The scale is recommended to set between 0 and 10.
   float
       center_rotation; // The rotation is in degrees around the center position.
@@ -221,6 +221,7 @@ Frame *kite_script_frames_quit(float duration);
 
 void kite_frame_reset(Frame *frame);
 void kite_register_frames(Env *env, size_t frame_count, ...);
+void kite_register_frames_array(Env *env, Frames *frames);
 void kite_register_frame(Env *env, Frame *frame);
 void kite_render_frame(Env *env, Frame *frame);
 
@@ -244,7 +245,9 @@ Kite_Indexs kite_indexs_append(size_t index_count, ...);
 // ========================== Script Team Figures ============================
 // ===========================================================================
 
-void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array);
+void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
+                           size_t columns, size_t v_padding, size_t h_padding,
+                           float duration);
 
 void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
                           DIRECTION direction, float angle, float box_size,

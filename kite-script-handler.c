@@ -122,6 +122,17 @@ Frame *kite_script_frames_quit(float duration) {
 }
 
 void kite_register_frames(Env *env, size_t frame_count, ...) {
+  Frames frames = {0};
+  va_list args;
+  va_start(args, frame_count);
+  for (size_t i = 0; i < frame_count; ++i) {
+    kite_dap(&frames, *va_arg(args, Frame *));
+  }
+  va_end(args);
+  kite_register_frames_array(env, &frames);
+}
+
+void kite_register_frames_array(Env *env, Frames *frames) {
   size_t block_index = env->global_block_index++;
 
   if (!kite_check_finished_frames(env)) {
@@ -135,13 +146,9 @@ void kite_register_frames(Env *env, size_t frame_count, ...) {
   }
 
   kite_frames_reset(env);
-  va_list args;
-  va_start(args, frame_count);
-  for (size_t i = 0; i < frame_count; ++i) {
-    Frame *frame = va_arg(args, Frame *);
-    kite_register_frame(env, frame);
+  for (size_t i = 0; i < frames->count; ++i) {
+    kite_register_frame(env, &frames->elements[i]);
   }
-  va_end(args);
 
   env->frames->block_index = block_index;
   kite_dap(env->index_blocks, block_index);
