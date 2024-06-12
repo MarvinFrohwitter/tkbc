@@ -1,9 +1,9 @@
 #ifndef TKBC_H_
 #define TKBC_H_
 
+#include "kite_utils.h"
 #include "raylib.h"
 #include <stdio.h>
-#include "kite_utils.h"
 
 #define TEAL                                                                   \
   CLITERAL(Color) { 0, 128, 128, 255 } // Teal #define WINDOW_SCALE 120
@@ -246,6 +246,8 @@ Kite_Indexs kite__indexs_append(size_t index_count, ...);
 // ========================== Script Team Figures ============================
 // ===========================================================================
 
+void kite_script_team_line(Env *env, Kite_Indexs kite_index_array,
+                           size_t h_padding, float duration);
 void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
                            float duration);

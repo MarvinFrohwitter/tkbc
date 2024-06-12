@@ -5,6 +5,13 @@
 #include <math.h>
 #include <raylib.h>
 
+void kite_script_team_line(Env *env, Kite_Indexs kite_index_array,
+                           size_t h_padding, float duration) {
+
+  kite_script_team_grid(env, kite_index_array, 1, kite_index_array.count, 0,
+                        h_padding, duration);
+}
+
 void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
                            float duration) {
@@ -20,8 +27,8 @@ void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
   float x_space = h_padding + full_kite_width;
   float y_space = v_padding + full_kite_height;
 
-  Vector2 anchor = {.x = w / 2.0 - ((columns / 2.0) * x_space - x_space/2),
-                    .y = h / 2.0 - ((rows / 2.0) * y_space + y_space/2)};
+  Vector2 anchor = {.x = w / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
+                    .y = h / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
 
   Frames frames = {0};
   size_t i = 0;
