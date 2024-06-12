@@ -52,7 +52,7 @@ Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
         ((Move_Action *)raw_action)->position.y;
 
   } break;
-  case KITE_ROTATION: {
+  case KITE_ROTATION_ADD: {
 
     action_alloc(Rotation_Action);
     ((Rotation_Action *)action)->angle = ((Rotation_Action *)raw_action)->angle;
@@ -162,7 +162,7 @@ void kite_register_frames_array(Env *env, Frames *frames) {
                        ->elements[frame->kite_index_array->elements[i].index]  \
                        .kite;                                                  \
                                                                                \
-      kite->segment_size += ra->angle / frame->duration;                       \
+      kite->segment_size += fabsf(ra->angle / frame->duration);                \
       kite->remaining_angle += ra->angle;                                      \
       kite->angle_sum += ra->angle;                                            \
       kite->old_angle = kite->center_rotation;                                 \
@@ -188,7 +188,7 @@ void kite_register_frame(Env *env, Frame *frame) {
     }
 
   } break;
-  case KITE_ROTATION: {
+  case KITE_ROTATION_ADD: {
     kite_ra_setup(Rotation_Action);
   } break;
   case KITE_TIP_ROTATION: {
@@ -396,7 +396,7 @@ void kite_render_frame(Env *env, Frame *frame) {
     }
 
   } break;
-  case KITE_ROTATION: {
+  case KITE_ROTATION_ADD: {
 
     Rotation_Action *action = frame->action;
 

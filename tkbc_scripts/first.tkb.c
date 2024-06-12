@@ -1,5 +1,6 @@
 #include "../tkbc.h"
 #include <raylib.h>
+#include <raymath.h>
 
 void kite_script_input(Env *env) {
 
@@ -9,8 +10,10 @@ void kite_script_input(Env *env) {
   kite_script_begin(env);
 
   Kite_Indexs ki = kite_indexs_append(0, 1, 2, 3, 4, 5, 6, 7, 8);
-  size_t h_padding = 0;
-  size_t v_padding = 0;
+  size_t h_padding = 50;
+  size_t v_padding = 100;
+  Vector2 offset = Vector2Zero();
+  float duration = 6;
 
   kite_register_frames(env, 3,
                        kite_gen_frame(KITE_MOVE_ADD, ki,
@@ -21,16 +24,38 @@ void kite_script_input(Env *env) {
                                       5),
                        kite_script_wait(1.5), kite_script_frames_quit(7));
 
-  kite_script_team_grid(env, ki, 3, 3,v_padding, h_padding, 10);
-  kite_script_team_line(env, ki, h_padding, 10);
+  kite_script_team_line(env, ki, h_padding, offset, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
 
-  // kite_script_team_box_left(env, kite_indexs_append(0, 1, 2, 3), 300, 2);
-  // kite_script_team_box_right(env, kite_indexs_append(0, 1, 2, 3), 300,
-  // 2);
+  kite_script_team_mountain(env, ki, v_padding, h_padding, offset, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_arc(env, ki, v_padding, h_padding, offset, 45, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_mountain(env, ki, v_padding, h_padding, offset, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_line(env, ki, h_padding, offset, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_valley(env, ki, v_padding, h_padding, offset, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_mouth(env, ki, v_padding, h_padding, offset, 45, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_valley(env, ki, v_padding, h_padding, offset, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
 
-  // kite_script_team_dimond_left(env, kite_indexs_append(0, 1, 2, 3), 300,
-  // 2); kite_script_team_dimond_right(env, kite_indexs_append(0, 1, 2, 3),
-  // 300, 2);
+  kite_script_team_line(env, ki, h_padding, offset, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_grid(env, ki, 3, 3, v_padding, h_padding, offset, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_line(env, ki, h_padding, offset, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_grid(env, ki, 3, 3, v_padding, h_padding, offset, duration);
+
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_box_left(env, ki, 300, duration);
+  kite_script_team_box_right(env, ki, 300, duration);
+  kite_register_frames(env, 1, kite_script_wait(1));
+  kite_script_team_dimond_left(env, ki, 300, duration);
+  kite_script_team_dimond_right(env, ki, 300, duration);
 
   // kite_register_frames(
   //     env, 6,
