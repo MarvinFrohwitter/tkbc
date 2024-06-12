@@ -83,7 +83,7 @@ typedef enum {
   KITE_WAIT,
   KITE_MOVE,
   KITE_MOVE_ADD,
-  KITE_ROTATION,
+  KITE_ROTATION_ADD,
   KITE_TIP_ROTATION
 } Action_Kind;
 typedef enum {
@@ -247,10 +247,24 @@ Kite_Indexs kite__indexs_append(size_t index_count, ...);
 // ===========================================================================
 
 void kite_script_team_line(Env *env, Kite_Indexs kite_index_array,
-                           size_t h_padding, float duration);
+                           size_t h_padding, Vector2 offset, float duration);
 void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
-                           float duration);
+                           Vector2 offset, float duration);
+
+void kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
+                               size_t v_padding, size_t h_padding,
+                               Vector2 offset, float duration);
+void kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
+                             size_t v_padding, size_t h_padding, Vector2 offset,
+                             float duration);
+
+void kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
+                          size_t v_padding, size_t h_padding, Vector2 offset,
+                          float angle, float duration);
+void kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
+                            size_t v_padding, size_t h_padding, Vector2 offset,
+                            float angle, float duration);
 
 void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
                           DIRECTION direction, float angle, float box_size,
