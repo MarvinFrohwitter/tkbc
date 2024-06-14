@@ -13,6 +13,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief The function kite_frame_init() can be used to get a new allocated zero
+ * initialized frame.
+ *
+ * @return A new on the heap allocated frame region is given back.
+ */
 Frame *kite_frame_init() {
   Frame *frame = calloc(1, sizeof(*frame));
   if (frame == NULL) {
@@ -29,13 +35,16 @@ Frame *kite_frame_init() {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function kite_gen_frame() creates a new frame and fills in all the
+ * given parameters. It handles all the provided actions. The returned frame can
+ * be passed into the register function.
  *
- * @param kind [TODO:parameter]
- * @param kite_indexs [TODO:parameter]
- * @param raw_action [TODO:parameter]
- * @param duration [TODO:parameter]
- * @return [TODO:return]
+ * @param kind The action kind to identify the given raw_action.
+ * @param kite_indexs The list of kite indexes that are present in the kite
+ * array, were the frame action should be applied to.
+ * @param raw_action The action that matches the given kind.
+ * @param duration The duration the action should take.
+ * @return The frame that is constructed to represent the given action.
  */
 Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
                       void *raw_action, float duration) {
@@ -101,10 +110,12 @@ Frame *kite_script_wait(float duration) {
 
 /**
  * @brief The function that quits all the current registered frames after the
- * duration.
+ * duration. It can be inserted as a normal frame into a block that should be
+ * quit after a some duration time.
  *
- * @param duration [TODO:parameter]
- * @return [TODO:return]
+ * @param duration The time in seconds after all the frames will quit.
+ * @return The frame that is constructed to represent the force quit frame-block
+ * frame.
  */
 Frame *kite_script_frames_quit(float duration) {
   Quit_Action *action;
