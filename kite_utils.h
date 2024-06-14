@@ -72,4 +72,7 @@
 #define kite_indexs_append(...)                                                \
   kite__indexs_append(0, __VA_ARGS__, ((Index){.index = INT_MAX}))
 
+#define kite_register_frames(env, ...)                                         \
+  kite__register_frames(env, __VA_ARGS__, NULL)
+
 #endif // KITE_UTILS_H_
