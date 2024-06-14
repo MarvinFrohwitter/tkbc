@@ -1,7 +1,6 @@
 #ifndef TKBC_H_
 #define TKBC_H_
 
-#include "kite_utils.h"
 #include "raylib.h"
 #include <stdio.h>
 
@@ -221,7 +220,7 @@ Frame *kite_script_wait(float duration);
 Frame *kite_script_frames_quit(float duration);
 
 void kite_frame_reset(Frame *frame);
-void kite_register_frames(Env *env, size_t frame_count, ...);
+void kite__register_frames(Env *env, ...);
 void kite_register_frames_array(Env *env, Frames *frames);
 void kite_register_frame(Env *env, Frame *frame);
 void kite_render_frame(Env *env, Frame *frame);

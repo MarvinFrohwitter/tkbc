@@ -132,12 +132,23 @@ Frame *kite_script_frames_quit(float duration) {
   return frame;
 }
 
-void kite_register_frames(Env *env, size_t frame_count, ...) {
+
+/**
+ * @brief The function kite_register_frames() can be used to collect all given
+ * frames into one frame list and register them as a new frame block.
+ *
+ * @param env The environment that holds the current state of the application.
+ */
+void kite__register_frames(Env *env, ...) {
+
+  // TODO: Abstract the count away using a macro.
   Frames frames = {0};
   va_list args;
-  va_start(args, frame_count);
-  for (size_t i = 0; i < frame_count; ++i) {
-    kite_dap(&frames, *va_arg(args, Frame *));
+  va_start(args, env);
+  Frame *frame = va_arg(args, Frame *);
+  while (frame != NULL) {
+    kite_dap(&frames, *frame);
+    frame = va_arg(args, Frame *);
   }
   va_end(args);
   kite_register_frames_array(env, &frames);
@@ -504,7 +515,7 @@ float kite_lerp(float a, float b, float t) { return a + (t * (b - a)); }
 void kite_script_begin(Env *env) {
   env->interrupt_script = true;
   env->global_block_index = 0;
-  kite_register_frames(env, 1, kite_script_wait(0));
+  kite_register_frames(env, kite_script_wait(0));
 }
 void kite_script_end(Env *env) {
   // env->index_blocks->count = 0;
