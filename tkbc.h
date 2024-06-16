@@ -251,6 +251,10 @@ void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
                            Vector2 offset, float duration);
 
+void kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
+                           Vector2 position, Vector2 offset, float radius,
+                           float duration);
+
 void kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
                                size_t v_padding, size_t h_padding,
                                Vector2 offset, float duration);
