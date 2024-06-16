@@ -101,7 +101,7 @@ void kite_array_input_handler(Env *env) {
         }
 
         for (size_t k = 0; k < frame->kite_index_array->count; ++k) {
-          if (i - 1 != frame->kite_index_array->elements[k].index) {
+          if (i - 1 != frame->kite_index_array->elements[k]) {
             kite_dap(&new_kite_index_array,
                      frame->kite_index_array->elements[k]);
           }

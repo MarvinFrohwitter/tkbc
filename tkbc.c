@@ -307,6 +307,12 @@ Env *kite_env_init() {
     return NULL;
   }
 
+  env->scratch_buf_frames = calloc(1, sizeof(*env->scratch_buf_frames));
+  if (env->scratch_buf_frames == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
   env->window_height = GetScreenHeight();
   env->window_width = GetScreenWidth();
   env->interrupt_script = false;
@@ -326,10 +332,18 @@ void kite_env_destroy(Env *env) {
   free(env->kite_array);
 
   free(env->index_blocks->elements);
-
-  kite_frames_reset(env);
+  kite_destroy_frames(env->frames);
   free(env->frames->elements);
   free(env->frames);
+
+  // This could be a double free because the pointer is used in the current
+  // frames as well, let the operating system free it.
+  // ---------------------------------------------
+  // kite_destroy_frames(env->scratch_buf_frames);
+  // ---------------------------------------------
+
+  free(env->scratch_buf_frames->elements);
+  free(env->scratch_buf_frames);
   free(env);
 }
 
