@@ -21,6 +21,7 @@ void kite_script_input(Env *env) {
                       .y = GetScreenHeight() / 2.0};
   float duration = 6;
   Kite *kite = env->kite_array->elements[0].kite;
+  float ball_radius = (kite->width + kite->spread);
 
   kite_register_frames(env,
                        kite_gen_frame(KITE_MOVE_ADD, ki,
@@ -32,6 +33,10 @@ void kite_script_input(Env *env) {
                        kite_script_wait(1.5), kite_script_frames_quit(7));
 
   kite_script_team_line(env, ki, h_padding, offset, duration);
+
+  kite_register_frames(env, kite_script_wait(1));
+
+  kite_script_team_ball(env, ki, position, offset, ball_radius, duration);
 
   kite_register_frames(env, kite_script_wait(1));
 
