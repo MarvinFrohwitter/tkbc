@@ -114,10 +114,7 @@ typedef struct {
 
 typedef Wait_Action Quit_Action;
 
-typedef struct {
-  size_t index;
-} Index;
-
+typedef size_t Index;
 typedef struct {
   Index *elements;
   size_t count;
@@ -159,6 +156,7 @@ typedef struct {
   size_t window_width;
   size_t window_height;
 
+  Frames *scratch_buf_frames;
 } Env;
 
 // ===========================================================================
@@ -228,8 +226,7 @@ void kite_render_frame(Env *env, Frame *frame);
 void kite_update_frames(Env *env);
 bool kite_check_finished_frames(Env *env);
 size_t kite_check_finished_frames_count(Env *env);
-void kite_array_destroy_frames(Env *env);
-void kite_frames_reset(Env *env);
+void kite_destroy_frames(Frames *frames);
 
 void kite_script_input(Env *env);
 void kite_script_begin(Env *env);
@@ -239,7 +236,7 @@ void kite_script_move(Kite *kite, Vector2 position, float duration);
 void kite_script_rotate(Kite *kite, float angle, float duration);
 void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration);
 
-Kite_Indexs kite__indexs_append(size_t index_count, ...);
+Kite_Indexs kite__indexs_append(size_t _, ...);
 
 // ===========================================================================
 // ========================== Script Team Figures ============================

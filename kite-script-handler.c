@@ -132,7 +132,6 @@ Frame *kite_script_frames_quit(float duration) {
   return frame;
 }
 
-
 /**
  * @brief The function kite_register_frames() can be used to collect all given
  * frames into one frame list and register them as a new frame block.
@@ -140,34 +139,35 @@ Frame *kite_script_frames_quit(float duration) {
  * @param env The environment that holds the current state of the application.
  */
 void kite__register_frames(Env *env, ...) {
+  env->scratch_buf_frames->count = 0;
 
-  // TODO: Abstract the count away using a macro.
-  Frames frames = {0};
   va_list args;
   va_start(args, env);
   Frame *frame = va_arg(args, Frame *);
   while (frame != NULL) {
-    kite_dap(&frames, *frame);
+    kite_dap(env->scratch_buf_frames, *frame);
     frame = va_arg(args, Frame *);
   }
   va_end(args);
-  kite_register_frames_array(env, &frames);
+  kite_register_frames_array(env, env->scratch_buf_frames);
 }
 
 void kite_register_frames_array(Env *env, Frames *frames) {
   size_t block_index = env->global_block_index++;
 
   if (!kite_check_finished_frames(env)) {
+    kite_destroy_frames(frames);
     return;
   }
 
   for (size_t i = 0; i < env->index_blocks->count; ++i) {
     if (block_index == env->index_blocks->elements[i]) {
+      kite_destroy_frames(frames);
       return;
     }
   }
 
-  kite_frames_reset(env);
+  kite_destroy_frames(env->frames);
   for (size_t i = 0; i < frames->count; ++i) {
     kite_register_frame(env, &frames->elements[i]);
   }
@@ -180,9 +180,9 @@ void kite_register_frames_array(Env *env, Frames *frames) {
   do {                                                                         \
     for (size_t i = 0; i < frame->kite_index_array->count; ++i) {              \
       type *ra = frame->action;                                                \
-      Kite *kite = env->kite_array                                             \
-                       ->elements[frame->kite_index_array->elements[i].index]  \
-                       .kite;                                                  \
+      Kite *kite =                                                             \
+          env->kite_array->elements[frame->kite_index_array->elements[i]]      \
+              .kite;                                                           \
                                                                                \
       kite->segment_size += fabsf(ra->angle / frame->duration);                \
       kite->remaining_angle += ra->angle;                                      \
@@ -204,8 +204,7 @@ void kite_register_frame(Env *env, Frame *frame) {
   case KITE_MOVE_ADD: {
     for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
       Kite *kite =
-          env->kite_array->elements[frame->kite_index_array->elements[i].index]
-              .kite;
+          env->kite_array->elements[frame->kite_index_array->elements[i]].kite;
       kite->old_center = kite->center;
     }
 
@@ -218,18 +217,6 @@ void kite_register_frame(Env *env, Frame *frame) {
   } break;
   default:
     break;
-  }
-}
-
-/**
- * @brief The function kite_array_destroy_frames() frees all the allocated
- * actions in every frame in the array.
- *
- * @param env The global state of the application.
- */
-void kite_array_destroy_frames(Env *env) {
-  for (size_t i = 0; i < env->frames->count; ++i) {
-    free(env->frames->elements[i].kite_index_array);
   }
 }
 
@@ -249,11 +236,14 @@ void kite_frame_reset(Frame *frame) {
  *
  * @param frame [TODO:parameter]
  */
-void kite_frames_reset(Env *env) {
-  if (env->frames->count != 0) {
-    kite_array_destroy_frames(env);
-    env->frames->count = 0;
+void kite_destroy_frames(Frames *frames) {
+  if (frames->count != 0) {
+    for (size_t i = 0; i < frames->count; ++i) {
+      free(frames->elements[i].kite_index_array);
+      free(frames->elements[i].action);
+    }
   }
+  frames->count = 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -333,14 +323,14 @@ void kite_render_frame(Env *env, Frame *frame) {
 
     if (kite_check_finished_frames_count(env) == env->frames->count - 1) {
       frame->finished = true;
-      kite_frames_reset(env);
+      kite_destroy_frames(env->frames);
       break;
     }
 
     Quit_Action *action = frame->action;
     if (frame->duration <= 0) {
       frame->finished = true;
-      kite_frames_reset(env);
+      kite_destroy_frames(env->frames);
     } else {
       double current_time = GetTime();
       frame->duration -= current_time - action->starttime;
@@ -355,8 +345,7 @@ void kite_render_frame(Env *env, Frame *frame) {
     assert(env_frame->kite_index_array->count > 0);
 
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
-      size_t current_kite_index =
-          env_frame->kite_index_array->elements[i].index;
+      size_t current_kite_index = env_frame->kite_index_array->elements[i];
       Kite *kite = env->kite_array->elements[current_kite_index].kite;
 
       // Description of the calculation for the position
@@ -375,8 +364,7 @@ void kite_render_frame(Env *env, Frame *frame) {
           // Every kite in the frame should get sync at the end of the frame.
           for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
             size_t current_kite_index = env->frames->elements[frame->index]
-                                            .kite_index_array->elements[i]
-                                            .index;
+                                            .kite_index_array->elements[i];
             Kite *kite = env->kite_array->elements[current_kite_index].kite;
             kite_script_move(kite,
                              Vector2Add(kite->old_center, action->position), 0);
@@ -394,8 +382,7 @@ void kite_render_frame(Env *env, Frame *frame) {
     assert(env_frame->kite_index_array->count > 0);
 
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
-      size_t current_kite_index =
-          env_frame->kite_index_array->elements[i].index;
+      size_t current_kite_index = env_frame->kite_index_array->elements[i];
       Kite *kite = env->kite_array->elements[current_kite_index].kite;
 
       kite_script_move(kite, action->position, frame->duration);
@@ -407,8 +394,7 @@ void kite_render_frame(Env *env, Frame *frame) {
           // Every kite in the frame should get sync at the end of the frame.
           for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
             size_t current_kite_index = env->frames->elements[frame->index]
-                                            .kite_index_array->elements[i]
-                                            .index;
+                                            .kite_index_array->elements[i];
             Kite *kite = env->kite_array->elements[current_kite_index].kite;
             kite_script_move(kite, action->position, 0);
           }
@@ -424,9 +410,8 @@ void kite_render_frame(Env *env, Frame *frame) {
 
     for (size_t i = 0;
          i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
-      size_t current_kite_index = env->frames->elements[frame->index]
-                                      .kite_index_array->elements[i]
-                                      .index;
+      size_t current_kite_index =
+          env->frames->elements[frame->index].kite_index_array->elements[i];
       Kite *kite = env->kite_array->elements[current_kite_index].kite;
 
       kite_script_rotate(kite, action->angle, frame->duration);
@@ -440,8 +425,7 @@ void kite_render_frame(Env *env, Frame *frame) {
           // Every kite in the frame should get sync at the end of the frame.
           for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
             size_t current_kite_index = env->frames->elements[frame->index]
-                                            .kite_index_array->elements[i]
-                                            .index;
+                                            .kite_index_array->elements[i];
             Kite *kite = env->kite_array->elements[current_kite_index].kite;
             kite_script_rotate(kite, action->angle, 0);
           }
@@ -464,9 +448,8 @@ void kite_render_frame(Env *env, Frame *frame) {
 
     for (size_t i = 0;
          i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
-      size_t current_kite_index = env->frames->elements[frame->index]
-                                      .kite_index_array->elements[i]
-                                      .index;
+      size_t current_kite_index =
+          env->frames->elements[frame->index].kite_index_array->elements[i];
       Kite *kite = env->kite_array->elements[current_kite_index].kite;
 
       kite_script_rotate_tip(kite, action->tip, action->angle, frame->duration);
@@ -480,8 +463,7 @@ void kite_render_frame(Env *env, Frame *frame) {
           // Every kite in the frame should get sync at the end of the frame.
           for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
             size_t current_kite_index = env->frames->elements[frame->index]
-                                            .kite_index_array->elements[i]
-                                            .index;
+                                            .kite_index_array->elements[i];
             Kite *kite = env->kite_array->elements[current_kite_index].kite;
             kite_script_rotate_tip(kite, action->tip, action->angle, 0);
           }
@@ -624,17 +606,18 @@ void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration) {
  * @param index_count [TODO:parameter]
  * @return [TODO:return]
  */
-Kite_Indexs kite__indexs_append(size_t index_count, ...) {
+Kite_Indexs kite__indexs_append(size_t _, ...) {
   Kite_Indexs ki = {0};
 
   va_list args;
-  va_start(args, index_count);
+  va_start(args, _);
   for (;;) {
     Index index = va_arg(args, Index);
-    if (INT_MAX != index.index)
+    if (INT_MAX != index) {
       kite_dap(&ki, index);
-    else
+    } else {
       break;
+    }
   }
   va_end(args);
 
