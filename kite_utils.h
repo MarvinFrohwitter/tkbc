@@ -74,4 +74,7 @@
 #define kite_register_frames(env, ...)                                         \
   kite__register_frames(env, __VA_ARGS__, NULL)
 
+#define kite_gen_frame(kind, kite_indexs, raw_action, duration)                \
+  kite__gen_frame(env, kind, kite_indexs, raw_action, duration)
+
 #endif // KITE_UTILS_H_
