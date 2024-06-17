@@ -6,9 +6,6 @@
 
 void kite_script_input(Env *env) {
 
-  // TODO: Abstract the register block index away by dooing a macro and than
-  // resetting the block index at the script end function
-
   kite_script_begin(env);
 
   // Kite_Indexs ki = kite_indexs_append(0, 1, 2, 3, 4, 5, 6, 7, 8);

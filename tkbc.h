@@ -151,7 +151,11 @@ typedef struct {
   Frames *frames;
   Index_Blocks *index_blocks;
   size_t global_block_index;
-  bool interrupt_script;
+  size_t max_block_index;
+  size_t attempts_block_index;
+
+  bool script_interrupt;
+  bool script_finished;
 
   size_t window_width;
   size_t window_height;
@@ -188,6 +192,7 @@ void kite_input_check_mouse(State *state);
 int kite_check_boundary(Kite *kite, ORIENTATION orientation);
 float kite_clamp(float z, float a, float b);
 float kite_lerp(float a, float b, float t);
+int kite_max(int a, int b);
 
 // ===========================================================================
 // ========================== Custom Kite Creation ===========================

@@ -51,6 +51,9 @@ Frame *kite_frame_init() {
 Frame *kite__gen_frame(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
                        void *raw_action, float duration) {
 
+  if (env->script_finished) {
+    return NULL;
+  }
   if (!kite_check_finished_frames(env)) {
     return NULL;
   }
@@ -165,13 +168,14 @@ void kite_register_frames_array(Env *env, Frames *frames) {
     return;
   }
 
-  size_t block_index = env->global_block_index++;
+  env->attempts_block_index++;
 
   if (!kite_check_finished_frames(env)) {
     kite_destroy_frames(frames);
     return;
   }
 
+  size_t block_index = env->global_block_index++;
   for (size_t i = 0; i < env->index_blocks->count; ++i) {
     if (block_index == env->index_blocks->elements[i]) {
       kite_destroy_frames(frames);
@@ -500,6 +504,7 @@ void kite_render_frame(Env *env, Frame *frame) {
 // ---------------------------------------------------------------------------
 
 float kite_lerp(float a, float b, float t) { return a + (t * (b - a)); }
+int kite_max(int a, int b) { return a <= b ? b : a; }
 
 /**
  * @brief [TODO:description]
@@ -507,13 +512,32 @@ float kite_lerp(float a, float b, float t) { return a + (t * (b - a)); }
  * @param state [TODO:parameter]
  */
 void kite_script_begin(Env *env) {
-  env->interrupt_script = true;
+  env->script_interrupt = true;
   env->global_block_index = 0;
+  env->attempts_block_index = 0;
   kite_register_frames(env, kite_script_wait(0));
 }
 void kite_script_end(Env *env) {
-  // env->index_blocks->count = 0;
-  env->interrupt_script = false;
+  env->script_interrupt = false;
+
+  if (!env->script_finished) {
+    env->max_block_index =
+        kite_max(env->max_block_index, env->attempts_block_index);
+  }
+
+  if (env->max_block_index - 1 <= env->frames->block_index &&
+      !env->script_finished) {
+    env->script_finished = true;
+    env->global_block_index = 0;
+    env->max_block_index = 0;
+    env->attempts_block_index = 0;
+
+    printf("KITE: INFO: The script has finished successfully.\n");
+
+    // TODO: Think about loading a new script.
+    // env->index_blocks->count = 0;
+    // free the blocks
+  }
 }
 
 /**
