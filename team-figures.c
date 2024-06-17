@@ -7,7 +7,7 @@
 #include <raylib.h>
 #include <raymath.h>
 
-void kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
+bool kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
                            Vector2 position, Vector2 offset, float radius,
                            float duration) {
 
@@ -57,6 +57,10 @@ void kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
                          &(CLITERAL(Move_Action){.position.x = place.x,
                                                  .position.y = place.y}),
                          duration);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
     {
@@ -64,14 +68,19 @@ void kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
       Frame *frame =
           kite_gen_frame(KITE_ROTATION_ADD, kite_indexs_append(i),
                          &(CLITERAL(Rotation_Action){.angle = deg_angle}), 0);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
   }
 
   kite_register_frames_array(env, &frames);
+  return true;
 }
 
-void kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
+bool kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
                                size_t v_padding, size_t h_padding,
                                Vector2 offset, float duration) {
 
@@ -111,6 +120,10 @@ void kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
                              .position.y = anchor.y + y_space * row,
                          }),
                          duration);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
     {
@@ -118,6 +131,10 @@ void kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
       Frame *frame =
           kite_gen_frame(KITE_ROTATION_ADD, kite_indexs_append(i),
                          &(CLITERAL(Rotation_Action){.angle = 0}), duration);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
     i++;
@@ -132,9 +149,10 @@ void kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
   }
 
   kite_register_frames_array(env, &frames);
+  return true;
 }
 
-void kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
+bool kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
                              size_t v_padding, size_t h_padding, Vector2 offset,
                              float duration) {
 
@@ -174,6 +192,10 @@ void kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
                              .position.y = anchor.y + y_space * row,
                          }),
                          duration);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
     // TODO: Implement the none adding rotation
@@ -181,6 +203,10 @@ void kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
       Frame *frame =
           kite_gen_frame(KITE_ROTATION_ADD, kite_indexs_append(i),
                          &(CLITERAL(Rotation_Action){.angle = 0}), duration);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
     i++;
@@ -195,9 +221,10 @@ void kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
   }
 
   kite_register_frames_array(env, &frames);
+  return true;
 }
 
-void kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
+bool kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                           size_t v_padding, size_t h_padding, Vector2 offset,
                           float angle, float duration) {
 
@@ -238,6 +265,10 @@ void kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                              .position.y = anchor.y + y_space * row,
                          }),
                          duration);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
     if (column + 1 == ceil(columns / 2.0)) {
@@ -247,6 +278,10 @@ void kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
       Frame *frame = kite_gen_frame(
           KITE_ROTATION_ADD, kite_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = angle}), duration);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
     i++;
@@ -264,9 +299,10 @@ void kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
   }
 
   kite_register_frames_array(env, &frames);
+  return true;
 }
 
-void kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
+bool kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
                             size_t v_padding, size_t h_padding, Vector2 offset,
                             float angle, float duration) {
   angle = -angle;
@@ -307,6 +343,10 @@ void kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
                              .position.y = anchor.y + y_space * row,
                          }),
                          duration);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
     if (column + 1 == ceil(columns / 2.0)) {
@@ -316,6 +356,10 @@ void kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
       Frame *frame = kite_gen_frame(
           KITE_ROTATION_ADD, kite_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = angle}), duration);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
     i++;
@@ -333,6 +377,7 @@ void kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
   }
 
   kite_register_frames_array(env, &frames);
+  return true;
 }
 
 void kite_script_team_line(Env *env, Kite_Indexs kite_index_array,
@@ -342,7 +387,7 @@ void kite_script_team_line(Env *env, Kite_Indexs kite_index_array,
                         h_padding, offset, duration);
 }
 
-void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
+bool kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
                            Vector2 offset, float duration) {
 
@@ -376,11 +421,16 @@ void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                              .position.y = anchor.y + y_space * row,
                          }),
                          duration);
+
+      if (frame == NULL)
+        return false;
+
       kite_dap(&frames, *frame);
     }
   }
 
   kite_register_frames_array(env, &frames);
+  return true;
 }
 
 void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,

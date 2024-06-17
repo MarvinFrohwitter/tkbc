@@ -39,6 +39,8 @@ Frame *kite_frame_init() {
  * given parameters. It handles all the provided actions. The returned frame can
  * be passed into the register function.
  *
+ * @param env The environment that holds the current state of the application.
+ * It is passed implicit by the macro call.
  * @param kind The action kind to identify the given raw_action.
  * @param kite_indexs The list of kite indexes that are present in the kite
  * array, were the frame action should be applied to.
@@ -46,8 +48,12 @@ Frame *kite_frame_init() {
  * @param duration The duration the action should take.
  * @return The frame that is constructed to represent the given action.
  */
-Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
-                      void *raw_action, float duration) {
+Frame *kite__gen_frame(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
+                       void *raw_action, float duration) {
+
+  if (!kite_check_finished_frames(env)) {
+    return NULL;
+  }
 
   void *action;
   Frame *frame = kite_frame_init();
@@ -153,6 +159,12 @@ void kite__register_frames(Env *env, ...) {
 }
 
 void kite_register_frames_array(Env *env, Frames *frames) {
+  assert(frames != NULL);
+
+  if (frames->count == 0) {
+    return;
+  }
+
   size_t block_index = env->global_block_index++;
 
   if (!kite_check_finished_frames(env)) {
@@ -242,8 +254,8 @@ void kite_destroy_frames(Frames *frames) {
       free(frames->elements[i].kite_index_array);
       free(frames->elements[i].action);
     }
+    frames->count = 0;
   }
-  frames->count = 0;
 }
 
 // ---------------------------------------------------------------------------

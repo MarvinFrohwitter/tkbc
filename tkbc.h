@@ -212,8 +212,10 @@ void kite_sound_handler(Sound *kite_sound);
 // ===========================================================================
 
 Frame *kite_frame_init();
-Frame *kite_gen_frame(Action_Kind kind, Kite_Indexs kite_indexs,
-                      void *raw_action, float duration);
+
+Frame *kite__gen_frame(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
+                       void *raw_action, float duration);
+
 Frame *kite_script_wait(float duration);
 Frame *kite_script_frames_quit(float duration);
 
@@ -244,25 +246,25 @@ Kite_Indexs kite__indexs_append(size_t _, ...);
 
 void kite_script_team_line(Env *env, Kite_Indexs kite_index_array,
                            size_t h_padding, Vector2 offset, float duration);
-void kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
+bool kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
                            Vector2 offset, float duration);
 
-void kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
+bool kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
                            Vector2 position, Vector2 offset, float radius,
                            float duration);
 
-void kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
+bool kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
                                size_t v_padding, size_t h_padding,
                                Vector2 offset, float duration);
-void kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
+bool kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
                              size_t v_padding, size_t h_padding, Vector2 offset,
                              float duration);
 
-void kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
+bool kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                           size_t v_padding, size_t h_padding, Vector2 offset,
                           float angle, float duration);
-void kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
+bool kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
                             size_t v_padding, size_t h_padding, Vector2 offset,
                             float angle, float duration);
 
