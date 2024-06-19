@@ -244,6 +244,7 @@ void kite_script_rotate(Kite *kite, float angle, float duration);
 void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration);
 
 Kite_Indexs kite__indexs_append(size_t _, ...);
+Kite_Indexs kite_indexs_range(int start, int end);
 
 // ===========================================================================
 // ========================== Script Team Figures ============================

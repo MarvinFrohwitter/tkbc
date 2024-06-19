@@ -71,6 +71,12 @@
 
 #define kite_indexs_append(...) kite__indexs_append(0, __VA_ARGS__, INT_MAX)
 
+/**
+ * The macro kite_indexs_gen() creates the given count of indexes and returns it
+ * as a list.
+ */
+#define kite_indexs_gen(count) kite_indexs_range(0, count)
+
 #define kite_register_frames(env, ...)                                         \
   kite__register_frames(env, __VA_ARGS__, NULL)
 

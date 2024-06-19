@@ -660,3 +660,19 @@ Kite_Indexs kite__indexs_append(size_t _, ...) {
 
   return ki;
 }
+
+/**
+ * @brief The function kite_indexs_range() can be used to create indexes in the
+ * given range.
+ *
+ * @param start The index where to start, it is inclusive.
+ * @param end The index where to end, it is exclusive.
+ * @return The list of generated indexes form the given range.
+ */
+Kite_Indexs kite_indexs_range(int start, int end) {
+  Kite_Indexs ki = {0};
+  for (; start < end; ++start) {
+    kite_dap(&ki, start);
+  }
+  return ki;
+}
