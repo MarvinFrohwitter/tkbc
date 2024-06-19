@@ -42,8 +42,10 @@ int main(void) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
-    kite_script_input(env);
-    kite_update_frames(env);
+    if (!env->script_finished) {
+      kite_script_input(env);
+      kite_update_frames(env);
+    }
 
 #ifdef LOADIMAGE
     float scale_width = (float)GetScreenWidth() / background_texture.width;

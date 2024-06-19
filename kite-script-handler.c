@@ -272,6 +272,7 @@ void kite_destroy_frames(Frames *frames) {
 void kite_update_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
     Frame *frame = &env->frames->elements[i];
+    assert(frame != NULL);
     if (!frame->finished) {
       kite_render_frame(env, frame);
 
