@@ -1,0 +1,459 @@
+#ifndef TKBC_INPUT_HANDLER_H_
+#define TKBC_INPUT_HANDLER_H_
+
+#include "tkbc-types.h"
+
+// ===========================================================================
+// ========================== KEYBOARD INPUT =================================
+// ===========================================================================
+
+void kite_input_handler(Env *env, Kite_State *state);
+void kite_input_handler_kite_array(Env *env);
+void kite_input_check_rotation(Kite_State *state);
+void kite_input_check_tip_turn(Kite_State *state);
+void kite_input_check_circle(Kite_State *state);
+void kite_input_check_movement(Kite_State *state);
+void kite_input_check_speed(Kite_State *state);
+void kite_input_check_mouse(Kite_State *state);
+
+#endif // TKBC_INPUT_HANDLER_H_
+
+// ===========================================================================
+
+#ifdef TKBC_INPUT_HANDLER_IMPLEMENTATION
+
+#ifndef TKBC_UTILS_IMPLEMENTATION
+#define TKBC_UTILS_IMPLEMENTATION
+#include "tkbc-utils.h"
+#endif // TKBC_UTILS_IMPLEMENTATION
+
+// ========================== KEYBOARD INPUT =================================
+
+/**
+ * @brief The function handles all the keyboard input that is provided to
+ * control the given state.
+ *
+ * @param env The global state of the application.
+ * @param state The current state of a kite that should be handled.
+ */
+void kite_input_handler(Env *env, Kite_State *state) {
+  if (!state->kite_input_handler_active) {
+    return;
+  }
+  state->iscenter = false;
+  state->fly_velocity = 10;
+  state->turn_velocity = 1;
+
+  state->turn_velocity *= GetFrameTime();
+  state->turn_velocity *= state->kite->turn_speed;
+  state->fly_velocity *= GetFrameTime();
+  state->fly_velocity *= state->kite->fly_speed;
+
+  // Hard reset to top left corner angel 0, position (0,0)
+  if (IsKeyDown(KEY_SPACE))
+    kite_kite_array_start_position(env);
+
+  if (IsKeyDown(KEY_N))
+    kite_center_rotation(state->kite, NULL, 0);
+
+  if (IsKeyUp(KEY_R) && IsKeyUp(KEY_T)) {
+    state->interrupt_smoothness = false;
+  }
+  if (state->interrupt_smoothness) {
+    return;
+  }
+
+  kite_input_check_speed(state);
+  if (IsKeyPressed(KEY_F)) {
+    state->fixed = !state->fixed;
+    return;
+  }
+
+  kite_input_check_mouse(state);
+
+  kite_input_check_rotation(state);
+  kite_input_check_tip_turn(state);
+  kite_input_check_circle(state);
+
+  if (!state->iscenter) {
+    // NOTE: Currently not check for arrow KEY_RIGHT and KEY_LEFT, so that you
+    // can still move the kite with no interrupt but with steps of 45 degrees
+    // angle.
+    if (IsKeyUp(KEY_T) && IsKeyUp(KEY_H) && IsKeyUp(KEY_L)) {
+      state->interrupt_movement = false;
+    }
+  } else {
+    state->iscenter = false;
+    if (IsKeyUp(KEY_R)) {
+      state->interrupt_movement = false;
+    }
+  }
+  if (state->interrupt_movement) {
+    return;
+  }
+
+  kite_input_check_movement(state);
+}
+
+/**
+ * @brief The function handles the kite switching and calls the input handler
+ * for each kite in the global kite_array.
+ *
+ * @param env The global state of the application.
+ */
+void kite_input_handler_kite_array(Env *env) {
+
+  if (IsKeyPressed(KEY_B)) {
+    TakeScreenshot("1.png");
+  }
+
+  // To only handle 9 kites controllable by the keyboard.
+  for (size_t i = 1; i <= 9; ++i) {
+    if (IsKeyPressed(i + 48)) {
+
+      for (size_t j = 0; j < env->frames->count; ++j) {
+
+        Kite_Indexs new_kite_index_array = {0};
+        Frame *frame = &env->frames->elements[j];
+
+        if (frame->kite_index_array == NULL) {
+          continue;
+        }
+
+        for (size_t k = 0; k < frame->kite_index_array->count; ++k) {
+          if (i - 1 != frame->kite_index_array->elements[k]) {
+            kite_dap(&new_kite_index_array,
+                     frame->kite_index_array->elements[k]);
+          }
+        }
+
+        if (new_kite_index_array.count != 0) {
+          // If there are kites left in the frame
+
+          frame->kite_index_array->count = 0;
+          kite_dapc(frame->kite_index_array, new_kite_index_array.elements,
+                    new_kite_index_array.count);
+
+          free(new_kite_index_array.elements);
+        } else {
+          // If there are no kites left in the frame
+          // for the cases KITE_MOVE, KITE_ROTATION, KITE_TIP_ROTATION
+          frame->finished = true;
+          frame->kite_index_array = NULL;
+        }
+      }
+
+      env->kite_array->elements[i - 1].kite_input_handler_active =
+          !env->kite_array->elements[i - 1].kite_input_handler_active;
+    }
+  }
+
+  // To handle all of the kites currently registered in the kite array.
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    kite_input_handler(env, &env->kite_array->elements[i]);
+  }
+}
+
+/**
+ * @brief The function handles the corresponding rotation invoked by the key
+ * input.
+ *
+ * @param state The current state of a kite that should be handled.
+ */
+void kite_input_check_rotation(Kite_State *state) {
+
+  if (IsKeyDown(KEY_R) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    state->iscenter = true;
+
+    if (!state->fixed) {
+      kite_center_rotation(state->kite, NULL,
+                           state->kite->center_rotation + 1 +
+                               state->turn_velocity);
+    } else {
+      if (!state->interrupt_smoothness) {
+        state->interrupt_movement = true;
+        kite_center_rotation(state->kite, NULL,
+                             state->kite->center_rotation + 45);
+      }
+      state->interrupt_smoothness = true;
+    }
+
+  } else if (IsKeyDown(KEY_R)) {
+    state->iscenter = true;
+
+    if (!state->fixed) {
+      kite_center_rotation(state->kite, NULL,
+                           state->kite->center_rotation - 1 -
+                               state->turn_velocity);
+    } else {
+      if (!state->interrupt_smoothness) {
+        state->interrupt_movement = true;
+        kite_center_rotation(state->kite, NULL,
+                             state->kite->center_rotation - 45);
+      }
+      state->interrupt_smoothness = true;
+    }
+  }
+}
+
+/**
+ * @brief The function handles the corresponding tip turn rotation invoked by
+ * the key input.
+ *
+ * @param state The current state of a kite that should be handled.
+ */
+void kite_input_check_tip_turn(Kite_State *state) {
+  // TODO: Think about the clamp in terms of a tip rotation
+  if (IsKeyDown(KEY_T) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+
+      if (!state->fixed) {
+        kite_tip_rotation(
+            state->kite, NULL,
+            state->kite->center_rotation + 1 + state->turn_velocity, RIGHT_TIP);
+      } else {
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_tip_rotation(state->kite, NULL,
+                            state->kite->center_rotation + 45, RIGHT_TIP);
+        }
+        state->interrupt_smoothness = true;
+      }
+    }
+
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+      if (!state->fixed) {
+        kite_tip_rotation(
+            state->kite, NULL,
+            state->kite->center_rotation + 1 + state->turn_velocity, LEFT_TIP);
+      } else {
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_tip_rotation(state->kite, NULL,
+                            state->kite->center_rotation + 45, LEFT_TIP);
+        }
+        state->interrupt_smoothness = true;
+      }
+    }
+  } else if (IsKeyDown(KEY_T)) {
+
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+      if (!state->fixed) {
+        kite_tip_rotation(
+            state->kite, NULL,
+            state->kite->center_rotation - 1 - state->turn_velocity, RIGHT_TIP);
+      } else {
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_tip_rotation(state->kite, NULL,
+                            state->kite->center_rotation - 45, RIGHT_TIP);
+        }
+        state->interrupt_smoothness = true;
+      }
+    }
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+      if (!state->fixed) {
+        kite_tip_rotation(
+            state->kite, NULL,
+            state->kite->center_rotation - 1 - state->turn_velocity, LEFT_TIP);
+      } else {
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_tip_rotation(state->kite, NULL,
+                            state->kite->center_rotation - 45, LEFT_TIP);
+        }
+        state->interrupt_smoothness = true;
+      }
+    }
+  }
+}
+
+/**
+ * @brief [TODO:description] currently not working!
+ *
+ * @param state The current state of a kite that should be handled.
+ */
+void kite_input_check_circle(Kite_State *state) {
+  if (IsKeyPressed(KEY_C) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+
+    state->interrupt_movement = true;
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+
+      if (!state->fixed) {
+        kite_circle_rotation(state->kite, NULL,
+                             state->kite->center_rotation + 1 +
+                                 state->turn_velocity,
+                             RIGHT_TIP, false);
+      } else {
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_circle_rotation(state->kite, NULL,
+                               state->kite->center_rotation + 45, RIGHT_TIP,
+                               false);
+        }
+        state->interrupt_smoothness = true;
+      }
+    }
+
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+      if (!state->fixed) {
+        kite_circle_rotation(state->kite, NULL,
+                             state->kite->center_rotation - 1 -
+                                 state->turn_velocity,
+                             LEFT_TIP, false);
+      } else {
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_circle_rotation(state->kite, NULL,
+                               state->kite->center_rotation - 45, LEFT_TIP,
+                               false);
+        }
+        state->interrupt_smoothness = true;
+      }
+    }
+  } else if (IsKeyPressed(KEY_C)) {
+    state->interrupt_movement = true;
+
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+      if (!state->fixed) {
+        kite_circle_rotation(state->kite, NULL,
+                             state->kite->center_rotation - 1 -
+                                 state->turn_velocity,
+                             RIGHT_TIP, true);
+      } else {
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_circle_rotation(state->kite, NULL,
+                               state->kite->center_rotation - 45, RIGHT_TIP,
+                               true);
+        }
+        state->interrupt_smoothness = true;
+      }
+    }
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+      if (!state->fixed) {
+        kite_circle_rotation(state->kite, NULL,
+                             state->kite->center_rotation + 1 +
+                                 state->turn_velocity,
+                             LEFT_TIP, true);
+      } else {
+        if (!state->interrupt_smoothness) {
+          state->interrupt_movement = true;
+          kite_circle_rotation(state->kite, NULL,
+                               state->kite->center_rotation + 45, LEFT_TIP,
+                               true);
+        }
+        state->interrupt_smoothness = true;
+      }
+    }
+  }
+}
+
+/**
+ * @brief The function handles the key presses invoked by the caller related to
+ * basic movement of the kite.
+ *
+ * @param state The current state of a kite that should be handled.
+ */
+void kite_input_check_movement(Kite_State *state) {
+  int viewport_padding = state->kite->width > state->kite->height
+                             ? state->kite->width / 2
+                             : state->kite->height;
+  Vector2 window = {GetScreenWidth(), GetScreenHeight()};
+  window.x -= viewport_padding;
+  window.y -= viewport_padding;
+
+  if (IsKeyDown(KEY_J) || IsKeyDown(KEY_DOWN)) {
+    state->kite->center.y =
+        kite_clamp(state->kite->center.y + state->fly_velocity,
+                   viewport_padding, window.y);
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
+      state->kite->center.x =
+          kite_clamp(state->kite->center.x + state->fly_velocity,
+                     viewport_padding, window.x);
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
+      state->kite->center.x =
+          kite_clamp(state->kite->center.x - state->fly_velocity,
+                     viewport_padding, window.x);
+
+    kite_center_rotation(state->kite, NULL, state->kite->center_rotation);
+
+  } else if (IsKeyDown(KEY_K) || IsKeyDown(KEY_UP)) {
+    state->kite->center.y =
+        kite_clamp(state->kite->center.y - state->fly_velocity,
+                   viewport_padding, window.y);
+    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT))
+      state->kite->center.x =
+          kite_clamp(state->kite->center.x + state->fly_velocity,
+                     viewport_padding, window.x);
+    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT))
+      state->kite->center.x =
+          kite_clamp(state->kite->center.x - state->fly_velocity,
+                     viewport_padding, window.x);
+    kite_center_rotation(state->kite, NULL, state->kite->center_rotation);
+
+  } else if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+    state->kite->center.x =
+        kite_clamp(state->kite->center.x - state->fly_velocity,
+                   viewport_padding, window.x);
+    kite_center_rotation(state->kite, NULL, state->kite->center_rotation);
+  } else if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+    state->kite->center.x =
+        kite_clamp(state->kite->center.x + state->fly_velocity,
+                   viewport_padding, window.x);
+    kite_center_rotation(state->kite, NULL, state->kite->center_rotation);
+  }
+}
+
+/**
+ * @brief The function controls the turn speed and the fly speed of the kite
+ * corresponding to the key presses.
+ *
+ * @param state The current state of a kite that should be handled.
+ */
+void kite_input_check_speed(Kite_State *state) {
+
+  if (IsKeyDown(KEY_P) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    if (state->kite->fly_speed > 0) {
+      state->kite->fly_speed -= 1;
+    }
+  } else if (IsKeyDown(KEY_P)) {
+    if (state->kite->fly_speed <= 100) {
+      state->kite->fly_speed += 1;
+    }
+  }
+
+  if (IsKeyDown(KEY_O) &&
+      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+    if (state->kite->turn_speed > 0) {
+      state->kite->turn_speed -= 1;
+    }
+  } else if (IsKeyDown(KEY_O)) {
+    if (state->kite->turn_speed <= 100) {
+      state->kite->turn_speed += 1;
+    }
+  }
+}
+
+/**
+ * @brief The function sets the new position of the kite corresponding to the
+ * current mouse position and action.
+ *
+ * @param state The current state of a kite that should be handled.
+ */
+void kite_input_check_mouse(Kite_State *state) {
+  Vector2 mouse_pos = GetMousePosition();
+
+  if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+    kite_center_rotation(state->kite, &mouse_pos, state->kite->center_rotation);
+  } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    kite_center_rotation(state->kite, &mouse_pos, state->kite->center_rotation);
+  }
+}
+
+#endif // TKBC_INPUT_HANDLER_IMPLEMENTATION
