@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #define TEAL                                                                   \
-  CLITERAL(Color) { 0, 128, 128, 255 } // Teal #define WINDOW_SCALE 120
+  CLITERAL(Color) { 0, 128, 128, 255 } // Teal
 
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
@@ -76,19 +76,7 @@ typedef struct {
   size_t capacity;
 } Kite_States;
 
-typedef enum {
-  KITE_ACTION,
-  KITE_QUIT,
-  KITE_WAIT,
-  KITE_MOVE,
-  KITE_MOVE_ADD,
-  KITE_ROTATION_ADD,
-  KITE_TIP_ROTATION
-} Action_Kind;
-typedef enum {
-  FIXED,
-  SMOOTH,
-} PARAMETERS;
+typedef enum { FIXED, SMOOTH, } PARAMETERS;
 typedef enum { LEFT_TIP, RIGHT_TIP } TIP;
 typedef enum { KITE_Y, KITE_X } ORIENTATION;
 typedef enum { LEFT, RIGHT } DIRECTION;
@@ -113,6 +101,29 @@ typedef struct {
 } Wait_Action;
 
 typedef Wait_Action Quit_Action;
+
+typedef union {
+  Tip_Rotation_Action tip_rotation_action;
+  Rotation_Action rotation_action;
+  Move_Action move_action;
+
+  Tip_Rotation_Action tip_rotation_add_action;
+  Rotation_Action rotation_add_action;
+  Move_Action move_add_action;
+
+  Wait_Action wait_action;
+  Quit_Action quit_action;
+} Action;
+
+typedef enum {
+  KITE_ACTION,
+  KITE_QUIT,
+  KITE_WAIT,
+  KITE_MOVE,
+  KITE_MOVE_ADD,
+  KITE_ROTATION_ADD,
+  KITE_TIP_ROTATION
+} Action_Kind;
 
 typedef size_t Index;
 typedef struct {

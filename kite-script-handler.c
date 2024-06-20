@@ -14,8 +14,8 @@
 #include <string.h>
 
 /**
- * @brief The function kite_frame_init() can be used to get a new allocated zero
- * initialized frame.
+ * @brief The function can be used to get a new allocated zero initialized
+ * frame.
  *
  * @return A new on the heap allocated frame region is given back.
  */
@@ -35,9 +35,9 @@ Frame *kite_init_frame() {
 }
 
 /**
- * @brief The function kite_gen_frame() creates a new frame and fills in all the
- * given parameters. It handles all the provided actions. The returned frame can
- * be passed into the register function.
+ * @brief The function creates a new frame and fills in all the given
+ * parameters. It handles all the provided actions. The returned frame can be
+ * passed into the register function.
  *
  * @param env The environment that holds the current state of the application.
  * It is passed implicit by the macro call.
@@ -87,13 +87,11 @@ Frame *kite__frame_generate(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
 
   } break;
   default: {
-    assert(0 && "UNREACHABLE kite_gen_frame()");
+    assert(0 && "Unsupported Kite Action");
   } break;
   }
 
-  for (size_t i = 0; i < kite_indexs.count; ++i) {
-    kite_dap(frame->kite_index_array, kite_indexs.elements[i]);
-  }
+  kite_dapc(frame->kite_index_array, kite_indexs.elements, kite_indexs.count);
 
   frame->duration = duration;
   frame->kind = kind;
@@ -142,8 +140,8 @@ Frame *kite_script_frames_quit(float duration) {
 }
 
 /**
- * @brief The function kite_register_frames() can be used to collect all given
- * frames into one frame list and register them as a new frame block.
+ * @brief The function can be used to collect all given frames into one frame
+ * list and register them as a new frame block.
  *
  * @param env The environment that holds the current state of the application.
  */
