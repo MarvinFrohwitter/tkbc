@@ -19,7 +19,7 @@
  *
  * @return A new on the heap allocated frame region is given back.
  */
-Frame *kite_frame_init() {
+Frame *kite_init_frame() {
   Frame *frame = calloc(1, sizeof(*frame));
   if (frame == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
@@ -48,8 +48,8 @@ Frame *kite_frame_init() {
  * @param duration The duration the action should take.
  * @return The frame that is constructed to represent the given action.
  */
-Frame *kite__gen_frame(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
-                       void *raw_action, float duration) {
+Frame *kite__frame_generate(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
+                            void *raw_action, float duration) {
 
   if (env->script_finished) {
     return NULL;
@@ -59,7 +59,7 @@ Frame *kite__gen_frame(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
   }
 
   void *action;
-  Frame *frame = kite_frame_init();
+  Frame *frame = kite_init_frame();
   switch (kind) {
   case KITE_MOVE_ADD:
   case KITE_MOVE: {
@@ -107,7 +107,7 @@ Frame *kite_script_wait(float duration) {
   action_alloc(Wait_Action);
   action->starttime = GetTime();
 
-  Frame *frame = kite_frame_init();
+  Frame *frame = kite_init_frame();
   frame->finished = false;
   frame->duration = duration;
   frame->kind = KITE_WAIT;
@@ -131,7 +131,7 @@ Frame *kite_script_frames_quit(float duration) {
   action_alloc(Quit_Action);
   action->starttime = GetTime();
 
-  Frame *frame = kite_frame_init();
+  Frame *frame = kite_init_frame();
   frame->finished = false;
   frame->duration = duration;
   frame->kind = KITE_QUIT;
@@ -264,12 +264,16 @@ void kite_destroy_frames(Frames *frames) {
 
 // ---------------------------------------------------------------------------
 
+bool kite_script_finished(Env *env) {
+  return env->script_finished ? true : false;
+}
+
 /**
  * @brief [TODO:description]
  *
  * @param env [TODO:parameter]
  */
-void kite_update_frames(Env *env) {
+void kite_script_update_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
     Frame *frame = &env->frames->elements[i];
     assert(frame != NULL);

@@ -210,7 +210,7 @@ void kite_draw_kite(Kite *kite) {
  *
  * @param state The current state of a kite.
  */
-void kite_kite_destroy(State *state) { free(state->kite); }
+void kite_destroy_kite(Kite_State *state) { free(state->kite); }
 
 /**
  * @brief The function kite_set_state_defaults() sets all the default settings
@@ -218,7 +218,7 @@ void kite_kite_destroy(State *state) { free(state->kite); }
  *
  * @param state The state for which the values will be changed to defaults.
  */
-void kite_set_state_defaults(State *state) {
+void kite_set_state_defaults(Kite_State *state) {
 
   state->id = 0;
   state->kite_input_handler_active = false;
@@ -285,7 +285,7 @@ void kite_set_kite_defaults(Kite *kite, bool is_generated) {
  *
  * @return The new allocated Env.
  */
-Env *kite_env_init() {
+Env *kite_init_env() {
   Env *env = calloc(1, sizeof(*env));
   if (env == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
@@ -329,8 +329,8 @@ Env *kite_env_init() {
  *
  * @param env The global state of the application.
  */
-void kite_env_destroy(Env *env) {
-  kite_array_destroy_kites(env);
+void kite_destroy_env(Env *env) {
+  kite_destroy_kite_array(env);
   free(env->kite_array->elements);
   free(env->kite_array);
 
@@ -356,8 +356,8 @@ void kite_env_destroy(Env *env) {
  *
  * @return state The new allocated state.
  */
-State *kite_kite_init() {
-  State *state = calloc(1, sizeof(*state));
+Kite_State *kite_init_kite() {
+  Kite_State *state = calloc(1, sizeof(*state));
   if (state == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
@@ -415,7 +415,7 @@ int kite_check_boundary(Kite *kite, ORIENTATION orientation) {
  * @param env The global state of the application.
  * @param state The current state of a kite that should be handled.
  */
-void kite_input_handler(Env *env, State *state) {
+void kite_input_handler(Env *env, Kite_State *state) {
   if (!state->kite_input_handler_active) {
     return;
   }
@@ -430,7 +430,7 @@ void kite_input_handler(Env *env, State *state) {
 
   // Hard reset to top left corner angel 0, position (0,0)
   if (IsKeyDown(KEY_SPACE))
-    kite_array_start_pos(env);
+    kite_kite_array_start_position(env);
 
   if (IsKeyDown(KEY_N))
     kite_center_rotation(state->kite, NULL, 0);
@@ -480,7 +480,7 @@ void kite_input_handler(Env *env, State *state) {
  *
  * @param state The current state of a kite that should be handled.
  */
-void kite_input_check_mouse(State *state) {
+void kite_input_check_mouse(Kite_State *state) {
   Vector2 mouse_pos = GetMousePosition();
 
   if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
@@ -496,7 +496,7 @@ void kite_input_check_mouse(State *state) {
  *
  * @param state The current state of a kite that should be handled.
  */
-void kite_input_check_rotation(State *state) {
+void kite_input_check_rotation(Kite_State *state) {
 
   if (IsKeyDown(KEY_R) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
@@ -539,7 +539,7 @@ void kite_input_check_rotation(State *state) {
  *
  * @param state The current state of a kite that should be handled.
  */
-void kite_input_check_tip_turn(State *state) {
+void kite_input_check_tip_turn(Kite_State *state) {
   // TODO: Think about the clamp in terms of a tip rotation
   if (IsKeyDown(KEY_T) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
@@ -612,7 +612,7 @@ void kite_input_check_tip_turn(State *state) {
  *
  * @param state The current state of a kite that should be handled.
  */
-void kite_input_check_circle(State *state) {
+void kite_input_check_circle(Kite_State *state) {
   if (IsKeyPressed(KEY_C) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
 
@@ -695,7 +695,7 @@ void kite_input_check_circle(State *state) {
  *
  * @param state The current state of a kite that should be handled.
  */
-void kite_input_check_movement(State *state) {
+void kite_input_check_movement(Kite_State *state) {
   int viewport_padding = state->kite->width > state->kite->height
                              ? state->kite->width / 2
                              : state->kite->height;
@@ -751,7 +751,7 @@ void kite_input_check_movement(State *state) {
  *
  * @param state The current state of a kite that should be handled.
  */
-void kite_input_check_speed(State *state) {
+void kite_input_check_speed(Kite_State *state) {
 
   if (IsKeyDown(KEY_P) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
@@ -803,7 +803,7 @@ float kite_clamp(float z, float a, float b) {
  * @param master_volume [TODO:parameter]
  * @return [TODO:return]
  */
-Sound kite_sound_init(size_t master_volume) {
+Sound kite_init_sound(size_t master_volume) {
   Sound s = {0};
   InitAudioDevice();
   if (IsAudioDeviceReady()) {
@@ -818,7 +818,7 @@ Sound kite_sound_init(size_t master_volume) {
  *
  * @param sound [TODO:parameter]
  */
-void kite_defer_sound(Sound sound) {
+void kite_sound_destroy(Sound sound) {
   StopSound(sound);
   UnloadSound(sound);
   CloseAudioDevice();

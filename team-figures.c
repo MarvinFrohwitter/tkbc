@@ -53,10 +53,10 @@ bool kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
     deg_base_rotation += segment_size;
     {
       Frame *frame =
-          kite_gen_frame(KITE_MOVE, kite_indexs_append(i),
-                         &(CLITERAL(Move_Action){.position.x = place.x,
-                                                 .position.y = place.y}),
-                         duration);
+          kite_frame_generate(KITE_MOVE, kite_indexs_append(i),
+                              &(CLITERAL(Move_Action){.position.x = place.x,
+                                                      .position.y = place.y}),
+                              duration);
 
       if (frame == NULL)
         return false;
@@ -65,9 +65,9 @@ bool kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
     }
     {
       // TODO: Implement the none adding rotation
-      Frame *frame =
-          kite_gen_frame(KITE_ROTATION_ADD, kite_indexs_append(i),
-                         &(CLITERAL(Rotation_Action){.angle = deg_angle}), 0);
+      Frame *frame = kite_frame_generate(
+          KITE_ROTATION_ADD, kite_indexs_append(i),
+          &(CLITERAL(Rotation_Action){.angle = deg_angle}), 0);
 
       if (frame == NULL)
         return false;
@@ -114,12 +114,12 @@ bool kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
     }
     {
       Frame *frame =
-          kite_gen_frame(KITE_MOVE, kite_indexs_append(i),
-                         &(CLITERAL(Move_Action){
-                             .position.x = anchor.x + x_space * column,
-                             .position.y = anchor.y + y_space * row,
-                         }),
-                         duration);
+          kite_frame_generate(KITE_MOVE, kite_indexs_append(i),
+                              &(CLITERAL(Move_Action){
+                                  .position.x = anchor.x + x_space * column,
+                                  .position.y = anchor.y + y_space * row,
+                              }),
+                              duration);
 
       if (frame == NULL)
         return false;
@@ -128,9 +128,9 @@ bool kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
     }
     {
       // TODO: Implement the none adding rotation
-      Frame *frame =
-          kite_gen_frame(KITE_ROTATION_ADD, kite_indexs_append(i),
-                         &(CLITERAL(Rotation_Action){.angle = 0}), duration);
+      Frame *frame = kite_frame_generate(
+          KITE_ROTATION_ADD, kite_indexs_append(i),
+          &(CLITERAL(Rotation_Action){.angle = 0}), duration);
 
       if (frame == NULL)
         return false;
@@ -186,12 +186,12 @@ bool kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
     }
     {
       Frame *frame =
-          kite_gen_frame(KITE_MOVE, kite_indexs_append(i),
-                         &(CLITERAL(Move_Action){
-                             .position.x = anchor.x + x_space * column,
-                             .position.y = anchor.y + y_space * row,
-                         }),
-                         duration);
+          kite_frame_generate(KITE_MOVE, kite_indexs_append(i),
+                              &(CLITERAL(Move_Action){
+                                  .position.x = anchor.x + x_space * column,
+                                  .position.y = anchor.y + y_space * row,
+                              }),
+                              duration);
 
       if (frame == NULL)
         return false;
@@ -200,9 +200,9 @@ bool kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
     }
     // TODO: Implement the none adding rotation
     {
-      Frame *frame =
-          kite_gen_frame(KITE_ROTATION_ADD, kite_indexs_append(i),
-                         &(CLITERAL(Rotation_Action){.angle = 0}), duration);
+      Frame *frame = kite_frame_generate(
+          KITE_ROTATION_ADD, kite_indexs_append(i),
+          &(CLITERAL(Rotation_Action){.angle = 0}), duration);
 
       if (frame == NULL)
         return false;
@@ -259,12 +259,12 @@ bool kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
     }
     {
       Frame *frame =
-          kite_gen_frame(KITE_MOVE, kite_indexs_append(i),
-                         &(CLITERAL(Move_Action){
-                             .position.x = anchor.x + x_space * column,
-                             .position.y = anchor.y + y_space * row,
-                         }),
-                         duration);
+          kite_frame_generate(KITE_MOVE, kite_indexs_append(i),
+                              &(CLITERAL(Move_Action){
+                                  .position.x = anchor.x + x_space * column,
+                                  .position.y = anchor.y + y_space * row,
+                              }),
+                              duration);
 
       if (frame == NULL)
         return false;
@@ -275,7 +275,7 @@ bool kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
       angle = 0;
     }
     {
-      Frame *frame = kite_gen_frame(
+      Frame *frame = kite_frame_generate(
           KITE_ROTATION_ADD, kite_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = angle}), duration);
 
@@ -337,12 +337,12 @@ bool kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
     }
     {
       Frame *frame =
-          kite_gen_frame(KITE_MOVE, kite_indexs_append(i),
-                         &(CLITERAL(Move_Action){
-                             .position.x = anchor.x + x_space * column,
-                             .position.y = anchor.y + y_space * row,
-                         }),
-                         duration);
+          kite_frame_generate(KITE_MOVE, kite_indexs_append(i),
+                              &(CLITERAL(Move_Action){
+                                  .position.x = anchor.x + x_space * column,
+                                  .position.y = anchor.y + y_space * row,
+                              }),
+                              duration);
 
       if (frame == NULL)
         return false;
@@ -353,7 +353,7 @@ bool kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
       angle = 0;
     }
     {
-      Frame *frame = kite_gen_frame(
+      Frame *frame = kite_frame_generate(
           KITE_ROTATION_ADD, kite_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = angle}), duration);
 
@@ -415,12 +415,12 @@ bool kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
         break;
       }
       Frame *frame =
-          kite_gen_frame(KITE_MOVE, kite_indexs_append(i++),
-                         &(CLITERAL(Move_Action){
-                             .position.x = anchor.x + x_space * column,
-                             .position.y = anchor.y + y_space * row,
-                         }),
-                         duration);
+          kite_frame_generate(KITE_MOVE, kite_indexs_append(i++),
+                              &(CLITERAL(Move_Action){
+                                  .position.x = anchor.x + x_space * column,
+                                  .position.y = anchor.y + y_space * row,
+                              }),
+                              duration);
 
       if (frame == NULL)
         return false;
@@ -442,22 +442,23 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
     angle = -angle;
   }
 
-  kite_register_frames(env, kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                           &(CLITERAL(Move_Add_Action){
-                                               .position.x = 0,
-                                               .position.y = -box_size / 2,
-                                           }),
-                                           duration));
+  kite_register_frames(env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                                &(CLITERAL(Move_Add_Action){
+                                                    .position.x = 0,
+                                                    .position.y = -box_size / 2,
+                                                }),
+                                                duration));
 
   // TODO: Implement the none adding rotation
   kite_register_frames(
-      env,
-      kite_gen_frame(KITE_ROTATION_ADD, kite_index_array,
-                     &(CLITERAL(Rotation_Action){.angle = angle}), duration));
+      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+                               &(CLITERAL(Rotation_Action){.angle = angle}),
+                               duration));
 
   switch (direction) {
   case LEFT: {
-    kite_register_frames(env, kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
+    kite_register_frames(env,
+                         kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                              &(CLITERAL(Move_Add_Action){
                                                  .position.x = -box_size,
                                                  .position.y = 0,
@@ -466,7 +467,8 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
 
   } break;
   case RIGHT: {
-    kite_register_frames(env, kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
+    kite_register_frames(env,
+                         kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                              &(CLITERAL(Move_Add_Action){
                                                  .position.x = box_size,
                                                  .position.y = 0,
@@ -480,27 +482,28 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
 
   // TODO: Implement the none adding rotation
   kite_register_frames(
-      env,
-      kite_gen_frame(KITE_ROTATION_ADD, kite_index_array,
-                     &(CLITERAL(Rotation_Action){.angle = angle}), duration));
+      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+                               &(CLITERAL(Rotation_Action){.angle = angle}),
+                               duration));
 
-  kite_register_frames(env, kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                           &(CLITERAL(Move_Add_Action){
-                                               .position.x = 0,
-                                               .position.y = box_size,
-                                           }),
-                                           duration));
+  kite_register_frames(env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                                &(CLITERAL(Move_Add_Action){
+                                                    .position.x = 0,
+                                                    .position.y = box_size,
+                                                }),
+                                                duration));
 
   // TODO: Implement the none adding rotation
   kite_register_frames(
-      env,
-      kite_gen_frame(KITE_ROTATION_ADD, kite_index_array,
-                     &(CLITERAL(Rotation_Action){.angle = angle}), duration));
+      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+                               &(CLITERAL(Rotation_Action){.angle = angle}),
+                               duration));
 
   switch (direction) {
   case LEFT: {
 
-    kite_register_frames(env, kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
+    kite_register_frames(env,
+                         kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                              &(CLITERAL(Move_Add_Action){
                                                  .position.x = box_size,
                                                  .position.y = 0,
@@ -508,7 +511,8 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                              duration));
   } break;
   case RIGHT: {
-    kite_register_frames(env, kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
+    kite_register_frames(env,
+                         kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                              &(CLITERAL(Move_Add_Action){
                                                  .position.x = -box_size,
                                                  .position.y = 0,
@@ -521,16 +525,16 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
 
   // TODO: Implement the none adding rotation
   kite_register_frames(
-      env,
-      kite_gen_frame(KITE_ROTATION_ADD, kite_index_array,
-                     &(CLITERAL(Rotation_Action){.angle = angle}), duration));
+      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+                               &(CLITERAL(Rotation_Action){.angle = angle}),
+                               duration));
 
-  kite_register_frames(env, kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                           &(CLITERAL(Move_Add_Action){
-                                               .position.x = 0,
-                                               .position.y = -box_size / 2,
-                                           }),
-                                           duration));
+  kite_register_frames(env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                                &(CLITERAL(Move_Add_Action){
+                                                    .position.x = 0,
+                                                    .position.y = -box_size / 2,
+                                                }),
+                                                duration));
 }
 
 void kite_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
@@ -553,29 +557,29 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
 
   // TODO: Implement the none adding rotation
   kite_register_frames(
-      env, kite_gen_frame(KITE_ROTATION_ADD, kite_index_array,
-                          &(CLITERAL(Rotation_Action){.angle = angle / 2}),
-                          duration));
+      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+                               &(CLITERAL(Rotation_Action){.angle = angle / 2}),
+                               duration));
 
   switch (direction) {
   case RIGHT: {
-    kite_register_frames(env,
-                         kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                        &(CLITERAL(Move_Add_Action){
-                                            .position.x = box_size / sqrt(2),
-                                            .position.y = -box_size / sqrt(2),
-                                        }),
-                                        duration));
+    kite_register_frames(
+        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                 &(CLITERAL(Move_Add_Action){
+                                     .position.x = box_size / sqrt(2),
+                                     .position.y = -box_size / sqrt(2),
+                                 }),
+                                 duration));
 
   } break;
   case LEFT: {
-    kite_register_frames(env,
-                         kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                        &(CLITERAL(Move_Add_Action){
-                                            .position.x = -box_size / sqrt(2),
-                                            .position.y = -box_size / sqrt(2),
-                                        }),
-                                        duration));
+    kite_register_frames(
+        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                 &(CLITERAL(Move_Add_Action){
+                                     .position.x = -box_size / sqrt(2),
+                                     .position.y = -box_size / sqrt(2),
+                                 }),
+                                 duration));
 
   } break;
   default:
@@ -584,28 +588,28 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
 
   // TODO: Implement the none adding rotation
   kite_register_frames(
-      env,
-      kite_gen_frame(KITE_ROTATION_ADD, kite_index_array,
-                     &(CLITERAL(Rotation_Action){.angle = angle}), duration));
+      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+                               &(CLITERAL(Rotation_Action){.angle = angle}),
+                               duration));
 
   switch (direction) {
   case RIGHT: {
-    kite_register_frames(env,
-                         kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                        &(CLITERAL(Move_Add_Action){
-                                            .position.x = box_size / sqrt(2),
-                                            .position.y = box_size / sqrt(2),
-                                        }),
-                                        duration));
+    kite_register_frames(
+        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                 &(CLITERAL(Move_Add_Action){
+                                     .position.x = box_size / sqrt(2),
+                                     .position.y = box_size / sqrt(2),
+                                 }),
+                                 duration));
   } break;
   case LEFT: {
-    kite_register_frames(env,
-                         kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                        &(CLITERAL(Move_Add_Action){
-                                            .position.x = -box_size / sqrt(2),
-                                            .position.y = box_size / sqrt(2),
-                                        }),
-                                        duration));
+    kite_register_frames(
+        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                 &(CLITERAL(Move_Add_Action){
+                                     .position.x = -box_size / sqrt(2),
+                                     .position.y = box_size / sqrt(2),
+                                 }),
+                                 duration));
   } break;
   default:
     assert(0 && "UNREACHABLE");
@@ -613,28 +617,28 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
 
   // TODO: Implement the none adding rotation
   kite_register_frames(
-      env,
-      kite_gen_frame(KITE_ROTATION_ADD, kite_index_array,
-                     &(CLITERAL(Rotation_Action){.angle = angle}), duration));
+      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+                               &(CLITERAL(Rotation_Action){.angle = angle}),
+                               duration));
 
   switch (direction) {
   case RIGHT: {
-    kite_register_frames(env,
-                         kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                        &(CLITERAL(Move_Add_Action){
-                                            .position.x = -box_size / sqrt(2),
-                                            .position.y = box_size / sqrt(2),
-                                        }),
-                                        duration));
+    kite_register_frames(
+        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                 &(CLITERAL(Move_Add_Action){
+                                     .position.x = -box_size / sqrt(2),
+                                     .position.y = box_size / sqrt(2),
+                                 }),
+                                 duration));
   } break;
   case LEFT: {
-    kite_register_frames(env,
-                         kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                        &(CLITERAL(Move_Add_Action){
-                                            .position.x = box_size / sqrt(2),
-                                            .position.y = box_size / sqrt(2),
-                                        }),
-                                        duration));
+    kite_register_frames(
+        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                 &(CLITERAL(Move_Add_Action){
+                                     .position.x = box_size / sqrt(2),
+                                     .position.y = box_size / sqrt(2),
+                                 }),
+                                 duration));
   } break;
   default:
     assert(0 && "UNREACHABLE");
@@ -642,28 +646,28 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
 
   // TODO: Implement the none adding rotation
   kite_register_frames(
-      env,
-      kite_gen_frame(KITE_ROTATION_ADD, kite_index_array,
-                     &(CLITERAL(Rotation_Action){.angle = angle}), duration));
+      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+                               &(CLITERAL(Rotation_Action){.angle = angle}),
+                               duration));
 
   switch (direction) {
   case RIGHT: {
-    kite_register_frames(env,
-                         kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                        &(CLITERAL(Move_Add_Action){
-                                            .position.x = -box_size / sqrt(2),
-                                            .position.y = -box_size / sqrt(2),
-                                        }),
-                                        duration));
+    kite_register_frames(
+        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                 &(CLITERAL(Move_Add_Action){
+                                     .position.x = -box_size / sqrt(2),
+                                     .position.y = -box_size / sqrt(2),
+                                 }),
+                                 duration));
   } break;
   case LEFT: {
-    kite_register_frames(env,
-                         kite_gen_frame(KITE_MOVE_ADD, kite_index_array,
-                                        &(CLITERAL(Move_Add_Action){
-                                            .position.x = box_size / sqrt(2),
-                                            .position.y = -box_size / sqrt(2),
-                                        }),
-                                        duration));
+    kite_register_frames(
+        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+                                 &(CLITERAL(Move_Add_Action){
+                                     .position.x = box_size / sqrt(2),
+                                     .position.y = -box_size / sqrt(2),
+                                 }),
+                                 duration));
   } break;
   default:
     assert(0 && "UNREACHABLE");
@@ -671,9 +675,9 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
 
   // TODO: Implement the none adding rotation
   kite_register_frames(
-      env, kite_gen_frame(KITE_ROTATION_ADD, kite_index_array,
-                          &(CLITERAL(Rotation_Action){.angle = angle / 2}),
-                          duration));
+      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+                               &(CLITERAL(Rotation_Action){.angle = angle / 2}),
+                               duration));
 }
 
 void kite_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,

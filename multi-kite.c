@@ -9,7 +9,7 @@
  *
  * @param env The global state of the application.
  */
-void kite_array_start_pos(Env *env) {
+void kite_kite_array_start_position(Env *env) {
 
   assert(env->kite_array->count != 0);
 
@@ -37,18 +37,18 @@ void kite_array_start_pos(Env *env) {
  *
  * @param env The global state of the application.
  */
-void kite_gen_kites(Env *env, size_t kite_count) {
+void kite_kite_array_generate(Env *env, size_t kite_count) {
 
   Color color_array[] = {BLUE, GREEN, PURPLE, RED, TEAL};
 
   for (size_t i = 0; i < kite_count; ++i) {
-    kite_dap(env->kite_array, *kite_kite_init());
+    kite_dap(env->kite_array, *kite_init_kite());
     env->kite_array->elements[i].id = i;
     env->kite_array->elements[i].kite->body_color =
         color_array[i % ARRAY_LENGTH(color_array)];
   }
 
-  kite_array_start_pos(env);
+  kite_kite_array_start_position(env);
 }
 
 /**
@@ -57,9 +57,9 @@ void kite_gen_kites(Env *env, size_t kite_count) {
  *
  * @param env The global state of the application.
  */
-void kite_array_destroy_kites(Env *env) {
+void kite_destroy_kite_array(Env *env) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    kite_kite_destroy(&env->kite_array->elements[i]);
+    kite_destroy_kite(&env->kite_array->elements[i]);
   }
 }
 
@@ -81,7 +81,7 @@ void kite_draw_kite_array(Env *env) {
  *
  * @param env The global state of the application.
  */
-void kite_array_input_handler(Env *env) {
+void kite_input_handler_kite_array(Env *env) {
 
   if (IsKeyPressed(KEY_B)) {
     TakeScreenshot("1.png");
