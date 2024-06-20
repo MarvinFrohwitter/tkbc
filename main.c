@@ -33,18 +33,18 @@ int main(void) {
   Texture2D background_texture = LoadTextureFromImage(background_image);
 #endif /* ifdef LOADIMAGE */
 
-  Sound kite_sound = kite_sound_init(40);
+  Sound kite_sound = kite_init_sound(40);
 
-  Env *env = kite_env_init();
-  kite_gen_kites(env, 9);
+  Env *env = kite_init_env();
+  kite_kite_array_generate(env, 9);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
-    if (!env->script_finished) {
+    if (!kite_script_finished(env)) {
       kite_script_input(env);
-      kite_update_frames(env);
+      kite_script_update_frames(env);
     }
 
 #ifdef LOADIMAGE
@@ -59,11 +59,11 @@ int main(void) {
     EndDrawing();
 
     kite_sound_handler(&kite_sound);
-    kite_array_input_handler(env);
+    kite_input_handler_kite_array(env);
   };
 
-  kite_env_destroy(env);
-  kite_defer_sound(kite_sound);
+  kite_destroy_env(env);
+  kite_sound_destroy(kite_sound);
   CloseWindow();
   return 0;
 }

@@ -68,13 +68,13 @@ typedef struct {
   bool iscenter;
 
   bool kite_input_handler_active;
-} State;
+} Kite_State;
 
 typedef struct {
-  State *elements;
+  Kite_State *elements;
   size_t count;
   size_t capacity;
-} States;
+} Kite_States;
 
 typedef enum {
   KITE_ACTION,
@@ -139,14 +139,14 @@ typedef struct {
 } Frames;
 
 typedef struct {
-  size_t *elements;
+  Index *elements;
   size_t count;
   size_t capacity;
 
 } Index_Blocks;
 
 typedef struct {
-  States *kite_array;
+  Kite_States *kite_array;
 
   Frames *frames;
   Index_Blocks *index_blocks;
@@ -164,91 +164,37 @@ typedef struct {
 } Env;
 
 // ===========================================================================
-// ========================== Kite Declarations ==============================
+// ========================== SCRIPT API =====================================
 // ===========================================================================
-
-Env *kite_env_init();
-void kite_env_destroy(Env *env);
-State *kite_kite_init();
-void kite_kite_destroy(State *state);
-void kite_set_state_defaults(State *state);
-void kite_set_kite_defaults(Kite *kite, bool is_generated);
-
-void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
-                       TIP tip);
-void kite_center_rotation(Kite *kite, Vector2 *position,
-                          float center_deg_rotation);
-void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
-                          TIP tip, bool below);
-void kite_draw_kite(Kite *kite);
-void kite_input_handler(Env *env, State *state);
-void kite_input_check_rotation(State *state);
-void kite_input_check_tip_turn(State *state);
-void kite_input_check_circle(State *state);
-void kite_input_check_movement(State *state);
-void kite_input_check_speed(State *state);
-void kite_input_check_mouse(State *state);
-
-int kite_check_boundary(Kite *kite, ORIENTATION orientation);
-float kite_clamp(float z, float a, float b);
-float kite_lerp(float a, float b, float t);
-int kite_max(int a, int b);
-
-// ===========================================================================
-// ========================== Custom Kite Creation ===========================
-// ===========================================================================
-
-void kite_gen_kites(Env *env, size_t kite_count);
-void kite_array_destroy_kites(Env *env);
-void kite_draw_kite_array(Env *env);
-void kite_array_input_handler(Env *env);
-void kite_array_start_pos(Env *env);
-
-// ===========================================================================
-// ========================== Sound Handler ==================================
-// ===========================================================================
-
-Sound kite_sound_init(size_t master_volume);
-void kite_defer_sound(Sound sound);
-void kite_sound_handler(Sound *kite_sound);
-
-// ===========================================================================
-// ========================== Script Handler =================================
-// ===========================================================================
-
-Frame *kite_frame_init();
-
-Frame *kite__gen_frame(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
-                       void *raw_action, float duration);
-
-Frame *kite_script_wait(float duration);
-Frame *kite_script_frames_quit(float duration);
-
-void kite_frame_reset(Frame *frame);
-void kite__register_frames(Env *env, ...);
-void kite_register_frames_array(Env *env, Frames *frames);
-void kite_register_frame(Env *env, Frame *frame);
-void kite_render_frame(Env *env, Frame *frame);
-
-void kite_update_frames(Env *env);
-bool kite_check_finished_frames(Env *env);
-size_t kite_check_finished_frames_count(Env *env);
-void kite_destroy_frames(Frames *frames);
 
 void kite_script_input(Env *env);
 void kite_script_begin(Env *env);
 void kite_script_end(Env *env);
 
-void kite_script_move(Kite *kite, Vector2 position, float duration);
-void kite_script_rotate(Kite *kite, float angle, float duration);
-void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration);
+void kite_script_update_frames(Env *env);
+bool kite_script_finished(Env *env);
+
+// ===========================================================================
+// ========================== SCRIPT HANDLER API =============================
+// ===========================================================================
+
+Frame *kite_script_wait(float duration);
+Frame *kite_script_frames_quit(float duration);
+Frame *kite__frame_generate(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
+                            void *raw_action, float duration);
+#define kite_frame_generate(kind, kite_indexs, raw_action, duration)           \
+  kite__frame_generate(env, kind, kite_indexs, raw_action, duration)
+void kite__register_frames(Env *env, ...);
+#define kite_register_frames(env, ...)                                         \
+  kite__register_frames(env, __VA_ARGS__, NULL)
+void kite_register_frames_array(Env *env, Frames *frames);
 
 Kite_Indexs kite__indexs_append(size_t _, ...);
+#define kite_indexs_append(...) kite__indexs_append(0, __VA_ARGS__, INT_MAX)
 Kite_Indexs kite_indexs_range(int start, int end);
+#define kite_indexs_generate(count) kite_indexs_range(0, count)
 
-// ===========================================================================
 // ========================== Script Team Figures ============================
-// ===========================================================================
 
 void kite_script_team_line(Env *env, Kite_Indexs kite_index_array,
                            size_t h_padding, Vector2 offset, float duration);
@@ -289,4 +235,81 @@ void kite_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
                                   float box_size, float duration);
 void kite_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
                                    float box_size, float duration);
+
+// ========================== SCRIPT API END =================================
+
+// ===========================================================================
+// ========================== KITE DECLARATIONS ==============================
+// ===========================================================================
+
+Env *kite_init_env();
+Kite_State *kite_init_kite();
+void kite_destroy_env(Env *env);
+void kite_destroy_kite(Kite_State *state);
+void kite_destroy_kite_array(Env *env);
+void kite_kite_array_generate(Env *env, size_t kite_count);
+void kite_kite_array_start_position(Env *env);
+
+void kite_set_kite_defaults(Kite *kite, bool is_generated);
+void kite_set_state_defaults(Kite_State *state);
+
+// ========================== KITE POSITION ==================================
+
+void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
+                       TIP tip);
+void kite_center_rotation(Kite *kite, Vector2 *position,
+                          float center_deg_rotation);
+void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
+                          TIP tip, bool below);
+
+// ========================== KITE DISPLAY ===================================
+
+void kite_draw_kite(Kite *kite);
+void kite_draw_kite_array(Env *env);
+
+// ========================== KITE KEYBOARD INPUT ============================
+
+void kite_input_handler(Env *env, Kite_State *state);
+void kite_input_handler_kite_array(Env *env);
+void kite_input_check_rotation(Kite_State *state);
+void kite_input_check_tip_turn(Kite_State *state);
+void kite_input_check_circle(Kite_State *state);
+void kite_input_check_movement(Kite_State *state);
+void kite_input_check_speed(Kite_State *state);
+void kite_input_check_mouse(Kite_State *state);
+
+// ========================== KITE UTILS =====================================
+
+int kite_check_boundary(Kite *kite, ORIENTATION orientation);
+float kite_clamp(float z, float a, float b);
+float kite_lerp(float a, float b, float t);
+int kite_max(int a, int b);
+
+// ========================== SCRIPT HANDLER =================================
+
+Frame *kite_init_frame();
+void kite_register_frame(Env *env, Frame *frame);
+void kite_destroy_frames(Frames *frames);
+void kite_frame_reset(Frame *frame);
+void kite_render_frame(Env *env, Frame *frame);
+
+bool kite_check_finished_frames(Env *env);
+size_t kite_check_finished_frames_count(Env *env);
+
+// ========================== SCRIPT HANDLER INTERNAL ========================
+
+void kite_script_move(Kite *kite, Vector2 position, float duration);
+void kite_script_rotate(Kite *kite, float angle, float duration);
+void kite_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration);
+
+// ===========================================================================
+// ========================== Sound Handler ==================================
+// ===========================================================================
+
+Sound kite_init_sound(size_t master_volume);
+void kite_sound_destroy(Sound sound);
+void kite_sound_handler(Sound *kite_sound);
+
+// ===========================================================================
+
 #endif // TKBC_H_
