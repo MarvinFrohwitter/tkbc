@@ -15,7 +15,7 @@
 #define ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
 
 #define DAP_CAP 64
-#define kite_dap(dynamic_array, element)                                       \
+#define tkbc_dap(dynamic_array, element)                                       \
   do {                                                                         \
     if ((dynamic_array)->capacity <= (dynamic_array)->count) {                 \
       if ((dynamic_array)->capacity == 0)                                      \
@@ -39,7 +39,7 @@
     (dynamic_array)->count = (dynamic_array)->count + 1;                       \
   } while (0)
 
-#define kite_dapc(dynamic_array, new_elements, new_elements_count)             \
+#define tkbc_dapc(dynamic_array, new_elements, new_elements_count)             \
   do {                                                                         \
     if (new_elements != NULL) {                                                \
       if ((dynamic_array)->capacity <                                          \
@@ -76,10 +76,10 @@
     }                                                                          \
   } while (0)
 
-int kite_check_boundary(Kite *kite, ORIENTATION orientation);
-float kite_clamp(float z, float a, float b);
-float kite_lerp(float a, float b, float t);
-int kite_max(int a, int b);
+int tkbc_check_boundary(Kite *kite, ORIENTATION orientation);
+float tkbc_clamp(float z, float a, float b);
+float tkbc_lerp(float a, float b, float t);
+int tkbc_max(int a, int b);
 
 #endif // TKBC_UTILS_H_
 
@@ -98,7 +98,7 @@ int kite_max(int a, int b);
  * are.
  * @return True if the kite is in the window, otherwise false.
  */
-int kite_check_boundary(Kite *kite, ORIENTATION orientation) {
+int tkbc_check_boundary(Kite *kite, ORIENTATION orientation) {
   float width = GetScreenWidth();
   float height = GetScreenHeight();
   float x = kite->center.x;
@@ -127,14 +127,14 @@ int kite_check_boundary(Kite *kite, ORIENTATION orientation) {
  * otherwise if the value of z is less than a, the value of a will be returned
  * or b if the value is lager than to b.
  */
-float kite_clamp(float z, float a, float b) {
+float tkbc_clamp(float z, float a, float b) {
 
   float s = z < a ? a : z;
   return s < b ? s : b;
 }
 
-float kite_lerp(float a, float b, float t) { return a + (t * (b - a)); }
+float tkbc_lerp(float a, float b, float t) { return a + (t * (b - a)); }
 
-int kite_max(int a, int b) { return a <= b ? b : a; }
+int tkbc_max(int a, int b) { return a <= b ? b : a; }
 
 #endif // TKBC_UTILS_IMPLEMENTATION

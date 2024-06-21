@@ -17,30 +17,30 @@
 // ===========================================================================
 // ===========================================================================
 
-Env *kite_init_env();
-Kite_State *kite_init_kite();
-void kite_destroy_env(Env *env);
-void kite_destroy_kite(Kite_State *state);
-void kite_destroy_kite_array(Env *env);
-void kite_kite_array_generate(Env *env, size_t kite_count);
-void kite_kite_array_start_position(Env *env);
+Env *tkbc_init_env();
+Kite_State *tkbc_init_kite();
+void tkbc_destroy_env(Env *env);
+void tkbc_destroy_kite(Kite_State *state);
+void tkbc_destroy_kite_array(Env *env);
+void tkbc_kite_array_generate(Env *env, size_t kite_count);
+void tkbc_kite_array_start_position(Env *env);
 
-void kite_set_kite_defaults(Kite *kite, bool is_generated);
-void kite_set_kite_state_defaults(Kite_State *state);
+void tkbc_set_kite_defaults(Kite *kite, bool is_generated);
+void tkbc_set_kite_state_defaults(Kite_State *state);
 
 // ========================== KITE POSITION ==================================
 
-void kite_center_rotation(Kite *kite, Vector2 *position,
+void tkbc_center_rotation(Kite *kite, Vector2 *position,
                           float center_deg_rotation);
-void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
+void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
                        TIP tip);
-void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
+void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
                           TIP tip, bool below);
 
 // ========================== KITE DISPLAY ===================================
 
-void kite_draw_kite(Kite *kite);
-void kite_draw_kite_array(Env *env);
+void tkbc_draw_kite(Kite *kite);
+void tkbc_draw_kite_array(Env *env);
 
 // ===========================================================================
 // ===========================================================================
