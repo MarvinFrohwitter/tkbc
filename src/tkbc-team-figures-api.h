@@ -3,51 +3,49 @@
 
 #include "tkbc-types.h"
 
-
 // ===========================================================================
 // ========================== Script Team Figures ============================
 // ===========================================================================
 
-void kite_script_team_line(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_line(Env *env, Kite_Indexs kite_index_array,
                            size_t h_padding, Vector2 offset, float duration);
-bool kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
+bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
                            Vector2 offset, float duration);
 
-bool kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
+bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
                            Vector2 position, Vector2 offset, float radius,
                            float duration);
 
-bool kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
+bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
                                size_t v_padding, size_t h_padding,
                                Vector2 offset, float duration);
-bool kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
+bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
                              size_t v_padding, size_t h_padding, Vector2 offset,
                              float duration);
 
-bool kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
+bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                           size_t v_padding, size_t h_padding, Vector2 offset,
                           float angle, float duration);
-bool kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
+bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
                             size_t v_padding, size_t h_padding, Vector2 offset,
                             float angle, float duration);
 
-void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                           DIRECTION direction, float angle, float box_size,
                           float duration);
-void kite_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
                                float box_size, float duration);
-void kite_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
                                 float box_size, float duration);
 
-void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                              DIRECTION direction, float angle, float box_size,
                              float duration);
-void kite_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
                                   float box_size, float duration);
-void kite_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
                                    float box_size, float duration);
-
 
 #endif // TKBC_TEAM_FIGURES_API_H_
 
@@ -67,7 +65,7 @@ void kite_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
 
 // ========================== Script Team Figures ============================
 
-bool kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
+bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
                            Vector2 position, Vector2 offset, float radius,
                            float duration) {
 
@@ -113,7 +111,7 @@ bool kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
     deg_base_rotation += segment_size;
     {
       Frame *frame =
-          kite_frame_generate(KITE_MOVE, kite_indexs_append(i),
+          tkbc_frame_generate(KITE_MOVE, tkbc_indexs_append(i),
                               &(CLITERAL(Move_Action){.position.x = place.x,
                                                       .position.y = place.y}),
                               duration);
@@ -121,26 +119,26 @@ bool kite_script_team_ball(Env *env, Kite_Indexs kite_index_array,
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
     {
       // TODO: Implement the none adding rotation
-      Frame *frame = kite_frame_generate(
-          KITE_ROTATION_ADD, kite_indexs_append(i),
+      Frame *frame = tkbc_frame_generate(
+          KITE_ROTATION_ADD, tkbc_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = deg_angle}), 0);
 
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
   }
 
-  kite_register_frames_array(env, &frames);
+  tkbc_register_frames_array(env, &frames);
   return true;
 }
 
-bool kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
+bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
                                size_t v_padding, size_t h_padding,
                                Vector2 offset, float duration) {
 
@@ -174,7 +172,7 @@ bool kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
     }
     {
       Frame *frame =
-          kite_frame_generate(KITE_MOVE, kite_indexs_append(i),
+          tkbc_frame_generate(KITE_MOVE, tkbc_indexs_append(i),
                               &(CLITERAL(Move_Action){
                                   .position.x = anchor.x + x_space * column,
                                   .position.y = anchor.y + y_space * row,
@@ -184,18 +182,18 @@ bool kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
     {
       // TODO: Implement the none adding rotation
-      Frame *frame = kite_frame_generate(
-          KITE_ROTATION_ADD, kite_indexs_append(i),
+      Frame *frame = tkbc_frame_generate(
+          KITE_ROTATION_ADD, tkbc_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = 0}), duration);
 
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
     i++;
 
@@ -208,11 +206,11 @@ bool kite_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
     }
   }
 
-  kite_register_frames_array(env, &frames);
+  tkbc_register_frames_array(env, &frames);
   return true;
 }
 
-bool kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
+bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
                              size_t v_padding, size_t h_padding, Vector2 offset,
                              float duration) {
 
@@ -246,7 +244,7 @@ bool kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
     }
     {
       Frame *frame =
-          kite_frame_generate(KITE_MOVE, kite_indexs_append(i),
+          tkbc_frame_generate(KITE_MOVE, tkbc_indexs_append(i),
                               &(CLITERAL(Move_Action){
                                   .position.x = anchor.x + x_space * column,
                                   .position.y = anchor.y + y_space * row,
@@ -256,18 +254,18 @@ bool kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
     // TODO: Implement the none adding rotation
     {
-      Frame *frame = kite_frame_generate(
-          KITE_ROTATION_ADD, kite_indexs_append(i),
+      Frame *frame = tkbc_frame_generate(
+          KITE_ROTATION_ADD, tkbc_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = 0}), duration);
 
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
     i++;
 
@@ -280,11 +278,11 @@ bool kite_script_team_valley(Env *env, Kite_Indexs kite_index_array,
     }
   }
 
-  kite_register_frames_array(env, &frames);
+  tkbc_register_frames_array(env, &frames);
   return true;
 }
 
-bool kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
+bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                           size_t v_padding, size_t h_padding, Vector2 offset,
                           float angle, float duration) {
 
@@ -319,7 +317,7 @@ bool kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
     }
     {
       Frame *frame =
-          kite_frame_generate(KITE_MOVE, kite_indexs_append(i),
+          tkbc_frame_generate(KITE_MOVE, tkbc_indexs_append(i),
                               &(CLITERAL(Move_Action){
                                   .position.x = anchor.x + x_space * column,
                                   .position.y = anchor.y + y_space * row,
@@ -329,20 +327,20 @@ bool kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
     if (column + 1 == ceil(columns / 2.0)) {
       angle = 0;
     }
     {
-      Frame *frame = kite_frame_generate(
-          KITE_ROTATION_ADD, kite_indexs_append(i),
+      Frame *frame = tkbc_frame_generate(
+          KITE_ROTATION_ADD, tkbc_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = angle}), duration);
 
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
     i++;
 
@@ -358,11 +356,11 @@ bool kite_script_team_arc(Env *env, Kite_Indexs kite_index_array,
     }
   }
 
-  kite_register_frames_array(env, &frames);
+  tkbc_register_frames_array(env, &frames);
   return true;
 }
 
-bool kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
+bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
                             size_t v_padding, size_t h_padding, Vector2 offset,
                             float angle, float duration) {
   angle = -angle;
@@ -397,7 +395,7 @@ bool kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
     }
     {
       Frame *frame =
-          kite_frame_generate(KITE_MOVE, kite_indexs_append(i),
+          tkbc_frame_generate(KITE_MOVE, tkbc_indexs_append(i),
                               &(CLITERAL(Move_Action){
                                   .position.x = anchor.x + x_space * column,
                                   .position.y = anchor.y + y_space * row,
@@ -407,20 +405,20 @@ bool kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
     if (column + 1 == ceil(columns / 2.0)) {
       angle = 0;
     }
     {
-      Frame *frame = kite_frame_generate(
-          KITE_ROTATION_ADD, kite_indexs_append(i),
+      Frame *frame = tkbc_frame_generate(
+          KITE_ROTATION_ADD, tkbc_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = angle}), duration);
 
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
     i++;
 
@@ -436,18 +434,18 @@ bool kite_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
     }
   }
 
-  kite_register_frames_array(env, &frames);
+  tkbc_register_frames_array(env, &frames);
   return true;
 }
 
-void kite_script_team_line(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_line(Env *env, Kite_Indexs kite_index_array,
                            size_t h_padding, Vector2 offset, float duration) {
 
-  kite_script_team_grid(env, kite_index_array, 1, kite_index_array.count, 0,
+  tkbc_script_team_grid(env, kite_index_array, 1, kite_index_array.count, 0,
                         h_padding, offset, duration);
 }
 
-bool kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
+bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
                            Vector2 offset, float duration) {
 
@@ -475,7 +473,7 @@ bool kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
         break;
       }
       Frame *frame =
-          kite_frame_generate(KITE_MOVE, kite_indexs_append(i++),
+          tkbc_frame_generate(KITE_MOVE, tkbc_indexs_append(i++),
                               &(CLITERAL(Move_Action){
                                   .position.x = anchor.x + x_space * column,
                                   .position.y = anchor.y + y_space * row,
@@ -485,15 +483,15 @@ bool kite_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
       if (frame == NULL)
         return false;
 
-      kite_dap(&frames, *frame);
+      tkbc_dap(&frames, *frame);
     }
   }
 
-  kite_register_frames_array(env, &frames);
+  tkbc_register_frames_array(env, &frames);
   return true;
 }
 
-void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                           DIRECTION direction, float angle, float box_size,
                           float duration) {
 
@@ -502,7 +500,7 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
     angle = -angle;
   }
 
-  kite_register_frames(env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+  tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                                 &(CLITERAL(Move_Add_Action){
                                                     .position.x = 0,
                                                     .position.y = -box_size / 2,
@@ -510,15 +508,15 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                 duration));
 
   // TODO: Implement the none adding rotation
-  kite_register_frames(
-      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
   switch (direction) {
   case LEFT: {
-    kite_register_frames(env,
-                         kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(env,
+                         tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                              &(CLITERAL(Move_Add_Action){
                                                  .position.x = -box_size,
                                                  .position.y = 0,
@@ -527,8 +525,8 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
 
   } break;
   case RIGHT: {
-    kite_register_frames(env,
-                         kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(env,
+                         tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                              &(CLITERAL(Move_Add_Action){
                                                  .position.x = box_size,
                                                  .position.y = 0,
@@ -541,12 +539,12 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
   }
 
   // TODO: Implement the none adding rotation
-  kite_register_frames(
-      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
-  kite_register_frames(env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+  tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                                 &(CLITERAL(Move_Add_Action){
                                                     .position.x = 0,
                                                     .position.y = box_size,
@@ -554,16 +552,16 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                 duration));
 
   // TODO: Implement the none adding rotation
-  kite_register_frames(
-      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
   switch (direction) {
   case LEFT: {
 
-    kite_register_frames(env,
-                         kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(env,
+                         tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                              &(CLITERAL(Move_Add_Action){
                                                  .position.x = box_size,
                                                  .position.y = 0,
@@ -571,8 +569,8 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                              duration));
   } break;
   case RIGHT: {
-    kite_register_frames(env,
-                         kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(env,
+                         tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                              &(CLITERAL(Move_Add_Action){
                                                  .position.x = -box_size,
                                                  .position.y = 0,
@@ -584,12 +582,12 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
   }
 
   // TODO: Implement the none adding rotation
-  kite_register_frames(
-      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
-  kite_register_frames(env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+  tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                                 &(CLITERAL(Move_Add_Action){
                                                     .position.x = 0,
                                                     .position.y = -box_size / 2,
@@ -597,17 +595,17 @@ void kite_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                 duration));
 }
 
-void kite_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
                                float box_size, float duration) {
-  kite_script_team_box(env, kite_index_array, LEFT, 90, box_size, duration);
+  tkbc_script_team_box(env, kite_index_array, LEFT, 90, box_size, duration);
 }
 
-void kite_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
                                 float box_size, float duration) {
-  kite_script_team_box(env, kite_index_array, RIGHT, 90, box_size, duration);
+  tkbc_script_team_box(env, kite_index_array, RIGHT, 90, box_size, duration);
 }
 
-void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                              DIRECTION direction, float angle, float box_size,
                              float duration) {
 
@@ -616,15 +614,15 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   }
 
   // TODO: Implement the none adding rotation
-  kite_register_frames(
-      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle / 2}),
                                duration));
 
   switch (direction) {
   case RIGHT: {
-    kite_register_frames(
-        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(
+        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                  &(CLITERAL(Move_Add_Action){
                                      .position.x = box_size / sqrt(2),
                                      .position.y = -box_size / sqrt(2),
@@ -633,8 +631,8 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
 
   } break;
   case LEFT: {
-    kite_register_frames(
-        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(
+        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                  &(CLITERAL(Move_Add_Action){
                                      .position.x = -box_size / sqrt(2),
                                      .position.y = -box_size / sqrt(2),
@@ -647,15 +645,15 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   }
 
   // TODO: Implement the none adding rotation
-  kite_register_frames(
-      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
   switch (direction) {
   case RIGHT: {
-    kite_register_frames(
-        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(
+        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                  &(CLITERAL(Move_Add_Action){
                                      .position.x = box_size / sqrt(2),
                                      .position.y = box_size / sqrt(2),
@@ -663,8 +661,8 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                  duration));
   } break;
   case LEFT: {
-    kite_register_frames(
-        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(
+        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                  &(CLITERAL(Move_Add_Action){
                                      .position.x = -box_size / sqrt(2),
                                      .position.y = box_size / sqrt(2),
@@ -676,15 +674,15 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   }
 
   // TODO: Implement the none adding rotation
-  kite_register_frames(
-      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
   switch (direction) {
   case RIGHT: {
-    kite_register_frames(
-        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(
+        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                  &(CLITERAL(Move_Add_Action){
                                      .position.x = -box_size / sqrt(2),
                                      .position.y = box_size / sqrt(2),
@@ -692,8 +690,8 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                  duration));
   } break;
   case LEFT: {
-    kite_register_frames(
-        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(
+        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                  &(CLITERAL(Move_Add_Action){
                                      .position.x = box_size / sqrt(2),
                                      .position.y = box_size / sqrt(2),
@@ -705,15 +703,15 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   }
 
   // TODO: Implement the none adding rotation
-  kite_register_frames(
-      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
   switch (direction) {
   case RIGHT: {
-    kite_register_frames(
-        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(
+        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                  &(CLITERAL(Move_Add_Action){
                                      .position.x = -box_size / sqrt(2),
                                      .position.y = -box_size / sqrt(2),
@@ -721,8 +719,8 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                  duration));
   } break;
   case LEFT: {
-    kite_register_frames(
-        env, kite_frame_generate(KITE_MOVE_ADD, kite_index_array,
+    tkbc_register_frames(
+        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                  &(CLITERAL(Move_Add_Action){
                                      .position.x = box_size / sqrt(2),
                                      .position.y = -box_size / sqrt(2),
@@ -734,20 +732,20 @@ void kite_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   }
 
   // TODO: Implement the none adding rotation
-  kite_register_frames(
-      env, kite_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle / 2}),
                                duration));
 }
 
-void kite_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
                                   float box_size, float duration) {
-  kite_script_team_dimond(env, kite_index_array, LEFT, 90, box_size, duration);
+  tkbc_script_team_dimond(env, kite_index_array, LEFT, 90, box_size, duration);
 }
 
-void kite_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
+void tkbc_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
                                    float box_size, float duration) {
-  kite_script_team_dimond(env, kite_index_array, RIGHT, 90, box_size, duration);
+  tkbc_script_team_dimond(env, kite_index_array, RIGHT, 90, box_size, duration);
 }
 
 #endif // TKBC_TEAM_FIGURES_API_IMPLEMENTATION

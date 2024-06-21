@@ -9,11 +9,11 @@
 #include "tkbc.h"
 
 /**
- * @brief The function kite_env_init() initializes a new Env.
+ * @brief The function initializes a new Env.
  *
  * @return The new allocated Env.
  */
-Env *kite_init_env() {
+Env *tkbc_init_env() {
   Env *env = calloc(1, sizeof(*env));
   if (env == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
@@ -57,20 +57,20 @@ Env *kite_init_env() {
  *
  * @return state The new allocated state.
  */
-Kite_State *kite_init_kite() {
+Kite_State *tkbc_init_kite() {
   Kite_State *state = calloc(1, sizeof(*state));
   if (state == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
   }
 
-  kite_set_kite_state_defaults(state);
+  tkbc_set_kite_state_defaults(state);
   state->kite = calloc(1, sizeof(*state->kite));
   if (state->kite == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
   }
-  kite_set_kite_defaults(state->kite, true);
+  tkbc_set_kite_defaults(state->kite, true);
 
   int viewport_padding = state->kite->width > state->kite->height
                              ? state->kite->width / 2
@@ -78,7 +78,7 @@ Kite_State *kite_init_kite() {
 
   Vector2 start_pos = {.y = GetScreenHeight() - 2 * viewport_padding,
                        .x = state->kite->center.x};
-  kite_center_rotation(state->kite, &start_pos, state->kite->center_rotation);
+  tkbc_center_rotation(state->kite, &start_pos, state->kite->center_rotation);
   return state;
 }
 
@@ -87,20 +87,20 @@ Kite_State *kite_init_kite() {
  *
  * @param env The global state of the application.
  */
-void kite_destroy_env(Env *env) {
-  kite_destroy_kite_array(env);
+void tkbc_destroy_env(Env *env) {
+  tkbc_destroy_kite_array(env);
   free(env->kite_array->elements);
   free(env->kite_array);
 
   free(env->index_blocks->elements);
-  kite_destroy_frames(env->frames);
+  tkbc_destroy_frames(env->frames);
   free(env->frames->elements);
   free(env->frames);
 
   // This could be a double free because the pointer is used in the current
   // frames as well, let the operating system free it.
   // ---------------------------------------------
-  // kite_destroy_frames(env->scratch_buf_frames);
+  // tkbc_destroy_frames(env->scratch_buf_frames);
   // ---------------------------------------------
 
   free(env->scratch_buf_frames->elements);
@@ -113,7 +113,7 @@ void kite_destroy_env(Env *env) {
  *
  * @param state The current state of a kite.
  */
-void kite_destroy_kite(Kite_State *state) { free(state->kite); }
+void tkbc_destroy_kite(Kite_State *state) { free(state->kite); }
 
 /**
  * @brief The function frees all the kites that are currently in the global
@@ -121,9 +121,9 @@ void kite_destroy_kite(Kite_State *state) { free(state->kite); }
  *
  * @param env The global state of the application.
  */
-void kite_destroy_kite_array(Env *env) {
+void tkbc_destroy_kite_array(Env *env) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    kite_destroy_kite(&env->kite_array->elements[i]);
+    tkbc_destroy_kite(&env->kite_array->elements[i]);
   }
 }
 
@@ -134,18 +134,18 @@ void kite_destroy_kite_array(Env *env) {
  *
  * @param env The global state of the application.
  */
-void kite_kite_array_generate(Env *env, size_t kite_count) {
+void tkbc_kite_array_generate(Env *env, size_t kite_count) {
 
   Color color_array[] = {BLUE, GREEN, PURPLE, RED, TEAL};
 
   for (size_t i = 0; i < kite_count; ++i) {
-    kite_dap(env->kite_array, *kite_init_kite());
+    tkbc_dap(env->kite_array, *tkbc_init_kite());
     env->kite_array->elements[i].id = i;
     env->kite_array->elements[i].kite->body_color =
         color_array[i % ARRAY_LENGTH(color_array)];
   }
 
-  kite_kite_array_start_position(env);
+  tkbc_kite_array_start_position(env);
 }
 
 /**
@@ -154,7 +154,7 @@ void kite_kite_array_generate(Env *env, size_t kite_count) {
  *
  * @param env The global state of the application.
  */
-void kite_kite_array_start_position(Env *env) {
+void tkbc_kite_array_start_position(Env *env) {
 
   assert(env->kite_array->count != 0);
 
@@ -168,9 +168,9 @@ void kite_kite_array_start_position(Env *env) {
                             kite_width / 2.0f};
 
   for (size_t i = 0; i < kites_count; ++i) {
-    kite_set_kite_state_defaults(&env->kite_array->elements[i]);
-    kite_set_kite_defaults(env->kite_array->elements[i].kite, false);
-    kite_center_rotation(env->kite_array->elements[i].kite, &start_pos, 0);
+    tkbc_set_kite_state_defaults(&env->kite_array->elements[i]);
+    tkbc_set_kite_defaults(env->kite_array->elements[i].kite, false);
+    tkbc_center_rotation(env->kite_array->elements[i].kite, &start_pos, 0);
     start_pos.x += 2 * kite_width;
   }
 }
@@ -183,7 +183,7 @@ void kite_kite_array_start_position(Env *env) {
  * @param is_generated Chooses the information if the function is called by a
  * generator or as a reset of the values.
  */
-void kite_set_kite_defaults(Kite *kite, bool is_generated) {
+void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
   if (is_generated) {
     kite->center.x = 0;
     kite->center.y = 0;
@@ -214,7 +214,7 @@ void kite_set_kite_defaults(Kite *kite, bool is_generated) {
   kite->spread *= kite->scale;
   kite->width *= kite->scale * 2;
 
-  kite_center_rotation(kite, NULL, kite->center_rotation);
+  tkbc_center_rotation(kite, NULL, kite->center_rotation);
 
   kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
 
@@ -230,7 +230,7 @@ void kite_set_kite_defaults(Kite *kite, bool is_generated) {
  *
  * @param state The state for which the values will be changed to defaults.
  */
-void kite_set_kite_state_defaults(Kite_State *state) {
+void tkbc_set_kite_state_defaults(Kite_State *state) {
 
   state->id = 0;
   state->kite_input_handler_active = false;
@@ -255,7 +255,7 @@ void kite_set_kite_state_defaults(Kite_State *state) {
  * edge or NULL for internal center position of the kite structure.
  * @param center_deg_rotation The rotation of the kite.
  */
-void kite_center_rotation(Kite *kite, Vector2 *position,
+void tkbc_center_rotation(Kite *kite, Vector2 *position,
                           float center_deg_rotation) {
   Vector2 pos = {0};
   if (position != NULL) {
@@ -321,11 +321,11 @@ void kite_center_rotation(Kite *kite, Vector2 *position,
  * angle.
  * @param tip The tip chosen left or right around where the kite is turning.
  */
-void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
+void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
                        TIP tip) {
 
   if (position != NULL) {
-    kite_center_rotation(kite, position, kite->center_rotation);
+    tkbc_center_rotation(kite, position, kite->center_rotation);
   }
 
   float_t length = (kite->width / 2.f + kite->spread);
@@ -359,7 +359,7 @@ void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
   }
 
   // Just compute a center rotation instead at the new found position
-  kite_center_rotation(kite, &pos, tip_deg_rotation);
+  tkbc_center_rotation(kite, &pos, tip_deg_rotation);
 }
 
 /**
@@ -373,11 +373,11 @@ void kite_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
  * circle.
  * @param below The area where the rotation will happen.
  */
-void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
+void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
                           TIP tip, bool below) {
 
   if (position != NULL) {
-    kite_center_rotation(kite, position, kite->center_rotation);
+    tkbc_center_rotation(kite, position, kite->center_rotation);
   }
 
   Vector2 pos = {0};
@@ -435,7 +435,7 @@ void kite_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
  *
  * @param kite The kite that is going to be modified.
  */
-void kite_draw_kite(Kite *kite) {
+void tkbc_draw_kite(Kite *kite) {
   Vector2 origin = {0};
 
   // Draw a color-filled triangle (vertex in counter-clockwise order!)
@@ -451,8 +451,8 @@ void kite_draw_kite(Kite *kite) {
  *
  * @param env The global state of the application.
  */
-void kite_draw_kite_array(Env *env) {
+void tkbc_draw_kite_array(Env *env) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    kite_draw_kite(env->kite_array->elements[i].kite);
+    tkbc_draw_kite(env->kite_array->elements[i].kite);
   }
 }

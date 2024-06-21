@@ -50,18 +50,18 @@ int main(void) {
   Texture2D background_texture = LoadTextureFromImage(background_image);
 #endif /* ifdef LOADIMAGE */
 
-  Sound kite_sound = kite_init_sound(40);
+  Sound kite_sound = tkbc_init_sound(40);
 
-  Env *env = kite_init_env();
-  kite_kite_array_generate(env, 9);
+  Env *env = tkbc_init_env();
+  tkbc_kite_array_generate(env, 9);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
-    if (!kite_script_finished(env)) {
-      kite_script_input(env);
-      kite_script_update_frames(env);
+    if (!tkbc_script_finished(env)) {
+      tkbc_script_input(env);
+      tkbc_script_update_frames(env);
     }
 
 #ifdef LOADIMAGE
@@ -71,16 +71,16 @@ int main(void) {
     DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
 #endif /* ifdef LOADIMAGE */
 
-    kite_draw_kite_array(env);
+    tkbc_draw_kite_array(env);
     DrawFPS(center_pos.x, 10);
     EndDrawing();
 
-    kite_sound_handler(&kite_sound);
-    kite_input_handler_kite_array(env);
+    tkbc_sound_handler(&kite_sound);
+    tkbc_input_handler_kite_array(env);
   };
 
-  kite_destroy_env(env);
-  kite_sound_destroy(kite_sound);
+  tkbc_destroy_env(env);
+  tkbc_sound_destroy(kite_sound);
   CloseWindow();
   return 0;
 }
