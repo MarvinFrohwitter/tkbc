@@ -251,6 +251,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
 
   env->frames->block_index = block_index;
   tkbc_dap(env->index_blocks, block_index);
+  env->scratch_buf_frames->count = 0;
 }
 
 Kite_Indexs tkbc__indexs_append(size_t _, ...) {
