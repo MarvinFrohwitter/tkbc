@@ -77,6 +77,7 @@ typedef enum { FIXED, SMOOTH } PARAMETERS;
 typedef enum { LEFT_TIP, RIGHT_TIP } TIP;
 typedef enum { KITE_Y, KITE_X } ORIENTATION;
 typedef enum { LEFT, RIGHT } DIRECTION;
+typedef enum { ODD, EVEN } ODD_EVEN;
 
 typedef struct {
   float angle;
