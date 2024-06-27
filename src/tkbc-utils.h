@@ -76,6 +76,7 @@
     }                                                                          \
   } while (0)
 
+void tkbc_print_cmd(const char *cmd[]);
 int tkbc_check_boundary(Kite *kite, ORIENTATION orientation);
 float tkbc_clamp(float z, float a, float b);
 float tkbc_lerp(float a, float b, float t);
@@ -88,6 +89,27 @@ int tkbc_max(int a, int b);
 #ifdef TKBC_UTILS_IMPLEMENTATION
 
 // ========================== KITE UTILS =====================================
+
+void tkbc_print_cmd(const char *cmd[]) {
+  struct {
+    char *elements;
+    size_t count;
+    size_t capacity;
+
+  } cmd_string = {0};
+
+  size_t i = 0;
+  while (cmd[i] != NULL) {
+
+    tkbc_dapc(&cmd_string, cmd[i], strlen(cmd[i]));
+    tkbc_dap(&cmd_string, ' ');
+    i++;
+  }
+  tkbc_dap(&cmd_string, '\0');
+
+  fprintf(stderr, "[INFO] [CMD] %s\n", cmd_string.elements);
+  free(cmd_string.elements);
+}
 
 /**
  * @brief The function checks if the kite is still in the displayed window in
@@ -117,8 +139,8 @@ int tkbc_check_boundary(Kite *kite, ORIENTATION orientation) {
 }
 
 /**
- * @brief The function checks if the point z is between the range a and b and if
- * not returns the closer point of thous.
+ * @brief The function checks if the point z is between the range a and b and
+ * if not returns the closer point of thous.
  *
  * @param z The value to check for the range a and b.
  * @param a The minimum range value.

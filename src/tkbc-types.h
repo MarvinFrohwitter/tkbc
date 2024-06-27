@@ -174,6 +174,7 @@ typedef struct {
   Frames *scratch_buf_frames;
 
   // -------FFMPEG-------
+  bool recording;
   bool rendering;
   int pipe;
   pid_t pid;
