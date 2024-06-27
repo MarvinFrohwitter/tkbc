@@ -23,6 +23,11 @@ void tkbc_ffmpeg_write_image(Env *env);
 #include <sys/wait.h>
 #include <unistd.h>
 
+#ifndef TKBC_UTILS_IMPLEMENTATION
+#define TKBC_UTILS_IMPLEMENTATION
+#include <tkbc-utils.h>
+#endif // TKBC_UTILS_IMPLEMENTATION
+
 bool tkbc_ffmpeg_end(Env *env) {
 
   SetTraceLogLevel(LOG_ALL);
@@ -32,12 +37,15 @@ bool tkbc_ffmpeg_end(Env *env) {
             "ERROR: The ffmpeg_end function could not close the pipe: %d: %s\n",
             env->pipe, strerror(errno));
   }
+  env->recording = false;
+  bool status = tkbc_ffmpeg_wait(env->pid);
   env->rendering = false;
-  return tkbc_ffmpeg_wait(env->pid);
+  return status;
 }
 
 bool tkbc_ffmpeg_create_proc(Env *env) {
   SetTraceLogLevel(LOG_INFO);
+  env->recording = true;
   env->rendering = true;
   int fildes[2];
   int pipe_status = pipe(fildes);
@@ -47,8 +55,6 @@ bool tkbc_ffmpeg_create_proc(Env *env) {
   }
 
   char resolution[32] = {0};
-  // snprintf(resolution, sizeof(resolution), "%zux%zu", env->window_width,
-  // env->window_height);
   snprintf(resolution, sizeof(resolution), "%dx%d", GetScreenWidth(),
            GetScreenHeight());
   char fps[32] = {0};
@@ -75,36 +81,43 @@ bool tkbc_ffmpeg_create_proc(Env *env) {
               fildes[1], strerror(errno));
     }
 
-    const char *ffmpeg_cmd[] = {"ffmpeg",    "-loglevel", "verbose",  "-y",
+    int return_code;
+    if (env->sound_file_name == NULL) {
+      const char *ffmpeg_cmd[] = {"ffmpeg",    "-loglevel", "verbose",  "-y",
 
-                                "-f",        "rawvideo",  "-pix_fmt", "rgba",
-                                "-s",        resolution,  "-r",       fps,
+                                  "-f",        "rawvideo",  "-pix_fmt", "rgba",
+                                  "-s",        resolution,  "-r",       fps,
 
-                                "-i",        "pipe:0",
+                                  "-i",        "pipe:0",
 
-                                "-c:v",      "libx264",   "-vb",      "2500k",
-                                "-c:a",      "aac",       "-ab",      "200k",
-                                "-pix_fmt",  "yuv420p",
+                                  "-c:v",      "libx264",   "-vb",      "2500k",
+                                  "-c:a",      "aac",       "-ab",      "200k",
+                                  "-pix_fmt",  "yuv420p",
 
-                                "video.mp4", NULL};
+                                  "video.mp4", NULL};
 
-    struct {
-      char *elements;
-      size_t count;
-      size_t capacity;
+      tkbc_print_cmd(ffmpeg_cmd);
+      return_code = execvp("ffmpeg", (char *const *)ffmpeg_cmd);
 
-    } cmd_string = {0};
+    } else {
+      const char *ffmpeg_cmd[] = {
+          "ffmpeg",    "-loglevel", "verbose",  "-y",
 
-    for (size_t i = 0; i < ARRAY_LENGTH(ffmpeg_cmd); ++i) {
-      tkbc_dapc(&cmd_string, ffmpeg_cmd[i], strlen(ffmpeg_cmd[i]));
-      tkbc_dap(&cmd_string, ' ');
+          "-f",        "rawvideo",  "-pix_fmt", "rgba",
+          "-s",        resolution,  "-r",       fps,
+
+          "-i",        "pipe:0",    "-i",       env->sound_file_name,
+
+          "-c:v",      "libx264",   "-vb",      "2500k",
+          "-c:a",      "aac",       "-ab",      "200k",
+          "-pix_fmt",  "yuv420p",
+
+          "video.mp4", NULL};
+
+      tkbc_print_cmd(ffmpeg_cmd);
+      return_code = execvp("ffmpeg", (char *const *)ffmpeg_cmd);
     }
-    tkbc_dap(&cmd_string, '\0');
 
-    fprintf(stderr, "[INFO] %s\n", cmd_string.elements);
-    free(cmd_string.elements);
-
-    int return_code = execvp("ffmpeg", (char *const *)ffmpeg_cmd);
     if (return_code < 0) {
       fprintf(stderr, "[ERROR]: The execvp has failed with:%s\n",
               strerror(errno));

@@ -9,28 +9,28 @@
 
 #ifndef TKBC_TEAM_FIGURES_API_IMPLEMENTATION
 #define TKBC_TEAM_FIGURES_API_IMPLEMENTATION
-#endif // TKBC_TEAM_FIGURES_API_IMPLEMENTATION
 #include "tkbc-team-figures-api.h"
+#endif // TKBC_TEAM_FIGURES_API_IMPLEMENTATION
 
 #ifndef TKBC_INPUT_HANDLER_IMPLEMENTATION
 #define TKBC_INPUT_HANDLER_IMPLEMENTATION
-#endif // TKBC_INPUT_HANDLER_IMPLEMENTATION
 #include "tkbc-input-handler.h"
+#endif // TKBC_INPUT_HANDLER_IMPLEMENTATION
 
 #ifndef TKBC_SCRIPT_HANDLER_IMPLEMENTATION
 #define TKBC_SCRIPT_HANDLER_IMPLEMENTATION
-#endif // TKBC_SCRIPT_HANDLER_IMPLEMENTATION
 #include "tkbc-script-handler.h"
+#endif // TKBC_SCRIPT_HANDLER_IMPLEMENTATION
 
 #ifndef TKBC_SOUND_IMPLEMENTATION
 #define TKBC_SOUND_IMPLEMENTATION
-#endif // TKBC_SOUND_IMPLEMENTATION
 #include "tkbc-sound-handler.h"
+#endif // TKBC_SOUND_IMPLEMENTATION
 
 #ifndef TKBC_FFMPEG_IMPLEMENTATION
 #define TKBC_FFMPEG_IMPLEMENTATION
-#endif // TKBC_FFMPEG_IMPLEMENTATION
 #include "tkbc-ffmpeg.h"
+#endif // TKBC_FFMPEG_IMPLEMENTATION
 
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
@@ -97,6 +97,10 @@ int main(void) {
     if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) &&
         IsKeyPressed(KEY_V)) {
       tkbc_ffmpeg_end(env);
+    }
+
+    if (env->rendering) {
+      DrawCircleV(CLITERAL(Vector2){20, 20}, 10, RED);
     }
   };
 
