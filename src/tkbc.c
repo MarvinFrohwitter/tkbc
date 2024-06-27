@@ -52,7 +52,7 @@ Env *tkbc_init_env() {
   env->pipe = 0;
   // TODO: The resulting fps is not in every case the target fps.
   env->fps = TARGET_FPS;
-  env->sound_file_name = 0;
+  env->sound_file_name = NULL;
   return env;
 }
 
