@@ -10,6 +10,7 @@
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
 #define EPSILON 0.001f
+static const int TARGET_FPS = 120;
 
 // ===========================================================================
 // ===========================================================================
@@ -82,6 +83,13 @@ void tkbc_draw_kite_array(Env *env);
 #undef TKBC_SOUND_IMPLEMENTATION
 #endif // TKBC_SOUND_IMPLEMENTATION
 #include "tkbc-sound-handler.h"
+
+// ========================== FFMPEG Handler ==================================
+
+#ifdef TKBC_FFMPEG_IMPLEMENTATION
+#undef TKBC_FFMPEG_IMPLEMENTATION
+#endif // TKBC_FFMPEG_IMPLEMENTATION
+#include "tkbc-ffmpeg.h"
 
 // ========================== KITE UTILS =====================================
 

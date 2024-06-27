@@ -3,6 +3,7 @@
 
 #include <raylib.h>
 #include <stdio.h>
+#include <sys/types.h>
 
 // ===========================================================================
 // ========================== TKBC KITE TYPES =================================
@@ -168,8 +169,15 @@ typedef struct {
 
   size_t window_width;
   size_t window_height;
+  int fps;
 
   Frames *scratch_buf_frames;
+
+  // -------FFMPEG-------
+  bool rendering;
+  int pipe;
+  pid_t pid;
+
 } Env;
 
 #endif // TKBC_TYPES_H_
