@@ -1,6 +1,7 @@
 #ifndef TKBC_SOUND_H_
 #define TKBC_SOUND_H_
 
+#include "tkbc-types.h"
 #include <raylib.h>
 #include <stdio.h>
 
@@ -10,7 +11,7 @@
 
 Sound tkbc_init_sound(size_t master_volume);
 void tkbc_sound_destroy(Sound sound);
-void tkbc_sound_handler(Sound *kite_sound);
+void tkbc_sound_handler(Env *env, Sound *kite_sound);
 
 #endif // TKBC_SOUND_H_
 
@@ -19,6 +20,8 @@ void tkbc_sound_handler(Sound *kite_sound);
 #ifdef TKBC_SOUND_IMPLEMENTATION
 
 // ========================== Sound Handler ==================================
+
+#include <string.h>
 
 /**
  * @brief [TODO:description]
@@ -50,16 +53,29 @@ void tkbc_sound_destroy(Sound sound) {
 /**
  * @brief The function checks for key presses related to the audio. And if any
  * audio file has been dropped into the application.
+ *
+ * @param env [TODO:parameter]
+ * @param kite_sound [TODO:parameter]
  */
-void tkbc_sound_handler(Sound *kite_sound) {
+void tkbc_sound_handler(Env *env, Sound *kite_sound) {
 
   if (IsFileDropped()) {
     FilePathList file_path_list = LoadDroppedFiles();
+    char *file_path;
     for (size_t i = 0; i < file_path_list.count && i < 1; ++i) {
-      char *file_path = file_path_list.paths[i];
-      fprintf(stderr, "ERROR: FILE: PATH :MUSIC: %s\n", file_path);
+      file_path = file_path_list.paths[i];
+      fprintf(stderr, "INFO: FILE: PATH :MUSIC: %s\n", file_path);
       *kite_sound = LoadSound(file_path);
     }
+
+    env->sound_file_name =
+        realloc(env->sound_file_name, sizeof(char) * strlen(file_path) + 1);
+    if (env->sound_file_name == NULL) {
+      fprintf(stderr, "The allocation has failed in: %s: %d\n", __FILE__,
+              __LINE__);
+    }
+    strncpy(env->sound_file_name, file_path, strlen(file_path));
+
     UnloadDroppedFiles(file_path_list);
   }
 
