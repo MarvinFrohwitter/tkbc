@@ -2,7 +2,7 @@ CC = cc
 RAYLIBPATH = external/raylib-5.0/src
 INCLUDE = -I ${RAYLIBPATH} -I tkbc_scripts/ -I build/ -I src/
 LIBS = -lraylib -lm
-CFLAGS = -x c -O3 -pedantic -Wall -Wextra -std=c11 -ggdb
+CFLAGS = -x c -O0 -pedantic -Wall -Wextra -ggdb
 
 all: options tkbc raylib build
 

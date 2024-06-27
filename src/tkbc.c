@@ -48,6 +48,10 @@ Env *tkbc_init_env() {
   env->global_block_index = 0;
   env->max_block_index = 0;
   env->attempts_block_index = 0;
+  env->rendering = false;
+  env->pipe = 0;
+  // TODO: The resulting fps is not in every case the target fps.
+  env->fps = TARGET_FPS;
   return env;
 }
 
