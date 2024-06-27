@@ -7,7 +7,6 @@
 
 #include "first.c"
 
-
 #ifndef TKBC_TEAM_FIGURES_API_IMPLEMENTATION
 #define TKBC_TEAM_FIGURES_API_IMPLEMENTATION
 #endif // TKBC_TEAM_FIGURES_API_IMPLEMENTATION
@@ -38,7 +37,7 @@
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 
 /**
- * @brief The main function that handles the event loop and the sound loading.
+ * @brief The main function that handles the event loop.
  *
  * @return int Returns 0 if no errors occur.
  */
@@ -86,7 +85,7 @@ int main(void) {
     DrawFPS(center_pos.x, 10);
     EndDrawing();
 
-    tkbc_sound_handler(&kite_sound);
+    tkbc_sound_handler(env, &kite_sound);
     tkbc_input_handler_kite_array(env);
 
     if (IsKeyPressed(KEY_V)) {

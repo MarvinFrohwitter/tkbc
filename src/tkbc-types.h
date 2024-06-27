@@ -177,6 +177,7 @@ typedef struct {
   bool rendering;
   int pipe;
   pid_t pid;
+  char *sound_file_name;
 
 } Env;
 
