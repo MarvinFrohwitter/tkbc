@@ -3,6 +3,7 @@
 
 #include "tkbc-types.h"
 
+void tkbc_ffmpeg_handler(Env *env);
 bool tkbc_ffmpeg_create_proc(Env *env);
 bool tkbc_ffmpeg_end(Env *env);
 bool tkbc_ffmpeg_wait(pid_t pid);
@@ -27,6 +28,20 @@ void tkbc_ffmpeg_write_image(Env *env);
 #define TKBC_UTILS_IMPLEMENTATION
 #include <tkbc-utils.h>
 #endif // TKBC_UTILS_IMPLEMENTATION
+
+void tkbc_ffmpeg_handler(Env *env) {
+  // The handler has to be carefully checked because the same key is used
+  // multiple times and that can cause problems, with reinitializing the
+  // ffmpeg child process where the old one is still running.
+  if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) &&
+      IsKeyPressed(KEY_V)) {
+    tkbc_ffmpeg_end(env);
+  } else if (IsKeyPressed(KEY_V)) {
+    tkbc_ffmpeg_create_proc(env);
+  }
+
+  tkbc_ffmpeg_write_image(env);
+}
 
 bool tkbc_ffmpeg_end(Env *env) {
 
@@ -83,16 +98,16 @@ bool tkbc_ffmpeg_create_proc(Env *env) {
 
     int return_code;
     if (env->sound_file_name == NULL) {
-      const char *ffmpeg_cmd[] = {"ffmpeg",    "-loglevel", "verbose",  "-y",
+      const char *ffmpeg_cmd[] = {"ffmpeg", "-loglevel", "verbose", "-y",
 
-                                  "-f",        "rawvideo",  "-pix_fmt", "rgba",
-                                  "-s",        resolution,  "-r",       fps,
+                                  "-f", "rawvideo", "-pix_fmt", "rgba", "-s",
+                                  resolution,
+                                  "-r",       fps,
 
-                                  "-i",        "pipe:0",
+                                  "-i", "pipe:0",
 
-                                  "-c:v",      "libx264",   "-vb",      "2500k",
-                                  "-c:a",      "aac",       "-ab",      "200k",
-                                  "-pix_fmt",  "yuv420p",
+                                  "-c:v", "libx264", "-vb", "2500k", "-c:a",
+                                  "aac", "-ab", "200k", "-pix_fmt", "yuv420p",
 
                                   "video.mp4", NULL};
 

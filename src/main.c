@@ -69,11 +69,6 @@ int main(void) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
 
-    if (!tkbc_script_finished(env)) {
-      tkbc_script_input(env);
-      tkbc_script_update_frames(env);
-    }
-
 #ifdef LOADIMAGE
     float scale_width = (float)GetScreenWidth() / background_texture.width;
     float scale_height = (float)GetScreenHeight() / background_texture.height;
@@ -81,27 +76,26 @@ int main(void) {
     DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
 #endif /* ifdef LOADIMAGE */
 
-    tkbc_draw_kite_array(env);
+#ifdef RENDER_DEBUG
+    if (env->rendering) {
+      DrawCircleV(CLITERAL(Vector2){20, 20}, 10, RED);
+    }
     DrawFPS(center_pos.x, 10);
+#endif // RENDER_DEBUG
+
+    if (!tkbc_script_finished(env)) {
+      tkbc_script_input(env);
+      tkbc_script_update_frames(env);
+    }
+
+    tkbc_draw_kite_array(env);
     EndDrawing();
 
     tkbc_sound_handler(env, &kite_sound);
     tkbc_input_handler_kite_array(env);
-
-    if (IsKeyPressed(KEY_V)) {
-      tkbc_ffmpeg_create_proc(env);
-    }
-
-    tkbc_ffmpeg_write_image(env);
-
-    if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) &&
-        IsKeyPressed(KEY_V)) {
-      tkbc_ffmpeg_end(env);
-    }
-
-    if (env->rendering) {
-      DrawCircleV(CLITERAL(Vector2){20, 20}, 10, RED);
-    }
+    // The end of the current frame has to be executed so ffmpeg gets the full
+    // executed fame.
+    tkbc_ffmpeg_handler(env);
   };
 
   tkbc_destroy_env(env);
