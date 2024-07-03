@@ -37,7 +37,9 @@ void tkbc_ffmpeg_handler(Env *env) {
       IsKeyPressed(KEY_V)) {
     tkbc_ffmpeg_end(env);
   } else if (IsKeyPressed(KEY_V)) {
-    tkbc_ffmpeg_create_proc(env);
+    if (!env->rendering) {
+      tkbc_ffmpeg_create_proc(env);
+    }
   }
 
   tkbc_ffmpeg_write_image(env);
@@ -45,7 +47,6 @@ void tkbc_ffmpeg_handler(Env *env) {
 
 bool tkbc_ffmpeg_end(Env *env) {
 
-  SetTraceLogLevel(LOG_ALL);
   int close_status = close(env->pipe);
   if (close_status < 0) {
     fprintf(stderr,
@@ -59,7 +60,6 @@ bool tkbc_ffmpeg_end(Env *env) {
 }
 
 bool tkbc_ffmpeg_create_proc(Env *env) {
-  SetTraceLogLevel(LOG_INFO);
   env->recording = true;
   env->rendering = true;
   int fildes[2];
@@ -98,16 +98,16 @@ bool tkbc_ffmpeg_create_proc(Env *env) {
 
     int return_code;
     if (env->sound_file_name == NULL) {
-      const char *ffmpeg_cmd[] = {"ffmpeg", "-loglevel", "verbose", "-y",
+      const char *ffmpeg_cmd[] = {"ffmpeg",    "-loglevel", "verbose",  "-y",
 
-                                  "-f", "rawvideo", "-pix_fmt", "rgba", "-s",
-                                  resolution,
-                                  "-r",       fps,
+                                  "-f",        "rawvideo",  "-pix_fmt", "rgba",
+                                  "-s",        resolution,  "-r",       fps,
 
-                                  "-i", "pipe:0",
+                                  "-i",        "pipe:0",
 
-                                  "-c:v", "libx264", "-vb", "2500k", "-c:a",
-                                  "aac", "-ab", "200k", "-pix_fmt", "yuv420p",
+                                  "-c:v",      "libx264",   "-vb",      "2500k",
+                                  "-c:a",      "aac",       "-ab",      "200k",
+                                  "-pix_fmt",  "yuv420p",
 
                                   "video.mp4", NULL};
 

@@ -35,6 +35,7 @@
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
+#define RENDER_DEBUG
 
 /**
  * @brief The main function that handles the event loop.
