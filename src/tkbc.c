@@ -13,7 +13,7 @@
  *
  * @return The new allocated Env.
  */
-Env *tkbc_init_env() {
+Env *tkbc_init_env(void) {
   Env *env = calloc(1, sizeof(*env));
   if (env == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
@@ -63,7 +63,7 @@ Env *tkbc_init_env() {
  *
  * @return state The new allocated state.
  */
-Kite_State *tkbc_init_kite() {
+Kite_State *tkbc_init_kite(void) {
   Kite_State *state = calloc(1, sizeof(*state));
   if (state == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");

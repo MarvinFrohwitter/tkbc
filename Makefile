@@ -1,4 +1,4 @@
-CC = cc
+CC = clang
 RAYLIBPATH = external/raylib-5.0/src
 INCLUDE = -I ${RAYLIBPATH} -I tkbc_scripts/ -I build/ -I src/
 LIBS = -lraylib -lm
@@ -17,7 +17,7 @@ tkbc: build raylib first.o
 	${CC} ${INCLUDE} ${CFLAGS} ${LIBS} -o build/tkbc src/main.c src/tkbc.c
 
 first.o: build raylib
-	${CC} ${INCLUDE} ${CFLAGS} ${LIBS} -c tkbc_scripts/first.c -o build/first.o
+	${CC} ${INCLUDE} ${CFLAGS} -c tkbc_scripts/first.c -o build/first.o
 
 raylib:
 	$(MAKE) -C ${RAYLIBPATH}

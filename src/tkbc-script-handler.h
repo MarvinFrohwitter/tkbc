@@ -8,7 +8,7 @@
 // ===========================================================================
 
 
-Frame *tkbc_init_frame();
+Frame *tkbc_init_frame(void);
 void tkbc_register_frame(Env *env, Frame *frame);
 void tkbc_destroy_frames(Frames *frames);
 void tkbc_frame_reset(Frame *frame);
@@ -40,7 +40,7 @@ void tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration);
  *
  * @return A new on the heap allocated frame region is given back.
  */
-Frame *tkbc_init_frame() {
+Frame *tkbc_init_frame(void) {
   Frame *frame = calloc(1, sizeof(*frame));
   if (frame == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
