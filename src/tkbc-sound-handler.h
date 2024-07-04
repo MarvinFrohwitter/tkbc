@@ -61,6 +61,9 @@ void tkbc_sound_handler(Env *env, Sound *kite_sound) {
 
   if (IsFileDropped()) {
     FilePathList file_path_list = LoadDroppedFiles();
+    if (file_path_list.count == 0) {
+      return;
+    }
     char *file_path;
     for (size_t i = 0; i < file_path_list.count && i < 1; ++i) {
       file_path = file_path_list.paths[i];
@@ -68,13 +71,14 @@ void tkbc_sound_handler(Env *env, Sound *kite_sound) {
       *kite_sound = LoadSound(file_path);
     }
 
+    int length = strlen(file_path);
     env->sound_file_name =
-        realloc(env->sound_file_name, sizeof(char) * strlen(file_path) + 1);
+        realloc(env->sound_file_name, sizeof(char) * length + 1);
     if (env->sound_file_name == NULL) {
       fprintf(stderr, "The allocation has failed in: %s: %d\n", __FILE__,
               __LINE__);
     }
-    strncpy(env->sound_file_name, file_path, strlen(file_path));
+    strncpy(env->sound_file_name, file_path, length);
 
     UnloadDroppedFiles(file_path_list);
   }
