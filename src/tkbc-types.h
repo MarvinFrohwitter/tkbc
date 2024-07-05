@@ -180,6 +180,12 @@ typedef struct {
   pid_t pid;
   char *sound_file_name;
 
+  // -------UI-------
+  Rectangle timeline_base;
+  Rectangle timeline_front;
+  bool hover_over_timeline;
+  bool timeline_interaction;
+
 } Env;
 
 #endif // TKBC_TYPES_H_

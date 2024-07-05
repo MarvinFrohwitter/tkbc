@@ -11,8 +11,8 @@ void tkbc_script_input(Env *env) {
   size_t h_padding = 0;
   size_t v_padding = 0;
   Vector2 offset = {0};
-  Vector2 position = {.x = GetScreenWidth() / 2.0,
-                      .y = GetScreenHeight() / 2.0};
+  Vector2 position = {.x = env->window_width / 2.0,
+                      .y = env->window_height / 2.0};
   float duration = 6;
   Kite *kite = env->kite_array->elements[0].kite;
   float ball_radius = (kite->width + kite->spread);
@@ -27,8 +27,13 @@ void tkbc_script_input(Env *env) {
                        tkbc_script_wait(1.5), tkbc_script_frames_quit(7));
 
   tkbc_script_team_line(env, ki, h_padding, offset, duration);
-
   tkbc_register_frames(env, tkbc_script_wait(1));
+  tkbc_script_team_ball(env, ki, position, offset, ball_radius, duration);
+  tkbc_register_frames(env, tkbc_script_wait(20));
+
+
+
+
 
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
@@ -39,7 +44,6 @@ void tkbc_script_input(Env *env) {
   tkbc_script_team_split_box_up(env, ki, EVEN, 300, 10, 5);
   tkbc_register_frames(env, tkbc_script_wait(1));
 
-  tkbc_script_team_ball(env, ki, position, offset, ball_radius, duration);
 
   tkbc_register_frames(env, tkbc_script_wait(1));
 

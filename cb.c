@@ -30,7 +30,7 @@ int main(void) {
   CFLAGS(&cmd, "-x", "c");
   CFLAGS(&cmd, "-O3", "-pedantic", "-Wall", "-Wextra", "-ggdb");
   LIBS(&cmd, "-lraylib", "-lm");
-  cb_cmd_push(&cmd, "-o", "build/tkbc", "src/main.c", "src/tkbc.c");
+  cb_cmd_push(&cmd, "-o", "build/tkbc", "src/main.c", "src/tkbc.c", "/src/tkbc-ui.c");
   if (!cb_run_sync(&cmd))
     return 1;
 

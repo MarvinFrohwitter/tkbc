@@ -14,7 +14,7 @@ options:
 
 
 tkbc: build raylib first.o
-	${CC} ${INCLUDE} ${CFLAGS} ${LIBS} -o build/tkbc src/main.c src/tkbc.c
+	${CC} ${INCLUDE} ${CFLAGS} ${LIBS} -o build/tkbc src/main.c src/tkbc.c src/tkbc-ui.c
 
 first.o: build raylib
 	${CC} ${INCLUDE} ${CFLAGS} -c tkbc_scripts/first.c -o build/first.o

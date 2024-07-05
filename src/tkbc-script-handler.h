@@ -2,11 +2,11 @@
 #define TKBC_SCRIPT_HANDLER_H_
 
 #include "tkbc-types.h"
+#include <raylib.h>
 
 // ===========================================================================
 // ========================== Script Handler =================================
 // ===========================================================================
-
 
 Frame *tkbc_init_frame(void);
 void tkbc_register_frame(Env *env, Frame *frame);
@@ -16,6 +16,7 @@ void tkbc_render_frame(Env *env, Frame *frame);
 
 bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
+void tkbc_scrub_frames(Env *env);
 
 // ===========================================================================
 // ========================== SCRIPT HANDLER INTERNAL ========================
@@ -24,7 +25,6 @@ size_t tkbc_check_finished_frames_count(Env *env);
 void tkbc_script_move(Kite *kite, Vector2 position, float duration);
 void tkbc_script_rotate(Kite *kite, float angle, float duration);
 void tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration);
-
 
 #endif // TKBC_SCRIPT_HANDLER_H_
 
@@ -315,8 +315,30 @@ size_t tkbc_check_finished_frames_count(Env *env) {
   return count;
 }
 
-// ========================== SCRIPT HANDLER INTERNAL ========================
+void tkbc_scrub_frames(Env *env) {
+  if (env->max_block_index == 0) {
+    return;
+  }
 
+  int drag_left = 1;
+  if (IsKeyDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
+    if (drag_left) {
+      // The block indexes are assumed in order and at the corresponding index.
+      env->index_blocks->count = env->frames->block_index;
+
+    } else {
+
+      // The index should not be set to zero every time the begin script
+      // function is executed.
+      env->global_block_index++;
+      tkbc_dap(env->index_blocks, env->global_block_index);
+
+      // env->frames = new Frame();
+    }
+  }
+}
+
+// ========================== SCRIPT HANDLER INTERNAL ========================
 
 void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
 

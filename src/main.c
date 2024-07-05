@@ -35,7 +35,6 @@
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
-#define RENDER_DEBUG
 
 /**
  * @brief The main function that handles the event loop.
@@ -50,10 +49,6 @@ int main(void) {
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(TARGET_FPS);
   SetExitKey(KEY_ESCAPE);
-  int width = GetScreenWidth();
-  int height = GetScreenHeight();
-  Vector2 center_pos = {width / 2.f, height / 2.f};
-  fprintf(stdout, "The POS:" VECTOR2_FMT "\n", Vector2_FMT_ARGS(center_pos));
 
 #ifdef LOADIMAGE
   Image background_image =
@@ -71,25 +66,22 @@ int main(void) {
     ClearBackground(SKYBLUE);
 
 #ifdef LOADIMAGE
-    float scale_width = (float)GetScreenWidth() / background_texture.width;
-    float scale_height = (float)GetScreenHeight() / background_texture.height;
+    float scale_width = (float)env->window_width / background_texture.width;
+    float scale_height = (float)env->window_height / background_texture.height;
     float scale = fmaxf(scale_width, scale_height);
     DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
 #endif /* ifdef LOADIMAGE */
 
-#ifdef RENDER_DEBUG
-    if (env->rendering) {
-      DrawCircleV(CLITERAL(Vector2){20, 20}, 10, RED);
-    }
-    DrawFPS(center_pos.x, 10);
-#endif // RENDER_DEBUG
 
     if (!tkbc_script_finished(env)) {
       tkbc_script_input(env);
       tkbc_script_update_frames(env);
+
+      tkbc_scrub_frames(env);
     }
 
     tkbc_draw_kite_array(env);
+    tkbc_draw_ui(env);
     EndDrawing();
 
     tkbc_sound_handler(env, &kite_sound);

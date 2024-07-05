@@ -147,8 +147,8 @@ bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
                                size_t v_padding, size_t h_padding,
                                Vector2 offset, float duration) {
 
-  int w = GetScreenWidth();
-  int h = GetScreenHeight();
+  int w = env->window_width;
+  int h = env->window_height;
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
   Kite *kite = env->kite_array->elements[0].kite;
@@ -219,8 +219,8 @@ bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
                              size_t v_padding, size_t h_padding, Vector2 offset,
                              float duration) {
 
-  int w = GetScreenWidth();
-  int h = GetScreenHeight();
+  int w = env->window_width;
+  int h = env->window_height;
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
   Kite *kite = env->kite_array->elements[0].kite;
@@ -292,8 +292,8 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                           float angle, float duration) {
 
   float start_angle = angle;
-  int w = GetScreenWidth();
-  int h = GetScreenHeight();
+  int w = env->window_width;
+  int h = env->window_height;
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
   Kite *kite = env->kite_array->elements[0].kite;
@@ -370,8 +370,8 @@ bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
                             float angle, float duration) {
   angle = -angle;
   float start_angle = angle;
-  int w = GetScreenWidth();
-  int h = GetScreenHeight();
+  int w = env->window_width;
+  int h = env->window_height;
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
   Kite *kite = env->kite_array->elements[0].kite;
@@ -454,8 +454,8 @@ bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
                            Vector2 offset, float duration) {
 
-  int w = GetScreenWidth();
-  int h = GetScreenHeight();
+  int w = env->window_width;
+  int h = env->window_height;
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
   Kite *kite = env->kite_array->elements[0].kite;

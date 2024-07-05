@@ -41,8 +41,8 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
-  env->window_height = GetScreenHeight();
   env->window_width = GetScreenWidth();
+  env->window_height = GetScreenHeight();
   env->script_interrupt = false;
   env->script_finished = false;
   env->global_block_index = 0;
@@ -54,6 +54,22 @@ Env *tkbc_init_env(void) {
   // TODO: The resulting fps is not in every case the target fps.
   env->fps = TARGET_FPS;
   env->sound_file_name = NULL;
+
+  float margin = 10;
+  env->timeline_base.width = env->window_width / 2.0f;
+  env->timeline_base.height = env->window_height / 42.0f;
+  env->timeline_base.x = env->window_width / 4.0f;
+  env->timeline_base.y =
+      env->window_height - env->timeline_base.height - margin;
+
+  env->timeline_front.width = 10;
+  env->timeline_front.height = env->timeline_base.height;
+  env->timeline_front.x = env->window_width / 4.0f;
+  env->timeline_front.y =
+      env->window_height - env->timeline_base.height - margin;
+  env->hover_over_timeline = false;
+  env->timeline_interaction = false;
+
   return env;
 }
 
@@ -169,9 +185,9 @@ void tkbc_kite_array_start_position(Env *env) {
   float kite_heigt = env->kite_array->elements[0].kite->height;
   int viewport_padding = kite_width > kite_heigt ? kite_width / 2 : kite_heigt;
 
-  Vector2 start_pos = {.y = GetScreenHeight() - 2 * viewport_padding,
-                       .x = GetScreenWidth() / 2.0f - kites_count * kite_width +
-                            kite_width / 2.0f};
+  Vector2 start_pos = {.x = env->window_width / 2.0f -
+                            kites_count * kite_width + kite_width / 2.0f,
+                       .y = env->window_height - 2 * viewport_padding};
 
   for (size_t i = 0; i < kites_count; ++i) {
     tkbc_set_kite_state_defaults(&env->kite_array->elements[i]);
@@ -194,8 +210,8 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
     kite->center.x = 0;
     kite->center.y = 0;
 
-    kite->center.x = GetScreenWidth() / 2.f;
-    kite->center.y = GetScreenHeight() / 2.f;
+    kite->center.x = GetScreenWidth() / 2.0f;
+    kite->center.y = GetScreenHeight() / 2.0f;
   }
 
   kite->fly_speed = 30;
@@ -204,7 +220,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
   if (is_generated) {
     kite->body_color = TEAL;
   }
-  kite->overlap = 8.f;
+  kite->overlap = 8.0f;
   kite->inner_space = 20.f;
 
   kite->top_color = DARKGRAY;
@@ -212,7 +228,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
 
   kite->width = 20.0f;
   kite->height = 0.0f;
-  kite->scale = 4.f;
+  kite->scale = 4.0f;
   kite->center_rotation = 0;
 
   kite->overlap *= kite->scale;

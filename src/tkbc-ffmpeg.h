@@ -70,8 +70,8 @@ bool tkbc_ffmpeg_create_proc(Env *env) {
   }
 
   char resolution[32] = {0};
-  snprintf(resolution, sizeof(resolution), "%dx%d", GetScreenWidth(),
-           GetScreenHeight());
+  snprintf(resolution, sizeof(resolution), "%zux%zu", env->window_width,
+           env->window_height);
   char fps[32] = {0};
   snprintf(fps, sizeof(fps), "%d", env->fps);
 

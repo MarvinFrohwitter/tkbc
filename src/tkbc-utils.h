@@ -121,8 +121,8 @@ void tkbc_print_cmd(const char *cmd[]) {
  * @return True if the kite is in the window, otherwise false.
  */
 int tkbc_check_boundary(Kite *kite, ORIENTATION orientation) {
-  float width = GetScreenWidth();
-  float height = GetScreenHeight();
+  size_t width = GetScreenWidth();
+  size_t height = GetScreenHeight();
   float x = kite->center.x;
   float y = kite->center.y;
   size_t padding = kite->width / 2;
