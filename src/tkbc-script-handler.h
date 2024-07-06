@@ -321,7 +321,7 @@ void tkbc_scrub_frames(Env *env) {
   }
 
   int drag_left = 1;
-  if (IsKeyDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
+  if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
     if (drag_left) {
       // The block indexes are assumed in order and at the corresponding index.
       env->index_blocks->count = env->frames->block_index;
