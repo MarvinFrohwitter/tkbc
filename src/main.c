@@ -72,13 +72,11 @@ int main(void) {
     DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
 #endif /* ifdef LOADIMAGE */
 
-
     if (!tkbc_script_finished(env)) {
       tkbc_script_input(env);
       tkbc_script_update_frames(env);
-
-      tkbc_scrub_frames(env);
     }
+    tkbc_scrub_frames(env);
 
     tkbc_draw_kite_array(env);
     tkbc_draw_ui(env);

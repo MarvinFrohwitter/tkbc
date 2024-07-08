@@ -164,6 +164,7 @@ typedef struct {
   size_t max_block_index;
   size_t attempts_block_index;
 
+  bool script_setup;
   bool script_interrupt;
   bool script_finished;
 
@@ -183,7 +184,12 @@ typedef struct {
   // -------UI-------
   Rectangle timeline_base;
   Rectangle timeline_front;
-  bool hover_over_timeline;
+
+  float timeline_segment_width;
+  float timeline_segments_width;
+  size_t timeline_segments;
+
+  bool timeline_hoverover;
   bool timeline_interaction;
 
 } Env;

@@ -320,7 +320,8 @@ void tkbc_scrub_frames(Env *env) {
     return;
   }
 
-  int drag_left = 1;
+  bool drag_left =
+      GetMouseX() - env->timeline_front.x + env->timeline_front.width <= 0;
   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
     if (drag_left) {
       // The block indexes are assumed in order and at the corresponding index.
@@ -330,8 +331,8 @@ void tkbc_scrub_frames(Env *env) {
 
       // The index should not be set to zero every time the begin script
       // function is executed.
-      env->global_block_index++;
-      tkbc_dap(env->index_blocks, env->global_block_index);
+      // env->global_block_index++;
+      // tkbc_dap(env->index_blocks, env->global_block_index);
 
       // env->frames = new Frame();
     }

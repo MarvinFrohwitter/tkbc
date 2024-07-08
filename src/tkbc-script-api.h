@@ -1,6 +1,7 @@
 #ifndef TKBC_SCRIPT_API_H_
 #define TKBC_SCRIPT_API_H_
 
+#include "tkbc-script-handler.h"
 #include "tkbc-types.h"
 #include <stdbool.h>
 
@@ -19,8 +20,13 @@ bool tkbc_script_finished(Env *env);
 // ========================== SCRIPT HANDLER API =============================
 // ===========================================================================
 
-Frame *tkbc_script_wait(float duration);
-Frame *tkbc_script_frames_quit(float duration);
+Frame *tkbc__script_wait(Env *env, float duration);
+#define tkbc_script_wait(duration) tkbc__script_wait(env, duration)
+
+Frame *tkbc__script_frames_quit(Env *env, float duration);
+#define tkbc_script_frames_quit(duration)                                      \
+  tkbc__script_frames_quit(env, duration)
+
 Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
                             void *raw_action, float duration);
 #define tkbc_frame_generate(kind, kite_indexs, raw_action, duration)           \
@@ -57,24 +63,33 @@ void tkbc_script_begin(Env *env) {
 
 void tkbc_script_end(Env *env) {
   env->script_interrupt = false;
-
+  size_t old_max_block_index = env->max_block_index;
   if (!env->script_finished) {
     env->max_block_index =
         tkbc_max(env->max_block_index, env->attempts_block_index);
   }
 
-  if (env->max_block_index - 1 <= env->frames->block_index &&
-      !env->script_finished) {
-    env->script_finished = true;
-    env->global_block_index = 0;
-    env->max_block_index = 0;
-    env->attempts_block_index = 0;
+  if (env->script_setup) {
+    env->script_setup = false;
+    return;
+  }
 
-    printf("KITE: INFO: The script has finished successfully.\n");
+  if (env->max_block_index == old_max_block_index &&
+      tkbc_check_finished_frames(env) &&
+      env->frames->block_index + 1 == env->max_block_index) {
 
-    // TODO: Think about loading a new script.
-    // env->index_blocks->count = 0;
-    // free the blocks
+    if (!env->script_finished) {
+      env->script_finished = true;
+      env->global_block_index = 0;
+      env->max_block_index = 0;
+      env->attempts_block_index = 0;
+
+      printf("KITE: INFO: The script has finished successfully.\n");
+
+      // TODO: Think about loading a new script.
+      // env->index_blocks->count = 0;
+      // free the blocks
+    }
   }
 }
 
@@ -97,7 +112,14 @@ bool tkbc_script_finished(Env *env) {
 
 // ========================== SCRIPT HANDLER API =============================
 
-Frame *tkbc_script_wait(float duration) {
+Frame *tkbc__script_wait(Env *env, float duration) {
+  if (env->script_finished) {
+    return NULL;
+  }
+  if (!tkbc_check_finished_frames(env)) {
+    return NULL;
+  }
+
   Wait_Action *action;
   action_alloc(Wait_Action);
   action->starttime = GetTime();
@@ -121,7 +143,14 @@ Frame *tkbc_script_wait(float duration) {
  * @return The frame that is constructed to represent the force quit frame-block
  * frame.
  */
-Frame *tkbc_script_frames_quit(float duration) {
+Frame *tkbc__script_frames_quit(Env *env, float duration) {
+  if (env->script_finished) {
+    return NULL;
+  }
+  if (!tkbc_check_finished_frames(env)) {
+    return NULL;
+  }
+
   Quit_Action *action;
   action_alloc(Quit_Action);
   action->starttime = GetTime();

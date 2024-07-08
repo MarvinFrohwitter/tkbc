@@ -41,6 +41,7 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
+  env->script_setup = true;
   env->window_width = GetScreenWidth();
   env->window_height = GetScreenHeight();
   env->script_interrupt = false;
@@ -51,7 +52,6 @@ Env *tkbc_init_env(void) {
   env->recording = false;
   env->rendering = false;
   env->pipe = 0;
-  // TODO: The resulting fps is not in every case the target fps.
   env->fps = TARGET_FPS;
   env->sound_file_name = NULL;
 
@@ -62,12 +62,16 @@ Env *tkbc_init_env(void) {
   env->timeline_base.y =
       env->window_height - env->timeline_base.height - margin;
 
-  env->timeline_front.width = 10;
+  env->timeline_front.width = 0;
   env->timeline_front.height = env->timeline_base.height;
   env->timeline_front.x = env->window_width / 4.0f;
   env->timeline_front.y =
       env->window_height - env->timeline_base.height - margin;
-  env->hover_over_timeline = false;
+
+  env->timeline_segment_width = 0;
+  env->timeline_segments_width = 0;
+  env->timeline_segments = 0;
+  env->timeline_hoverover = false;
   env->timeline_interaction = false;
 
   return env;
