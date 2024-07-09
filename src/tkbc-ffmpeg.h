@@ -30,6 +30,9 @@ void tkbc_ffmpeg_write_image(Env *env);
 #endif // TKBC_UTILS_IMPLEMENTATION
 
 void tkbc_ffmpeg_handler(Env *env) {
+  if (IsKeyPressed(KEY_B)) {
+    TakeScreenshot("1.png");
+  }
   // The handler has to be carefully checked because the same key is used
   // multiple times and that can cause problems, with reinitializing the
   // ffmpeg child process where the old one is still running.

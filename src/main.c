@@ -76,7 +76,6 @@ int main(void) {
       tkbc_script_input(env);
       tkbc_script_update_frames(env);
     }
-    tkbc_scrub_frames(env);
 
     tkbc_draw_kite_array(env);
     tkbc_draw_ui(env);
@@ -84,6 +83,7 @@ int main(void) {
 
     tkbc_sound_handler(env, &kite_sound);
     tkbc_input_handler_kite_array(env);
+    tkbc_input_handler_script(env);
     // The end of the current frame has to be executed so ffmpeg gets the full
     // executed fame.
     tkbc_ffmpeg_handler(env);

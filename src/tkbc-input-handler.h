@@ -37,6 +37,10 @@ void tkbc_input_check_mouse(Kite_State *state);
  * @param state The current state of a kite that should be handled.
  */
 void tkbc_input_handler(Env *env, Kite_State *state) {
+  // Hard reset to startposition angel 0
+  if (IsKeyDown(KEY_ENTER))
+    tkbc_kite_array_start_position(env);
+
   if (!state->kite_input_handler_active) {
     return;
   }
@@ -48,10 +52,6 @@ void tkbc_input_handler(Env *env, Kite_State *state) {
   state->turn_velocity *= state->kite->turn_speed;
   state->fly_velocity *= GetFrameTime();
   state->fly_velocity *= state->kite->fly_speed;
-
-  // Hard reset to top left corner angel 0, position (0,0)
-  if (IsKeyDown(KEY_SPACE))
-    tkbc_kite_array_start_position(env);
 
   if (IsKeyDown(KEY_N))
     tkbc_center_rotation(state->kite, NULL, 0);
@@ -102,10 +102,6 @@ void tkbc_input_handler(Env *env, Kite_State *state) {
  * @param env The global state of the application.
  */
 void tkbc_input_handler_kite_array(Env *env) {
-
-  if (IsKeyPressed(KEY_B)) {
-    TakeScreenshot("1.png");
-  }
 
   // To only handle 9 kites controllable by the keyboard.
   for (size_t i = 1; i <= 9; ++i) {

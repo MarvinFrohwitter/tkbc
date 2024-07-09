@@ -16,6 +16,7 @@ void tkbc_render_frame(Env *env, Frame *frame);
 
 bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
+void tkbc_input_handler_script(Env *env);
 void tkbc_scrub_frames(Env *env);
 
 // ===========================================================================
@@ -313,6 +314,14 @@ size_t tkbc_check_finished_frames_count(Env *env) {
   }
 
   return count;
+}
+
+void tkbc_input_handler_script(Env *env) {
+  if (IsKeyPressed(KEY_SPACE)) {
+    env->script_finished = !env->script_finished;
+  }
+
+  tkbc_scrub_frames(env);
 }
 
 void tkbc_scrub_frames(Env *env) {
