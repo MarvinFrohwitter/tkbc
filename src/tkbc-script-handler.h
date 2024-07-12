@@ -78,6 +78,7 @@ Frame *tkbc_init_frame(void) {
 void tkbc_register_frame(Env *env, Frame *frame) {
 
   tkbc_dap(env->frames, *frame);
+  tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(env->frames));
 
   assert(env->frames->count != 0);
   env->frames->elements[env->frames->count - 1].index = env->frames->count - 1;
@@ -384,9 +385,18 @@ void tkbc_scrub_frames(Env *env) {
   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
     if (drag_left) {
       // The block indexes are assumed in order and at the corresponding index.
-      env->index_blocks->count = env->frames->block_index;
+      size_t index = env->index_blocks->count = env->frames->block_index - 1;
+      env->frames = tkbc_deep_copy_frames(&env->block_frames->elements[index]);
+      // TODO: Set the kites to the correct position and angle.
 
     } else {
+      // Just for now the forward scrolling can be done if the requested frame
+      // was played before.
+      if (env->max_block_index >= env->frames->block_index) {
+        size_t index = env->index_blocks->count = env->frames->block_index + 1;
+        env->frames =
+            tkbc_deep_copy_frames(&env->block_frames->elements[index]);
+      }
 
       // The index should not be set to zero every time the begin script
       // function is executed.

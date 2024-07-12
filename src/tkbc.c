@@ -35,6 +35,12 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
+  env->block_frames = calloc(1, sizeof(*env->block_frames));
+  if (env->block_frames == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
   env->scratch_buf_frames = calloc(1, sizeof(*env->scratch_buf_frames));
   if (env->scratch_buf_frames == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
@@ -122,6 +128,11 @@ void tkbc_destroy_env(Env *env) {
   tkbc_destroy_frames(env->frames);
   free(env->frames->elements);
   free(env->frames);
+
+  // TODO: Check for memory leaks
+  tkbc_destroy_frames(env->block_frames->elements);
+  free(env->block_frames->elements);
+  free(env->block_frames);
 
   // This could be a double free because the pointer is used in the current
   // frames as well, let the operating system free it.
