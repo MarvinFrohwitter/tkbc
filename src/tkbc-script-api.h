@@ -289,7 +289,10 @@ Kite_Indexs tkbc__indexs_append(size_t _, ...) {
   va_list args;
   va_start(args, _);
   for (;;) {
-    Index index = va_arg(args, Index);
+    // NOTE:(compiler) clang has a compiler bug that can not use size_t or
+    // equivalent unsigned long int in variadic functions.
+    // So the option was to just use unsigned int instead.
+    Index index = va_arg(args, unsigned int);
     if (INT_MAX != index) {
       tkbc_dap(&ki, index);
     } else {
