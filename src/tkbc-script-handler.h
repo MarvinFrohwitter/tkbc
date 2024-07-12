@@ -2,7 +2,9 @@
 #define TKBC_SCRIPT_HANDLER_H_
 
 #include "tkbc-types.h"
+#include "tkbc.h"
 #include <raylib.h>
+#include <string.h>
 
 // ===========================================================================
 // ========================== Script Handler =================================
@@ -10,6 +12,7 @@
 
 Frame *tkbc_init_frame(void);
 void tkbc_register_frame(Env *env, Frame *frame);
+Frames *tkbc_deep_copy_frames(Frames *frames);
 void tkbc_destroy_frames(Frames *frames);
 void tkbc_frame_reset(Frame *frame);
 void tkbc_render_frame(Env *env, Frame *frame);
@@ -98,6 +101,53 @@ void tkbc_register_frame(Env *env, Frame *frame) {
   default:
     break;
   }
+}
+
+Frames *tkbc_deep_copy_frames(Frames *frames) {
+  Frames *new_frames = calloc(1, sizeof(*new_frames));
+  if (new_frames == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
+  for (size_t i = 0; i < frames->count; ++i) {
+    Frame new_frame = frames->elements[i];
+
+    void *old_action = frames->elements[i].action;
+    if (old_action == NULL) {
+      tkbc_dap(new_frames, new_frame);
+      continue;
+    } else {
+      void *action;
+      action_alloc(frames->elements[i].kind);
+      memcpy(action, frames->elements[i].action,
+             sizeof(frames->elements[i].action));
+      new_frame.action = action;
+    }
+
+    Kite_Indexs *old_kite_index_array = frames->elements[i].kite_index_array;
+    if (old_kite_index_array == NULL) {
+      tkbc_dap(new_frames, new_frame);
+      continue;
+    }
+
+    Kite_Indexs *new_kite_index_array =
+        calloc(1, sizeof(*new_kite_index_array));
+    if (new_kite_index_array == NULL) {
+      fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+      return NULL;
+    }
+
+    tkbc_dapc(new_kite_index_array, old_kite_index_array->elements,
+              old_kite_index_array->count);
+
+    new_frame.kite_index_array = new_kite_index_array;
+
+    tkbc_dap(new_frames, new_frame);
+  }
+
+  new_frames->block_index = frames->block_index;
+  return new_frames;
 }
 
 void tkbc_destroy_frames(Frames *frames) {
