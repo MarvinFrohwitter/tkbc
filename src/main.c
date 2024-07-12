@@ -52,7 +52,7 @@ int main(void) {
 
 #ifdef LOADIMAGE
   Image background_image =
-      LoadImage("/home/marvin/Entwicklung/c/tkbc/src/assets/raw.png");
+      LoadImage("/home/marvin/Entwicklung/c/tkbc/assets/background.png");
   Texture2D background_texture = LoadTextureFromImage(background_image);
 #endif /* ifdef LOADIMAGE */
 
