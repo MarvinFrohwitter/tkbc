@@ -29,6 +29,14 @@ Env *tkbc_init_env(void) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
   }
+
+  env->frames->kite_frame_positions =
+      calloc(1, sizeof(*env->frames->kite_frame_positions));
+  if (env->frames->kite_frame_positions == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
   env->index_blocks = calloc(1, sizeof(*env->index_blocks));
   if (env->index_blocks == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
@@ -43,6 +51,13 @@ Env *tkbc_init_env(void) {
 
   env->scratch_buf_frames = calloc(1, sizeof(*env->scratch_buf_frames));
   if (env->scratch_buf_frames == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
+  env->scratch_buf_frames->kite_frame_positions =
+      calloc(1, sizeof(*env->scratch_buf_frames->kite_frame_positions));
+  if (env->scratch_buf_frames->kite_frame_positions == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
   }
@@ -126,20 +141,24 @@ void tkbc_destroy_env(Env *env) {
 
   free(env->index_blocks->elements);
   tkbc_destroy_frames(env->frames);
+  free(env->frames->kite_frame_positions);
   free(env->frames->elements);
   free(env->frames);
 
   // TODO: Check for memory leaks
-  tkbc_destroy_frames(env->block_frames->elements);
+  for (size_t i = 0; i < env->block_frames->count; ++i) {
+    tkbc_destroy_frames(&env->block_frames->elements[i]);
+  }
   free(env->block_frames->elements);
   free(env->block_frames);
 
-  // This could be a double free because the pointer is used in the current
-  // frames as well, let the operating system free it.
+  // TODO: This could be a double free because the pointer is used in the
+  // current frames as well, let the operating system free it.
   // ---------------------------------------------
-  // tkbc_destroy_frames(env->scratch_buf_frames);
+  tkbc_destroy_frames(env->scratch_buf_frames);
   // ---------------------------------------------
 
+  free(env->scratch_buf_frames->kite_frame_positions);
   free(env->scratch_buf_frames->elements);
   free(env->scratch_buf_frames);
   free(env);

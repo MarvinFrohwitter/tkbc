@@ -16,6 +16,13 @@ typedef struct {
 } Triangle;
 
 typedef struct {
+  size_t kite_id;
+  Vector2 position; // The position that is located at the center of the top
+                    // leading edge.
+  float angle;      // The rotation is in degrees around the center position.
+} Kite_Position;
+
+typedef struct {
   // Script only use
   float segment_size; // The rotation steps.
   float angle_sum; // The sum of angles of all frames where the kite is part of.
@@ -26,8 +33,9 @@ typedef struct {
       old_center; // The old position before the frame interpolation has stated.
 
   // ------------------------------------------------------------------------
-  Vector2 center; // The center position that is located at the center of the
-                  // top leading edge.
+
+  Vector2 center; // The center position that is located at the center of
+                  // the top leading edge.
 
   Color body_color; // The color that is set for the kite body.
   Triangle left;    // The left Triangle that forms the kite body.
@@ -124,7 +132,7 @@ typedef enum {
   KITE_TIP_ROTATION
 } Action_Kind;
 
-typedef size_t Index;
+typedef unsigned int Index;
 typedef struct {
   Index *elements;
   size_t count;
@@ -141,11 +149,20 @@ typedef struct {
 } Frame;
 
 typedef struct {
+  Kite_Position *elements;
+  size_t count;
+  size_t capacity;
+} Kite_Positions;
+
+typedef struct {
   Frame *elements;
   size_t count;
   size_t capacity;
 
   size_t block_index;
+
+  Kite_Positions
+      *kite_frame_positions; // The position of the kite in the current frame.
 } Frames;
 
 typedef struct {

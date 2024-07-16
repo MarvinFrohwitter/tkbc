@@ -17,6 +17,7 @@ void tkbc_destroy_frames(Frames *frames);
 void tkbc_frame_reset(Frame *frame);
 void tkbc_render_frame(Env *env, Frame *frame);
 
+void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames);
 bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
 void tkbc_input_handler_script(Env *env);
@@ -78,7 +79,6 @@ Frame *tkbc_init_frame(void) {
 void tkbc_register_frame(Env *env, Frame *frame) {
 
   tkbc_dap(env->frames, *frame);
-  tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(env->frames));
 
   assert(env->frames->count != 0);
   env->frames->elements[env->frames->count - 1].index = env->frames->count - 1;
@@ -105,11 +105,18 @@ void tkbc_register_frame(Env *env, Frame *frame) {
 }
 
 Frames *tkbc_deep_copy_frames(Frames *frames) {
+  if (frames->elements == NULL || frames == NULL) {
+    return NULL;
+  }
+
   Frames *new_frames = calloc(1, sizeof(*new_frames));
   if (new_frames == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
   }
+  tkbc_dapc(new_frames->kite_frame_positions,
+            frames->kite_frame_positions->elements,
+            frames->kite_frame_positions->count);
 
   for (size_t i = 0; i < frames->count; ++i) {
     Frame new_frame = frames->elements[i];
@@ -121,8 +128,8 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
     } else {
       void *action;
       action_alloc(frames->elements[i].kind);
-      memcpy(action, frames->elements[i].action,
-             sizeof(frames->elements[i].action));
+      memcpy(action, frames->elements[i].action, sizeof(frames->elements[i].kind));
+
       new_frame.action = action;
     }
 
@@ -156,6 +163,10 @@ void tkbc_destroy_frames(Frames *frames) {
     for (size_t i = 0; i < frames->count; ++i) {
       free(frames->elements[i].kite_index_array);
       free(frames->elements[i].action);
+    }
+
+    if (frames->kite_frame_positions != NULL) {
+      free(frames->kite_frame_positions->elements);
     }
     frames->count = 0;
   }
@@ -347,6 +358,44 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   }
 }
 
+void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
+  for (size_t i = 0; i < frames->count; ++i) {
+    if (frames->elements[i].kite_index_array == NULL) {
+      continue;
+    }
+    for (size_t j = 0; j < frames->elements[i].kite_index_array->count; ++j) {
+      Index kite_index = frames->elements[i].kite_index_array->elements[j];
+      Kite_Position kite_position = {
+          .kite_id = kite_index,
+          .position = env->kite_array->elements[kite_index].kite->center,
+          .angle = env->kite_array->elements[kite_index].kite->center_rotation,
+      };
+
+      // For the case just frames buffer is on the stack allocated.
+      if (frames->kite_frame_positions == NULL) {
+        frames->kite_frame_positions =
+            calloc(1, sizeof(*frames->kite_frame_positions));
+        if (frames->kite_frame_positions == NULL) {
+          fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+          assert(0 && "ERROR: No more memory left!");
+        }
+      }
+
+      bool contains = false;
+      for (size_t k = 0; k < frames->kite_frame_positions->count; ++k) {
+        if (frames->kite_frame_positions->elements[k].kite_id == kite_index) {
+          contains = true;
+          break;
+        }
+      }
+
+      if (!contains) {
+        tkbc_dap(frames->kite_frame_positions, kite_position);
+      }
+    }
+  }
+}
+
 bool tkbc_check_finished_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
     if (!env->frames->elements[i].finished) {
@@ -392,11 +441,10 @@ void tkbc_scrub_frames(Env *env) {
     } else {
       // Just for now the forward scrolling can be done if the requested frame
       // was played before.
-      if (env->max_block_index >= env->frames->block_index) {
-        size_t index = env->index_blocks->count = env->frames->block_index + 1;
-        env->frames =
-            tkbc_deep_copy_frames(&env->block_frames->elements[index]);
-      }
+
+      // size_t index = env->index_blocks->count = env->frames->block_index + 1;
+      // env->frames =
+      //     tkbc_deep_copy_frames(&env->block_frames->elements[index]);
 
       // The index should not be set to zero every time the begin script
       // function is executed.

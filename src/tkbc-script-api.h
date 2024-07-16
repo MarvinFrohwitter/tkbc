@@ -258,17 +258,28 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     return;
   }
 
+  bool isscratch = false;
+  if (env->scratch_buf_frames == frames) {
+    isscratch = true;
+  }
+
   env->attempts_block_index++;
 
+  tkbc_patch_block_frames_kite_positions(env, frames);
+
   if (!tkbc_check_finished_frames(env)) {
-    tkbc_destroy_frames(frames);
+    if (!isscratch) {
+      tkbc_destroy_frames(frames);
+    }
     return;
   }
 
   size_t block_index = env->global_block_index++;
   for (size_t i = 0; i < env->index_blocks->count; ++i) {
     if (block_index == env->index_blocks->elements[i]) {
-      tkbc_destroy_frames(frames);
+      if (!isscratch) {
+        tkbc_destroy_frames(frames);
+      }
       return;
     }
   }
@@ -277,6 +288,8 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
   for (size_t i = 0; i < frames->count; ++i) {
     tkbc_register_frame(env, &frames->elements[i]);
   }
+
+  tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(env->frames));
 
   env->frames->block_index = block_index;
   tkbc_dap(env->index_blocks, block_index);
