@@ -60,22 +60,7 @@ Frame *tkbc_init_frame(void) {
   return frame;
 }
 
-#define tkbc_ra_setup(type)                                                    \
-  do {                                                                         \
-    for (size_t i = 0; i < frame->kite_index_array->count; ++i) {              \
-      type *ra = frame->action;                                                \
-      Kite *kite =                                                             \
-          env->kite_array->elements[frame->kite_index_array->elements[i]]      \
-              .kite;                                                           \
-                                                                               \
-      kite->segment_size += fabsf(ra->angle / frame->duration);                \
-      kite->remaining_angle += ra->angle;                                      \
-      kite->angle_sum += ra->angle;                                            \
-      kite->old_angle = kite->center_rotation;                                 \
-      kite->old_center = kite->center;                                         \
-    }                                                                          \
-  } while (0)
-
+// TODO: DEPRICATED
 void tkbc_register_frame(Env *env, Frame *frame) {
 
   tkbc_dap(env->frames, *frame);
@@ -114,6 +99,13 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
   }
+
+  new_frames->kite_frame_positions = calloc(1, sizeof(*new_frames->kite_frame_positions));
+  if (new_frames->kite_frame_positions == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
   tkbc_dapc(new_frames->kite_frame_positions,
             frames->kite_frame_positions->elements,
             frames->kite_frame_positions->count);
