@@ -32,7 +32,7 @@ void tkbc_ui_timeline(Env *env) {
     env->timeline_interaction = true;
   }
 
-  env->timeline_segments = env->frames->block_index;
+  env->timeline_segments = env->frames->block_index + 1;
   assert(env->timeline_segments <= env->max_block_index);
   assert(env->max_block_index != 0);
   env->timeline_segment_width = env->timeline_base.width / env->max_block_index;
