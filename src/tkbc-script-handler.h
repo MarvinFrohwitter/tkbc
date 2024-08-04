@@ -100,7 +100,8 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
     return NULL;
   }
 
-  new_frames->kite_frame_positions = calloc(1, sizeof(*new_frames->kite_frame_positions));
+  new_frames->kite_frame_positions =
+      calloc(1, sizeof(*new_frames->kite_frame_positions));
   if (new_frames->kite_frame_positions == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
@@ -118,11 +119,8 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
       tkbc_dap(new_frames, new_frame);
       continue;
     } else {
-      void *action;
-      action_alloc(frames->elements[i].kind);
-      memcpy(action, frames->elements[i].action, sizeof(frames->elements[i].kind));
-
-      new_frame.action = action;
+      new_frame.action = tkbc_move_action_to_heap(
+          frames->elements[i].action, frames->elements[i].kind, true);
     }
 
     Kite_Indexs *old_kite_index_array = frames->elements[i].kite_index_array;

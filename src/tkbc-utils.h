@@ -92,6 +92,7 @@
     }                                                                          \
   } while (0)
 
+void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy);
 void tkbc_print_cmd(const char *cmd[]);
 int tkbc_check_boundary(Kite *kite, ORIENTATION orientation);
 float tkbc_clamp(float z, float a, float b);
@@ -105,6 +106,50 @@ int tkbc_max(int a, int b);
 #ifdef TKBC_UTILS_IMPLEMENTATION
 
 // ========================== KITE UTILS =====================================
+
+void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy) {
+
+  void *action = NULL;
+  switch (kind) {
+  case KITE_WAIT:
+  case KITE_QUIT: {
+    if (copy) {
+      action_alloc(Wait_Action);
+      ((Wait_Action *)action)->starttime =
+          ((Wait_Action *)raw_action)->starttime;
+    }
+  } break;
+  case KITE_MOVE_ADD:
+  case KITE_MOVE: {
+    action_alloc(Move_Action);
+    ((Move_Action *)action)->position.x =
+        ((Move_Action *)raw_action)->position.x;
+    ((Move_Action *)action)->position.y =
+        ((Move_Action *)raw_action)->position.y;
+
+  } break;
+  case KITE_ROTATION_ADD: {
+
+    action_alloc(Rotation_Action);
+    ((Rotation_Action *)action)->angle = ((Rotation_Action *)raw_action)->angle;
+
+  } break;
+  case KITE_TIP_ROTATION: {
+
+    action_alloc(Tip_Rotation_Action);
+    ((Tip_Rotation_Action *)action)->tip =
+        ((Tip_Rotation_Action *)raw_action)->tip;
+
+    ((Tip_Rotation_Action *)action)->angle =
+        ((Tip_Rotation_Action *)raw_action)->angle;
+
+  } break;
+  default: {
+    assert(0 && "Unsupported Kite Action");
+  } break;
+  }
+  return action;
+}
 
 void tkbc_print_cmd(const char *cmd[]) {
   struct {

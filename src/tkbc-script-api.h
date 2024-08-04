@@ -189,38 +189,8 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
     return NULL;
   }
 
-  void *action;
   Frame *frame = tkbc_init_frame();
-  switch (kind) {
-  case KITE_MOVE_ADD:
-  case KITE_MOVE: {
-    action_alloc(Move_Action);
-    ((Move_Action *)action)->position.x =
-        ((Move_Action *)raw_action)->position.x;
-    ((Move_Action *)action)->position.y =
-        ((Move_Action *)raw_action)->position.y;
-
-  } break;
-  case KITE_ROTATION_ADD: {
-
-    action_alloc(Rotation_Action);
-    ((Rotation_Action *)action)->angle = ((Rotation_Action *)raw_action)->angle;
-
-  } break;
-  case KITE_TIP_ROTATION: {
-
-    action_alloc(Tip_Rotation_Action);
-    ((Tip_Rotation_Action *)action)->tip =
-        ((Tip_Rotation_Action *)raw_action)->tip;
-
-    ((Tip_Rotation_Action *)action)->angle =
-        ((Tip_Rotation_Action *)raw_action)->angle;
-
-  } break;
-  default: {
-    assert(0 && "Unsupported Kite Action");
-  } break;
-  }
+  void *action = tkbc_move_action_to_heap(raw_action, kind, false);
 
   tkbc_dapc(frame->kite_index_array, kite_indexs.elements, kite_indexs.count);
 
