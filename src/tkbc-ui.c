@@ -16,9 +16,12 @@ void tkbc_draw_ui(Env *env) {
 }
 
 void tkbc_ui_timeline(Env *env) {
-  if (env->script_finished || env->script_setup) {
+  if (env->script_setup) {
     return;
   }
+  // if (env->script_finished) {
+  //   return;
+  // }
 
   Vector2 mouse_pos = GetMousePosition();
   env->timeline_hoverover =
@@ -33,16 +36,24 @@ void tkbc_ui_timeline(Env *env) {
   }
 
   env->timeline_segments = env->frames->block_index + 1;
-  assert(env->timeline_segments <= env->max_block_index);
-  assert(env->max_block_index != 0);
-  env->timeline_segment_width = env->timeline_base.width / env->max_block_index;
+  assert(env->timeline_segments <= env->index_blocks->count);
+  assert(env->index_blocks->count != 0);
+
+  env->timeline_segment_width =
+      env->timeline_base.width / env->index_blocks->count;
+
   env->timeline_segments_width =
       env->timeline_segment_width * env->timeline_segments;
 
   env->timeline_front.width =
+
+      // Just for save ui draw in if the mouse outside the right bounding box of
+      // the timeline the alignment should always be filled completely.
       (mouse_pos.x >= env->timeline_base.x + env->timeline_base.width) ||
               (env->timeline_segments >= env->max_block_index)
           ? env->timeline_base.width
+
+      // If there are frames to display provide a segment in the timeline
       : env->timeline_segments > 0 ? env->timeline_segments_width
                                    : mouse_pos.x - env->timeline_base.x;
 

@@ -21,6 +21,7 @@ void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames);
 bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
 void tkbc_input_handler_script(Env *env);
+void tkbc_set_kite_positions_from_kite_frames_positions(Env *env);
 void tkbc_scrub_frames(Env *env);
 
 // ===========================================================================
@@ -60,7 +61,7 @@ Frame *tkbc_init_frame(void) {
   return frame;
 }
 
-// TODO: DEPRICATED
+// TODO: DEPRECATED
 void tkbc_register_frame(Env *env, Frame *frame) {
 
   tkbc_dap(env->frames, *frame);
@@ -162,6 +163,7 @@ void tkbc_destroy_frames(Frames *frames) {
   }
 }
 
+// TODO: DEPRECATED
 void tkbc_frame_reset(Frame *frame) {
   frame->finished = true;
   frame->duration = 0;
@@ -186,14 +188,12 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
     if (tkbc_check_finished_frames_count(env) == env->frames->count - 1) {
       frame->finished = true;
-      tkbc_destroy_frames(env->frames);
       break;
     }
 
     Quit_Action *action = frame->action;
     if (frame->duration <= 0) {
       frame->finished = true;
-      tkbc_destroy_frames(env->frames);
     } else {
       double current_time = GetTime();
       frame->duration -= current_time - action->starttime;
@@ -414,8 +414,19 @@ void tkbc_input_handler_script(Env *env) {
   tkbc_scrub_frames(env);
 }
 
+void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
+  for (size_t i = 0; i < env->frames->kite_frame_positions->count; i++) {
+    Index k_index = env->frames->kite_frame_positions->elements[i].kite_id;
+    Kite *kite = env->kite_array->elements[k_index].kite;
+    Vector2 position = env->frames->kite_frame_positions->elements[i].position;
+    float angle = env->frames->kite_frame_positions->elements[i].angle;
+
+    tkbc_center_rotation(kite, &position, angle);
+  }
+}
+
 void tkbc_scrub_frames(Env *env) {
-  if (env->max_block_index == 0) {
+  if (env->max_block_index <= 0) {
     return;
   }
 
@@ -424,24 +435,23 @@ void tkbc_scrub_frames(Env *env) {
   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
     if (drag_left) {
       // The block indexes are assumed in order and at the corresponding index.
-      size_t index = env->index_blocks->count = env->frames->block_index - 1;
+      size_t index = env->frames->block_index - 1;
       env->frames = tkbc_deep_copy_frames(&env->block_frames->elements[index]);
-      // TODO: Set the kites to the correct position and angle.
+
+      tkbc_set_kite_positions_from_kite_frames_positions(env);
 
     } else {
-      // Just for now the forward scrolling can be done if the requested frame
-      // was played before.
-
-      // size_t index = env->index_blocks->count = env->frames->block_index + 1;
-      // env->frames =
-      //     tkbc_deep_copy_frames(&env->block_frames->elements[index]);
+      size_t index = env->frames->block_index + 1;
+      if (index < env->block_frames->count) {
+        env->frames =
+            tkbc_deep_copy_frames(&env->block_frames->elements[index]);
+      }
+      tkbc_set_kite_positions_from_kite_frames_positions(env);
 
       // The index should not be set to zero every time the begin script
       // function is executed.
       // env->global_block_index++;
       // tkbc_dap(env->index_blocks, env->global_block_index);
-
-      // env->frames = new Frame();
     }
   }
 }

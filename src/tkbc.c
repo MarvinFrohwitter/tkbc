@@ -130,7 +130,7 @@ Kite_State *tkbc_init_kite(void) {
 }
 
 /**
- * @brief The function frees the memory for the given state.
+ * @brief The function frees the memory for the given env state.
  *
  * @param env The global state of the application.
  */
@@ -140,24 +140,16 @@ void tkbc_destroy_env(Env *env) {
   free(env->kite_array);
 
   free(env->index_blocks->elements);
-  tkbc_destroy_frames(env->frames);
-  free(env->frames->kite_frame_positions);
-  free(env->frames->elements);
-  free(env->frames);
 
-  // TODO: Check for memory leaks
+  // The frames are just a mapped in version of block_frames no need to handle
+  // them separately.
   for (size_t i = 0; i < env->block_frames->count; ++i) {
     tkbc_destroy_frames(&env->block_frames->elements[i]);
   }
   free(env->block_frames->elements);
   free(env->block_frames);
 
-  // TODO: This could be a double free because the pointer is used in the
-  // current frames as well, let the operating system free it.
-  // ---------------------------------------------
   tkbc_destroy_frames(env->scratch_buf_frames);
-  // ---------------------------------------------
-
   free(env->scratch_buf_frames->kite_frame_positions);
   free(env->scratch_buf_frames->elements);
   free(env->scratch_buf_frames);

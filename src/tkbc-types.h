@@ -162,7 +162,7 @@ typedef struct {
   size_t block_index;
 
   Kite_Positions
-      *kite_frame_positions; // The position of the kite in the current frame.
+      *kite_frame_positions; // The start position of the kite in the current frame.
 } Frames;
 
 typedef struct {

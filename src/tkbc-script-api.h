@@ -70,21 +70,22 @@ void tkbc_script_end(Env *env) {
   }
 
   if (env->script_setup) {
+    env->frames = &env->block_frames->elements[0];
     env->script_setup = false;
     return;
   }
 
-  if (env->max_block_index == old_max_block_index &&
-      tkbc_check_finished_frames(env) &&
-      env->frames->block_index + 1 == env->max_block_index) {
-
+  if (tkbc_check_finished_frames(env) &&
+      (env->block_frames->count == env->frames->block_index + 1)) {
     if (!env->script_finished) {
       env->script_finished = true;
       env->global_block_index = 0;
       env->max_block_index = 0;
       env->attempts_block_index = 0;
 
+      printf("=========== FROM THE SCRIPT END FUNCTION ========\n");
       printf("KITE: INFO: The script has finished successfully.\n");
+      printf("=================================================\n");
 
       // TODO: Think about loading a new script.
       // env->index_blocks->count = 0;
@@ -99,10 +100,25 @@ void tkbc_script_update_frames(Env *env) {
     assert(frame != NULL);
     if (!frame->finished) {
       tkbc_render_frame(env, frame);
-
-    } else {
-      tkbc_frame_reset(&env->frames->elements[i]);
     }
+  }
+
+  if (env->frames->block_index + 1 < env->block_frames->count) {
+    if (tkbc_check_finished_frames(env)) {
+      env->frames = &env->block_frames->elements[env->frames->block_index + 1];
+
+      for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
+        Index k_index = env->frames->kite_frame_positions->elements[i].kite_id;
+        Kite *kite = env->kite_array->elements[k_index].kite;
+
+        env->frames->kite_frame_positions->elements[i].angle =
+            kite->center_rotation;
+        env->frames->kite_frame_positions->elements[i].position = kite->center;
+      }
+    }
+  } else {
+    env->script_finished = true;
+    printf("KITE: INFO: The script has finished successfully.\n");
   }
 }
 
@@ -116,7 +132,7 @@ Frame *tkbc__script_wait(Env *env, float duration) {
   if (env->script_finished) {
     return NULL;
   }
-  if (!tkbc_check_finished_frames(env)) {
+  if (!env->script_setup) {
     return NULL;
   }
 
@@ -147,7 +163,7 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
   if (env->script_finished) {
     return NULL;
   }
-  if (!tkbc_check_finished_frames(env)) {
+  if (!env->script_setup) {
     return NULL;
   }
 
@@ -185,7 +201,7 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
   if (env->script_finished) {
     return NULL;
   }
-  if (!tkbc_check_finished_frames(env)) {
+  if (!env->script_setup) {
     return NULL;
   }
 
@@ -223,47 +239,54 @@ void tkbc__register_frames(Env *env, ...) {
 
 void tkbc_register_frames_array(Env *env, Frames *frames) {
   assert(frames != NULL);
-
   if (frames->count == 0) {
     return;
   }
-
   bool isscratch = false;
   if (env->scratch_buf_frames == frames) {
     isscratch = true;
   }
-
   env->attempts_block_index++;
 
   tkbc_patch_block_frames_kite_positions(env, frames);
-
-  if (!tkbc_check_finished_frames(env)) {
-    if (!isscratch) {
-      tkbc_destroy_frames(frames);
-    }
-    return;
-  }
-
   size_t block_index = env->global_block_index++;
-  for (size_t i = 0; i < env->index_blocks->count; ++i) {
-    if (block_index == env->index_blocks->elements[i]) {
-      if (!isscratch) {
-        tkbc_destroy_frames(frames);
+
+  for (size_t i = 0; i < frames->count; ++i) {
+    // Patching frames
+    Frame *frame = &frames->elements[i];
+    frame->index = i;
+    switch (frame->kind) {
+    case KITE_MOVE:
+    case KITE_MOVE_ADD: {
+      for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
+        Kite *kite =
+            env->kite_array->elements[frame->kite_index_array->elements[i]]
+                .kite;
+        kite->old_center = kite->center;
       }
-      return;
+
+    } break;
+    case KITE_ROTATION_ADD: {
+      tkbc_ra_setup(Rotation_Action);
+    } break;
+    case KITE_TIP_ROTATION: {
+      tkbc_ra_setup(Tip_Rotation_Action);
+    } break;
+    default:
+      break;
     }
   }
 
-  tkbc_destroy_frames(env->frames);
-  for (size_t i = 0; i < frames->count; ++i) {
-    tkbc_register_frame(env, &frames->elements[i]);
-  }
-
-  tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(env->frames));
+  tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(frames));
+  assert(env->block_frames->count - 1 >= 0);
+  env->frames = &env->block_frames->elements[env->block_frames->count - 1];
 
   env->frames->block_index = block_index;
   tkbc_dap(env->index_blocks, block_index);
   env->scratch_buf_frames->count = 0;
+  if (!isscratch) {
+    tkbc_destroy_frames(frames);
+  }
 }
 
 Kite_Indexs tkbc__indexs_append(size_t _, ...) {
