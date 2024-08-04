@@ -76,6 +76,22 @@
     }                                                                          \
   } while (0)
 
+#define tkbc_ra_setup(type)                                                    \
+  do {                                                                         \
+    for (size_t i = 0; i < frame->kite_index_array->count; ++i) {              \
+      type *ra = frame->action;                                                \
+      Kite *kite =                                                             \
+          env->kite_array->elements[frame->kite_index_array->elements[i]]      \
+              .kite;                                                           \
+                                                                               \
+      kite->segment_size += fabsf(ra->angle / frame->duration);                \
+      kite->remaining_angle += ra->angle;                                      \
+      kite->angle_sum += ra->angle;                                            \
+      kite->old_angle = kite->center_rotation;                                 \
+      kite->old_center = kite->center;                                         \
+    }                                                                          \
+  } while (0)
+
 void tkbc_print_cmd(const char *cmd[]);
 int tkbc_check_boundary(Kite *kite, ORIENTATION orientation);
 float tkbc_clamp(float z, float a, float b);
