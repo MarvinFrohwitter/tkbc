@@ -11,10 +11,8 @@
 // ===========================================================================
 
 Frame *tkbc_init_frame(void);
-void tkbc_register_frame(Env *env, Frame *frame);
 Frames *tkbc_deep_copy_frames(Frames *frames);
 void tkbc_destroy_frames(Frames *frames);
-void tkbc_frame_reset(Frame *frame);
 void tkbc_render_frame(Env *env, Frame *frame);
 
 void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames);
@@ -59,35 +57,6 @@ Frame *tkbc_init_frame(void) {
   }
 
   return frame;
-}
-
-// TODO: DEPRECATED
-void tkbc_register_frame(Env *env, Frame *frame) {
-
-  tkbc_dap(env->frames, *frame);
-
-  assert(env->frames->count != 0);
-  env->frames->elements[env->frames->count - 1].index = env->frames->count - 1;
-
-  switch (frame->kind) {
-  case KITE_MOVE:
-  case KITE_MOVE_ADD: {
-    for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
-      Kite *kite =
-          env->kite_array->elements[frame->kite_index_array->elements[i]].kite;
-      kite->old_center = kite->center;
-    }
-
-  } break;
-  case KITE_ROTATION_ADD: {
-    tkbc_ra_setup(Rotation_Action);
-  } break;
-  case KITE_TIP_ROTATION: {
-    tkbc_ra_setup(Tip_Rotation_Action);
-  } break;
-  default:
-    break;
-  }
 }
 
 Frames *tkbc_deep_copy_frames(Frames *frames) {
@@ -161,13 +130,6 @@ void tkbc_destroy_frames(Frames *frames) {
     }
     frames->count = 0;
   }
-}
-
-// TODO: DEPRECATED
-void tkbc_frame_reset(Frame *frame) {
-  frame->finished = true;
-  frame->duration = 0;
-  frame->kind = KITE_ACTION;
 }
 
 void tkbc_render_frame(Env *env, Frame *frame) {
@@ -279,9 +241,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
       tkbc_script_rotate(kite, action->angle, frame->duration);
 
+      // TODO: The remaining angle has to be saved in the frame and not in the
+      // kite.
       if (kite->remaining_angle <= 0 ||
-          FloatEquals(kite->old_angle + kite->angle_sum,
-                      kite->center_rotation)) {
+          FloatEquals(kite->old_angle + action->angle, kite->center_rotation)) {
         frame->finished = true;
 
         {
@@ -293,14 +256,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             tkbc_script_rotate(kite, action->angle, 0);
           }
         }
-
-        // TODO: Remove all of it because the registration updates it.
-        kite->old_angle = kite->center_rotation;
-        kite->old_center = kite->center;
-
-        kite->angle_sum = 0;
-        kite->remaining_angle = 0;
-        kite->segment_size = 0;
         break;
       }
     }
@@ -318,8 +273,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       tkbc_script_rotate_tip(kite, action->tip, action->angle, frame->duration);
 
       if (kite->remaining_angle <= 0 ||
-          FloatEquals(kite->old_angle + kite->angle_sum,
-                      kite->center_rotation)) {
+          FloatEquals(kite->old_angle + action->angle, kite->center_rotation)) {
         frame->finished = true;
 
         {
@@ -331,13 +285,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             tkbc_script_rotate_tip(kite, action->tip, action->angle, 0);
           }
         }
-
-        kite->old_angle = kite->center_rotation;
-        kite->old_center = kite->center;
-
-        kite->angle_sum = 0;
-        kite->remaining_angle = 0;
-        kite->segment_size = 0;
         break;
       }
     }
@@ -486,33 +433,45 @@ void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
 void tkbc_script_rotate(Kite *kite, float angle, float duration) {
 
   if (duration <= 0) {
-    tkbc_center_rotation(kite, NULL, kite->old_angle + angle);
-    kite->angle_sum -= angle;
-    kite->remaining_angle -= angle;
-    kite->segment_size -= angle / duration;
+    if (angle <= 0) {
+      tkbc_center_rotation(kite, NULL, kite->old_angle - angle);
+    } else {
+      tkbc_center_rotation(kite, NULL, kite->old_angle + angle);
+    }
+    // TODO: The remaining angle has to be saved in the frame and not in the
+    // kite.
+    kite->remaining_angle -= fabsf(angle);
+    kite->segment_size -= fabsf(angle / duration);
     return;
   }
 
-  if (kite->remaining_angle <= 0) {
-    tkbc_center_rotation(kite, NULL, kite->old_angle + kite->angle_sum);
-    return;
-  }
-
+  // TODO: use duration instead of targeting the segment size.
+  // TODO: The remaining angle has to be saved in the frame and not in the
+  // kite.
   kite->remaining_angle -= kite->segment_size * GetFrameTime();
   float doneangle = angle - kite->remaining_angle;
   float current_angle = doneangle + kite->segment_size;
 
-  if (kite->remaining_angle <= 0)
-    tkbc_center_rotation(kite, NULL, kite->old_angle + kite->angle_sum);
-  else
-    tkbc_center_rotation(kite, NULL, kite->old_angle + current_angle);
+  if (kite->remaining_angle <= 0) {
+    if (angle <= 0) {
+      tkbc_center_rotation(kite, NULL, kite->old_angle - angle);
+    } else {
+      tkbc_center_rotation(kite, NULL, kite->old_angle + angle);
+    }
+
+  } else {
+    if (angle <= 0) {
+      tkbc_center_rotation(kite, NULL, kite->old_angle - current_angle);
+    } else {
+      tkbc_center_rotation(kite, NULL, kite->old_angle + current_angle);
+    }
+  }
 }
 
 void tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration) {
 
   if (duration <= 0) {
     tkbc_tip_rotation(kite, NULL, kite->old_angle + angle, tip);
-    kite->angle_sum -= angle;
     kite->remaining_angle -= angle;
     kite->segment_size -= angle / duration;
     return;
@@ -525,8 +484,7 @@ void tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration) {
   if (kite->remaining_angle <= 0)
     // Provided the old position, because the kite center moves as a circle
     // around the old fixed position.
-    tkbc_tip_rotation(kite, &kite->old_center,
-                      kite->old_angle + kite->angle_sum, tip);
+    tkbc_tip_rotation(kite, &kite->old_center, kite->old_angle + angle, tip);
   else
     tkbc_tip_rotation(kite, NULL, kite->old_angle + current_angle, tip);
 }

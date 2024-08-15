@@ -25,7 +25,6 @@ typedef struct {
 typedef struct {
   // Script only use
   float segment_size; // The rotation steps.
-  float angle_sum; // The sum of angles of all frames where the kite is part of.
   float remaining_angle; // The remaining rotation angle.
   float old_angle; // The rotation angle before the frame interpolation has
                    // stated.
@@ -101,6 +100,7 @@ typedef struct {
   Vector2 position;
 } Move_Action;
 
+typedef Rotation_Action Rotation_Add_Action;
 typedef Move_Action Move_Add_Action;
 
 typedef struct {

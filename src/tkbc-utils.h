@@ -85,8 +85,7 @@
               .kite;                                                           \
                                                                                \
       kite->segment_size += fabsf(ra->angle / frame->duration);                \
-      kite->remaining_angle += ra->angle;                                      \
-      kite->angle_sum += ra->angle;                                            \
+      kite->remaining_angle += fabs(ra->angle);                                \
       kite->old_angle = kite->center_rotation;                                 \
       kite->old_center = kite->center;                                         \
     }                                                                          \

@@ -63,7 +63,6 @@ void tkbc_script_begin(Env *env) {
 
 void tkbc_script_end(Env *env) {
   env->script_interrupt = false;
-  size_t old_max_block_index = env->max_block_index;
   if (!env->script_finished) {
     env->max_block_index =
         tkbc_max(env->max_block_index, env->attempts_block_index);
@@ -272,8 +271,6 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     case KITE_TIP_ROTATION: {
       tkbc_ra_setup(Tip_Rotation_Action);
     } break;
-    default:
-      break;
     }
   }
 
