@@ -76,16 +76,13 @@
     }                                                                          \
   } while (0)
 
-#define tkbc_ra_setup(type)                                                    \
+#define tkbc_ra_setup()                                                        \
   do {                                                                         \
     for (size_t i = 0; i < frame->kite_index_array->count; ++i) {              \
-      type *ra = frame->action;                                                \
       Kite *kite =                                                             \
           env->kite_array->elements[frame->kite_index_array->elements[i]]      \
               .kite;                                                           \
                                                                                \
-      kite->segment_size += fabsf(ra->angle / frame->duration);                \
-      kite->remaining_angle += fabs(ra->angle);                                \
       kite->old_angle = kite->center_rotation;                                 \
       kite->old_center = kite->center;                                         \
     }                                                                          \

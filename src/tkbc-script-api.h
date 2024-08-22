@@ -265,11 +265,9 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
       }
 
     } break;
-    case KITE_ROTATION_ADD: {
-      tkbc_ra_setup(Rotation_Action);
-    } break;
+    case KITE_ROTATION_ADD:
     case KITE_TIP_ROTATION: {
-      tkbc_ra_setup(Tip_Rotation_Action);
+      tkbc_ra_setup();
     } break;
     }
   }

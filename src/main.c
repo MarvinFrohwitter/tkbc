@@ -59,7 +59,7 @@ int main(void) {
   Sound kite_sound = tkbc_init_sound(40);
 
   Env *env = tkbc_init_env();
-  tkbc_kite_array_generate(env, 1);
+  tkbc_kite_array_generate(env, 8);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
