@@ -476,9 +476,11 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
 
   if (duration <= 0) {
     if (angle <= 0) {
-      tkbc_center_rotation(state->kite, NULL, state->kite->old_angle - angle);
+      tkbc_center_rotation(state->kite, NULL,
+                           state->kite->center_rotation - angle);
     } else {
-      tkbc_center_rotation(state->kite, NULL, state->kite->old_angle + angle);
+      tkbc_center_rotation(state->kite, NULL,
+                           state->kite->center_rotation + angle);
     }
     for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
       env->frames->kite_frame_positions->elements[k].remaining_angle -=
@@ -506,19 +508,31 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
   float current_angle = doneangle + segment_size;
 
   if (remaining_angle <= 0) {
-    if (angle <= 0) {
-      tkbc_center_rotation(state->kite, NULL, state->kite->old_angle - angle);
-    } else {
-      tkbc_center_rotation(state->kite, NULL, state->kite->old_angle + angle);
-    }
+
+    // TODO: This part is not needed if the computation of the float for the
+    // finished frame is correctly detected. Currently it results in errors,
+    // because the old angle is set at the script init and is not updated to the
+    // new value when the current frame is handled.
+
+    // if (angle <= 0) {
+    //   tkbc_center_rotation(state->kite, NULL, state->kite->old_angle -
+    //   angle);
+    // } else {
+    //   tkbc_center_rotation(state->kite, NULL, state->kite->old_angle +
+    //   angle);
+    // }
 
   } else {
     if (angle <= 0) {
+      // tkbc_center_rotation(state->kite, NULL, state->kite->old_angle -
+      // current_angle);
       tkbc_center_rotation(state->kite, NULL,
-                           state->kite->old_angle - current_angle);
+                           state->kite->center_rotation - segment_size);
     } else {
+      // tkbc_center_rotation(state->kite, NULL, state->kite->old_angle +
+      // current_angle);
       tkbc_center_rotation(state->kite, NULL,
-                           state->kite->old_angle + current_angle);
+                           state->kite->center_rotation + segment_size);
     }
   }
 }
@@ -528,9 +542,11 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
 
   if (duration <= 0) {
     if (angle <= 0) {
-      tkbc_tip_rotation(state->kite, NULL, state->kite->old_angle - angle, tip);
+      tkbc_tip_rotation(state->kite, NULL, state->kite->center_rotation - angle,
+                        tip);
     } else {
-      tkbc_tip_rotation(state->kite, NULL, state->kite->old_angle + angle, tip);
+      tkbc_tip_rotation(state->kite, NULL, state->kite->center_rotation + angle,
+                        tip);
     }
 
     for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
@@ -559,23 +575,30 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
   float current_angle = doneangle + segment_size;
 
   if (remaining_angle <= 0) {
+
+    // TODO: This part is not needed if the computation of the float for the
+    // finished frame is correctly detected. Currently it results in errors,
+    // because the old angle is set at the script init and is not updated to the
+    // new value when the current frame is handled.
+
     // Provided the old position, because the kite center moves as a circle
     // around the old fixed position.
-    if (angle <= 0) {
-      tkbc_tip_rotation(state->kite, &state->kite->old_center,
-                        state->kite->old_angle - angle, tip);
-    } else {
-      tkbc_tip_rotation(state->kite, &state->kite->old_center,
-                        state->kite->old_angle + angle, tip);
-    }
+
+    // if (angle <= 0) {
+    //   tkbc_tip_rotation(state->kite, &state->kite->old_center,
+    //                     state->kite->old_angle - angle, tip);
+    // } else {
+    //   tkbc_tip_rotation(state->kite, &state->kite->old_center,
+    //                     state->kite->old_angle + angle, tip);
+    // }
 
   } else {
     if (angle <= 0) {
-      tkbc_tip_rotation(state->kite, NULL,
-                        state->kite->old_angle - current_angle, tip);
+      // tkbc_tip_rotation(state->kite, NULL, state->kite->old_angle - current_angle, tip);
+      tkbc_tip_rotation(state->kite, NULL, state->kite->center_rotation - segment_size, tip);
     } else {
-      tkbc_tip_rotation(state->kite, NULL,
-                        state->kite->old_angle + current_angle, tip);
+      // tkbc_tip_rotation(state->kite, NULL, state->kite->old_angle + current_angle, tip);
+      tkbc_tip_rotation(state->kite, NULL, state->kite->center_rotation + segment_size, tip);
     }
   }
 }
