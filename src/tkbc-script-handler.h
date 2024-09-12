@@ -419,22 +419,18 @@ void tkbc_scrub_frames(Env *env) {
 
   bool drag_left =
       GetMouseX() - env->timeline_front.x + env->timeline_front.width <= 0;
-  if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
-    if (drag_left) {
-      // The block indexes are assumed in order and at the corresponding index.
-      size_t index = env->frames->block_index - 1;
+  // if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
+  if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
+
+    // The block indexes are assumed in order and at the corresponding index.
+    int index =
+        drag_left ? env->frames->block_index - 1 : env->frames->block_index + 1;
+        printf("index = %d\n", index);
+
+    if (index >= 0 && index < (int)env->block_frames->count) {
       env->frames = tkbc_deep_copy_frames(&env->block_frames->elements[index]);
-
-      tkbc_set_kite_positions_from_kite_frames_positions(env);
-
-    } else {
-      size_t index = env->frames->block_index + 1;
-      if (index < env->block_frames->count) {
-        env->frames =
-            tkbc_deep_copy_frames(&env->block_frames->elements[index]);
-      }
-      tkbc_set_kite_positions_from_kite_frames_positions(env);
     }
+    tkbc_set_kite_positions_from_kite_frames_positions(env);
   }
 }
 
