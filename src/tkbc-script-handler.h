@@ -273,7 +273,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
     }
   } break;
-  case KITE_TIP_ROTATION: {
+  case KITE_TIP_ROTATION_ADD: {
 
     Tip_Rotation_Action *action = frame->action;
 
@@ -330,12 +330,11 @@ void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
     Frame *f = &frames->elements[i];
     float patch_angle = 0;
     switch (f->kind) {
+    case KITE_TIP_ROTATION:
+    case KITE_TIP_ROTATION_ADD:
+    case KITE_ROTATION:
     case KITE_ROTATION_ADD: {
       Rotation_Action *a = f->action;
-      patch_angle = fabsf(a->angle);
-    } break;
-    case KITE_TIP_ROTATION: {
-      Tip_Rotation_Action *a = f->action;
       patch_angle = fabsf(a->angle);
     } break;
     }
@@ -489,8 +488,8 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
     return;
   }
 
-  // TODO: use duration instead of targeting the segment size.
-  float segment_size = fabsf(angle / duration);
+  int fps = GetFPS();
+  float segment_size = fabsf(angle / duration) / (float)fps;
   float remaining_angle = 0;
 
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
@@ -510,17 +509,13 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
   if (remaining_angle <= 0) {
 
     // TODO: This part is not needed if the computation of the float for the
-    // finished frame is correctly detected. Currently it results in errors,
-    // because the old angle is set at the script init and is not updated to the
-    // new value when the current frame is handled.
+    // finished frame is correctly detected.
 
-    // if (angle <= 0) {
-    //   tkbc_center_rotation(state->kite, NULL, state->kite->old_angle -
-    //   angle);
-    // } else {
-    //   tkbc_center_rotation(state->kite, NULL, state->kite->old_angle +
-    //   angle);
-    // }
+    if (angle <= 0) {
+      tkbc_center_rotation(state->kite, NULL, state->kite->old_angle - angle);
+    } else {
+      tkbc_center_rotation(state->kite, NULL, state->kite->old_angle + angle);
+    }
 
   } else {
     if (angle <= 0) {
@@ -556,8 +551,8 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
     return;
   }
 
-  // TODO: use duration instead of targeting the segment size.
-  float segment_size = fabsf(angle / duration);
+  int fps = GetFPS();
+  float segment_size = fabsf(angle / duration) / (float)fps;
   float remaining_angle = 0;
 
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
@@ -577,28 +572,26 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
   if (remaining_angle <= 0) {
 
     // TODO: This part is not needed if the computation of the float for the
-    // finished frame is correctly detected. Currently it results in errors,
-    // because the old angle is set at the script init and is not updated to the
-    // new value when the current frame is handled.
+    // finished frame is correctly detected.
 
     // Provided the old position, because the kite center moves as a circle
     // around the old fixed position.
 
-    // if (angle <= 0) {
-    //   tkbc_tip_rotation(state->kite, &state->kite->old_center,
-    //                     state->kite->old_angle - angle, tip);
-    // } else {
-    //   tkbc_tip_rotation(state->kite, &state->kite->old_center,
-    //                     state->kite->old_angle + angle, tip);
-    // }
+    if (angle <= 0) {
+      tkbc_tip_rotation(state->kite, &state->kite->old_center,
+                        state->kite->old_angle - angle, tip);
+    } else {
+      tkbc_tip_rotation(state->kite, &state->kite->old_center,
+                        state->kite->old_angle + angle, tip);
+    }
 
   } else {
     if (angle <= 0) {
-      // tkbc_tip_rotation(state->kite, NULL, state->kite->old_angle - current_angle, tip);
-      tkbc_tip_rotation(state->kite, NULL, state->kite->center_rotation - segment_size, tip);
+      tkbc_tip_rotation(state->kite, NULL,
+                        state->kite->center_rotation - segment_size, tip);
     } else {
-      // tkbc_tip_rotation(state->kite, NULL, state->kite->old_angle + current_angle, tip);
-      tkbc_tip_rotation(state->kite, NULL, state->kite->center_rotation + segment_size, tip);
+      tkbc_tip_rotation(state->kite, NULL,
+                        state->kite->center_rotation + segment_size, tip);
     }
   }
 }

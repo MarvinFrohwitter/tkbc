@@ -129,8 +129,10 @@ typedef enum {
   KITE_WAIT,
   KITE_MOVE,
   KITE_MOVE_ADD,
+  KITE_ROTATION,
   KITE_ROTATION_ADD,
-  KITE_TIP_ROTATION
+  KITE_TIP_ROTATION,
+  KITE_TIP_ROTATION_ADD,
 } Action_Kind;
 
 typedef unsigned int Index;
@@ -162,8 +164,8 @@ typedef struct {
 
   size_t block_index;
 
-  Kite_Positions
-      *kite_frame_positions; // The start position of the kite in the current frame.
+  Kite_Positions *kite_frame_positions; // The start position of the kite in the
+                                        // current frame.
 } Frames;
 
 typedef struct {

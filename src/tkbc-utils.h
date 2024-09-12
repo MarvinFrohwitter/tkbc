@@ -115,8 +115,8 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy) {
           ((Wait_Action *)raw_action)->starttime;
     }
   } break;
-  case KITE_MOVE_ADD:
-  case KITE_MOVE: {
+  case KITE_MOVE:
+  case KITE_MOVE_ADD: {
     action_alloc(Move_Action);
     ((Move_Action *)action)->position.x =
         ((Move_Action *)raw_action)->position.x;
@@ -124,13 +124,15 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy) {
         ((Move_Action *)raw_action)->position.y;
 
   } break;
+  case KITE_ROTATION:
   case KITE_ROTATION_ADD: {
 
     action_alloc(Rotation_Action);
     ((Rotation_Action *)action)->angle = ((Rotation_Action *)raw_action)->angle;
 
   } break;
-  case KITE_TIP_ROTATION: {
+  case KITE_TIP_ROTATION:
+  case KITE_TIP_ROTATION_ADD: {
 
     action_alloc(Tip_Rotation_Action);
     ((Tip_Rotation_Action *)action)->tip =
@@ -141,6 +143,7 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy) {
 
   } break;
   default: {
+    fprintf(stderr, "kind = %d\n", kind);
     assert(0 && "Unsupported Kite Action");
   } break;
   }

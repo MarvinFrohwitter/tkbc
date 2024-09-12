@@ -300,7 +300,8 @@ void tkbc_set_kite_state_defaults(Kite_State *state) {
  * @param kite The kite that is going to be modified.
  * @param position The new position for the kite at the center of the leading
  * edge or NULL for internal center position of the kite structure.
- * @param center_deg_rotation The rotation of the kite.
+ * @param center_deg_rotation The rotation of the kite that is set to the given
+ * rotation.
  */
 void tkbc_center_rotation(Kite *kite, Vector2 *position,
                           float center_deg_rotation) {

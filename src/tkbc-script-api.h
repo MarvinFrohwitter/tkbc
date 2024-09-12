@@ -110,6 +110,13 @@ void tkbc_script_update_frames(Env *env) {
         Index k_index = env->frames->kite_frame_positions->elements[i].kite_id;
         Kite *kite = env->kite_array->elements[k_index].kite;
 
+        // NOTE: The design limits the combined use of center rotations and tip
+        // rotations. Introduce separate tracking variables, if the distinct use
+        // in one frame is needed feature is
+
+        kite->old_angle = kite->center_rotation;
+        kite->old_center = kite->center;
+
         env->frames->kite_frame_positions->elements[i].angle =
             kite->center_rotation;
         env->frames->kite_frame_positions->elements[i].position = kite->center;
@@ -121,9 +128,7 @@ void tkbc_script_update_frames(Env *env) {
   }
 }
 
-bool tkbc_script_finished(Env *env) {
-  return env->script_finished ? true : false;
-}
+bool tkbc_script_finished(Env *env) { return env->script_finished; }
 
 // ========================== SCRIPT HANDLER API =============================
 
@@ -247,7 +252,6 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
   }
   env->attempts_block_index++;
 
-  tkbc_patch_block_frames_kite_positions(env, frames);
   size_t block_index = env->global_block_index++;
 
   for (size_t i = 0; i < frames->count; ++i) {
@@ -266,13 +270,18 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
 
     } break;
     case KITE_ROTATION_ADD:
-    case KITE_TIP_ROTATION: {
+    case KITE_TIP_ROTATION_ADD: {
       tkbc_ra_setup();
     } break;
     }
   }
 
   tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(frames));
+
+  assert(env->block_frames->count - 1 >= 0);
+  tkbc_patch_block_frames_kite_positions(
+      env, &env->block_frames->elements[env->block_frames->count - 1]);
+
   assert(env->block_frames->count - 1 >= 0);
   env->frames = &env->block_frames->elements[env->block_frames->count - 1];
 
