@@ -413,7 +413,7 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
 }
 
 void tkbc_scrub_frames(Env *env) {
-  if (env->max_block_index <= 0) {
+  if (env->block_frames->count <= 0) {
     return;
   }
 
@@ -434,11 +434,6 @@ void tkbc_scrub_frames(Env *env) {
             tkbc_deep_copy_frames(&env->block_frames->elements[index]);
       }
       tkbc_set_kite_positions_from_kite_frames_positions(env);
-
-      // The index should not be set to zero every time the begin script
-      // function is executed.
-      // env->global_block_index++;
-      // tkbc_dap(env->index_blocks, env->global_block_index);
     }
   }
 }
@@ -503,9 +498,6 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
     }
   }
 
-  float doneangle = angle - remaining_angle;
-  float current_angle = doneangle + segment_size;
-
   if (remaining_angle <= 0) {
 
     // TODO: This part is not needed if the computation of the float for the
@@ -519,13 +511,9 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
 
   } else {
     if (angle <= 0) {
-      // tkbc_center_rotation(state->kite, NULL, state->kite->old_angle -
-      // current_angle);
       tkbc_center_rotation(state->kite, NULL,
                            state->kite->center_rotation - segment_size);
     } else {
-      // tkbc_center_rotation(state->kite, NULL, state->kite->old_angle +
-      // current_angle);
       tkbc_center_rotation(state->kite, NULL,
                            state->kite->center_rotation + segment_size);
     }
@@ -565,9 +553,6 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
       break;
     }
   }
-
-  float doneangle = angle - remaining_angle;
-  float current_angle = doneangle + segment_size;
 
   if (remaining_angle <= 0) {
 

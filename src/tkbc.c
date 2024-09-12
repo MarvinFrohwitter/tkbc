@@ -37,12 +37,6 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
-  env->index_blocks = calloc(1, sizeof(*env->index_blocks));
-  if (env->index_blocks == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
-    return NULL;
-  }
-
   env->block_frames = calloc(1, sizeof(*env->block_frames));
   if (env->block_frames == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
@@ -67,9 +61,6 @@ Env *tkbc_init_env(void) {
   env->window_height = GetScreenHeight();
   env->script_interrupt = false;
   env->script_finished = false;
-  env->global_block_index = 0;
-  env->max_block_index = 0;
-  env->attempts_block_index = 0;
   env->recording = false;
   env->rendering = false;
   env->pipe = 0;
@@ -138,8 +129,6 @@ void tkbc_destroy_env(Env *env) {
   tkbc_destroy_kite_array(env);
   free(env->kite_array->elements);
   free(env->kite_array);
-
-  free(env->index_blocks->elements);
 
   // The frames are just a mapped in version of block_frames no need to handle
   // them separately.

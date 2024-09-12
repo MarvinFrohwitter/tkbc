@@ -75,6 +75,9 @@ int main(void) {
     if (env->script_setup) {
       tkbc_script_input(env);
     }
+    // TODO: Think about loading a new script.
+    // env->block_frames->count = 0;
+    // free the blocks
     if (!tkbc_script_finished(env)) {
       tkbc_script_update_frames(env);
     }

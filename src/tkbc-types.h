@@ -169,13 +169,6 @@ typedef struct {
 } Frames;
 
 typedef struct {
-  Index *elements;
-  size_t count;
-  size_t capacity;
-
-} Index_Blocks;
-
-typedef struct {
   Frames *elements;
   size_t count;
   size_t capacity;
@@ -187,10 +180,6 @@ typedef struct {
 
   Frames *frames;
   Block_Frames *block_frames;
-  Index_Blocks *index_blocks;
-  size_t global_block_index;
-  size_t max_block_index;
-  size_t attempts_block_index;
 
   bool script_setup;
   bool script_interrupt;

@@ -56,18 +56,11 @@ Kite_Indexs tkbc_indexs_range(int start, int end);
 
 void tkbc_script_begin(Env *env) {
   env->script_interrupt = true;
-  env->global_block_index = 0;
-  env->attempts_block_index = 0;
   tkbc_register_frames(env, tkbc_script_wait(0));
 }
 
 void tkbc_script_end(Env *env) {
   env->script_interrupt = false;
-  if (!env->script_finished) {
-    env->max_block_index =
-        tkbc_max(env->max_block_index, env->attempts_block_index);
-  }
-
   if (env->script_setup) {
     env->frames = &env->block_frames->elements[0];
     env->script_setup = false;
@@ -76,19 +69,12 @@ void tkbc_script_end(Env *env) {
 
   if (tkbc_check_finished_frames(env) &&
       (env->block_frames->count == env->frames->block_index + 1)) {
+
     if (!env->script_finished) {
       env->script_finished = true;
-      env->global_block_index = 0;
-      env->max_block_index = 0;
-      env->attempts_block_index = 0;
-
       printf("=========== FROM THE SCRIPT END FUNCTION ========\n");
       printf("KITE: INFO: The script has finished successfully.\n");
       printf("=================================================\n");
-
-      // TODO: Think about loading a new script.
-      // env->index_blocks->count = 0;
-      // free the blocks
     }
   }
 }
@@ -250,9 +236,6 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
   if (env->scratch_buf_frames == frames) {
     isscratch = true;
   }
-  env->attempts_block_index++;
-
-  size_t block_index = env->global_block_index++;
 
   for (size_t i = 0; i < frames->count; ++i) {
     // Patching frames
@@ -282,11 +265,9 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
   tkbc_patch_block_frames_kite_positions(
       env, &env->block_frames->elements[env->block_frames->count - 1]);
 
-  assert(env->block_frames->count - 1 >= 0);
-  env->frames = &env->block_frames->elements[env->block_frames->count - 1];
+  env->block_frames->elements[env->block_frames->count - 1].block_index =
+      env->block_frames->count - 1;
 
-  env->frames->block_index = block_index;
-  tkbc_dap(env->index_blocks, block_index);
   env->scratch_buf_frames->count = 0;
   if (!isscratch) {
     tkbc_destroy_frames(frames);

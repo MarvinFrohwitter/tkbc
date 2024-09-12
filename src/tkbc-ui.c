@@ -36,11 +36,11 @@ void tkbc_ui_timeline(Env *env) {
   }
 
   env->timeline_segments = env->frames->block_index + 1;
-  assert(env->timeline_segments <= env->index_blocks->count);
-  assert(env->index_blocks->count != 0);
+  assert(env->timeline_segments <= env->block_frames->count);
+  assert(env->block_frames->count != 0);
 
   env->timeline_segment_width =
-      env->timeline_base.width / env->index_blocks->count;
+      env->timeline_base.width / env->block_frames->count;
 
   env->timeline_segments_width =
       env->timeline_segment_width * env->timeline_segments;
