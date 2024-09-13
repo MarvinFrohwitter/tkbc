@@ -106,6 +106,7 @@ int tkbc_max(int a, int b);
 void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy) {
 
   void *action = NULL;
+  assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
   switch (kind) {
   case KITE_WAIT:
   case KITE_QUIT: {
@@ -143,7 +144,7 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy) {
 
   } break;
   default: {
-    fprintf(stderr, "kind = %d\n", kind);
+    fprintf(stderr, "KIND = %d\n", kind);
     assert(0 && "Unsupported Kite Action");
   } break;
   }

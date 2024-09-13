@@ -133,6 +133,7 @@ typedef enum {
   KITE_ROTATION_ADD,
   KITE_TIP_ROTATION,
   KITE_TIP_ROTATION_ADD,
+  ACTION_KIND_COUNT,
 } Action_Kind;
 
 typedef unsigned int Index;

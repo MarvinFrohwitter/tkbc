@@ -135,6 +135,7 @@ void tkbc_destroy_frames(Frames *frames) {
 }
 
 void tkbc_render_frame(Env *env, Frame *frame) {
+  assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
   switch (frame->kind) {
   case KITE_WAIT: {
     Wait_Action *action = frame->action;
@@ -329,6 +330,8 @@ void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
 
     Frame *f = &frames->elements[i];
     float patch_angle = 0;
+    assert(ACTION_KIND_COUNT == 9 &&
+           "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
     switch (f->kind) {
     case KITE_TIP_ROTATION:
     case KITE_TIP_ROTATION_ADD:
@@ -337,6 +340,8 @@ void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
       Rotation_Action *a = f->action;
       patch_angle = fabsf(a->angle);
     } break;
+    default: {
+    }
     }
 
     for (size_t j = 0; j < frames->elements[i].kite_index_array->count; ++j) {
@@ -425,8 +430,6 @@ void tkbc_scrub_frames(Env *env) {
     // The block indexes are assumed in order and at the corresponding index.
     int index =
         drag_left ? env->frames->block_index - 1 : env->frames->block_index + 1;
-        printf("index = %d\n", index);
-
     if (index >= 0 && index < (int)env->block_frames->count) {
       env->frames = tkbc_deep_copy_frames(&env->block_frames->elements[index]);
     }

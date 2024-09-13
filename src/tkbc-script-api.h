@@ -241,6 +241,8 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     // Patching frames
     Frame *frame = &frames->elements[i];
     frame->index = i;
+    assert(ACTION_KIND_COUNT == 9 &&
+           "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
     switch (frame->kind) {
     case KITE_MOVE:
     case KITE_MOVE_ADD: {
@@ -256,6 +258,8 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     case KITE_TIP_ROTATION_ADD: {
       tkbc_ra_setup();
     } break;
+    default: {
+    }
     }
   }
 
