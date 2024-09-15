@@ -92,6 +92,8 @@ void tkbc_script_update_frames(Env *env) {
     if (tkbc_check_finished_frames(env)) {
       env->frames = &env->block_frames->elements[env->frames->block_index + 1];
 
+      tkbc_patch_frames_current_time(env->frames);
+
       for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
         Index k_index = env->frames->kite_frame_positions->elements[i].kite_id;
         Kite *kite = env->kite_array->elements[k_index].kite;

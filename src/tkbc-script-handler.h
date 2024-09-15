@@ -15,6 +15,7 @@ Frames *tkbc_deep_copy_frames(Frames *frames);
 void tkbc_destroy_frames(Frames *frames);
 void tkbc_render_frame(Env *env, Frame *frame);
 
+void tkbc_patch_frames_current_time(Frames *frames);
 void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames);
 bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
@@ -319,6 +320,23 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   default:
     assert(0 && "UNREACHABLE tkbc_render_frame()");
     break;
+  }
+}
+
+void tkbc_patch_frames_current_time(Frames *frames) {
+
+  for (size_t i = 0; i < frames->count; i++) {
+    Frame *frame = &frames->elements[i];
+    assert(ACTION_KIND_COUNT == 9 &&
+           "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
+    switch (frame->kind) {
+    case KITE_QUIT:
+    case KITE_WAIT: {
+      ((Wait_Action *)frame->action)->starttime = GetTime();
+    } break;
+    default: {
+    }
+    }
   }
 }
 

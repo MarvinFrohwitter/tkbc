@@ -9,14 +9,14 @@ void tkbc_script_input(Env *env) {
   // Kite_Indexs ki = tkbc_indexs_append(0, 1, 2);
   Kite_Indexs ki = tkbc_indexs_generate(2);
   size_t h_padding = 0;
-  size_t v_padding = 0;
+  // size_t v_padding = 0;
   Vector2 offset = {0};
-  Vector2 position = {.x = env->window_width / 2.0,
-                      .y = env->window_height / 2.0};
+  // Vector2 position = {.x = env->window_width / 2.0,
+  //                     .y = env->window_height / 2.0};
   float duration = 10;
   float rotation_duration = 3;
-  Kite *kite = env->kite_array->elements[0].kite;
-  float ball_radius = (kite->width + kite->spread);
+  // Kite *kite = env->kite_array->elements[0].kite;
+  // float ball_radius = (kite->width + kite->spread);
 
   tkbc_register_frames(env,
                        tkbc_frame_generate(KITE_MOVE_ADD, ki,
@@ -35,35 +35,35 @@ void tkbc_script_input(Env *env) {
                                &(CLITERAL(Rotation_Add_Action){.angle = -90}),
                                rotation_duration));
 
-  tkbc_register_frames(env, tkbc_script_wait(6));
+  tkbc_register_frames(env, tkbc_script_wait(3));
 
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
                                &(CLITERAL(Rotation_Add_Action){.angle = 180}),
                                rotation_duration));
 
-  tkbc_register_frames(env, tkbc_script_wait(6));
+  tkbc_register_frames(env, tkbc_script_wait(3));
 
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
                                &(CLITERAL(Rotation_Add_Action){.angle = 45}),
                                rotation_duration));
 
-  tkbc_register_frames(env, tkbc_script_wait(6));
+  tkbc_register_frames(env, tkbc_script_wait(3));
 
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
                                &(CLITERAL(Rotation_Add_Action){.angle = 45}),
                                rotation_duration));
 
-  tkbc_register_frames(env, tkbc_script_wait(6));
+  tkbc_register_frames(env, tkbc_script_wait(3));
 
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
                                &(CLITERAL(Rotation_Add_Action){.angle = 45}),
                                rotation_duration));
 
-  tkbc_register_frames(env, tkbc_script_wait(6));
+  tkbc_register_frames(env, tkbc_script_wait(3));
 
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,

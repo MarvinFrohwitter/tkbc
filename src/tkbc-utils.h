@@ -108,8 +108,8 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy) {
   void *action = NULL;
   assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
   switch (kind) {
-  case KITE_WAIT:
-  case KITE_QUIT: {
+  case KITE_QUIT:
+  case KITE_WAIT: {
     if (copy) {
       action_alloc(Wait_Action);
       ((Wait_Action *)action)->starttime =

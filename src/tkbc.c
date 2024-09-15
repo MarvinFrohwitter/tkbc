@@ -207,8 +207,6 @@ void tkbc_kite_array_start_position(Env *env) {
   for (size_t i = 0; i < kites_count; ++i) {
     tkbc_set_kite_state_defaults(&env->kite_array->elements[i]);
     tkbc_set_kite_defaults(env->kite_array->elements[i].kite, false);
-    // TODO: Consider calling the internal center_rotation function that is
-    // called in the kite_defaults. Just pass the start_pos there.
     tkbc_center_rotation(env->kite_array->elements[i].kite, &start_pos, 0);
     start_pos.x += 2 * kite_width;
   }
