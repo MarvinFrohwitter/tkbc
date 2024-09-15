@@ -260,18 +260,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       if (remaining_angle <= 0 ||
           FloatEquals(kite->old_angle + action->angle, kite->center_rotation)) {
         frame->finished = true;
-
-        {
-          // Every kite in the frame should get sync at the end of the frame.
-          for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
-            size_t current_kite_index = env->frames->elements[frame->index]
-                                            .kite_index_array->elements[i];
-
-            Kite_State *state = &env->kite_array->elements[current_kite_index];
-            tkbc_script_rotate(env, state, action->angle, 0);
-          }
-        }
-        break;
       }
     }
   } break;
@@ -303,17 +291,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       if (remaining_angle <= 0 ||
           FloatEquals(kite->old_angle + action->angle, kite->center_rotation)) {
         frame->finished = true;
-
-        {
-          // Every kite in the frame should get sync at the end of the frame.
-          for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
-            size_t current_kite_index = env->frames->elements[frame->index]
-                                            .kite_index_array->elements[i];
-            Kite_State *state = &env->kite_array->elements[current_kite_index];
-            tkbc_script_rotate_tip(env, state, action->tip, action->angle, 0);
-          }
-        }
-        break;
       }
     }
   } break;
