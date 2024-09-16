@@ -31,8 +31,9 @@ void tkbc_script_move(Kite *kite, Vector2 position, float duration);
 
 void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
                         float duration, bool adding);
+
 void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
-                            float duration);
+                            float duration, bool adding);
 
 #endif // TKBC_SCRIPT_HANDLER_H_
 
@@ -307,7 +308,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       Kite *kite = state->kite;
 
       tkbc_script_rotate_tip(env, state, action->tip, action->angle,
-                             frame->duration);
+                             frame->duration, true);
 
       float remaining_angle = 0;
       for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
@@ -322,6 +323,38 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
       if (remaining_angle <= 0 ||
           FloatEquals(kite->old_angle + action->angle, kite->center_rotation)) {
+        frame->finished = true;
+      }
+    }
+  } break;
+  case KITE_TIP_ROTATION: {
+
+    Tip_Rotation_Action *action = frame->action;
+
+    for (size_t i = 0;
+         i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
+      size_t current_kite_index =
+          env->frames->elements[frame->index].kite_index_array->elements[i];
+      Kite_State *state = &env->kite_array->elements[current_kite_index];
+      Kite *kite = state->kite;
+
+      tkbc_script_rotate_tip(env, state, action->tip, action->angle,
+                             frame->duration, false);
+
+      float remaining_angle = 0;
+      for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
+        if (env->frames->kite_frame_positions->elements[k].kite_id ==
+            state->id) {
+
+          remaining_angle =
+              env->frames->kite_frame_positions->elements[k].remaining_angle;
+          break;
+        }
+      }
+
+      // NOTE: Different from the ADDing version.
+      if (remaining_angle <= 0 ||
+          FloatEquals(action->angle, kite->center_rotation)) {
         frame->finished = true;
       }
     }
@@ -526,8 +559,8 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
 
   int fps = GetFPS();
   float segment_size = fabsf(angle / duration) / (float)fps;
-
   float remaining_angle = 0;
+
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
     if (env->frames->kite_frame_positions->elements[k].kite_id == state->id) {
 
@@ -576,18 +609,26 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
 }
 
 void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
-                            float duration) {
+                            float duration, bool adding) {
 
   // NOTE: For the instant rotation the computation can be simpler by just
   // calling the direction angles, but for future line wrap calculation the
   // actual rotation direction is called instead.
   if (duration <= 0) {
-    if (angle <= 0) {
-      tkbc_tip_rotation(state->kite, NULL, state->kite->center_rotation - angle,
-                        tip);
+    if (adding) {
+      if (angle <= 0) {
+        tkbc_tip_rotation(state->kite, NULL,
+                          state->kite->center_rotation - angle, tip);
+      } else {
+        tkbc_tip_rotation(state->kite, NULL,
+                          state->kite->center_rotation + angle, tip);
+      }
     } else {
-      tkbc_tip_rotation(state->kite, NULL, state->kite->center_rotation + angle,
-                        tip);
+      if (angle <= 0) {
+        tkbc_tip_rotation(state->kite, NULL, -angle, tip);
+      } else {
+        tkbc_tip_rotation(state->kite, NULL, angle, tip);
+      }
     }
 
     for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
@@ -606,6 +647,12 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
 
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
     if (env->frames->kite_frame_positions->elements[k].kite_id == state->id) {
+
+      if (!adding) {
+        float pre_angle = env->frames->kite_frame_positions->elements[k].angle;
+        segment_size = fabsf((pre_angle - angle) / duration) / (float)fps;
+      }
+
       env->frames->kite_frame_positions->elements[k].remaining_angle -=
           segment_size * GetFrameTime();
 

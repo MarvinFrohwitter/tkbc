@@ -80,6 +80,22 @@ void tkbc_script_input(Env *env) {
 
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
 
+  tkbc_register_frames(env,
+                       tkbc_frame_generate(KITE_TIP_ROTATION_ADD, ki,
+                                           &(CLITERAL(Tip_Rotation_Add_Action){
+                                               .angle = 45, .tip = LEFT_TIP}),
+                                           rotation_duration));
+
+  tkbc_register_frames(env, tkbc_script_wait(wait_time));
+
+  tkbc_register_frames(env,
+                       tkbc_frame_generate(KITE_TIP_ROTATION, ki,
+                                           &(CLITERAL(Tip_Rotation_Action){
+                                               .angle = -180, .tip = RIGHT_TIP}),
+                                           rotation_duration));
+
+  tkbc_register_frames(env, tkbc_script_wait(wait_time));
+
   // tkbc_script_team_ball(env, ki, position, offset, ball_radius, duration);
   // tkbc_register_frames(
   //     env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
