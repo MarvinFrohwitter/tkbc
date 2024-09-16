@@ -470,6 +470,14 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
   for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
     Index k_index = env->frames->kite_frame_positions->elements[i].kite_id;
     Kite *kite = env->kite_array->elements[k_index].kite;
+
+    kite->old_angle = kite->center_rotation;
+    kite->old_center = kite->center;
+
+    env->frames->kite_frame_positions->elements[i].angle =
+        kite->center_rotation;
+    env->frames->kite_frame_positions->elements[i].position = kite->center;
+
     Vector2 position = env->frames->kite_frame_positions->elements[i].position;
     float angle = env->frames->kite_frame_positions->elements[i].angle;
 
