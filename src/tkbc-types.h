@@ -101,6 +101,7 @@ typedef struct {
   Vector2 position;
 } Move_Action;
 
+typedef Tip_Rotation_Action Tip_Rotation_Add_Action;
 typedef Rotation_Action Rotation_Add_Action;
 typedef Move_Action Move_Add_Action;
 
