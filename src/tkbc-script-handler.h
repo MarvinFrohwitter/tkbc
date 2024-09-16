@@ -388,24 +388,31 @@ void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
       continue;
     }
 
-    Frame *f = &frames->elements[i];
-    float patch_angle = 0;
-    assert(ACTION_KIND_COUNT == 9 &&
-           "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
-    switch (f->kind) {
-    case KITE_TIP_ROTATION:
-    case KITE_TIP_ROTATION_ADD:
-    case KITE_ROTATION:
-    case KITE_ROTATION_ADD: {
-      Rotation_Action *a = f->action;
-      patch_angle = fabsf(a->angle);
-    } break;
-    default: {
-    }
-    }
-
     for (size_t j = 0; j < frames->elements[i].kite_index_array->count; ++j) {
       Index kite_index = frames->elements[i].kite_index_array->elements[j];
+
+      Frame *f = &frames->elements[i];
+      float patch_angle = 0;
+      assert(ACTION_KIND_COUNT == 9 &&
+             "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
+      switch (f->kind) {
+      case KITE_TIP_ROTATION:
+      case KITE_ROTATION: {
+        Rotation_Action *a = f->action;
+        patch_angle =
+            fabsf(env->kite_array->elements[kite_index].kite->center_rotation -
+                  a->angle);
+
+      } break;
+      case KITE_TIP_ROTATION_ADD:
+      case KITE_ROTATION_ADD: {
+        Rotation_Action *a = f->action;
+        patch_angle = fabsf(a->angle);
+      } break;
+      default: {
+      }
+      }
+
       Kite_Position kite_position = {
           .kite_id = kite_index,
           .position = env->kite_array->elements[kite_index].kite->center,

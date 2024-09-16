@@ -43,6 +43,11 @@ void tkbc_script_input(Env *env) {
                                &(CLITERAL(Rotation_Action){.angle = -180}),
                                rotation_duration));
 
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION, ki,
+                               &(CLITERAL(Rotation_Action){.angle = 0}),
+                               rotation_duration));
+
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
 
   tkbc_register_frames(
@@ -83,7 +88,7 @@ void tkbc_script_input(Env *env) {
   tkbc_register_frames(env,
                        tkbc_frame_generate(KITE_TIP_ROTATION_ADD, ki,
                                            &(CLITERAL(Tip_Rotation_Add_Action){
-                                               .angle = 45, .tip = LEFT_TIP}),
+                                               .angle = 90, .tip = LEFT_TIP}),
                                            rotation_duration));
 
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
@@ -91,7 +96,15 @@ void tkbc_script_input(Env *env) {
   tkbc_register_frames(env,
                        tkbc_frame_generate(KITE_TIP_ROTATION, ki,
                                            &(CLITERAL(Tip_Rotation_Action){
-                                               .angle = -180, .tip = RIGHT_TIP}),
+                                               .angle = 45, .tip = RIGHT_TIP}),
+                                           rotation_duration));
+
+  tkbc_register_frames(env, tkbc_script_wait(wait_time));
+
+  tkbc_register_frames(env,
+                       tkbc_frame_generate(KITE_TIP_ROTATION, ki,
+                                           &(CLITERAL(Tip_Rotation_Action){
+                                               .angle = 0, .tip = RIGHT_TIP}),
                                            rotation_duration));
 
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
