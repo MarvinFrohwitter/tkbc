@@ -99,7 +99,7 @@ void tkbc_script_input(Env *env) {
   //                     .y = env->window_height / 2.0};
   float duration = 2;
   float wait_time = 0.5;
-  // float rotation_duration = 1;
+  float rotation_duration = 1;
   // Kite *kite = env->kite_array->elements[0].kite;
   // float ball_radius = (kite->width + kite->spread);
 
@@ -116,23 +116,24 @@ void tkbc_script_input(Env *env) {
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
 
 
-  tkbc_register_frames(env, tkbc_script_wait(wait_time));
+  // tkbc_register_frames(env, tkbc_script_wait(wait_time));
 
-  rotation_checkup(env, ki);
+  // rotation_checkup(env, ki);
 
   // tkbc_script_team_ball(env, ki, position, offset, ball_radius, duration);
-  // tkbc_register_frames(
-  //     env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
-  //                              &(CLITERAL(Rotation_Action){.angle = -90}),
-  //                              0));
 
-  // tkbc_register_frames(env, tkbc_script_wait(1));
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
+                               &(CLITERAL(Rotation_Action){.angle = -90}),
+                               3));
 
-  // tkbc_script_team_split_box_up(env, ki, ODD, 300, 10, 5);
+  tkbc_register_frames(env, tkbc_script_wait(1));
 
-  // tkbc_script_team_split_box_up(env, ki, EVEN, 300, 10, 5);
+  tkbc_script_team_split_box_up(env, ki, ODD, 300, 1, rotation_duration);
+  tkbc_script_team_split_box_up(env, ki, EVEN, 300, 1, rotation_duration);
 
-  // tkbc_register_frames(env, tkbc_script_wait(1));
+
+  tkbc_register_frames(env, tkbc_script_wait(1));
 
   tkbc_script_team_mountain(env, ki, v_padding, h_padding, offset, duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
