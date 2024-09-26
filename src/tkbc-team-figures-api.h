@@ -8,36 +8,42 @@
 // ===========================================================================
 
 bool tkbc_script_team_line(Env *env, Kite_Indexs kite_index_array,
-                           size_t h_padding, Vector2 offset, float duration);
+                           size_t h_padding, Vector2 offset,
+                           float move_duration);
 bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
-                           Vector2 offset, float duration);
+                           Vector2 offset, float move_duration);
 
 bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
                            Vector2 position, Vector2 offset, float radius,
-                           float duration);
+                           float move_duration, float rotation_duration);
 
 bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
                                size_t v_padding, size_t h_padding,
-                               Vector2 offset, float duration);
+                               Vector2 offset, float move_duration,
+                               float rotation_duration);
 bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
                              size_t v_padding, size_t h_padding, Vector2 offset,
-                             float duration);
+                             float move_duration, float rotation_duration);
 
 bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                           size_t v_padding, size_t h_padding, Vector2 offset,
-                          float angle, float duration);
+                          float angle, float move_duration,
+                          float rotation_duration);
 bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
                             size_t v_padding, size_t h_padding, Vector2 offset,
-                            float angle, float duration);
+                            float angle, float move_duration,
+                            float rotation_duration);
 
 void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                           DIRECTION direction, float angle, float box_size,
-                          float duration);
+                          float move_duration, float rotation_duration);
 void tkbc_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
-                               float box_size, float duration);
+                               float box_size, float move_duration,
+                               float rotation_duration);
 void tkbc_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
-                                float box_size, float duration);
+                                float box_size, float move_duration,
+                                float rotation_duration);
 
 bool tkbc_script_team_split_box_up(Env *env, Kite_Indexs kite_index_array,
                                    ODD_EVEN odd_even, float box_size,
@@ -46,11 +52,13 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Indexs kite_index_array,
 
 void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                              DIRECTION direction, float angle, float box_size,
-                             float duration);
+                             float move_duration, float rotation_duration);
 void tkbc_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
-                                  float box_size, float duration);
+                                  float box_size, float move_duration,
+                                  float rotation_duration);
 void tkbc_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
-                                   float box_size, float duration);
+                                   float box_size, float move_duration,
+                                   float rotation_duration);
 
 #endif // TKBC_TEAM_FIGURES_API_H_
 
@@ -72,7 +80,7 @@ void tkbc_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
 
 bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
                            Vector2 position, Vector2 offset, float radius,
-                           float duration) {
+                           float move_duration, float rotation_duration) {
 
   position = Vector2Add(position, offset);
   Vector2 place = position;
@@ -97,7 +105,7 @@ bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
           tkbc_frame_generate(KITE_MOVE, tkbc_indexs_append(i),
                               &(CLITERAL(Move_Action){.position.x = place.x,
                                                       .position.y = place.y}),
-                              duration);
+                              move_duration);
 
       if (frame == NULL)
         return false;
@@ -107,7 +115,7 @@ bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
     {
       Frame *frame = tkbc_frame_generate(
           KITE_ROTATION, tkbc_indexs_append(i),
-          &(CLITERAL(Rotation_Action){.angle = deg_angle}), 0);
+          &(CLITERAL(Rotation_Action){.angle = deg_angle}), rotation_duration);
 
       if (frame == NULL)
         return false;
@@ -122,7 +130,8 @@ bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
 
 bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
                                size_t v_padding, size_t h_padding,
-                               Vector2 offset, float duration) {
+                               Vector2 offset, float move_duration,
+                               float rotation_duration) {
 
   int w = env->window_width;
   int h = env->window_height;
@@ -159,7 +168,7 @@ bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
                                   .position.x = anchor.x + x_space * column,
                                   .position.y = anchor.y + y_space * row,
                               }),
-                              duration);
+                              move_duration);
 
       if (frame == NULL)
         return false;
@@ -169,7 +178,7 @@ bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
     {
       Frame *frame = tkbc_frame_generate(
           KITE_ROTATION, tkbc_indexs_append(i),
-          &(CLITERAL(Rotation_Action){.angle = 0}), duration);
+          &(CLITERAL(Rotation_Action){.angle = 0}), rotation_duration);
 
       if (frame == NULL)
         return false;
@@ -193,7 +202,7 @@ bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
 
 bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
                              size_t v_padding, size_t h_padding, Vector2 offset,
-                             float duration) {
+                             float move_duration, float rotation_duration) {
 
   int w = env->window_width;
   int h = env->window_height;
@@ -230,7 +239,7 @@ bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
                                   .position.x = anchor.x + x_space * column,
                                   .position.y = anchor.y + y_space * row,
                               }),
-                              duration);
+                              move_duration);
 
       if (frame == NULL)
         return false;
@@ -240,7 +249,7 @@ bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
     {
       Frame *frame = tkbc_frame_generate(
           KITE_ROTATION, tkbc_indexs_append(i),
-          &(CLITERAL(Rotation_Action){.angle = 0}), duration);
+          &(CLITERAL(Rotation_Action){.angle = 0}), rotation_duration);
 
       if (frame == NULL)
         return false;
@@ -264,7 +273,8 @@ bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
 
 bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                           size_t v_padding, size_t h_padding, Vector2 offset,
-                          float angle, float duration) {
+                          float angle, float move_duration,
+                          float rotation_duration) {
 
   float start_angle = angle;
   int w = env->window_width;
@@ -302,7 +312,7 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                                   .position.x = anchor.x + x_space * column,
                                   .position.y = anchor.y + y_space * row,
                               }),
-                              duration);
+                              move_duration);
 
       if (frame == NULL)
         return false;
@@ -315,7 +325,7 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
     {
       Frame *frame = tkbc_frame_generate(
           KITE_ROTATION, tkbc_indexs_append(i),
-          &(CLITERAL(Rotation_Action){.angle = angle}), duration);
+          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
 
       if (frame == NULL)
         return false;
@@ -342,7 +352,8 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
 
 bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
                             size_t v_padding, size_t h_padding, Vector2 offset,
-                            float angle, float duration) {
+                            float angle, float move_duration,
+                            float rotation_duration) {
   angle = -angle;
   float start_angle = angle;
   int w = env->window_width;
@@ -380,7 +391,7 @@ bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
                                   .position.x = anchor.x + x_space * column,
                                   .position.y = anchor.y + y_space * row,
                               }),
-                              duration);
+                              move_duration);
 
       if (frame == NULL)
         return false;
@@ -393,7 +404,7 @@ bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
     {
       Frame *frame = tkbc_frame_generate(
           KITE_ROTATION, tkbc_indexs_append(i),
-          &(CLITERAL(Rotation_Action){.angle = angle}), duration);
+          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
 
       if (frame == NULL)
         return false;
@@ -419,15 +430,16 @@ bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
 }
 
 bool tkbc_script_team_line(Env *env, Kite_Indexs kite_index_array,
-                           size_t h_padding, Vector2 offset, float duration) {
+                           size_t h_padding, Vector2 offset,
+                           float move_duration) {
 
   return tkbc_script_team_grid(env, kite_index_array, 1, kite_index_array.count,
-                               0, h_padding, offset, duration);
+                               0, h_padding, offset, move_duration);
 }
 
 bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                            size_t columns, size_t v_padding, size_t h_padding,
-                           Vector2 offset, float duration) {
+                           Vector2 offset, float move_duration) {
 
   int w = env->window_width;
   int h = env->window_height;
@@ -458,7 +470,7 @@ bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
                                   .position.x = anchor.x + x_space * column,
                                   .position.y = anchor.y + y_space * row,
                               }),
-                              duration);
+                              move_duration);
 
       if (frame == NULL)
         return false;
@@ -473,7 +485,7 @@ bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
 
 void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                           DIRECTION direction, float angle, float box_size,
-                          float duration) {
+                          float move_duration, float rotation_duration) {
 
   // TODO: Think about the starting point.
   if (direction == RIGHT) {
@@ -485,12 +497,12 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                     .position.x = 0,
                                                     .position.y = -box_size / 2,
                                                 }),
-                                                duration));
+                                                move_duration));
 
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
-                               duration));
+                               rotation_duration));
 
   switch (direction) {
   case LEFT: {
@@ -500,7 +512,7 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                  .position.x = -box_size,
                                                  .position.y = 0,
                                              }),
-                                             duration));
+                                             move_duration));
 
   } break;
   case RIGHT: {
@@ -510,7 +522,7 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                  .position.x = box_size,
                                                  .position.y = 0,
                                              }),
-                                             duration));
+                                             move_duration));
 
   } break;
   default:
@@ -520,19 +532,19 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
-                               duration));
+                               rotation_duration));
 
   tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                                 &(CLITERAL(Move_Add_Action){
                                                     .position.x = 0,
                                                     .position.y = box_size,
                                                 }),
-                                                duration));
+                                                move_duration));
 
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
-                               duration));
+                               rotation_duration));
 
   switch (direction) {
   case LEFT: {
@@ -543,7 +555,7 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                  .position.x = box_size,
                                                  .position.y = 0,
                                              }),
-                                             duration));
+                                             move_duration));
   } break;
   case RIGHT: {
     tkbc_register_frames(env,
@@ -552,7 +564,7 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                  .position.x = -box_size,
                                                  .position.y = 0,
                                              }),
-                                             duration));
+                                             move_duration));
   } break;
   default:
     assert(0 && "UNREACHABLE");
@@ -561,24 +573,28 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
-                               duration));
+                               rotation_duration));
 
   tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
                                                 &(CLITERAL(Move_Add_Action){
                                                     .position.x = 0,
                                                     .position.y = -box_size / 2,
                                                 }),
-                                                duration));
+                                                move_duration));
 }
 
 void tkbc_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
-                               float box_size, float duration) {
-  tkbc_script_team_box(env, kite_index_array, LEFT, 90, box_size, duration);
+                               float box_size, float move_duration,
+                               float rotation_duration) {
+  tkbc_script_team_box(env, kite_index_array, LEFT, 90, box_size, move_duration,
+                       rotation_duration);
 }
 
 void tkbc_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
-                                float box_size, float duration) {
-  tkbc_script_team_box(env, kite_index_array, RIGHT, 90, box_size, duration);
+                                float box_size, float move_duration,
+                                float rotation_duration) {
+  tkbc_script_team_box(env, kite_index_array, RIGHT, 90, box_size,
+                       move_duration, rotation_duration);
 }
 
 bool tkbc_script_team_split_box_up(Env *env, Kite_Indexs kite_index_array,
@@ -952,7 +968,7 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Indexs kite_index_array,
 
 void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                              DIRECTION direction, float angle, float box_size,
-                             float duration) {
+                             float move_duration, float rotation_duration) {
 
   if (direction == RIGHT) {
     angle = -angle;
@@ -961,7 +977,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle / 2}),
-                               duration));
+                               rotation_duration));
 
   switch (direction) {
   case RIGHT: {
@@ -971,7 +987,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                      .position.x = box_size / sqrt(2),
                                      .position.y = -box_size / sqrt(2),
                                  }),
-                                 duration));
+                                 move_duration));
 
   } break;
   case LEFT: {
@@ -981,7 +997,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                      .position.x = -box_size / sqrt(2),
                                      .position.y = -box_size / sqrt(2),
                                  }),
-                                 duration));
+                                 move_duration));
 
   } break;
   default:
@@ -991,7 +1007,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
-                               duration));
+                               rotation_duration));
 
   switch (direction) {
   case RIGHT: {
@@ -1001,7 +1017,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                      .position.x = box_size / sqrt(2),
                                      .position.y = box_size / sqrt(2),
                                  }),
-                                 duration));
+                                 move_duration));
   } break;
   case LEFT: {
     tkbc_register_frames(
@@ -1010,7 +1026,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                      .position.x = -box_size / sqrt(2),
                                      .position.y = box_size / sqrt(2),
                                  }),
-                                 duration));
+                                 move_duration));
   } break;
   default:
     assert(0 && "UNREACHABLE");
@@ -1019,7 +1035,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
-                               duration));
+                               rotation_duration));
 
   switch (direction) {
   case RIGHT: {
@@ -1029,7 +1045,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                      .position.x = -box_size / sqrt(2),
                                      .position.y = box_size / sqrt(2),
                                  }),
-                                 duration));
+                                 move_duration));
   } break;
   case LEFT: {
     tkbc_register_frames(
@@ -1038,7 +1054,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                      .position.x = box_size / sqrt(2),
                                      .position.y = box_size / sqrt(2),
                                  }),
-                                 duration));
+                                 move_duration));
   } break;
   default:
     assert(0 && "UNREACHABLE");
@@ -1047,7 +1063,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
-                               duration));
+                               rotation_duration));
 
   switch (direction) {
   case RIGHT: {
@@ -1057,7 +1073,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                      .position.x = -box_size / sqrt(2),
                                      .position.y = -box_size / sqrt(2),
                                  }),
-                                 duration));
+                                 move_duration));
   } break;
   case LEFT: {
     tkbc_register_frames(
@@ -1066,7 +1082,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                      .position.x = box_size / sqrt(2),
                                      .position.y = -box_size / sqrt(2),
                                  }),
-                                 duration));
+                                 move_duration));
   } break;
   default:
     assert(0 && "UNREACHABLE");
@@ -1075,17 +1091,21 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle / 2}),
-                               duration));
+                               rotation_duration));
 }
 
 void tkbc_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
-                                  float box_size, float duration) {
-  tkbc_script_team_dimond(env, kite_index_array, LEFT, 90, box_size, duration);
+                                  float box_size, float move_duration,
+                                  float rotation_duration) {
+  tkbc_script_team_dimond(env, kite_index_array, LEFT, 90, box_size,
+                          move_duration, rotation_duration);
 }
 
 void tkbc_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
-                                   float box_size, float duration) {
-  tkbc_script_team_dimond(env, kite_index_array, RIGHT, 90, box_size, duration);
+                                   float box_size, float move_duration,
+                                   float rotation_duration) {
+  tkbc_script_team_dimond(env, kite_index_array, RIGHT, 90, box_size,
+                          move_duration, rotation_duration);
 }
 
 #endif // TKBC_TEAM_FIGURES_API_IMPLEMENTATION
