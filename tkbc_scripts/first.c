@@ -122,6 +122,13 @@ void tkbc_script_input(Env *env) {
 
   // tkbc_script_team_ball(env, ki, position, offset, ball_radius, duration);
 
+  tkbc_script_team_box_left(env, ki, 300, duration);
+  tkbc_script_team_box_right(env, ki, 300, duration);
+  tkbc_register_frames(env, tkbc_script_wait(1));
+  tkbc_script_team_dimond_left(env, ki, 300, duration);
+  tkbc_script_team_dimond_right(env, ki, 300, duration);
+
+  tkbc_register_frames(env, tkbc_script_wait(1));
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
                                &(CLITERAL(Rotation_Action){.angle = -90}),
@@ -159,11 +166,6 @@ void tkbc_script_input(Env *env) {
   tkbc_script_team_grid(env, ki, 3, 3, v_padding, h_padding, offset, duration);
 
   tkbc_register_frames(env, tkbc_script_wait(1));
-  // tkbc_script_team_box_left(env, ki, 300, duration);
-  // tkbc_script_team_box_right(env, ki, 300, duration);
-  // tkbc_register_frames(env, tkbc_script_wait(1));
-  // tkbc_script_team_dimond_left(env, ki, 300, duration);
-  // tkbc_script_team_dimond_right(env, ki, 300, duration);
 
   tkbc_script_end(env);
 }

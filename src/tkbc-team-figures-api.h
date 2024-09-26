@@ -488,7 +488,7 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                 duration));
 
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -518,7 +518,7 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
   }
 
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -530,7 +530,7 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                 duration));
 
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -559,7 +559,7 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
   }
 
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -959,7 +959,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   }
 
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle / 2}),
                                duration));
 
@@ -989,7 +989,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   }
 
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -1017,7 +1017,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   }
 
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -1045,7 +1045,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   }
 
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -1073,7 +1073,7 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
   }
 
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle / 2}),
                                duration));
 }
