@@ -265,12 +265,10 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     }
   }
 
+  tkbc_patch_block_frames_kite_positions(env, frames);
   tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(frames));
 
   assert(env->block_frames->count - 1 >= 0);
-  tkbc_patch_block_frames_kite_positions(
-      env, &env->block_frames->elements[env->block_frames->count - 1]);
-
   env->block_frames->elements[env->block_frames->count - 1].block_index =
       env->block_frames->count - 1;
 

@@ -434,6 +434,30 @@ void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
       for (size_t k = 0; k < frames->kite_frame_positions->count; ++k) {
         if (frames->kite_frame_positions->elements[k].kite_id == kite_index) {
           contains = true;
+          // NOTE: Patching remaining_angle in case the kite_position was
+          // already added by just a move action, but later the corresponding
+          // angle action is handled.
+          assert(ACTION_KIND_COUNT == 9 &&
+                 "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
+          switch (f->kind) {
+          case KITE_MOVE:
+          case KITE_MOVE_ADD: {
+            frames->kite_frame_positions->elements[k].position =
+                kite_position.position;
+          } break;
+          case KITE_TIP_ROTATION:
+          case KITE_ROTATION:
+          case KITE_TIP_ROTATION_ADD:
+          case KITE_ROTATION_ADD: {
+            frames->kite_frame_positions->elements[k].remaining_angle =
+                kite_position.remaining_angle;
+            frames->kite_frame_positions->elements[k].angle =
+                kite_position.angle;
+          } break;
+          default: {
+          }
+          }
+
           break;
         }
       }
