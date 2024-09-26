@@ -89,28 +89,6 @@ bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
     place.y +=
         floorf(cimagf((radius)*cexpf(I * (PI * (deg_base_rotation) / 180))));
 
-    // ------------|-----------------------------
-    // --------v---|-----------------------------
-    // -----------v|-----------------------------
-    // ------------|v----------------------------
-    // ------------|---v-------------------------
-    // ------------|-----v-----------------------
-    // ------------|-------v---------------------
-    // ------------|---------v-------------------
-    // ------------|---------XV------------------
-    // ------------|-------M-x--V----------------
-    // ------------|-----M---x----V--------------
-    // ------------|---M-----x-----V-------------
-    // ____________|M________x______V____________
-    // ------------------------------------------
-    // ------------------------------------------
-    // ------------------------------------------
-    // ------------------------------------------
-    // ------------------------------------------
-    // ------------------------------------------
-    // ------------------------------------------
-
-    // --      Ausenwinkel  - innenwinkel
     float deg_angle =
         (180 - (180 - (deg_base_rotation + 90))) + deg_base_rotation;
     deg_base_rotation += segment_size;
@@ -127,9 +105,8 @@ bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     {
-      // TODO: Implement the none adding rotation
       Frame *frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(i),
+          KITE_ROTATION, tkbc_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = deg_angle}), 0);
 
       if (frame == NULL)
@@ -190,9 +167,8 @@ bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     {
-      // TODO: Implement the none adding rotation
       Frame *frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(i),
+          KITE_ROTATION, tkbc_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = 0}), duration);
 
       if (frame == NULL)
@@ -261,10 +237,9 @@ bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
 
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
-    // TODO: Implement the none adding rotation
     {
       Frame *frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(i),
+          KITE_ROTATION, tkbc_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = 0}), duration);
 
       if (frame == NULL)
@@ -312,8 +287,8 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                     .y = h / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
-
   env->scratch_buf_frames->count = 0;
+
   size_t i = 0;
   size_t row = rows;
   for (size_t column = 0; column < columns; ++column) {
@@ -339,7 +314,7 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
     }
     {
       Frame *frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(i),
+          KITE_ROTATION, tkbc_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = angle}), duration);
 
       if (frame == NULL)
@@ -417,7 +392,7 @@ bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
     }
     {
       Frame *frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(i),
+          KITE_ROTATION, tkbc_indexs_append(i),
           &(CLITERAL(Rotation_Action){.angle = angle}), duration);
 
       if (frame == NULL)
@@ -488,7 +463,7 @@ bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
       if (frame == NULL)
         return false;
 
-    tkbc_dap(env->scratch_buf_frames, *frame);
+      tkbc_dap(env->scratch_buf_frames, *frame);
     }
   }
 
@@ -512,9 +487,8 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                 }),
                                                 duration));
 
-  // TODO: Implement the none adding rotation
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -543,9 +517,8 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
     assert(0 && "UNREACHABLE");
   }
 
-  // TODO: Implement the none adding rotation
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -556,9 +529,8 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                 }),
                                                 duration));
 
-  // TODO: Implement the none adding rotation
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -586,9 +558,8 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
     assert(0 && "UNREACHABLE");
   }
 
-  // TODO: Implement the none adding rotation
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -939,9 +910,8 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
     angle = -angle;
   }
 
-  // TODO: Implement the none adding rotation
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle / 2}),
                                duration));
 
@@ -970,9 +940,8 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
     assert(0 && "UNREACHABLE");
   }
 
-  // TODO: Implement the none adding rotation
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -999,9 +968,8 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
     assert(0 && "UNREACHABLE");
   }
 
-  // TODO: Implement the none adding rotation
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -1028,9 +996,8 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
     assert(0 && "UNREACHABLE");
   }
 
-  // TODO: Implement the none adding rotation
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle}),
                                duration));
 
@@ -1057,9 +1024,8 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
     assert(0 && "UNREACHABLE");
   }
 
-  // TODO: Implement the none adding rotation
   tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
+      env, tkbc_frame_generate(KITE_ROTATION, kite_index_array,
                                &(CLITERAL(Rotation_Action){.angle = angle / 2}),
                                duration));
 }

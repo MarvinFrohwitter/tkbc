@@ -260,7 +260,8 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (remaining_angle <= 0 ||
-          FloatEquals(kite->old_angle + action->angle, kite->center_rotation)) {
+          FloatEquals(floorf(kite->old_angle + action->angle),
+                      floorf(kite->center_rotation))) {
         frame->finished = true;
       }
     }
@@ -291,7 +292,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
       // NOTE: Different from the ADDing version.
       if (remaining_angle <= 0 ||
-          FloatEquals(action->angle, kite->center_rotation)) {
+          FloatEquals(floorf(action->angle), floorf(kite->center_rotation))) {
         frame->finished = true;
       }
     }
@@ -322,7 +323,8 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (remaining_angle <= 0 ||
-          FloatEquals(kite->old_angle + action->angle, kite->center_rotation)) {
+          FloatEquals(floorf(kite->old_angle + action->angle),
+                      floorf(kite->center_rotation))) {
         frame->finished = true;
       }
     }
@@ -354,7 +356,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
       // NOTE: Different from the ADDing version.
       if (remaining_angle <= 0 ||
-          FloatEquals(action->angle, kite->center_rotation)) {
+          FloatEquals(floorf(action->angle), floorf(kite->center_rotation))) {
         frame->finished = true;
       }
     }
