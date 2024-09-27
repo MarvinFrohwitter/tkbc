@@ -504,17 +504,14 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
     Index k_index = env->frames->kite_frame_positions->elements[i].kite_id;
     Kite *kite = env->kite_array->elements[k_index].kite;
 
-    kite->old_angle = kite->center_rotation;
-    kite->old_center = kite->center;
-
-    env->frames->kite_frame_positions->elements[i].angle =
-        kite->center_rotation;
-    env->frames->kite_frame_positions->elements[i].position = kite->center;
-
     Vector2 position = env->frames->kite_frame_positions->elements[i].position;
     float angle = env->frames->kite_frame_positions->elements[i].angle;
 
     tkbc_center_rotation(kite, &position, angle);
+
+    // For the correct recomputation of the action where the slider is set to.
+    kite->old_angle = kite->center_rotation;
+    kite->old_center = kite->center;
   }
 }
 
@@ -523,10 +520,13 @@ void tkbc_scrub_frames(Env *env) {
     return;
   }
 
-  bool drag_left =
-      GetMouseX() - env->timeline_front.x + env->timeline_front.width <= 0;
-  // if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
-  if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
+  if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
+    int mouse_x = GetMouseX();
+    float slider = env->timeline_front.x + env->timeline_front.width;
+    float c = mouse_x - slider;
+    bool drag_left = c <= 0;
+
+    env->script_finished = true;
 
     // The block indexes are assumed in order and at the corresponding index.
     int index =

@@ -100,7 +100,7 @@ void tkbc_script_update_frames(Env *env) {
 
         // NOTE: The design limits the combined use of center rotations and tip
         // rotations. Introduce separate tracking variables, if the distinct use
-        // in one frame is needed feature is
+        // in one frame is needed.
 
         kite->old_angle = kite->center_rotation;
         kite->old_center = kite->center;
@@ -264,6 +264,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     }
     }
   }
+
 
   tkbc_patch_block_frames_kite_positions(env, frames);
   tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(frames));
