@@ -198,7 +198,7 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
   }
 
   Frame *frame = tkbc_init_frame();
-  void *action = tkbc_move_action_to_heap(raw_action, kind, false);
+  void *action = tkbc_move_action_to_heap(raw_action, kind, true);
 
   tkbc_dapc(frame->kite_index_array, kite_indexs.elements, kite_indexs.count);
 
@@ -258,13 +258,18 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     } break;
     case KITE_ROTATION_ADD:
     case KITE_TIP_ROTATION_ADD: {
-      tkbc_ra_setup();
+      for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
+        Kite *kite =
+            env->kite_array->elements[frame->kite_index_array->elements[i]]
+                .kite;
+        kite->old_angle = kite->center_rotation;
+        kite->old_center = kite->center;
+      }
     } break;
     default: {
     }
     }
   }
-
 
   tkbc_patch_block_frames_kite_positions(env, frames);
   tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(frames));

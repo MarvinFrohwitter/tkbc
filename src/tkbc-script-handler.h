@@ -95,7 +95,7 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
       continue;
     } else {
       new_frame.action = tkbc_move_action_to_heap(
-          frames->elements[i].action, frames->elements[i].kind, true);
+          frames->elements[i].action, frames->elements[i].kind, false);
     }
 
     Kite_Indexs *old_kite_index_array = frames->elements[i].kite_index_array;

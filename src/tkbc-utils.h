@@ -12,9 +12,22 @@
 // ========================== KITE UTILS =====================================
 // ===========================================================================
 
+/**
+ * @brief The macro gives the actual size of the given array x back.
+ */
 #define ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
 
+/** @brief The initial capacity of the dynamic arrays. */
 #define DAP_CAP 64
+
+/**
+ * @brief The macro pushes the new array element at the end of the dynamic
+ * array.
+ *
+ * @param dynamic_array The given array by a pointer.
+ * @param element The given new element by value of the same type the array
+ * holds elements.
+ */
 #define tkbc_dap(dynamic_array, element)                                       \
   do {                                                                         \
     if ((dynamic_array)->capacity <= (dynamic_array)->count) {                 \
@@ -39,6 +52,15 @@
     (dynamic_array)->count = (dynamic_array)->count + 1;                       \
   } while (0)
 
+/**
+ * @brief The macro pushes the given amount of new elements to the end of the
+ * dynamic array.
+ *
+ * @param dynamic_array The given array by a pointer.
+ * @param new_element The given new elements by pointer of the same type the
+ * array holds elements.
+ * @param new_elements_count The amount of elements to add to the array.
+ */
 #define tkbc_dapc(dynamic_array, new_elements, new_elements_count)             \
   do {                                                                         \
     if (new_elements != NULL) {                                                \
@@ -67,6 +89,11 @@
     }                                                                          \
   } while (0)
 
+/**
+ * The macro allocates according to the given action type the action on the
+ * heap.
+ * @param type The action type definition to allocate.
+ */
 #define action_alloc(type)                                                     \
   do {                                                                         \
     action = calloc(1, sizeof(type));                                          \
@@ -76,24 +103,11 @@
     }                                                                          \
   } while (0)
 
-#define tkbc_ra_setup()                                                        \
-  do {                                                                         \
-    for (size_t i = 0; i < frame->kite_index_array->count; ++i) {              \
-      Kite *kite =                                                             \
-          env->kite_array->elements[frame->kite_index_array->elements[i]]      \
-              .kite;                                                           \
-                                                                               \
-      kite->old_angle = kite->center_rotation;                                 \
-      kite->old_center = kite->center;                                         \
-    }                                                                          \
-  } while (0)
-
-void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy);
-void tkbc_print_cmd(const char *cmd[]);
+void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
+                               bool isgenerated);
+void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 int tkbc_check_boundary(Kite *kite, ORIENTATION orientation);
 float tkbc_clamp(float z, float a, float b);
-float tkbc_lerp(float a, float b, float t);
-int tkbc_max(int a, int b);
 
 #endif // TKBC_UTILS_H_
 
@@ -103,14 +117,27 @@ int tkbc_max(int a, int b);
 
 // ========================== KITE UTILS =====================================
 
-void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy) {
+/**
+ * @brief The function creates a new heap copy of the given action. If the
+ * provided one is already on the heap a second one will be created on the heap,
+ * else the stack allocation will be moved to heap and can be dropped after this
+ * function call.
+ *
+ * @param raw_action The action that will be moved to the heap.
+ * @param kind The action kind that identifies the type of the action.
+ * @param isgenerated Indicates the specific use for the initialization of a
+ * frame, where the quit and wait actions are handled separate, differently than
+ * in the deep copy function.
+ */
+void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
+                               bool isgenerated) {
 
   void *action = NULL;
   assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
   switch (kind) {
   case KITE_QUIT:
   case KITE_WAIT: {
-    if (copy) {
+    if (!isgenerated) {
       action_alloc(Wait_Action);
       ((Wait_Action *)action)->starttime =
           ((Wait_Action *)raw_action)->starttime;
@@ -151,7 +178,14 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind, bool copy) {
   return action;
 }
 
-void tkbc_print_cmd(const char *cmd[]) {
+/**
+ * @brief The function can print any command line that is in form of an array of
+ * strings.
+ *
+ * @param cmd The command line that should be printed to given stream.
+ * @param stream The FILE stream where the output should be directed.
+ */
+void tkbc_print_cmd(FILE *stream, const char *cmd[]) {
   struct {
     char *elements;
     size_t count;
@@ -166,9 +200,12 @@ void tkbc_print_cmd(const char *cmd[]) {
     tkbc_dap(&cmd_string, ' ');
     i++;
   }
+
+  // Remove the extra space at the end.
+  cmd_string.count--;
   tkbc_dap(&cmd_string, '\0');
 
-  fprintf(stderr, "[INFO] [CMD] %s\n", cmd_string.elements);
+  fprintf(stream, "[INFO] [CMD] %s\n", cmd_string.elements);
   free(cmd_string.elements);
 }
 
@@ -176,7 +213,7 @@ void tkbc_print_cmd(const char *cmd[]) {
  * @brief The function checks if the kite is still in the displayed window in
  * the given orientation of the kite.
  *
- * @param kite The kite that is going to be modified.
+ * @param kite The kite that is going to be handled.
  * @param orientation The orientation of the kite, to determine where the tips
  * are.
  * @return True if the kite is in the window, otherwise false.
@@ -215,9 +252,5 @@ float tkbc_clamp(float z, float a, float b) {
   float s = z < a ? a : z;
   return s < b ? s : b;
 }
-
-float tkbc_lerp(float a, float b, float t) { return a + (t * (b - a)); }
-
-int tkbc_max(int a, int b) { return a <= b ? b : a; }
 
 #endif // TKBC_UTILS_IMPLEMENTATION

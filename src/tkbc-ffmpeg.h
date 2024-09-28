@@ -114,7 +114,7 @@ bool tkbc_ffmpeg_create_proc(Env *env) {
 
                                   "video.mp4", NULL};
 
-      tkbc_print_cmd(ffmpeg_cmd);
+      tkbc_print_cmd(stderr, ffmpeg_cmd);
       return_code = execvp("ffmpeg", (char *const *)ffmpeg_cmd);
 
     } else {
@@ -132,7 +132,7 @@ bool tkbc_ffmpeg_create_proc(Env *env) {
 
           "video.mp4", NULL};
 
-      tkbc_print_cmd(ffmpeg_cmd);
+      tkbc_print_cmd(stderr, ffmpeg_cmd);
       return_code = execvp("ffmpeg", (char *const *)ffmpeg_cmd);
     }
 
