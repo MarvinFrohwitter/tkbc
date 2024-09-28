@@ -17,7 +17,7 @@ void tkbc_ffmpeg_write_image(Env *env);
 #include <errno.h>
 #include <stdint.h>
 
-#include <raylib.h>
+#include "raylib.h"
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>

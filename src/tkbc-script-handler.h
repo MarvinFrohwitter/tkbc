@@ -1,9 +1,9 @@
 #ifndef TKBC_SCRIPT_HANDLER_H_
 #define TKBC_SCRIPT_HANDLER_H_
 
+#include "raylib.h"
 #include "tkbc-types.h"
 #include "tkbc.h"
-#include <raylib.h>
 #include <string.h>
 
 // ===========================================================================

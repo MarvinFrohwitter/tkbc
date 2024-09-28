@@ -66,10 +66,10 @@ void tkbc_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
 
 #ifdef TKBC_TEAM_FIGURES_API_IMPLEMENTATION
 
+#include "raymath.h"
 #include <assert.h>
 #include <complex.h>
 #include <math.h>
-#include <raymath.h>
 
 #ifndef TKBC_SCRIPT_API_IMPLEMENTATION
 #define TKBC_SCRIPT_API_IMPLEMENTATION

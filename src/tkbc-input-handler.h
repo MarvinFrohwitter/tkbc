@@ -39,7 +39,8 @@ void tkbc_input_check_mouse(Kite_State *state);
 void tkbc_input_handler(Env *env, Kite_State *state) {
   // Hard reset to startposition angel 0
   if (IsKeyDown(KEY_ENTER))
-    tkbc_kite_array_start_position(env);
+    tkbc_kite_array_start_position(env->kite_array, env->window_width,
+                                   env->window_height);
 
   if (!state->kite_input_handler_active) {
     return;

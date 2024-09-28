@@ -1,7 +1,7 @@
 #include "tkbc.h"
 
+#include "raylib.h"
 #include <complex.h>
-#include <raylib.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -82,7 +82,7 @@ int main(void) {
       tkbc_script_update_frames(env);
     }
 
-    tkbc_draw_kite_array(env);
+    tkbc_draw_kite_array(env->kite_array);
     tkbc_draw_ui(env);
     EndDrawing();
 

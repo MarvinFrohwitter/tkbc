@@ -91,7 +91,7 @@ Env *tkbc_init_env(void) {
 
 /**
  * @brief The function allocates the memory for a kite and it's corresponding
- * state and gives back the state structure.
+ * state and gives back the new initialized state structure.
  *
  * @return state The new allocated state.
  */
@@ -126,7 +126,7 @@ Kite_State *tkbc_init_kite(void) {
  * @param env The global state of the application.
  */
 void tkbc_destroy_env(Env *env) {
-  tkbc_destroy_kite_array(env);
+  tkbc_destroy_kite_array(env->kite_array);
   free(env->kite_array->elements);
   free(env->kite_array);
 
@@ -146,21 +146,21 @@ void tkbc_destroy_env(Env *env) {
 }
 
 /**
- * @brief The function frees the memory for the given state.
+ * @brief The function frees the memory for the given kite state.
  *
  * @param state The current state of a kite.
  */
 void tkbc_destroy_kite(Kite_State *state) { free(state->kite); }
 
 /**
- * @brief The function frees all the kites that are currently in the global
+ * @brief The function frees all the kites that are registered in the given
  * kite_array.
  *
- * @param env The global state of the application.
+ * @param kite_states The given kite array.
  */
-void tkbc_destroy_kite_array(Env *env) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    tkbc_destroy_kite(&env->kite_array->elements[i]);
+void tkbc_destroy_kite_array(Kite_States *kite_states) {
+  for (size_t i = 0; i < kite_states->count; ++i) {
+    tkbc_destroy_kite(&kite_states->elements[i]);
   }
 }
 
@@ -182,38 +182,41 @@ void tkbc_kite_array_generate(Env *env, size_t kite_count) {
         color_array[i % ARRAY_LENGTH(color_array)];
   }
 
-  tkbc_kite_array_start_position(env);
+  tkbc_kite_array_start_position(env->kite_array, env->window_width,
+                                 env->window_height);
 }
 
 /**
  * @brief The function computes the spaced start positions for the kite_array
  * and set the kites back to the default state values.
  *
- * @param env The global state of the application.
+ * @param kite_states The given kite array.
+ * @param window_width The width of the window.
+ * @param window_height The height of the window.
  */
-void tkbc_kite_array_start_position(Env *env) {
+void tkbc_kite_array_start_position(Kite_States *kite_states,
+                                    size_t window_width, size_t window_height) {
 
-  assert(env->kite_array->count != 0);
+  assert(kite_states->count > 0);
 
-  size_t kites_count = env->kite_array->count;
-  float kite_width = env->kite_array->elements[0].kite->width;
-  float kite_heigt = env->kite_array->elements[0].kite->height;
+  float kite_width = kite_states->elements[0].kite->width;
+  float kite_heigt = kite_states->elements[0].kite->height;
   int viewport_padding = kite_width > kite_heigt ? kite_width / 2 : kite_heigt;
 
-  Vector2 start_pos = {.x = env->window_width / 2.0f -
-                            kites_count * kite_width + kite_width / 2.0f,
-                       .y = env->window_height - 2 * viewport_padding};
+  Vector2 start_pos = {.x = window_width / 2.0f -
+                            kite_states->count * kite_width + kite_width / 2.0f,
+                       .y = window_height - 2 * viewport_padding};
 
-  for (size_t i = 0; i < kites_count; ++i) {
-    tkbc_set_kite_state_defaults(&env->kite_array->elements[i]);
-    tkbc_set_kite_defaults(env->kite_array->elements[i].kite, false);
-    tkbc_center_rotation(env->kite_array->elements[i].kite, &start_pos, 0);
+  for (size_t i = 0; i < kite_states->count; ++i) {
+    tkbc_set_kite_state_defaults(&kite_states->elements[i]);
+    tkbc_set_kite_defaults(kite_states->elements[i].kite, false);
+    tkbc_center_rotation(kite_states->elements[i].kite, &start_pos, 0);
     start_pos.x += 2 * kite_width;
   }
 }
 
 /**
- * @brief The function sets all the internal default of the kite and computes
+ * @brief The function sets all the internal defaults of the kite and computes
  * the internal corner points of the kite.
  *
  * @param kite The kite that is going to be modified.
@@ -262,7 +265,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
 /**
  * @brief The function sets all the default settings for a kite.
  *
- * @param state The state for which the values will be changed to defaults.
+ * @param state The kite state for which the values will be changed to defaults.
  */
 void tkbc_set_kite_state_defaults(Kite_State *state) {
 
@@ -282,7 +285,9 @@ void tkbc_set_kite_state_defaults(Kite_State *state) {
 
 /**
  * @brief The function computes all the internal points for the kite and it's
- * new position as well as the angle.
+ * new position as well as the angle. This can be used in terms of positioning
+ * the kite and rotating it or just for updating the (internal) geometric
+ * values that are responsible for the kite shape.
  *
  * @param kite The kite that is going to be modified.
  * @param position The new position for the kite at the center of the leading
@@ -346,7 +351,7 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position,
 }
 
 /**
- * @brief The function computes the new position of the kite and its
+ * @brief The function computes the new position of the kite and it's
  * corresponding structure values with a tip rotation.
  *
  * @param kite The kite that is going to be modified.
@@ -354,7 +359,7 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position,
  * edge or NULL for internal center position of the kite structure.
  * @param tip_deg_rotation The angle in degrees.
  * angle.
- * @param tip The tip chosen left or right around where the kite is turning.
+ * @param tip The tip chosen, left or right, where the kite is turning around.
  */
 void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
                        TIP tip) {
@@ -371,19 +376,19 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
   switch (tip) {
   case LEFT_TIP: {
 
-    // Move the rotation position to the left tip
+    // Move the rotation position to the left tip.
     pos.x = kite->left.v1.x;
     pos.y = kite->left.v1.y;
-    // Then rotate
+    // Then rotate.
     pos.x += ceilf(crealf((length)*cexpf(I * phi)));
     pos.y -= floorf(cimagf((length)*cexpf(I * phi)));
   } break;
   case RIGHT_TIP: {
 
-    // Move the rotation position to the right tip
+    // Move the rotation position to the right tip.
     pos.x = kite->right.v3.x;
     pos.y = kite->right.v3.y;
-    // Then rotate
+    // Then rotate.
     pos.x -= ceilf(crealf((length)*cexpf(I * phi)));
     pos.y += floorf(cimagf((length)*cexpf(I * phi)));
 
@@ -393,12 +398,13 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
     break;
   }
 
-  // Just compute a center rotation instead at the new found position
+  // Just compute a center rotation instead at the new shifted position.
   tkbc_center_rotation(kite, &pos, tip_deg_rotation);
 }
 
 /**
- * @brief The function computes the rotation as a ball below and above.
+ * @brief The function computes the rotation as a ball below and above the
+ * leading edge.
  *
  * @param kite The kite for which the calculation will happen.
  * @param position The new position for the kite at the center of the leading
@@ -439,7 +445,7 @@ void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
     // With out it just flies a circle
     // pos->x -= ceilf(length);
 
-    // Move the rotation position to the left tip
+    // Move the rotation position to the left tip.
     pos.x = kite->left.v1.x;
     pos.y = kite->left.v1.y;
     // Then rotate
@@ -448,7 +454,7 @@ void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
   } break;
   case RIGHT_TIP: {
 
-    // Move the rotation position to the right tip
+    // Move the rotation position to the right tip.
     pos.x = kite->right.v3.x;
     pos.y = kite->right.v3.y;
     // Then rotate
@@ -466,9 +472,9 @@ void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
 // ===========================================================================
 
 /**
- * @brief The function draws all the components of the kite.
+ * @brief The function draws all the components of the given kite.
  *
- * @param kite The kite that is going to be modified.
+ * @param kite The kite that is going to be drawn.
  */
 void tkbc_draw_kite(Kite *kite) {
   Vector2 origin = {0};
@@ -481,13 +487,13 @@ void tkbc_draw_kite(Kite *kite) {
 }
 
 /**
- * @brief The function draws every kite with its corresponding position on the
- * canvas.
+ * @brief The function draws every kite that is registered in given kite array
+ * with it's corresponding position on the screen.
  *
- * @param env The global state of the application.
+ * @param kite_states The given kite array.
  */
-void tkbc_draw_kite_array(Env *env) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    tkbc_draw_kite(env->kite_array->elements[i].kite);
+void tkbc_draw_kite_array(Kite_States *kite_states) {
+  for (size_t i = 0; i < kite_states->count; ++i) {
+    tkbc_draw_kite(kite_states->elements[i].kite);
   }
 }

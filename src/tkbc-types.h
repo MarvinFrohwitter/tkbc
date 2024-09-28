@@ -1,7 +1,7 @@
 #ifndef TKBC_TYPES_H_
 #define TKBC_TYPES_H_
 
-#include <raylib.h>
+#include "raylib.h"
 #include <stdio.h>
 #include <sys/types.h>
 
