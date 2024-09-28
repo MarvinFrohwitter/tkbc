@@ -2,6 +2,12 @@
 #include "tkbc-types.h"
 #include "tkbc.h"
 
+/**
+ * @brief The function wraps all the UI-elements to a single draw handler that
+ * computes the position and size of the UI-components.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_draw_ui(Env *env) {
 
   env->window_height = GetScreenHeight();
@@ -15,6 +21,12 @@ void tkbc_draw_ui(Env *env) {
   DrawFPS(env->window_width / 2, 10);
 }
 
+/**
+ * @brief The function provides the timeline UI slider to change the current
+ * displayed frame of a script.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_ui_timeline(Env *env) {
   if (env->script_setup) {
     return;
