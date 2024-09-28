@@ -9,7 +9,7 @@
 // ========================== TKBC KITE TYPES =================================
 // ===========================================================================
 
-typedef struct {
+typedef struct { // A representation for an internal kite geometric.
   Vector2 v1;
   Vector2 v2;
   Vector2 v3;
@@ -63,23 +63,31 @@ typedef struct {
 } Kite;
 
 typedef struct {
-  size_t id;
-  Kite *kite;
-  float fly_velocity;
-  float turn_velocity;
+  size_t id;  // The unique universal identifier for the kite.
+  Kite *kite; // The kite that holds it's geometric and positioning stats.
+  float fly_velocity;  // The base fly speed that holds the current combined
+                       // value with the delta time and the variable fly_speed
+                       // that is stored in the kite itself.
+  float turn_velocity; // The base turn speed that holds the current combined
+                       // value with the delta time and the variable turn_speed
+                       // that is stored in the kite itself.
 
-  bool interrupt_movement;
-  bool interrupt_smoothness;
-  bool fixed;
-  bool iscenter;
+  bool interrupt_movement;   // The ability of the kite to move in user control.
+  bool interrupt_smoothness; // The ability if the kite to turn smooth in user
+                             // control.
+  bool fixed; // The representation of the turn variant smooth or in fixed angle
+              // steps.
+  bool iscenter; // The representation of the active center rotation variant.
 
-  bool kite_input_handler_active;
+  bool kite_input_handler_active; // Representation of a manual user control
+                                  // selection.
 } Kite_State;
 
 typedef struct {
-  Kite_State *elements;
-  size_t count;
-  size_t capacity;
+  Kite_State *elements; // The dynamic array collection for all generated kites.
+  size_t count;         // The amount of elements in the array.
+  size_t capacity; // The complete allocated space for the array represented as
+                   // the number of collection elements of the array type.
 } Kite_States;
 
 typedef enum { FIXED, SMOOTH } PARAMETERS;
@@ -139,9 +147,10 @@ typedef enum {
 
 typedef size_t Index; // NOTE: Check for clang compiler issue in project.
 typedef struct {
-  Index *elements;
-  size_t count;
-  size_t capacity;
+  Index *elements; // The dynamic array collection for all kite indices.
+  size_t count;    // The amount of elements in the array.
+  size_t capacity; // The complete allocated space for the array represented as
+                   // the number of collection elements of the array type.
 } Kite_Indexs;
 
 typedef struct {
@@ -154,15 +163,18 @@ typedef struct {
 } Frame;
 
 typedef struct {
-  Kite_Position *elements;
-  size_t count;
-  size_t capacity;
+  Kite_Position
+      *elements;   // The dynamic array collection for all kite positions.
+  size_t count;    // The amount of elements in the array.
+  size_t capacity; // The complete allocated space for the array represented as
+                   // the number of collection elements of the array type.
 } Kite_Positions;
 
 typedef struct {
-  Frame *elements;
-  size_t count;
-  size_t capacity;
+  Frame *elements; // The dynamic array collection for all frames in the script.
+  size_t count;    // The amount of elements in the array.
+  size_t capacity; // The complete allocated space for the array represented as
+                   // the number of collection elements of the array type.
 
   size_t block_index;
 
@@ -171,9 +183,11 @@ typedef struct {
 } Frames;
 
 typedef struct {
-  Frames *elements;
-  size_t count;
-  size_t capacity;
+  Frames *elements; // The dynamic array collection for all combined frames as a
+                    // block frame.
+  size_t count;     // The amount of elements in the array.
+  size_t capacity;  // The complete allocated space for the array represented as
+                    // the number of collection elements of the array type.
 
 } Block_Frames;
 
