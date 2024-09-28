@@ -1,4 +1,4 @@
-# clang bug with size_t, variadics, optimazation and compiler caching
+# clang bug with size_t, variadics, optimization and compiler caching
 CC = gcc
 RAYLIBPATH = external/raylib-5.0/src
 INCLUDE = -I ${RAYLIBPATH} -I tkbc_scripts/ -I build/ -I src/

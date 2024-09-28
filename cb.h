@@ -1,10 +1,9 @@
 #ifndef CB_H_
 #define CB_H_
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include <stdbool.h>
-
 
 typedef struct {
   const char **elements;

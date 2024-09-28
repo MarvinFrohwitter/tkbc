@@ -251,7 +251,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       float remaining_angle = 0;
       for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
         if (env->frames->kite_frame_positions->elements[k].kite_id ==
-            state->id) {
+            state->kite_id) {
 
           remaining_angle =
               env->frames->kite_frame_positions->elements[k].remaining_angle;
@@ -261,7 +261,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
       if (remaining_angle <= 0 ||
           FloatEquals(floorf(kite->old_angle + action->angle),
-                      floorf(kite->center_rotation))) {
+                      floorf(kite->angle))) {
         frame->finished = true;
       }
     }
@@ -282,7 +282,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       float remaining_angle = 0;
       for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
         if (env->frames->kite_frame_positions->elements[k].kite_id ==
-            state->id) {
+            state->kite_id) {
 
           remaining_angle =
               env->frames->kite_frame_positions->elements[k].remaining_angle;
@@ -292,7 +292,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
       // NOTE: Different from the ADDing version.
       if (remaining_angle <= 0 ||
-          FloatEquals(floorf(action->angle), floorf(kite->center_rotation))) {
+          FloatEquals(floorf(action->angle), floorf(kite->angle))) {
         frame->finished = true;
       }
     }
@@ -314,7 +314,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       float remaining_angle = 0;
       for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
         if (env->frames->kite_frame_positions->elements[k].kite_id ==
-            state->id) {
+            state->kite_id) {
 
           remaining_angle =
               env->frames->kite_frame_positions->elements[k].remaining_angle;
@@ -324,7 +324,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
       if (remaining_angle <= 0 ||
           FloatEquals(floorf(kite->old_angle + action->angle),
-                      floorf(kite->center_rotation))) {
+                      floorf(kite->angle))) {
         frame->finished = true;
       }
     }
@@ -346,7 +346,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       float remaining_angle = 0;
       for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
         if (env->frames->kite_frame_positions->elements[k].kite_id ==
-            state->id) {
+            state->kite_id) {
 
           remaining_angle =
               env->frames->kite_frame_positions->elements[k].remaining_angle;
@@ -356,7 +356,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
       // NOTE: Different from the ADDing version.
       if (remaining_angle <= 0 ||
-          FloatEquals(floorf(action->angle), floorf(kite->center_rotation))) {
+          FloatEquals(floorf(action->angle), floorf(kite->angle))) {
         frame->finished = true;
       }
     }
@@ -402,8 +402,7 @@ void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
       case KITE_ROTATION: {
         Rotation_Action *a = f->action;
         patch_angle =
-            fabsf(env->kite_array->elements[kite_index].kite->center_rotation -
-                  a->angle);
+            fabsf(env->kite_array->elements[kite_index].kite->angle - a->angle);
 
       } break;
       case KITE_TIP_ROTATION_ADD:
@@ -418,7 +417,7 @@ void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
       Kite_Position kite_position = {
           .kite_id = kite_index,
           .position = env->kite_array->elements[kite_index].kite->center,
-          .angle = env->kite_array->elements[kite_index].kite->center_rotation,
+          .angle = env->kite_array->elements[kite_index].kite->angle,
           .remaining_angle = patch_angle,
       };
 
@@ -510,7 +509,7 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
     tkbc_center_rotation(kite, &position, angle);
 
     // For the correct recomputation of the action where the slider is set to.
-    kite->old_angle = kite->center_rotation;
+    kite->old_angle = kite->angle;
     kite->old_center = kite->center;
   }
 }
@@ -543,12 +542,12 @@ void tkbc_scrub_frames(Env *env) {
 void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
 
   if (duration <= 0) {
-    tkbc_center_rotation(kite, &position, kite->center_rotation);
+    tkbc_center_rotation(kite, &position, kite->angle);
     return;
   }
 
   if (Vector2Equals(kite->center, position)) {
-    tkbc_center_rotation(kite, &position, kite->center_rotation);
+    tkbc_center_rotation(kite, &position, kite->angle);
     return;
   }
 
@@ -558,10 +557,10 @@ void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
 
   if (Vector2Length(dnormscale) >=
       Vector2Length(Vector2Subtract(position, kite->center))) {
-    tkbc_center_rotation(kite, &position, kite->center_rotation);
+    tkbc_center_rotation(kite, &position, kite->angle);
   } else {
     Vector2 it = Vector2Add(kite->center, dnormscale);
-    tkbc_center_rotation(kite, &it, kite->center_rotation);
+    tkbc_center_rotation(kite, &it, kite->angle);
   }
 }
 
@@ -574,11 +573,9 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
   if (duration <= 0) {
     if (adding) {
       if (angle <= 0) {
-        tkbc_center_rotation(state->kite, NULL,
-                             state->kite->center_rotation - angle);
+        tkbc_center_rotation(state->kite, NULL, state->kite->angle - angle);
       } else {
-        tkbc_center_rotation(state->kite, NULL,
-                             state->kite->center_rotation + angle);
+        tkbc_center_rotation(state->kite, NULL, state->kite->angle + angle);
       }
     } else {
       if (angle <= 0) {
@@ -589,7 +586,7 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
     }
 
     for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-      if (env->frames->kite_frame_positions->elements[k].kite_id == state->id) {
+      if (env->frames->kite_frame_positions->elements[k].kite_id == state->kite_id) {
         env->frames->kite_frame_positions->elements[k].remaining_angle -=
             fabsf(angle);
         break;
@@ -603,7 +600,7 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
   float remaining_angle = 0;
 
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-    if (env->frames->kite_frame_positions->elements[k].kite_id == state->id) {
+    if (env->frames->kite_frame_positions->elements[k].kite_id == state->kite_id) {
 
       if (!adding) {
         float pre_angle = env->frames->kite_frame_positions->elements[k].angle;
@@ -641,10 +638,10 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
   } else {
     if (angle <= 0) {
       tkbc_center_rotation(state->kite, NULL,
-                           state->kite->center_rotation - segment_size);
+                           state->kite->angle - segment_size);
     } else {
       tkbc_center_rotation(state->kite, NULL,
-                           state->kite->center_rotation + segment_size);
+                           state->kite->angle + segment_size);
     }
   }
 }
@@ -658,11 +655,9 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
   if (duration <= 0) {
     if (adding) {
       if (angle <= 0) {
-        tkbc_tip_rotation(state->kite, NULL,
-                          state->kite->center_rotation - angle, tip);
+        tkbc_tip_rotation(state->kite, NULL, state->kite->angle - angle, tip);
       } else {
-        tkbc_tip_rotation(state->kite, NULL,
-                          state->kite->center_rotation + angle, tip);
+        tkbc_tip_rotation(state->kite, NULL, state->kite->angle + angle, tip);
       }
     } else {
       if (angle <= 0) {
@@ -673,7 +668,7 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
     }
 
     for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-      if (env->frames->kite_frame_positions->elements[k].kite_id == state->id) {
+      if (env->frames->kite_frame_positions->elements[k].kite_id == state->kite_id) {
         env->frames->kite_frame_positions->elements[k].remaining_angle -=
             fabsf(angle);
         break;
@@ -687,7 +682,7 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
   float remaining_angle = 0;
 
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-    if (env->frames->kite_frame_positions->elements[k].kite_id == state->id) {
+    if (env->frames->kite_frame_positions->elements[k].kite_id == state->kite_id) {
 
       if (!adding) {
         float pre_angle = env->frames->kite_frame_positions->elements[k].angle;
@@ -721,11 +716,11 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
 
   } else {
     if (angle <= 0) {
-      tkbc_tip_rotation(state->kite, NULL,
-                        state->kite->center_rotation - segment_size, tip);
+      tkbc_tip_rotation(state->kite, NULL, state->kite->angle - segment_size,
+                        tip);
     } else {
-      tkbc_tip_rotation(state->kite, NULL,
-                        state->kite->center_rotation + segment_size, tip);
+      tkbc_tip_rotation(state->kite, NULL, state->kite->angle + segment_size,
+                        tip);
     }
   }
 }

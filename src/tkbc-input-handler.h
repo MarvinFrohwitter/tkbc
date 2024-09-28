@@ -165,13 +165,11 @@ void tkbc_input_check_rotation(Kite_State *state) {
 
     if (!state->fixed) {
       tkbc_center_rotation(state->kite, NULL,
-                           state->kite->center_rotation + 1 +
-                               state->turn_velocity);
+                           state->kite->angle + 1 + state->turn_velocity);
     } else {
       if (!state->interrupt_smoothness) {
         state->interrupt_movement = true;
-        tkbc_center_rotation(state->kite, NULL,
-                             state->kite->center_rotation + 45);
+        tkbc_center_rotation(state->kite, NULL, state->kite->angle + 45);
       }
       state->interrupt_smoothness = true;
     }
@@ -181,13 +179,11 @@ void tkbc_input_check_rotation(Kite_State *state) {
 
     if (!state->fixed) {
       tkbc_center_rotation(state->kite, NULL,
-                           state->kite->center_rotation - 1 -
-                               state->turn_velocity);
+                           state->kite->angle - 1 - state->turn_velocity);
     } else {
       if (!state->interrupt_smoothness) {
         state->interrupt_movement = true;
-        tkbc_center_rotation(state->kite, NULL,
-                             state->kite->center_rotation - 45);
+        tkbc_center_rotation(state->kite, NULL, state->kite->angle - 45);
       }
       state->interrupt_smoothness = true;
     }
@@ -208,14 +204,14 @@ void tkbc_input_check_tip_turn(Kite_State *state) {
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
 
       if (!state->fixed) {
-        tkbc_tip_rotation(
-            state->kite, NULL,
-            state->kite->center_rotation + 1 + state->turn_velocity, RIGHT_TIP);
+        tkbc_tip_rotation(state->kite, NULL,
+                          state->kite->angle + 1 + state->turn_velocity,
+                          RIGHT_TIP);
       } else {
         if (!state->interrupt_smoothness) {
           state->interrupt_movement = true;
-          tkbc_tip_rotation(state->kite, NULL,
-                            state->kite->center_rotation + 45, RIGHT_TIP);
+          tkbc_tip_rotation(state->kite, NULL, state->kite->angle + 45,
+                            RIGHT_TIP);
         }
         state->interrupt_smoothness = true;
       }
@@ -223,14 +219,14 @@ void tkbc_input_check_tip_turn(Kite_State *state) {
 
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
       if (!state->fixed) {
-        tkbc_tip_rotation(
-            state->kite, NULL,
-            state->kite->center_rotation + 1 + state->turn_velocity, LEFT_TIP);
+        tkbc_tip_rotation(state->kite, NULL,
+                          state->kite->angle + 1 + state->turn_velocity,
+                          LEFT_TIP);
       } else {
         if (!state->interrupt_smoothness) {
           state->interrupt_movement = true;
-          tkbc_tip_rotation(state->kite, NULL,
-                            state->kite->center_rotation + 45, LEFT_TIP);
+          tkbc_tip_rotation(state->kite, NULL, state->kite->angle + 45,
+                            LEFT_TIP);
         }
         state->interrupt_smoothness = true;
       }
@@ -239,28 +235,28 @@ void tkbc_input_check_tip_turn(Kite_State *state) {
 
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
       if (!state->fixed) {
-        tkbc_tip_rotation(
-            state->kite, NULL,
-            state->kite->center_rotation - 1 - state->turn_velocity, RIGHT_TIP);
+        tkbc_tip_rotation(state->kite, NULL,
+                          state->kite->angle - 1 - state->turn_velocity,
+                          RIGHT_TIP);
       } else {
         if (!state->interrupt_smoothness) {
           state->interrupt_movement = true;
-          tkbc_tip_rotation(state->kite, NULL,
-                            state->kite->center_rotation - 45, RIGHT_TIP);
+          tkbc_tip_rotation(state->kite, NULL, state->kite->angle - 45,
+                            RIGHT_TIP);
         }
         state->interrupt_smoothness = true;
       }
     }
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
       if (!state->fixed) {
-        tkbc_tip_rotation(
-            state->kite, NULL,
-            state->kite->center_rotation - 1 - state->turn_velocity, LEFT_TIP);
+        tkbc_tip_rotation(state->kite, NULL,
+                          state->kite->angle - 1 - state->turn_velocity,
+                          LEFT_TIP);
       } else {
         if (!state->interrupt_smoothness) {
           state->interrupt_movement = true;
-          tkbc_tip_rotation(state->kite, NULL,
-                            state->kite->center_rotation - 45, LEFT_TIP);
+          tkbc_tip_rotation(state->kite, NULL, state->kite->angle - 45,
+                            LEFT_TIP);
         }
         state->interrupt_smoothness = true;
       }
@@ -282,15 +278,13 @@ void tkbc_input_check_circle(Kite_State *state) {
 
       if (!state->fixed) {
         tkbc_circle_rotation(state->kite, NULL,
-                             state->kite->center_rotation + 1 +
-                                 state->turn_velocity,
+                             state->kite->angle + 1 + state->turn_velocity,
                              RIGHT_TIP, false);
       } else {
         if (!state->interrupt_smoothness) {
           state->interrupt_movement = true;
-          tkbc_circle_rotation(state->kite, NULL,
-                               state->kite->center_rotation + 45, RIGHT_TIP,
-                               false);
+          tkbc_circle_rotation(state->kite, NULL, state->kite->angle + 45,
+                               RIGHT_TIP, false);
         }
         state->interrupt_smoothness = true;
       }
@@ -299,15 +293,13 @@ void tkbc_input_check_circle(Kite_State *state) {
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
       if (!state->fixed) {
         tkbc_circle_rotation(state->kite, NULL,
-                             state->kite->center_rotation - 1 -
-                                 state->turn_velocity,
+                             state->kite->angle - 1 - state->turn_velocity,
                              LEFT_TIP, false);
       } else {
         if (!state->interrupt_smoothness) {
           state->interrupt_movement = true;
-          tkbc_circle_rotation(state->kite, NULL,
-                               state->kite->center_rotation - 45, LEFT_TIP,
-                               false);
+          tkbc_circle_rotation(state->kite, NULL, state->kite->angle - 45,
+                               LEFT_TIP, false);
         }
         state->interrupt_smoothness = true;
       }
@@ -318,15 +310,13 @@ void tkbc_input_check_circle(Kite_State *state) {
     if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
       if (!state->fixed) {
         tkbc_circle_rotation(state->kite, NULL,
-                             state->kite->center_rotation - 1 -
-                                 state->turn_velocity,
+                             state->kite->angle - 1 - state->turn_velocity,
                              RIGHT_TIP, true);
       } else {
         if (!state->interrupt_smoothness) {
           state->interrupt_movement = true;
-          tkbc_circle_rotation(state->kite, NULL,
-                               state->kite->center_rotation - 45, RIGHT_TIP,
-                               true);
+          tkbc_circle_rotation(state->kite, NULL, state->kite->angle - 45,
+                               RIGHT_TIP, true);
         }
         state->interrupt_smoothness = true;
       }
@@ -334,15 +324,13 @@ void tkbc_input_check_circle(Kite_State *state) {
     if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
       if (!state->fixed) {
         tkbc_circle_rotation(state->kite, NULL,
-                             state->kite->center_rotation + 1 +
-                                 state->turn_velocity,
+                             state->kite->angle + 1 + state->turn_velocity,
                              LEFT_TIP, true);
       } else {
         if (!state->interrupt_smoothness) {
           state->interrupt_movement = true;
-          tkbc_circle_rotation(state->kite, NULL,
-                               state->kite->center_rotation + 45, LEFT_TIP,
-                               true);
+          tkbc_circle_rotation(state->kite, NULL, state->kite->angle + 45,
+                               LEFT_TIP, true);
         }
         state->interrupt_smoothness = true;
       }
@@ -377,7 +365,7 @@ void tkbc_input_check_movement(Kite_State *state) {
           tkbc_clamp(state->kite->center.x - state->fly_velocity,
                      viewport_padding, window.x);
 
-    tkbc_center_rotation(state->kite, NULL, state->kite->center_rotation);
+    tkbc_center_rotation(state->kite, NULL, state->kite->angle);
 
   } else if (IsKeyDown(KEY_K) || IsKeyDown(KEY_UP)) {
     state->kite->center.y =
@@ -391,18 +379,18 @@ void tkbc_input_check_movement(Kite_State *state) {
       state->kite->center.x =
           tkbc_clamp(state->kite->center.x - state->fly_velocity,
                      viewport_padding, window.x);
-    tkbc_center_rotation(state->kite, NULL, state->kite->center_rotation);
+    tkbc_center_rotation(state->kite, NULL, state->kite->angle);
 
   } else if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
     state->kite->center.x =
         tkbc_clamp(state->kite->center.x - state->fly_velocity,
                    viewport_padding, window.x);
-    tkbc_center_rotation(state->kite, NULL, state->kite->center_rotation);
+    tkbc_center_rotation(state->kite, NULL, state->kite->angle);
   } else if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
     state->kite->center.x =
         tkbc_clamp(state->kite->center.x + state->fly_velocity,
                    viewport_padding, window.x);
-    tkbc_center_rotation(state->kite, NULL, state->kite->center_rotation);
+    tkbc_center_rotation(state->kite, NULL, state->kite->angle);
   }
 }
 
@@ -447,9 +435,9 @@ void tkbc_input_check_mouse(Kite_State *state) {
   Vector2 mouse_pos = GetMousePosition();
 
   if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
-    tkbc_center_rotation(state->kite, &mouse_pos, state->kite->center_rotation);
+    tkbc_center_rotation(state->kite, &mouse_pos, state->kite->angle);
   } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    tkbc_center_rotation(state->kite, &mouse_pos, state->kite->center_rotation);
+    tkbc_center_rotation(state->kite, &mouse_pos, state->kite->angle);
   }
 }
 

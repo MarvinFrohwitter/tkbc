@@ -102,11 +102,10 @@ void tkbc_script_update_frames(Env *env) {
         // rotations. Introduce separate tracking variables, if the distinct use
         // in one frame is needed.
 
-        kite->old_angle = kite->center_rotation;
+        kite->old_angle = kite->angle;
         kite->old_center = kite->center;
 
-        env->frames->kite_frame_positions->elements[i].angle =
-            kite->center_rotation;
+        env->frames->kite_frame_positions->elements[i].angle = kite->angle;
         env->frames->kite_frame_positions->elements[i].position = kite->center;
       }
     }
@@ -262,7 +261,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
         Kite *kite =
             env->kite_array->elements[frame->kite_index_array->elements[i]]
                 .kite;
-        kite->old_angle = kite->center_rotation;
+        kite->old_angle = kite->angle;
         kite->old_center = kite->center;
       }
     } break;

@@ -116,7 +116,7 @@ Kite_State *tkbc_init_kite(void) {
 
   Vector2 start_pos = {.y = GetScreenHeight() - 2 * viewport_padding,
                        .x = state->kite->center.x};
-  tkbc_center_rotation(state->kite, &start_pos, state->kite->center_rotation);
+  tkbc_center_rotation(state->kite, &start_pos, state->kite->angle);
   return state;
 }
 
@@ -177,7 +177,7 @@ void tkbc_kite_array_generate(Env *env, size_t kite_count) {
 
   for (size_t i = 0; i < kite_count; ++i) {
     tkbc_dap(env->kite_array, *tkbc_init_kite());
-    env->kite_array->elements[i].id = i;
+    env->kite_array->elements[i].kite_id = i;
     env->kite_array->elements[i].kite->body_color =
         color_array[i % ARRAY_LENGTH(color_array)];
   }
@@ -247,19 +247,19 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
   kite->width = 20.0f;
   kite->height = 0.0f;
   kite->scale = 4.0f;
-  kite->center_rotation = 0;
+  kite->angle = 0;
 
   kite->overlap *= kite->scale;
   kite->inner_space *= kite->scale;
   kite->spread *= kite->scale;
   kite->width *= kite->scale * 2;
 
-  tkbc_center_rotation(kite, NULL, kite->center_rotation);
+  tkbc_center_rotation(kite, NULL, kite->angle);
 
   kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
 
   kite->old_center = kite->center;
-  kite->old_angle = kite->center_rotation;
+  kite->old_angle = kite->angle;
 }
 
 /**
@@ -269,7 +269,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
  */
 void tkbc_set_kite_state_defaults(Kite_State *state) {
 
-  state->id = 0;
+  state->kite_id = 0;
   state->kite_input_handler_active = false;
   state->fly_velocity = 10;
   state->turn_velocity = 10;
@@ -309,7 +309,7 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position,
   kite->center.x = pos.x;
   kite->center.y = pos.y;
 
-  kite->center_rotation = center_deg_rotation;
+  kite->angle = center_deg_rotation;
   float cw = kite->width;
   float is = kite->inner_space;
   float o = kite->overlap;
@@ -320,7 +320,7 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position,
   float angle = 42;
   float bl_angle = (PI * (360 - (90 - angle)) / 180);
   float br_angle = (PI * (360 + (90 - angle)) / 180);
-  float phi = (PI * (kite->center_rotation) / 180);
+  float phi = (PI * (kite->angle) / 180);
 
   // TODO: check for floorf as in the rotation function
   // LEFT Triangle
@@ -365,7 +365,7 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
                        TIP tip) {
 
   if (position != NULL) {
-    tkbc_center_rotation(kite, position, kite->center_rotation);
+    tkbc_center_rotation(kite, position, kite->angle);
   }
 
   float_t length = (kite->width / 2.f + kite->spread);
@@ -418,7 +418,7 @@ void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
                           TIP tip, bool below) {
 
   if (position != NULL) {
-    tkbc_center_rotation(kite, position, kite->center_rotation);
+    tkbc_center_rotation(kite, position, kite->angle);
   }
 
   Vector2 pos = {0};
@@ -483,7 +483,7 @@ void tkbc_draw_kite(Kite *kite) {
   DrawTriangle(kite->left.v1, kite->left.v2, kite->left.v3, kite->body_color);
   DrawTriangle(kite->right.v1, kite->right.v2, kite->right.v3,
                kite->body_color);
-  DrawRectanglePro(kite->rec, origin, -kite->center_rotation, kite->top_color);
+  DrawRectanglePro(kite->rec, origin, -kite->angle, kite->top_color);
 }
 
 /**

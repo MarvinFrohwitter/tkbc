@@ -15,15 +15,15 @@ typedef struct { // A representation for an internal kite geometric.
   Vector2 v3;
 } Triangle;
 
+typedef size_t Index; // NOTE: Check for clang compiler issue in project.
 typedef struct {
-  size_t kite_id;
+  Index kite_id;
   Vector2 position; // The position that is located at the center of the top
                     // leading edge.
   float angle;      // The rotation is in degrees around the center position.
 
   // Script only use
   float remaining_angle; // The remaining rotation angle.
-
 } Kite_Position;
 
 typedef struct {
@@ -34,6 +34,7 @@ typedef struct {
 
   // ------------------------------------------------------------------------
 
+  float angle;    // The rotation is in degrees around the center position.
   Vector2 center; // The center position that is located at the center of
                   // the top leading edge.
 
@@ -54,17 +55,14 @@ typedef struct {
   float width;  // The width is dependent on the scale.
   float height; // The height is dependent on the scale.
   float scale;  // The scale is recommended to set between 0 and 10.
-  float
-      center_rotation; // The rotation is in degrees around the center position.
 
   float fly_speed;  // Kite movement speed set from 0 to 100.
   float turn_speed; // Kite turn speed set from 0 to 100.
-
 } Kite;
 
 typedef struct {
-  size_t id;  // The unique universal identifier for the kite.
-  Kite *kite; // The kite that holds it's geometric and positioning stats.
+  size_t kite_id; // The unique universal identifier for the kite.
+  Kite *kite;     // The kite that holds it's geometric and positioning stats.
   float fly_velocity;  // The base fly speed that holds the current combined
                        // value with the delta time and the variable fly_speed
                        // that is stored in the kite itself.
@@ -109,14 +107,13 @@ typedef struct {
   Vector2 position;
 } Move_Action;
 
-typedef Tip_Rotation_Action Tip_Rotation_Add_Action;
-typedef Rotation_Action Rotation_Add_Action;
-typedef Move_Action Move_Add_Action;
-
 typedef struct {
   double starttime;
 } Wait_Action;
 
+typedef Tip_Rotation_Action Tip_Rotation_Add_Action;
+typedef Rotation_Action Rotation_Add_Action;
+typedef Move_Action Move_Add_Action;
 typedef Wait_Action Quit_Action;
 
 typedef union {
@@ -145,7 +142,6 @@ typedef enum {
   ACTION_KIND_COUNT,
 } Action_Kind;
 
-typedef size_t Index; // NOTE: Check for clang compiler issue in project.
 typedef struct {
   Index *elements; // The dynamic array collection for all kite indices.
   size_t count;    // The amount of elements in the array.
@@ -155,7 +151,7 @@ typedef struct {
 
 typedef struct {
   Kite_Indexs *kite_index_array;
-  size_t index;
+  Index index;
   float duration;
   Action_Kind kind;
   void *action;
@@ -175,9 +171,7 @@ typedef struct {
   size_t count;    // The amount of elements in the array.
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
-
-  size_t block_index;
-
+  Index block_index; // The index in the block_frames array after registration.
   Kite_Positions *kite_frame_positions; // The start position of the kite in the
                                         // current frame.
 } Frames;
@@ -188,7 +182,6 @@ typedef struct {
   size_t count;     // The amount of elements in the array.
   size_t capacity;  // The complete allocated space for the array represented as
                     // the number of collection elements of the array type.
-
 } Block_Frames;
 
 typedef struct {
@@ -224,7 +217,6 @@ typedef struct {
 
   bool timeline_hoverover;
   bool timeline_interaction;
-
 } Env;
 
 #endif // TKBC_TYPES_H_
