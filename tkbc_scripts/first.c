@@ -95,13 +95,13 @@ void tkbc_script_input(Env *env) {
   size_t h_padding = 0;
   size_t v_padding = 0;
   Vector2 offset = {0};
-  Vector2 position = {.x = env->window_width / 2.0,
-                      .y = env->window_height / 2.0};
+  // Vector2 position = {.x = env->window_width / 2.0,
+  //                     .y = env->window_height / 2.0};
   float move_duration = 2;
   float wait_time = 0.5;
   float rotation_duration = 1;
-  Kite *kite = env->kite_array->elements[0].kite;
-  float ball_radius = (kite->width + kite->spread);
+  // Kite *kite = env->kite_array->elements[0].kite;
+  // float ball_radius = (kite->width + kite->spread);
 
   tkbc_register_frames(env,
                        tkbc_frame_generate(KITE_MOVE_ADD, ki,

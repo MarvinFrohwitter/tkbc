@@ -137,7 +137,7 @@ typedef enum {
   ACTION_KIND_COUNT,
 } Action_Kind;
 
-typedef unsigned int Index;
+typedef size_t Index; // NOTE: Check for clang compiler issue in project.
 typedef struct {
   Index *elements;
   size_t count;

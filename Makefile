@@ -1,10 +1,11 @@
-CC = clang
+# clang bug with size_t, variadics, optimazation and compiler caching
+CC = gcc
 RAYLIBPATH = external/raylib-5.0/src
 INCLUDE = -I ${RAYLIBPATH} -I tkbc_scripts/ -I build/ -I src/
 LIBS = -L ${RAYLIBPATH}
 LIBS += -l:libraylib.a
 LIBS += -lm
-CFLAGS = -x c -O0 -pedantic -Wall -Wextra -ggdb
+CFLAGS = -x c -O3 -pedantic -Wall -Wextra -ggdb
 
 all: options tkbc raylib build
 

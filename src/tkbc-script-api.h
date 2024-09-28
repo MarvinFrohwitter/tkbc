@@ -274,7 +274,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
   tkbc_patch_block_frames_kite_positions(env, frames);
   tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(frames));
 
-  assert(env->block_frames->count - 1 >= 0);
+  assert((int)env->block_frames->count - 1 >= 0);
   env->block_frames->elements[env->block_frames->count - 1].block_index =
       env->block_frames->count - 1;
 
@@ -290,10 +290,11 @@ Kite_Indexs tkbc__indexs_append(size_t _, ...) {
   va_list args;
   va_start(args, _);
   for (;;) {
-    // NOTE:(compiler) clang has a compiler bug that can not use size_t or
-    // equivalent unsigned long int in variadic functions.
-    // So the option was to just use unsigned int instead.
-    Index index = va_arg(args, unsigned int);
+    // NOTE:(compiler) clang 18.1.8 has a compiler bug that can not use size_t
+    // or equivalent unsigned long int in variadic functions. It is related to
+    // compiler caching. So the option is to just use unsigned int instead.
+    // unsigned int index = va_arg(args, unsigned int);
+    Index index = va_arg(args, size_t);
     if (INT_MAX != index) {
       tkbc_dap(&ki, index);
     } else {
