@@ -91,7 +91,7 @@ int main(void) {
     tkbc_input_handler_script(env);
     // The end of the current frame has to be executed so ffmpeg gets the full
     // executed fame.
-    tkbc_ffmpeg_handler(env);
+    tkbc_ffmpeg_handler(env, "output.mp4");
   };
 
   tkbc_destroy_env(env);

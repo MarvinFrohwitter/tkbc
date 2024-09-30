@@ -3,8 +3,8 @@
 
 #include "tkbc-types.h"
 
-void tkbc_ffmpeg_handler(Env *env);
-bool tkbc_ffmpeg_create_proc(Env *env);
+void tkbc_ffmpeg_handler(Env *env, const char *output_file_path);
+bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path);
 bool tkbc_ffmpeg_end(Env *env);
 bool tkbc_ffmpeg_wait(pid_t pid);
 void tkbc_ffmpeg_write_image(Env *env);
@@ -29,7 +29,14 @@ void tkbc_ffmpeg_write_image(Env *env);
 #include <tkbc-utils.h>
 #endif // TKBC_UTILS_IMPLEMENTATION
 
-void tkbc_ffmpeg_handler(Env *env) {
+/**
+ * @brief The function controls the keyboard input of the start and stop video
+ * capturing.
+ *
+ * @param env The global state of the application.
+ * @param output_file_path The file path of the output video.
+ */
+void tkbc_ffmpeg_handler(Env *env, const char *output_file_path) {
   if (IsKeyPressed(KEY_B)) {
     TakeScreenshot("1.png");
   }
@@ -41,13 +48,20 @@ void tkbc_ffmpeg_handler(Env *env) {
     tkbc_ffmpeg_end(env);
   } else if (IsKeyPressed(KEY_V)) {
     if (!env->rendering) {
-      tkbc_ffmpeg_create_proc(env);
+      tkbc_ffmpeg_create_proc(env, output_file_path);
     }
   }
 
   tkbc_ffmpeg_write_image(env);
 }
 
+/**
+ * @brief The function is responsible for closing the recording state of ffmpeg.
+ *
+ * @param env The global state of the application.
+ * @return True if the ffmpeg process has finished successfully, otherwise
+ * false.
+ */
 bool tkbc_ffmpeg_end(Env *env) {
 
   int close_status = close(env->pipe);
@@ -62,7 +76,18 @@ bool tkbc_ffmpeg_end(Env *env) {
   return status;
 }
 
-bool tkbc_ffmpeg_create_proc(Env *env) {
+/**
+ * @brief The function can be used to create a ffmpeg process for capturing the
+ * current display of the application. The creation will be made with sound if
+ * the sound_file_name was set in the env state, else the video capture is
+ * without sound.
+ *
+ * @param env The global state of the application.
+ * @param output_file_path The file path of the output video.
+ * @return True if the ffmpeg child process creation was successful, otherwise
+ * false.
+ */
+bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   env->recording = true;
   env->rendering = true;
   int fildes[2];
@@ -101,36 +126,73 @@ bool tkbc_ffmpeg_create_proc(Env *env) {
 
     int return_code;
     if (env->sound_file_name == NULL) {
-      const char *ffmpeg_cmd[] = {"ffmpeg",    "-loglevel", "verbose",  "-y",
+      const char *ffmpeg_cmd[] = {"ffmpeg",
+                                  "-loglevel",
+                                  "verbose",
+                                  "-y",
 
-                                  "-f",        "rawvideo",  "-pix_fmt", "rgba",
-                                  "-s",        resolution,  "-r",       fps,
+                                  "-f",
+                                  "rawvideo",
+                                  "-pix_fmt",
+                                  "rgba",
+                                  "-s",
+                                  resolution,
+                                  "-r",
+                                  fps,
 
-                                  "-i",        "pipe:0",
+                                  "-i",
+                                  "pipe:0",
 
-                                  "-c:v",      "libx264",   "-vb",      "2500k",
-                                  "-c:a",      "aac",       "-ab",      "200k",
-                                  "-pix_fmt",  "yuv420p",
+                                  "-c:v",
+                                  "libx264",
+                                  "-vb",
+                                  "2500k",
+                                  "-c:a",
+                                  "aac",
+                                  "-ab",
+                                  "200k",
+                                  "-pix_fmt",
+                                  "yuv420p",
 
-                                  "video.mp4", NULL};
+                                  output_file_path,
+                                  NULL};
 
       tkbc_print_cmd(stderr, ffmpeg_cmd);
       return_code = execvp("ffmpeg", (char *const *)ffmpeg_cmd);
 
     } else {
-      const char *ffmpeg_cmd[] = {
-          "ffmpeg",    "-loglevel", "verbose",  "-y",
+      const char *ffmpeg_cmd[] = {"ffmpeg",
+                                  "-loglevel",
+                                  "verbose",
+                                  "-y",
 
-          "-f",        "rawvideo",  "-pix_fmt", "rgba",
-          "-s",        resolution,  "-r",       fps,
+                                  "-f",
+                                  "rawvideo",
+                                  "-pix_fmt",
+                                  "rgba",
+                                  "-s",
+                                  resolution,
+                                  "-r",
+                                  fps,
 
-          "-i",        "pipe:0",    "-i",       env->sound_file_name,
+                                  "-i",
+                                  "pipe:0",
+                                  "-i",
+                                  env->sound_file_name,
 
-          "-c:v",      "libx264",   "-vb",      "2500k",
-          "-c:a",      "aac",       "-ab",      "200k",
-          "-pix_fmt",  "yuv420p",
+                                  "-c:v",
+                                  "libx264",
+                                  "-vb",
+                                  "2500k",
+                                  "-c:a",
+                                  "aac",
+                                  "-ab",
+                                  "200k",
+                                  "-pix_fmt",
+                                  "yuv420p",
 
-          "video.mp4", NULL};
+                                  output_file_path,
+                                  NULL};
 
       tkbc_print_cmd(stderr, ffmpeg_cmd);
       return_code = execvp("ffmpeg", (char *const *)ffmpeg_cmd);
@@ -155,6 +217,14 @@ bool tkbc_ffmpeg_create_proc(Env *env) {
   return true;
 }
 
+/**
+ * @brief The function checks the status of the ffmpeg process. If there is any
+ * misbehavior it will be logged to the stderr as well as any occurring error.
+ *
+ * @param pid The process id of the previously created ffmpeg child process.
+ * @return True if the ffmpeg process has finished successfully, otherwise
+ * false.
+ */
 bool tkbc_ffmpeg_wait(pid_t pid) {
 
   while (true) {
@@ -182,6 +252,12 @@ bool tkbc_ffmpeg_wait(pid_t pid) {
   return true;
 }
 
+/**
+ * @brief The function can be used to write the current state of screen image
+ * data to the ffmpeg process.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_ffmpeg_write_image(Env *env) {
   if (env->rendering) {
     Image image = LoadImageFromScreen();
