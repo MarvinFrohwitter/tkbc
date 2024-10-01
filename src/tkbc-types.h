@@ -116,7 +116,8 @@ typedef Rotation_Action Rotation_Add_Action;
 typedef Move_Action Move_Add_Action;
 typedef Wait_Action Quit_Action;
 
-typedef union {
+typedef union { // The collection of all the possible actions that can be used
+                // in a script.
   Tip_Rotation_Action tip_rotation_action;
   Rotation_Action rotation_action;
   Move_Action move_action;
@@ -140,23 +141,25 @@ typedef enum {
   KITE_TIP_ROTATION,
   KITE_TIP_ROTATION_ADD,
   ACTION_KIND_COUNT,
-} Action_Kind;
+} Action_Kind; // A named listing of all the available action kinds.
 
 typedef struct {
   Index *elements; // The dynamic array collection for all kite indices.
   size_t count;    // The amount of elements in the array.
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
-} Kite_Indexs;
+} Kite_Indexs;     // A dynamic array that can hold kite_ids.
 
 typedef struct {
-  Kite_Indexs *kite_index_array;
-  Index index;
-  float duration;
-  Action_Kind kind;
-  void *action;
-  bool finished;
-} Frame;
+  Kite_Indexs *kite_index_array; // The collection of kite_ids that should be
+                                 // part of the performed action.
+  Index index;                   // The index of the current frame in the
+  float duration;   // The time in seconds it should take to perform an action.
+  Action_Kind kind; // A representation of the kind of the action pointer.
+  void *action;     // The action the frame should be responsible for.
+  bool finished;    // Represents the state of the currently handled frame.
+} Frame;            // Combined action for the kites that are listed in the
+                    // kite_index_array.
 
 typedef struct {
   Kite_Position
@@ -164,7 +167,7 @@ typedef struct {
   size_t count;    // The amount of elements in the array.
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
-} Kite_Positions;
+} Kite_Positions;  // The dynamic array of kite positions.
 
 typedef struct {
   Frame *elements; // The dynamic array collection for all frames in the script.
@@ -174,7 +177,7 @@ typedef struct {
   Index block_index; // The index in the block_frames array after registration.
   Kite_Positions *kite_frame_positions; // The start position of the kite in the
                                         // current frame.
-} Frames;
+} Frames; // A dynamic array collection that holds the type frame.
 
 typedef struct {
   Frames *elements; // The dynamic array collection for all combined frames as a
