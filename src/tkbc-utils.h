@@ -106,7 +106,6 @@
 void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
                                bool isgenerated);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
-int tkbc_check_boundary(Kite *kite, ORIENTATION orientation);
 float tkbc_clamp(float z, float a, float b);
 
 #endif // TKBC_UTILS_H_
@@ -207,33 +206,6 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]) {
 
   fprintf(stream, "[INFO] [CMD] %s\n", cmd_string.elements);
   free(cmd_string.elements);
-}
-
-/**
- * @brief The function checks if the kite is still in the displayed window in
- * the given orientation of the kite.
- *
- * @param kite The kite that is going to be handled.
- * @param orientation The orientation of the kite, to determine where the tips
- * are.
- * @return True if the kite is in the window, otherwise false.
- */
-int tkbc_check_boundary(Kite *kite, ORIENTATION orientation) {
-  size_t width = GetScreenWidth();
-  size_t height = GetScreenHeight();
-  float x = kite->center.x;
-  float y = kite->center.y;
-  size_t padding = kite->width / 2;
-
-  switch (orientation) {
-  case KITE_X:
-    return x < width - padding && x > 0 + padding;
-  case KITE_Y:
-    return y < height - padding && y > 0 + padding;
-  default:
-    assert(0 && "UNREACHABLE");
-  }
-  return 0;
 }
 
 /**

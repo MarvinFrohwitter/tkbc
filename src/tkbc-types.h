@@ -6,7 +6,7 @@
 #include <sys/types.h>
 
 // ===========================================================================
-// ========================== TKBC KITE TYPES =================================
+// ========================== TKBC KITE TYPES ================================
 // ===========================================================================
 
 typedef struct { // A representation for an internal kite geometric.
@@ -17,14 +17,14 @@ typedef struct { // A representation for an internal kite geometric.
 
 typedef size_t Index; // NOTE: Check for clang compiler issue in project.
 typedef struct {
-  Index kite_id;
+  Index kite_id;    // The universal id that is associated with one kite.
   Vector2 position; // The position that is located at the center of the top
                     // leading edge.
   float angle;      // The rotation is in degrees around the center position.
 
-  // Script only use
+  // --- Script only use -----------------------------------------------------
   float remaining_angle; // The remaining rotation angle.
-} Kite_Position;
+} Kite_Position;         // The combined position and rotation angle.
 
 typedef struct {
   float old_angle; // The rotation angle before the frame interpolation has
@@ -32,7 +32,7 @@ typedef struct {
   Vector2
       old_center; // The old position before the frame interpolation has stated.
 
-  // ------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
 
   float angle;    // The rotation is in degrees around the center position.
   Vector2 center; // The center position that is located at the center of
@@ -58,7 +58,7 @@ typedef struct {
 
   float fly_speed;  // Kite movement speed set from 0 to 100.
   float turn_speed; // Kite turn speed set from 0 to 100.
-} Kite;
+} Kite;             // The kite internal geometric design.
 
 typedef struct {
   size_t kite_id; // The unique universal identifier for the kite.
@@ -79,42 +79,57 @@ typedef struct {
 
   bool kite_input_handler_active; // Representation of a manual user control
                                   // selection.
-} Kite_State;
+} Kite_State;                     // The current parametrized state of one kite.
 
 typedef struct {
   Kite_State *elements; // The dynamic array collection for all generated kites.
   size_t count;         // The amount of elements in the array.
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
-} Kite_States;
+} Kite_States; // The dynamic array that can hold kites and it's corresponding
+               // state.
 
-typedef enum { FIXED, SMOOTH } PARAMETERS;
-typedef enum { LEFT_TIP, RIGHT_TIP } TIP;
-typedef enum { KITE_Y, KITE_X } ORIENTATION;
-typedef enum { LEFT, RIGHT } DIRECTION;
-typedef enum { ODD, EVEN } ODD_EVEN;
-
-typedef struct {
-  float angle;
-  TIP tip;
-} Tip_Rotation_Action;
-
-typedef struct {
-  float angle;
-} Rotation_Action;
-
-typedef struct {
-  Vector2 position;
-} Move_Action;
+typedef enum {
+  LEFT_TIP,
+  RIGHT_TIP
+} TIP; // The left and right tip of the leading edge.
+typedef enum {
+  LEFT,
+  RIGHT
+} DIRECTION; // The Direction where the figure starts.
+typedef enum {
+  ODD,
+  EVEN
+} ODD_EVEN; // The kite group that is split default convention up or left.
 
 typedef struct {
-  double starttime;
-} Wait_Action;
+  float angle;         // The rotation angle the tip turn should have.
+  TIP tip;             // The tip of the leading edge.
+} Tip_Rotation_Action; // The action that is responsible for rotating the kite
+                       // on one of the tips.
 
-typedef Tip_Rotation_Action Tip_Rotation_Add_Action;
-typedef Rotation_Action Rotation_Add_Action;
-typedef Move_Action Move_Add_Action;
-typedef Wait_Action Quit_Action;
+typedef struct {
+  float angle;     // The rotation angle the center turn should have.
+} Rotation_Action; // The action that is responsible for rotating the kite at
+                   // the center.
+
+typedef struct {
+  Vector2 position; // The new position the move action should have.
+} Move_Action;      // The action that is responsible for positioning the kite.
+
+typedef struct {
+  double starttime; // The time at the start of the frame representation.
+} Wait_Action; // The action that is responsible for blocking a certain time.
+
+typedef Tip_Rotation_Action
+    Tip_Rotation_Add_Action; // The action that performs a addition to the
+                             // current angle of the tip rotation.
+typedef Rotation_Action Rotation_Add_Action; // The action that adds an angle to
+                                             // the current rotation angle.
+typedef Move_Action
+    Move_Add_Action; // The action that adds a vector to the current position.
+typedef Wait_Action Quit_Action; // The action that is responsible for force
+                                 // quitting a frame after the specified time.
 
 typedef union { // The collection of all the possible actions that can be used
                 // in a script.
@@ -185,41 +200,48 @@ typedef struct {
   size_t count;     // The amount of elements in the array.
   size_t capacity;  // The complete allocated space for the array represented as
                     // the number of collection elements of the array type.
-} Block_Frames;
+} Block_Frames; // A dynamic array collection that combined multiple frames to a
+                // single kite draw representation.
 
 typedef struct {
-  Kite_States *kite_array;
+  Kite_States *kite_array; // The kites that are generated for the current
+                           // session of the application.
 
-  Frames *frames;
-  Block_Frames *block_frames;
+  Frames *frames; // A representation of the current active drawable frames.
+  Block_Frames *block_frames; // The collection of all the frames that should be
+                              // executed in the script.
 
-  bool script_setup;
-  bool script_interrupt;
-  bool script_finished;
+  bool script_setup;     // The indication if the initial setup run is executed.
+  bool script_interrupt; // The indication if a script is currently going to be
+                         // loaded.
+  bool script_finished;  // The indication a script has finished.
 
-  size_t window_width;
-  size_t window_height;
-  int fps;
+  size_t window_width;  // The window width of the application.
+  size_t window_height; // The window height of the application.
+  int fps;              // The fps of the application.
 
-  Frames *scratch_buf_frames;
+  Frames *scratch_buf_frames; // A buffer that can be used to construct frames.
 
   // -------FFMPEG-------
-  bool recording;
-  bool rendering;
-  int pipe;
-  pid_t pid;
-  char *sound_file_name;
+  bool recording;        // The state if the recording of the window.
+  bool rendering;        // The state of the rendering ffmpeg process
+  int pipe;              // The pipe the ffmpeg process receives data through.
+  pid_t pid;             // The process number the ffmpeg child process gets.
+  char *sound_file_name; // The name of the sound file that should be included
+                         // in the rendered video.
 
   // -------UI-------
-  Rectangle timeline_base;
-  Rectangle timeline_front;
+  Rectangle timeline_base;  // The rectangle that is below the slider.
+  Rectangle timeline_front; // The rectangle that represents the slider.
 
-  float timeline_segment_width;
-  float timeline_segments_width;
-  size_t timeline_segments;
+  float timeline_segment_width;  // The width of a single frame in the timeline.
+  float timeline_segments_width; // The width of all the finished frames in the
+                                 // timeline.
+  size_t timeline_segments; // The amount of frames that the timeline displays.
 
-  bool timeline_hoverover;
-  bool timeline_interaction;
-} Env;
+  bool timeline_hoverover;   // The status if the mouse is currently of the
+                             // timeline.
+  bool timeline_interaction; // The status if the user controls the timeline.
+} Env;                       // The global state of the application.
 
 #endif // TKBC_TYPES_H_
