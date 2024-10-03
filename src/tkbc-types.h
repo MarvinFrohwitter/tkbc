@@ -62,7 +62,7 @@ typedef struct {
 
 typedef struct {
   size_t kite_id; // The unique universal identifier for the kite.
-  Kite *kite;     // The kite that holds it's geometric and positioning stats.
+  Kite *kite;     // The kite that holds its geometric and positioning stats.
   float fly_velocity;  // The base fly speed that holds the current combined
                        // value with the delta time and the variable fly_speed
                        // that is stored in the kite itself.
@@ -86,7 +86,7 @@ typedef struct {
   size_t count;         // The amount of elements in the array.
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
-} Kite_States; // The dynamic array that can hold kites and it's corresponding
+} Kite_States; // The dynamic array that can hold kites and its corresponding
                // state.
 
 typedef enum {

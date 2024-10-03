@@ -90,7 +90,7 @@ Env *tkbc_init_env(void) {
 }
 
 /**
- * @brief The function allocates the memory for a kite and it's corresponding
+ * @brief The function allocates the memory for a kite and its corresponding
  * state and gives back the new initialized state structure.
  *
  * @return state The new allocated state.
@@ -284,7 +284,7 @@ void tkbc_set_kite_state_defaults(Kite_State *state) {
 // ===========================================================================
 
 /**
- * @brief The function computes all the internal points for the kite and it's
+ * @brief The function computes all the internal points for the kite and its
  * new position as well as the angle. This can be used in terms of positioning
  * the kite and rotating it or just for updating the (internal) geometric
  * values that are responsible for the kite shape.
@@ -351,7 +351,7 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position,
 }
 
 /**
- * @brief The function computes the new position of the kite and it's
+ * @brief The function computes the new position of the kite and its
  * corresponding structure values with a tip rotation.
  *
  * @param kite The kite that is going to be modified.
@@ -488,7 +488,7 @@ void tkbc_draw_kite(Kite *kite) {
 
 /**
  * @brief The function draws every kite that is registered in given kite array
- * with it's corresponding position on the screen.
+ * with its corresponding position on the screen.
  *
  * @param kite_states The given kite array.
  */

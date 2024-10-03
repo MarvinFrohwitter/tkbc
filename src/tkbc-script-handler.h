@@ -64,6 +64,17 @@ Frame *tkbc_init_frame(void) {
   return frame;
 }
 
+/**
+ * @brief The function copies every single value even the values that are just
+ * represented by a pointer of the struct Frames to a new instance. Every
+ * internal pointer is a new one in the created representation and points to the
+ * new copied values. The result is a complete copy of the given frames. It can
+ * be used to move a creation of a temporary struct of type frames to a
+ * permanently stored one.
+ *
+ * @param frames The pointer that holds the values that should be copied.
+ * @return The new allocated and value ready copy of the frames.
+ */
 Frames *tkbc_deep_copy_frames(Frames *frames) {
   if (frames->elements == NULL || frames == NULL) {
     return NULL;
@@ -123,6 +134,12 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
   return new_frames;
 }
 
+/**
+ * @brief The function can be used to free all the elements and related memory
+ * of the given frames. It recursevly handles all the internal saved values.
+ *
+ * @param frames The frames the memory should be free.
+ */
 void tkbc_destroy_frames(Frames *frames) {
   if (frames->count != 0) {
     for (size_t i = 0; i < frames->count; ++i) {
@@ -137,6 +154,16 @@ void tkbc_destroy_frames(Frames *frames) {
   }
 }
 
+/**
+ * @brief The function supports all the action kinds that are defined. It can be
+ * used to calculate the given frame and its action. For kite actions the new
+ * state of the kite results and the internal action values related to time and
+ * intermediate positioning is saved and ready to use in a nest update call.
+ *
+ * @param env The global state of the application.
+ * @param frame The frame the action should the handled for. It also can hold
+ * intermediate values.
+ */
 void tkbc_render_frame(Env *env, Frame *frame) {
   assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
   switch (frame->kind) {
@@ -367,6 +394,12 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   }
 }
 
+/**
+ * @brief The function can be used to refresh the time stamp saved in a frame
+ * action.
+ *
+ * @param frames The frames for which the saved time should be updated.
+ */
 void tkbc_patch_frames_current_time(Frames *frames) {
 
   for (size_t i = 0; i < frames->count; ++i) {
@@ -384,6 +417,15 @@ void tkbc_patch_frames_current_time(Frames *frames) {
   }
 }
 
+/**
+ * @brief The function can be used to backpatch current kite positions in the
+ * frames array to be used later in the redrawing and calculation of a script
+ * frame after the script has executed successfully.
+ *
+ * @param env The global state of the application.
+ * @param frames The frames where the kite positions should be updated to the
+ * current kite values.
+ */
 void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
   for (size_t i = 0; i < frames->count; ++i) {
     if (frames->elements[i].kite_index_array == NULL) {
@@ -470,6 +512,14 @@ void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
   }
 }
 
+/**
+ * @brief The function can be used to get the state of the current executed
+ * frame.
+ *
+ * @param env The global state of the application.
+ * @return True if the current frame has finished its execution, otherwise
+ * false.
+ */
 bool tkbc_check_finished_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
     if (!env->frames->elements[i].finished) {
@@ -479,6 +529,14 @@ bool tkbc_check_finished_frames(Env *env) {
   return true;
 }
 
+/**
+ * @brief The function can collect the amount of finished frames in the current
+ * block frame execution.
+ *
+ * @param env The global state of the application.
+ * @return It returns the amount of finished frames and 0 if no frames has
+ * finished yet.
+ */
 size_t tkbc_check_finished_frames_count(Env *env) {
   int count = 0;
   for (size_t i = 0; i < env->frames->count; ++i) {
@@ -490,6 +548,12 @@ size_t tkbc_check_finished_frames_count(Env *env) {
   return count;
 }
 
+/**
+ * @brief The function checks for the user input that is related to a script
+ * execution. It can control the timeline and stop and start the execution.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_input_handler_script(Env *env) {
   if (IsKeyPressed(KEY_SPACE)) {
     env->script_finished = !env->script_finished;
@@ -498,7 +562,17 @@ void tkbc_input_handler_script(Env *env) {
   tkbc_scrub_frames(env);
 }
 
+/**
+ * @brief The function can be used to update all the kites positions and angle
+ * that are registered in the currently loaded frame of the script before.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
+  // TODO: Think about kites that are move in the previous frame but not in the
+  // current one. The kites can end up in wired locations, because the state is
+  // not exactly as if the script has executed from the beginning.
+
   for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
     Index k_index = env->frames->kite_frame_positions->elements[i].kite_id;
     Kite *kite = env->kite_array->elements[k_index].kite;
@@ -514,6 +588,12 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
   }
 }
 
+/**
+ * @brief The function computes the frame state of the timeline and syncs up the
+ * currently loaded frame. It computes mouse control of the timeline.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_scrub_frames(Env *env) {
   if (env->block_frames->count <= 0) {
     return;
@@ -539,6 +619,15 @@ void tkbc_scrub_frames(Env *env) {
 
 // ========================== SCRIPT HANDLER INTERNAL ========================
 
+/**
+ * @brief The function handles the computation of the new position of the kite
+ * corresponding to the called move action.
+ *
+ * @param kite The kite where the new position is calculated for.
+ * @param position The new position of the kite.
+ * @param duration The time it should take to interpolate the kite to the new
+ * position.
+ */
 void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
 
   if (duration <= 0) {
@@ -564,6 +653,19 @@ void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
   }
 }
 
+/**
+ * @brief The function handles the computation of the new rotation of the kite
+ * corresponding to the called rotation action.
+ *
+ * @param env The global state of the application.
+ * @param state The kite state that should be handled.
+ * @param angle The new angle the kite should be rotated to or by depended on
+ * the adding parameter.
+ * @param duration The time it should take to interpolate the kite to the new
+ * angle.
+ * @param adding The parameter changes if the angle value is going to be added
+ * to the kite or if the kite angle should change to the given angle.
+ */
 void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
                         float duration, bool adding) {
 
@@ -586,7 +688,8 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
     }
 
     for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-      if (env->frames->kite_frame_positions->elements[k].kite_id == state->kite_id) {
+      if (env->frames->kite_frame_positions->elements[k].kite_id ==
+          state->kite_id) {
         env->frames->kite_frame_positions->elements[k].remaining_angle -=
             fabsf(angle);
         break;
@@ -600,7 +703,8 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
   float remaining_angle = 0;
 
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-    if (env->frames->kite_frame_positions->elements[k].kite_id == state->kite_id) {
+    if (env->frames->kite_frame_positions->elements[k].kite_id ==
+        state->kite_id) {
 
       if (!adding) {
         float pre_angle = env->frames->kite_frame_positions->elements[k].angle;
@@ -646,6 +750,20 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
   }
 }
 
+/**
+ * @brief The function handles the computation of the new tip rotation of the
+ * kite corresponding to the called tip rotation action.
+ *
+ * @param env The global state of the application.
+ * @param state The kite state that should be handled.
+ * @param tip The tip of the leading kites edge.
+ * @param angle The new angle the kite should be rotated to or by depended on
+ * the adding parameter.
+ * @param duration The time it should take to interpolate the kite to the new
+ * angle.
+ * @param adding The parameter changes if the angle value is going to be added
+ * to the kite or if the kite angle should change to the given angle.
+ */
 void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
                             float duration, bool adding) {
 
@@ -668,7 +786,8 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
     }
 
     for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-      if (env->frames->kite_frame_positions->elements[k].kite_id == state->kite_id) {
+      if (env->frames->kite_frame_positions->elements[k].kite_id ==
+          state->kite_id) {
         env->frames->kite_frame_positions->elements[k].remaining_angle -=
             fabsf(angle);
         break;
@@ -682,7 +801,8 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
   float remaining_angle = 0;
 
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-    if (env->frames->kite_frame_positions->elements[k].kite_id == state->kite_id) {
+    if (env->frames->kite_frame_positions->elements[k].kite_id ==
+        state->kite_id) {
 
       if (!adding) {
         float pre_angle = env->frames->kite_frame_positions->elements[k].angle;
