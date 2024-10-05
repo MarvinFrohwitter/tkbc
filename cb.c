@@ -2,7 +2,7 @@
 #define CB_IMPLEMENTATION
 #include "cb.h"
 
-#define RAYLIBPATH "external/raylib-5.0/src"
+#define RAYLIBPATH "./external/raylib-5.0/src"
 
 char *shift_args(int *argc, char ***argv) {
   char *old_argv = **argv;
@@ -23,9 +23,9 @@ int main(int argc, char *argv[]) {
 
   int dynamic = 0;
   if (strncmp(ldd, "static", 6) == 0) {
-    dynamic = 1;
-  } else if (strncmp(ldd, "dynamic", 7) == 0) {
     dynamic = 0;
+  } else if (strncmp(ldd, "dynamic", 7) == 0) {
+    dynamic = 1;
   }
 
   Cmd cmd = {0};
@@ -37,7 +37,12 @@ int main(int argc, char *argv[]) {
   if (!cb_run_sync(&cmd))
     return 1;
 
-  cb_cmd_push(&cmd, "make", "-C", RAYLIBPATH);
+  if (dynamic) {
+    cb_cmd_push(&cmd, "make", "-e", "RAYLIB_LIBTYPE=SHARED", "-C", RAYLIBPATH);
+  } else {
+    cb_cmd_push(&cmd, "make", "-C", RAYLIBPATH);
+  }
+
   if (!cb_run_sync(&cmd))
     return 1;
 
@@ -57,12 +62,13 @@ int main(int argc, char *argv[]) {
   CFLAGS(&cmd, "-O3", "-pedantic", "-Wall", "-Wextra", "-ggdb");
   cb_cmd_push(&cmd, "-o", "build/tkbc", "src/main.c", "src/tkbc.c",
               "src/tkbc-ui.c");
-    LDFLAGS(&cmd, "-L", RAYLIBPATH);
 
+  LDFLAGS(&cmd, "-L", RAYLIBPATH);
   if (dynamic) {
-    LIBS(&cmd, "-l:libraylib.a", "-lm");
+    LDFLAGS(&cmd, "-Wl,-rpath=" RAYLIBPATH);
+    LIBS(&cmd, "-l:libraylib.so", "-lm");
   } else {
-    LIBS(&cmd, "-lraylib", "-lm");
+    LIBS(&cmd, "-l:libraylib.a", "-lm");
   }
 
   if (!cb_run_sync(&cmd))
