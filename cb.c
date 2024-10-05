@@ -2,7 +2,7 @@
 #define CB_IMPLEMENTATION
 #include "cb.h"
 
-#define RAYLIBPATH "./external/raylib-5.0/src"
+#define RAYLIBPATH "external/raylib-5.0/src"
 
 char *shift_args(int *argc, char ***argv) {
   char *old_argv = **argv;
@@ -65,7 +65,8 @@ int main(int argc, char *argv[]) {
 
   LDFLAGS(&cmd, "-L", RAYLIBPATH);
   if (dynamic) {
-    LDFLAGS(&cmd, "-Wl,-rpath=" RAYLIBPATH);
+    LDFLAGS(&cmd, "-Wl,-rpath="RAYLIBPATH);
+    LDFLAGS(&cmd, "-Wl,-rpath=../"RAYLIBPATH);
     LIBS(&cmd, "-l:libraylib.so", "-lm");
   } else {
     LIBS(&cmd, "-l:libraylib.a", "-lm");
