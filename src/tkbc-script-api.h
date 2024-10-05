@@ -54,11 +54,22 @@ Kite_Indexs tkbc_indexs_range(int start, int end);
 
 // ========================== SCRIPT API =====================================
 
+/**
+ * @brief The function is mandatory to wrap every manual script at the
+ * beginning.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_script_begin(Env *env) {
   env->script_interrupt = true;
   tkbc_register_frames(env, tkbc_script_wait(0));
 }
 
+/**
+ * @brief The function is mandatory to wrap every manual script at the end.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_script_end(Env *env) {
   env->script_interrupt = false;
   if (env->script_setup) {
@@ -79,6 +90,13 @@ void tkbc_script_end(Env *env) {
   }
 }
 
+/**
+ * @brief The function can be used to update the block_frames calculation. It
+ * switches the internal script buffer to the next block_frames. For the script
+ * execution it is mandatory to call this function.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_script_update_frames(Env *env) {
   for (size_t i = 0; i < env->frames->count; ++i) {
     Frame *frame = &env->frames->elements[i];
@@ -115,10 +133,25 @@ void tkbc_script_update_frames(Env *env) {
   }
 }
 
+/**
+ * @brief The function can be used to check if the currently loaded script has
+ * finished.
+ *
+ * @param env The global state of the application.
+ * @return True if the script has finished successfully, otherwise false.
+ */
 bool tkbc_script_finished(Env *env) { return env->script_finished; }
 
 // ========================== SCRIPT HANDLER API =============================
 
+/**
+ * @brief The function is wrapped by a macro! The call creates an action frame
+ * that blocks the block_frame execution by the specified time.
+ *
+ * @param env The global state of the application.
+ * @param duration The time a frame should block/expand.
+ * @return The new created wait action frame.
+ */
 Frame *tkbc__script_wait(Env *env, float duration) {
   if (env->script_finished) {
     return NULL;
@@ -142,9 +175,9 @@ Frame *tkbc__script_wait(Env *env, float duration) {
 }
 
 /**
- * @brief The function that quits all the current registered frames after the
- * duration. It can be inserted as a normal frame into a block that should be
- * quit after a some duration time.
+ * @brief The function is wrapped by a macro! The function that quits all the
+ * current registered frames after the duration. It can be inserted as a normal
+ * frame into a block that should be quit after a some duration time.
  *
  * @param duration The time in seconds after all the frames will quit.
  * @return The frame that is constructed to represent the force quit frame-block
@@ -228,6 +261,14 @@ void tkbc__register_frames(Env *env, ...) {
   tkbc_register_frames_array(env, env->scratch_buf_frames);
 }
 
+/**
+ * @brief The function registers the given frames array into the global env
+ * state that holds the block_frames. It is also responsible for patching
+ * corresponding block frame positions and frame indices.
+ *
+ * @param env The global state of the application.
+ * @param frames The collect frames that should be registered as a block_frame.
+ */
 void tkbc_register_frames_array(Env *env, Frames *frames) {
   assert(frames != NULL);
   if (frames->count == 0) {
@@ -283,6 +324,13 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
   }
 }
 
+/**
+ * @brief The function is wrapped by a macro! The function can be used to
+ * combine the given numbers of kite indices.
+ *
+ * @param _ The param is ignored just just for variadic function implementation.
+ * @return The dynamic array list of kite indices.
+ */
 Kite_Indexs tkbc__indexs_append(size_t _, ...) {
   Kite_Indexs ki = {0};
 
