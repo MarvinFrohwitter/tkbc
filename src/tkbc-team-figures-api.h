@@ -8,31 +8,34 @@
 // ===========================================================================
 
 bool tkbc_script_team_line(Env *env, Kite_Indexs kite_index_array,
-                           size_t h_padding, Vector2 offset,
+                           Vector2 position, Vector2 offset, size_t h_padding,
                            float move_duration);
-bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
-                           size_t columns, size_t v_padding, size_t h_padding,
-                           Vector2 offset, float move_duration);
+bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array,
+                           Vector2 position, Vector2 offset, size_t v_padding,
+                           size_t h_padding, size_t rows, size_t columns,
+                           float move_duration);
 
 bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
                            Vector2 position, Vector2 offset, float radius,
                            float move_duration, float rotation_duration);
 
 bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
+                               Vector2 position, Vector2 offset,
                                size_t v_padding, size_t h_padding,
-                               Vector2 offset, float move_duration,
-                               float rotation_duration);
+                               float move_duration, float rotation_duration);
+
 bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
-                             size_t v_padding, size_t h_padding, Vector2 offset,
-                             float move_duration, float rotation_duration);
+                             Vector2 position, Vector2 offset, size_t v_padding,
+                             size_t h_padding, float move_duration,
+                             float rotation_duration);
 
 bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
-                          size_t v_padding, size_t h_padding, Vector2 offset,
-                          float angle, float move_duration,
+                          Vector2 position, Vector2 offset, size_t v_padding,
+                          size_t h_padding, float angle, float move_duration,
                           float rotation_duration);
 bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
-                            size_t v_padding, size_t h_padding, Vector2 offset,
-                            float angle, float move_duration,
+                            Vector2 position, Vector2 offset, size_t v_padding,
+                            size_t h_padding, float angle, float move_duration,
                             float rotation_duration);
 
 void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
@@ -78,6 +81,24 @@ void tkbc_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
 
 // ========================== Script Team Figures ============================
 
+/**
+ * @brief The function can be used to move the given kites via index to a ball
+ * position facing out.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites, that should be arranged to a ball,
+ * represented by there kite_id.
+ * @param position The center position of the ball.
+ * @param offset An offset from the center the ball should move to.
+ * @param radius The radius of the created ball from the ball center to the
+ * kites center leading edge.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
                            Vector2 position, Vector2 offset, float radius,
                            float move_duration, float rotation_duration) {
@@ -128,13 +149,26 @@ bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
   return true;
 }
 
+/**
+ * @brief The function can be used to create the mountain figure.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param position The center position of the mountain.
+ * @param offset An offset from the center the mountain should move to.
+ * @param v_padding The vertical padding between the kites.
+ * @param h_padding The horizontal padding between the kites.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
+                               Vector2 position, Vector2 offset,
                                size_t v_padding, size_t h_padding,
-                               Vector2 offset, float move_duration,
-                               float rotation_duration) {
-
-  int w = env->window_width;
-  int h = env->window_height;
+                               float move_duration, float rotation_duration) {
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
   Kite *kite = env->kite_array->elements[0].kite;
@@ -149,8 +183,9 @@ bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
   size_t rows =
       isodd ? kite_index_array.count / 2 + 1 : kite_index_array.count / 2;
 
-  Vector2 anchor = {.x = w / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
-                    .y = h / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
+  Vector2 anchor = {
+      .x = position.x / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
+      .y = position.y / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
 
@@ -200,12 +235,26 @@ bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
   return true;
 }
 
+/**
+ * @brief The function can be used to create the valley figure.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param position The center position of the valley.
+ * @param offset An offset from the center the valley should move to.
+ * @param v_padding The vertical padding between the kites.
+ * @param h_padding The horizontal padding between the kites.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
-                             size_t v_padding, size_t h_padding, Vector2 offset,
-                             float move_duration, float rotation_duration) {
-
-  int w = env->window_width;
-  int h = env->window_height;
+                             Vector2 position, Vector2 offset, size_t v_padding,
+                             size_t h_padding, float move_duration,
+                             float rotation_duration) {
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
   Kite *kite = env->kite_array->elements[0].kite;
@@ -220,8 +269,9 @@ bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
   size_t rows =
       isodd ? kite_index_array.count / 2 + 1 : kite_index_array.count / 2;
 
-  Vector2 anchor = {.x = w / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
-                    .y = h / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
+  Vector2 anchor = {
+      .x = position.x / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
+      .y = position.y / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
 
@@ -271,14 +321,29 @@ bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
   return true;
 }
 
+/**
+ * @brief The function can be used to create the arc figure.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param position The center position of the arc.
+ * @param offset An offset from the center the arc should move to.
+ * @param v_padding The vertical padding between the kites.
+ * @param h_padding The horizontal padding between the kites.
+ * @param angle The angle at which the kites should facing out.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
-                          size_t v_padding, size_t h_padding, Vector2 offset,
-                          float angle, float move_duration,
+                          Vector2 position, Vector2 offset, size_t v_padding,
+                          size_t h_padding, float angle, float move_duration,
                           float rotation_duration) {
 
   float start_angle = angle;
-  int w = env->window_width;
-  int h = env->window_height;
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
   Kite *kite = env->kite_array->elements[0].kite;
@@ -293,8 +358,9 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
   size_t rows =
       isodd ? kite_index_array.count / 2 + 1 : kite_index_array.count / 2;
 
-  Vector2 anchor = {.x = w / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
-                    .y = h / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
+  Vector2 anchor = {
+      .x = position.x / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
+      .y = position.y / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
   env->scratch_buf_frames->count = 0;
@@ -350,14 +416,29 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
   return true;
 }
 
+/**
+ * @brief The function can be used to create the mouth figure.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param position The center position of the mouth.
+ * @param offset An offset from the center the mouth should move to.
+ * @param v_padding The vertical padding between the kites.
+ * @param h_padding The horizontal padding between the kites.
+ * @param angle The angle at which the kites should facing in.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
-                            size_t v_padding, size_t h_padding, Vector2 offset,
-                            float angle, float move_duration,
+                            Vector2 position, Vector2 offset, size_t v_padding,
+                            size_t h_padding, float angle, float move_duration,
                             float rotation_duration) {
   angle = -angle;
   float start_angle = angle;
-  int w = env->window_width;
-  int h = env->window_height;
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
   Kite *kite = env->kite_array->elements[0].kite;
@@ -372,8 +453,9 @@ bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
   size_t rows =
       isodd ? kite_index_array.count / 2 + 1 : kite_index_array.count / 2;
 
-  Vector2 anchor = {.x = w / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
-                    .y = h / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
+  Vector2 anchor = {
+      .x = position.x / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
+      .y = position.y / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
 
@@ -429,20 +511,49 @@ bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
   return true;
 }
 
+/**
+ * @brief The function can be used to create a single horizontal line.
+ *
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param position The center position of the line.
+ * @param offset An offset from the center the line should move to.
+ * @param h_padding The horizontal padding between the kites.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_line(Env *env, Kite_Indexs kite_index_array,
-                           size_t h_padding, Vector2 offset,
+                           Vector2 position, Vector2 offset, size_t h_padding,
                            float move_duration) {
 
-  return tkbc_script_team_grid(env, kite_index_array, 1, kite_index_array.count,
-                               0, h_padding, offset, move_duration);
+  return tkbc_script_team_grid(env, kite_index_array, position, offset, 0,
+                               h_padding, 1, kite_index_array.count,
+                               move_duration);
 }
 
-bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
-                           size_t columns, size_t v_padding, size_t h_padding,
-                           Vector2 offset, float move_duration) {
-
-  int w = env->window_width;
-  int h = env->window_height;
+/**
+ * @brief The function can be used to create the grid figure.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param position The center position of the grid.
+ * @param offset An offset from the center the grid should move to.
+ * @param v_padding The vertical padding between the kites.
+ * @param h_padding The horizontal padding between the kites.
+ * @param rows The amount of rows in the grid.
+ * @param columns The amount of columns in the grid.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
+bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array,
+                           Vector2 position, Vector2 offset, size_t v_padding,
+                           size_t h_padding, size_t rows, size_t columns,
+                           float move_duration) {
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
   Kite *kite = env->kite_array->elements[0].kite;
@@ -452,8 +563,9 @@ bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
   float x_space = h_padding + full_kite_width;
   float y_space = v_padding + full_kite_height;
 
-  Vector2 anchor = {.x = w / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
-                    .y = h / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
+  Vector2 anchor = {
+      .x = position.x / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
+      .y = position.y / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
 
@@ -483,6 +595,17 @@ bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array, size_t rows,
   return true;
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param kite_index_array [TODO:parameter]
+ * @param direction [TODO:parameter]
+ * @param angle [TODO:parameter]
+ * @param box_size [TODO:parameter]
+ * @param move_duration [TODO:parameter]
+ * @param rotation_duration [TODO:parameter]
+ */
 void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                           DIRECTION direction, float angle, float box_size,
                           float move_duration, float rotation_duration) {
@@ -583,6 +706,15 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                                                 move_duration));
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param kite_index_array [TODO:parameter]
+ * @param box_size [TODO:parameter]
+ * @param move_duration [TODO:parameter]
+ * @param rotation_duration [TODO:parameter]
+ */
 void tkbc_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
                                float box_size, float move_duration,
                                float rotation_duration) {
@@ -590,6 +722,15 @@ void tkbc_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
                        rotation_duration);
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param kite_index_array [TODO:parameter]
+ * @param box_size [TODO:parameter]
+ * @param move_duration [TODO:parameter]
+ * @param rotation_duration [TODO:parameter]
+ */
 void tkbc_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
                                 float box_size, float move_duration,
                                 float rotation_duration) {
@@ -597,6 +738,17 @@ void tkbc_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
                        move_duration, rotation_duration);
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param kite_index_array [TODO:parameter]
+ * @param odd_even [TODO:parameter]
+ * @param box_size [TODO:parameter]
+ * @param move_duration [TODO:parameter]
+ * @param rotation_duration [TODO:parameter]
+ * @return [TODO:return]
+ */
 bool tkbc_script_team_split_box_up(Env *env, Kite_Indexs kite_index_array,
                                    ODD_EVEN odd_even, float box_size,
                                    float move_duration,
@@ -966,6 +1118,17 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Indexs kite_index_array,
   return true;
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param kite_index_array [TODO:parameter]
+ * @param direction [TODO:parameter]
+ * @param angle [TODO:parameter]
+ * @param box_size [TODO:parameter]
+ * @param move_duration [TODO:parameter]
+ * @param rotation_duration [TODO:parameter]
+ */
 void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                              DIRECTION direction, float angle, float box_size,
                              float move_duration, float rotation_duration) {
@@ -1094,6 +1257,15 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                                rotation_duration));
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param kite_index_array [TODO:parameter]
+ * @param box_size [TODO:parameter]
+ * @param move_duration [TODO:parameter]
+ * @param rotation_duration [TODO:parameter]
+ */
 void tkbc_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
                                   float box_size, float move_duration,
                                   float rotation_duration) {
@@ -1101,6 +1273,15 @@ void tkbc_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
                           move_duration, rotation_duration);
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param kite_index_array [TODO:parameter]
+ * @param box_size [TODO:parameter]
+ * @param move_duration [TODO:parameter]
+ * @param rotation_duration [TODO:parameter]
+ */
 void tkbc_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
                                    float box_size, float move_duration,
                                    float rotation_duration) {

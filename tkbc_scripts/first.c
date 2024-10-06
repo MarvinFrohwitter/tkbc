@@ -95,8 +95,8 @@ void tkbc_script_input(Env *env) {
   size_t h_padding = 0;
   size_t v_padding = 0;
   Vector2 offset = {0};
-  // Vector2 position = {.x = env->window_width / 2.0,
-  //                     .y = env->window_height / 2.0};
+  Vector2 position = {.x = env->window_width / 2.0,
+                      .y = env->window_height / 2.0};
   float move_duration = 2;
   float wait_time = 0.5;
   float rotation_duration = 1;
@@ -112,7 +112,7 @@ void tkbc_script_input(Env *env) {
                                            5),
                        tkbc_script_wait(1.5), tkbc_script_frames_quit(7));
 
-  tkbc_script_team_line(env, ki, h_padding, offset, move_duration);
+  tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
 
   // tkbc_register_frames(env, tkbc_script_wait(wait_time));
@@ -124,7 +124,7 @@ void tkbc_script_input(Env *env) {
 
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
 
-  tkbc_script_team_line(env, ki, h_padding, offset, move_duration);
+  tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
 
   tkbc_script_team_box_left(env, ki, 300, move_duration, rotation_duration);
@@ -147,35 +147,35 @@ void tkbc_script_input(Env *env) {
 
   tkbc_register_frames(env, tkbc_script_wait(1));
 
-  tkbc_script_team_mountain(env, ki, v_padding, h_padding, offset,
+  tkbc_script_team_mountain(env, ki, position, offset, v_padding, h_padding,
                             move_duration, rotation_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_script_team_arc(env, ki, v_padding, h_padding, offset, 45, move_duration,
-                       rotation_duration);
+  tkbc_script_team_arc(env, ki, position, offset, v_padding, h_padding, 45,
+                       move_duration, rotation_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_script_team_mountain(env, ki, v_padding, h_padding, offset,
+  tkbc_script_team_mountain(env, ki, position, offset, v_padding, h_padding,
                             move_duration, rotation_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_script_team_line(env, ki, h_padding, offset, move_duration);
+  tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_script_team_valley(env, ki, v_padding, h_padding, offset, move_duration,
-                          rotation_duration);
+  tkbc_script_team_valley(env, ki, position, offset, v_padding, h_padding,
+                          move_duration, rotation_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_script_team_mouth(env, ki, v_padding, h_padding, offset, 45,
+  tkbc_script_team_mouth(env, ki, position, offset, v_padding, h_padding, 45,
                          move_duration, rotation_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_script_team_valley(env, ki, v_padding, h_padding, offset, move_duration,
-                          rotation_duration);
+  tkbc_script_team_valley(env, ki, position, offset, v_padding, h_padding,
+                          move_duration, rotation_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
 
-  tkbc_script_team_line(env, ki, h_padding, offset, move_duration);
+  tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_script_team_grid(env, ki, 3, 3, v_padding, h_padding, offset,
+  tkbc_script_team_grid(env, ki, position, offset, v_padding, h_padding, 3, 3,
                         move_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_script_team_line(env, ki, h_padding, offset, move_duration);
+  tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_script_team_grid(env, ki, 3, 3, v_padding, h_padding, offset,
+  tkbc_script_team_grid(env, ki, position, offset, v_padding, h_padding, 3, 3,
                         move_duration);
 
   tkbc_register_frames(env, tkbc_script_wait(1));
