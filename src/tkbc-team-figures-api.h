@@ -183,9 +183,8 @@ bool tkbc_script_team_mountain(Env *env, Kite_Indexs kite_index_array,
   size_t rows =
       isodd ? kite_index_array.count / 2 + 1 : kite_index_array.count / 2;
 
-  Vector2 anchor = {
-      .x = position.x / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
-      .y = position.y / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
+  Vector2 anchor = {.x = position.x - ((columns / 2.0) * x_space - x_space / 2),
+                    .y = position.y - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
 
@@ -269,9 +268,8 @@ bool tkbc_script_team_valley(Env *env, Kite_Indexs kite_index_array,
   size_t rows =
       isodd ? kite_index_array.count / 2 + 1 : kite_index_array.count / 2;
 
-  Vector2 anchor = {
-      .x = position.x / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
-      .y = position.y / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
+  Vector2 anchor = {.x = position.x - ((columns / 2.0) * x_space - x_space / 2),
+                    .y = position.y - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
 
@@ -358,9 +356,8 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
   size_t rows =
       isodd ? kite_index_array.count / 2 + 1 : kite_index_array.count / 2;
 
-  Vector2 anchor = {
-      .x = position.x / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
-      .y = position.y / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
+  Vector2 anchor = {.x = position.x - ((columns / 2.0) * x_space - x_space / 2),
+                    .y = position.y - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
   env->scratch_buf_frames->count = 0;
@@ -453,9 +450,8 @@ bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
   size_t rows =
       isodd ? kite_index_array.count / 2 + 1 : kite_index_array.count / 2;
 
-  Vector2 anchor = {
-      .x = position.x / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
-      .y = position.y / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
+  Vector2 anchor = {.x = position.x - ((columns / 2.0) * x_space - x_space / 2),
+                    .y = position.y - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
 
@@ -563,9 +559,8 @@ bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array,
   float x_space = h_padding + full_kite_width;
   float y_space = v_padding + full_kite_height;
 
-  Vector2 anchor = {
-      .x = position.x / 2.0 - ((columns / 2.0) * x_space - x_space / 2),
-      .y = position.y / 2.0 - ((rows / 2.0) * y_space + y_space / 2)};
+  Vector2 anchor = {.x = position.x - ((columns / 2.0) * x_space - x_space / 2),
+                    .y = position.y - ((rows / 2.0) * y_space + y_space / 2)};
 
   anchor = Vector2Add(anchor, offset);
 
