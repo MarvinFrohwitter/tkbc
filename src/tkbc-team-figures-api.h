@@ -591,15 +591,17 @@ bool tkbc_script_team_grid(Env *env, Kite_Indexs kite_index_array,
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function can be used to move the given kites via index as a box.
  *
- * @param env [TODO:parameter]
- * @param kite_index_array [TODO:parameter]
- * @param direction [TODO:parameter]
- * @param angle [TODO:parameter]
- * @param box_size [TODO:parameter]
- * @param move_duration [TODO:parameter]
- * @param rotation_duration [TODO:parameter]
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param direction The direction where the box should start.
+ * @param angle The angle at which the kites should start.
+ * @param box_size The size represented by a single side of the complete box.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
  */
 void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
                           DIRECTION direction, float angle, float box_size,
@@ -702,13 +704,16 @@ void tkbc_script_team_box(Env *env, Kite_Indexs kite_index_array,
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function can be used to move the given kites via index as the team
+ * figure left box.
  *
- * @param env [TODO:parameter]
- * @param kite_index_array [TODO:parameter]
- * @param box_size [TODO:parameter]
- * @param move_duration [TODO:parameter]
- * @param rotation_duration [TODO:parameter]
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param box_size The size represented by a single side of the complete box.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
  */
 void tkbc_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
                                float box_size, float move_duration,
@@ -718,13 +723,16 @@ void tkbc_script_team_box_left(Env *env, Kite_Indexs kite_index_array,
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function can be used to move the given kites via index as the team
+ * figure right box.
  *
- * @param env [TODO:parameter]
- * @param kite_index_array [TODO:parameter]
- * @param box_size [TODO:parameter]
- * @param move_duration [TODO:parameter]
- * @param rotation_duration [TODO:parameter]
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param box_size The size represented by a single side of the complete box.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
  */
 void tkbc_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
                                 float box_size, float move_duration,
@@ -734,15 +742,20 @@ void tkbc_script_team_box_right(Env *env, Kite_Indexs kite_index_array,
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function can be used to create the split box figure starting
+ * horizontally and upwards.
  *
- * @param env [TODO:parameter]
- * @param kite_index_array [TODO:parameter]
- * @param odd_even [TODO:parameter]
- * @param box_size [TODO:parameter]
- * @param move_duration [TODO:parameter]
- * @param rotation_duration [TODO:parameter]
- * @return [TODO:return]
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param odd_even The kite group that should start facing up, counted from the
+ * right.
+ * @param box_size The size represented by a single side of the complete box.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
  */
 bool tkbc_script_team_split_box_up(Env *env, Kite_Indexs kite_index_array,
                                    ODD_EVEN odd_even, float box_size,
@@ -1114,15 +1127,17 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Indexs kite_index_array,
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function can be used to create the diamond figure.
  *
- * @param env [TODO:parameter]
- * @param kite_index_array [TODO:parameter]
- * @param direction [TODO:parameter]
- * @param angle [TODO:parameter]
- * @param box_size [TODO:parameter]
- * @param move_duration [TODO:parameter]
- * @param rotation_duration [TODO:parameter]
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param direction The direction where the diamond should start.
+ * @param angle The angle at which the kites should start the figure (45 deg).
+ * @param box_size The size represented by a single side of the complete box.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
  */
 void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
                              DIRECTION direction, float angle, float box_size,
@@ -1253,13 +1268,16 @@ void tkbc_script_team_dimond(Env *env, Kite_Indexs kite_index_array,
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function can be used toe create the diamond figure starting to
+ * left out of a vertical column.
  *
- * @param env [TODO:parameter]
- * @param kite_index_array [TODO:parameter]
- * @param box_size [TODO:parameter]
- * @param move_duration [TODO:parameter]
- * @param rotation_duration [TODO:parameter]
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param box_size The size represented by a single side of the complete box.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
  */
 void tkbc_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
                                   float box_size, float move_duration,
@@ -1269,13 +1287,16 @@ void tkbc_script_team_dimond_left(Env *env, Kite_Indexs kite_index_array,
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function can be used toe create the diamond figure starting to
+ * right out of a vertical column.
  *
- * @param env [TODO:parameter]
- * @param kite_index_array [TODO:parameter]
- * @param box_size [TODO:parameter]
- * @param move_duration [TODO:parameter]
- * @param rotation_duration [TODO:parameter]
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param box_size The size represented by a single side of the complete box.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @param rotation_duration The time that the rotation to the correct angle
+ * should take in seconds.
  */
 void tkbc_script_team_dimond_right(Env *env, Kite_Indexs kite_index_array,
                                    float box_size, float move_duration,
