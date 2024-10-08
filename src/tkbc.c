@@ -200,8 +200,9 @@ void tkbc_kite_array_start_position(Kite_States *kite_states,
   assert(kite_states->count > 0);
 
   float kite_width = kite_states->elements[0].kite->width;
-  float kite_heigt = kite_states->elements[0].kite->height;
-  int viewport_padding = kite_width > kite_heigt ? kite_width / 2 : kite_heigt;
+  float kite_height = kite_states->elements[0].kite->height;
+  int viewport_padding =
+      kite_width > kite_height ? kite_width / 2 : kite_height;
 
   Vector2 start_pos = {.x = window_width / 2.0f -
                             kite_states->count * kite_width + kite_width / 2.0f,
@@ -256,6 +257,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
 
   tkbc_center_rotation(kite, NULL, kite->angle);
 
+  // The computation is correct because of the previous given angle = 0.
   kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
 
   kite->old_center = kite->center;
