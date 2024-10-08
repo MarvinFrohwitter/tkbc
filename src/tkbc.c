@@ -312,10 +312,10 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position,
   kite->center.y = pos.y;
 
   kite->angle = center_deg_rotation;
-  float cw = kite->width;
+  float cw = kite->width / 2.0f;
   float is = kite->inner_space;
   float o = kite->overlap;
-  float_t length = (kite->width / 2.f + kite->spread);
+  float_t length = cw + kite->spread;
   length = floorf(length);
 
   // The difference between the angle 0 and the default downward interpolation
@@ -324,45 +324,32 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position,
   float br_angle = (PI * (360 + (90 - angle)) / 180);
   float phi = (PI * (kite->angle) / 180);
 
+  float cosphi = cosf(phi);
+  float sinphi = sinf(phi);
+
   // LEFT Triangle
-  kite->left.v1.x = pos.x - (cw / 2.f) * cosf(phi);
-  kite->left.v1.y = pos.y + (cw / 2.f) * sinf(phi);
+  kite->left.v1.x = pos.x - cw * cosphi;
+  kite->left.v1.y = pos.y + cw * sinphi;
   kite->left.v2.x = pos.x - is * cosf((phi - bl_angle));
   kite->left.v2.y = pos.y + is * sinf((phi - bl_angle));
-  kite->left.v3.x = pos.x + o * cosf(phi);
-  kite->left.v3.y = pos.y - o * sinf(phi);
-  // Correct
-  // kite->left.v1.x = pos.x - crealf((cw / 2.f) * cexpf(I * phi));
-  // kite->left.v1.y = pos.y + cimagf((cw / 2.f) * cexpf(I * phi));
-  // kite->left.v2.x = pos.x - crealf(is * cexpf(I * (phi - bl_angle)));
-  // kite->left.v2.y = pos.y + cimagf(is * cexpf(I * (phi - bl_angle)));
-  // kite->left.v3.x = pos.x + crealf(o * cexpf(I * phi));
-  // kite->left.v3.y = pos.y - cimagf(o * cexpf(I * phi));
+  kite->left.v3.x = pos.x + o * cosphi;
+  kite->left.v3.y = pos.y - o * sinphi;
 
   // RIGHT Triangle
-  kite->right.v1.x = pos.x - o * cosf(phi);
-  kite->right.v1.y = pos.y + o * sinf(phi);
+  kite->right.v1.x = pos.x - o * cosphi;
+  kite->right.v1.y = pos.y + o * sinphi;
   kite->right.v2.x = pos.x + is * cosf((phi - br_angle));
   kite->right.v2.y = pos.y - is * sinf((phi - br_angle));
-  kite->right.v3.x = pos.x + (cw / 2.f) * cosf(phi);
-  kite->right.v3.y = pos.y - (cw / 2.f) * sinf(phi);
-  // Correct
-  // kite->right.v1.x = pos.x - crealf(o * cexpf(I * phi));
-  // kite->right.v1.y = pos.y + cimagf(o * cexpf(I * phi));
-  // kite->right.v2.x = pos.x + crealf(is * cexpf(I * (phi - br_angle)));
-  // kite->right.v2.y = pos.y - cimagf(is * cexpf(I * (phi - br_angle)));
-  // kite->right.v3.x = pos.x + crealf((cw / 2.f) * cexpf(I * phi));
-  // kite->right.v3.y = pos.y - cimagf((cw / 2.f) * cexpf(I * phi));
+  kite->right.v3.x = pos.x + cw * cosphi;
+  kite->right.v3.y = pos.y - cw * sinphi;
 
   // Just an random suitable height and width that fits the scaling and
   // spread. k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
-  // k->rec.height = 2 * PI * k->spread;
-  kite->rec.height = 2 * PI * logf(kite->scale);
+  kite->rec.height = 3 * PI * kite->spread;
+  // kite->rec.height = 2 * PI * logf(kite->scale);
   kite->rec.width = 2 * length;
-  kite->rec.x = pos.x - length * cosf(phi);
-  kite->rec.y = pos.y + length * sinf(phi);
-  // kite->rec.x = pos.x - crealf(length * cexpf(I * phi));
-  // kite->rec.y = pos.y + cimagf(length * cexpf(I * phi));
+  kite->rec.x = pos.x - length * cosphi;
+  kite->rec.y = pos.y + length * sinphi;
 }
 
 /**
@@ -398,8 +385,6 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
     pos.x += length * cosf(phi);
     pos.y -= length * sinf(phi);
 
-    // pos.x += crealf((length)*cexpf(I * phi));
-    // pos.y -= cimagf((length)*cexpf(I * phi));
   } break;
   case RIGHT_TIP: {
 
@@ -409,9 +394,6 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
     // Then rotate.
     pos.x -= length * cosf(phi);
     pos.y += length * sinf(phi);
-
-    // pos.x -= crealf((length)*cexpf(I * phi));
-    // pos.y += cimagf((length)*cexpf(I * phi));
 
   } break;
   default:
