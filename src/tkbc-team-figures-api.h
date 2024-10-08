@@ -113,10 +113,8 @@ bool tkbc_script_team_ball(Env *env, Kite_Indexs kite_index_array,
   env->scratch_buf_frames->count = 0;
   for (size_t i = 0; i < segments; ++i) {
 
-    place.x +=
-        ceilf(crealf((radius)*cexpf(I * (PI * (deg_base_rotation) / 180))));
-    place.y +=
-        floorf(cimagf((radius)*cexpf(I * (PI * (deg_base_rotation) / 180))));
+    place.x += radius * cosf(PI * deg_base_rotation / 180);
+    place.y += radius * sinf(PI * deg_base_rotation / 180);
 
     float deg_angle =
         (180 - (180 - (deg_base_rotation + 90))) + deg_base_rotation;
