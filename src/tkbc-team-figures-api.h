@@ -340,7 +340,6 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
                           Vector2 position, Vector2 offset, size_t v_padding,
                           size_t h_padding, float angle, float move_duration,
                           float rotation_duration) {
-
   float start_angle = angle;
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
@@ -348,8 +347,12 @@ bool tkbc_script_team_arc(Env *env, Kite_Indexs kite_index_array,
 
   float full_kite_width = kite->width + kite->spread;
   float full_kite_height = kite->height;
-  float x_space = h_padding + full_kite_width;
-  float y_space = v_padding + full_kite_height;
+
+  float default_arc_vspace = sinf(angle * PI / 180) * full_kite_width / 2;
+  float default_arc_hspace = sinf(angle * PI / 180) * full_kite_height / 2;
+
+  float x_space = h_padding + full_kite_width + default_arc_hspace;
+  float y_space = v_padding + full_kite_height + default_arc_vspace;
 
   size_t columns = kite_index_array.count;
   bool isodd = kite_index_array.count % 2 == 1;
@@ -442,8 +445,12 @@ bool tkbc_script_team_mouth(Env *env, Kite_Indexs kite_index_array,
 
   float full_kite_width = kite->width + kite->spread;
   float full_kite_height = kite->height;
-  float x_space = h_padding + full_kite_width;
-  float y_space = v_padding + full_kite_height;
+
+  float default_arc_vspace = sinf(angle * PI / 180) * full_kite_width / 2;
+  float default_arc_hspace = sinf(angle * PI / 180) * full_kite_height / 2;
+
+  float x_space = h_padding + full_kite_width - default_arc_hspace;
+  float y_space = v_padding + full_kite_height - default_arc_vspace;
 
   size_t columns = kite_index_array.count;
   bool isodd = kite_index_array.count % 2 == 1;
