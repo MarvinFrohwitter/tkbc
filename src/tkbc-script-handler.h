@@ -617,7 +617,7 @@ void tkbc_scrub_frames(Env *env) {
     int index =
         drag_left ? env->frames->block_index - 1 : env->frames->block_index + 1;
     if (index >= 0 && index < (int)env->block_frame->count) {
-      env->frames = tkbc_deep_copy_frames(&env->block_frame->elements[index]);
+      env->frames = &env->block_frame->elements[index];
     }
     tkbc_set_kite_positions_from_kite_frames_positions(env);
   }
