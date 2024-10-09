@@ -189,7 +189,7 @@ typedef struct {
   size_t count;    // The amount of elements in the array.
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
-  Index block_index; // The index in the block_frames array after registration.
+  Index block_index; // The index in the block_frame array after registration.
   Kite_Positions *kite_frame_positions; // The start position of the kite in the
                                         // current frame.
 } Frames; // A dynamic array collection that holds the type frame.
@@ -200,21 +200,31 @@ typedef struct {
   size_t count;     // The amount of elements in the array.
   size_t capacity;  // The complete allocated space for the array represented as
                     // the number of collection elements of the array type.
-} Block_Frames; // A dynamic array collection that combined multiple frames to a
-                // single kite draw representation.
+} Block_Frame; // A dynamic array collection that combined multiple frames to a
+               // single kite draw representation.
+
+typedef struct {
+  Block_Frame
+      *elements; // The dynamic array collection for all combined frame blocks.
+  size_t count;  // The amount of elements in the array.
+  size_t capacity; // The complete allocated space for the array represented as
+                   // the number of collection elements of the array type.
+} Block_Frames;    // A dynamic array collection that combined multiple frame
+                   // blocks.
 
 typedef struct {
   Kite_States *kite_array; // The kites that are generated for the current
                            // session of the application.
 
   Frames *frames; // A representation of the current active drawable frames.
-  Block_Frames *block_frames; // The collection of all the frames that should be
-                              // executed in the script.
+  Block_Frame *block_frame; // The collection of all the frames that should be
+                            // executed in a script.
 
   bool script_setup;     // The indication if the initial setup run is executed.
   bool script_interrupt; // The indication if a script is currently going to be
                          // loaded.
   bool script_finished;  // The indication a script has finished.
+  size_t script_counter; // Represents the amount of scripts that were loaded.
 
   size_t window_width;  // The window width of the application.
   size_t window_height; // The window height of the application.

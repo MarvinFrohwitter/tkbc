@@ -16,7 +16,7 @@ void tkbc_destroy_frames(Frames *frames);
 void tkbc_render_frame(Env *env, Frame *frame);
 
 void tkbc_patch_frames_current_time(Frames *frames);
-void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames);
+void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames);
 bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
 void tkbc_input_handler_script(Env *env);
@@ -426,7 +426,7 @@ void tkbc_patch_frames_current_time(Frames *frames) {
  * @param frames The frames where the kite positions should be updated to the
  * current kite values.
  */
-void tkbc_patch_block_frames_kite_positions(Env *env, Frames *frames) {
+void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
   for (size_t i = 0; i < frames->count; ++i) {
     if (frames->elements[i].kite_index_array == NULL) {
       continue;
@@ -558,6 +558,12 @@ void tkbc_input_handler_script(Env *env) {
   if (IsKeyPressed(KEY_SPACE)) {
     env->script_finished = !env->script_finished;
   }
+  if (IsKeyPressed(KEY_TAB)) {
+    assert(env->script_counter > 0);
+
+    env->block_frame->count = 0;
+    // TODO: Switch to next block_frame
+  }
 
   tkbc_scrub_frames(env);
 }
@@ -595,7 +601,7 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_scrub_frames(Env *env) {
-  if (env->block_frames->count <= 0) {
+  if (env->block_frame->count <= 0) {
     return;
   }
 
@@ -610,8 +616,8 @@ void tkbc_scrub_frames(Env *env) {
     // The block indexes are assumed in order and at the corresponding index.
     int index =
         drag_left ? env->frames->block_index - 1 : env->frames->block_index + 1;
-    if (index >= 0 && index < (int)env->block_frames->count) {
-      env->frames = tkbc_deep_copy_frames(&env->block_frames->elements[index]);
+    if (index >= 0 && index < (int)env->block_frame->count) {
+      env->frames = tkbc_deep_copy_frames(&env->block_frame->elements[index]);
     }
     tkbc_set_kite_positions_from_kite_frames_positions(env);
   }

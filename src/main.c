@@ -75,10 +75,7 @@ int main(void) {
     if (env->script_setup) {
       tkbc_script_input(env);
     }
-    // TODO: Think about loading a new script. The begin and end functions can
-    // be used to handle a script counter that counts multiple scripts.
-    // env->block_frames->count = 0;
-    // free the blocks
+
     if (!tkbc_script_finished(env)) {
       tkbc_script_update_frames(env);
     }

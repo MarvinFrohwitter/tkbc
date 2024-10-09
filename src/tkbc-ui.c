@@ -48,17 +48,17 @@ void tkbc_ui_timeline(Env *env) {
   }
 
   env->timeline_segments = env->frames->block_index + 1;
-  assert(env->timeline_segments <= env->block_frames->count);
-  assert(env->block_frames->count != 0);
+  assert(env->timeline_segments <= env->block_frame->count);
+  assert(env->block_frame->count != 0);
 
   env->timeline_segment_width =
-      env->timeline_base.width / env->block_frames->count;
+      env->timeline_base.width / env->block_frame->count;
 
   env->timeline_segments_width =
       env->timeline_segment_width * env->timeline_segments;
 
   if ((mouse_pos.x >= env->timeline_base.x + env->timeline_base.width) ||
-      (env->timeline_segments >= env->block_frames->count)) {
+      (env->timeline_segments >= env->block_frame->count)) {
     // Just for save UI drawing if the mouse is outside the right bounding box
     // of the timeline, the alignment should always be filled completely.
     env->timeline_front.width = env->timeline_base.width;

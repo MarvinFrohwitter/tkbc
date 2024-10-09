@@ -72,14 +72,15 @@ void tkbc_script_begin(Env *env) {
  */
 void tkbc_script_end(Env *env) {
   env->script_interrupt = false;
+  env->script_counter++;
   if (env->script_setup) {
-    env->frames = &env->block_frames->elements[0];
+    env->frames = &env->block_frame->elements[0];
     env->script_setup = false;
     return;
   }
 
   if (tkbc_check_finished_frames(env) &&
-      (env->block_frames->count == env->frames->block_index + 1)) {
+      (env->block_frame->count == env->frames->block_index + 1)) {
 
     if (!env->script_finished) {
       env->script_finished = true;
@@ -91,8 +92,8 @@ void tkbc_script_end(Env *env) {
 }
 
 /**
- * @brief The function can be used to update the block_frames calculation. It
- * switches the internal script buffer to the next block_frames. For the script
+ * @brief The function can be used to update the block_frame calculation. It
+ * switches the internal script buffer to the next block_frame. For the script
  * execution it is mandatory to call this function.
  *
  * @param env The global state of the application.
@@ -106,9 +107,9 @@ void tkbc_script_update_frames(Env *env) {
     }
   }
 
-  if (env->frames->block_index + 1 < env->block_frames->count) {
+  if (env->frames->block_index + 1 < env->block_frame->count) {
     if (tkbc_check_finished_frames(env)) {
-      env->frames = &env->block_frames->elements[env->frames->block_index + 1];
+      env->frames = &env->block_frame->elements[env->frames->block_index + 1];
 
       tkbc_patch_frames_current_time(env->frames);
 
@@ -263,7 +264,7 @@ void tkbc__register_frames(Env *env, ...) {
 
 /**
  * @brief The function registers the given frames array into the global env
- * state that holds the block_frames. It is also responsible for patching
+ * state that holds the block_frame. It is also responsible for patching
  * corresponding block frame positions and frame indices.
  *
  * @param env The global state of the application.
@@ -311,12 +312,12 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     }
   }
 
-  tkbc_patch_block_frames_kite_positions(env, frames);
-  tkbc_dap(env->block_frames, *tkbc_deep_copy_frames(frames));
+  tkbc_patch_block_frame_kite_positions(env, frames);
+  tkbc_dap(env->block_frame, *tkbc_deep_copy_frames(frames));
 
-  assert((int)env->block_frames->count - 1 >= 0);
-  env->block_frames->elements[env->block_frames->count - 1].block_index =
-      env->block_frames->count - 1;
+  assert((int)env->block_frame->count - 1 >= 0);
+  env->block_frame->elements[env->block_frame->count - 1].block_index =
+      env->block_frame->count - 1;
 
   env->scratch_buf_frames->count = 0;
   if (!isscratch) {
