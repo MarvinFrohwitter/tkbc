@@ -156,6 +156,12 @@ void tkbc_destroy_env(Env *env) {
   free(env->block_frames->elements);
   free(env->block_frames);
 
+  for (size_t i = 0; i < env->scratch_buf_block_frame->count; ++i) {
+    tkbc_destroy_frames(&env->scratch_buf_block_frame->elements[i]);
+  }
+  free(env->scratch_buf_block_frame->elements);
+  free(env->scratch_buf_block_frame);
+
   tkbc_destroy_frames(env->scratch_buf_frames);
   free(env->scratch_buf_frames->kite_frame_positions);
   free(env->scratch_buf_frames->elements);
