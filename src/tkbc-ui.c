@@ -13,7 +13,10 @@ void tkbc_draw_ui(Env *env) {
   env->window_height = GetScreenHeight();
   env->window_width = GetScreenWidth();
 
-  tkbc_ui_timeline(env);
+  if (env->block_frame->count > 0) {
+    // A script is currently executing.
+    tkbc_ui_timeline(env);
+  }
 
   if (env->rendering) {
     DrawCircleV(CLITERAL(Vector2){20, 20}, 10, RED);

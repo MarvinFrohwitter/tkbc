@@ -200,6 +200,7 @@ typedef struct {
   size_t count;     // The amount of elements in the array.
   size_t capacity;  // The complete allocated space for the array represented as
                     // the number of collection elements of the array type.
+  Index script_id;  // The number of the loaded script starting from 1.
 } Block_Frame; // A dynamic array collection that combined multiple frames to a
                // single kite draw representation.
 
@@ -217,10 +218,11 @@ typedef struct {
                            // session of the application.
 
   Frames *frames; // A representation of the current active drawable frames.
-  Block_Frame *block_frame; // The collection of all the frames that should be
-                            // executed in a script.
+  Block_Frame *block_frame;   // The collection of all the frames that should be
+                              // executed in a script.
+  Block_Frames *block_frames; // The collection of all the parsed scripts.
 
-  bool script_setup;     // The indication if the initial setup run is executed.
+  bool script_setup; // The indication if the initial setup run is executed.
   bool script_interrupt; // The indication if a script is currently going to be
                          // loaded.
   bool script_finished;  // The indication a script has finished.
@@ -231,6 +233,8 @@ typedef struct {
   int fps;              // The fps of the application.
 
   Frames *scratch_buf_frames; // A buffer that can be used to construct frames.
+  Block_Frame *scratch_buf_block_frame; // A buffer that can be used to
+                                        // construct a block_frame.
 
   // -------FFMPEG-------
   bool recording;        // The state if the recording of the window.

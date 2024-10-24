@@ -43,8 +43,21 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
+  env->block_frames = calloc(1, sizeof(*env->block_frames));
+  if (env->block_frames == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
   env->scratch_buf_frames = calloc(1, sizeof(*env->scratch_buf_frames));
   if (env->scratch_buf_frames == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
+  env->scratch_buf_block_frame =
+      calloc(1, sizeof(*env->scratch_buf_block_frame));
+  if (env->scratch_buf_block_frame == NULL) {
     fprintf(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
   }
@@ -60,7 +73,7 @@ Env *tkbc_init_env(void) {
   env->window_width = GetScreenWidth();
   env->window_height = GetScreenHeight();
   env->script_interrupt = false;
-  env->script_finished = false;
+  env->script_finished = true;
   env->script_counter = 0;
   env->recording = false;
   env->rendering = false;
@@ -131,13 +144,17 @@ void tkbc_destroy_env(Env *env) {
   free(env->kite_array->elements);
   free(env->kite_array);
 
-  // The frames are just a mapped in version of block_frame no need to handle
-  // them separately.
-  for (size_t i = 0; i < env->block_frame->count; ++i) {
-    tkbc_destroy_frames(&env->block_frame->elements[i]);
+  for (size_t j = 0; j < env->block_frames->count; ++j) {
+    // The frames are just a mapped in version of block_frame no need to handle
+    // them separately.
+    for (size_t i = 0; i < env->block_frames->elements[j].count; ++i) {
+      tkbc_destroy_frames(&env->block_frames->elements[j].elements[i]);
+    }
+    free(env->block_frames->elements[j].elements);
   }
-  free(env->block_frame->elements);
-  free(env->block_frame);
+
+  free(env->block_frames->elements);
+  free(env->block_frames);
 
   tkbc_destroy_frames(env->scratch_buf_frames);
   free(env->scratch_buf_frames->kite_frame_positions);

@@ -62,6 +62,8 @@ Kite_Indexs tkbc_indexs_range(int start, int end);
  */
 void tkbc_script_begin(Env *env) {
   env->script_interrupt = true;
+  env->script_setup = true;
+  env->script_counter++;
   tkbc_register_frames(env, tkbc_script_wait(0));
 }
 
@@ -72,9 +74,14 @@ void tkbc_script_begin(Env *env) {
  */
 void tkbc_script_end(Env *env) {
   env->script_interrupt = false;
-  env->script_counter++;
+
   if (env->script_setup) {
-    env->frames = &env->block_frame->elements[0];
+    assert(env->scratch_buf_block_frame->count > 0);
+    env->scratch_buf_block_frame->script_id = env->script_counter;
+    tkbc_dap(env->block_frames,
+             *tkbc_deep_copy_block_frame(env->scratch_buf_block_frame));
+    env->scratch_buf_block_frame->count = 0;
+
     env->script_setup = false;
     return;
   }
@@ -107,8 +114,14 @@ void tkbc_script_update_frames(Env *env) {
     }
   }
 
+  // TODO: Check for proper last frame execution. Is '<' really correct?
   if (env->frames->block_index + 1 < env->block_frame->count) {
     if (tkbc_check_finished_frames(env)) {
+
+      // Overflow protection is just in case the finish detection fails or the
+      // manual timeline interaction triggers a state that disables the previous
+      // checks.
+      assert(env->frames->block_index + 1 <= env->block_frame->count);
       env->frames = &env->block_frame->elements[env->frames->block_index + 1];
 
       tkbc_patch_frames_current_time(env->frames);
@@ -154,9 +167,9 @@ bool tkbc_script_finished(Env *env) { return env->script_finished; }
  * @return The new created wait action frame.
  */
 Frame *tkbc__script_wait(Env *env, float duration) {
-  if (env->script_finished) {
-    return NULL;
-  }
+  // if (env->script_finished) {
+  //   return NULL;
+  // }
   if (!env->script_setup) {
     return NULL;
   }
@@ -185,9 +198,9 @@ Frame *tkbc__script_wait(Env *env, float duration) {
  * frame.
  */
 Frame *tkbc__script_frames_quit(Env *env, float duration) {
-  if (env->script_finished) {
-    return NULL;
-  }
+  // if (env->script_finished) {
+  //   return NULL;
+  // }
   if (!env->script_setup) {
     return NULL;
   }
@@ -223,9 +236,9 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
 Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
                             void *raw_action, float duration) {
 
-  if (env->script_finished) {
-    return NULL;
-  }
+  // if (env->script_finished) {
+  //   return NULL;
+  // }
   if (!env->script_setup) {
     return NULL;
   }
@@ -313,11 +326,12 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
   }
 
   tkbc_patch_block_frame_kite_positions(env, frames);
-  tkbc_dap(env->block_frame, *tkbc_deep_copy_frames(frames));
+  tkbc_dap(env->scratch_buf_block_frame, *tkbc_deep_copy_frames(frames));
 
-  assert((int)env->block_frame->count - 1 >= 0);
-  env->block_frame->elements[env->block_frame->count - 1].block_index =
-      env->block_frame->count - 1;
+  assert((int)env->scratch_buf_block_frame->count - 1 >= 0);
+  env->scratch_buf_block_frame
+      ->elements[env->scratch_buf_block_frame->count - 1]
+      .block_index = env->scratch_buf_block_frame->count - 1;
 
   env->scratch_buf_frames->count = 0;
   if (!isscratch) {

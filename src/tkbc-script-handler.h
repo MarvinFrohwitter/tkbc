@@ -12,6 +12,7 @@
 
 Frame *tkbc_init_frame(void);
 Frames *tkbc_deep_copy_frames(Frames *frames);
+Block_Frame *tkbc_deep_copy_block_frame(Block_Frame *block_frame);
 void tkbc_destroy_frames(Frames *frames);
 void tkbc_render_frame(Env *env, Frame *frame);
 
@@ -69,7 +70,7 @@ Frame *tkbc_init_frame(void) {
  * represented by a pointer of the struct Frames to a new instance. Every
  * internal pointer is a new one in the created representation and points to the
  * new copied values. The result is a complete copy of the given frames. It can
- * be used to move a creation of a temporary struct of type frames to a
+ * be used to move a creation of a temporary struct of type Frames to a
  * permanently stored one.
  *
  * @param frames The pointer that holds the values that should be copied.
@@ -86,16 +87,18 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
     return NULL;
   }
 
-  new_frames->kite_frame_positions =
-      calloc(1, sizeof(*new_frames->kite_frame_positions));
-  if (new_frames->kite_frame_positions == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
-    return NULL;
-  }
+  if (frames->kite_frame_positions != NULL) {
+    new_frames->kite_frame_positions =
+        calloc(1, sizeof(*new_frames->kite_frame_positions));
+    if (new_frames->kite_frame_positions == NULL) {
+      fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+      return NULL;
+    }
 
-  tkbc_dapc(new_frames->kite_frame_positions,
-            frames->kite_frame_positions->elements,
-            frames->kite_frame_positions->count);
+    tkbc_dapc(new_frames->kite_frame_positions,
+              frames->kite_frame_positions->elements,
+              frames->kite_frame_positions->count);
+  }
 
   for (size_t i = 0; i < frames->count; ++i) {
     Frame new_frame = frames->elements[i];
@@ -132,6 +135,32 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
 
   new_frames->block_index = frames->block_index;
   return new_frames;
+}
+
+/**
+ * @brief The function copies every single value even the values that are just
+ * represented by a pointer of the struct Block_Frame to a new instance. It can
+ * be used to move a creation of a temporary struct of type Block_Frame to a
+ * permanently stored one.
+ *
+ * @param block_frame The pointer that holds the values that should be copied.
+ * @return The new allocated and value ready copy of the block_frame.
+ */
+Block_Frame *tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
+
+  Block_Frame *new_block_frame = calloc(1, sizeof(*new_block_frame));
+  if (new_block_frame == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+
+  assert(block_frame->count > 0);
+  for (size_t i = 0; i < block_frame->count; ++i) {
+    tkbc_dap(new_block_frame,
+             *tkbc_deep_copy_frames(&block_frame->elements[i]));
+  }
+  new_block_frame->script_id = block_frame->script_id;
+  return new_block_frame;
 }
 
 /**
@@ -559,10 +588,28 @@ void tkbc_input_handler_script(Env *env) {
     env->script_finished = !env->script_finished;
   }
   if (IsKeyPressed(KEY_TAB)) {
-    assert(env->script_counter > 0);
+    assert(env->script_counter <= env->block_frames->count);
 
-    env->block_frame->count = 0;
-    // TODO: Switch to next block_frame
+    if (env->script_counter > 0) {
+      // Switch to next script.
+      assert(env->block_frames->count != 0);
+
+      size_t count = env->block_frames->count;
+
+      // NOTE: For this to work for the first iteration it relies on the calloc
+      // functionality to zero out the rest of the struct.
+      size_t id = env->block_frame->script_id;
+
+      size_t script_index = id % count;
+
+      env->block_frame = &env->block_frames->elements[script_index];
+
+      env->frames = &env->block_frame->elements[0];
+
+      tkbc_set_kite_positions_from_kite_frames_positions(env);
+
+      env->script_finished = false;
+    }
   }
 
   tkbc_scrub_frames(env);
