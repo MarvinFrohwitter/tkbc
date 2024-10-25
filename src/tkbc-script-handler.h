@@ -693,9 +693,10 @@ void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
     return;
   }
 
+  float dt = GetFrameTime();
   Vector2 d = Vector2Subtract(position, kite->center);
   Vector2 dnorm = Vector2Normalize(d);
-  Vector2 dnormscale = Vector2Scale(dnorm, duration);
+  Vector2 dnormscale = Vector2Scale(dnorm, (duration*dt)*60);
 
   if (Vector2Length(dnormscale) >=
       Vector2Length(Vector2Subtract(position, kite->center))) {
