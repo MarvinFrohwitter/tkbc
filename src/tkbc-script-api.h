@@ -73,6 +73,7 @@ void tkbc_script_begin(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_script_end(Env *env) {
+  tkbc_register_frames(env, tkbc_script_wait(0));
   env->script_interrupt = false;
 
   if (env->script_setup) {
@@ -114,14 +115,13 @@ void tkbc_script_update_frames(Env *env) {
     }
   }
 
-  // TODO: Check for proper last frame execution. Is '<' really correct?
   if (env->frames->block_index + 1 < env->block_frame->count) {
     if (tkbc_check_finished_frames(env)) {
 
       // Overflow protection is just in case the finish detection fails or the
       // manual timeline interaction triggers a state that disables the previous
       // checks.
-      assert(env->frames->block_index + 1 <= env->block_frame->count);
+      assert(env->frames->block_index + 1 < env->block_frame->count);
       env->frames = &env->block_frame->elements[env->frames->block_index + 1];
 
       tkbc_patch_frames_current_time(env->frames);
