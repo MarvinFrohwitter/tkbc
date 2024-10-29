@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +22,15 @@ typedef struct {
   size_t count;
   size_t capacity;
 } Clients;
+
+
+// static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+// static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
+#define SERVER_CONNETCTIONS 64
+pthread_t threads[SERVER_CONNETCTIONS];
+
+Clients clients = {0};
 
 uint16_t tkbc_port_parsing(char *port_check) {
 
@@ -77,13 +87,33 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
     exit(1);
   }
 
-  int listen_status = listen(socket_id, INT_MAX);
+  int listen_status = listen(socket_id, SERVER_CONNETCTIONS);
   if (listen_status == -1) {
     fprintf(stderr, "ERROR: %s\n", strerror(errno));
   }
   return socket_id;
 }
 
+void *client_handler(void *client) {
+  Client *c = (Client *)client;
+
+  while (true) {
+
+    if (!c->connected) {
+      c->connected = true;
+      char *hello_msg = "Hello client from server!";
+      int send_check = send(c->socket_id, hello_msg, strlen(hello_msg), 0);
+      if (send_check == -1) {
+        fprintf(stderr,
+                "ERROR: Hello Message could not be send to client %d.\n",
+                c->socket_id);
+      }
+    }
+    // TODO: Handle other messages.
+  }
+
+  return NULL;
+}
 
 int main(int argc, char *argv[]) {
   char *program_name = tkbc_shift_args(&argc, &argv);
@@ -94,31 +124,21 @@ int main(int argc, char *argv[]) {
 
   int socket_id = tkbc_server_socket_creation(INADDR_ANY, port);
 
-
-  Clients clients = {0};
-
-  char *hello_msg = "Hello client from server!";
-
   while (true) {
     int client_socket = accept(socket_id, NULL, NULL);
     if (client_socket != -1) {
-      Client client = {client_socket, .connected = false};
+      Client client = {.socket_id = client_socket, .connected = false};
       tkbc_dap(&clients, client);
-      printf("Client %d has connected.", client_socket);
-    }
+      fprintf(stderr, "Client %d has connected.\n", client_socket);
 
-    for (size_t i = 0; i < clients.count; ++i) {
-      if (!clients.elements[i].connected) {
-        clients.elements[i].connected = true;
-
-        int send_check = send(client_socket, hello_msg, strlen(hello_msg), 0);
-        if (send_check == -1) {
-          fprintf(stderr,
-                  "ERROR: Hello Message could not be send to client %d.\n",
-                  clients.elements[i].socket_id);
-        }
-      }
+      assert(clients.count > 0);
+      Client *c = &clients.elements[clients.count - 1];
+      pthread_create(&threads[clients.count], NULL, client_handler, c);
     }
+  }
+
+  for (size_t i = 0; i < clients.count; ++i) {
+    pthread_join(threads[i], NULL);
   }
 
   int iSetOption = 1;
