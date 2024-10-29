@@ -103,6 +103,7 @@
     }                                                                          \
   } while (0)
 
+char *tkbc_shift_args(int *argc, char ***argv);
 void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
                                bool isgenerated);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
@@ -115,6 +116,25 @@ float tkbc_clamp(float z, float a, float b);
 #ifdef TKBC_UTILS_IMPLEMENTATION
 
 // ========================== KITE UTILS =====================================
+
+/**
+ * @brief The function cuts of the first argument of a given list.
+ *
+ * @param argc The argument count.
+ * @param argv The arguments.
+ * @return The pointer to the first argument.
+ */
+char *tkbc_shift_args(int *argc, char ***argv) {
+  char *old_argv = **argv;
+
+  if (*argc > 0) {
+    *argc = *argc - 1;
+    *argv = *argv + 1;
+  } else
+    assert(*argc > 0 && "Error: No more arguments left!");
+
+  return old_argv;
+}
 
 /**
  * @brief The function creates a new heap copy of the given action. If the
