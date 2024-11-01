@@ -1,7 +1,7 @@
 #include <assert.h>
 
+#include "../global/tkbc-types.h"
 #include "raylib.h"
-#include "tkbc-types.h"
 #include "tkbc-ui.h"
 #include "tkbc.h"
 
