@@ -14,7 +14,7 @@
 #include "tkbc-server.h"
 
 #define TKBC_UTILS_IMPLEMENTATION
-#include "../tkbc-utils.h"
+#include "../global/tkbc-utils.h"
 
 // static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 // static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 
   int server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
 
-  for (int i = 0; ; ++i) {
+  for (int i = 0;; ++i) {
 
     struct sockaddr_in client_address;
     socklen_t address_length;

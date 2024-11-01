@@ -11,7 +11,7 @@
 #include "tkbc-network-common.h"
 
 #define TKBC_UTILS_IMPLEMENTATION
-#include "../tkbc-utils.h"
+#include "../global/tkbc-utils.h"
 
 void tkbc_client_usage(const char *program_name) {
   fprintf(stderr, "Usage:\n");

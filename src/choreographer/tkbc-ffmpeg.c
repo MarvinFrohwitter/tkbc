@@ -1,33 +1,14 @@
-#ifndef TKBC_FFMPEG_H_
-#define TKBC_FFMPEG_H_
-
-#include "tkbc-types.h"
-
-void tkbc_ffmpeg_handler(Env *env, const char *output_file_path);
-bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path);
-bool tkbc_ffmpeg_end(Env *env);
-bool tkbc_ffmpeg_wait(pid_t pid);
-void tkbc_ffmpeg_write_image(Env *env);
-
-#endif // TKBC_FFMPEG_H_
-
-// ===========================================================================
-
-#ifdef TKBC_FFMPEG_IMPLEMENTATION
+#include "raylib.h"
 #include <errno.h>
 #include <stdint.h>
-
-#include "raylib.h"
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#ifndef TKBC_UTILS_IMPLEMENTATION
-#define TKBC_UTILS_IMPLEMENTATION
-#include <tkbc-utils.h>
-#endif // TKBC_UTILS_IMPLEMENTATION
+#include "../global/tkbc-utils.h"
+#include "tkbc-ffmpeg.h"
 
 /**
  * @brief The function controls the keyboard input of the start and stop video
@@ -275,5 +256,3 @@ void tkbc_ffmpeg_write_image(Env *env) {
     UnloadImage(image); // This is very important otherwise it is memory leak.
   }
 }
-
-#endif // TKBC_FFMPEG_IMPLEMENTATION

@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../global/tkbc-utils.h"
+#include "tkbc-script-handler.h"
 #include "tkbc.h"
 
 /**

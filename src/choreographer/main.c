@@ -1,36 +1,18 @@
+#define TKBC_UTILS_IMPLEMENTATION
+#include "../global/tkbc-utils.h"
+#undef TKBC_UTILS_IMPLEMENTAION
+
+#include "tkbc-ffmpeg.h"
+#include "tkbc-input-handler.h"
+#include "tkbc-script-api.h"
+#include "tkbc-sound-handler.h"
 #include "tkbc.h"
 
 #include "raylib.h"
 #include <complex.h>
 #include <stdbool.h>
-#include <stdio.h>
 
-#include "first.c"
-
-#ifndef TKBC_TEAM_FIGURES_API_IMPLEMENTATION
-#define TKBC_TEAM_FIGURES_API_IMPLEMENTATION
-#include "tkbc-team-figures-api.h"
-#endif // TKBC_TEAM_FIGURES_API_IMPLEMENTATION
-
-#ifndef TKBC_INPUT_HANDLER_IMPLEMENTATION
-#define TKBC_INPUT_HANDLER_IMPLEMENTATION
-#include "tkbc-input-handler.h"
-#endif // TKBC_INPUT_HANDLER_IMPLEMENTATION
-
-#ifndef TKBC_SCRIPT_HANDLER_IMPLEMENTATION
-#define TKBC_SCRIPT_HANDLER_IMPLEMENTATION
-#include "tkbc-script-handler.h"
-#endif // TKBC_SCRIPT_HANDLER_IMPLEMENTATION
-
-#ifndef TKBC_SOUND_IMPLEMENTATION
-#define TKBC_SOUND_IMPLEMENTATION
-#include "tkbc-sound-handler.h"
-#endif // TKBC_SOUND_IMPLEMENTATION
-
-#ifndef TKBC_FFMPEG_IMPLEMENTATION
-#define TKBC_FFMPEG_IMPLEMENTATION
-#include "tkbc-ffmpeg.h"
-#endif // TKBC_FFMPEG_IMPLEMENTATION
+#include "../../tkbc_scripts/first.c"
 
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE

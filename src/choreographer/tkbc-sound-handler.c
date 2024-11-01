@@ -1,26 +1,8 @@
-#ifndef TKBC_SOUND_H_
-#define TKBC_SOUND_H_
-
-#include "raylib.h"
-#include "tkbc-types.h"
-#include <stdio.h>
-
-// ===========================================================================
-// ========================== Sound Handler ==================================
-// ===========================================================================
-
-Sound tkbc_init_sound(size_t master_volume);
-void tkbc_sound_destroy(Sound sound);
-void tkbc_sound_handler(Env *env, Sound *kite_sound);
-
-#endif // TKBC_SOUND_H_
-
-// ===========================================================================
-
-#ifdef TKBC_SOUND_IMPLEMENTATION
-
 // ========================== Sound Handler ==================================
 
+#include "../global/tkbc-types.h"
+#include <raylib.h>
+#include <stdlib.h>
 #include <string.h>
 
 /**
@@ -98,5 +80,3 @@ void tkbc_sound_handler(Env *env, Sound *kite_sound) {
     PauseSound(*kite_sound);
   }
 }
-
-#endif // TKBC_SOUND_IMPLEMENTATION

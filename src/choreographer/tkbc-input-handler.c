@@ -1,31 +1,7 @@
-#ifndef TKBC_INPUT_HANDLER_H_
-#define TKBC_INPUT_HANDLER_H_
+#include "tkbc-input-handler.h"
+#include "../global/tkbc-utils.h"
 
-#include "tkbc-types.h"
-
-// ===========================================================================
-// ========================== KEYBOARD INPUT =================================
-// ===========================================================================
-
-void tkbc_input_handler(Env *env, Kite_State *state);
-void tkbc_input_handler_kite_array(Env *env);
-void tkbc_input_check_rotation(Kite_State *state);
-void tkbc_input_check_tip_turn(Kite_State *state);
-void tkbc_input_check_circle(Kite_State *state);
-void tkbc_input_check_movement(Kite_State *state);
-void tkbc_input_check_speed(Kite_State *state);
-void tkbc_input_check_mouse(Kite_State *state);
-
-#endif // TKBC_INPUT_HANDLER_H_
-
-// ===========================================================================
-
-#ifdef TKBC_INPUT_HANDLER_IMPLEMENTATION
-
-#ifndef TKBC_UTILS_IMPLEMENTATION
-#define TKBC_UTILS_IMPLEMENTATION
-#include "tkbc-utils.h"
-#endif // TKBC_UTILS_IMPLEMENTATION
+#include "tkbc.h"
 
 // ========================== KEYBOARD INPUT =================================
 
@@ -440,5 +416,3 @@ void tkbc_input_check_mouse(Kite_State *state) {
     tkbc_center_rotation(state->kite, &mouse_pos, state->kite->angle);
   }
 }
-
-#endif // TKBC_INPUT_HANDLER_IMPLEMENTATION

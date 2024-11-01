@@ -1,5 +1,5 @@
-#include "tkbc-script-api.h"
-#include "tkbc-team-figures-api.h"
+#include "../src/choreographer/tkbc-script-api.h"
+#include "../src/choreographer/tkbc-team-figures-api.h"
 
 void rotation_checkup(Env *env, Kite_Indexs ki) {
 
