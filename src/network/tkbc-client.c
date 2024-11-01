@@ -13,6 +13,10 @@
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 
+#define WINDOW_SCALE 120
+#define SCREEN_WIDTH 16 * WINDOW_SCALE
+#define SCREEN_HEIGHT 9 * WINDOW_SCALE
+
 void tkbc_client_usage(const char *program_name) {
   fprintf(stderr, "Usage:\n");
   fprintf(stderr, "       %s <HOST> <PORT> \n", program_name);
@@ -121,16 +125,25 @@ int main(int argc, char *argv[]) {
   pthread_create(&thread, &attr, message_recieving, (void *)&client_socket);
   pthread_attr_destroy(&attr);
 
-  char input[64];
-  for (int i = 0;; ++i) {
-    int in = scanf("%s\n", input);
-    int send_out = send(client_socket, input, sizeof(input), 0);
-    if (send_out == -1) {
-      printf("ERROR: Nothing is send!\n");
-    } else {
-      printf("send_out = %d\n", send_out);
-    }
-  }
+  const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
+  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
+  while (!WindowShouldClose()) {
+    BeginDrawing();
+    ClearBackground(SKYBLUE);
+    EndDrawing();
+  };
+  CloseWindow();
+
+  // char input[64];
+  // for (int i = 0;; ++i) {
+  //   int in = scanf("%s\n", input);
+  //   int send_out = send(client_socket, input, sizeof(input), 0);
+  //   if (send_out == -1) {
+  //     printf("ERROR: Nothing is send!\n");
+  //   } else {
+  //     printf("send_out = %d\n", send_out);
+  //   }
+  // }
 
   close(client_socket);
   return 0;
