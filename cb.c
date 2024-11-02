@@ -2,7 +2,7 @@
 #define CB_IMPLEMENTATION
 #include "cb.h"
 
-#define RAYLIBPATH "external/raylib-5.0/src"
+#define RAYLIBPATH "external/raylib-5.0/src/"
 #define CHOREOGRAPHERPATH "src/choreographer/"
 
 char *shift_args(int *argc, char ***argv) {
@@ -104,7 +104,6 @@ int main(int argc, char *argv[]) {
   INCLUDE(&cmd, "-I", "build/");
   CFLAGS(&cmd, "-x", "c");
   CFLAGS(&cmd, "-O3", "-pedantic", "-Wall", "-Wextra", "-ggdb");
-  cb_cmd_push(&cmd, "-static");
 
   cb_cmd_push(&cmd, "-o", "build/server");
 
