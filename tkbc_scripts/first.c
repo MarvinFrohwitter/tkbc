@@ -109,18 +109,18 @@ void tkbc_script_input(Env *env) {
                                                 }),
                                                 5));
 
-  // tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
-  // tkbc_register_frames(env, tkbc_script_wait(5));
-  // tkbc_register_frames(env,
-  //                      tkbc_frame_generate(KITE_MOVE_ADD, ki,
-  //                                          &(CLITERAL(Move_Add_Action){
-  //                                              .position.x = 0,
-  //                                              .position.y = -300,
-  //                                          }),
-  //                                          3),
-  //                      tkbc_script_wait(1.5), tkbc_script_frames_quit(7));
+  tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
+  tkbc_register_frames(env, tkbc_script_wait(3));
+  tkbc_register_frames(env,
+                       tkbc_frame_generate(KITE_MOVE_ADD, ki,
+                                           &(CLITERAL(Move_Add_Action){
+                                               .position.x = 0,
+                                               .position.y = -300,
+                                           }),
+                                           9),
+                       tkbc_script_wait(1.5), tkbc_script_frames_quit(7));
 
-  // tkbc_register_frames(env, tkbc_script_wait(wait_time));
+  tkbc_register_frames(env, tkbc_script_wait(wait_time));
   tkbc_script_end(env);
 
   tkbc_script_begin(env);

@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <raylib.h>
 #include <stdlib.h>
 
 #include "../global/tkbc-types.h"
@@ -660,9 +661,9 @@ void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
   }
 
   float dt = GetFrameTime();
-  Vector2 d = Vector2Subtract(position, kite->center);
+  Vector2 d = Vector2Subtract(position, kite->old_center);
   Vector2 dnorm = Vector2Normalize(d);
-  Vector2 dnormscale = Vector2Scale(dnorm, (duration * dt) * 60);
+  Vector2 dnormscale = Vector2Scale(dnorm, (Vector2Length(d) / duration * dt));
 
   if (Vector2Length(dnormscale) >=
       Vector2Length(Vector2Subtract(position, kite->center))) {
