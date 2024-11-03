@@ -196,6 +196,7 @@ void tkbc_destroy_kite_array(Kite_States *kite_states) {
  * color for each kite, rather than the default color.
  *
  * @param env The global state of the application.
+ * @param kite_count The amount of kites that are pushed to the kite array.
  */
 void tkbc_kite_array_generate(Env *env, size_t kite_count) {
 
