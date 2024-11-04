@@ -6,13 +6,11 @@
 #include <stddef.h>
 
 typedef struct {
-  int index;
+  size_t index;
 
   int socket_id;
   struct sockaddr_in client_address;
   socklen_t client_address_length;
-
-  bool connected;
 } Client;
 
 typedef struct {
@@ -20,6 +18,26 @@ typedef struct {
   size_t count;
   size_t capacity;
 } Clients;
+
+typedef struct {
+  char *elements;
+  size_t count;
+  size_t capacity;
+} Message;
+
+typedef struct {
+  Message *elements;
+  size_t count;
+  size_t capacity;
+} Messages;
+
+// name : kind : data
+typedef enum {
+  MESSAGE_ZERO,
+  MESSAGE_HELLO,
+  MESSAGE_KITEADD,
+  MESSAGE_COUNT,
+} Message_Kind;
 
 uint16_t tkbc_port_parsing(const char *port_check);
 

@@ -1,3 +1,7 @@
+#include "tkbc-server.h"
+#include "tkbc-network-common.h"
+#include "tkbc-server-client-handler.h"
+
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
@@ -9,20 +13,21 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "tkbc-network-common.h"
-#include "tkbc-server-client-handler.h"
-#include "tkbc-server.h"
+#include "../global/tkbc-types.h"
 
-#define TKBC_UTILS_IMPLEMENTATION
-#include "../global/tkbc-utils.h"
-
-// static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-// static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+Env *env;
+Clients *clients;
 
 #define SERVER_CONNETCTIONS 64
 pthread_t threads[SERVER_CONNETCTIONS];
 
-Clients clients = {0};
+#include "../choreographer/tkbc.h"
+
+#define TKBC_UTILS_IMPLEMENTATION
+#include "../global/tkbc-utils.h"
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+// static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 void tkbc_server_usage(const char *program_name) {
   fprintf(stderr, "Usage:\n");
@@ -78,14 +83,26 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   return socket_id;
 }
 
+Clients *tkbc_init_clients(void) {
+  Clients *clients = calloc(1, sizeof(*clients));
+  if (clients == NULL) {
+    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    return NULL;
+  }
+  return clients;
+}
+
 int main(int argc, char *argv[]) {
   char *program_name = tkbc_shift_args(&argc, &argv);
-  tkbc_server_commandline_check(argc, program_name);
+  // tkbc_server_commandline_check(argc, program_name);
 
-  char *port_check = tkbc_shift_args(&argc, &argv);
-  uint16_t port = tkbc_port_parsing(port_check);
+  // char *port_check = tkbc_shift_args(&argc, &argv);
+  // uint16_t port = tkbc_port_parsing(port_check);
+  uint16_t port = 8080;
 
   int server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
+  env = tkbc_init_env();
+  clients = tkbc_init_clients();
 
   for (int i = 0;; ++i) {
 
@@ -94,25 +111,27 @@ int main(int argc, char *argv[]) {
     int client_socket_id = accept(
         server_socket, (struct sockaddr *)&client_address, &address_length);
     if (client_socket_id != -1) {
-      Client client = {.index = clients.count,
-                       .socket_id = client_socket_id,
-                       .client_address = client_address,
-                       .client_address_length = address_length,
-                       .connected = false};
-      tkbc_dap(&clients, client);
+      Client client = {
+          .index = clients->count,
+          .socket_id = client_socket_id,
+          .client_address = client_address,
+          .client_address_length = address_length,
+      };
+      tkbc_dap(clients, client);
       printf("Client %d has connected.\n", client_socket_id);
 
-      assert(clients.count > 0);
-      Client *c = &clients.elements[clients.count - 1];
-      pthread_create(&threads[clients.count - 1], NULL, client_handler, c);
+      assert(clients->count > 0);
+      Client *c = &clients->elements[clients->count - 1];
+      pthread_create(&threads[clients->count - 1], NULL, tkbc_client_handler,
+                     c);
     }
   }
 
-  for (size_t i = 0; i < clients.count; ++i) {
+  for (size_t i = 0; i < clients->count; ++i) {
     pthread_join(threads[i], NULL);
   }
 
   close(server_socket);
-  free(clients.elements);
+  free(clients->elements);
   return 0;
 }

@@ -2,6 +2,7 @@
 #define TKBC_H_
 
 #include "../global/tkbc-types.h"
+#include "raylib.h"
 
 #define TEAL CLITERAL(Color){0, 128, 128, 255} // Teal
 

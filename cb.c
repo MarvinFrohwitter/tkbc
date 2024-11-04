@@ -35,10 +35,11 @@ void cflags(Cmd *cmd) {
 void linker(Cmd *cmd, bool link_dynamic) {
 
   LDFLAGS(cmd, "-L", RAYLIBPATH);
-  INCLUDE(cmd, "-L", "src/global/");
-  INCLUDE(cmd, "-L", "src/choreographer/");
-  INCLUDE(cmd, "-L", "src/network/");
-  INCLUDE(cmd, "-L", "tkbc_scripts/");
+  // LDFLAGS(cmd, "-L", "src/global/");
+  // LDFLAGS(cmd, "-L", "src/choreographer/");
+  // LDFLAGS(cmd, "-L", "src/network/");
+  // LDFLAGS(cmd, "-L", "tkbc_scripts/");
+  // LDFLAGS(cmd, "-L", "build/");
 
   if (link_dynamic) {
     LDFLAGS(cmd, "-Wl,-rpath=" RAYLIBPATH);
@@ -96,7 +97,7 @@ void choreographer(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-team-figures-api.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-ui.c");
   linker(cmd, link_dynamic);
-  if (!cb_run_async(cmd))
+  if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
 }
 
@@ -109,11 +110,12 @@ void server(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, "src/network/tkbc-server.c");
   cb_cmd_push(cmd, "src/network/tkbc-server-client-handler.c");
   cb_cmd_push(cmd, "src/network/tkbc-network-common.c");
+  cb_cmd_push(cmd, "src/choreographer/tkbc.c");
+  cb_cmd_push(cmd, "src/choreographer/tkbc-script-handler.c");
   linker(cmd, link_dynamic);
-  if (!cb_run_async(cmd))
+  if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
 }
-
 
 void client(Cmd *cmd, bool link_dynamic) {
   // Client
@@ -123,6 +125,8 @@ void client(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, "-o", "build/client");
   cb_cmd_push(cmd, "src/network/tkbc-client.c");
   cb_cmd_push(cmd, "src/network/tkbc-network-common.c");
+  cb_cmd_push(cmd, "src/choreographer/tkbc.c");
+  cb_cmd_push(cmd, "src/choreographer/tkbc-script-handler.c");
   linker(cmd, link_dynamic);
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
@@ -132,7 +136,7 @@ int main(int argc, char *argv[]) {
   char *prog_name = shift_args(&argc, &argv);
   char *ldd = shift_args(&argc, &argv);
 
-  int linkoption = 1;
+  int linkoption = 0;
   if (strncmp(ldd, "static", 6) == 0) {
     linkoption = 0;
   } else if (strncmp(ldd, "dynamic", 7) == 0) {
