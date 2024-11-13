@@ -106,6 +106,7 @@
 char *tkbc_shift_args(int *argc, char ***argv);
 void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
                                bool isgenerated);
+int tkbc_read_file(char *filename, Content *content);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 float tkbc_clamp(float z, float a, float b);
 
@@ -116,6 +117,8 @@ float tkbc_clamp(float z, float a, float b);
 #ifdef TKBC_UTILS_IMPLEMENTATION
 
 // ========================== KITE UTILS =====================================
+
+#include "errno.h"
 
 /**
  * @brief The function cuts of the first argument of a given list.
@@ -131,7 +134,7 @@ char *tkbc_shift_args(int *argc, char ***argv) {
     *argc = *argc - 1;
     *argv = *argv + 1;
   } else
-    assert(*argc > 0 && "Error: No more arguments left!");
+    assert(*argc > 0 && "ERROR: No more arguments left!");
 
   return old_argv;
 }
@@ -195,6 +198,49 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
   } break;
   }
   return action;
+}
+
+int tkbc_read_file(char *filename, Content *content) {
+
+  FILE *f = fopen(filename, "rb");
+  if (f == NULL) {
+    fprintf(stderr, "Error:%s:%d:%s\n", __FILE__, __LINE__, strerror(errno));
+    return -1;
+  }
+
+  size_t buf_size = 4 * 1024;
+  char *buf = malloc(sizeof(char) * buf_size);
+  if (buf == NULL) {
+    fprintf(stderr,
+            "The allocation for the internal buffer has failed in: %s: %d\n",
+            __FILE__, __LINE__);
+  }
+  size_t n;
+
+  while (feof(f) == 0) {
+    memset(buf, 0, buf_size);
+    n = fread(buf, buf_size, 1, f);
+
+    if (n != buf_size) {
+      if (ferror(f) == -1) {
+        return -1;
+      }
+    }
+    tkbc_dapc(content, buf, buf_size);
+    tkbc_dap(content, '\0');
+    content->count = strlen(content->elements);
+  }
+  // just override the last NULL-terminator to update the count.
+  // da_append(content, '\0');
+
+  free(buf);
+  int fret = fclose(f);
+  if (fret == EOF) {
+    fprintf(stderr, "Error:%s:%d:%s\n", __FILE__, __LINE__, strerror(errno));
+    return -1;
+  }
+
+  return 0;
 }
 
 /**

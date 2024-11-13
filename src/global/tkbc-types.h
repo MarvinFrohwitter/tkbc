@@ -9,6 +9,12 @@
 // ========================== TKBC KITE TYPES ================================
 // ===========================================================================
 
+typedef struct {
+  char *elements;
+  size_t count;
+  size_t capacity;
+} Content; // A representation of a file content.
+
 typedef struct { // A representation for an internal kite geometric.
   Vector2 v1;
   Vector2 v2;
@@ -222,7 +228,8 @@ typedef struct {
                               // executed in a script.
   Block_Frames *block_frames; // The collection of all the parsed scripts.
 
-  bool script_setup; // The indication if the initial setup run is executed.
+  char *script_file_name; // The name of the script file '.kite'.
+  bool script_setup;     // The indication if the initial setup run is executed.
   bool script_interrupt; // The indication if a script is currently going to be
                          // loaded.
   bool script_finished;  // The indication a script has finished.
@@ -243,6 +250,7 @@ typedef struct {
   pid_t pid;             // The process number the ffmpeg child process gets.
   char *sound_file_name; // The name of the sound file that should be included
                          // in the rendered video.
+  Sound sound;           // The current loaded sound.
 
   // -------UI-------
   Rectangle timeline_base;  // The rectangle that is below the slider.

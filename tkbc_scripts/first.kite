@@ -1,8 +1,19 @@
-move 5 smooth
-move 5 fixed
-rotate 45 smooth
-rotate 45 fixed
-rotatetip left 45 smooth
-rotatetip left 45 fixed
-rotatetip right 45 smooth
-rotatetip right 45 fixed
+KITES 4
+BEGIN
+    {
+        MOVE_ADD KITES 0 -300 5
+        MOVE_ADD (1 2 3 4) 0 -300 5
+        MOVE KITES 0 -300 5
+        MOVE (1 2 3 4) 0 -300 5
+
+        TIP_ROTATION KITES 180 RIGHT 2
+        TIP_ROTATION KITES 180 LEFT 2
+        TIP_ROTATION_Add KITES 180 LEFT 2
+        TIP_ROTATION_Add KITES 180 RIGHT 2
+
+        ROTATION KITES 180 2
+        ROTATION_Add KITES 180 2
+        WAIT 2
+        QUIT 100
+    }
+END

@@ -38,7 +38,7 @@ int main(void) {
   Texture2D background_texture = LoadTextureFromImage(background_image);
 #endif /* ifdef LOADIMAGE */
 
-  Sound kite_sound = tkbc_init_sound(40);
+  tkbc_init_sound(40);
 
   Env *env = tkbc_init_env();
   tkbc_kite_array_generate(env, 9);
@@ -66,7 +66,8 @@ int main(void) {
     tkbc_draw_ui(env);
     EndDrawing();
 
-    tkbc_sound_handler(env, &kite_sound);
+    tkbc_file_handler(env);
+    tkbc_input_sound_handler(env);
     tkbc_input_handler_kite_array(env);
     tkbc_input_handler_script(env);
     // The end of the current frame has to be executed so ffmpeg gets the full
@@ -75,7 +76,7 @@ int main(void) {
   };
 
   tkbc_destroy_env(env);
-  tkbc_sound_destroy(kite_sound);
+  tkbc_sound_destroy(env->sound);
   CloseWindow();
   return 0;
 }

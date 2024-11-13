@@ -1,13 +1,16 @@
 #include <assert.h>
 #include <complex.h>
 #include <math.h>
+#include <raylib.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../global/tkbc-utils.h"
 #include "tkbc-script-handler.h"
+#include "tkbc-parser.h"
 #include "tkbc.h"
 
 /**
@@ -240,6 +243,51 @@ void tkbc_kite_array_start_position(Kite_States *kite_states,
     tkbc_set_kite_defaults(kite_states->elements[i].kite, false);
     tkbc_center_rotation(kite_states->elements[i].kite, &start_pos, 0);
     start_pos.x += 2 * kite_width;
+  }
+}
+
+/**
+ * @brief The function handles the drag and dropped files.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_file_handler(Env *env) {
+  bool issound = false;
+
+  if (IsFileDropped()) {
+    FilePathList file_path_list = LoadDroppedFiles();
+    if (file_path_list.count == 0) {
+      return;
+    }
+    char *file_path;
+    for (size_t i = 0; i < file_path_list.count && i < 1; ++i) {
+      file_path = file_path_list.paths[i];
+      fprintf(stderr, "INFO: FILE: PATH: %s\n", file_path);
+
+      if (strstr(file_path, ".kite")) {
+        tkbc_script_parser(env);
+      } else {
+        if (IsSoundReady(env->sound)) {
+          StopSound(env->sound);
+          UnloadSound(env->sound);
+        }
+        issound = true;
+        env->sound = LoadSound(file_path);
+      }
+    }
+    if (issound) {
+      // Checks drag and dropped audio files.
+      int length = strlen(file_path);
+      env->sound_file_name =
+          realloc(env->sound_file_name, sizeof(char) * length + 1);
+      if (env->sound_file_name == NULL) {
+        fprintf(stderr, "The allocation has failed in: %s: %d\n", __FILE__,
+                __LINE__);
+      }
+      strncpy(env->sound_file_name, file_path, length);
+    }
+
+    UnloadDroppedFiles(file_path_list);
   }
 }
 

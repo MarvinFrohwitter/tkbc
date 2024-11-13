@@ -13,7 +13,7 @@ char *shift_args(int *argc, char ***argv) {
     *argc = *argc - 1;
     *argv = *argv + 1;
   } else
-    assert(*argc > 0 && "Error: No more arguments left!");
+    assert(*argc > 0 && "ERROR: No more arguments left!");
 
   return old_argv;
 }

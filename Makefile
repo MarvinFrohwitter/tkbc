@@ -6,9 +6,9 @@ INCLUDE += -I ${RAYLIBPATH} -I tkbc_scripts/ -I build/
 LIBS = -L ${RAYLIBPATH}
 LIBS += -l:libraylib.a
 LIBS += -lm
-CFLAGS = -x c -O3 -pedantic -Wall -Wextra -ggdb
+CFLAGS = -x c -O0 -pedantic -Wall -Wextra -ggdb
 CHOREOGRAPHERPATH = src/choreographer
-CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c ${CHOREOGRAPHERPATH}/tkbc.c ${CHOREOGRAPHERPATH}/tkbc-ffmpeg.c ${CHOREOGRAPHERPATH}/tkbc-input-handler.c ${CHOREOGRAPHERPATH}/tkbc-script-api.c ${CHOREOGRAPHERPATH}/tkbc-script-handler.c ${CHOREOGRAPHERPATH}/tkbc-sound-handler.c ${CHOREOGRAPHERPATH}/tkbc-team-figures-api.c ${CHOREOGRAPHERPATH}/tkbc-ui.c
+CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c ${CHOREOGRAPHERPATH}/tkbc.c ${CHOREOGRAPHERPATH}/tkbc-ffmpeg.c ${CHOREOGRAPHERPATH}/tkbc-input-handler.c ${CHOREOGRAPHERPATH}/tkbc-script-api.c ${CHOREOGRAPHERPATH}/tkbc-script-handler.c ${CHOREOGRAPHERPATH}/tkbc-sound-handler.c ${CHOREOGRAPHERPATH}/tkbc-team-figures-api.c ${CHOREOGRAPHERPATH}/tkbc-ui.c ${CHOREOGRAPHERPATH}/tkbc-parser.c
 
 all: options tkbc raylib build server client
 

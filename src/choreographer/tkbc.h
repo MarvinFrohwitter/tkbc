@@ -26,6 +26,7 @@ void tkbc_kite_array_generate(Env *env, size_t kite_count);
 void tkbc_kite_array_start_position(Kite_States *kite_states,
                                     size_t window_width, size_t window_height);
 
+void tkbc_file_handler(Env *env);
 void tkbc_set_kite_defaults(Kite *kite, bool is_generated);
 void tkbc_set_kite_state_defaults(Kite_State *state);
 
