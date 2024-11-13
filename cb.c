@@ -96,6 +96,7 @@ void choreographer(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-sound-handler.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-team-figures-api.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-ui.c");
+  cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-parser.c");
   linker(cmd, link_dynamic);
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
@@ -112,6 +113,8 @@ void server(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, "src/network/tkbc-network-common.c");
   cb_cmd_push(cmd, "src/choreographer/tkbc.c");
   cb_cmd_push(cmd, "src/choreographer/tkbc-script-handler.c");
+  cb_cmd_push(cmd, "src/choreographer/tkbc-script-api.c");
+  cb_cmd_push(cmd, "src/choreographer/tkbc-parser.c");
   linker(cmd, link_dynamic);
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
@@ -127,6 +130,8 @@ void client(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, "src/network/tkbc-network-common.c");
   cb_cmd_push(cmd, "src/choreographer/tkbc.c");
   cb_cmd_push(cmd, "src/choreographer/tkbc-script-handler.c");
+  cb_cmd_push(cmd, "src/choreographer/tkbc-script-api.c");
+  cb_cmd_push(cmd, "src/choreographer/tkbc-parser.c");
   linker(cmd, link_dynamic);
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);

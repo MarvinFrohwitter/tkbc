@@ -7,16 +7,20 @@
 #include <limits.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+void (*signal(int sig, void (*func)(int)))(int);
+
 #include "../global/tkbc-types.h"
 
 Env *env;
 Clients *clients;
+int server_socket;
 
 #define SERVER_CONNETCTIONS 64
 pthread_t threads[SERVER_CONNETCTIONS];
@@ -53,6 +57,12 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
     fprintf(stderr, "ERROR: %s\n", strerror(errno));
     exit(1);
   }
+  int option = 1;
+  int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
+                       sizeof(option));
+  if (sso == -1) {
+    fprintf(stderr, "ERROR: %s\n", strerror(errno));
+  }
 
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
@@ -73,13 +83,6 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   }
   printf("Listening to port: %hu\n", port);
 
-  int iSetOption = 1;
-  int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&iSetOption,
-                       sizeof(iSetOption));
-  if (sso == -1) {
-    fprintf(stderr, "ERROR: %s\n", strerror(errno));
-  }
-
   return socket_id;
 }
 
@@ -93,21 +96,25 @@ Clients *tkbc_init_clients(void) {
 }
 
 int main(int argc, char *argv[]) {
+  signal(SIGABRT, sinaglhandler);
+  signal(SIGINT, sinaglhandler);
+  signal(SIGTERM, sinaglhandler);
+
   char *program_name = tkbc_shift_args(&argc, &argv);
-  // tkbc_server_commandline_check(argc, program_name);
+  tkbc_server_commandline_check(argc, program_name);
 
-  // char *port_check = tkbc_shift_args(&argc, &argv);
-  // uint16_t port = tkbc_port_parsing(port_check);
-  uint16_t port = 8080;
+  char *port_check = tkbc_shift_args(&argc, &argv);
+  uint16_t port = tkbc_port_parsing(port_check);
 
-  int server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
+  server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
+  printf("Server socket: %d\n", server_socket);
   env = tkbc_init_env();
   clients = tkbc_init_clients();
 
-  for (int i = 0;; ++i) {
+  for (;;) {
 
-    struct sockaddr_in client_address;
-    socklen_t address_length;
+    struct sockaddr_in client_address = {0};
+    socklen_t address_length = 0;
     int client_socket_id = accept(
         server_socket, (struct sockaddr *)&client_address, &address_length);
     if (client_socket_id != -1) {
@@ -124,14 +131,24 @@ int main(int argc, char *argv[]) {
       Client *c = &clients->elements[clients->count - 1];
       pthread_create(&threads[clients->count - 1], NULL, tkbc_client_handler,
                      c);
+    } else {
+      fprintf(stderr, "ERROR: %s\n", strerror(errno));
+      assert(0 && "accept error");
     }
   }
 
+  return 0;
+}
+
+void sinaglhandler(int signal) {
+
+  (void)signal;
   for (size_t i = 0; i < clients->count; ++i) {
     pthread_join(threads[i], NULL);
   }
 
+  printf("Closing...\n");
   close(server_socket);
   free(clients->elements);
-  return 0;
+  exit(EXIT_SUCCESS);
 }

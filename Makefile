@@ -20,10 +20,10 @@ options:
 
 
 server:
-	${CC} ${INCLUDE} ${CFLAGS} -static -o build/server src/network/tkbc-server.c src/network/tkbc-server-client-handler.c src/network/tkbc-network-common.c src/choreographer/tkbc.c src/choreographer/tkbc-script-handler.c ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -static -o build/server src/network/tkbc-server.c src/network/tkbc-server-client-handler.c src/network/tkbc-network-common.c src/choreographer/tkbc.c src/choreographer/tkbc-script-handler.c src/choreographer/tkbc-parser.c src/choreographer/tkbc-script-api.c ${LIBS}
 
 client:
-	${CC} ${INCLUDE} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/choreographer/tkbc.c src/choreographer/tkbc-script-handler.c ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/choreographer/tkbc.c src/choreographer/tkbc-script-handler.c src/choreographer/tkbc-parser.c src/choreographer/tkbc-script-api.c ${LIBS}
 
 
 tkbc: build raylib first.o
