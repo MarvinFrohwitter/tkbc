@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <complex.h>
+#include <errno.h>
 #include <math.h>
 #include <raylib.h>
 #include <stdbool.h>
@@ -9,8 +10,8 @@
 #include <string.h>
 
 #include "../global/tkbc-utils.h"
-#include "tkbc-script-handler.h"
 #include "tkbc-parser.h"
+#include "tkbc-script-handler.h"
 #include "tkbc.h"
 
 /**
@@ -85,6 +86,7 @@ Env *tkbc_init_env(void) {
   env->pipe = 0;
   env->fps = TARGET_FPS;
   env->sound_file_name = NULL;
+  env->script_file_name = NULL;
 
   float margin = 10;
   env->timeline_base.width = env->window_width / 2.0f;
@@ -145,6 +147,13 @@ Kite_State *tkbc_init_kite(void) {
  * @param env The global state of the application.
  */
 void tkbc_destroy_env(Env *env) {
+
+  if (env->sound_file_name != NULL) {
+    free(env->sound_file_name);
+  }
+  if (env->script_file_name != NULL) {
+    free(env->script_file_name);
+  }
   tkbc_destroy_kite_array(env->kite_array);
   free(env->kite_array->elements);
   free(env->kite_array);
@@ -265,6 +274,14 @@ void tkbc_file_handler(Env *env) {
       fprintf(stderr, "INFO: FILE: PATH: %s\n", file_path);
 
       if (strstr(file_path, ".kite")) {
+        if (env->script_file_name != NULL) {
+          free(env->script_file_name);
+        }
+        env->script_file_name = strdup(file_path);
+        if (env->sound_file_name == NULL) {
+          fprintf(stderr, "The allocation has failed in: %s: %d: %s\n",
+                  __FILE__, __LINE__, strerror(errno));
+        }
         tkbc_script_parser(env);
       } else {
         if (IsSoundReady(env->sound)) {
@@ -277,14 +294,14 @@ void tkbc_file_handler(Env *env) {
     }
     if (issound) {
       // Checks drag and dropped audio files.
-      int length = strlen(file_path);
-      env->sound_file_name =
-          realloc(env->sound_file_name, sizeof(char) * length + 1);
-      if (env->sound_file_name == NULL) {
-        fprintf(stderr, "The allocation has failed in: %s: %d\n", __FILE__,
-                __LINE__);
+      if (env->sound_file_name != NULL) {
+        free(env->sound_file_name);
       }
-      strncpy(env->sound_file_name, file_path, length);
+      env->sound_file_name = strdup(file_path);
+      if (env->sound_file_name == NULL) {
+        fprintf(stderr, "The allocation has failed in: %s: %d: %s\n", __FILE__,
+                __LINE__, strerror(errno));
+      }
     }
 
     UnloadDroppedFiles(file_path_list);
