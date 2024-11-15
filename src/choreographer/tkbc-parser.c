@@ -32,95 +32,100 @@ void tkbc_script_parser(Env *env) {
 
   bool script_begin = false;
   bool brace = false;
-  Kite_Indexs ki;
+  Kite_Indexs ki = {0};
   Frames frames = {0};
 
   Token t = lexer_next(lexer);
   while (t.kind != EOF_TOKEN) {
-    t = lexer_next(lexer);
     switch (t.kind) {
-    case COMMENT: {
-      continue;
-    } break;
+    case COMMENT:
+      break;
     case IDENTIFIER: {
       if (strncmp("BEGIN", t.content, t.size) == 0) {
         script_begin = true;
         tkbc_script_begin(env);
-        continue;
+        break;
       } else if (strncmp("END", t.content, t.size) == 0) {
         tkbc_script_end(env);
         script_begin = false;
-        continue;
+        break;
       } else if (strncmp("KITES", t.content, t.size) == 0) {
+
         if (ki.count > 0) {
-          continue;
+          break;
         }
 
         t = lexer_next(lexer);
         if (t.kind == NUMBER) {
           ki = tkbc_indexs_generate(atoi(token_to_cstr(&t)));
         }
-        continue;
+        break;
       } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
         t = lexer_next(lexer);
         if (!tkbc_parse_move(env, lexer, KITE_MOVE_ADD, &frames, &ki, brace)) {
           goto err;
         }
-        continue;
+        break;
       } else if (strncmp("MOVE", t.content, t.size) == 0) {
         t = lexer_next(lexer);
         if (!tkbc_parse_move(env, lexer, KITE_MOVE, &frames, &ki, brace)) {
           goto err;
         }
-        continue;
+        break;
       } else if (strncmp("ROTATION", t.content, t.size) == 0) {
         t = lexer_next(lexer);
         if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION, &frames, &ki,
                                  brace)) {
           goto err;
         }
-        continue;
+        break;
       } else if (strncmp("ROTATION_ADD", t.content, t.size) == 0) {
         t = lexer_next(lexer);
         if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION_ADD, &frames, &ki,
                                  brace)) {
           goto err;
         }
-        continue;
+        break;
       } else if (strncmp("TIP_ROTATION", t.content, t.size) == 0) {
         t = lexer_next(lexer);
         if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION, &frames,
                                      &ki, brace)) {
-          goto err;
+          break;
         }
-        continue;
+        break;
       } else if (strncmp("TIP_ROTATION_ADD", t.content, t.size) == 0) {
         t = lexer_next(lexer);
         if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION_ADD, &frames,
                                      &ki, brace)) {
           goto err;
         }
-        continue;
+        break;
       } else if (strncmp("WAIT", t.content, t.size) == 0) {
         t = lexer_next(lexer);
         float duration = atof(token_to_cstr(&t));
         tkbc_register_frames(env, tkbc_script_wait(duration));
-        continue;
+        break;
       } else if (strncmp("QUIT", t.content, t.size) == 0) {
         t = lexer_next(lexer);
         float duration = atof(token_to_cstr(&t));
         tkbc_register_frames(env, tkbc_script_frames_quit(duration));
-        continue;
+        break;
       }
 
       fprintf(stderr, "Token: %s\n", token_to_cstr(&t));
     } break;
 
     case PUNCT_LBRACE: {
+      if (brace) {
+        goto err;
+      }
       brace = true;
     } break;
 
     case PUNCT_RBRACE: {
+      if (!brace) {
+        goto err;
+      }
       brace = false;
       tkbc_register_frames_array(env, &frames);
     } break;
@@ -130,6 +135,8 @@ void tkbc_script_parser(Env *env) {
     default:
       fprintf(stderr, "ERROR: Invalid token: %s\n", token_to_cstr(&t));
     }
+
+    t = lexer_next(lexer);
   }
 
   if (script_begin) {
@@ -169,7 +176,7 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
     sign = *(char *)t.content;
   }
 
-  if (t.kind != PUNCT_RPAREN || t.kind != NUMBER || !issign) {
+  if (t.kind != PUNCT_RPAREN && t.kind != NUMBER && !issign) {
     return false;
   }
 
@@ -177,12 +184,12 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
     t = lexer_next(lexer);
   }
 
+  tmp_buffer.count = 0;
   if (issign) {
-    tmp_buffer.count = 0;
     tkbc_dap(&tmp_buffer, sign);
-    tkbc_dapc(&tmp_buffer, t.content, t.size);
-    tkbc_dap(&tmp_buffer, 0);
   }
+  tkbc_dapc(&tmp_buffer, t.content, t.size);
+  tkbc_dap(&tmp_buffer, 0);
 
   float x = atof(tmp_buffer.elements);
   t = lexer_next(lexer);
@@ -194,7 +201,7 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
     sign = *(char *)t.content;
   }
 
-  if (t.kind != NUMBER || !issign) {
+  if (t.kind != NUMBER && !issign) {
     return false;
   }
 
@@ -202,12 +209,12 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
     t = lexer_next(lexer);
   }
 
+  tmp_buffer.count = 0;
   if (issign) {
-    tmp_buffer.count = 0;
     tkbc_dap(&tmp_buffer, sign);
-    tkbc_dapc(&tmp_buffer, t.content, t.size);
-    tkbc_dap(&tmp_buffer, 0);
   }
+  tkbc_dapc(&tmp_buffer, t.content, t.size);
+  tkbc_dap(&tmp_buffer, 0);
 
   float y = atof(tmp_buffer.elements);
   t = lexer_next(lexer);
@@ -279,7 +286,7 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     sign = *(char *)t.content;
   }
 
-  if (t.kind != PUNCT_RPAREN || t.kind != NUMBER || !issign) {
+  if (t.kind != PUNCT_RPAREN && t.kind != NUMBER && !issign) {
     return false;
   }
 
@@ -287,12 +294,12 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     t = lexer_next(lexer);
   }
 
+  tmp_buffer.count = 0;
   if (issign) {
-    tmp_buffer.count = 0;
     tkbc_dap(&tmp_buffer, sign);
-    tkbc_dapc(&tmp_buffer, t.content, t.size);
-    tkbc_dap(&tmp_buffer, 0);
   }
+  tkbc_dapc(&tmp_buffer, t.content, t.size);
+  tkbc_dap(&tmp_buffer, 0);
 
   float angle = atof(tmp_buffer.elements);
   t = lexer_next(lexer);
@@ -362,7 +369,7 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     sign = *(char *)t.content;
   }
 
-  if (t.kind != PUNCT_RPAREN || t.kind != NUMBER || !issign) {
+  if (t.kind != PUNCT_RPAREN && t.kind != NUMBER && !issign) {
     return false;
   }
 
@@ -370,12 +377,12 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     t = lexer_next(lexer);
   }
 
+  tmp_buffer.count = 0;
   if (issign) {
-    tmp_buffer.count = 0;
     tkbc_dap(&tmp_buffer, sign);
-    tkbc_dapc(&tmp_buffer, t.content, t.size);
-    tkbc_dap(&tmp_buffer, 0);
   }
+  tkbc_dapc(&tmp_buffer, t.content, t.size);
+  tkbc_dap(&tmp_buffer, 0);
 
   float angle = atof(tmp_buffer.elements);
   t = lexer_next(lexer);
