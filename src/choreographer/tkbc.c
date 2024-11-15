@@ -278,7 +278,7 @@ void tkbc_file_handler(Env *env) {
           free(env->script_file_name);
         }
         env->script_file_name = strdup(file_path);
-        if (env->sound_file_name == NULL) {
+        if (env->script_file_name == NULL) {
           fprintf(stderr, "The allocation has failed in: %s: %d: %s\n",
                   __FILE__, __LINE__, strerror(errno));
         }
