@@ -90,6 +90,17 @@
   } while (0)
 
 /**
+ * The macro can be used to do additional calls at the end of the function. For
+ * example freeing some memory.
+ * @param return_code The return code that the outer function should return.
+ */
+#define check_return(return_code)                                              \
+  do {                                                                         \
+    ok = return_code;                                                          \
+    goto check;                                                                \
+  } while (0)
+
+/**
  * The macro allocates according to the given action type the action on the
  * heap.
  * @param type The action type definition to allocate.

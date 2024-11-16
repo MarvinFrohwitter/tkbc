@@ -22,7 +22,6 @@ Kite_State *tkbc_init_kite(void);
 void tkbc_destroy_env(Env *env);
 void tkbc_destroy_kite(Kite_State *state);
 void tkbc_destroy_kite_array(Kite_States *kite_states);
-void tkbc_kite_array_generate(Env *env, size_t kite_count);
 void tkbc_kite_array_start_position(Kite_States *kite_states,
                                     size_t window_width, size_t window_height);
 

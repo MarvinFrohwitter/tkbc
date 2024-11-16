@@ -203,29 +203,6 @@ void tkbc_destroy_kite_array(Kite_States *kite_states) {
 }
 
 /**
- * @brief The function initializes the amount of kites that are provided in the
- * arguments and inserts them in the global kite_array. It also sets a different
- * color for each kite, rather than the default color.
- *
- * @param env The global state of the application.
- * @param kite_count The amount of kites that are pushed to the kite array.
- */
-void tkbc_kite_array_generate(Env *env, size_t kite_count) {
-
-  Color color_array[] = {BLUE, GREEN, PURPLE, RED, TEAL};
-
-  for (size_t i = 0; i < kite_count; ++i) {
-    tkbc_dap(env->kite_array, *tkbc_init_kite());
-    env->kite_array->elements[i].kite_id = i;
-    env->kite_array->elements[i].kite->body_color =
-        color_array[i % ARRAY_LENGTH(color_array)];
-  }
-
-  tkbc_kite_array_start_position(env->kite_array, env->window_width,
-                                 env->window_height);
-}
-
-/**
  * @brief The function computes the spaced start positions for the kite_array
  * and set the kites back to the default state values.
  *
