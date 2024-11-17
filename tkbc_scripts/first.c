@@ -107,6 +107,7 @@ void tkbc_script_input(Env *env) {
   // tkbc_script_end(env);
   // return;
 
+  tkbc_script_begin(env);
   tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, ki,
                                                 &(CLITERAL(Move_Add_Action){
                                                     .position.x = 0,

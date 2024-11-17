@@ -27,16 +27,18 @@ void tkbc_script_end(Env *env) {
   tkbc_register_frames(env, tkbc_script_wait(0));
   env->script_interrupt = false;
 
-  if (env->script_setup) {
-    assert(env->scratch_buf_block_frame->count > 0);
-    env->scratch_buf_block_frame->script_id = env->script_counter;
-    tkbc_dap(env->block_frames,
-             *tkbc_deep_copy_block_frame(env->scratch_buf_block_frame));
-    env->scratch_buf_block_frame->count = 0;
-
+  // To ensure the script begin is called.
+  if (!env->script_setup) {
     env->script_setup = false;
     return;
   }
+  env->script_setup = false;
+
+  assert(env->scratch_buf_block_frame->count > 0);
+  env->scratch_buf_block_frame->script_id = env->script_counter;
+  tkbc_dap(env->block_frames,
+           *tkbc_deep_copy_block_frame(env->scratch_buf_block_frame));
+  env->scratch_buf_block_frame->count = 0;
 
   if (tkbc_check_finished_frames(env) &&
       (env->block_frame->count == env->frames->block_index + 1)) {

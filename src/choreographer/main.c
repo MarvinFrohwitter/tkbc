@@ -54,6 +54,8 @@ int main(void) {
 #endif /* ifdef LOADIMAGE */
 
     if (env->script_setup) {
+      // For detection if the begin and end is called correctly.
+      env->script_setup = false;
       tkbc_script_input(env);
     }
 
