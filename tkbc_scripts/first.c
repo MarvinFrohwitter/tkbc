@@ -90,7 +90,6 @@ void tkbc_script_input(Env *env) {
   // Kite_Indexs ki = tkbc_indexs_append(0, 1, 2, 3, 4, 5, 6, 7, 8);
   // Kite_Indexs ki = tkbc_indexs_append(0, 1, 2);
 
-  Kite_Indexs ki = tkbc_kite_array_generate(env, 4);
   size_t h_padding = 0;
   size_t v_padding = 0;
   Vector2 offset = {0};
@@ -102,7 +101,12 @@ void tkbc_script_input(Env *env) {
   // Kite *kite = env->kite_array->elements[0].kite;
   // float ball_radius = (kite->width + kite->spread);
 
+  // To set the setup to false.
+  Kite_Indexs ki = tkbc_kite_array_generate(env, 4);
   tkbc_script_begin(env);
+  tkbc_script_end(env);
+  return;
+
   tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, ki,
                                                 &(CLITERAL(Move_Add_Action){
                                                     .position.x = 0,
