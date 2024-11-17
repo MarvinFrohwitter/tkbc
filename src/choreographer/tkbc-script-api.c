@@ -3,6 +3,7 @@
 #include "tkbc-script-api.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include "tkbc.h"
 
 /**
  * @brief The function is mandatory to wrap every manual script at the
@@ -77,18 +78,25 @@ void tkbc_script_update_frames(Env *env) {
       tkbc_patch_frames_current_time(env->frames);
 
       for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
-        Index k_index = env->frames->kite_frame_positions->elements[i].kite_id;
-        Kite *kite = env->kite_array->elements[k_index].kite;
+        for (size_t k = 0; k < env->kite_array->count; ++k) {
+          if (env->frames->kite_frame_positions->elements[i].kite_id ==
+              env->kite_array->elements[i].kite_id) {
+            Kite *kite = env->kite_array->elements[k].kite;
 
-        // NOTE: The design limits the combined use of center rotations and tip
-        // rotations. Introduce separate tracking variables, if the distinct use
-        // in one frame is needed.
+            // NOTE: The design limits the combined use of center rotations and
+            // tip rotations. Introduce separate tracking variables, if the
+            // distinct use in one frame is needed.
 
-        kite->old_angle = kite->angle;
-        kite->old_center = kite->center;
+            kite->old_angle = kite->angle;
+            kite->old_center = kite->center;
 
-        env->frames->kite_frame_positions->elements[i].angle = kite->angle;
-        env->frames->kite_frame_positions->elements[i].position = kite->center;
+            env->frames->kite_frame_positions->elements[i].angle = kite->angle;
+            env->frames->kite_frame_positions->elements[i].position =
+                kite->center;
+
+            break;
+          }
+        }
       }
     }
   } else {
@@ -253,21 +261,30 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     case KITE_MOVE:
     case KITE_MOVE_ADD: {
       for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
-        Kite *kite =
-            env->kite_array->elements[frame->kite_index_array->elements[i]]
-                .kite;
-        kite->old_center = kite->center;
+        for (size_t k = 0; k < env->kite_array->count; ++k) {
+          if (frame->kite_index_array->elements[i] ==
+              env->kite_array->elements[i].kite_id) {
+
+            Kite *kite = env->kite_array->elements[k].kite;
+            kite->old_center = kite->center;
+            break;
+          }
+        }
       }
 
     } break;
     case KITE_ROTATION_ADD:
     case KITE_TIP_ROTATION_ADD: {
       for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
-        Kite *kite =
-            env->kite_array->elements[frame->kite_index_array->elements[i]]
-                .kite;
-        kite->old_angle = kite->angle;
-        kite->old_center = kite->center;
+        for (size_t j = 0; j < env->kite_array->count; ++j) {
+          if (env->kite_array->elements[i].kite_id ==
+              frame->kite_index_array->elements[i]) {
+            Kite *kite = env->kite_array->elements[j].kite;
+            kite->old_angle = kite->angle;
+            kite->old_center = kite->center;
+            break;
+          }
+        }
       }
     } break;
     default: {
@@ -350,7 +367,7 @@ Kite_Indexs tkbc_kite_array_generate(Env *env, size_t kite_count) {
     // The id starts from 0.
     env->kite_array->elements[env->kite_array->count].kite_id =
         env->kite_array->elements[env->kite_array->count - 1].kite_id + i;
-    env->kite_array->elements[env->kite_array->count].kite->body_color =
+    env->kite_array->elements[env->kite_array->count - 1].kite->body_color =
         color_array[i % ARRAY_LENGTH(color_array)];
   }
 

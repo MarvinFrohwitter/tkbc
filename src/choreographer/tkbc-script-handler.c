@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <math.h>
 #include <raylib.h>
 #include <stdlib.h>
 
@@ -193,14 +194,19 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
   } break;
   case KITE_MOVE_ADD: {
-
+    Kite *kite;
     Move_Add_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
     assert(env_frame->kite_index_array->count > 0);
 
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
-      size_t current_kite_index = env_frame->kite_index_array->elements[i];
-      Kite *kite = env->kite_array->elements[current_kite_index].kite;
+      for (size_t k = 0; k < env->kite_array->count; ++k) {
+        if (env_frame->kite_index_array->elements[i] ==
+            env->kite_array->elements[i].kite_id) {
+          kite = env->kite_array->elements[k].kite;
+          break;
+        }
+      }
 
       // Description of the calculation for the position
       // kite.center + (action->position - (kite.center - kite->old_center))
@@ -217,9 +223,15 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         {
           // Every kite in the frame should get sync at the end of the frame.
           for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
-            size_t current_kite_index = env->frames->elements[frame->index]
-                                            .kite_index_array->elements[i];
-            Kite *kite = env->kite_array->elements[current_kite_index].kite;
+            for (size_t k = 0; k < env->kite_array->count; ++k) {
+              if (env->frames->elements[frame->index]
+                      .kite_index_array->elements[i] ==
+                  env->kite_array->elements[i].kite_id) {
+                kite = env->kite_array->elements[k].kite;
+                break;
+              }
+            }
+
             tkbc_script_move(kite,
                              Vector2Add(kite->old_center, action->position), 0);
           }
@@ -230,14 +242,19 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
   } break;
   case KITE_MOVE: {
-
+    Kite *kite;
     Move_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
     assert(env_frame->kite_index_array->count > 0);
 
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
-      size_t current_kite_index = env_frame->kite_index_array->elements[i];
-      Kite *kite = env->kite_array->elements[current_kite_index].kite;
+      for (size_t k = 0; k < env->kite_array->count; ++k) {
+        if (env_frame->kite_index_array->elements[i] ==
+            env->kite_array->elements[i].kite_id) {
+          kite = env->kite_array->elements[k].kite;
+          break;
+        }
+      }
 
       tkbc_script_move(kite, action->position, frame->duration);
 
@@ -247,9 +264,14 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         {
           // Every kite in the frame should get sync at the end of the frame.
           for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
-            size_t current_kite_index = env->frames->elements[frame->index]
-                                            .kite_index_array->elements[i];
-            Kite *kite = env->kite_array->elements[current_kite_index].kite;
+            for (size_t k = 0; k < env->kite_array->count; ++k) {
+              if (env->frames->elements[frame->index]
+                      .kite_index_array->elements[i] ==
+                  env->kite_array->elements[i].kite_id) {
+                kite = env->kite_array->elements[k].kite;
+                break;
+              }
+            }
             tkbc_script_move(kite, action->position, 0);
           }
         }
@@ -259,15 +281,21 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
   } break;
   case KITE_ROTATION_ADD: {
-
+    Kite_State *state;
+    Kite *kite;
     Rotation_Action *action = frame->action;
+    Frame *env_frame = &env->frames->elements[frame->index];
+    assert(env_frame->kite_index_array->count > 0);
 
-    for (size_t i = 0;
-         i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
-      size_t current_kite_index =
-          env->frames->elements[frame->index].kite_index_array->elements[i];
-      Kite_State *state = &env->kite_array->elements[current_kite_index];
-      Kite *kite = state->kite;
+    for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
+      for (size_t k = 0; k < env->kite_array->count; ++k) {
+        if (env_frame->kite_index_array->elements[i] ==
+            env->kite_array->elements[i].kite_id) {
+          state = &env->kite_array->elements[k];
+          kite = state->kite;
+          break;
+        }
+      }
 
       tkbc_script_rotate(env, state, action->angle, frame->duration, true);
 
@@ -290,15 +318,21 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
   case KITE_ROTATION: {
-
+    Kite_State *state;
+    Kite *kite;
     Rotation_Action *action = frame->action;
+    Frame *env_frame = &env->frames->elements[frame->index];
+    assert(env_frame->kite_index_array->count > 0);
 
-    for (size_t i = 0;
-         i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
-      size_t current_kite_index =
-          env->frames->elements[frame->index].kite_index_array->elements[i];
-      Kite_State *state = &env->kite_array->elements[current_kite_index];
-      Kite *kite = state->kite;
+    for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
+      for (size_t k = 0; k < env->kite_array->count; ++k) {
+        if (env_frame->kite_index_array->elements[i] ==
+            env->kite_array->elements[i].kite_id) {
+          state = &env->kite_array->elements[k];
+          kite = state->kite;
+          break;
+        }
+      }
 
       tkbc_script_rotate(env, state, action->angle, frame->duration, false);
 
@@ -321,15 +355,21 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
   case KITE_TIP_ROTATION_ADD: {
-
+    Kite_State *state;
+    Kite *kite;
     Tip_Rotation_Action *action = frame->action;
+    Frame *env_frame = &env->frames->elements[frame->index];
+    assert(env_frame->kite_index_array->count > 0);
 
-    for (size_t i = 0;
-         i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
-      size_t current_kite_index =
-          env->frames->elements[frame->index].kite_index_array->elements[i];
-      Kite_State *state = &env->kite_array->elements[current_kite_index];
-      Kite *kite = state->kite;
+    for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
+      for (size_t k = 0; k < env->kite_array->count; ++k) {
+        if (env_frame->kite_index_array->elements[i] ==
+            env->kite_array->elements[i].kite_id) {
+          state = &env->kite_array->elements[k];
+          kite = state->kite;
+          break;
+        }
+      }
 
       tkbc_script_rotate_tip(env, state, action->tip, action->angle,
                              frame->duration, true);
@@ -353,15 +393,21 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
   case KITE_TIP_ROTATION: {
-
+    Kite_State *state;
+    Kite *kite;
     Tip_Rotation_Action *action = frame->action;
+    Frame *env_frame = &env->frames->elements[frame->index];
+    assert(env_frame->kite_index_array->count > 0);
 
-    for (size_t i = 0;
-         i < env->frames->elements[frame->index].kite_index_array->count; ++i) {
-      size_t current_kite_index =
-          env->frames->elements[frame->index].kite_index_array->elements[i];
-      Kite_State *state = &env->kite_array->elements[current_kite_index];
-      Kite *kite = state->kite;
+    for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
+      for (size_t k = 0; k < env->kite_array->count; ++k) {
+        if (env_frame->kite_index_array->elements[i] ==
+            env->kite_array->elements[i].kite_id) {
+          state = &env->kite_array->elements[k];
+          kite = state->kite;
+          break;
+        }
+      }
 
       tkbc_script_rotate_tip(env, state, action->tip, action->angle,
                              frame->duration, false);
@@ -429,7 +475,14 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
     }
 
     for (size_t j = 0; j < frames->elements[i].kite_index_array->count; ++j) {
-      Index kite_index = frames->elements[i].kite_index_array->elements[j];
+      Index kite_id = frames->elements[i].kite_index_array->elements[j];
+      Index kite_index = 0;
+      for (size_t index = 0; index < env->kite_array->count; ++index) {
+        if (kite_id == env->kite_array->elements[index].kite_id) {
+          kite_index = index;
+          break;
+        }
+      }
 
       Frame *f = &frames->elements[i];
       float patch_angle = 0;
@@ -453,7 +506,7 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
       }
 
       Kite_Position kite_position = {
-          .kite_id = kite_index,
+          .kite_id = kite_id,
           .position = env->kite_array->elements[kite_index].kite->center,
           .angle = env->kite_array->elements[kite_index].kite->angle,
           .remaining_angle = patch_angle,
@@ -471,7 +524,7 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
 
       bool contains = false;
       for (size_t k = 0; k < frames->kite_frame_positions->count; ++k) {
-        if (frames->kite_frame_positions->elements[k].kite_id == kite_index) {
+        if (frames->kite_frame_positions->elements[k].kite_id == kite_id) {
           contains = true;
           // NOTE: Patching remaining_angle in case the kite_position was
           // already added by just a move action, but later the corresponding
@@ -592,10 +645,15 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
   // TODO: Think about kites that are move in the previous frame but not in the
   // current one. The kites can end up in wired locations, because the state is
   // not exactly as if the script has executed from the beginning.
-
+  Kite *kite;
   for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
-    Index k_index = env->frames->kite_frame_positions->elements[i].kite_id;
-    Kite *kite = env->kite_array->elements[k_index].kite;
+    for (size_t k = 0; k < env->kite_array->count; ++k) {
+      if (env->frames->kite_frame_positions->elements[i].kite_id ==
+          env->kite_array->elements[i].kite_id) {
+        kite = env->kite_array->elements[k].kite;
+        break;
+      }
+    }
 
     Vector2 position = env->frames->kite_frame_positions->elements[i].position;
     float angle = env->frames->kite_frame_positions->elements[i].angle;
@@ -719,10 +777,15 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
     return;
   }
 
+  float dt = GetFrameTime();
   int fps = GetFPS();
+
+  float d = angle - state->kite->old_angle;
+  float dnorm = fmodf(d, 360);
+  float dnormscale = dnorm + (d / (duration * dt));
+
   float segment_size = fabsf(angle / duration) / (float)fps;
   float remaining_angle = 0;
-
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
     if (env->frames->kite_frame_positions->elements[k].kite_id ==
         state->kite_id) {
@@ -762,11 +825,13 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
 
   } else {
     if (angle <= 0) {
-      tkbc_center_rotation(state->kite, NULL,
-                           state->kite->angle - segment_size);
+      // tkbc_center_rotation(state->kite, NULL,
+      //                      state->kite->angle - segment_size);
+      tkbc_center_rotation(state->kite, NULL, state->kite->angle - dnormscale);
     } else {
-      tkbc_center_rotation(state->kite, NULL,
-                           state->kite->angle + segment_size);
+      // tkbc_center_rotation(state->kite, NULL,
+      //                      state->kite->angle + segment_size);
+      tkbc_center_rotation(state->kite, NULL, state->kite->angle + dnormscale);
     }
   }
 }
