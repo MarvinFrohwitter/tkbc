@@ -103,9 +103,9 @@ void tkbc_script_input(Env *env) {
 
   // To set the setup to false.
   Kite_Indexs ki = tkbc_kite_array_generate(env, 4);
-  tkbc_script_begin(env);
-  tkbc_script_end(env);
-  return;
+  // tkbc_script_begin(env);
+  // tkbc_script_end(env);
+  // return;
 
   tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, ki,
                                                 &(CLITERAL(Move_Add_Action){

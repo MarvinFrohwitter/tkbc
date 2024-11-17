@@ -33,7 +33,6 @@ void tkbc_script_parser(Env *env) {
   bool script_begin = false;
   bool brace = false;
   Kite_Indexs ki = {0};
-  ki.count = env->kite_array->count;
   Frames frames = {0};
 
   Token t = lexer_next(lexer);
@@ -57,7 +56,16 @@ void tkbc_script_parser(Env *env) {
 
         t = lexer_next(lexer);
         if (t.kind == NUMBER) {
-          ki = tkbc_kite_array_generate(env, atoi(token_to_cstr(&t)));
+          size_t kite_number = atoi(token_to_cstr(&t));
+          if (env->kite_array->count >= kite_number) {
+            ki = tkbc_indexs_generate(env->kite_array->count);
+            for (size_t i = 0; i < env->kite_array->count; ++i) {
+              ki.elements[i] = env->kite_array->elements[i].kite_id;
+            }
+            break;
+          }
+          kite_number -= env->kite_array->count;
+          ki = tkbc_kite_array_generate(env, kite_number);
         }
         break;
       } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
