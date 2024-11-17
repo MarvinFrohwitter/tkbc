@@ -33,6 +33,7 @@ void tkbc_script_parser(Env *env) {
   bool script_begin = false;
   bool brace = false;
   Kite_Indexs ki = {0};
+  ki.count = env->kite_array->count;
   Frames frames = {0};
 
   Token t = lexer_next(lexer);
@@ -50,7 +51,6 @@ void tkbc_script_parser(Env *env) {
         script_begin = false;
         break;
       } else if (strncmp("KITES", t.content, t.size) == 0) {
-
         if (ki.count > 0) {
           break;
         }
@@ -199,13 +199,13 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
   } else if (t.kind == PUNCT_LPAREN) {
     t = lexer_next(lexer);
     while (t.kind == NUMBER) {
+      tkbc_dap(&kis, atoi(token_to_cstr(&t)));
       if (!tkbc_parse_ki_check(env, &kis)) {
         fprintf(stderr,
                 "ERROR: The given kites in the listing are invalid: "
                 "Position:%llu:%ld\n",
                 lexer->line_count, (t.content - lexer->content));
       }
-      tkbc_dap(&kis, atoi(token_to_cstr(&t)));
       t = lexer_next(lexer);
     }
   }
@@ -327,13 +327,13 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
   } else if (t.kind == PUNCT_LPAREN) {
     t = lexer_next(lexer);
     while (t.kind == NUMBER) {
+      tkbc_dap(&kis, atoi(token_to_cstr(&t)));
       if (!tkbc_parse_ki_check(env, &kis)) {
         fprintf(stderr,
                 "ERROR: The given kites in the listing are invalid: "
                 "Position:%llu:%ld\n",
                 lexer->line_count, (t.content - lexer->content));
       }
-      tkbc_dap(&kis, atoi(token_to_cstr(&t)));
       t = lexer_next(lexer);
     }
   }
@@ -429,13 +429,13 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
   } else if (t.kind == PUNCT_LPAREN) {
     t = lexer_next(lexer);
     while (t.kind == NUMBER) {
+      tkbc_dap(&kis, atoi(token_to_cstr(&t)));
       if (!tkbc_parse_ki_check(env, &kis)) {
         fprintf(stderr,
                 "ERROR: The given kites in the listing are invalid: "
                 "Position:%llu:%ld\n",
                 lexer->line_count, (t.content - lexer->content));
       }
-      tkbc_dap(&kis, atoi(token_to_cstr(&t)));
       t = lexer_next(lexer);
     }
   }
