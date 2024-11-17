@@ -202,7 +202,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
         if (env_frame->kite_index_array->elements[i] ==
-            env->kite_array->elements[i].kite_id) {
+            env->kite_array->elements[k].kite_id) {
           kite = env->kite_array->elements[k].kite;
           break;
         }
@@ -219,24 +219,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       if (Vector2Equals(kite->center,
                         Vector2Add(kite->old_center, action->position))) {
         frame->finished = true;
-
-        {
-          // Every kite in the frame should get sync at the end of the frame.
-          for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
-            for (size_t k = 0; k < env->kite_array->count; ++k) {
-              if (env->frames->elements[frame->index]
-                      .kite_index_array->elements[i] ==
-                  env->kite_array->elements[i].kite_id) {
-                kite = env->kite_array->elements[k].kite;
-                break;
-              }
-            }
-
-            tkbc_script_move(kite,
-                             Vector2Add(kite->old_center, action->position), 0);
-          }
-        }
-        break;
       }
     }
 
@@ -250,7 +232,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
         if (env_frame->kite_index_array->elements[i] ==
-            env->kite_array->elements[i].kite_id) {
+            env->kite_array->elements[k].kite_id) {
           kite = env->kite_array->elements[k].kite;
           break;
         }
@@ -260,22 +242,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
       if (Vector2Equals(kite->center, action->position)) {
         frame->finished = true;
-
-        {
-          // Every kite in the frame should get sync at the end of the frame.
-          for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
-            for (size_t k = 0; k < env->kite_array->count; ++k) {
-              if (env->frames->elements[frame->index]
-                      .kite_index_array->elements[i] ==
-                  env->kite_array->elements[i].kite_id) {
-                kite = env->kite_array->elements[k].kite;
-                break;
-              }
-            }
-            tkbc_script_move(kite, action->position, 0);
-          }
-        }
-        break;
       }
     }
 
@@ -290,7 +256,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
         if (env_frame->kite_index_array->elements[i] ==
-            env->kite_array->elements[i].kite_id) {
+            env->kite_array->elements[k].kite_id) {
           state = &env->kite_array->elements[k];
           kite = state->kite;
           break;
@@ -327,7 +293,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
         if (env_frame->kite_index_array->elements[i] ==
-            env->kite_array->elements[i].kite_id) {
+            env->kite_array->elements[k].kite_id) {
           state = &env->kite_array->elements[k];
           kite = state->kite;
           break;
@@ -364,7 +330,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
         if (env_frame->kite_index_array->elements[i] ==
-            env->kite_array->elements[i].kite_id) {
+            env->kite_array->elements[k].kite_id) {
           state = &env->kite_array->elements[k];
           kite = state->kite;
           break;
@@ -402,7 +368,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     for (size_t i = 0; i < env_frame->kite_index_array->count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
         if (env_frame->kite_index_array->elements[i] ==
-            env->kite_array->elements[i].kite_id) {
+            env->kite_array->elements[k].kite_id) {
           state = &env->kite_array->elements[k];
           kite = state->kite;
           break;
@@ -649,7 +615,7 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
   for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
     for (size_t k = 0; k < env->kite_array->count; ++k) {
       if (env->frames->kite_frame_positions->elements[i].kite_id ==
-          env->kite_array->elements[i].kite_id) {
+          env->kite_array->elements[k].kite_id) {
         kite = env->kite_array->elements[k].kite;
         break;
       }

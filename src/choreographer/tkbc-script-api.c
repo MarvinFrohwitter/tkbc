@@ -80,7 +80,7 @@ void tkbc_script_update_frames(Env *env) {
       for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
         for (size_t k = 0; k < env->kite_array->count; ++k) {
           if (env->frames->kite_frame_positions->elements[i].kite_id ==
-              env->kite_array->elements[i].kite_id) {
+              env->kite_array->elements[k].kite_id) {
             Kite *kite = env->kite_array->elements[k].kite;
 
             // NOTE: The design limits the combined use of center rotations and
@@ -263,7 +263,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
       for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
         for (size_t k = 0; k < env->kite_array->count; ++k) {
           if (frame->kite_index_array->elements[i] ==
-              env->kite_array->elements[i].kite_id) {
+              env->kite_array->elements[k].kite_id) {
 
             Kite *kite = env->kite_array->elements[k].kite;
             kite->old_center = kite->center;
@@ -276,10 +276,10 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     case KITE_ROTATION_ADD:
     case KITE_TIP_ROTATION_ADD: {
       for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
-        for (size_t j = 0; j < env->kite_array->count; ++j) {
+        for (size_t k = 0; k < env->kite_array->count; ++k) {
           if (env->kite_array->elements[i].kite_id ==
-              frame->kite_index_array->elements[i]) {
-            Kite *kite = env->kite_array->elements[j].kite;
+              frame->kite_index_array->elements[k]) {
+            Kite *kite = env->kite_array->elements[k].kite;
             kite->old_angle = kite->angle;
             kite->old_center = kite->center;
             break;
