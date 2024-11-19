@@ -171,22 +171,13 @@ void tkbc_script_parser(Env *env) {
  * @param kis The kite indies that should be check against the existing kites.
  * @return True if the given kite indies are valid, otherwise false.
  */
-bool tkbc_parse_ki_check(Env *env, Kite_Indexs *kis) {
-  bool ok = false;
+bool tkbc_parse_ki_check(Env *env, Index index) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    for (size_t j = 0; j < kis->count; ++j) {
-      if (env->kite_array->elements[i].kite_id == kis->elements[j]) {
-        ok = true;
-        break;
-      }
-      ok = false;
+    if (env->kite_array->elements[i].kite_id == index) {
+      return true;
     }
-
-    if (!ok)
-      return false;
   }
-
-  return true;
+  return false;
 }
 
 bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
@@ -207,8 +198,9 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
   } else if (t.kind == PUNCT_LPAREN) {
     t = lexer_next(lexer);
     while (t.kind == NUMBER) {
-      tkbc_dap(&kis, atoi(token_to_cstr(&t)));
-      if (!tkbc_parse_ki_check(env, &kis)) {
+      int number = atoi(token_to_cstr(&t));
+      tkbc_dap(&kis, number);
+      if (!tkbc_parse_ki_check(env, number)) {
         fprintf(stderr,
                 "ERROR: The given kites in the listing are invalid: "
                 "Position:%llu:%ld\n",
@@ -216,6 +208,8 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
       }
       t = lexer_next(lexer);
     }
+  } else {
+    check_return(false);
   }
 
   bool issign = false;
@@ -313,7 +307,9 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
     }
   }
 check:
-  free(kis.elements);
+  if (kis.elements) {
+    free(kis.elements);
+  }
   return ok ? true : false;
 }
 
@@ -335,8 +331,9 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
   } else if (t.kind == PUNCT_LPAREN) {
     t = lexer_next(lexer);
     while (t.kind == NUMBER) {
-      tkbc_dap(&kis, atoi(token_to_cstr(&t)));
-      if (!tkbc_parse_ki_check(env, &kis)) {
+      int number = atoi(token_to_cstr(&t));
+      tkbc_dap(&kis, number);
+      if (!tkbc_parse_ki_check(env, number)) {
         fprintf(stderr,
                 "ERROR: The given kites in the listing are invalid: "
                 "Position:%llu:%ld\n",
@@ -344,6 +341,8 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
       }
       t = lexer_next(lexer);
     }
+  } else {
+    check_return(false);
   }
   bool issign = false;
   if (strncmp("-", t.content, t.size) == 0 ||
@@ -413,7 +412,9 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
   }
 
 check:
-  free(kis.elements);
+  if (kis.elements) {
+    free(kis.elements);
+  }
   return ok ? true : false;
 }
 
@@ -430,15 +431,15 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     t = lexer_next(lexer);
     if (ki->count == 0) {
       check_return(false);
-      goto check;
     }
     kis = *ki;
 
   } else if (t.kind == PUNCT_LPAREN) {
     t = lexer_next(lexer);
     while (t.kind == NUMBER) {
-      tkbc_dap(&kis, atoi(token_to_cstr(&t)));
-      if (!tkbc_parse_ki_check(env, &kis)) {
+      int number = atoi(token_to_cstr(&t));
+      tkbc_dap(&kis, number);
+      if (!tkbc_parse_ki_check(env, number)) {
         fprintf(stderr,
                 "ERROR: The given kites in the listing are invalid: "
                 "Position:%llu:%ld\n",
@@ -446,6 +447,8 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
       }
       t = lexer_next(lexer);
     }
+  } else {
+    check_return(false);
   }
   bool issign = false;
   if (strncmp("-", t.content, t.size) == 0 ||
@@ -529,6 +532,8 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
   }
 
 check:
-  free(kis.elements);
+  if (kis.elements) {
+    free(kis.elements);
+  }
   return ok ? true : false;
 }

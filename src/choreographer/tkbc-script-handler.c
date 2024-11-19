@@ -213,6 +213,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       // kite.center + (action->position - kite.center + kite->old_center)
       // kite.center + action->position - kite.center + kite->old_center
 
+      assert(kite != NULL);
       tkbc_script_move(kite, Vector2Add(kite->old_center, action->position),
                        frame->duration);
 
@@ -238,6 +239,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         }
       }
 
+      assert(kite != NULL);
       tkbc_script_move(kite, action->position, frame->duration);
 
       if (Vector2Equals(kite->center, action->position)) {
@@ -262,6 +264,8 @@ void tkbc_render_frame(Env *env, Frame *frame) {
           break;
         }
       }
+
+      assert(state != NULL);
 
       tkbc_script_rotate(env, state, action->angle, frame->duration, true);
 
@@ -299,7 +303,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
           break;
         }
       }
-
+      assert(state != NULL);
       tkbc_script_rotate(env, state, action->angle, frame->duration, false);
 
       float remaining_angle = 0;
@@ -337,6 +341,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         }
       }
 
+      assert(state != NULL);
       tkbc_script_rotate_tip(env, state, action->tip, action->angle,
                              frame->duration, true);
 
@@ -375,6 +380,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         }
       }
 
+      assert(state != NULL);
       tkbc_script_rotate_tip(env, state, action->tip, action->angle,
                              frame->duration, false);
 

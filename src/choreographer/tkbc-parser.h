@@ -6,7 +6,7 @@
 
 const char *token_to_cstr(Token *token);
 void tkbc_script_parser(Env *env);
-bool tkbc_parse_ki_check(Env *env, Kite_Indexs *kis);
+bool tkbc_parse_ki_check(Env *env, Index index);
 bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
                      Kite_Indexs *ki, bool brace);
 bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
