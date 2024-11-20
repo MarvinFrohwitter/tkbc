@@ -82,7 +82,7 @@ void tkbc_input_handler_kite_array(Env *env) {
 
   // To only handle 9 kites controllable by the keyboard.
   for (size_t i = 1; i <= 9; ++i) {
-    if (IsKeyPressed(i + 48)) {
+    if (IsKeyPressed(i + 48) && env->kite_array->count > i) {
 
       for (size_t j = 0; j < env->frames->count; ++j) {
 
