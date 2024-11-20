@@ -11,17 +11,16 @@
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 
-Content tmp_buffer = {0};
+const char *token_to_cstr(Token *token, Content *tmp_buffer) {
+  tmp_buffer->count = 0;
+  tkbc_dapc(tmp_buffer, token->content, token->size);
+  tkbc_dap(tmp_buffer, 0);
 
-const char *token_to_cstr(Token *token) {
-  tmp_buffer.count = 0;
-  tkbc_dapc(&tmp_buffer, token->content, token->size);
-  tkbc_dap(&tmp_buffer, 0);
-
-  return tmp_buffer.elements;
+  return tmp_buffer->elements;
 }
 
 void tkbc_script_parser(Env *env) {
+  Content tmp_buffer = {0};
   Content content = {0};
   int err = tkbc_read_file(env->script_file_name, &content);
   if (err) {
@@ -56,10 +55,10 @@ void tkbc_script_parser(Env *env) {
 
         t = lexer_next(lexer);
         if (t.kind == NUMBER) {
-          size_t kite_number = atoi(token_to_cstr(&t));
+          size_t kite_number = atoi(token_to_cstr(&t, &tmp_buffer));
           if (env->kite_array->count >= kite_number) {
-            ki = tkbc_indexs_generate(env->kite_array->count);
-            for (size_t i = 0; i < env->kite_array->count; ++i) {
+            ki = tkbc_indexs_generate(kite_number);
+            for (size_t i = 0; i < ki.count; ++i) {
               ki.elements[i] = env->kite_array->elements[i].kite_id;
             }
             break;
@@ -69,42 +68,44 @@ void tkbc_script_parser(Env *env) {
         }
         break;
       } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_move(env, lexer, KITE_MOVE_ADD, &frames, &ki, brace)) {
+        if (!tkbc_parse_move(env, lexer, KITE_MOVE_ADD, &frames, ki, brace,
+                             &tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("MOVE", t.content, t.size) == 0) {
-        if (!tkbc_parse_move(env, lexer, KITE_MOVE, &frames, &ki, brace)) {
+        if (!tkbc_parse_move(env, lexer, KITE_MOVE, &frames, ki, brace,
+                             &tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("ROTATION", t.content, t.size) == 0) {
-        if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION, &frames, &ki,
-                                 brace)) {
+        if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION, &frames, ki, brace,
+                                 &tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("ROTATION_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION_ADD, &frames, &ki,
-                                 brace)) {
+        if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION_ADD, &frames, ki,
+                                 brace, &tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("TIP_ROTATION", t.content, t.size) == 0) {
-        if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION, &frames,
-                                     &ki, brace)) {
+        if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION, &frames, ki,
+                                     brace, &tmp_buffer)) {
           break;
         }
         break;
       } else if (strncmp("TIP_ROTATION_ADD", t.content, t.size) == 0) {
         if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION_ADD, &frames,
-                                     &ki, brace)) {
+                                     ki, brace, &tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("WAIT", t.content, t.size) == 0) {
         t = lexer_next(lexer);
-        float duration = atof(token_to_cstr(&t));
+        float duration = atof(token_to_cstr(&t, &tmp_buffer));
 
         if (brace) {
           Frame *frame = tkbc_script_wait(duration);
@@ -115,7 +116,7 @@ void tkbc_script_parser(Env *env) {
         break;
       } else if (strncmp("QUIT", t.content, t.size) == 0) {
         t = lexer_next(lexer);
-        float duration = atof(token_to_cstr(&t));
+        float duration = atof(token_to_cstr(&t, &tmp_buffer));
         if (brace) {
           Frame *frame = tkbc_script_frames_quit(duration);
           tkbc_dap(&frames, *frame);
@@ -146,7 +147,8 @@ void tkbc_script_parser(Env *env) {
     err:
     case ERROR:
     default:
-      fprintf(stderr, "ERROR: Invalid token: %s\n", token_to_cstr(&t));
+      fprintf(stderr, "ERROR: Invalid token: %s\n",
+              token_to_cstr(&t, &tmp_buffer));
     }
 
     t = lexer_next(lexer);
@@ -171,7 +173,7 @@ void tkbc_script_parser(Env *env) {
  * @param kis The kite indies that should be check against the existing kites.
  * @return True if the given kite indies are valid, otherwise false.
  */
-bool tkbc_parse_ki_check(Env *env, Index index) {
+bool tkbc_parsed_kis_is_in_env(Env *env, Index index) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].kite_id == index) {
       return true;
@@ -180,35 +182,49 @@ bool tkbc_parse_ki_check(Env *env, Index index) {
   return false;
 }
 
+bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Token *t,
+                                     Kite_Indexs *dest_kis, Kite_Indexs orig_kis,
+                                     Content *tmp_buffer) {
+
+  *t = lexer_next(lexer);
+  if (strncmp("KITES", t->content, t->size) == 0) {
+    *t = lexer_next(lexer);
+    if (orig_kis.count == 0) {
+      return false;
+    }
+    for (size_t i = 0; i < orig_kis.count; ++i) {
+      tkbc_dap(dest_kis, orig_kis.elements[i]);
+    }
+
+  } else if (t->kind == PUNCT_LPAREN) {
+    *t = lexer_next(lexer);
+    while (t->kind == NUMBER) {
+      int number = atoi(token_to_cstr(t, tmp_buffer));
+      tkbc_dap(dest_kis, number);
+      if (!tkbc_parsed_kis_is_in_env(env, number)) {
+        fprintf(stderr,
+                "ERROR: The given kites in the listing are invalid: "
+                "Position:%llu:%ld\n",
+                lexer->line_count, (t->content - lexer->content));
+        return false;
+      }
+      *t = lexer_next(lexer);
+    }
+  } else {
+    return false;
+  }
+
+  return true;
+}
+
 bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
-                     Kite_Indexs *ki, bool brace) {
+                     Kite_Indexs ki, bool brace, Content *tmp_buffer) {
   bool ok = true;
   Kite_Indexs kis = {0};
   Token t = {0};
   char sign;
 
-  t = lexer_next(lexer);
-  if (strncmp("KITES", t.content, t.size) == 0) {
-    t = lexer_next(lexer);
-    if (ki->count == 0) {
-      check_return(false);
-    }
-    kis = *ki;
-
-  } else if (t.kind == PUNCT_LPAREN) {
-    t = lexer_next(lexer);
-    while (t.kind == NUMBER) {
-      int number = atoi(token_to_cstr(&t));
-      tkbc_dap(&kis, number);
-      if (!tkbc_parse_ki_check(env, number)) {
-        fprintf(stderr,
-                "ERROR: The given kites in the listing are invalid: "
-                "Position:%llu:%ld\n",
-                lexer->line_count, (t.content - lexer->content));
-      }
-      t = lexer_next(lexer);
-    }
-  } else {
+  if (!tkbc_parse_kis_after_generation(env, lexer, &t, &kis, ki, tmp_buffer)) {
     check_return(false);
   }
 
@@ -234,14 +250,14 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
     t = lexer_next(lexer);
   }
 
-  tmp_buffer.count = 0;
+  tmp_buffer->count = 0;
   if (issign) {
-    tkbc_dap(&tmp_buffer, sign);
+    tkbc_dap(tmp_buffer, sign);
   }
-  tkbc_dapc(&tmp_buffer, t.content, t.size);
-  tkbc_dap(&tmp_buffer, 0);
+  tkbc_dapc(tmp_buffer, t.content, t.size);
+  tkbc_dap(tmp_buffer, 0);
 
-  float x = atof(tmp_buffer.elements);
+  float x = atof(tmp_buffer->elements);
   t = lexer_next(lexer);
 
   issign = false;
@@ -259,17 +275,17 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
     t = lexer_next(lexer);
   }
 
-  tmp_buffer.count = 0;
+  tmp_buffer->count = 0;
   if (issign) {
-    tkbc_dap(&tmp_buffer, sign);
+    tkbc_dap(tmp_buffer, sign);
   }
-  tkbc_dapc(&tmp_buffer, t.content, t.size);
-  tkbc_dap(&tmp_buffer, 0);
+  tkbc_dapc(tmp_buffer, t.content, t.size);
+  tkbc_dap(tmp_buffer, 0);
 
-  float y = atof(tmp_buffer.elements);
+  float y = atof(tmp_buffer->elements);
   t = lexer_next(lexer);
 
-  float duration = atof(token_to_cstr(&t));
+  float duration = atof(token_to_cstr(&t, tmp_buffer));
 
   if (kind == KITE_MOVE_ADD) {
     if (brace) {
@@ -307,43 +323,22 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
     }
   }
 check:
-  if (kis.elements) {
-    free(kis.elements);
-  }
+  free(kis.elements);
   return ok ? true : false;
 }
 
 bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
-                         Frames *frames, Kite_Indexs *ki, bool brace) {
+                         Frames *frames, Kite_Indexs ki, bool brace,
+                         Content *tmp_buffer) {
   bool ok = true;
   Kite_Indexs kis = {0};
   Token t = {0};
   char sign;
 
-  t = lexer_next(lexer);
-  if (strncmp("KITES", t.content, t.size) == 0) {
-    t = lexer_next(lexer);
-    if (ki->count == 0) {
-      check_return(false);
-    }
-    kis = *ki;
-
-  } else if (t.kind == PUNCT_LPAREN) {
-    t = lexer_next(lexer);
-    while (t.kind == NUMBER) {
-      int number = atoi(token_to_cstr(&t));
-      tkbc_dap(&kis, number);
-      if (!tkbc_parse_ki_check(env, number)) {
-        fprintf(stderr,
-                "ERROR: The given kites in the listing are invalid: "
-                "Position:%llu:%ld\n",
-                lexer->line_count, (t.content - lexer->content));
-      }
-      t = lexer_next(lexer);
-    }
-  } else {
+  if (!tkbc_parse_kis_after_generation(env, lexer, &t, &kis, ki, tmp_buffer)) {
     check_return(false);
   }
+
   bool issign = false;
   if (strncmp("-", t.content, t.size) == 0 ||
       strncmp("+", t.content, t.size) == 0) {
@@ -366,17 +361,17 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     t = lexer_next(lexer);
   }
 
-  tmp_buffer.count = 0;
+  tmp_buffer->count = 0;
   if (issign) {
-    tkbc_dap(&tmp_buffer, sign);
+    tkbc_dap(tmp_buffer, sign);
   }
-  tkbc_dapc(&tmp_buffer, t.content, t.size);
-  tkbc_dap(&tmp_buffer, 0);
+  tkbc_dapc(tmp_buffer, t.content, t.size);
+  tkbc_dap(tmp_buffer, 0);
 
-  float angle = atof(tmp_buffer.elements);
+  float angle = atof(tmp_buffer->elements);
   t = lexer_next(lexer);
 
-  float duration = atof(token_to_cstr(&t));
+  float duration = atof(token_to_cstr(&t, tmp_buffer));
 
   if (kind == KITE_ROTATION_ADD) {
     if (brace) {
@@ -412,44 +407,23 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
   }
 
 check:
-  if (kis.elements) {
-    free(kis.elements);
-  }
+  free(kis.elements);
   return ok ? true : false;
 }
 
 bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
-                             Frames *frames, Kite_Indexs *ki, bool brace) {
+                             Frames *frames, Kite_Indexs ki, bool brace,
+                             Content *tmp_buffer) {
   bool ok = true;
   Kite_Indexs kis = {0};
   Token t = {0};
   TIP tip;
   char sign;
 
-  t = lexer_next(lexer);
-  if (strncmp("KITES", t.content, t.size) == 0) {
-    t = lexer_next(lexer);
-    if (ki->count == 0) {
-      check_return(false);
-    }
-    kis = *ki;
-
-  } else if (t.kind == PUNCT_LPAREN) {
-    t = lexer_next(lexer);
-    while (t.kind == NUMBER) {
-      int number = atoi(token_to_cstr(&t));
-      tkbc_dap(&kis, number);
-      if (!tkbc_parse_ki_check(env, number)) {
-        fprintf(stderr,
-                "ERROR: The given kites in the listing are invalid: "
-                "Position:%llu:%ld\n",
-                lexer->line_count, (t.content - lexer->content));
-      }
-      t = lexer_next(lexer);
-    }
-  } else {
+  if (!tkbc_parse_kis_after_generation(env, lexer, &t, &kis, ki, tmp_buffer)) {
     check_return(false);
   }
+
   bool issign = false;
   if (strncmp("-", t.content, t.size) == 0 ||
       strncmp("+", t.content, t.size) == 0) {
@@ -472,14 +446,14 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     t = lexer_next(lexer);
   }
 
-  tmp_buffer.count = 0;
+  tmp_buffer->count = 0;
   if (issign) {
-    tkbc_dap(&tmp_buffer, sign);
+    tkbc_dap(tmp_buffer, sign);
   }
-  tkbc_dapc(&tmp_buffer, t.content, t.size);
-  tkbc_dap(&tmp_buffer, 0);
+  tkbc_dapc(tmp_buffer, t.content, t.size);
+  tkbc_dap(tmp_buffer, 0);
 
-  float angle = atof(tmp_buffer.elements);
+  float angle = atof(tmp_buffer->elements);
   t = lexer_next(lexer);
 
   if (strncmp("RIGHT", t.content, t.size) == 0) {
@@ -491,7 +465,7 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
   }
 
   t = lexer_next(lexer);
-  float duration = atof(token_to_cstr(&t));
+  float duration = atof(token_to_cstr(&t, tmp_buffer));
 
   if (kind == KITE_TIP_ROTATION_ADD) {
     if (brace) {
@@ -532,8 +506,6 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
   }
 
 check:
-  if (kis.elements) {
-    free(kis.elements);
-  }
+  free(kis.elements);
   return ok ? true : false;
 }
