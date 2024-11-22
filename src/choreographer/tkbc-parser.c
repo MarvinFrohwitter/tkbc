@@ -67,14 +67,14 @@ void tkbc_script_parser(Env *env) {
           ki = tkbc_kite_array_generate(env, kite_number);
         }
         break;
-      } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_move(env, lexer, KITE_MOVE_ADD, &frames, ki, brace,
+      } else if (strncmp("MOVE", t.content, t.size) == 0) {
+        if (!tkbc_parse_move(env, lexer, KITE_MOVE, &frames, ki, brace,
                              &tmp_buffer)) {
           goto err;
         }
         break;
-      } else if (strncmp("MOVE", t.content, t.size) == 0) {
-        if (!tkbc_parse_move(env, lexer, KITE_MOVE, &frames, ki, brace,
+      } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
+        if (!tkbc_parse_move(env, lexer, KITE_MOVE_ADD, &frames, ki, brace,
                              &tmp_buffer)) {
           goto err;
         }
