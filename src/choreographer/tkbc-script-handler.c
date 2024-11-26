@@ -5,6 +5,7 @@
 
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include "tkbc-script-api.h"
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
 

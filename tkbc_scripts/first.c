@@ -102,11 +102,16 @@ void tkbc_script_input(Env *env) {
   // float ball_radius = (kite->width + kite->spread);
 
   // To set the setup to false.
-  // Kite_Indexs ki = tkbc_kite_array_generate(env, 8);
-  Kite_Indexs ki;
-  return;
+  Kite_Indexs ki = tkbc_kite_array_generate(env, 8);
+  // Kite_Indexs ki;
+  // return;
 
   tkbc_script_begin(env);
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION, ki,
+                               &(CLITERAL(Rotation_Action){.angle = 180}),
+                               4));
+  tkbc_register_frames(env, tkbc_script_wait(3));
   tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, ki,
                                                 &(CLITERAL(Move_Add_Action){
                                                     .position.x = 0,

@@ -41,5 +41,6 @@ Kite_Indexs tkbc__indexs_append(size_t _, ...);
 Kite_Indexs tkbc_indexs_range(int start, int end);
 #define tkbc_indexs_generate(count) tkbc_indexs_range(0, count)
 Kite_Indexs tkbc_kite_array_generate(Env *env, size_t kite_count);
+void tkbc_print_script(FILE *stream, Block_Frame *block_frame);
 
 #endif // TKBC_SCRIPT_API_H_

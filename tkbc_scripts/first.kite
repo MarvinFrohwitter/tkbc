@@ -1,6 +1,5 @@
 KITES 4
 BEGIN
-    {
         MOVE_ADD KITES 0 -300 5
         MOVE_ADD (1 2 3 4) 0 -300 5
         MOVE KITES 0 -300 5
@@ -12,6 +11,7 @@ BEGIN
         TIP_ROTATION_ADD KITES 180 RIGHT 2
 
         ROTATION KITES 180 2
+    {
         ROTATION_ADD KITES 180 2
         WAIT 2
         QUIT 100
