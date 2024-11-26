@@ -31,7 +31,7 @@ void tkbc_script_parser(Env *env) {
 
   bool script_begin = false;
   bool brace = false;
-  Kite_Indexs ki = {0};
+  Kite_Ids ki = {0};
   Frames frames = {0};
 
   Token t = lexer_next(lexer);
@@ -183,7 +183,7 @@ bool tkbc_parsed_kis_is_in_env(Env *env, Index index) {
 }
 
 bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Token *t,
-                                     Kite_Indexs *dest_kis, Kite_Indexs orig_kis,
+                                     Kite_Ids *dest_kis, Kite_Ids orig_kis,
                                      Content *tmp_buffer) {
 
   *t = lexer_next(lexer);
@@ -218,9 +218,9 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Token *t,
 }
 
 bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
-                     Kite_Indexs ki, bool brace, Content *tmp_buffer) {
+                     Kite_Ids ki, bool brace, Content *tmp_buffer) {
   bool ok = true;
-  Kite_Indexs kis = {0};
+  Kite_Ids kis = {0};
   Token t = {0};
   char sign;
 
@@ -328,10 +328,10 @@ check:
 }
 
 bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
-                         Frames *frames, Kite_Indexs ki, bool brace,
+                         Frames *frames, Kite_Ids ki, bool brace,
                          Content *tmp_buffer) {
   bool ok = true;
-  Kite_Indexs kis = {0};
+  Kite_Ids kis = {0};
   Token t = {0};
   char sign;
 
@@ -412,10 +412,10 @@ check:
 }
 
 bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
-                             Frames *frames, Kite_Indexs ki, bool brace,
+                             Frames *frames, Kite_Ids ki, bool brace,
                              Content *tmp_buffer) {
   bool ok = true;
-  Kite_Indexs kis = {0};
+  Kite_Ids kis = {0};
   Token t = {0};
   TIP tip;
   char sign;

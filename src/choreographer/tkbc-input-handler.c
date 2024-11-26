@@ -86,25 +86,25 @@ void tkbc_input_handler_kite_array(Env *env) {
 
       for (size_t j = 0; j < env->frames->count; ++j) {
 
-        Kite_Indexs new_kite_index_array = {0};
+        Kite_Ids new_kite_index_array = {0};
         Frame *frame = &env->frames->elements[j];
 
-        if (frame->kite_index_array == NULL) {
+        if (frame->kite_id_array == NULL) {
           continue;
         }
 
-        for (size_t k = 0; k < frame->kite_index_array->count; ++k) {
-          if (i - 1 != frame->kite_index_array->elements[k]) {
+        for (size_t k = 0; k < frame->kite_id_array->count; ++k) {
+          if (i - 1 != frame->kite_id_array->elements[k]) {
             tkbc_dap(&new_kite_index_array,
-                     frame->kite_index_array->elements[k]);
+                     frame->kite_id_array->elements[k]);
           }
         }
 
         if (new_kite_index_array.count != 0) {
           // If there are kites left in the frame
 
-          frame->kite_index_array->count = 0;
-          tkbc_dapc(frame->kite_index_array, new_kite_index_array.elements,
+          frame->kite_id_array->count = 0;
+          tkbc_dapc(frame->kite_id_array, new_kite_index_array.elements,
                     new_kite_index_array.count);
 
           free(new_kite_index_array.elements);
@@ -112,7 +112,7 @@ void tkbc_input_handler_kite_array(Env *env) {
           // If there are no kites left in the frame
           // for the cases KITE_MOVE, KITE_ROTATION, KITE_TIP_ROTATION
           frame->finished = true;
-          frame->kite_index_array = NULL;
+          frame->kite_id_array = NULL;
         }
       }
 

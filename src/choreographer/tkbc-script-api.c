@@ -143,7 +143,7 @@ Frame *tkbc__script_wait(Env *env, float duration) {
   frame->duration = duration;
   frame->kind = KITE_WAIT;
   (frame->action) = action;
-  frame->kite_index_array = NULL;
+  frame->kite_id_array = NULL;
 
   return frame;
 }
@@ -174,7 +174,7 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
   frame->duration = duration;
   frame->kind = KITE_QUIT;
   frame->action = action;
-  frame->kite_index_array = NULL;
+  frame->kite_id_array = NULL;
 
   return frame;
 }
@@ -193,7 +193,7 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
  * @param duration The duration the action should take.
  * @return The frame that is constructed to represent the given action.
  */
-Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
+Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_indexs,
                             void *raw_action, float duration) {
 
   // if (env->script_finished) {
@@ -206,7 +206,7 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Indexs kite_indexs,
   Frame *frame = tkbc_init_frame();
   void *action = tkbc_move_action_to_heap(raw_action, kind, true);
 
-  tkbc_dapc(frame->kite_index_array, kite_indexs.elements, kite_indexs.count);
+  tkbc_dapc(frame->kite_id_array, kite_indexs.elements, kite_indexs.count);
 
   frame->duration = duration;
   frame->kind = kind;
@@ -262,9 +262,9 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     switch (frame->kind) {
     case KITE_MOVE:
     case KITE_MOVE_ADD: {
-      for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
+      for (size_t i = 0; i < frame->kite_id_array->count; ++i) {
         for (size_t k = 0; k < env->kite_array->count; ++k) {
-          if (frame->kite_index_array->elements[i] ==
+          if (frame->kite_id_array->elements[i] ==
               env->kite_array->elements[k].kite_id) {
 
             Kite *kite = env->kite_array->elements[k].kite;
@@ -277,10 +277,10 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     } break;
     case KITE_ROTATION_ADD:
     case KITE_TIP_ROTATION_ADD: {
-      for (size_t i = 0; i < frame->kite_index_array->count; ++i) {
+      for (size_t i = 0; i < frame->kite_id_array->count; ++i) {
         for (size_t k = 0; k < env->kite_array->count; ++k) {
           if (env->kite_array->elements[i].kite_id ==
-              frame->kite_index_array->elements[k]) {
+              frame->kite_id_array->elements[k]) {
             Kite *kite = env->kite_array->elements[k].kite;
             kite->old_angle = kite->angle;
             kite->old_center = kite->center;
@@ -315,8 +315,8 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
  * @param _ The param is ignored just just for variadic function implementation.
  * @return The dynamic array list of kite indices.
  */
-Kite_Indexs tkbc__indexs_append(size_t _, ...) {
-  Kite_Indexs ki = {0};
+Kite_Ids tkbc__indexs_append(size_t _, ...) {
+  Kite_Ids ki = {0};
 
   va_list args;
   va_start(args, _);
@@ -344,8 +344,8 @@ Kite_Indexs tkbc__indexs_append(size_t _, ...) {
  * @param end The index where to end, it is exclusive.
  * @return The list of generated indexes form the given range.
  */
-Kite_Indexs tkbc_indexs_range(int start, int end) {
-  Kite_Indexs ki = {0};
+Kite_Ids tkbc_indexs_range(int start, int end) {
+  Kite_Ids ki = {0};
   for (; start < end; ++start) {
     tkbc_dap(&ki, start);
   }
@@ -361,7 +361,7 @@ Kite_Indexs tkbc_indexs_range(int start, int end) {
  * @param kite_count The amount of kites that are pushed to the kite array.
  * @return The kite indies that are appended to the kite array.
  */
-Kite_Indexs tkbc_kite_array_generate(Env *env, size_t kite_count) {
+Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
   Color color_array[] = {BLUE, GREEN, PURPLE, RED, TEAL};
 
   for (size_t i = 0; i < kite_count; ++i) {
@@ -396,20 +396,20 @@ void tkbc_print_script(FILE* stream, Block_Frame *block_frame) {
       fprintf(stream, "      Index:%zu\n",
               block_frame->elements[block].elements[frame].index);
 
-      if (block_frame->elements[block].elements[frame].kite_index_array) {
+      if (block_frame->elements[block].elements[frame].kite_id_array) {
         fprintf(stream, "      Kite-Ids: [%zu",
                 block_frame->elements[block]
                     .elements[frame]
-                    .kite_index_array->elements[0]);
+                    .kite_id_array->elements[0]);
 
         for (size_t index = 1; index < block_frame->elements[block]
                                            .elements[frame]
-                                           .kite_index_array->count;
+                                           .kite_id_array->count;
              ++index) {
           fprintf(stream, ", %zu",
                   block_frame->elements[block]
                       .elements[frame]
-                      .kite_index_array->elements[index]);
+                      .kite_id_array->elements[index]);
         }
       } else {
         fprintf(stream, "      Kite-Indies: [");

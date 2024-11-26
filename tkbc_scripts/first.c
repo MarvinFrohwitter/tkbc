@@ -1,7 +1,7 @@
 #include "../src/choreographer/tkbc-script-api.h"
 #include "../src/choreographer/tkbc-team-figures-api.h"
 
-void rotation_checkup(Env *env, Kite_Indexs ki) {
+void rotation_checkup(Env *env, Kite_Ids ki) {
 
   float wait_time = 0.5;
   float rotation_duration = 3;
@@ -102,7 +102,7 @@ void tkbc_script_input(Env *env) {
   // float ball_radius = (kite->width + kite->spread);
 
   // To set the setup to false.
-  Kite_Indexs ki = tkbc_kite_array_generate(env, 8);
+  Kite_Ids ki = tkbc_kite_array_generate(env, 8);
   // Kite_Indexs ki;
   // return;
 

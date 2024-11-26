@@ -22,8 +22,9 @@ typedef struct { // A representation for an internal kite geometric.
 } Triangle;
 
 typedef size_t Index; // NOTE: Check for clang compiler issue in project.
+typedef size_t Id;    // NOTE: Check for clang compiler issue in project.
 typedef struct {
-  Index kite_id;    // The universal id that is associated with one kite.
+  Id kite_id;       // The universal id that is associated with one kite.
   Vector2 position; // The position that is located at the center of the top
                     // leading edge.
   float angle;      // The rotation is in degrees around the center position.
@@ -165,22 +166,22 @@ typedef enum {
 } Action_Kind; // A named listing of all the available action kinds.
 
 typedef struct {
-  Index *elements; // The dynamic array collection for all kite indices.
+  Id *elements;    // The dynamic array collection for all kite indices.
   size_t count;    // The amount of elements in the array.
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
-} Kite_Indexs;     // A dynamic array that can hold kite_ids.
+} Kite_Ids;        // A dynamic array that can hold kite_ids.
 
 typedef struct {
-  Kite_Indexs *kite_index_array; // The collection of kite_ids that should be
-                                 // part of the performed action.
-  Index index;                   // The index of the current frame in the
+  Kite_Ids *kite_id_array; // The collection of kite_ids that should be
+                           // part of the performed action.
+  Index index;             // The index of the current frame in the
   float duration;   // The time in seconds it should take to perform an action.
   Action_Kind kind; // A representation of the kind of the action pointer.
   void *action;     // The action the frame should be responsible for.
   bool finished;    // Represents the state of the currently handled frame.
 } Frame;            // Combined action for the kites that are listed in the
-                    // kite_index_array.
+                    // kite_id_array.
 
 typedef struct {
   Kite_Position
@@ -206,7 +207,7 @@ typedef struct {
   size_t count;     // The amount of elements in the array.
   size_t capacity;  // The complete allocated space for the array represented as
                     // the number of collection elements of the array type.
-  Index script_id;  // The number of the loaded script starting from 1.
+  Id script_id;     // The number of the loaded script starting from 1.
 } Block_Frame; // A dynamic array collection that combined multiple frames to a
                // single kite draw representation.
 
