@@ -5,6 +5,7 @@
 #include "tkbc-ffmpeg.h"
 #include "tkbc-input-handler.h"
 #include "tkbc-script-api.h"
+#include "tkbc-script-converter.h"
 #include "tkbc-sound-handler.h"
 #include "tkbc.h"
 
@@ -59,6 +60,9 @@ int main(void) {
       tkbc_script_input(env);
       for (size_t i = 0; i < env->block_frames->count; ++i) {
         tkbc_print_script(stderr, &env->block_frames->elements[i]);
+        char buf[32];
+        sprintf(buf, "Script%zu.kite", i);
+        tkbc_write_script_kite_from_mem(&env->block_frames->elements[i], buf);
       }
     }
 

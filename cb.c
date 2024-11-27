@@ -97,6 +97,7 @@ void choreographer(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-team-figures-api.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-ui.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-parser.c");
+  cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-script-converter.c");
   linker(cmd, link_dynamic);
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
