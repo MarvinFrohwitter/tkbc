@@ -23,9 +23,9 @@ $ ./build/tkbc
 
 __```:Key:``` ```:Function Description:```__
 
-```KEY_ESCAPE``` Quits the Program
+```KEY_ESCAPE``` Quits the Program.
 
-```KEY_B``` Take a Screenshot
+```KEY_B``` Take a Screenshot.
 
 ```KEY_V``` Start recording the screen.
 
