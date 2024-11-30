@@ -1,4 +1,6 @@
+#include "tkbc-server-client-handler.h"
 #include "tkbc-network-common.h"
+#include "tkbc-server.h"
 
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-utils.h"
@@ -7,22 +9,50 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 extern Env *env;
 extern Clients *clients;
+extern pthread_t threads[SERVER_CONNETCTIONS];
 extern pthread_mutex_t mutex;
 
+void signal_pipe(int signal) {
+  (void)signal;
+  fprintf(stderr, "Check signal pipe handler\n");
+}
+void signal_int(int signal) {
+  (void)signal;
+  fprintf(stderr, "Check signal int handler\n");
+  pthread_exit(NULL);
+}
+
 void tkbc_server_brodcast_client(Client *client, const char *message) {
+
   int send_check = send(client->socket_id, message, strlen(message), 0);
+  if (send_check == 0) {
+    printf("ERROR no bytes where send to the client: %zu\n", client->index);
+  }
   if (send_check == -1) {
     fprintf(stderr, "ERROR: Client: %zu: Could broadcast message: %s.\n",
             client->index, message);
     fprintf(stderr, "ERROR: %s\n", strerror(errno));
+
+    if (!tkbc_server_remove_client(client)) {
+      printf("Client:%zu: could not be removed after broken pipe\n",
+             client->index);
+    }
+
+    if (close(client->socket_id) == -1) {
+      fprintf(stderr, "ERROR: Close socket: %s\n", strerror(errno));
+    }
+    pthread_kill(threads[client->index], SIGINT);
+
   } else {
-    fprintf(stderr, "The amount send: %d\n", send_check);
+    fprintf(stderr, "The amount %d send to: %d\n", send_check,
+            client->socket_id);
   }
 }
 
@@ -73,6 +103,7 @@ void tkbc_message_hello(Client *client) {
   tkbc_server_brodcast_client(client, message.elements);
   free(message.elements);
 }
+
 bool tkbc_server_remove_client(Client *client) {
   int ok = pthread_mutex_lock(&mutex);
   if (ok != 0) {
@@ -109,6 +140,11 @@ bool tkbc_server_remove_client(Client *client) {
 void *tkbc_client_handler(void *client) {
   Client *c = (Client *)client;
   int ok;
+  signal(SIGABRT, signal_int);
+  signal(SIGINT, signal_int);
+  signal(SIGTERM, signal_int);
+  signal(SIGPIPE, signal_pipe);
+
   tkbc_message_hello(c);
 
   Color color_array[] = {BLUE, PURPLE, GREEN, RED, TEAL};
@@ -153,7 +189,9 @@ void *tkbc_client_handler(void *client) {
       }
 
       if (strcmp(message, "quit\n") == 0) {
-        close(c->socket_id);
+        if (close(c->socket_id) == -1) {
+          fprintf(stderr, "ERROR: Close socket: %s\n", strerror(errno));
+        }
         return NULL;
       }
     }
@@ -161,12 +199,11 @@ void *tkbc_client_handler(void *client) {
     // TODO: Handle other messages.
   }
 
-  close(c->socket_id);
-  {
-    bool ok = tkbc_server_remove_client(c);
-    if (!ok) {
-      fprintf(stderr, "ERROR: Client %zu could not be removed.\n", c->index);
-    }
+  if (close(c->socket_id) == -1) {
+    fprintf(stderr, "ERROR: Close socket: %s\n", strerror(errno));
+  }
+  if (!tkbc_server_remove_client(c)) {
+    fprintf(stderr, "ERROR: Client %zu could not be removed.\n", c->index);
   }
 
   return NULL;

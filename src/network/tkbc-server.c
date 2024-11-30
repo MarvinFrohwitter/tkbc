@@ -22,7 +22,6 @@ Env *env;
 Clients *clients;
 int server_socket;
 
-#define SERVER_CONNETCTIONS 64
 pthread_t threads[SERVER_CONNETCTIONS];
 
 #include "../choreographer/tkbc.h"
@@ -96,9 +95,9 @@ Clients *tkbc_init_clients(void) {
 }
 
 int main(int argc, char *argv[]) {
-  signal(SIGABRT, sinaglhandler);
-  signal(SIGINT, sinaglhandler);
-  signal(SIGTERM, sinaglhandler);
+  signal(SIGABRT, signalhandler);
+  signal(SIGINT, signalhandler);
+  signal(SIGTERM, signalhandler);
 
   char *program_name = tkbc_shift_args(&argc, &argv);
   tkbc_server_commandline_check(argc, program_name);
@@ -110,9 +109,13 @@ int main(int argc, char *argv[]) {
   printf("Server socket: %d\n", server_socket);
   env = tkbc_init_env();
   clients = tkbc_init_clients();
+  size_t clients_visited = 0;
 
   for (;;) {
-
+    if (clients_visited > SERVER_CONNETCTIONS) {
+      signalhandler(SIGINT);
+      return 1;
+    }
     struct sockaddr_in client_address = {0};
     socklen_t address_length = 0;
     int client_socket_id = accept(
@@ -129,8 +132,7 @@ int main(int argc, char *argv[]) {
 
       assert(clients->count > 0);
       Client *c = &clients->elements[clients->count - 1];
-      pthread_create(&threads[clients->count - 1], NULL, tkbc_client_handler,
-                     c);
+      pthread_create(&threads[clients_visited++], NULL, tkbc_client_handler, c);
     } else {
       fprintf(stderr, "ERROR: %s\n", strerror(errno));
       assert(0 && "accept error");
@@ -140,15 +142,16 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-void sinaglhandler(int signal) {
-
+void signalhandler(int signal) {
   (void)signal;
   for (size_t i = 0; i < clients->count; ++i) {
     pthread_join(threads[i], NULL);
   }
 
   printf("Closing...\n");
-  close(server_socket);
+  if (close(server_socket) == -1) {
+    fprintf(stderr, "ERROR: Main Server Socket: %s\n", strerror(errno));
+  }
   free(clients->elements);
   exit(EXIT_SUCCESS);
 }
