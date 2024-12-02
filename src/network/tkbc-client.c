@@ -88,8 +88,8 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
 
   // TODO: Think about the decoding when ip and port are available through
   // arguments.
-  printf("Connected to Server: %s:%hd\n", inet_ntoa(server_address.sin_addr),
-         ntohs(server_address.sin_port));
+  fprintf(stderr, "Connected to Server: %s:%hd\n",
+          inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
 
   return client_socket;
 }
@@ -97,7 +97,7 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
 void message_handler(void) {
   char *token = strtok(message.elements, ":");
   if (token == NULL) {
-    printf("message.elements = %s\n", message.elements);
+    fprintf(stderr, "message.elements = %s\n", message.elements);
     assert(0 && "ERROR: token is NULL");
   }
 
@@ -105,35 +105,43 @@ void message_handler(void) {
   assert(MESSAGE_COUNT == 3);
   switch (kind) {
   case MESSAGE_HELLO: {
-    while (token) {
-      token = strtok(NULL, ":");
+    token = strtok(NULL, ":");
+
+    if (token == NULL) {
+      fprintf(stderr, "message.elements = %s\n", message.elements);
+      assert(0 && "ERROR: token is NULL");
     }
 
-    printf("[[MESSAGEHANDLER]] message = %s\n", message.elements);
+    fprintf(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
   } break;
   case MESSAGE_KITEADD: {
     token = strtok(NULL, ":");
     if (token == NULL) {
-      printf("message.elements = %s\n", message.elements);
+      fprintf(stderr, "message.elements = %s\n", message.elements);
       assert(0 && "ERROR: token is NULL");
     }
     size_t kite_id = atoi(token);
 
     token = strtok(NULL, ":");
     if (token == NULL) {
-      printf("message.elements = %s\n", message.elements);
+      fprintf(stderr, "message.elements = %s\n", message.elements);
       assert(0 && "ERROR: token is NULL");
     }
     size_t color_number = atoi(token);
     Color color = *(Color *)&color_number;
 
     token = strtok(NULL, ":");
+
+    fprintf(stderr, "----------------------------\n");
+    fprintf(stderr, "%s\n", token);
+    fprintf(stderr, "----------------------------\n");
+
     if (token == NULL) {
-      printf("message.elements = %s\n", message.elements);
+      fprintf(stderr, "message.elements = %s\n", message.elements);
       assert(0 && "ERROR: token is NULL");
     }
     if (token != NULL) {
-      printf("message.elements = %s\n", token);
+      fprintf(stderr, "message.elements = %s\n", token);
       assert(0 && "ERROR: invalid token.");
     }
 
@@ -143,7 +151,7 @@ void message_handler(void) {
     env->kite_array->elements[index].kite_id = kite_id;
     env->kite_array->elements[index].kite->body_color = color;
 
-    printf("[[MESSAGEHANDLER]] message = %s\n", message.elements);
+    fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEADD\n");
   } break;
   default:
     fprintf(stderr, "ERROR: Unknown KIND: %d\n", kind);

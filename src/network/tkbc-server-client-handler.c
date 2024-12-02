@@ -19,7 +19,6 @@ extern Clients *clients;
 extern pthread_t threads[SERVER_CONNETCTIONS];
 extern pthread_mutex_t mutex;
 
-
 void signal_int(int signal) {
   (void)signal;
   fprintf(stderr, "Check signal int handler\n");
@@ -31,16 +30,20 @@ void tkbc_server_brodcast_client(Client *client, const char *message) {
   int send_check =
       send(client->socket_id, message, strlen(message), MSG_NOSIGNAL);
   if (send_check == 0) {
-    printf("ERROR no bytes where send to the client: %zu\n", client->index);
+    fprintf(stderr, "ERROR no bytes where send to the client: " CLIENT_FMT "\n",
+            CLIENT_ARG(*client));
   }
   if (send_check == -1) {
-    fprintf(stderr, "ERROR: Client: %zu: Could broadcast message: %s.\n",
-            client->index, message);
+    fprintf(stderr,
+            "ERROR: Client: " CLIENT_FMT ": Could not broadcast message: %s.\n",
+            CLIENT_ARG(*client), message);
     fprintf(stderr, "ERROR: %s\n", strerror(errno));
 
     if (!tkbc_server_remove_client(client)) {
-      printf("INFO: Client:%zu: could not be removed after broken pipe\n",
-             client->index);
+      fprintf(stderr,
+              "INFO: Client: " CLIENT_FMT
+              ": could not be removed after broken pipe\n",
+              CLIENT_ARG(*client));
     }
 
     if (close(client->socket_id) == -1) {
@@ -49,8 +52,8 @@ void tkbc_server_brodcast_client(Client *client, const char *message) {
     pthread_kill(threads[client->index], SIGINT);
 
   } else {
-    fprintf(stderr, "INFO: The amount %d send to: %d\n", send_check,
-            client->socket_id);
+    fprintf(stderr, "INFO: The amount %d send to: " CLIENT_FMT "\n", send_check,
+            CLIENT_ARG(*client));
   }
 }
 
@@ -78,6 +81,7 @@ void tkbc_message_kiteadd(size_t client_index, Kite_State *state) {
   snprintf(buf, sizeof(buf), "%u", *((uint32_t *)&state->kite->body_color));
   tkbc_dapc(&message, buf, strlen(buf));
   tkbc_dap(&message, ':');
+  tkbc_dapc(&message, "\r\n", 2);
 
   tkbc_dap(&message, 0);
   tkbc_server_brodcast_all(message.elements);
@@ -116,11 +120,6 @@ bool tkbc_server_remove_client(Client *client) {
               sizeof(*client) * clients->count - i - 1);
       clients->count -= 1;
 
-      // tkbc_dapc(&cls, &clients->elements[0], i);
-      // tkbc_dapc(&cls, &clients->elements[i + 1], clients->count - i - 1);
-      // free(clients->elements);
-      // clients = &cls;
-
       ok = pthread_mutex_unlock(&mutex);
       if (ok != 0) {
         assert(0 && "ERROR:mutex unlock");
@@ -136,6 +135,9 @@ bool tkbc_server_remove_client(Client *client) {
 }
 
 void *tkbc_client_handler(void *client) {
+  // TODO: Check that clients can't have the same id as someone before. In this
+  // case the messages that are broadcasted to all clients will only be
+  // partially be distributed.
   Client *c = (Client *)client;
   int ok;
   signal(SIGABRT, signal_int);
@@ -163,16 +165,17 @@ void *tkbc_client_handler(void *client) {
 
   tkbc_message_kiteadd(c->index, kite_state);
 
-  printf("Connection from host %s, port %hd\n",
-         inet_ntoa(c->client_address.sin_addr),
-         ntohs(c->client_address.sin_port));
+  fprintf(stderr, "INFO: Connection from host %s, port %hd\n",
+          inet_ntoa(c->client_address.sin_addr),
+          ntohs(c->client_address.sin_port));
 
   for (;;) {
 
     {
       char message[1024];
       memset(message, 0, sizeof(message));
-      int message_ckeck = recv(c->socket_id, message, sizeof(message) - 1, MSG_NOSIGNAL);
+      int message_ckeck =
+          recv(c->socket_id, message, sizeof(message) - 1, MSG_NOSIGNAL);
       if (message_ckeck == -1) {
         fprintf(stderr, "ERROR: RECV: %s\n", strerror(errno));
         break;
@@ -200,7 +203,8 @@ void *tkbc_client_handler(void *client) {
     fprintf(stderr, "ERROR: Close socket: %s\n", strerror(errno));
   }
   if (!tkbc_server_remove_client(c)) {
-    fprintf(stderr, "ERROR: Client %zu could not be removed.\n", c->index);
+    fprintf(stderr, "ERROR: Client: " CLIENT_FMT ": could not be removed.\n",
+            CLIENT_ARG(*c));
   }
 
   return NULL;

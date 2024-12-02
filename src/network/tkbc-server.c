@@ -80,7 +80,7 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
     fprintf(stderr, "ERROR: %s\n", strerror(errno));
     exit(1);
   }
-  printf("Listening to port: %hu\n", port);
+  fprintf(stderr, "INFO: Listening to port: %hu\n", port);
 
   return socket_id;
 }
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
   uint16_t port = tkbc_port_parsing(port_check);
 
   server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
-  printf("Server socket: %d\n", server_socket);
+  fprintf(stderr, "INFO:Server socket: %d\n", server_socket);
   env = tkbc_init_env();
   clients = tkbc_init_clients();
   size_t clients_visited = 0;
@@ -128,7 +128,8 @@ int main(int argc, char *argv[]) {
           .client_address_length = address_length,
       };
       tkbc_dap(clients, client);
-      printf("Client %d has connected.\n", client_socket_id);
+      fprintf(stderr, "INFO: Client " CLIENT_FMT " has connected.\n",
+              CLIENT_ARG(client));
 
       assert(clients->count > 0);
       Client *c = &clients->elements[clients->count - 1];
@@ -148,7 +149,7 @@ void signalhandler(int signal) {
     pthread_join(threads[i], NULL);
   }
 
-  printf("Closing...\n");
+  fprintf(stderr, "INFO: Closing...\n");
   if (close(server_socket) == -1) {
     fprintf(stderr, "ERROR: Main Server Socket: %s\n", strerror(errno));
   }

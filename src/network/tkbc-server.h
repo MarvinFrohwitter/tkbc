@@ -3,9 +3,14 @@
 
 #include "../global/tkbc-types.h"
 #include "tkbc-network-common.h"
+#include <arpa/inet.h>
 #include <stdint.h>
 
 #define SERVER_CONNETCTIONS 64
+#define CLIENT_FMT "Index: %zu, Socket: %d, Address: (%s:%hd)"
+#define CLIENT_ARG(c)                                                          \
+  ((c).index), ((c).socket_id), (inet_ntoa((c).client_address.sin_addr)),      \
+      (ntohs((c).client_address.sin_port))
 
 void signalhandler(int signal);
 void tkbc_server_usage(const char *program_name);

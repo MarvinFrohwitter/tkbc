@@ -45,9 +45,9 @@ void tkbc_script_end(Env *env) {
 
     if (!env->script_finished) {
       env->script_finished = true;
-      printf("=========== FROM THE SCRIPT END FUNCTION ========\n");
-      printf("KITE: INFO: The script has finished successfully.\n");
-      printf("=================================================\n");
+      fprintf(stderr, "=========== FROM THE SCRIPT END FUNCTION ========\n");
+      fprintf(stderr, "KITE: INFO: The script has finished successfully.\n");
+      fprintf(stderr, "=================================================\n");
     }
   }
 }
@@ -103,7 +103,7 @@ void tkbc_script_update_frames(Env *env) {
     }
   } else {
     env->script_finished = true;
-    printf("KITE: INFO: The script has finished successfully.\n");
+    fprintf(stderr, "KITE: INFO: The script has finished successfully.\n");
   }
 }
 
@@ -382,7 +382,7 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
           kite_count);
 }
 
-void tkbc_print_script(FILE* stream, Block_Frame *block_frame) {
+void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
 
   fprintf(stream, "Script: %zu\n", block_frame->script_id);
   for (size_t block = 0; block < block_frame->count; ++block) {
@@ -402,9 +402,9 @@ void tkbc_print_script(FILE* stream, Block_Frame *block_frame) {
                     .elements[frame]
                     .kite_id_array->elements[0]);
 
-        for (size_t index = 1; index < block_frame->elements[block]
-                                           .elements[frame]
-                                           .kite_id_array->count;
+        for (size_t index = 1;
+             index <
+             block_frame->elements[block].elements[frame].kite_id_array->count;
              ++index) {
           fprintf(stream, ", %zu",
                   block_frame->elements[block]

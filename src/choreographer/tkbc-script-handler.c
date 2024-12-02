@@ -87,8 +87,7 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
       continue;
     }
 
-    Kite_Ids *new_kite_index_array =
-        calloc(1, sizeof(*new_kite_index_array));
+    Kite_Ids *new_kite_index_array = calloc(1, sizeof(*new_kite_index_array));
     if (new_kite_index_array == NULL) {
       fprintf(stderr, "ERROR: No more memory can be allocated.\n");
       return NULL;
@@ -215,7 +214,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       // kite.center + action->position - kite.center + kite->old_center
 
       if (!kite) {
-        printf("ERROR: The kite index array is invalid.\n");
+        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
       }
       assert(kite != NULL);
       tkbc_script_move(kite, Vector2Add(kite->old_center, action->position),
@@ -244,7 +243,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (!kite) {
-        printf("ERROR: The kite index array is invalid.\n");
+        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
       }
       assert(kite != NULL);
       tkbc_script_move(kite, action->position, frame->duration);
@@ -273,7 +272,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (!state) {
-        printf("ERROR: The kite index array is invalid.\n");
+        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
       }
       assert(state != NULL);
 
@@ -315,7 +314,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (!state) {
-        printf("ERROR: The kite index array is invalid.\n");
+        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
       }
       assert(state != NULL);
       tkbc_script_rotate(env, state, action->angle, frame->duration, false);
@@ -356,7 +355,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (!state) {
-        printf("ERROR: The kite index array is invalid.\n");
+        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
       }
       assert(state != NULL);
       tkbc_script_rotate_tip(env, state, action->tip, action->angle,
@@ -398,7 +397,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (!state) {
-        printf("ERROR: The kite index array is invalid.\n");
+        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
       }
       assert(state != NULL);
       tkbc_script_rotate_tip(env, state, action->tip, action->angle,
