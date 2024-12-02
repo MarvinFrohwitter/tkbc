@@ -19,10 +19,7 @@ extern Clients *clients;
 extern pthread_t threads[SERVER_CONNETCTIONS];
 extern pthread_mutex_t mutex;
 
-void signal_pipe(int signal) {
-  (void)signal;
-  fprintf(stderr, "Check signal pipe handler\n");
-}
+
 void signal_int(int signal) {
   (void)signal;
   fprintf(stderr, "Check signal int handler\n");
@@ -31,7 +28,8 @@ void signal_int(int signal) {
 
 void tkbc_server_brodcast_client(Client *client, const char *message) {
 
-  int send_check = send(client->socket_id, message, strlen(message), 0);
+  int send_check =
+      send(client->socket_id, message, strlen(message), MSG_NOSIGNAL);
   if (send_check == 0) {
     printf("ERROR no bytes where send to the client: %zu\n", client->index);
   }
@@ -41,7 +39,7 @@ void tkbc_server_brodcast_client(Client *client, const char *message) {
     fprintf(stderr, "ERROR: %s\n", strerror(errno));
 
     if (!tkbc_server_remove_client(client)) {
-      printf("Client:%zu: could not be removed after broken pipe\n",
+      printf("INFO: Client:%zu: could not be removed after broken pipe\n",
              client->index);
     }
 
@@ -51,7 +49,7 @@ void tkbc_server_brodcast_client(Client *client, const char *message) {
     pthread_kill(threads[client->index], SIGINT);
 
   } else {
-    fprintf(stderr, "The amount %d send to: %d\n", send_check,
+    fprintf(stderr, "INFO: The amount %d send to: %d\n", send_check,
             client->socket_id);
   }
 }
@@ -143,7 +141,6 @@ void *tkbc_client_handler(void *client) {
   signal(SIGABRT, signal_int);
   signal(SIGINT, signal_int);
   signal(SIGTERM, signal_int);
-  signal(SIGPIPE, signal_pipe);
 
   tkbc_message_hello(c);
 
@@ -175,7 +172,7 @@ void *tkbc_client_handler(void *client) {
     {
       char message[1024];
       memset(message, 0, sizeof(message));
-      int message_ckeck = recv(c->socket_id, message, sizeof(message) - 1, 0);
+      int message_ckeck = recv(c->socket_id, message, sizeof(message) - 1, MSG_NOSIGNAL);
       if (message_ckeck == -1) {
         fprintf(stderr, "ERROR: RECV: %s\n", strerror(errno));
         break;

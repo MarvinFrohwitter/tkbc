@@ -242,7 +242,7 @@ int tkbc_read_file(char *filename, Content *content) {
     content->count = strlen(content->elements);
   }
   // just override the last NULL-terminator to update the count.
-  // da_append(content, '\0');
+  // dap(content, '\0');
 
   free(buf);
   int fret = fclose(f);
