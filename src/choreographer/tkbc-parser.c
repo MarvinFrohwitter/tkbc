@@ -37,6 +37,7 @@ void tkbc_script_parser(Env *env) {
   Token t = lexer_next(lexer);
   while (t.kind != EOF_TOKEN) {
     switch (t.kind) {
+    case PREPROCESSING:
     case COMMENT:
       break;
     case IDENTIFIER: {
