@@ -150,6 +150,22 @@ void signalhandler(int signal) {
   }
 
   fprintf(stderr, "INFO: Closing...\n");
+
+  shutdown(server_socket, SHUT_WR);
+
+  char buf[1024] = {0};
+  int n = read(server_socket, buf, sizeof(buf));
+  while (n > 0) {
+    n = read(server_socket, buf, sizeof(buf));
+  }
+
+  if (n == 0) {
+    fprintf(stderr, "INFO: Could not read any more data.\n");
+  }
+  if (n < 0) {
+    fprintf(stderr, "ERROR: reading failed: %s\n", strerror(errno));
+  }
+
   if (close(server_socket) == -1) {
     fprintf(stderr, "ERROR: Main Server Socket: %s\n", strerror(errno));
   }

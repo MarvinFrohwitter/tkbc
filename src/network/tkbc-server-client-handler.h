@@ -12,6 +12,7 @@ void tkbc_server_brodcast_client(Client *client, const char *message);
 
 void tkbc_message_hello(Client *client);
 void tkbc_message_kiteadd(size_t client_index, Kite_State *state);
-bool tkbc_server_remove_client(Client *client);
+bool tkbc_server_remove_client_from_list(Client *client);
+void tkbc_server_shutdown_client(Client *client);
 
 #endif // !TKBC_SERVER_CLIENT_HANDLER_H

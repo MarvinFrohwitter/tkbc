@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 extern Env *env;
@@ -25,6 +26,35 @@ void signal_int(int signal) {
   pthread_exit(NULL);
 }
 
+void tkbc_server_shutdown_client(Client *client) {
+  if (!tkbc_server_remove_client_from_list(client)) {
+    fprintf(stderr,
+            "INFO: Client: " CLIENT_FMT
+            ": could not be removed after broken pipe\n",
+            CLIENT_ARG(*client));
+  }
+
+  shutdown(client->socket_id, SHUT_WR);
+  char buf[1024] = {0};
+  int n = read(client->socket_id, buf, sizeof(buf));
+  while (n > 0) {
+    n = read(client->socket_id, buf, sizeof(buf));
+  }
+
+  if (n == 0) {
+    fprintf(stderr, "INFO: Could not read any more data from the client.\n");
+  }
+  if (n < 0) {
+    fprintf(stderr, "ERROR: reading failed: %s\n", strerror(errno));
+  }
+
+  if (close(client->socket_id) == -1) {
+    fprintf(stderr, "ERROR: Close socket: %s\n", strerror(errno));
+  }
+
+  pthread_kill(threads[client->index], SIGINT);
+}
+
 void tkbc_server_brodcast_client(Client *client, const char *message) {
 
   int send_check =
@@ -35,22 +65,11 @@ void tkbc_server_brodcast_client(Client *client, const char *message) {
   }
   if (send_check == -1) {
     fprintf(stderr,
-            "ERROR: Client: " CLIENT_FMT ": Could not broadcast message: %s.\n",
+            "ERROR: Client: " CLIENT_FMT ": Could not broadcast message: %s\n",
             CLIENT_ARG(*client), message);
     fprintf(stderr, "ERROR: %s\n", strerror(errno));
 
-    if (!tkbc_server_remove_client(client)) {
-      fprintf(stderr,
-              "INFO: Client: " CLIENT_FMT
-              ": could not be removed after broken pipe\n",
-              CLIENT_ARG(*client));
-    }
-
-    if (close(client->socket_id) == -1) {
-      fprintf(stderr, "ERROR: Close socket: %s\n", strerror(errno));
-    }
-    pthread_kill(threads[client->index], SIGINT);
-
+    tkbc_server_shutdown_client(client);
   } else {
     fprintf(stderr, "INFO: The amount %d send to: " CLIENT_FMT "\n", send_check,
             CLIENT_ARG(*client));
@@ -108,7 +127,7 @@ void tkbc_message_hello(Client *client) {
   free(message.elements);
 }
 
-bool tkbc_server_remove_client(Client *client) {
+bool tkbc_server_remove_client_from_list(Client *client) {
   int ok = pthread_mutex_lock(&mutex);
   if (ok != 0) {
     assert(0 && "ERROR:mutex lock");
@@ -191,23 +210,13 @@ void *tkbc_client_handler(void *client) {
       }
 
       if (strcmp(message, "quit\n") == 0) {
-        if (close(c->socket_id) == -1) {
-          fprintf(stderr, "ERROR: Close socket: %s\n", strerror(errno));
-        }
-        return NULL;
+        break;
       }
     }
 
     // TODO: Handle other messages.
   }
 
-  if (close(c->socket_id) == -1) {
-    fprintf(stderr, "ERROR: Close socket: %s\n", strerror(errno));
-  }
-  if (!tkbc_server_remove_client(c)) {
-    fprintf(stderr, "ERROR: Client: " CLIENT_FMT ": could not be removed.\n",
-            CLIENT_ARG(*c));
-  }
-
+  tkbc_server_shutdown_client(client);
   return NULL;
 }
