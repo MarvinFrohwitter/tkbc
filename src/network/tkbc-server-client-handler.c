@@ -98,6 +98,8 @@ void tkbc_message_hello(Client *client) {
 
   const char *m = "Hello client from server!";
   tkbc_dapc(&message, m, strlen(m));
+
+  tkbc_dapc(&message, PROTOCOL_VERSION, strlen(PROTOCOL_VERSION));
   tkbc_dap(&message, ':');
   tkbc_dapc(&message, "\r\n", 2);
 

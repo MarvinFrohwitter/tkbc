@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 
+#define PROTOCOL_VERSION "1.0"
 #define SERVER_CONNETCTIONS 64
 #define CLIENT_FMT "Index: %zu, Socket: %d, Address: (%s:%hd)"
 #define CLIENT_ARG(c)                                                          \
