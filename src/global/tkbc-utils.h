@@ -212,45 +212,30 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
 }
 
 int tkbc_read_file(char *filename, Content *content) {
-
-  FILE *f = fopen(filename, "rb");
-  if (f == NULL) {
+  FILE *file = fopen(filename, "rb");
+  if (file == NULL) {
     fprintf(stderr, "Error:%s:%d:%s\n", __FILE__, __LINE__, strerror(errno));
     return -1;
   }
 
-  size_t buf_size = 4 * 1024;
-  char *buf = malloc(sizeof(char) * buf_size);
-  if (buf == NULL) {
-    fprintf(stderr,
-            "The allocation for the internal buffer has failed in: %s: %d\n",
-            __FILE__, __LINE__);
-  }
-  size_t n;
-
-  while (feof(f) == 0) {
-    memset(buf, 0, buf_size);
-    n = fread(buf, buf_size, 1, f);
-
-    if (n != buf_size) {
-      if (ferror(f) == -1) {
+  size_t chunk_size = 4 * 1024;
+  char chunk[chunk_size];
+  while (feof(file) == 0) {
+    memset(chunk, 0, chunk_size);
+    if (chunk_size != fread(chunk, chunk_size, 1, file)) {
+      if (ferror(file) == -1) {
         return -1;
       }
     }
-    tkbc_dapc(content, buf, buf_size);
+    tkbc_dapc(content, chunk, chunk_size);
     tkbc_dap(content, '\0');
     content->count = strlen(content->elements);
   }
-  // just override the last NULL-terminator to update the count.
-  // dap(content, '\0');
 
-  free(buf);
-  int fret = fclose(f);
-  if (fret == EOF) {
+  if (fclose(file) == EOF) {
     fprintf(stderr, "Error:%s:%d:%s\n", __FILE__, __LINE__, strerror(errno));
     return -1;
   }
-
   return 0;
 }
 
