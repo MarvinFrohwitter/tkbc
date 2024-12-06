@@ -45,6 +45,12 @@
 
 #endif // TKBC_LEXER_IMPLEMENTAION
 
+typedef struct {
+  char *elements;
+  size_t count;
+  size_t capacity;
+} Lexer_Scratch_Buffer; // A representation of a file content.
+
 typedef struct Lexer {
   char *content;
   unsigned long long int content_length;
@@ -53,6 +59,8 @@ typedef struct Lexer {
 
   unsigned long long int line_count;
   char *file_name;
+
+  Lexer_Scratch_Buffer *buffer;
 } Lexer;
 
 /* The variable that defines the escape characters. */
@@ -186,6 +194,78 @@ typedef struct Token {
   size_t size;
 } Token;
 
+/** @brief The initial capacity of the dynamic arrays. */
+#define LEXER_DAP_CAP 64
+
+/**
+ * @brief The macro pushes the new array element at the end of the dynamic
+ * array.
+ *
+ * @param dynamic_array The given array by a pointer.
+ * @param element The given new element by value of the same type the array
+ * holds elements.
+ */
+#define lexer_dap(dynamic_array, element)                                      \
+  do {                                                                         \
+    if ((dynamic_array)->capacity <= (dynamic_array)->count) {                 \
+      if ((dynamic_array)->capacity == 0)                                      \
+        (dynamic_array)->capacity = LEXER_DAP_CAP;                             \
+      else                                                                     \
+        (dynamic_array)->capacity = (dynamic_array)->capacity * 2;             \
+                                                                               \
+      (dynamic_array)->elements = realloc((dynamic_array)->elements,           \
+                                          sizeof(*(dynamic_array)->elements) * \
+                                              (dynamic_array)->capacity);      \
+                                                                               \
+      if ((dynamic_array)->elements == NULL) {                                 \
+        fprintf(                                                               \
+            stderr,                                                            \
+            "The allocation for the dynamic array has failed in: %s: %d\n",    \
+            __FILE__, __LINE__);                                               \
+      }                                                                        \
+    }                                                                          \
+                                                                               \
+    (dynamic_array)->elements[(dynamic_array)->count] = (element);             \
+    (dynamic_array)->count = (dynamic_array)->count + 1;                       \
+  } while (0)
+
+/**
+ * @brief The macro pushes the given amount of new elements to the end of the
+ * dynamic array.
+ *
+ * @param dynamic_array The given array by a pointer.
+ * @param new_element The given new elements by pointer of the same type the
+ * array holds elements.
+ * @param new_elements_count The amount of elements to add to the array.
+ */
+#define lexer_dapc(dynamic_array, new_elements, new_elements_count)            \
+  do {                                                                         \
+    if (new_elements != NULL) {                                                \
+      if ((dynamic_array)->capacity <                                          \
+          (dynamic_array)->count + new_elements_count) {                       \
+        if ((dynamic_array)->capacity == 0) {                                  \
+          (dynamic_array)->capacity = LEXER_DAP_CAP;                           \
+        }                                                                      \
+        while ((dynamic_array)->capacity <                                     \
+               (dynamic_array)->count + new_elements_count) {                  \
+          (dynamic_array)->capacity = (dynamic_array)->capacity * 2;           \
+        }                                                                      \
+        (dynamic_array)->elements = realloc(                                   \
+            (dynamic_array)->elements,                                         \
+            sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);   \
+        if ((dynamic_array)->elements == NULL) {                               \
+          fprintf(                                                             \
+              stderr,                                                          \
+              "The allocation for the dynamic array has failed in: %s: %d\n",  \
+              __FILE__, __LINE__);                                             \
+        }                                                                      \
+      }                                                                        \
+      memcpy((dynamic_array)->elements + (dynamic_array)->count, new_elements, \
+             sizeof(*(dynamic_array)->elements) * new_elements_count);         \
+      (dynamic_array)->count = (dynamic_array)->count + new_elements_count;    \
+    }                                                                          \
+  } while (0)
+
 /* ==========================================================================
  */
 /* ============================ PUBLIC FUNCTIONS ============================
@@ -197,6 +277,7 @@ BASICLEXDEF Lexer *lexer_new(char *file_path, char *content, size_t size,
                              size_t position);
 BASICLEXDEF void lexer_del(Lexer *lexer);
 BASICLEXDEF Token lexer_next(Lexer *lexer);
+const char *lexer_token_to_cstr(Lexer *lexer, Token *token);
 
 /* ==========================================================================
  */
@@ -280,7 +361,24 @@ BASICLEXDEF Lexer *lexer_new(char *file_path, char *content, size_t size,
 /* @param lexer The given Lexer that contains the current state. */
 BASICLEXDEF void lexer_del(Lexer *lexer) {
   free(lexer->content);
+  free(lexer->buffer);
   free(lexer);
+}
+
+/**
+ * @brief The function token_to_cstr() returns a pointer in the given buffer
+ * that is null terminated.
+ *
+ * @param lexer The given Lexer that contains the current state.
+ * @param token The sized token that should be appended to the buffer.
+ * @return The null terminated c-string.
+ */
+const char *lexer_token_to_cstr(Lexer *lexer, Token *token) {
+  lexer->buffer = 0;
+  lexer_dapc(lexer->buffer, token->content, token->size);
+  lexer_dap(lexer->buffer, 0);
+
+  return lexer->buffer->elements;
 }
 
 /* The function lexer_chop_char() consumes the amount of chars given by the */
