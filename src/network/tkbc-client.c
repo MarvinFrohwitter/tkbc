@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,12 +18,15 @@
 
 #include "../choreographer/tkbc.h"
 
+#include "../../external/lexer/tkbc-lexer.h"
+
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 
 Env *env = {0};
-Message message = {0};
+Message message_queue = {0};
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void tkbc_client_usage(const char *program_name) {
   fprintf(stderr, "Usage:\n");
@@ -86,8 +90,6 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
     exit(1);
   }
 
-  // TODO: Think about the decoding when ip and port are available through
-  // arguments.
   fprintf(stderr, "Connected to Server: %s:%hd\n",
           inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
 
@@ -95,122 +97,144 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
 }
 
 void message_handler(void) {
-  char *token = strtok(message.elements, ":");
-  if (token == NULL) {
+  Message message = {0};
+  Token token;
+  if (pthread_mutex_lock(&mutex) != 0) {
+    assert(0 && "ERROR:mutex lock");
+  }
+  if (message_queue.count == 0) {
+    if (pthread_mutex_unlock(&mutex) != 0) {
+      assert(0 && "ERROR:mutex unlock");
+    }
+    return;
+  }
+  tkbc_dapc(&message, message_queue.elements, message_queue.count);
+  tkbc_dap(&message, 0);
+  message_queue.count = 0;
+  if (pthread_mutex_unlock(&mutex) != 0) {
+    assert(0 && "ERROR:mutex unlock");
+  }
+
+  Lexer *lexer = lexer_new(__FILE__, message.elements, message.count, 0);
+  do {
+    token = lexer_next(lexer);
+    if (token.kind == EOF_TOKEN) {
+      break;
+    }
+    if (token.kind == ERROR) {
+      goto err;
+    }
+
+    if (token.kind != NUMBER) {
+      goto err;
+    }
+
+    int kind = atoi(lexer_token_to_cstr(lexer, &token));
+    token = lexer_next(lexer);
+    if (token.kind != PUNCT_COLON) {
+      goto err;
+    }
+
+    assert(MESSAGE_COUNT == 3);
+    switch (kind) {
+    case MESSAGE_HELLO: {
+      token = lexer_next(lexer);
+      if (token.kind != STRINGLITERAL) {
+        goto err;
+      }
+
+      const char *greeting = "\"Hello client from server!1.0\"";
+      const char *compare = lexer_token_to_cstr(lexer, &token);
+      if (strncmp(compare, greeting, strlen(greeting)) != 0) {
+        fprintf(stderr, "ERROR: Hello Message failed!\n");
+        assert(0 && "ERROR: Wrong protocol version!");
+      }
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        goto err;
+      }
+
+      fprintf(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
+    } break;
+    case MESSAGE_KITEADD: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        goto err;
+      }
+      size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
+
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        goto err;
+      }
+
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        goto err;
+      }
+      size_t color_number = atoi(lexer_token_to_cstr(lexer, &token));
+      Color color = *(Color *)&color_number;
+
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        goto err;
+      }
+
+      Kite_State *kite_state = tkbc_init_kite();
+      tkbc_dap(env->kite_array, *kite_state);
+      Index index = env->kite_array->count - 1;
+      env->kite_array->elements[index].kite_id = kite_id;
+      env->kite_array->elements[index].kite->body_color = color;
+
+      fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEADD\n");
+    } break;
+    default:
+      fprintf(stderr, "ERROR: Unknown KIND: %d\n", kind);
+      exit(1);
+    }
+    continue;
+
+  err: {
+    char *rn = strstr(message.elements, "\r\n");
+    if (rn != NULL) {
+      int jump_length = rn + 2 - &lexer->content[lexer->position];
+      lexer_chop_char(lexer, jump_length);
+      continue;
+    }
     fprintf(stderr, "message.elements = %s\n", message.elements);
-    assert(0 && "ERROR: token is NULL");
+    break;
   }
+  } while (token.kind != EOF_TOKEN);
 
-  int kind = atoi(token);
-  assert(MESSAGE_COUNT == 3);
-  switch (kind) {
-  case MESSAGE_HELLO: {
-    token = strtok(NULL, ":");
-
-    if (token == NULL) {
-      fprintf(stderr, "message.elements = %s\n", message.elements);
-      assert(0 && "ERROR: token is NULL");
-    }
-
-    fprintf(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
-  } break;
-  case MESSAGE_KITEADD: {
-    token = strtok(NULL, ":");
-    if (token == NULL) {
-      fprintf(stderr, "message.elements = %s\n", message.elements);
-      assert(0 && "ERROR: token is NULL");
-    }
-    size_t kite_id = atoi(token);
-
-    token = strtok(NULL, ":");
-    if (token == NULL) {
-      fprintf(stderr, "message.elements = %s\n", message.elements);
-      assert(0 && "ERROR: token is NULL");
-    }
-    size_t color_number = atoi(token);
-    Color color = *(Color *)&color_number;
-
-    token = strtok(NULL, ":");
-
-    fprintf(stderr, "----------------------------\n");
-    fprintf(stderr, "%s\n", token);
-    fprintf(stderr, "----------------------------\n");
-
-    if (token == NULL) {
-      fprintf(stderr, "message.elements = %s\n", message.elements);
-      assert(0 && "ERROR: token is NULL");
-    }
-    if (token != NULL) {
-      fprintf(stderr, "message.elements = %s\n", token);
-      assert(0 && "ERROR: invalid token.");
-    }
-
-    Kite_State *kite_state = tkbc_init_kite();
-    tkbc_dap(env->kite_array, *kite_state);
-    Index index = env->kite_array->count - 1;
-    env->kite_array->elements[index].kite_id = kite_id;
-    env->kite_array->elements[index].kite->body_color = color;
-
-    fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEADD\n");
-  } break;
-  default:
-    fprintf(stderr, "ERROR: Unknown KIND: %d\n", kind);
-    exit(1);
-  }
-  message.count = 0;
+  lexer_del(lexer);
 }
 
 void *message_recieving(void *client) {
   int client_socket = *((int *)client);
 
-  char tmp[1024];
-  size_t tmp_count = 0;
-  ushort rn_len = 2;
-  // For init;
-  tkbc_dap(&message, 0);
-
   for (;;) {
     char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
     // The recv call blocks.
-    int message_ckeck = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+    int message_ckeck =
+        recv(client_socket, buffer, sizeof(buffer), MSG_NOSIGNAL);
     if (message_ckeck == -1) {
       fprintf(stderr, "ERROR: %s\n", strerror(errno));
       break;
     }
 
-    char *ptr = strstr(buffer, "\r\n");
-    if (ptr == NULL) {
-      if (strlen(buffer) > 0) {
-        fprintf(stderr, "[[MESSAGERECIEVER]] %s", buffer);
-        assert(0 && "ERROR:MESSAGE is bigger than 1024bytes");
-      }
-      continue;
+    if (pthread_mutex_lock(&mutex) != 0) {
+      assert(0 && "ERROR:mutex lock");
     }
 
-    if (tmp_count) {
-      tkbc_dapc(&message, tmp, tmp_count);
-      tmp_count = 0;
+    // This assumes that the message is less than the buffer size and read
+    // completely.
+    tkbc_dapc(&message_queue, buffer, strlen(buffer));
+
+    if (pthread_mutex_unlock(&mutex) != 0) {
+      assert(0 && "ERROR:mutex unlock");
     }
-
-    size_t firstbytes_len = ptr - buffer - 1;
-    tmp_count = sizeof(buffer) - firstbytes_len - rn_len;
-    memcpy(tmp, ptr + rn_len, tmp_count);
-    memset(ptr, 0, tmp_count);
-
-    assert(firstbytes_len <= sizeof(buffer));
-    message.count = 0;
-    tkbc_dapc(&message, buffer, strlen(buffer));
-    tkbc_dap(&message, 0);
-
-    // TODO: recv blocks so just the first message is send to the
-    // message_handler and then the next message if more than on is in the read
-    // buffer is going to the temp but not executed. If the next message is read
-    // the handler will execute again?
-    fprintf(stderr, "[Client] Message: [%s]\n", message.elements);
-    // TODO: Check for return code.
   }
-  free(message.elements);
 
   pthread_exit(NULL);
 }
@@ -249,6 +273,8 @@ int main(int argc, char *argv[]) {
     EndDrawing();
   };
 
+  pthread_cancel(thread);
+  free(message_queue.elements);
   close(client_socket);
   tkbc_destroy_env(env);
   CloseWindow();

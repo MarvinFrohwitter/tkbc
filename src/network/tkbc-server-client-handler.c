@@ -115,10 +115,12 @@ void tkbc_message_hello(Client *client) {
   tkbc_dapc(&message, buf, strlen(buf));
   tkbc_dap(&message, ':');
 
+  tkbc_dapc(&message, "\"", 1);
   const char *m = "Hello client from server!";
   tkbc_dapc(&message, m, strlen(m));
 
   tkbc_dapc(&message, PROTOCOL_VERSION, strlen(PROTOCOL_VERSION));
+  tkbc_dapc(&message, "\"", 1);
   tkbc_dap(&message, ':');
   tkbc_dapc(&message, "\r\n", 2);
 
@@ -128,8 +130,7 @@ void tkbc_message_hello(Client *client) {
 }
 
 bool tkbc_server_remove_client_from_list(Client *client) {
-  int ok = pthread_mutex_lock(&mutex);
-  if (ok != 0) {
+  if (pthread_mutex_lock(&mutex) != 0) {
     assert(0 && "ERROR:mutex lock");
   }
 
@@ -141,15 +142,13 @@ bool tkbc_server_remove_client_from_list(Client *client) {
               sizeof(*client) * clients->count - i - 1);
       clients->count -= 1;
 
-      ok = pthread_mutex_unlock(&mutex);
-      if (ok != 0) {
+      if (pthread_mutex_unlock(&mutex) != 0) {
         assert(0 && "ERROR:mutex unlock");
       }
       return true;
     }
   }
-  ok = pthread_mutex_unlock(&mutex);
-  if (ok != 0) {
+  if (pthread_mutex_unlock(&mutex) != 0) {
     assert(0 && "ERROR:mutex unlock");
   }
   return false;
@@ -160,7 +159,6 @@ void *tkbc_client_handler(void *client) {
   // case the messages that are broadcasted to all clients will only be
   // partially be distributed.
   Client *c = (Client *)client;
-  int ok;
   signal(SIGABRT, signal_int);
   signal(SIGINT, signal_int);
   signal(SIGTERM, signal_int);
@@ -170,8 +168,7 @@ void *tkbc_client_handler(void *client) {
   Color color_array[] = {BLUE, PURPLE, GREEN, RED, TEAL};
   Kite_State *kite_state = tkbc_init_kite();
 
-  ok = pthread_mutex_lock(&mutex);
-  if (ok != 0) {
+  if (pthread_mutex_lock(&mutex) != 0) {
     assert(0 && "ERROR:mutex lock");
   }
   tkbc_dap(env->kite_array, *kite_state);
@@ -179,8 +176,7 @@ void *tkbc_client_handler(void *client) {
   env->kite_array->elements[index].kite_id = c->index;
   env->kite_array->elements[index].kite->body_color =
       color_array[index % ARRAY_LENGTH(color_array)];
-  ok = pthread_mutex_unlock(&mutex);
-  if (ok != 0) {
+  if (pthread_mutex_unlock(&mutex) != 0) {
     assert(0 && "ERROR:mutex unlock");
   }
 
