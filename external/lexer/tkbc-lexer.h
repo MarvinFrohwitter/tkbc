@@ -60,7 +60,7 @@ typedef struct Lexer {
   unsigned long long int line_count;
   char *file_name;
 
-  Lexer_Scratch_Buffer *buffer;
+  Lexer_Scratch_Buffer buffer;
 } Lexer;
 
 /* The variable that defines the escape characters. */
@@ -338,7 +338,7 @@ LEXDEF int is_sybol_alpha_and_(char c);
 /* @return Lexer The function returns a new initialized lexer. */
 BASICLEXDEF Lexer *lexer_new(char *file_path, char *content, size_t size,
                              size_t position) {
-  Lexer *lexer = malloc(sizeof(Lexer));
+  Lexer *lexer = calloc(1, sizeof(Lexer));
   if (lexer == NULL) {
 #ifdef LEX_LOGERROR
     fprintf(stderr,
@@ -361,7 +361,7 @@ BASICLEXDEF Lexer *lexer_new(char *file_path, char *content, size_t size,
 /* @param lexer The given Lexer that contains the current state. */
 BASICLEXDEF void lexer_del(Lexer *lexer) {
   free(lexer->content);
-  free(lexer->buffer);
+  free(lexer->buffer.elements);
   free(lexer);
 }
 
@@ -374,11 +374,10 @@ BASICLEXDEF void lexer_del(Lexer *lexer) {
  * @return The null terminated c-string.
  */
 const char *lexer_token_to_cstr(Lexer *lexer, Token *token) {
-  lexer->buffer = 0;
-  lexer_dapc(lexer->buffer, token->content, token->size);
-  lexer_dap(lexer->buffer, 0);
-
-  return lexer->buffer->elements;
+  lexer->buffer.elements = 0;
+  lexer_dapc(&lexer->buffer, token->content, token->size);
+  lexer_dap(&lexer->buffer, 0);
+  return lexer->buffer.elements;
 }
 
 /* The function lexer_chop_char() consumes the amount of chars given by the */
