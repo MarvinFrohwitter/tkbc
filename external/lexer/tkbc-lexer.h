@@ -374,7 +374,7 @@ BASICLEXDEF void lexer_del(Lexer *lexer) {
  * @return The null terminated c-string.
  */
 const char *lexer_token_to_cstr(Lexer *lexer, Token *token) {
-  lexer->buffer.elements = 0;
+  lexer->buffer.count = 0;
   lexer_dapc(&lexer->buffer, token->content, token->size);
   lexer_dap(&lexer->buffer, 0);
   return lexer->buffer.elements;
