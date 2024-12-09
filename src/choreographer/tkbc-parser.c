@@ -153,9 +153,12 @@ void tkbc_script_parser(Env *env) {
   }
 
   lexer_del(lexer);
-  free(tmp_buffer.elements);
-  free(frames.elements);
-  free(ki.elements);
+  if (tmp_buffer.elements)
+    free(tmp_buffer.elements);
+  if (frames.elements)
+    free(frames.elements);
+  if (ki.elements)
+    free(ki.elements);
 }
 
 /**
@@ -315,7 +318,9 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
     }
   }
 check:
-  free(kis.elements);
+  if (kis.elements) {
+    free(kis.elements);
+  }
   return ok ? true : false;
 }
 
@@ -399,7 +404,9 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
   }
 
 check:
-  free(kis.elements);
+  if (kis.elements) {
+    free(kis.elements);
+  }
   return ok ? true : false;
 }
 
@@ -498,6 +505,8 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
   }
 
 check:
-  free(kis.elements);
+  if (kis.elements) {
+    free(kis.elements);
+  }
   return ok ? true : false;
 }
