@@ -360,8 +360,12 @@ BASICLEXDEF Lexer *lexer_new(char *file_path, char *content, size_t size,
 /* The function lexer_del() frees the allocated lexer. */
 /* @param lexer The given Lexer that contains the current state. */
 BASICLEXDEF void lexer_del(Lexer *lexer) {
-  free(lexer->content);
-  free(lexer->buffer.elements);
+  if (lexer->content) {
+    free(lexer->content);
+  }
+  if (lexer->buffer.elements) {
+    free(lexer->buffer.elements);
+  }
   free(lexer);
 }
 
