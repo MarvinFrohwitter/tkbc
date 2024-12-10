@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <raylib.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -96,6 +97,119 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
   return client_socket;
 }
 
+bool tkbc_parse_message_client(Lexer *lexer, size_t *kite_id, float *x,
+                               float *y, float *angle, Color *color) {
+  Content buffer = {0};
+  Token token;
+  bool ok = true;
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER) {
+    check_return(false);
+  }
+  *kite_id = atoi(lexer_token_to_cstr(lexer, &token));
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    check_return(false);
+  }
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_LPAREN) {
+    check_return(false);
+  }
+
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+    check_return(false);
+  }
+  if (token.kind == PUNCT_SUB) {
+    tkbc_dapc(&buffer, token.content, token.size);
+    token = lexer_next(lexer);
+    if (token.kind != NUMBER) {
+      check_return(false);
+    }
+  }
+  tkbc_dapc(&buffer, token.content, token.size);
+  tkbc_dap(&buffer, 0);
+  *x = atoi(buffer.elements);
+  buffer.count = 0;
+
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COMMA) {
+    check_return(false);
+  }
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+    check_return(false);
+  }
+  if (token.kind == PUNCT_SUB) {
+    tkbc_dapc(&buffer, token.content, token.size);
+    token = lexer_next(lexer);
+    if (token.kind != NUMBER) {
+      check_return(false);
+    }
+  }
+  tkbc_dapc(&buffer, token.content, token.size);
+  tkbc_dap(&buffer, 0);
+  *y = atoi(lexer_token_to_cstr(lexer, &token));
+  buffer.count = 0;
+
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_RPAREN) {
+    check_return(false);
+  }
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    check_return(false);
+  }
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+    check_return(false);
+  }
+  if (token.kind == PUNCT_SUB) {
+    tkbc_dapc(&buffer, token.content, token.size);
+    token = lexer_next(lexer);
+    if (token.kind != NUMBER) {
+      check_return(false);
+    }
+  }
+  tkbc_dapc(&buffer, token.content, token.size);
+  tkbc_dap(&buffer, 0);
+  *angle = atoi(lexer_token_to_cstr(lexer, &token));
+  buffer.count = 0;
+
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    check_return(false);
+  }
+
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER) {
+    check_return(false);
+  }
+  size_t color_number = atoi(lexer_token_to_cstr(lexer, &token));
+  *color = *(Color *)&color_number;
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    check_return(false);
+  }
+check:
+  if (buffer.elements) {
+    free(buffer.elements);
+  }
+  return ok ? true : false;
+}
+
+void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
+                                    float angle, Color color) {
+  Kite_State *kite_state = tkbc_init_kite();
+  kite_state->kite_id = kite_id;
+  kite_state->kite->center.x = x;
+  kite_state->kite->center.y = y;
+  kite_state->kite->angle = angle;
+  kite_state->kite->body_color = color;
+  tkbc_center_rotation(kite_state->kite, NULL, kite_state->kite->angle);
+  tkbc_dap(env->kite_array, *kite_state);
+}
+
 void message_handler(void) {
   Message message = {0};
   Token token;
@@ -121,6 +235,9 @@ void message_handler(void) {
     if (token.kind == EOF_TOKEN) {
       break;
     }
+    if (token.kind == INVALID) {
+      goto err;
+    }
     if (token.kind == ERROR) {
       goto err;
     }
@@ -135,7 +252,7 @@ void message_handler(void) {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 3);
+    assert(MESSAGE_COUNT == 4);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -157,36 +274,54 @@ void message_handler(void) {
       fprintf(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
     } break;
     case MESSAGE_KITEADD: {
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
-        goto err;
-      }
-      size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
-
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
+      size_t kite_id;
+      float x, y, angle;
+      Color color;
+      if (!tkbc_parse_message_client(lexer, &kite_id, &x, &y, &angle, &color)) {
         goto err;
       }
 
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
-        goto err;
-      }
-      size_t color_number = atoi(lexer_token_to_cstr(lexer, &token));
-      Color color = *(Color *)&color_number;
-
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        goto err;
-      }
-
-      Kite_State *kite_state = tkbc_init_kite();
-      tkbc_dap(env->kite_array, *kite_state);
-      Index index = env->kite_array->count - 1;
-      env->kite_array->elements[index].kite_id = kite_id;
-      env->kite_array->elements[index].kite->body_color = color;
+      tkbc_register_kite_from_values(kite_id, x, y, angle, color);
 
       fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEADD\n");
+    } break;
+    case MESSAGE_CLIENTKITES: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        goto err;
+      }
+      size_t amount = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        goto err;
+      }
+      for (size_t i = 0; i < amount; ++i) {
+        size_t kite_id;
+        float x, y, angle;
+        Color color;
+        if (!tkbc_parse_message_client(lexer, &kite_id, &x, &y, &angle,
+                                       &color)) {
+          goto err;
+        }
+        bool found = false;
+        for (size_t j = 0; j < env->kite_array->count; ++j) {
+          if (kite_id == env->kite_array->elements[j].kite_id) {
+            env->kite_array->elements[j].kite->center.x = x;
+            env->kite_array->elements[j].kite->center.y = y;
+            env->kite_array->elements[j].kite->angle = angle;
+            env->kite_array->elements[j].kite->body_color = color;
+            found = true;
+            break;
+          }
+        }
+
+        if (!found) {
+          // If the kite_id is not registered.
+          tkbc_register_kite_from_values(kite_id, x, y, angle, color);
+        }
+      }
+
+      fprintf(stderr, "[[MESSAGEHANDLER]] message = CLIENTKITES\n");
     } break;
     default:
       fprintf(stderr, "ERROR: Unknown KIND: %d\n", kind);
@@ -263,7 +398,11 @@ int main(int argc, char *argv[]) {
   pthread_attr_destroy(&attr);
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
+  SetTraceLogLevel(LOG_NONE);
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+  SetTargetFPS(TARGET_FPS);
+  SetExitKey(KEY_ESCAPE);
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
@@ -272,11 +411,28 @@ int main(int argc, char *argv[]) {
     tkbc_draw_kite_array(env->kite_array);
     EndDrawing();
   };
+  CloseWindow();
 
   pthread_cancel(thread);
   free(message_queue.elements);
-  close(client_socket);
+
+  shutdown(client_socket, SHUT_WR);
+  char buf[1024] = {0};
+  int n;
+  do {
+    n = read(client_socket, buf, sizeof(buf));
+  } while (n > 0);
+
+  if (n == 0) {
+    fprintf(stderr, "INFO: Could not read any more data.\n");
+  }
+  if (n < 0) {
+    fprintf(stderr, "ERROR: reading failed: %s\n", strerror(errno));
+  }
+  if (close(client_socket) == -1) {
+    fprintf(stderr, "ERROR: Could not close socket: %s\n", strerror(errno));
+  }
+
   tkbc_destroy_env(env);
-  CloseWindow();
   return 0;
 }

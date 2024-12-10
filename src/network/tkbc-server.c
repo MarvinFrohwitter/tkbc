@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
         server_socket, (struct sockaddr *)&client_address, &address_length);
     if (client_socket_id != -1) {
       Client client = {
-          .index = clients->count,
+          .index = clients_visited,
           .socket_id = client_socket_id,
           .client_address = client_address,
           .client_address_length = address_length,
@@ -140,32 +140,19 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  signalhandler(SIGINT);
   return 0;
 }
 
 void signalhandler(int signal) {
   (void)signal;
   for (size_t i = 0; i < clients->count; ++i) {
-    pthread_join(threads[i], NULL);
+    tkbc_server_shutdown_client(&clients->elements[i]);
   }
 
   fprintf(stderr, "INFO: Closing...\n");
 
-  shutdown(server_socket, SHUT_WR);
-
-  char buf[1024] = {0};
-  int n = read(server_socket, buf, sizeof(buf));
-  while (n > 0) {
-    n = read(server_socket, buf, sizeof(buf));
-  }
-
-  if (n == 0) {
-    fprintf(stderr, "INFO: Could not read any more data.\n");
-  }
-  if (n < 0) {
-    fprintf(stderr, "ERROR: reading failed: %s\n", strerror(errno));
-  }
-
+  shutdown(server_socket, SHUT_RDWR);
   if (close(server_socket) == -1) {
     fprintf(stderr, "ERROR: Main Server Socket: %s\n", strerror(errno));
   }
