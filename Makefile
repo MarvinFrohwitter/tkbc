@@ -8,7 +8,9 @@ LIBS += -l:libraylib.a
 LIBS += -lm
 CFLAGS = -x c -O0 -pedantic -Wall -Wextra -ggdb
 CHOREOGRAPHERPATH = src/choreographer
-CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c ${CHOREOGRAPHERPATH}/tkbc.c ${CHOREOGRAPHERPATH}/tkbc-ffmpeg.c ${CHOREOGRAPHERPATH}/tkbc-input-handler.c ${CHOREOGRAPHERPATH}/tkbc-script-api.c ${CHOREOGRAPHERPATH}/tkbc-script-handler.c ${CHOREOGRAPHERPATH}/tkbc-sound-handler.c ${CHOREOGRAPHERPATH}/tkbc-team-figures-api.c ${CHOREOGRAPHERPATH}/tkbc-ui.c ${CHOREOGRAPHERPATH}/tkbc-parser.c ${CHOREOGRAPHERPATH}/tkbc-script-converter.c
+CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c
+CHOREOGRAPHER_FILES = ${CHOREOGRAPHERPATH}/tkbc.c ${CHOREOGRAPHERPATH}/tkbc-ffmpeg.c ${CHOREOGRAPHERPATH}/tkbc-input-handler.c ${CHOREOGRAPHERPATH}/tkbc-script-api.c ${CHOREOGRAPHERPATH}/tkbc-script-handler.c ${CHOREOGRAPHERPATH}/tkbc-sound-handler.c ${CHOREOGRAPHERPATH}/tkbc-team-figures-api.c ${CHOREOGRAPHERPATH}/tkbc-ui.c ${CHOREOGRAPHERPATH}/tkbc-parser.c ${CHOREOGRAPHERPATH}/tkbc-script-converter.c
+CHOREOGRAPHER += ${CHOREOGRAPHER_FILES}
 
 all: options clean build tkbc raylib server client
 
@@ -19,11 +21,11 @@ options:
 	@echo "CC     = ${CC}"
 
 
-server:
-	${CC} ${INCLUDE} ${CFLAGS} -static -o build/server src/network/tkbc-server.c src/network/tkbc-server-client-handler.c src/network/tkbc-network-common.c src/choreographer/tkbc.c src/choreographer/tkbc-script-handler.c src/choreographer/tkbc-parser.c src/choreographer/tkbc-script-api.c ${LIBS}
+server: build raylib first.o
+	${CC} ${INCLUDE} ${CFLAGS} -static -o build/server src/network/tkbc-server.c src/network/tkbc-server-client-handler.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
-client:
-	${CC} ${INCLUDE} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/choreographer/tkbc.c src/choreographer/tkbc-script-handler.c src/choreographer/tkbc-parser.c src/choreographer/tkbc-script-api.c ${LIBS}
+client: build raylib first.o
+	${CC} ${INCLUDE} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
 
 tkbc: build raylib first.o
@@ -42,4 +44,3 @@ clean:
 	rm -r build
 
 .PHONY: all clean options tkbc tkbc.o build raylib server client
-

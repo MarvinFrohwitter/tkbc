@@ -81,13 +81,7 @@ void kite_script(Cmd *cmd) {
     exit(EXIT_FAILURE);
 }
 
-void choreographer(Cmd *cmd, bool link_dynamic) {
-  // Choreographer
-  cb_cmd_push(cmd, CC);
-  include(cmd);
-  cflags(cmd);
-  cb_cmd_push(cmd, "-o", "build/tkbc");
-  cb_cmd_push(cmd, CHOREOGRAPHERPATH "main.c");
+void choreographer_files(Cmd *cmd) {
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-ffmpeg.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-input-handler.c");
@@ -98,6 +92,16 @@ void choreographer(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-ui.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-parser.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-script-converter.c");
+}
+
+void choreographer(Cmd *cmd, bool link_dynamic) {
+  // Choreographer
+  cb_cmd_push(cmd, CC);
+  include(cmd);
+  cflags(cmd);
+  cb_cmd_push(cmd, "-o", "build/tkbc");
+  cb_cmd_push(cmd, CHOREOGRAPHERPATH "main.c");
+  choreographer_files(cmd);
   linker(cmd, link_dynamic);
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
@@ -112,10 +116,7 @@ void server(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, "src/network/tkbc-server.c");
   cb_cmd_push(cmd, "src/network/tkbc-server-client-handler.c");
   cb_cmd_push(cmd, "src/network/tkbc-network-common.c");
-  cb_cmd_push(cmd, "src/choreographer/tkbc.c");
-  cb_cmd_push(cmd, "src/choreographer/tkbc-script-handler.c");
-  cb_cmd_push(cmd, "src/choreographer/tkbc-script-api.c");
-  cb_cmd_push(cmd, "src/choreographer/tkbc-parser.c");
+  choreographer_files(cmd);
   linker(cmd, link_dynamic);
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
@@ -129,10 +130,7 @@ void client(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, "-o", "build/client");
   cb_cmd_push(cmd, "src/network/tkbc-client.c");
   cb_cmd_push(cmd, "src/network/tkbc-network-common.c");
-  cb_cmd_push(cmd, "src/choreographer/tkbc.c");
-  cb_cmd_push(cmd, "src/choreographer/tkbc-script-handler.c");
-  cb_cmd_push(cmd, "src/choreographer/tkbc-script-api.c");
-  cb_cmd_push(cmd, "src/choreographer/tkbc-parser.c");
+  choreographer_files(cmd);
   linker(cmd, link_dynamic);
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
