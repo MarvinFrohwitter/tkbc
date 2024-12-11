@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#define PROTOCOL_VERSION "1.0"
+
 typedef struct {
   size_t kite_id;
 
