@@ -18,8 +18,8 @@ void (*signal(int sig, void (*func)(int)))(int);
 
 #include "../global/tkbc-types.h"
 
-Env *env;
-Clients *clients;
+Env *env = {0};
+Clients *clients = {0};
 int server_socket;
 
 pthread_t threads[SERVER_CONNETCTIONS];
@@ -121,6 +121,9 @@ int main(int argc, char *argv[]) {
     int client_socket_id = accept(
         server_socket, (struct sockaddr *)&client_address, &address_length);
     if (client_socket_id != -1) {
+      if (pthread_mutex_lock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
       Client client = {
           .kite_id = env->kite_id_counter++,
           .socket_id = client_socket_id,
@@ -128,12 +131,16 @@ int main(int argc, char *argv[]) {
           .client_address_length = address_length,
       };
       tkbc_dap(clients, client);
-      fprintf(stderr, "INFO: Client " CLIENT_FMT " has connected.\n",
+      fprintf(stderr, "INFO: Client:" CLIENT_FMT " has connected.\n",
               CLIENT_ARG(client));
 
       assert(clients->count > 0);
-      Client *c = &clients->elements[clients->count - 1];
-      pthread_create(&threads[clients_visited++], NULL, tkbc_client_handler, c);
+      Client c = clients->elements[clients->count - 1];
+      if (pthread_mutex_unlock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex unlock");
+      }
+      pthread_create(&threads[clients_visited++], NULL, tkbc_client_handler,
+                     &c);
     } else {
       fprintf(stderr, "ERROR: %s\n", strerror(errno));
       assert(0 && "accept error");
@@ -147,7 +154,7 @@ int main(int argc, char *argv[]) {
 void signalhandler(int signal) {
   (void)signal;
   for (size_t i = 0; i < clients->count; ++i) {
-    tkbc_server_shutdown_client(&clients->elements[i]);
+    tkbc_server_shutdown_client(clients->elements[i]);
   }
 
   fprintf(stderr, "INFO: Closing...\n");

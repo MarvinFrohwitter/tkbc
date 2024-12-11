@@ -17,16 +17,24 @@
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 
+#include "../choreographer/tkbc-ffmpeg.h"
+#include "../choreographer/tkbc-input-handler.h"
+#include "../choreographer/tkbc-script-api.h"
+#include "../choreographer/tkbc-script-converter.h"
+#include "../choreographer/tkbc-sound-handler.h"
 #include "../choreographer/tkbc.h"
 
 #include "../../external/lexer/tkbc-lexer.h"
+#include "../../tkbc_scripts/first.c"
 
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 
 Env *env = {0};
-Message message_queue = {0};
+Client client = {0};
+Message recieve_message_queue = {0};
+Message send_message_queue = {0};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void tkbc_client_usage(const char *program_name) {
@@ -97,107 +105,6 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
   return client_socket;
 }
 
-bool tkbc_parse_message_client(Lexer *lexer, size_t *kite_id, float *x,
-                               float *y, float *angle, Color *color) {
-  Content buffer = {0};
-  Token token;
-  bool ok = true;
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER) {
-    check_return(false);
-  }
-  *kite_id = atoi(lexer_token_to_cstr(lexer, &token));
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COLON) {
-    check_return(false);
-  }
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_LPAREN) {
-    check_return(false);
-  }
-
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
-    check_return(false);
-  }
-  if (token.kind == PUNCT_SUB) {
-    tkbc_dapc(&buffer, token.content, token.size);
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-      check_return(false);
-    }
-  }
-  tkbc_dapc(&buffer, token.content, token.size);
-  tkbc_dap(&buffer, 0);
-  *x = atoi(buffer.elements);
-  buffer.count = 0;
-
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COMMA) {
-    check_return(false);
-  }
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
-    check_return(false);
-  }
-  if (token.kind == PUNCT_SUB) {
-    tkbc_dapc(&buffer, token.content, token.size);
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-      check_return(false);
-    }
-  }
-  tkbc_dapc(&buffer, token.content, token.size);
-  tkbc_dap(&buffer, 0);
-  *y = atoi(lexer_token_to_cstr(lexer, &token));
-  buffer.count = 0;
-
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_RPAREN) {
-    check_return(false);
-  }
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COLON) {
-    check_return(false);
-  }
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
-    check_return(false);
-  }
-  if (token.kind == PUNCT_SUB) {
-    tkbc_dapc(&buffer, token.content, token.size);
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-      check_return(false);
-    }
-  }
-  tkbc_dapc(&buffer, token.content, token.size);
-  tkbc_dap(&buffer, 0);
-  *angle = atoi(lexer_token_to_cstr(lexer, &token));
-  buffer.count = 0;
-
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COLON) {
-    check_return(false);
-  }
-
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER) {
-    check_return(false);
-  }
-  size_t color_number = atoi(lexer_token_to_cstr(lexer, &token));
-  *color = *(Color *)&color_number;
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COLON) {
-    check_return(false);
-  }
-check:
-  if (buffer.elements) {
-    free(buffer.elements);
-  }
-  return ok ? true : false;
-}
-
 void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
                                     float angle, Color color) {
   Kite_State *kite_state = tkbc_init_kite();
@@ -210,21 +117,23 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
   tkbc_dap(env->kite_array, *kite_state);
 }
 
-void message_handler(void) {
+bool recieved_message_handler(bool first) {
   Message message = {0};
   Token token;
+  bool ok = true;
   if (pthread_mutex_lock(&mutex) != 0) {
     assert(0 && "ERROR:mutex lock");
   }
-  if (message_queue.count == 0) {
+  if (recieve_message_queue.count == 0) {
     if (pthread_mutex_unlock(&mutex) != 0) {
       assert(0 && "ERROR:mutex unlock");
     }
-    return;
+    check_return(true);
   }
-  tkbc_dapc(&message, message_queue.elements, message_queue.count);
+  tkbc_dapc(&message, recieve_message_queue.elements,
+            recieve_message_queue.count);
   tkbc_dap(&message, 0);
-  message_queue.count = 0;
+  recieve_message_queue.count = 0;
   if (pthread_mutex_unlock(&mutex) != 0) {
     assert(0 && "ERROR:mutex unlock");
   }
@@ -252,23 +161,41 @@ void message_handler(void) {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 4);
+    assert(MESSAGE_COUNT == 5);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
       if (token.kind != STRINGLITERAL) {
-        goto err;
+        check_return(false);
       }
 
       const char *greeting = "\"Hello client from server!1.0\"";
       const char *compare = lexer_token_to_cstr(lexer, &token);
       if (strncmp(compare, greeting, strlen(greeting)) != 0) {
         fprintf(stderr, "ERROR: Hello Message failed!\n");
-        assert(0 && "ERROR: Wrong protocol version!");
+        fprintf(stderr, "ERROR: Wrong protocol version!");
+        check_return(false);
       }
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
-        goto err;
+        check_return(false);
+      }
+
+      {
+        char buf[64] = {0};
+        snprintf(buf, sizeof(buf), "%d", MESSAGE_HELLO);
+        tkbc_dapc(&send_message_queue, buf, strlen(buf));
+        tkbc_dap(&send_message_queue, ':');
+
+        tkbc_dapc(&send_message_queue, "\"", 1);
+        const char *m = "Hello server from client!";
+        tkbc_dapc(&send_message_queue, m, strlen(m));
+
+        tkbc_dapc(&send_message_queue, PROTOCOL_VERSION,
+                  strlen(PROTOCOL_VERSION));
+        tkbc_dapc(&send_message_queue, "\"", 1);
+        tkbc_dap(&send_message_queue, ':');
+        tkbc_dapc(&send_message_queue, "\r\n", 2);
       }
 
       fprintf(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
@@ -277,13 +204,42 @@ void message_handler(void) {
       size_t kite_id;
       float x, y, angle;
       Color color;
-      if (!tkbc_parse_message_client(lexer, &kite_id, &x, &y, &angle, &color)) {
+      if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
+                                         &color)) {
         goto err;
       }
 
       tkbc_register_kite_from_values(kite_id, x, y, angle, color);
+      // This assumes the server sends the first KITEADD to the client, that
+      // contains his own kite;
+      if (first) {
+        client.kite_id = kite_id;
+        first = false;
+      }
 
       fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEADD\n");
+    } break;
+    case MESSAGE_KITEVALUE: {
+      size_t kite_id;
+      float x, y, angle;
+      Color color;
+      if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
+                                         &color)) {
+        goto err;
+      }
+
+      for (size_t i = 0; i < env->kite_array->count; ++i) {
+        if (kite_id == env->kite_array->elements[i].kite_id) {
+          Kite *kite = env->kite_array->elements[i].kite;
+          kite->center.x = x;
+          kite->center.y = y;
+          kite->angle = angle;
+          kite->body_color = color;
+          tkbc_center_rotation(kite, NULL, kite->angle);
+        }
+      }
+
+      fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEVALUE\n");
     } break;
     case MESSAGE_CLIENTKITES: {
       token = lexer_next(lexer);
@@ -299,8 +255,8 @@ void message_handler(void) {
         size_t kite_id;
         float x, y, angle;
         Color color;
-        if (!tkbc_parse_message_client(lexer, &kite_id, &x, &y, &angle,
-                                       &color)) {
+        if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
+                                           &color)) {
           goto err;
         }
         bool found = false;
@@ -337,11 +293,13 @@ void message_handler(void) {
       continue;
     }
     fprintf(stderr, "message.elements = %s\n", message.elements);
-    break;
+    check_return(false);
   }
   } while (token.kind != EOF_TOKEN);
 
   lexer_del(lexer);
+check:
+  return ok ? true : false;
 }
 
 void *message_recieving(void *client) {
@@ -364,7 +322,7 @@ void *message_recieving(void *client) {
 
     // This assumes that the message is less than the buffer size and read
     // completely.
-    tkbc_dapc(&message_queue, buffer, strlen(buffer));
+    tkbc_dapc(&recieve_message_queue, buffer, strlen(buffer));
 
     if (pthread_mutex_unlock(&mutex) != 0) {
       assert(0 && "ERROR:mutex unlock");
@@ -372,6 +330,57 @@ void *message_recieving(void *client) {
   }
 
   pthread_exit(NULL);
+}
+
+void sending_script_handler() {
+  if (env->script_setup) {
+    // For detection if the begin and end is called correctly.
+    env->script_setup = false;
+    tkbc_script_input(env);
+    for (size_t i = 0; i < env->block_frames->count; ++i) {
+      tkbc_print_script(stderr, &env->block_frames->elements[i]);
+      char buf[32];
+      sprintf(buf, "Script%zu.kite", i);
+      tkbc_write_script_kite_from_mem(&env->block_frames->elements[i], buf);
+    }
+  }
+}
+
+void tkbc_client_input_handler_kite() {
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    if (env->kite_array->elements[i].kite_id == client.kite_id) {
+      Kite_State *kite_state = &env->kite_array->elements[i];
+      kite_state->kite_input_handler_active = true;
+      tkbc_input_handler(env, kite_state);
+
+      char buf[64] = {0};
+      snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEVALUE);
+      tkbc_dapc(&send_message_queue, buf, strlen(buf));
+      tkbc_dap(&send_message_queue, ':');
+      tkbc_message_append_clientkite(client.kite_id, &send_message_queue);
+      tkbc_dapc(&send_message_queue, "\r\n", 2);
+      return;
+    }
+  }
+}
+
+void send_message_handler() {
+  if (send_message_queue.count) {
+    int n = send(client.socket_id, send_message_queue.elements,
+                 send_message_queue.count, MSG_NOSIGNAL);
+    if (n == 0) {
+      fprintf(stderr, "ERROR no bytes where send to the server!\n");
+      return;
+    }
+    if (n < 0) {
+      tkbc_dap(&send_message_queue, 0);
+      fprintf(stderr, "ERROR: Could not broadcast message: %s\n",
+              send_message_queue.elements);
+      fprintf(stderr, "ERROR: %s\n", strerror(errno));
+      return;
+    }
+  }
+  send_message_queue.count = 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -386,6 +395,7 @@ int main(int argc, char *argv[]) {
   uint16_t port = tkbc_port_parsing(port_check);
 
   int client_socket = tkbc_client_socket_creation(host, port);
+  int first = true;
 
   env = tkbc_init_env();
   pthread_t thread;
@@ -403,18 +413,39 @@ int main(int argc, char *argv[]) {
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(TARGET_FPS);
   SetExitKey(KEY_ESCAPE);
+  tkbc_init_sound(40);
+
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
-    message_handler();
+    if (!recieved_message_handler(first)) {
+      break;
+    }
+    send_message_handler();
+    sending_script_handler();
 
     tkbc_draw_kite_array(env->kite_array);
+    tkbc_draw_ui(env);
     EndDrawing();
+
+    tkbc_input_sound_handler(env);
+    tkbc_client_input_handler_kite();
+    // TODO: Handle the messages for the script.
+    // That should contain of requests of starting/stopping the script,
+    // switching to the next and generally all of the functionality in the
+    // function below.
+    tkbc_input_handler_script(env);
+    tkbc_ffmpeg_handler(env, "output.mp4");
   };
   CloseWindow();
 
   pthread_cancel(thread);
-  free(message_queue.elements);
+  if (recieve_message_queue.elements) {
+    free(recieve_message_queue.elements);
+  }
+  if (send_message_queue.elements) {
+    free(send_message_queue.elements);
+  }
 
   shutdown(client_socket, SHUT_WR);
   char buf[1024] = {0};
@@ -433,6 +464,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR: Could not close socket: %s\n", strerror(errno));
   }
 
+  tkbc_sound_destroy(env->sound);
   tkbc_destroy_env(env);
   return 0;
 }
