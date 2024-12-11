@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
         server_socket, (struct sockaddr *)&client_address, &address_length);
     if (client_socket_id != -1) {
       Client client = {
-          .index = clients_visited,
+          .kite_id = env->kite_id_counter++,
           .socket_id = client_socket_id,
           .client_address = client_address,
           .client_address_length = address_length,

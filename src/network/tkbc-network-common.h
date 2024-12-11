@@ -6,7 +6,7 @@
 #include <stddef.h>
 
 typedef struct {
-  size_t index;
+  size_t kite_id;
 
   int socket_id;
   struct sockaddr_in client_address;

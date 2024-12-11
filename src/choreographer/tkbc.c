@@ -75,6 +75,7 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
+  env->kite_id_counter = 0;
   env->script_setup = true;
   env->window_width = GetScreenWidth();
   env->window_height = GetScreenHeight();

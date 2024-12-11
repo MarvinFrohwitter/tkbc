@@ -223,6 +223,7 @@ typedef struct {
 typedef struct {
   Kite_States *kite_array; // The kites that are generated for the current
                            // session of the application.
+  size_t kite_id_counter;  // The identifier counter for the kite.
 
   Frames *frames; // A representation of the current active drawable frames.
   Block_Frame *block_frame;   // The collection of all the frames that should be
