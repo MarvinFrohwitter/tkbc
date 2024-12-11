@@ -33,7 +33,7 @@
 
 Env *env = {0};
 Client client = {0};
-Message recieve_message_queue = {0};
+Message receive_message_queue = {0};
 Message send_message_queue = {0};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -117,23 +117,56 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
   tkbc_dap(env->kite_array, *kite_state);
 }
 
-bool recieved_message_handler(bool first) {
+void sending_script_handler() {
+  if (env->script_setup) {
+    // For detection if the begin and end is called correctly.
+    env->script_setup = false;
+    tkbc_script_input(env);
+    for (size_t i = 0; i < env->block_frames->count; ++i) {
+      tkbc_print_script(stderr, &env->block_frames->elements[i]);
+      char buf[32];
+      sprintf(buf, "Script%zu.kite", i);
+      tkbc_write_script_kite_from_mem(&env->block_frames->elements[i], buf);
+    }
+  }
+}
+
+void send_message_handler() {
+  if (send_message_queue.count) {
+    int n = send(client.socket_id, send_message_queue.elements,
+                 send_message_queue.count, MSG_NOSIGNAL);
+    if (n == 0) {
+      fprintf(stderr, "ERROR no bytes where send to the server!\n");
+      return;
+    }
+    if (n < 0) {
+      tkbc_dap(&send_message_queue, 0);
+      fprintf(stderr, "ERROR: Could not broadcast message: %s\n",
+              send_message_queue.elements);
+      fprintf(stderr, "ERROR: %s\n", strerror(errno));
+      return;
+    }
+  }
+  send_message_queue.count = 0;
+}
+
+bool received_message_handler(bool first) {
   Message message = {0};
   Token token;
   bool ok = true;
   if (pthread_mutex_lock(&mutex) != 0) {
     assert(0 && "ERROR:mutex lock");
   }
-  if (recieve_message_queue.count == 0) {
+  if (receive_message_queue.count == 0) {
     if (pthread_mutex_unlock(&mutex) != 0) {
       assert(0 && "ERROR:mutex unlock");
     }
     check_return(true);
   }
-  tkbc_dapc(&message, recieve_message_queue.elements,
-            recieve_message_queue.count);
+  tkbc_dapc(&message, receive_message_queue.elements,
+            receive_message_queue.count);
   tkbc_dap(&message, 0);
-  recieve_message_queue.count = 0;
+  receive_message_queue.count = 0;
   if (pthread_mutex_unlock(&mutex) != 0) {
     assert(0 && "ERROR:mutex unlock");
   }
@@ -322,7 +355,7 @@ void *message_recieving(void *client) {
 
     // This assumes that the message is less than the buffer size and read
     // completely.
-    tkbc_dapc(&recieve_message_queue, buffer, strlen(buffer));
+    tkbc_dapc(&receive_message_queue, buffer, strlen(buffer));
 
     if (pthread_mutex_unlock(&mutex) != 0) {
       assert(0 && "ERROR:mutex unlock");
@@ -330,20 +363,6 @@ void *message_recieving(void *client) {
   }
 
   pthread_exit(NULL);
-}
-
-void sending_script_handler() {
-  if (env->script_setup) {
-    // For detection if the begin and end is called correctly.
-    env->script_setup = false;
-    tkbc_script_input(env);
-    for (size_t i = 0; i < env->block_frames->count; ++i) {
-      tkbc_print_script(stderr, &env->block_frames->elements[i]);
-      char buf[32];
-      sprintf(buf, "Script%zu.kite", i);
-      tkbc_write_script_kite_from_mem(&env->block_frames->elements[i], buf);
-    }
-  }
 }
 
 void tkbc_client_input_handler_kite() {
@@ -362,25 +381,6 @@ void tkbc_client_input_handler_kite() {
       return;
     }
   }
-}
-
-void send_message_handler() {
-  if (send_message_queue.count) {
-    int n = send(client.socket_id, send_message_queue.elements,
-                 send_message_queue.count, MSG_NOSIGNAL);
-    if (n == 0) {
-      fprintf(stderr, "ERROR no bytes where send to the server!\n");
-      return;
-    }
-    if (n < 0) {
-      tkbc_dap(&send_message_queue, 0);
-      fprintf(stderr, "ERROR: Could not broadcast message: %s\n",
-              send_message_queue.elements);
-      fprintf(stderr, "ERROR: %s\n", strerror(errno));
-      return;
-    }
-  }
-  send_message_queue.count = 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -418,7 +418,7 @@ int main(int argc, char *argv[]) {
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
-    if (!recieved_message_handler(first)) {
+    if (!received_message_handler(first)) {
       break;
     }
     send_message_handler();
@@ -440,8 +440,8 @@ int main(int argc, char *argv[]) {
   CloseWindow();
 
   pthread_cancel(thread);
-  if (recieve_message_queue.elements) {
-    free(recieve_message_queue.elements);
+  if (receive_message_queue.elements) {
+    free(receive_message_queue.elements);
   }
   if (send_message_queue.elements) {
     free(send_message_queue.elements);

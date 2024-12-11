@@ -97,52 +97,26 @@ bool tkbc_server_brodcast_all(const char *message) {
   return ok;
 }
 
-bool tkbc_message_clientkites(Client client) {
+bool tkbc_message_hello(Client client) {
   Message message = {0};
-  char buf[64] = {0};
   bool ok = true;
+  char buf[64] = {0};
 
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENTKITES);
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_HELLO);
   tkbc_dapc(&message, buf, strlen(buf));
   tkbc_dap(&message, ':');
 
-  memset(buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", clients->count);
-  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dapc(&message, "\"", 1);
+  const char *m = "Hello client from server!";
+  tkbc_dapc(&message, m, strlen(m));
 
+  tkbc_dapc(&message, PROTOCOL_VERSION, strlen(PROTOCOL_VERSION));
+  tkbc_dapc(&message, "\"", 1);
   tkbc_dap(&message, ':');
-  for (size_t i = 0; i < clients->count; ++i) {
-    if (!tkbc_message_append_clientkite(clients->elements[i].kite_id,
-                                        &message)) {
-      check_return(false);
-    }
-  }
   tkbc_dapc(&message, "\r\n", 2);
 
   tkbc_dap(&message, 0);
   if (!tkbc_server_brodcast_client(client, message.elements)) {
-    check_return(false);
-  }
-check:
-  free(message.elements);
-  return ok ? true : false;
-}
-
-bool tkbc_message_kite_value(size_t client_id) {
-  Message message = {0};
-  bool ok = true;
-  char buf[64] = {0};
-
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEVALUE);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
-  if (!tkbc_message_append_clientkite(client_id, &message)) {
-    check_return(false);
-  }
-  tkbc_dapc(&message, "\r\n", 2);
-
-  tkbc_dap(&message, 0);
-  if (!tkbc_server_brodcast_all_exept(client_id, message.elements)) {
     check_return(false);
   }
 check:
@@ -172,22 +146,48 @@ check:
   return ok ? true : false;
 }
 
-bool tkbc_message_hello(Client client) {
+bool tkbc_message_kite_value(size_t client_id) {
   Message message = {0};
   bool ok = true;
   char buf[64] = {0};
 
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_HELLO);
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEVALUE);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  if (!tkbc_message_append_clientkite(client_id, &message)) {
+    check_return(false);
+  }
+  tkbc_dapc(&message, "\r\n", 2);
+
+  tkbc_dap(&message, 0);
+  if (!tkbc_server_brodcast_all_exept(client_id, message.elements)) {
+    check_return(false);
+  }
+check:
+  free(message.elements);
+  return ok ? true : false;
+}
+
+bool tkbc_message_clientkites(Client client) {
+  Message message = {0};
+  char buf[64] = {0};
+  bool ok = true;
+
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENTKITES);
   tkbc_dapc(&message, buf, strlen(buf));
   tkbc_dap(&message, ':');
 
-  tkbc_dapc(&message, "\"", 1);
-  const char *m = "Hello client from server!";
-  tkbc_dapc(&message, m, strlen(m));
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", clients->count);
+  tkbc_dapc(&message, buf, strlen(buf));
 
-  tkbc_dapc(&message, PROTOCOL_VERSION, strlen(PROTOCOL_VERSION));
-  tkbc_dapc(&message, "\"", 1);
   tkbc_dap(&message, ':');
+  for (size_t i = 0; i < clients->count; ++i) {
+    if (!tkbc_message_append_clientkite(clients->elements[i].kite_id,
+                                        &message)) {
+      check_return(false);
+    }
+  }
   tkbc_dapc(&message, "\r\n", 2);
 
   tkbc_dap(&message, 0);
@@ -225,15 +225,15 @@ bool tkbc_server_remove_client_from_list(Client client) {
   return false;
 }
 
-bool tkbc_server_recieved_message_handler(Message recieve_message_queue) {
+bool tkbc_server_received_message_handler(Message receive_message_queue) {
   Token token;
   bool ok = true;
-  Lexer *lexer = lexer_new(__FILE__, recieve_message_queue.elements,
-                           recieve_message_queue.count, 0);
-  if (recieve_message_queue.count == 0) {
+  Lexer *lexer = lexer_new(__FILE__, receive_message_queue.elements,
+                           receive_message_queue.count, 0);
+  if (receive_message_queue.count == 0) {
     check_return(true);
   }
-  tkbc_dap(&recieve_message_queue, 0);
+  tkbc_dap(&receive_message_queue, 0);
 
   do {
     token = lexer_next(lexer);
@@ -312,13 +312,13 @@ bool tkbc_server_recieved_message_handler(Message recieve_message_queue) {
     continue;
 
   err: {
-    char *rn = strstr(recieve_message_queue.elements, "\r\n");
+    char *rn = strstr(receive_message_queue.elements, "\r\n");
     if (rn != NULL) {
       int jump_length = rn + 2 - &lexer->content[lexer->position];
       lexer_chop_char(lexer, jump_length);
       continue;
     }
-    fprintf(stderr, "message.elements = %s\n", recieve_message_queue.elements);
+    fprintf(stderr, "message.elements = %s\n", receive_message_queue.elements);
     break;
   }
   } while (token.kind != EOF_TOKEN);
@@ -364,7 +364,7 @@ void *tkbc_client_handler(void *client) {
           inet_ntoa(c.client_address.sin_addr),
           ntohs(c.client_address.sin_port));
 
-  Message recieve_message_queue = {0};
+  Message receive_message_queue = {0};
   for (;;) {
 
     {
@@ -390,13 +390,13 @@ void *tkbc_client_handler(void *client) {
       if (message_ckeck > 0) {
         fprintf(stderr, "Message: %s\n", message);
       }
-      tkbc_dapc(&recieve_message_queue, message, strlen(message));
+      tkbc_dapc(&receive_message_queue, message, strlen(message));
 
       if (strcmp(message, "quit\n") == 0) {
         break;
       }
 
-      if (!tkbc_server_recieved_message_handler(recieve_message_queue)) {
+      if (!tkbc_server_received_message_handler(receive_message_queue)) {
         break;
       }
     }
