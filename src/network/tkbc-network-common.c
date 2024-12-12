@@ -87,7 +87,7 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
   }
   tkbc_dapc(&buffer, token.content, token.size);
   tkbc_dap(&buffer, 0);
-  *x = atoi(buffer.elements);
+  *x = atof(buffer.elements);
   buffer.count = 0;
 
   token = lexer_next(lexer);
@@ -107,7 +107,7 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
   }
   tkbc_dapc(&buffer, token.content, token.size);
   tkbc_dap(&buffer, 0);
-  *y = atoi(lexer_token_to_cstr(lexer, &token));
+  *y = atof(buffer.elements);
   buffer.count = 0;
 
   token = lexer_next(lexer);
@@ -131,7 +131,7 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
   }
   tkbc_dapc(&buffer, token.content, token.size);
   tkbc_dap(&buffer, 0);
-  *angle = atoi(lexer_token_to_cstr(lexer, &token));
+  *angle = atof(buffer.elements);
   buffer.count = 0;
 
   token = lexer_next(lexer);
