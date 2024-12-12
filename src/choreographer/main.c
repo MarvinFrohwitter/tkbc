@@ -10,7 +10,6 @@
 #include "tkbc.h"
 
 #include "raylib.h"
-#include <complex.h>
 #include <stdbool.h>
 
 #include "../../tkbc_scripts/first.c"

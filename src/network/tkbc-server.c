@@ -154,7 +154,13 @@ int main(int argc, char *argv[]) {
 void signalhandler(int signal) {
   (void)signal;
   for (size_t i = 0; i < clients->count; ++i) {
+    if (pthread_mutex_lock(&mutex) != 0) {
+      assert(0 && "ERROR:mutex lock");
+    }
     tkbc_server_shutdown_client(clients->elements[i]);
+    if (pthread_mutex_unlock(&mutex) != 0) {
+      assert(0 && "ERROR:mutex unlock");
+    }
   }
 
   fprintf(stderr, "INFO: Closing...\n");

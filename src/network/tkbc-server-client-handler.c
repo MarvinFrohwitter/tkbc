@@ -78,7 +78,7 @@ bool tkbc_server_brodcast_client(Client client, const char *message) {
 bool tkbc_server_brodcast_all_exept(size_t client_id, const char *message) {
   bool ok = true;
   for (size_t i = 0; i < clients->count; ++i) {
-    if (clients->elements[i].kite_id != client_id) {
+    if ((size_t)clients->elements[i].kite_id != client_id) {
       if (!tkbc_server_brodcast_client(clients->elements[i], message)) {
         ok = false;
       }
@@ -290,6 +290,10 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         goto err;
       }
 
+      if (pthread_mutex_lock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
+
       for (size_t i = 0; i < env->kite_array->count; ++i) {
         if (kite_id == env->kite_array->elements[i].kite_id) {
           Kite *kite = env->kite_array->elements[i].kite;
@@ -300,9 +304,12 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
           tkbc_center_rotation(kite, NULL, kite->angle);
         }
       }
-
       if (!tkbc_message_kite_value(kite_id)) {
         check_return(false);
+      }
+
+      if (pthread_mutex_unlock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex unlock");
       }
 
       fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEVALUE\n");
@@ -344,7 +351,7 @@ void *tkbc_client_handler(void *client) {
   kite_state->kite->body_color =
       color_array[c.kite_id % ARRAY_LENGTH(color_array)];
   Vector2 shift_pos = {.y = kite_state->kite->center.y,
-                       .x = kite_state->kite->center.x + 200 * c.kite_id};
+                       .x = kite_state->kite->center.x + 200 + 200 * c.kite_id};
   tkbc_center_rotation(kite_state->kite, &shift_pos, kite_state->kite->angle);
 
   if (pthread_mutex_lock(&mutex) != 0) {
@@ -366,44 +373,42 @@ void *tkbc_client_handler(void *client) {
           inet_ntoa(c.client_address.sin_addr),
           ntohs(c.client_address.sin_port));
 
-  Message receive_message_queue = {0};
   for (;;) {
+    Message receive_message_queue = {0};
+    char message[1024];
+    memset(message, 0, sizeof(message));
+    ssize_t message_ckeck =
+        recv(c.socket_id, message, sizeof(message) - 1, MSG_NOSIGNAL);
+    if (message_ckeck == -1) {
+      fprintf(stderr, "ERROR: RECV: %s\n", strerror(errno));
+      break;
+    }
 
-    {
-      char message[1024];
-      memset(message, 0, sizeof(message));
-      ssize_t message_ckeck =
-          recv(c.socket_id, message, sizeof(message) - 1, MSG_NOSIGNAL);
-      if (message_ckeck == -1) {
-        fprintf(stderr, "ERROR: RECV: %s\n", strerror(errno));
-        break;
-      }
+    assert((unsigned int)message_ckeck < sizeof(message) &&
+           "Message buffer is to big.");
+    message[message_ckeck] = '\0';
 
-      assert((unsigned int)message_ckeck < sizeof(message) &&
-             "Message buffer is to big.");
-      message[message_ckeck] = '\0';
+    if (message_ckeck == 0) {
+      fprintf(stderr, "No data was received from the client:" CLIENT_FMT "\n",
+              CLIENT_ARG(c));
+      break;
+    }
 
-      if (message_ckeck == 0) {
-        fprintf(stderr, "No data was received from the client:" CLIENT_FMT "\n",
-                CLIENT_ARG(c));
-        break;
-      }
+    tkbc_dapc(&receive_message_queue, message, strlen(message));
 
+    if (strcmp(message, "quit\n") == 0) {
+      break;
+    }
+
+    // TODO: Improve the messages queue and maybe do lexer_del manual in split
+    // the buffer for the string conversions in the function and the content
+    // after the call in her.
+    if (!tkbc_server_received_message_handler(receive_message_queue)) {
       if (message_ckeck > 0) {
         fprintf(stderr, "Message: %s\n", message);
       }
-      tkbc_dapc(&receive_message_queue, message, strlen(message));
-
-      if (strcmp(message, "quit\n") == 0) {
-        break;
-      }
-
-      if (!tkbc_server_received_message_handler(receive_message_queue)) {
-        break;
-      }
+      break;
     }
-
-    // TODO: Handle other messages.
   }
 
 check:

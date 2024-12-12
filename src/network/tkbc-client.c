@@ -1,16 +1,3 @@
-#include <arpa/inet.h>
-#include <ctype.h>
-#include <errno.h>
-#include <netinet/in.h>
-#include <pthread.h>
-#include <raylib.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
 #include "tkbc-client.h"
 #include "tkbc-network-common.h"
 
@@ -26,6 +13,20 @@
 
 #include "../../external/lexer/tkbc-lexer.h"
 #include "../../tkbc_scripts/first.c"
+
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <raylib.h>
+#include <raymath.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
@@ -150,7 +151,7 @@ void send_message_handler() {
   send_message_queue.count = 0;
 }
 
-bool received_message_handler(bool first) {
+bool received_message_handler() {
   Message message = {0};
   Token token;
   bool ok = true;
@@ -245,9 +246,11 @@ bool received_message_handler(bool first) {
       tkbc_register_kite_from_values(kite_id, x, y, angle, color);
       // This assumes the server sends the first KITEADD to the client, that
       // contains his own kite;
-      if (first) {
+      if (client.kite_id == -1) {
+        fprintf(stderr, "--------------------------------------------\n");
+        fprintf(stderr, "THE KITE_ID:%zu\n", kite_id);
+        fprintf(stderr, "--------------------------------------------\n");
         client.kite_id = kite_id;
-        first = false;
       }
 
       fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEADD\n");
@@ -367,10 +370,22 @@ void *message_recieving(void *client) {
 
 void tkbc_client_input_handler_kite() {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].kite_id == client.kite_id) {
+    if (env->kite_array->elements[i].kite_id == (size_t)client.kite_id) {
       Kite_State *kite_state = &env->kite_array->elements[i];
+      Vector2 pos = {
+          .x = kite_state->kite->center.x,
+          .y = kite_state->kite->center.y,
+      };
+      float angle = kite_state->kite->angle;
+
       kite_state->kite_input_handler_active = true;
       tkbc_input_handler(env, kite_state);
+
+      if (Vector2Equals(pos, kite_state->kite->center)) {
+        if (FloatEquals(angle, kite_state->kite->angle)) {
+          return;
+        }
+      }
 
       char buf[64] = {0};
       snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEVALUE);
@@ -384,6 +399,7 @@ void tkbc_client_input_handler_kite() {
 }
 
 int main(int argc, char *argv[]) {
+  client.kite_id = -1;
 
   char *program_name = tkbc_shift_args(&argc, &argv);
   tkbc_client_commandline_check(argc, program_name);
@@ -396,7 +412,6 @@ int main(int argc, char *argv[]) {
 
   int client_socket = tkbc_client_socket_creation(host, port);
   client.socket_id = client_socket;
-  int first = true;
 
   env = tkbc_init_env();
   pthread_t thread;
@@ -419,10 +434,10 @@ int main(int argc, char *argv[]) {
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
-    if (!received_message_handler(first)) {
+    if (!received_message_handler()) {
       break;
     }
-    sending_script_handler();
+    // sending_script_handler();
     send_message_handler();
 
     tkbc_draw_kite_array(env->kite_array);

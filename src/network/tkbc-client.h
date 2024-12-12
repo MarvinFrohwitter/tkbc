@@ -13,7 +13,7 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
                                     float angle, Color color);
 void sending_script_handler();
 void send_message_handler();
-bool received_message_handler(bool first);
+bool received_message_handler();
 void *message_recieving(void *client);
 void tkbc_client_input_handler_kite();
 

@@ -11,7 +11,7 @@
 #define PROTOCOL_VERSION "1.0"
 
 typedef struct {
-  size_t kite_id;
+  ssize_t kite_id;
 
   int socket_id;
   struct sockaddr_in client_address;
