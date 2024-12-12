@@ -33,18 +33,18 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 // static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 void tkbc_server_usage(const char *program_name) {
-  fprintf(stderr, "Usage:\n");
-  fprintf(stderr, "       %s <PORT> \n", program_name);
+  tkbc_logger(stderr, "Usage:\n");
+  tkbc_logger(stderr, "       %s <PORT> \n", program_name);
 }
 
 void tkbc_server_commandline_check(int argc, const char *program_name) {
   if (argc > 1) {
-    fprintf(stderr, "ERROR: To may arguments.\n");
+    tkbc_logger(stderr, "ERROR: To may arguments.\n");
     tkbc_server_usage(program_name);
     exit(1);
   }
   if (argc == 0) {
-    fprintf(stderr, "ERROR: No arguments were provided.\n");
+    tkbc_logger(stderr, "ERROR: No arguments were provided.\n");
     tkbc_server_usage(program_name);
     exit(1);
   }
@@ -53,14 +53,14 @@ void tkbc_server_commandline_check(int argc, const char *program_name) {
 int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   int socket_id = socket(AF_INET, SOCK_STREAM, 0);
   if (socket_id == -1) {
-    fprintf(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
     exit(1);
   }
   int option = 1;
   int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
                        sizeof(option));
   if (sso == -1) {
-    fprintf(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
   }
 
   struct sockaddr_in server_addr;
@@ -71,16 +71,16 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   int bind_status =
       bind(socket_id, (struct sockaddr *)&server_addr, sizeof(server_addr));
   if (bind_status == -1) {
-    fprintf(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
     exit(1);
   }
 
   int listen_status = listen(socket_id, SERVER_CONNETCTIONS);
   if (listen_status == -1) {
-    fprintf(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
     exit(1);
   }
-  fprintf(stderr, "INFO: Listening to port: %hu\n", port);
+  tkbc_logger(stderr, "INFO: Listening to port: %hu\n", port);
 
   return socket_id;
 }
@@ -88,7 +88,7 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
 Clients *tkbc_init_clients(void) {
   Clients *clients = calloc(1, sizeof(*clients));
   if (clients == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_logger(stderr, "ERROR: No more memory can be allocated.\n");
     return NULL;
   }
   return clients;
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
   uint16_t port = tkbc_port_parsing(port_check);
 
   server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
-  fprintf(stderr, "INFO:Server socket: %d\n", server_socket);
+  tkbc_logger(stderr, "INFO:Server socket: %d\n", server_socket);
   env = tkbc_init_env();
   clients = tkbc_init_clients();
   size_t clients_visited = 0;
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
           .client_address_length = address_length,
       };
       tkbc_dap(clients, client);
-      fprintf(stderr, "INFO: Client:" CLIENT_FMT " has connected.\n",
+      tkbc_logger(stderr, "INFO: Client:" CLIENT_FMT " has connected.\n",
               CLIENT_ARG(client));
 
       assert(clients->count > 0);
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
       pthread_create(&threads[clients_visited++], NULL, tkbc_client_handler,
                      &c);
     } else {
-      fprintf(stderr, "ERROR: %s\n", strerror(errno));
+      tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
       assert(0 && "accept error");
     }
   }
@@ -163,11 +163,11 @@ void signalhandler(int signal) {
     }
   }
 
-  fprintf(stderr, "INFO: Closing...\n");
+  tkbc_logger(stderr, "INFO: Closing...\n");
 
   shutdown(server_socket, SHUT_RDWR);
   if (close(server_socket) == -1) {
-    fprintf(stderr, "ERROR: Main Server Socket: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: Main Server Socket: %s\n", strerror(errno));
   }
   if (clients->elements) {
     free(clients->elements);

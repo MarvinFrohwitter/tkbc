@@ -7,8 +7,10 @@
 #include <raylib.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #define PROTOCOL_VERSION "1.0"
+#define TKBC_NETWORK_LOGGING
 
 typedef struct {
   ssize_t kite_id;
@@ -46,6 +48,7 @@ typedef enum {
   MESSAGE_COUNT,
 } Message_Kind;
 
+int tkbc_logger(FILE *stream, const char *fmt, ...);
 uint16_t tkbc_port_parsing(const char *port_check);
 bool tkbc_message_append_clientkite(size_t client_id, Message *message);
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,

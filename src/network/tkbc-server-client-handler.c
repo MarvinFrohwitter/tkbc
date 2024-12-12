@@ -29,22 +29,22 @@ void tkbc_server_shutdown_client(Client client) {
   } while (n > 0);
 
   if (n == 0) {
-    fprintf(stderr,
+    tkbc_logger(stderr,
             "INFO: Could not read any more data from the client:" CLIENT_FMT
             ".\n",
             CLIENT_ARG(client));
   }
   if (n < 0) {
-    fprintf(stderr, "ERROR: reading failed: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: reading failed: %s\n", strerror(errno));
   }
 
   if (close(client.socket_id) == -1) {
-    fprintf(stderr, "ERROR: Close socket: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: Close socket: %s\n", strerror(errno));
   }
 
   size_t thread_id = client.kite_id;
   if (!tkbc_server_remove_client_from_list(client)) {
-    fprintf(stderr,
+    tkbc_logger(stderr,
             "INFO: Client:" CLIENT_FMT
             ": could not be removed after broken pipe\n",
             CLIENT_ARG(client));
@@ -58,18 +58,18 @@ bool tkbc_server_brodcast_client(Client client, const char *message) {
   ssize_t send_check =
       send(client.socket_id, message, strlen(message), MSG_NOSIGNAL);
   if (send_check == 0) {
-    fprintf(stderr, "ERROR no bytes where send to the client:" CLIENT_FMT "\n",
+    tkbc_logger(stderr, "ERROR no bytes where send to the client:" CLIENT_FMT "\n",
             CLIENT_ARG(client));
   }
   if (send_check == -1) {
-    fprintf(stderr,
+    tkbc_logger(stderr,
             "ERROR: Client:" CLIENT_FMT ":Could not broadcast message: %s\n",
             CLIENT_ARG(client), message);
-    fprintf(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
 
     return false;
   } else {
-    fprintf(stderr, "INFO: The amount %ld send to:" CLIENT_FMT "\n", send_check,
+    tkbc_logger(stderr, "INFO: The amount %ld send to:" CLIENT_FMT "\n", send_check,
             CLIENT_ARG(client));
   }
   return true;
@@ -270,8 +270,8 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       const char *greeting = "\"Hello server from client!1.0\"";
       const char *compare = lexer_token_to_cstr(lexer, &token);
       if (strncmp(compare, greeting, strlen(greeting)) != 0) {
-        fprintf(stderr, "ERROR: Hello Message failed!\n");
-        fprintf(stderr, "ERROR: Wrong protocol version!");
+        tkbc_logger(stderr, "ERROR: Hello Message failed!\n");
+        tkbc_logger(stderr, "ERROR: Wrong protocol version!");
         check_return(false);
       }
       token = lexer_next(lexer);
@@ -279,7 +279,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         check_return(false);
       }
 
-      fprintf(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
     } break;
     case MESSAGE_KITEVALUE: {
       size_t kite_id;
@@ -312,10 +312,10 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         assert(0 && "ERROR:mutex unlock");
       }
 
-      fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEVALUE\n");
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = KITEVALUE\n");
     } break;
     default:
-      fprintf(stderr, "ERROR: Unknown KIND: %d\n", kind);
+      tkbc_logger(stderr, "ERROR: Unknown KIND: %d\n", kind);
       exit(1);
     }
     continue;
@@ -327,7 +327,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       lexer_chop_char(lexer, jump_length);
       continue;
     }
-    fprintf(stderr, "message.elements = %s\n", receive_message_queue.elements);
+    tkbc_logger(stderr, "message.elements = %s\n", receive_message_queue.elements);
     break;
   }
   } while (token.kind != EOF_TOKEN);
@@ -369,7 +369,7 @@ void *tkbc_client_handler(void *client) {
     assert(0 && "ERROR:mutex unlock");
   }
 
-  fprintf(stderr, "INFO: Connection from host %s, port %hd\n",
+  tkbc_logger(stderr, "INFO: Connection from host %s, port %hd\n",
           inet_ntoa(c.client_address.sin_addr),
           ntohs(c.client_address.sin_port));
 
@@ -380,7 +380,7 @@ void *tkbc_client_handler(void *client) {
     ssize_t message_ckeck =
         recv(c.socket_id, message, sizeof(message) - 1, MSG_NOSIGNAL);
     if (message_ckeck == -1) {
-      fprintf(stderr, "ERROR: RECV: %s\n", strerror(errno));
+      tkbc_logger(stderr, "ERROR: RECV: %s\n", strerror(errno));
       break;
     }
 
@@ -389,7 +389,7 @@ void *tkbc_client_handler(void *client) {
     message[message_ckeck] = '\0';
 
     if (message_ckeck == 0) {
-      fprintf(stderr, "No data was received from the client:" CLIENT_FMT "\n",
+      tkbc_logger(stderr, "No data was received from the client:" CLIENT_FMT "\n",
               CLIENT_ARG(c));
       break;
     }
@@ -405,7 +405,7 @@ void *tkbc_client_handler(void *client) {
     // after the call in her.
     if (!tkbc_server_received_message_handler(receive_message_queue)) {
       if (message_ckeck > 0) {
-        fprintf(stderr, "Message: %s\n", message);
+        tkbc_logger(stderr, "Message: %s\n", message);
       }
       break;
     }

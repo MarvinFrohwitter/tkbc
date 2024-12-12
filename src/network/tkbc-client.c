@@ -39,18 +39,18 @@ Message send_message_queue = {0};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void tkbc_client_usage(const char *program_name) {
-  fprintf(stderr, "Usage:\n");
-  fprintf(stderr, "       %s <HOST> <PORT> \n", program_name);
+  tkbc_logger(stderr, "Usage:\n");
+  tkbc_logger(stderr, "       %s <HOST> <PORT> \n", program_name);
 }
 
 void tkbc_client_commandline_check(int argc, const char *program_name) {
   if (argc > 2) {
-    fprintf(stderr, "ERROR: To may arguments.\n");
+    tkbc_logger(stderr, "ERROR: To may arguments.\n");
     tkbc_client_usage(program_name);
     exit(1);
   }
   if (argc == 0) {
-    fprintf(stderr, "ERROR: No arguments were provided.\n");
+    tkbc_logger(stderr, "ERROR: No arguments were provided.\n");
     tkbc_client_usage(program_name);
     exit(1);
   }
@@ -65,7 +65,7 @@ const char *tkbc_host_parsing(const char *host_check) {
 
   for (size_t i = 0; i < strlen(host_check); ++i) {
     if (!isdigit(host_check[i]) && host_check[i] != '.') {
-      fprintf(stderr, "ERROR: The given host [%s] is not supported.\n",
+      tkbc_logger(stderr, "ERROR: The given host [%s] is not supported.\n",
               host_check);
       exit(1);
     }
@@ -83,7 +83,7 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
   int sso = setsockopt(client_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
                        sizeof(option));
   if (sso == -1) {
-    fprintf(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
   }
 
   struct sockaddr_in server_address;
@@ -96,11 +96,11 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
               sizeof(server_address));
 
   if (connection_status == -1) {
-    fprintf(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
     exit(1);
   }
 
-  fprintf(stderr, "Connected to Server: %s:%hd\n",
+  tkbc_logger(stderr, "Connected to Server: %s:%hd\n",
           inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
 
   return client_socket;
@@ -137,14 +137,14 @@ void send_message_handler() {
     ssize_t n = send(client.socket_id, send_message_queue.elements,
                      send_message_queue.count, MSG_NOSIGNAL);
     if (n == 0) {
-      fprintf(stderr, "ERROR no bytes where send to the server!\n");
+      tkbc_logger(stderr, "ERROR no bytes where send to the server!\n");
       return;
     }
     if (n == -1) {
       tkbc_dap(&send_message_queue, 0);
-      fprintf(stderr, "ERROR: Could not broadcast message: %s\n",
+      tkbc_logger(stderr, "ERROR: Could not broadcast message: %s\n",
               send_message_queue.elements);
-      fprintf(stderr, "ERROR: %s\n", strerror(errno));
+      tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
       return;
     }
   }
@@ -206,8 +206,8 @@ bool received_message_handler() {
       const char *greeting = "\"Hello client from server!1.0\"";
       const char *compare = lexer_token_to_cstr(lexer, &token);
       if (strncmp(compare, greeting, strlen(greeting)) != 0) {
-        fprintf(stderr, "ERROR: Hello Message failed!\n");
-        fprintf(stderr, "ERROR: Wrong protocol version!");
+        tkbc_logger(stderr, "ERROR: Hello Message failed!\n");
+        tkbc_logger(stderr, "ERROR: Wrong protocol version!");
         check_return(false);
       }
       token = lexer_next(lexer);
@@ -232,7 +232,7 @@ bool received_message_handler() {
         tkbc_dapc(&send_message_queue, "\r\n", 2);
       }
 
-      fprintf(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
     } break;
     case MESSAGE_KITEADD: {
       size_t kite_id;
@@ -247,13 +247,13 @@ bool received_message_handler() {
       // This assumes the server sends the first KITEADD to the client, that
       // contains his own kite;
       if (client.kite_id == -1) {
-        fprintf(stderr, "--------------------------------------------\n");
-        fprintf(stderr, "THE KITE_ID:%zu\n", kite_id);
-        fprintf(stderr, "--------------------------------------------\n");
+        tkbc_logger(stderr, "--------------------------------------------\n");
+        tkbc_logger(stderr, "THE KITE_ID:%zu\n", kite_id);
+        tkbc_logger(stderr, "--------------------------------------------\n");
         client.kite_id = kite_id;
       }
 
-      fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEADD\n");
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = KITEADD\n");
     } break;
     case MESSAGE_KITEVALUE: {
       size_t kite_id;
@@ -275,7 +275,7 @@ bool received_message_handler() {
         }
       }
 
-      fprintf(stderr, "[[MESSAGEHANDLER]] message = KITEVALUE\n");
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = KITEVALUE\n");
     } break;
     case MESSAGE_CLIENTKITES: {
       token = lexer_next(lexer);
@@ -313,10 +313,10 @@ bool received_message_handler() {
         }
       }
 
-      fprintf(stderr, "[[MESSAGEHANDLER]] message = CLIENTKITES\n");
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = CLIENTKITES\n");
     } break;
     default:
-      fprintf(stderr, "ERROR: Unknown KIND: %d\n", kind);
+      tkbc_logger(stderr, "ERROR: Unknown KIND: %d\n", kind);
       exit(1);
     }
     continue;
@@ -328,7 +328,7 @@ bool received_message_handler() {
       lexer_chop_char(lexer, jump_length);
       continue;
     }
-    fprintf(stderr, "message.elements = %s\n", message.elements);
+    tkbc_logger(stderr, "message.elements = %s\n", message.elements);
     check_return(false);
   }
   } while (token.kind != EOF_TOKEN);
@@ -348,7 +348,7 @@ void *message_recieving(void *client) {
     int message_ckeck =
         recv(client_socket, buffer, sizeof(buffer), MSG_NOSIGNAL);
     if (message_ckeck == -1) {
-      fprintf(stderr, "ERROR: %s\n", strerror(errno));
+      tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
       break;
     }
 
@@ -471,13 +471,13 @@ int main(int argc, char *argv[]) {
   } while (n > 0);
 
   if (n == 0) {
-    fprintf(stderr, "INFO: Could not read any more data.\n");
+    tkbc_logger(stderr, "INFO: Could not read any more data.\n");
   }
   if (n < 0) {
-    fprintf(stderr, "ERROR: reading failed: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: reading failed: %s\n", strerror(errno));
   }
   if (close(client_socket) == -1) {
-    fprintf(stderr, "ERROR: Could not close socket: %s\n", strerror(errno));
+    tkbc_logger(stderr, "ERROR: Could not close socket: %s\n", strerror(errno));
   }
 
   tkbc_sound_destroy(env->sound);
