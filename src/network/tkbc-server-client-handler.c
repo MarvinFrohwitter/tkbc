@@ -55,7 +55,7 @@ void tkbc_server_shutdown_client(Client client) {
 
 bool tkbc_server_brodcast_client(Client client, const char *message) {
 
-  int send_check =
+  ssize_t send_check =
       send(client.socket_id, message, strlen(message), MSG_NOSIGNAL);
   if (send_check == 0) {
     fprintf(stderr, "ERROR no bytes where send to the client:" CLIENT_FMT "\n",
@@ -69,7 +69,7 @@ bool tkbc_server_brodcast_client(Client client, const char *message) {
 
     return false;
   } else {
-    fprintf(stderr, "INFO: The amount %d send to:" CLIENT_FMT "\n", send_check,
+    fprintf(stderr, "INFO: The amount %ld send to:" CLIENT_FMT "\n", send_check,
             CLIENT_ARG(client));
   }
   return true;
@@ -120,7 +120,9 @@ bool tkbc_message_hello(Client client) {
     check_return(false);
   }
 check:
-  free(message.elements);
+  if (message.elements) {
+    free(message.elements);
+  }
   return ok ? true : false;
 }
 
@@ -370,7 +372,7 @@ void *tkbc_client_handler(void *client) {
     {
       char message[1024];
       memset(message, 0, sizeof(message));
-      int message_ckeck =
+      ssize_t message_ckeck =
           recv(c.socket_id, message, sizeof(message) - 1, MSG_NOSIGNAL);
       if (message_ckeck == -1) {
         fprintf(stderr, "ERROR: RECV: %s\n", strerror(errno));

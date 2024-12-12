@@ -163,6 +163,8 @@ void signalhandler(int signal) {
   if (close(server_socket) == -1) {
     fprintf(stderr, "ERROR: Main Server Socket: %s\n", strerror(errno));
   }
-  free(clients->elements);
+  if (clients->elements) {
+    free(clients->elements);
+  }
   exit(EXIT_SUCCESS);
 }

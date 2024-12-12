@@ -133,13 +133,13 @@ void sending_script_handler() {
 
 void send_message_handler() {
   if (send_message_queue.count) {
-    int n = send(client.socket_id, send_message_queue.elements,
-                 send_message_queue.count, MSG_NOSIGNAL);
+    ssize_t n = send(client.socket_id, send_message_queue.elements,
+                     send_message_queue.count, MSG_NOSIGNAL);
     if (n == 0) {
       fprintf(stderr, "ERROR no bytes where send to the server!\n");
       return;
     }
-    if (n < 0) {
+    if (n == -1) {
       tkbc_dap(&send_message_queue, 0);
       fprintf(stderr, "ERROR: Could not broadcast message: %s\n",
               send_message_queue.elements);
@@ -395,6 +395,7 @@ int main(int argc, char *argv[]) {
   uint16_t port = tkbc_port_parsing(port_check);
 
   int client_socket = tkbc_client_socket_creation(host, port);
+  client.socket_id = client_socket;
   int first = true;
 
   env = tkbc_init_env();
@@ -421,8 +422,8 @@ int main(int argc, char *argv[]) {
     if (!received_message_handler(first)) {
       break;
     }
-    send_message_handler();
     sending_script_handler();
+    send_message_handler();
 
     tkbc_draw_kite_array(env->kite_array);
     tkbc_draw_ui(env);
