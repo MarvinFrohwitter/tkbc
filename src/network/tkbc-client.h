@@ -16,5 +16,8 @@ void send_message_handler();
 bool received_message_handler();
 void *message_recieving(void *client);
 void tkbc_client_input_handler_kite();
+bool tkbc_message_append_script(size_t script_id, Message *send_message_queue);
+bool tkbc_message_script();
+void tkbc_client_file_handler();
 
 #endif // TKBC_CLIENT_H

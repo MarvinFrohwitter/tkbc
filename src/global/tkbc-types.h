@@ -235,7 +235,8 @@ typedef struct {
   bool script_interrupt; // The indication if a script is currently going to be
                          // loaded.
   bool script_finished;  // The indication a script has finished.
-  size_t script_counter; // Represents the amount of scripts that were loaded.
+  size_t script_counter; // Represents the amount of scripts that were loaded,
+                         // starts with 1.
 
   size_t window_width;  // The window width of the application.
   size_t window_height; // The window height of the application.

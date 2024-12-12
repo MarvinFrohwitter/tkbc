@@ -66,7 +66,7 @@ const char *tkbc_host_parsing(const char *host_check) {
   for (size_t i = 0; i < strlen(host_check); ++i) {
     if (!isdigit(host_check[i]) && host_check[i] != '.') {
       tkbc_logger(stderr, "ERROR: The given host [%s] is not supported.\n",
-              host_check);
+                  host_check);
       exit(1);
     }
   }
@@ -101,7 +101,8 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
   }
 
   tkbc_logger(stderr, "Connected to Server: %s:%hd\n",
-          inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
+              inet_ntoa(server_address.sin_addr),
+              ntohs(server_address.sin_port));
 
   return client_socket;
 }
@@ -129,6 +130,7 @@ void sending_script_handler() {
       sprintf(buf, "Script%zu.kite", i);
       tkbc_write_script_kite_from_mem(&env->block_frames->elements[i], buf);
     }
+    tkbc_message_script();
   }
 }
 
@@ -143,7 +145,7 @@ void send_message_handler() {
     if (n == -1) {
       tkbc_dap(&send_message_queue, 0);
       tkbc_logger(stderr, "ERROR: Could not broadcast message: %s\n",
-              send_message_queue.elements);
+                  send_message_queue.elements);
       tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
       return;
     }
@@ -398,6 +400,110 @@ void tkbc_client_input_handler_kite() {
   }
 }
 
+bool tkbc_message_append_script(size_t script_id, Message *message) {
+  for (size_t i = 0; i < env->block_frames->count; ++i) {
+    if (env->block_frames->elements[i].script_id == script_id) {
+      tkbc_dap(message, script_id);
+      tkbc_dap(message, ':');
+
+      Block_Frame *block_frame = &env->block_frames->elements[i];
+      tkbc_dap(message, block_frame->count);
+      tkbc_dap(message, ':');
+      for (size_t j = 0; j < block_frame->count; ++j) {
+        tkbc_dap(message, block_frame->elements[j].block_index);
+        tkbc_dap(message, ':');
+
+        Frames *frames = &block_frame->elements[j];
+        tkbc_dap(message, frames->count);
+        tkbc_dap(message, ':');
+        for (size_t k = 0; k < frames->count; ++k) {
+          tkbc_dap(message, frames->elements[k].index);
+          tkbc_dap(message, ':');
+          tkbc_dap(message, frames->elements[k].finished);
+          tkbc_dap(message, ':');
+          tkbc_dap(message, frames->elements[k].kind);
+          tkbc_dap(message, ':');
+
+          assert(ACTION_KIND_COUNT == 9 &&
+                 "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
+          switch (frames->elements[k].kind) {
+          case KITE_QUIT:
+          case KITE_WAIT: {
+            Wait_Action *action = frames->elements[k].action;
+            tkbc_dap(message, action->starttime);
+          } break;
+
+          case KITE_MOVE:
+          case KITE_MOVE_ADD: {
+            Move_Action *action = frames->elements[k].action;
+            tkbc_dap(message, action->position.x);
+            tkbc_dap(message, ':');
+            tkbc_dap(message, action->position.y);
+          } break;
+
+          case KITE_ROTATION:
+          case KITE_ROTATION_ADD: {
+            Rotation_Action *action = frames->elements[k].action;
+            tkbc_dap(message, action->angle);
+          } break;
+
+          case KITE_TIP_ROTATION:
+          case KITE_TIP_ROTATION_ADD: {
+            Tip_Rotation_Action *action = frames->elements[k].action;
+            tkbc_dap(message, action->tip);
+            tkbc_dap(message, ':');
+            tkbc_dap(message, action->angle);
+          } break;
+
+          default:
+            assert(0 && "UNREACHABLE tkbc_message_append_script()");
+          }
+
+          tkbc_dap(message, ':');
+          tkbc_dap(message, frames->elements[k].duration);
+          tkbc_dap(message, ':');
+
+          Kite_Ids *kite_ids = frames->elements[k].kite_id_array;
+          tkbc_dap(message, kite_ids->count);
+          tkbc_dap(message, ':');
+          tkbc_dap(message, '(');
+          for (size_t id = 0; id < kite_ids->count; ++id) {
+            tkbc_dap(message, kite_ids->elements[id]);
+            tkbc_dap(message, ',');
+          }
+          tkbc_dap(message, ')');
+          tkbc_dap(message, ':');
+        }
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+bool tkbc_message_script() {
+  Message message = {0};
+  if (!tkbc_message_append_script(env->script_counter, &message)) {
+    return false;
+  }
+  char buf[64] = {0};
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT);
+  tkbc_dapc(&send_message_queue, buf, strlen(buf));
+  tkbc_dap(&send_message_queue, ':');
+  tkbc_dapc(&send_message_queue, message.elements, message.count);
+  tkbc_dapc(&send_message_queue, "\r\n", 2);
+  free(message.elements);
+  env->block_frames->count -= 1;
+  return true;
+}
+
+void tkbc_client_file_handler() {
+  tkbc_file_handler(env);
+  if (env->block_frames->count > 0) {
+    tkbc_message_script();
+  }
+}
+
 int main(int argc, char *argv[]) {
   client.kite_id = -1;
 
@@ -437,13 +543,14 @@ int main(int argc, char *argv[]) {
     if (!received_message_handler()) {
       break;
     }
-    // sending_script_handler();
+    sending_script_handler();
     send_message_handler();
 
     tkbc_draw_kite_array(env->kite_array);
     tkbc_draw_ui(env);
     EndDrawing();
 
+    tkbc_client_file_handler();
     tkbc_input_sound_handler(env);
     tkbc_client_input_handler_kite();
     // TODO: Handle the messages for the script.
@@ -451,6 +558,8 @@ int main(int argc, char *argv[]) {
     // switching to the next and generally all of the functionality in the
     // function below.
     tkbc_input_handler_script(env);
+    // The end of the current frame has to be executed so ffmpeg gets the full
+    // executed fame.
     tkbc_ffmpeg_handler(env, "output.mp4");
   };
   CloseWindow();
