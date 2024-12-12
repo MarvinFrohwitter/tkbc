@@ -125,10 +125,10 @@ void sending_script_handler() {
     env->script_setup = false;
     tkbc_script_input(env);
     for (size_t i = 0; i < env->block_frames->count; ++i) {
-      tkbc_print_script(stderr, &env->block_frames->elements[i]);
-      char buf[32];
-      sprintf(buf, "Script%zu.kite", i);
-      tkbc_write_script_kite_from_mem(&env->block_frames->elements[i], buf);
+      // tkbc_print_script(stderr, &env->block_frames->elements[i]);
+      // char buf[32];
+      // sprintf(buf, "Script%zu.kite", i);
+      // tkbc_write_script_kite_from_mem(&env->block_frames->elements[i], buf);
     }
     tkbc_message_script();
   }
@@ -197,7 +197,7 @@ bool received_message_handler() {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 5);
+    assert(MESSAGE_COUNT == 9);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -461,17 +461,20 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
 
           tkbc_dap(message, ':');
           tkbc_dap(message, frames->elements[k].duration);
-          tkbc_dap(message, ':');
 
           Kite_Ids *kite_ids = frames->elements[k].kite_id_array;
-          tkbc_dap(message, kite_ids->count);
-          tkbc_dap(message, ':');
-          tkbc_dap(message, '(');
-          for (size_t id = 0; id < kite_ids->count; ++id) {
-            tkbc_dap(message, kite_ids->elements[id]);
-            tkbc_dap(message, ',');
+          if (kite_ids) {
+            tkbc_dap(message, ':');
+            tkbc_dap(message, kite_ids->count);
+            tkbc_dap(message, ':');
+            tkbc_dap(message, '(');
+            for (size_t id = 0; id < kite_ids->count; ++id) {
+              tkbc_dap(message, kite_ids->elements[id]);
+              tkbc_dap(message, ',');
+            }
+            tkbc_dap(message, ')');
           }
-          tkbc_dap(message, ')');
+
           tkbc_dap(message, ':');
         }
       }
@@ -501,6 +504,43 @@ void tkbc_client_file_handler() {
   tkbc_file_handler(env);
   if (env->block_frames->count > 0) {
     tkbc_message_script();
+  }
+}
+
+void tkbc_client_input_handler_script() {
+  if (env->script_counter <= 0) {
+    return;
+  }
+
+  if (IsKeyPressed(KEY_SPACE)) {
+    char buf[64] = {0};
+    snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_TOGGLE);
+    tkbc_dapc(&send_message_queue, buf, strlen(buf));
+    tkbc_dap(&send_message_queue, ':');
+    tkbc_dapc(&send_message_queue, "\r\n", 2);
+  }
+
+  if (IsKeyPressed(KEY_TAB)) {
+    char buf[64] = {0};
+    snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_NEXT);
+    tkbc_dapc(&send_message_queue, buf, strlen(buf));
+    tkbc_dap(&send_message_queue, ':');
+    tkbc_dapc(&send_message_queue, "\r\n", 2);
+  }
+
+  if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
+    int mouse_x = GetMouseX();
+    float slider = env->timeline_front.x + env->timeline_front.width;
+    float c = mouse_x - slider;
+    bool drag_left = c <= 0;
+
+    char buf[64] = {0};
+    snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_SCRUB);
+    tkbc_dapc(&send_message_queue, buf, strlen(buf));
+    tkbc_dap(&send_message_queue, ':');
+    tkbc_dap(&send_message_queue, drag_left);
+    tkbc_dap(&send_message_queue, ':');
+    tkbc_dapc(&send_message_queue, "\r\n", 2);
   }
 }
 
@@ -553,11 +593,7 @@ int main(int argc, char *argv[]) {
     tkbc_client_file_handler();
     tkbc_input_sound_handler(env);
     tkbc_client_input_handler_kite();
-    // TODO: Handle the messages for the script.
-    // That should contain of requests of starting/stopping the script,
-    // switching to the next and generally all of the functionality in the
-    // function below.
-    tkbc_input_handler_script(env);
+    tkbc_client_input_handler_script();
     // The end of the current frame has to be executed so ffmpeg gets the full
     // executed fame.
     tkbc_ffmpeg_handler(env, "output.mp4");

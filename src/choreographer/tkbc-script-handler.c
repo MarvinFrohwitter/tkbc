@@ -5,7 +5,6 @@
 
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
-#include "tkbc-script-api.h"
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
 
@@ -679,6 +678,7 @@ void tkbc_scrub_frames(Env *env) {
     // The block indexes are assumed in order and at the corresponding index.
     int index =
         drag_left ? env->frames->block_index - 1 : env->frames->block_index + 1;
+
     if (index >= 0 && index < (int)env->block_frame->count) {
       env->frames = &env->block_frame->elements[index];
     }
