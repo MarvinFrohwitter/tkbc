@@ -3,6 +3,7 @@
 #include "tkbc-server.h"
 
 #include "../../external/lexer/tkbc-lexer.h"
+#include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-utils.h"
 
@@ -11,6 +12,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -30,9 +32,9 @@ void tkbc_server_shutdown_client(Client client) {
 
   if (n == 0) {
     tkbc_logger(stderr,
-            "INFO: Could not read any more data from the client:" CLIENT_FMT
-            ".\n",
-            CLIENT_ARG(client));
+                "INFO: Could not read any more data from the client:" CLIENT_FMT
+                ".\n",
+                CLIENT_ARG(client));
   }
   if (n < 0) {
     tkbc_logger(stderr, "ERROR: reading failed: %s\n", strerror(errno));
@@ -45,9 +47,9 @@ void tkbc_server_shutdown_client(Client client) {
   size_t thread_id = client.kite_id;
   if (!tkbc_server_remove_client_from_list(client)) {
     tkbc_logger(stderr,
-            "INFO: Client:" CLIENT_FMT
-            ": could not be removed after broken pipe\n",
-            CLIENT_ARG(client));
+                "INFO: Client:" CLIENT_FMT
+                ": could not be removed after broken pipe\n",
+                CLIENT_ARG(client));
   }
 
   pthread_cancel(threads[thread_id]);
@@ -58,19 +60,21 @@ bool tkbc_server_brodcast_client(Client client, const char *message) {
   ssize_t send_check =
       send(client.socket_id, message, strlen(message), MSG_NOSIGNAL);
   if (send_check == 0) {
-    tkbc_logger(stderr, "ERROR no bytes where send to the client:" CLIENT_FMT "\n",
-            CLIENT_ARG(client));
+    tkbc_logger(stderr,
+                "ERROR no bytes where send to the client:" CLIENT_FMT "\n",
+                CLIENT_ARG(client));
   }
   if (send_check == -1) {
     tkbc_logger(stderr,
-            "ERROR: Client:" CLIENT_FMT ":Could not broadcast message: %s\n",
-            CLIENT_ARG(client), message);
+                "ERROR: Client:" CLIENT_FMT
+                ":Could not broadcast message: %s\n",
+                CLIENT_ARG(client), message);
     tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
 
     return false;
   } else {
-    tkbc_logger(stderr, "INFO: The amount %ld send to:" CLIENT_FMT "\n", send_check,
-            CLIENT_ARG(client));
+    tkbc_logger(stderr, "INFO: The amount %ld send to:" CLIENT_FMT "\n",
+                send_check, CLIENT_ARG(client));
   }
   return true;
 }
@@ -259,7 +263,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 5);
+    assert(MESSAGE_COUNT == 9);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -314,6 +318,374 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
 
       tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = KITEVALUE\n");
     } break;
+    case MESSAGE_SCRIPT: {
+      if (pthread_mutex_lock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
+
+      Content tmp_buffer = {0};
+      bool script_parse_fail = false;
+      Block_Frame *scb = env->scratch_buf_block_frame;
+      Frames *frames = env->scratch_buf_frames;
+
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        script_parse_fail = true;
+        goto script_err;
+      }
+      scb->script_id = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        script_parse_fail = true;
+        goto script_err;
+      }
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        script_parse_fail = true;
+        goto script_err;
+      }
+      size_t block_frame_count = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        script_parse_fail = true;
+        goto script_err;
+      }
+
+      for (size_t i = 0; i < block_frame_count; ++i) {
+        token = lexer_next(lexer);
+        if (token.kind != NUMBER) {
+          script_parse_fail = true;
+          goto script_err;
+        }
+        size_t frames_count = atoi(lexer_token_to_cstr(lexer, &token));
+        token = lexer_next(lexer);
+        if (token.kind != PUNCT_COLON) {
+          script_parse_fail = true;
+          goto script_err;
+        }
+
+        Frame frame = {0};
+        for (size_t j = 0; j < frames_count; ++j) {
+          token = lexer_next(lexer);
+          if (token.kind != NUMBER) {
+            script_parse_fail = true;
+            goto script_err;
+          }
+          frame.index = atoi(lexer_token_to_cstr(lexer, &token));
+          token = lexer_next(lexer);
+          if (token.kind != PUNCT_COLON) {
+            script_parse_fail = true;
+            goto script_err;
+          }
+          token = lexer_next(lexer);
+          if (token.kind != NUMBER) {
+            script_parse_fail = true;
+            goto script_err;
+          }
+          frame.finished = atoi(lexer_token_to_cstr(lexer, &token));
+          token = lexer_next(lexer);
+          if (token.kind != PUNCT_COLON) {
+            script_parse_fail = true;
+            goto script_err;
+          }
+          token = lexer_next(lexer);
+          if (token.kind != NUMBER) {
+            script_parse_fail = true;
+            goto script_err;
+          }
+          frame.kind = atoi(lexer_token_to_cstr(lexer, &token));
+          token = lexer_next(lexer);
+          if (token.kind != PUNCT_COLON) {
+            script_parse_fail = true;
+            goto script_err;
+          }
+
+          char sign;
+          void *action = NULL;
+          assert(ACTION_KIND_COUNT == 9 &&
+                 "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
+          switch (frame.kind) {
+          case KITE_QUIT:
+          case KITE_WAIT: {
+            token = lexer_next(lexer);
+            if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+            if (token.kind == PUNCT_SUB) {
+              sign = *(char *)token.content;
+              tkbc_dap(&tmp_buffer, sign);
+              token = lexer_next(lexer);
+            }
+            tkbc_dapc(&tmp_buffer, token.content, token.size);
+            tkbc_dap(&tmp_buffer, 0);
+            ((Wait_Action *)action)->starttime = atof(tmp_buffer.elements);
+            tmp_buffer.count = 0;
+          } break;
+
+          case KITE_MOVE:
+          case KITE_MOVE_ADD: {
+            token = lexer_next(lexer);
+            if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+            if (token.kind == PUNCT_SUB) {
+              sign = *(char *)token.content;
+              tkbc_dap(&tmp_buffer, sign);
+              token = lexer_next(lexer);
+            }
+            tkbc_dapc(&tmp_buffer, token.content, token.size);
+            tkbc_dap(&tmp_buffer, 0);
+            ((Move_Action *)action)->position.x = atof(tmp_buffer.elements);
+            tmp_buffer.count = 0;
+
+            token = lexer_next(lexer);
+            if (token.kind != PUNCT_COLON) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+
+            token = lexer_next(lexer);
+            if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+            if (token.kind == PUNCT_SUB) {
+              sign = *(char *)token.content;
+              tkbc_dap(&tmp_buffer, sign);
+              token = lexer_next(lexer);
+            }
+            tkbc_dapc(&tmp_buffer, token.content, token.size);
+            tkbc_dap(&tmp_buffer, 0);
+            ((Move_Action *)action)->position.y = atof(tmp_buffer.elements);
+            tmp_buffer.count = 0;
+          } break;
+
+          case KITE_ROTATION:
+          case KITE_ROTATION_ADD: {
+            token = lexer_next(lexer);
+            if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+            if (token.kind == PUNCT_SUB) {
+              sign = *(char *)token.content;
+              tkbc_dap(&tmp_buffer, sign);
+              token = lexer_next(lexer);
+            }
+            tkbc_dapc(&tmp_buffer, token.content, token.size);
+            tkbc_dap(&tmp_buffer, 0);
+            ((Rotation_Action *)action)->angle = atof(tmp_buffer.elements);
+            tmp_buffer.count = 0;
+          } break;
+
+          case KITE_TIP_ROTATION:
+          case KITE_TIP_ROTATION_ADD: {
+            token = lexer_next(lexer);
+            if (token.kind != NUMBER) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+            ((Tip_Rotation_Action *)action)->tip =
+                atoi(lexer_token_to_cstr(lexer, &token));
+
+            token = lexer_next(lexer);
+            if (token.kind != PUNCT_COLON) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+
+            token = lexer_next(lexer);
+            if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+            if (token.kind == PUNCT_SUB) {
+              sign = *(char *)token.content;
+              tkbc_dap(&tmp_buffer, sign);
+              token = lexer_next(lexer);
+            }
+            tkbc_dapc(&tmp_buffer, token.content, token.size);
+            tkbc_dap(&tmp_buffer, 0);
+            ((Tip_Rotation_Action *)action)->angle = atof(tmp_buffer.elements);
+            tmp_buffer.count = 0;
+          } break;
+
+          default:
+            assert(0 &&
+                   "UNREACHABLE SCRIPT tkbc_server_received_message_handler()");
+          }
+
+          frame.action = action;
+          token = lexer_next(lexer);
+          if (token.kind != PUNCT_COLON) {
+            script_parse_fail = true;
+            goto script_err;
+          }
+
+          token = lexer_next(lexer);
+          if (token.kind != NUMBER) {
+            script_parse_fail = true;
+            goto script_err;
+          }
+          frame.duration = atof(lexer_token_to_cstr(lexer, &token));
+
+          // These tow have no kites attached.
+          if (frame.kind != KITE_WAIT && frame.kind != KITE_QUIT) {
+            token = lexer_next(lexer);
+            if (token.kind != PUNCT_COLON) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+            token = lexer_next(lexer);
+            if (token.kind != NUMBER) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+            size_t kite_ids_count = atoi(lexer_token_to_cstr(lexer, &token));
+            token = lexer_next(lexer);
+            if (token.kind != PUNCT_COLON) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+            token = lexer_next(lexer);
+            if (token.kind != PUNCT_LPAREN) {
+              script_parse_fail = true;
+              goto script_err;
+            }
+            Kite_Ids kis = {0};
+            for (size_t k = 1; k <= kite_ids_count; ++k) {
+              token = lexer_next(lexer);
+              if (token.kind != NUMBER) {
+                script_parse_fail = true;
+                goto script_err;
+              }
+              tkbc_dap(&kis, atoi(lexer_token_to_cstr(lexer, &token)));
+
+              token = lexer_next(lexer);
+              if (token.kind != PUNCT_COMMA && token.kind != PUNCT_RPAREN) {
+                script_parse_fail = true;
+                goto script_err;
+              }
+              if (token.kind == PUNCT_RPAREN && k != kite_ids_count) {
+                script_parse_fail = true;
+                goto script_err;
+              }
+            }
+            frame.kite_id_array = &kis;
+          }
+
+          token = lexer_next(lexer);
+          if (token.kind != PUNCT_COLON) {
+            script_parse_fail = true;
+            goto script_err;
+          }
+        }
+        tkbc_dap(frames, frame);
+      }
+      tkbc_dap(scb, *tkbc_deep_copy_frames(frames));
+      frames->count = 0;
+
+      tkbc_dap(env->block_frames, *tkbc_deep_copy_block_frame(scb));
+      scb->count = 0;
+
+      if (tmp_buffer.elements) {
+        free(tmp_buffer.elements);
+      }
+      if (pthread_mutex_unlock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex unlock");
+      }
+    script_err:
+      if (script_parse_fail) {
+        goto err;
+      }
+
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = SCRIPT\n");
+    } break;
+    case MESSAGE_SCRIPT_TOGGLE: {
+      if (pthread_mutex_lock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
+      env->script_finished = !env->script_finished;
+      if (pthread_mutex_unlock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex unlock");
+      }
+
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = SCRIPT_TOGGLE\n");
+    } break;
+    case MESSAGE_SCRIPT_NEXT: {
+      if (pthread_mutex_lock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
+      if (env->script_counter <= env->block_frames->count) {
+        if (pthread_mutex_unlock(&mutex) != 0) {
+          assert(0 && "ERROR:mutex unlock");
+        }
+        goto err;
+      }
+
+      if (env->script_counter > 0) {
+        // Switch to next script.
+        size_t count = env->block_frames->count;
+
+        // NOTE: For this to work for the first iteration it relies on the
+        // calloc functionality to zero out the rest of the struct.
+        size_t id = env->block_frame->script_id;
+        size_t script_index = id % count;
+        env->block_frame = &env->block_frames->elements[script_index];
+        env->frames = &env->block_frame->elements[0];
+
+        tkbc_set_kite_positions_from_kite_frames_positions(env);
+        env->script_finished = false;
+      }
+
+      if (pthread_mutex_unlock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex unlock");
+      }
+
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = SCRIPT_NEXT\n");
+    } break;
+    case MESSAGE_SCRIPT_SCRUB: {
+
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        goto err;
+      }
+      bool drag_left = atoi(lexer_token_to_cstr(lexer, &token));
+
+      if (pthread_mutex_lock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
+      {
+        if (env->block_frame->count <= 0) {
+          if (pthread_mutex_unlock(&mutex) != 0) {
+            assert(0 && "ERROR:mutex unlock");
+          }
+          goto err;
+        }
+
+        env->script_finished = true;
+        // The block indexes are assumed in order and at the corresponding
+        // index.
+        int index = drag_left ? env->frames->block_index - 1
+                              : env->frames->block_index + 1;
+
+        if (index >= 0 && index < (int)env->block_frame->count) {
+          env->frames = &env->block_frame->elements[index];
+        }
+        tkbc_set_kite_positions_from_kite_frames_positions(env);
+      }
+      if (pthread_mutex_unlock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex unlock");
+      }
+
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        goto err;
+      }
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = SCRIPT_SCRUB\n");
+    } break;
     default:
       tkbc_logger(stderr, "ERROR: Unknown KIND: %d\n", kind);
       exit(1);
@@ -327,7 +699,8 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       lexer_chop_char(lexer, jump_length);
       continue;
     }
-    tkbc_logger(stderr, "message.elements = %s\n", receive_message_queue.elements);
+    tkbc_logger(stderr, "message.elements = %s\n",
+                receive_message_queue.elements);
     break;
   }
   } while (token.kind != EOF_TOKEN);
@@ -370,12 +743,12 @@ void *tkbc_client_handler(void *client) {
   }
 
   tkbc_logger(stderr, "INFO: Connection from host %s, port %hd\n",
-          inet_ntoa(c.client_address.sin_addr),
-          ntohs(c.client_address.sin_port));
+              inet_ntoa(c.client_address.sin_addr),
+              ntohs(c.client_address.sin_port));
 
   for (;;) {
     Message receive_message_queue = {0};
-    char message[1024];
+    char message[8*1024];
     memset(message, 0, sizeof(message));
     ssize_t message_ckeck =
         recv(c.socket_id, message, sizeof(message) - 1, MSG_NOSIGNAL);
@@ -389,8 +762,9 @@ void *tkbc_client_handler(void *client) {
     message[message_ckeck] = '\0';
 
     if (message_ckeck == 0) {
-      tkbc_logger(stderr, "No data was received from the client:" CLIENT_FMT "\n",
-              CLIENT_ARG(c));
+      tkbc_logger(stderr,
+                  "No data was received from the client:" CLIENT_FMT "\n",
+                  CLIENT_ARG(c));
       break;
     }
 

@@ -472,6 +472,7 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
               tkbc_dap(message, kite_ids->elements[id]);
               tkbc_dap(message, ',');
             }
+            message->count--;
             tkbc_dap(message, ')');
           }
 

@@ -602,22 +602,15 @@ void tkbc_input_handler_script(Env *env) {
 
     if (env->script_counter > 0) {
       // Switch to next script.
-      assert(env->block_frames->count != 0);
-
       size_t count = env->block_frames->count;
-
       // NOTE: For this to work for the first iteration it relies on the calloc
       // functionality to zero out the rest of the struct.
       size_t id = env->block_frame->script_id;
-
       size_t script_index = id % count;
-
       env->block_frame = &env->block_frames->elements[script_index];
-
       env->frames = &env->block_frame->elements[0];
 
       tkbc_set_kite_positions_from_kite_frames_positions(env);
-
       env->script_finished = false;
     }
   }
