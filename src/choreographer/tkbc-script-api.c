@@ -29,7 +29,6 @@ void tkbc_script_end(Env *env) {
 
   // To ensure the script begin is called.
   if (!env->script_setup) {
-    env->script_setup = false;
     return;
   }
   env->script_setup = false;

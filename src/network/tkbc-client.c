@@ -7,7 +7,6 @@
 #include "../choreographer/tkbc-ffmpeg.h"
 #include "../choreographer/tkbc-input-handler.h"
 #include "../choreographer/tkbc-script-api.h"
-#include "../choreographer/tkbc-script-converter.h"
 #include "../choreographer/tkbc-sound-handler.h"
 #include "../choreographer/tkbc.h"
 
@@ -401,27 +400,36 @@ void tkbc_client_input_handler_kite() {
 }
 
 bool tkbc_message_append_script(size_t script_id, Message *message) {
+  char buf[64] = {0};
   for (size_t i = 0; i < env->block_frames->count; ++i) {
     if (env->block_frames->elements[i].script_id == script_id) {
-      tkbc_dap(message, script_id);
+      tkbc_ptoa(buf, sizeof(buf), &script_id, SIZE_T);
+      tkbc_dapc(message, buf, strlen(buf));
       tkbc_dap(message, ':');
 
       Block_Frame *block_frame = &env->block_frames->elements[i];
-      tkbc_dap(message, block_frame->count);
+      tkbc_ptoa(buf, sizeof(buf), &block_frame->count, SIZE_T);
+      tkbc_dapc(message, buf, strlen(buf));
       tkbc_dap(message, ':');
       for (size_t j = 0; j < block_frame->count; ++j) {
-        tkbc_dap(message, block_frame->elements[j].block_index);
+        tkbc_ptoa(buf, sizeof(buf), &block_frame->elements[j].block_index,
+                  SIZE_T);
+        tkbc_dapc(message, buf, strlen(buf));
         tkbc_dap(message, ':');
 
         Frames *frames = &block_frame->elements[j];
-        tkbc_dap(message, frames->count);
+        tkbc_ptoa(buf, sizeof(buf), &frames->count, SIZE_T);
+        tkbc_dapc(message, buf, strlen(buf));
         tkbc_dap(message, ':');
         for (size_t k = 0; k < frames->count; ++k) {
-          tkbc_dap(message, frames->elements[k].index);
+          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].index, SIZE_T);
+          tkbc_dapc(message, buf, strlen(buf));
           tkbc_dap(message, ':');
-          tkbc_dap(message, frames->elements[k].finished);
+          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].finished, INT);
+          tkbc_dapc(message, buf, strlen(buf));
           tkbc_dap(message, ':');
-          tkbc_dap(message, frames->elements[k].kind);
+          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].kind, INT);
+          tkbc_dapc(message, buf, strlen(buf));
           tkbc_dap(message, ':');
 
           assert(ACTION_KIND_COUNT == 9 &&
@@ -430,29 +438,35 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
           case KITE_QUIT:
           case KITE_WAIT: {
             Wait_Action *action = frames->elements[k].action;
-            tkbc_dap(message, action->starttime);
+            tkbc_ptoa(buf, sizeof(buf), &action->starttime, DOUBLE);
+            tkbc_dapc(message, buf, strlen(buf));
           } break;
 
           case KITE_MOVE:
           case KITE_MOVE_ADD: {
             Move_Action *action = frames->elements[k].action;
-            tkbc_dap(message, action->position.x);
+            tkbc_ptoa(buf, sizeof(buf), &action->position.x, FLOAT);
+            tkbc_dapc(message, buf, strlen(buf));
             tkbc_dap(message, ':');
-            tkbc_dap(message, action->position.y);
+            tkbc_ptoa(buf, sizeof(buf), &action->position.y, FLOAT);
+            tkbc_dapc(message, buf, strlen(buf));
           } break;
 
           case KITE_ROTATION:
           case KITE_ROTATION_ADD: {
             Rotation_Action *action = frames->elements[k].action;
-            tkbc_dap(message, action->angle);
+            tkbc_ptoa(buf, sizeof(buf), &action->angle, FLOAT);
+            tkbc_dapc(message, buf, strlen(buf));
           } break;
 
           case KITE_TIP_ROTATION:
           case KITE_TIP_ROTATION_ADD: {
             Tip_Rotation_Action *action = frames->elements[k].action;
-            tkbc_dap(message, action->tip);
+            tkbc_ptoa(buf, sizeof(buf), &action->tip, INT);
+            tkbc_dapc(message, buf, strlen(buf));
             tkbc_dap(message, ':');
-            tkbc_dap(message, action->angle);
+            tkbc_ptoa(buf, sizeof(buf), &action->angle, FLOAT);
+            tkbc_dapc(message, buf, strlen(buf));
           } break;
 
           default:
@@ -460,16 +474,19 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
           }
 
           tkbc_dap(message, ':');
-          tkbc_dap(message, frames->elements[k].duration);
+          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].duration, FLOAT);
+          tkbc_dapc(message, buf, strlen(buf));
 
           Kite_Ids *kite_ids = frames->elements[k].kite_id_array;
           if (kite_ids) {
             tkbc_dap(message, ':');
-            tkbc_dap(message, kite_ids->count);
+            tkbc_ptoa(buf, sizeof(buf), &kite_ids->count, SIZE_T);
+            tkbc_dapc(message, buf, strlen(buf));
             tkbc_dap(message, ':');
             tkbc_dap(message, '(');
             for (size_t id = 0; id < kite_ids->count; ++id) {
-              tkbc_dap(message, kite_ids->elements[id]);
+              tkbc_ptoa(buf, sizeof(buf), &kite_ids->elements[id], SIZE_T);
+              tkbc_dapc(message, buf, strlen(buf));
               tkbc_dap(message, ',');
             }
             message->count--;
@@ -487,18 +504,43 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
 
 bool tkbc_message_script() {
   Message message = {0};
-  if (!tkbc_message_append_script(env->script_counter, &message)) {
-    return false;
+  bool ok = true;
+  size_t counter = 0;
+  for (size_t i = 0; i < env->block_frames->count; ++i) {
+    if (!tkbc_message_append_script(env->block_frames->elements[i].script_id,
+                                    &message)) {
+      fprintf(stderr,
+              "ERROR: The script could not be appended to the message.\n");
+      check_return(false);
+    }
+
+    char buf[64] = {0};
+    snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT);
+    tkbc_dapc(&send_message_queue, buf, strlen(buf));
+    tkbc_dap(&send_message_queue, ':');
+    tkbc_dapc(&send_message_queue, message.elements, message.count);
+    tkbc_dapc(&send_message_queue, "\r\n", 2);
+    message.count = 0;
+    counter++;
+
+    if (i == 0) {
+      FILE *file = fopen("OP", "wb");
+      for (size_t k = 0; k < send_message_queue.count; ++k) {
+        fprintf(file, "%c", send_message_queue.elements[k]);
+      }
+      fclose(file);
+    }
   }
-  char buf[64] = {0};
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT);
-  tkbc_dapc(&send_message_queue, buf, strlen(buf));
-  tkbc_dap(&send_message_queue, ':');
-  tkbc_dapc(&send_message_queue, message.elements, message.count);
-  tkbc_dapc(&send_message_queue, "\r\n", 2);
-  free(message.elements);
-  env->block_frames->count -= 1;
-  return true;
+check:
+  env->block_frames->count -= counter;
+  if (!ok) {
+    memcpy(env->block_frames->elements, &env->block_frames->elements[counter],
+           sizeof(*env->block_frames->elements) * env->block_frames->count);
+  }
+  if (message.elements) {
+    free(message.elements);
+  }
+  return ok ? true : false;
 }
 
 void tkbc_client_file_handler() {
@@ -548,16 +590,16 @@ void tkbc_client_input_handler_script() {
 int main(int argc, char *argv[]) {
   client.kite_id = -1;
 
-  char *program_name = tkbc_shift_args(&argc, &argv);
-  tkbc_client_commandline_check(argc, program_name);
+  // char *program_name = tkbc_shift_args(&argc, &argv);
+  // tkbc_client_commandline_check(argc, program_name);
 
-  const char *host_check = tkbc_shift_args(&argc, &argv);
-  const char *host = tkbc_host_parsing(host_check);
+  // const char *host_check = tkbc_shift_args(&argc, &argv);
+  // const char *host = tkbc_host_parsing(host_check);
 
-  char *port_check = tkbc_shift_args(&argc, &argv);
-  uint16_t port = tkbc_port_parsing(port_check);
+  // char *port_check = tkbc_shift_args(&argc, &argv);
+  // uint16_t port = tkbc_port_parsing(port_check);
 
-  int client_socket = tkbc_client_socket_creation(host, port);
+  int client_socket = tkbc_client_socket_creation("127.0.0.1", 8080);
   client.socket_id = client_socket;
 
   env = tkbc_init_env();

@@ -114,6 +114,15 @@
     }                                                                          \
   } while (0)
 
+typedef enum {
+  SIZE_T,
+  INT,
+  LONG,
+  FLOAT,
+  DOUBLE,
+} Types;
+
+char *tkbc_ptoa(char *buffer, size_t buffer_size, void *number, Types type);
 char *tkbc_shift_args(int *argc, char ***argv);
 void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
                                bool isgenerated);
@@ -130,6 +139,30 @@ float tkbc_clamp(float z, float a, float b);
 // ========================== KITE UTILS =====================================
 
 #include "errno.h"
+
+/**
+ * @brief The function converts a given number by a pointer to a c-string.
+ *
+ * @param buffer The c-stings final location.
+ * @param buffer_size The complete size of the buffer the string is stored in.
+ * @param number The pointer to the number that should be converted.
+ * @param type The type of the number in capital letters.
+ * @return The pointer to the given buffer.
+ */
+char *tkbc_ptoa(char *buffer, size_t buffer_size, void *number, Types type) {
+  memset(buffer, 0, buffer_size);
+  if ((type) == SIZE_T) {
+    snprintf(buffer, buffer_size - 1, "%zu", *((size_t *)number));
+  } else if ((type) == INT) {
+    snprintf(buffer, buffer_size - 1, "%d", *((int *)number));
+  } else if ((type) == FLOAT) {
+    snprintf(buffer, buffer_size - 1, "%f", *((float *)number));
+  } else if ((type) == DOUBLE) {
+    snprintf(buffer, buffer_size - 1, "%f", *((double *)number));
+  }
+  buffer[buffer_size - 1] = 0;
+  return buffer;
+}
 
 /**
  * @brief The function cuts of the first argument of a given list.

@@ -1,4 +1,5 @@
 #include "tkbc-server.h"
+#include "../choreographer/tkbc-script-api.h"
 #include "tkbc-network-common.h"
 #include "tkbc-server-client-handler.h"
 
@@ -14,8 +15,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-void (*signal(int sig, void (*func)(int)))(int);
-
 #include "../global/tkbc-types.h"
 
 Env *env = {0};
@@ -23,6 +22,7 @@ Clients *clients = {0};
 int server_socket;
 
 pthread_t threads[SERVER_CONNETCTIONS];
+pthread_t execution_thread;
 
 #include "../choreographer/tkbc.h"
 
@@ -99,17 +99,23 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, signalhandler);
   signal(SIGTERM, signalhandler);
 
-  char *program_name = tkbc_shift_args(&argc, &argv);
-  tkbc_server_commandline_check(argc, program_name);
+  // char *program_name = tkbc_shift_args(&argc, &argv);
+  // tkbc_server_commandline_check(argc, program_name);
 
-  char *port_check = tkbc_shift_args(&argc, &argv);
-  uint16_t port = tkbc_port_parsing(port_check);
+  // char *port_check = tkbc_shift_args(&argc, &argv);
+  // uint16_t port = tkbc_port_parsing(port_check);
 
-  server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
+  server_socket = tkbc_server_socket_creation(INADDR_ANY, 8080);
   tkbc_logger(stderr, "INFO:Server socket: %d\n", server_socket);
   env = tkbc_init_env();
   clients = tkbc_init_clients();
   size_t clients_visited = 0;
+
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  pthread_create(&execution_thread, &attr, tkbc_script_execution_handler, NULL);
+  pthread_attr_destroy(&attr);
 
   for (;;) {
     if (clients_visited > SERVER_CONNETCTIONS) {
@@ -132,7 +138,7 @@ int main(int argc, char *argv[]) {
       };
       tkbc_dap(clients, client);
       tkbc_logger(stderr, "INFO: Client:" CLIENT_FMT " has connected.\n",
-              CLIENT_ARG(client));
+                  CLIENT_ARG(client));
 
       assert(clients->count > 0);
       Client c = clients->elements[clients->count - 1];
@@ -151,6 +157,27 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
+void *tkbc_script_execution_handler() {
+  for (;;) {
+    pthread_mutex_lock(&mutex);
+    if (env->block_frames->count > 0) {
+      if (!tkbc_script_finished(env)) {
+        tkbc_script_update_frames(env);
+        Clients cs = {0};
+        if (!tkbc_message_clientkites_brodcast_all(&cs)) {
+          for (size_t i = 0; i < cs.count; ++i) {
+            tkbc_server_shutdown_client(cs.elements[i]);
+          }
+          free(cs.elements);
+        }
+      }
+    }
+    pthread_mutex_unlock(&mutex);
+    sleep(1);
+  }
+  pthread_exit(NULL);
+}
+
 void signalhandler(int signal) {
   (void)signal;
   for (size_t i = 0; i < clients->count; ++i) {
@@ -162,6 +189,7 @@ void signalhandler(int signal) {
       assert(0 && "ERROR:mutex unlock");
     }
   }
+  pthread_cancel(execution_thread);
 
   tkbc_logger(stderr, "INFO: Closing...\n");
 
