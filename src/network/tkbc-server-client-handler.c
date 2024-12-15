@@ -24,10 +24,10 @@ extern pthread_mutex_t mutex;
 
 void tkbc_server_shutdown_client(Client client) {
   shutdown(client.socket_id, SHUT_WR);
-  char buf[1024] = {0};
+  char read_buffer[1024] = {0};
   int n;
   do {
-    n = read(client.socket_id, buf, sizeof(buf));
+    n = read(client.socket_id, read_buffer, sizeof(read_buffer));
   } while (n > 0);
 
   if (n == 0) {
@@ -42,6 +42,48 @@ void tkbc_server_shutdown_client(Client client) {
 
   if (close(client.socket_id) == -1) {
     tkbc_logger(stderr, "ERROR: Close socket: %s\n", strerror(errno));
+  }
+
+  Message message = {0};
+  char buf[64] = {0};
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENT_DISCONNECT);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", client.kite_id);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  tkbc_dapc(&message, "\r\n", 2);
+  tkbc_dap(&message, 0);
+
+  Clients cs = {0};
+  int err = pthread_mutex_lock(&mutex);
+  if (err != 0) {
+    if (err == EDEADLK) {
+      fprintf(stderr, "The mutex lock is already set.\n");
+    } else {
+      assert(0 && "ERROR:mutex lock");
+    }
+  }
+
+  if (!tkbc_server_brodcast_all_exept(&cs, client.kite_id, message.elements)) {
+    for (size_t i = 0; i < cs.count; ++i) {
+      // This is not a reinvocation of any client shutdown because the message
+      // is just broadcasted to all except this one and if the other clients are
+      // in the middle of a shutdown the thread is closed correctly by this call
+      // the execution of the other shutdown is killed.
+      pthread_mutex_lock(&mutex);
+      tkbc_server_shutdown_client(cs.elements[i]);
+    }
+  }
+  if (pthread_mutex_unlock(&mutex) != 0) {
+    assert(0 && "ERROR:mutex unlock");
+  }
+  if (cs.elements) {
+    free(cs.elements);
+  }
+  if (message.elements) {
+    free(message.elements);
   }
 
   size_t thread_id = client.kite_id;
@@ -172,6 +214,7 @@ bool tkbc_message_kite_value(size_t client_id) {
   Clients cs = {0};
   if (!tkbc_server_brodcast_all_exept(&cs, client_id, message.elements)) {
     for (size_t i = 0; i < cs.count; ++i) {
+      pthread_mutex_lock(&mutex);
       tkbc_server_shutdown_client(cs.elements[i]);
     }
     free(cs.elements);
@@ -274,11 +317,10 @@ bool tkbc_server_remove_client_from_list(Client client) {
 
   for (size_t i = 0; i < clients->count; ++i) {
     if (client.kite_id == clients->elements[i].kite_id) {
-
-      // The next index does exist, even if there is just one client, because
-      // the default array allocation does allocate 64 slots.
-      memmove(&clients->elements[i], &clients->elements[i + 1],
-              sizeof(client) * clients->count - i - 1);
+      if (i + 1 < clients->count) {
+        memmove(&clients->elements[i], &clients->elements[i + 1],
+                sizeof(client) * clients->count - i - 1);
+      }
       clients->count -= 1;
 
       if (pthread_mutex_unlock(&mutex) != 0) {
@@ -301,8 +343,6 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
   if (receive_message_queue.count == 0) {
     check_return(true);
   }
-  tkbc_dap(&receive_message_queue, 0);
-
   do {
     token = lexer_next(lexer);
     if (token.kind == EOF_TOKEN) {
@@ -325,7 +365,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 9);
+    assert(MESSAGE_COUNT == 10);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -772,6 +812,8 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
     continue;
 
   err: {
+    tkbc_dap(&receive_message_queue, 0);
+    receive_message_queue.count -= 1;
     char *rn = strstr(receive_message_queue.elements, "\r\n");
     if (rn != NULL) {
       int jump_length = rn + 2 - &lexer->content[lexer->position];
@@ -820,6 +862,7 @@ void *tkbc_client_handler(void *client) {
       goto check;
     }
     for (size_t i = 0; i < cs.count; ++i) {
+      pthread_mutex_lock(&mutex);
       tkbc_server_shutdown_client(cs.elements[i]);
     }
     free(cs.elements);
@@ -845,11 +888,10 @@ void *tkbc_client_handler(void *client) {
     do {
       n = recv(c.socket_id, &receive_queue.elements[receive_queue.count], size,
                MSG_NOSIGNAL | MSG_DONTWAIT);
-
-      receive_queue.count += n;
       if (n == -1) {
         break;
       }
+      receive_queue.count += n;
       if (receive_queue.count >= receive_queue.capacity) {
         receive_queue.capacity += size;
         receive_queue.elements =
@@ -864,7 +906,6 @@ void *tkbc_client_handler(void *client) {
         break;
       }
     }
-    tkbc_dap(&receive_queue, 0);
     if (receive_queue.count == 0) {
       tkbc_logger(stderr, "ERROR: read: Busy loop\n");
       n = recv(c.socket_id, &receive_queue.elements[receive_queue.count], size,
@@ -876,11 +917,12 @@ void *tkbc_client_handler(void *client) {
           break;
         }
       }
+      // If the client has disconnected n ==0  and we should close the
+      // connection.
+      if (n == 0) {
+        break;
+      }
       continue;
-    }
-
-    if (strcmp(receive_queue.elements, "quit\n") == 0) {
-      break;
     }
 
     if (!tkbc_server_received_message_handler(receive_queue)) {

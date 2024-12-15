@@ -196,7 +196,7 @@ bool received_message_handler() {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 9);
+    assert(MESSAGE_COUNT == 10);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -315,6 +315,32 @@ bool received_message_handler() {
       }
 
       tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = CLIENTKITES\n");
+    } break;
+    case MESSAGE_CLIENT_DISCONNECT: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        check_return(false);
+      }
+      size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        check_return(false);
+      }
+
+      for (size_t i = 0; i < env->kite_array->count; ++i) {
+        if (env->kite_array->elements[i].kite_id == kite_id) {
+          if (i + 1 < env->kite_array->count) {
+            memmove(&env->kite_array->elements[i],
+                    &env->kite_array->elements[i + 1],
+                    sizeof(*env->kite_array->elements) *
+                        (env->kite_array->count - 1 - i));
+          }
+          env->kite_array->count -= 1;
+          break;
+        }
+      }
+
+      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = CLIENT_DISCONNET\n");
     } break;
     default:
       tkbc_logger(stderr, "ERROR: Unknown KIND: %d\n", kind);
@@ -535,7 +561,7 @@ check:
   env->block_frames->count -= counter;
   if (!ok) {
     memmove(env->block_frames->elements, &env->block_frames->elements[counter],
-           sizeof(*env->block_frames->elements) * env->block_frames->count);
+            sizeof(*env->block_frames->elements) * env->block_frames->count);
   }
   if (message.elements) {
     free(message.elements);

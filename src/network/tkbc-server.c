@@ -166,6 +166,7 @@ void *tkbc_script_execution_handler() {
         Clients cs = {0};
         if (!tkbc_message_clientkites_brodcast_all(&cs)) {
           for (size_t i = 0; i < cs.count; ++i) {
+            pthread_mutex_lock(&mutex);
             tkbc_server_shutdown_client(cs.elements[i]);
           }
           free(cs.elements);

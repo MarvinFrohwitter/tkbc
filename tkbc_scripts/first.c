@@ -102,9 +102,8 @@ void tkbc_script_input(Env *env) {
   // float ball_radius = (kite->width + kite->spread);
 
   // To set the setup to false.
-  Kite_Ids ki = tkbc_kite_array_generate(env, 8);
-  // Kite_Indexs ki;
-  // return;
+  Kite_Ids ki = tkbc_kite_array_generate(env, 0);
+  return;
 
   tkbc_script_begin(env);
   tkbc_register_frames(
