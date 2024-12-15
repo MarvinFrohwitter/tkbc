@@ -534,7 +534,7 @@ bool tkbc_message_script() {
 check:
   env->block_frames->count -= counter;
   if (!ok) {
-    memcpy(env->block_frames->elements, &env->block_frames->elements[counter],
+    memmove(env->block_frames->elements, &env->block_frames->elements[counter],
            sizeof(*env->block_frames->elements) * env->block_frames->count);
   }
   if (message.elements) {
