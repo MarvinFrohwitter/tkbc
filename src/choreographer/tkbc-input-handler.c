@@ -9,15 +9,9 @@
  * @brief The function handles all the keyboard input that is provided to
  * control the given state.
  *
- * @param env The global state of the application.
  * @param state The current state of a kite that should be handled.
  */
-void tkbc_input_handler(Env *env, Kite_State *state) {
-  // Hard reset to startposition angel 0
-  if (IsKeyDown(KEY_ENTER))
-    tkbc_kite_array_start_position(env->kite_array, env->window_width,
-                                   env->window_height);
-
+void tkbc_input_handler(Kite_State *state) {
   if (!state->kite_input_handler_active) {
     return;
   }
@@ -123,7 +117,7 @@ void tkbc_input_handler_kite_array(Env *env) {
 
   // To handle all of the kites currently registered in the kite array.
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    tkbc_input_handler(env, &env->kite_array->elements[i]);
+    tkbc_input_handler(&env->kite_array->elements[i]);
   }
 }
 

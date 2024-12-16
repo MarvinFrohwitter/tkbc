@@ -3,6 +3,7 @@
 #include "tkbc-server.h"
 
 #include "../../external/lexer/tkbc-lexer.h"
+#include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-utils.h"
@@ -365,7 +366,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 10);
+    assert(MESSAGE_COUNT == 11);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -388,37 +389,37 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "HELLO\n");
     } break;
     case MESSAGE_KITEVALUE: {
-      size_t kite_id;
-      float x, y, angle;
-      Color color;
-      if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                         &color)) {
+      int check = tkbc_single_kitevalue(lexer);
+      if (check == -1) {
         goto err;
       }
-
-      if (pthread_mutex_lock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
-
-      for (size_t i = 0; i < env->kite_array->count; ++i) {
-        if (kite_id == env->kite_array->elements[i].kite_id) {
-          Kite *kite = env->kite_array->elements[i].kite;
-          kite->center.x = x;
-          kite->center.y = y;
-          kite->angle = angle;
-          kite->body_color = color;
-          tkbc_center_rotation(kite, NULL, kite->angle);
-        }
-      }
-      if (!tkbc_message_kite_value(kite_id)) {
+      if (check == 1) {
         check_return(false);
       }
 
-      if (pthread_mutex_unlock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex unlock");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEVALUE\n");
+    } break;
+    case MESSAGE_KITES_POSITIONS: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        check_return(false);
+      }
+      size_t kite_count = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        check_return(false);
+      }
+      for (size_t id = 0; id < kite_count; ++id) {
+        int check = tkbc_single_kitevalue(lexer);
+        if (check == -1) {
+          goto err;
+        }
+        if (check == 1) {
+          check_return(false);
+        }
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEVALUE\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES_POSITIONS\n");
     } break;
     case MESSAGE_SCRIPT: {
       if (pthread_mutex_lock(&mutex) != 0) {
@@ -429,6 +430,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       bool script_parse_fail = false;
       Block_Frame *scb = env->scratch_buf_block_frame;
       Frames *frames = env->scratch_buf_frames;
+      Kite_Ids possible_new_kis = {0};
 
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
@@ -680,7 +682,19 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
                 script_parse_fail = true;
                 goto script_err;
               }
-              tkbc_dap(&kis, atoi(lexer_token_to_cstr(lexer, &token)));
+
+              size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
+              bool contains = false;
+              tkbc_dap(&kis, kite_id);
+              for (size_t id = 0; id < possible_new_kis.count; ++id) {
+                if (possible_new_kis.elements[id] == kite_id) {
+                  contains = true;
+                  break;
+                }
+              }
+              if (!contains) {
+                tkbc_dap(&possible_new_kis, kite_id);
+              }
 
               token = lexer_next(lexer);
               if (token.kind != PUNCT_COMMA && token.kind != PUNCT_RPAREN) {
@@ -713,6 +727,26 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         }
       }
       if (!found) {
+        size_t kite_count = possible_new_kis.count;
+        for (size_t id = 0; id < possible_new_kis.count; ++id) {
+          for (size_t i = 0; i < env->kite_array->count; ++i) {
+            Kite_State *kite_state = &env->kite_array->elements[i];
+            if (possible_new_kis.elements[id] == kite_state->kite_id) {
+              kite_count--;
+              break;
+            }
+          }
+        }
+        tkbc_kite_array_generate(env, kite_count);
+        if (possible_new_kis.elements) {
+          free(possible_new_kis.elements);
+        }
+
+        // Set the first kite frame positions
+        for (size_t i = 0; i < scb->count; ++i) {
+          tkbc_patch_block_frame_kite_positions(env, &scb->elements[i]);
+        }
+
         tkbc_dap(env->block_frames, *tkbc_deep_copy_block_frame(scb));
       }
       scb->count = 0;
@@ -842,10 +876,44 @@ check:
   return ok ? true : false;
 }
 
+int tkbc_single_kitevalue(Lexer *lexer) {
+  int ok = 0;
+  size_t kite_id;
+  float x, y, angle;
+  Color color;
+  if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle, &color)) {
+    return -1;
+  }
+
+  if (pthread_mutex_lock(&mutex) != 0) {
+    assert(0 && "ERROR:mutex lock");
+  }
+
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    if (kite_id == env->kite_array->elements[i].kite_id) {
+      Kite *kite = env->kite_array->elements[i].kite;
+      kite->center.x = x;
+      kite->center.y = y;
+      kite->angle = angle;
+      kite->body_color = color;
+      tkbc_center_rotation(kite, NULL, kite->angle);
+    }
+  }
+  if (!tkbc_message_kite_value(kite_id)) {
+    check_return(1);
+  }
+
+check:
+  if (pthread_mutex_unlock(&mutex) != 0) {
+    assert(0 && "ERROR:mutex unlock");
+  }
+  return ok;
+}
+
 void *tkbc_client_handler(void *client) {
   // TODO: Check that clients can't have the same socket id as someone before.
-  // In this case the messages that are broadcasted to all clients will only be
-  // partially be distributed.
+  // In this case the messages that are broadcasted to all clients will only
+  // be partially be distributed.
   Client c = *(Client *)client;
 
   tkbc_message_hello(c);

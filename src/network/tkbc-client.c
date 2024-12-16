@@ -196,7 +196,7 @@ bool received_message_handler() {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 10);
+    assert(MESSAGE_COUNT == 11);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -406,7 +406,7 @@ void tkbc_client_input_handler_kite() {
       float angle = kite_state->kite->angle;
 
       kite_state->kite_input_handler_active = true;
-      tkbc_input_handler(env, kite_state);
+      tkbc_input_handler(kite_state);
 
       if (Vector2Equals(pos, kite_state->kite->center)) {
         if (FloatEquals(angle, kite_state->kite->angle)) {
@@ -579,6 +579,43 @@ void tkbc_client_file_handler() {
 void tkbc_client_input_handler_script() {
   if (env->script_counter <= 0) {
     return;
+  }
+
+  // Hard reset to startposition angel 0
+  if (IsKeyDown(KEY_ENTER)) {
+    tkbc_kite_array_start_position(env->kite_array, env->window_width,
+                                   env->window_height);
+    char buf[64] = {0};
+    snprintf(buf, sizeof(buf), "%d", MESSAGE_KITES_POSITIONS);
+    tkbc_dapc(&send_message_queue, buf, strlen(buf));
+    tkbc_dap(&send_message_queue, ':');
+
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf), "%zu", env->kite_array->count);
+    tkbc_dapc(&send_message_queue, buf, strlen(buf));
+
+    tkbc_dap(&send_message_queue, ':');
+    for (size_t i = 0; i < env->kite_array->count; ++i) {
+      memset(buf, 0, sizeof(buf));
+      snprintf(buf, sizeof(buf), "%zu", env->kite_array->elements[i].kite_id);
+      tkbc_dapc(&send_message_queue, buf, strlen(buf));
+
+      tkbc_dap(&send_message_queue, ':');
+      memset(buf, 0, sizeof(buf));
+      float x = env->kite_array->elements[i].kite->center.x;
+      float y = env->kite_array->elements[i].kite->center.y;
+      float angle = env->kite_array->elements[i].kite->angle;
+      snprintf(buf, sizeof(buf), "(%f,%f):%f", x, y, angle);
+      tkbc_dapc(&send_message_queue, buf, strlen(buf));
+
+      tkbc_dap(&send_message_queue, ':');
+      memset(buf, 0, sizeof(buf));
+      snprintf(buf, sizeof(buf), "%u",
+               *(uint32_t *)&env->kite_array->elements[i].kite->body_color);
+      tkbc_dapc(&send_message_queue, buf, strlen(buf));
+      tkbc_dap(&send_message_queue, ':');
+    }
+    tkbc_dapc(&send_message_queue, "\r\n", 2);
   }
 
   if (IsKeyPressed(KEY_SPACE)) {

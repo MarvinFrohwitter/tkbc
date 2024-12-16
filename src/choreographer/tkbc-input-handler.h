@@ -7,7 +7,7 @@
 // ========================== KEYBOARD INPUT =================================
 // ===========================================================================
 
-void tkbc_input_handler(Env *env, Kite_State *state);
+void tkbc_input_handler(Kite_State *state);
 void tkbc_input_handler_kite_array(Env *env);
 void tkbc_input_check_rotation(Kite_State *state);
 void tkbc_input_check_tip_turn(Kite_State *state);

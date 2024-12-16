@@ -19,5 +19,6 @@ bool tkbc_message_clientkites(Client client);
 bool tkbc_message_clientkites_brodcast_all(Clients *cs);
 bool tkbc_server_remove_client_from_list(Client client);
 void tkbc_server_shutdown_client(Client client);
+int tkbc_single_kitevalue(Lexer *lexer);
 
 #endif // !TKBC_SERVER_CLIENT_HANDLER_H

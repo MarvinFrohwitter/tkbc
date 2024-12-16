@@ -594,6 +594,11 @@ size_t tkbc_check_finished_frames_count(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_input_handler_script(Env *env) {
+  // Hard reset to startposition angel 0
+  if (IsKeyDown(KEY_ENTER)) {
+    tkbc_kite_array_start_position(env->kite_array, env->window_width,
+                                   env->window_height);
+  }
   if (IsKeyPressed(KEY_SPACE)) {
     env->script_finished = !env->script_finished;
   }
