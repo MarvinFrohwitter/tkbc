@@ -706,7 +706,15 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         frames->count = 0;
       }
 
-      tkbc_dap(env->block_frames, *tkbc_deep_copy_block_frame(scb));
+      bool found = false;
+      for (size_t i = 0; i < env->block_frames->count; ++i) {
+        if (env->block_frames->elements[i].script_id == scb->script_id) {
+          found = true;
+        }
+      }
+      if (!found) {
+        tkbc_dap(env->block_frames, *tkbc_deep_copy_block_frame(scb));
+      }
       scb->count = 0;
 
       if (tmp_buffer.elements) {
