@@ -233,7 +233,7 @@ bool received_message_handler() {
         tkbc_dapc(&send_message_queue, "\r\n", 2);
       }
 
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "HELLO\n");
     } break;
     case MESSAGE_KITEADD: {
       size_t kite_id;
@@ -254,7 +254,7 @@ bool received_message_handler() {
         client.kite_id = kite_id;
       }
 
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = KITEADD\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEADD\n");
     } break;
     case MESSAGE_KITEVALUE: {
       size_t kite_id;
@@ -276,7 +276,7 @@ bool received_message_handler() {
         }
       }
 
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = KITEVALUE\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEVALUE\n");
     } break;
     case MESSAGE_CLIENTKITES: {
       token = lexer_next(lexer);
@@ -314,7 +314,7 @@ bool received_message_handler() {
         }
       }
 
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = CLIENTKITES\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "CLIENTKITES\n");
     } break;
     case MESSAGE_CLIENT_DISCONNECT: {
       token = lexer_next(lexer);
@@ -340,7 +340,7 @@ bool received_message_handler() {
         }
       }
 
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = CLIENT_DISCONNET\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "CLIENT_DISCONNET\n");
     } break;
     default:
       tkbc_logger(stderr, "ERROR: Unknown KIND: %d\n", kind);

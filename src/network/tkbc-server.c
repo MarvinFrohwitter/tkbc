@@ -94,10 +94,13 @@ Clients *tkbc_init_clients(void) {
   return clients;
 }
 
+
 int main(int argc, char *argv[]) {
   signal(SIGABRT, signalhandler);
   signal(SIGINT, signalhandler);
   signal(SIGTERM, signalhandler);
+  char *start = "The server has started.";
+  tkbc_fprintf(stderr, "INFO", "%s\n", start);
 
   // char *program_name = tkbc_shift_args(&argc, &argv);
   // tkbc_server_commandline_check(argc, program_name);

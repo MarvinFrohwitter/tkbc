@@ -122,6 +122,7 @@ typedef enum {
   DOUBLE,
 } Types;
 
+int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...);
 char *tkbc_ptoa(char *buffer, size_t buffer_size, void *number, Types type);
 char *tkbc_shift_args(int *argc, char ***argv);
 void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
@@ -139,6 +140,58 @@ float tkbc_clamp(float z, float a, float b);
 // ========================== KITE UTILS =====================================
 
 #include "errno.h"
+
+/**
+ * @brief The function provides a simple logging capability that supports a
+ * level.
+ *
+ * @param stream The FILE stream where the output should be directed.
+ * @param level The logging level that should be displayed in the brackets, or
+ * NULL if the function should act like fprintf().
+ * @param fmt The format string that is passed to the print.
+ * @return The return code of the printf() function family and 0 if the logging
+ * level macro is not defined.
+ */
+int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
+  int ret = 0;
+#ifdef TKBC_LOGGING
+#ifndef TKBC_LOGGING_ERROR
+  if (strncmp(level, "ERROR", 5) == 0) {
+    return ret;
+  }
+#endif // TKBC_LOGGING_ERROR
+#ifndef TKBC_LOGGING_INFO
+  if (strncmp(level, "INFO", 4) == 0) {
+    return ret;
+  }
+#endif // TKBC_LOGGING_INFO
+#ifndef TKBC_LOGGING_WARNING
+  if (strncmp(level, "WARNING", 7) == 0) {
+    return ret;
+  }
+#endif // TKBC_LOGGING_WARNING
+
+  Content c = {0};
+  if (level != NULL) {
+    tkbc_dap(&c, '[');
+    tkbc_dapc(&c, level, strlen(level));
+    tkbc_dap(&c, ']');
+    tkbc_dap(&c, ' ');
+  }
+  tkbc_dapc(&c, fmt, strlen(fmt));
+  tkbc_dap(&c, 0);
+
+  va_list args;
+  va_start(args, fmt);
+  ret = vfprintf(stream, c.elements, args);
+  va_end(args);
+  free(c.elements);
+#endif // TKBC_LOGGING
+  (void)level;
+  (void)fmt;
+  (void)stream;
+  return ret;
+}
 
 /**
  * @brief The function converts a given number by a pointer to a c-string.

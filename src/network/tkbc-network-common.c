@@ -33,7 +33,8 @@ uint16_t tkbc_port_parsing(const char *port_check) {
   }
   int port = atoi(port_check);
   if (port >= 65535 || port <= 0) {
-    tkbc_logger(stderr, "ERROR: The given port [%s] is not valid.\n", port_check);
+    tkbc_logger(stderr, "ERROR: The given port [%s] is not valid.\n",
+                port_check);
     exit(1);
   }
 

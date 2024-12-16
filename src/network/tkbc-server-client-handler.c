@@ -385,7 +385,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         check_return(false);
       }
 
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = HELLO\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "HELLO\n");
     } break;
     case MESSAGE_KITEVALUE: {
       size_t kite_id;
@@ -418,7 +418,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         assert(0 && "ERROR:mutex unlock");
       }
 
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = KITEVALUE\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEVALUE\n");
     } break;
     case MESSAGE_SCRIPT: {
       if (pthread_mutex_lock(&mutex) != 0) {
@@ -720,7 +720,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         goto err;
       }
 
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = SCRIPT\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT\n");
     } break;
     case MESSAGE_SCRIPT_TOGGLE: {
       if (pthread_mutex_lock(&mutex) != 0) {
@@ -731,7 +731,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         assert(0 && "ERROR:mutex unlock");
       }
 
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = SCRIPT_TOGGLE\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_TOGGLE\n");
     } break;
     case MESSAGE_SCRIPT_NEXT: {
       if (pthread_mutex_lock(&mutex) != 0) {
@@ -763,7 +763,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         assert(0 && "ERROR:mutex unlock");
       }
 
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = SCRIPT_NEXT\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_NEXT\n");
     } break;
     case MESSAGE_SCRIPT_SCRUB: {
 
@@ -803,7 +803,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       if (token.kind != PUNCT_COLON) {
         goto err;
       }
-      tkbc_logger(stderr, "[[MESSAGEHANDLER]] message = SCRIPT_SCRUB\n");
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_SCRUB\n");
     } break;
     default:
       tkbc_logger(stderr, "ERROR: Unknown KIND: %d\n", kind);
@@ -907,7 +907,6 @@ void *tkbc_client_handler(void *client) {
       }
     }
     if (receive_queue.count == 0) {
-      tkbc_logger(stderr, "ERROR: read: Busy loop\n");
       n = recv(c.socket_id, &receive_queue.elements[receive_queue.count], size,
                MSG_NOSIGNAL | MSG_PEEK);
       if (n == -1) {

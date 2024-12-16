@@ -12,6 +12,13 @@
 #define PROTOCOL_VERSION "1.0"
 #define TKBC_NETWORK_LOGGING
 
+#ifdef TKBC_NETWORK_LOGGING
+#define TKBC_LOGGING
+#endif // TKBC_NETWORK_LOGGING
+#define TKBC_LOGGING_ERROR
+#define TKBC_LOGGING_INFO
+#define TKBC_LOGGING_WARNING
+
 typedef struct {
   ssize_t kite_id;
 
