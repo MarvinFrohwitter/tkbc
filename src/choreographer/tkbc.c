@@ -217,7 +217,7 @@ void tkbc_kite_array_start_position(Kite_States *kite_states,
 
   float kite_width = kite_states->elements[0].kite->width;
   float kite_height = kite_states->elements[0].kite->height;
-  int viewport_padding =
+  float viewport_padding =
       kite_width > kite_height ? kite_width / 2 : kite_height;
 
   Vector2 start_pos = {.x = window_width / 2.0f -

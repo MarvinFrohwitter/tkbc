@@ -94,7 +94,6 @@ Clients *tkbc_init_clients(void) {
   return clients;
 }
 
-
 int main(int argc, char *argv[]) {
   signal(SIGABRT, signalhandler);
   signal(SIGINT, signalhandler);
@@ -161,7 +160,11 @@ void *tkbc_script_execution_handler() {
     pthread_mutex_lock(&mutex);
     if (env->block_frames->count > 0) {
       if (!tkbc_script_finished(env)) {
+        size_t index = env->frames->block_index;
         tkbc_script_update_frames(env);
+        if (env->frames->block_index != index) {
+          tkbc_message_srcipt_block_frames_value();
+        }
         Clients cs = {0};
         if (!tkbc_message_clientkites_brodcast_all(&cs)) {
           for (size_t i = 0; i < cs.count; ++i) {

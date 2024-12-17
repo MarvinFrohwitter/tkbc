@@ -665,10 +665,6 @@ int main(int argc, char *argv[]) {
   int client_socket = tkbc_client_socket_creation("127.0.0.1", 8080);
   client.socket_id = client_socket;
 
-  env = tkbc_init_env();
-  pthread_t thread;
-  pthread_create(&thread, NULL, message_recieving, (void *)&client_socket);
-
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
   SetTraceLogLevel(LOG_NONE);
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
@@ -676,6 +672,9 @@ int main(int argc, char *argv[]) {
   SetTargetFPS(TARGET_FPS);
   SetExitKey(KEY_ESCAPE);
   tkbc_init_sound(40);
+  env = tkbc_init_env();
+  pthread_t thread;
+  pthread_create(&thread, NULL, message_recieving, (void *)&client_socket);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
