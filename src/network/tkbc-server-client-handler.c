@@ -176,6 +176,40 @@ check:
   return ok ? true : false;
 }
 
+bool tkbc_message_srcipt_block_frames_value() {
+  Message message = {0};
+  bool ok = true;
+  char buf[64] = {0};
+
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_BLOCK_FRAME_VALUE);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+
+  memset(&buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", env->frames->block_index);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  memset(&buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", env->block_frame->count);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  tkbc_dapc(&message, "\r\n", 2);
+
+  tkbc_dap(&message, 0);
+  Clients cs = {0};
+  if (!tkbc_server_brodcast_all(&cs, message.elements)) {
+    for (size_t i = 0; i < cs.count; ++i) {
+      pthread_mutex_lock(&mutex);
+      tkbc_server_shutdown_client(cs.elements[i]);
+    }
+    free(cs.elements);
+    check_return(false);
+  }
+check:
+  free(message.elements);
+  return ok ? true : false;
+}
+
 bool tkbc_message_kiteadd(Clients *cs, size_t client_index) {
   Message message = {0};
   bool ok = true;
@@ -366,7 +400,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 11);
+    assert(MESSAGE_COUNT == 12);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -845,6 +879,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       if (token.kind != PUNCT_COLON) {
         goto err;
       }
+      tkbc_message_srcipt_block_frames_value();
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_SCRUB\n");
     } break;
     default:

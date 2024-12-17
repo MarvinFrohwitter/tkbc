@@ -237,6 +237,12 @@ typedef struct {
   bool script_finished;  // The indication a script has finished.
   size_t script_counter; // Represents the amount of scripts that were loaded,
                          // starts with 1.
+  size_t send_scripts;   // Represents the amount of scripts that where send to
+                         // the peer partner starts; with 1.
+  size_t server_script_block_index; // Represents of the block index the server
+                                    // is currently executing.
+  size_t server_script_block_index_count; // Represents of the current block
+                                          // index count from the server.
 
   size_t window_width;  // The window width of the application.
   size_t window_height; // The window height of the application.

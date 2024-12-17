@@ -46,6 +46,6 @@ void tkbc_draw_kite_array(Kite_States *kite_states);
 // ========================== UI DECLARATIONS ==============================
 
 void tkbc_draw_ui(Env *env);
-void tkbc_ui_timeline(Env *env);
+void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count);
 
 #endif // TKBC_H_

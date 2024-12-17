@@ -14,6 +14,7 @@ bool tkbc_server_brodcast_all(Clients *cs, const char *message);
 
 bool tkbc_message_hello(Client client);
 bool tkbc_message_kiteadd(Clients *cs, size_t client_index);
+bool tkbc_message_srcipt_block_frames_value();
 bool tkbc_message_kite_value(size_t client_id);
 bool tkbc_message_clientkites(Client client);
 bool tkbc_message_clientkites_brodcast_all(Clients *cs);

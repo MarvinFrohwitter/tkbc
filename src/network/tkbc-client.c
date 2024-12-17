@@ -30,6 +30,7 @@
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
+#define TKBC_CLIENT
 
 Env *env = {0};
 Client client = {0};
@@ -196,7 +197,7 @@ bool received_message_handler() {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 11);
+    assert(MESSAGE_COUNT == 12);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -248,9 +249,6 @@ bool received_message_handler() {
       // This assumes the server sends the first KITEADD to the client, that
       // contains his own kite;
       if (client.kite_id == -1) {
-        tkbc_logger(stderr, "--------------------------------------------\n");
-        tkbc_logger(stderr, "THE KITE_ID:%zu\n", kite_id);
-        tkbc_logger(stderr, "--------------------------------------------\n");
         client.kite_id = kite_id;
       }
 
@@ -277,6 +275,30 @@ bool received_message_handler() {
       }
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEVALUE\n");
+    } break;
+    case MESSAGE_SCRIPT_BLOCK_FRAME_VALUE: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        goto err;
+      }
+      env->server_script_block_index = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        goto err;
+      }
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        goto err;
+      }
+      env->server_script_block_index_count =
+          atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        goto err;
+      }
+
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s",
+                   "SCRIPT_BLOCK_FRAME_VALUE\n");
     } break;
     case MESSAGE_CLIENTKITES: {
       token = lexer_next(lexer);
@@ -532,7 +554,7 @@ bool tkbc_message_script() {
   Message message = {0};
   bool ok = true;
   size_t counter = 0;
-  for (size_t i = 0; i < env->block_frames->count; ++i) {
+  for (size_t i = env->send_scripts; i < env->block_frames->count; ++i) {
     if (!tkbc_message_append_script(env->block_frames->elements[i].script_id,
                                     &message)) {
       fprintf(stderr,
@@ -558,11 +580,12 @@ bool tkbc_message_script() {
     }
   }
 check:
-  env->block_frames->count -= counter;
-  if (!ok) {
-    memmove(env->block_frames->elements, &env->block_frames->elements[counter],
-            sizeof(*env->block_frames->elements) * env->block_frames->count);
-  }
+  env->send_scripts += counter;
+  // env->block_frames->count -= counter;
+  // if (!ok) {
+  //   memmove(env->block_frames->elements, &env->block_frames->elements[counter],
+  //           sizeof(*env->block_frames->elements) * env->block_frames->count);
+  // }
   if (message.elements) {
     free(message.elements);
   }
