@@ -114,11 +114,7 @@ int main(int argc, char *argv[]) {
   clients = tkbc_init_clients();
   size_t clients_visited = 0;
 
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  pthread_create(&execution_thread, &attr, tkbc_script_execution_handler, NULL);
-  pthread_attr_destroy(&attr);
+  pthread_create(&execution_thread, NULL, tkbc_script_execution_handler, NULL);
 
   for (;;) {
     if (clients_visited > SERVER_CONNETCTIONS) {

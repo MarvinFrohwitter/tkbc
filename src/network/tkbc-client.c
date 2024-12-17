@@ -667,13 +667,7 @@ int main(int argc, char *argv[]) {
 
   env = tkbc_init_env();
   pthread_t thread;
-
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-  pthread_create(&thread, &attr, message_recieving, (void *)&client_socket);
-  pthread_attr_destroy(&attr);
+  pthread_create(&thread, NULL, message_recieving, (void *)&client_socket);
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
   SetTraceLogLevel(LOG_NONE);
