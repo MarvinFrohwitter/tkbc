@@ -18,8 +18,10 @@ bool tkbc_message_srcipt_block_frames_value();
 bool tkbc_message_kite_value(size_t client_id);
 bool tkbc_message_clientkites(Client client);
 bool tkbc_message_clientkites_brodcast_all(Clients *cs);
+bool tkbc_message_kites_brodcast_all(Clients *cs);
+void tkbc_message_append_kite(Kite_State *kite_state, Message *message);
 bool tkbc_server_remove_client_from_list(Client client);
 void tkbc_server_shutdown_client(Client client);
-int tkbc_single_kitevalue(Lexer *lexer);
+bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id);
 
 #endif // !TKBC_SERVER_CLIENT_HANDLER_H

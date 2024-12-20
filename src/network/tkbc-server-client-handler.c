@@ -73,7 +73,9 @@ void tkbc_server_shutdown_client(Client client) {
       // is just broadcasted to all except this one and if the other clients are
       // in the middle of a shutdown the thread is closed correctly by this call
       // the execution of the other shutdown is killed.
-      pthread_mutex_lock(&mutex);
+      if (pthread_mutex_lock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
       tkbc_server_shutdown_client(cs.elements[i]);
     }
   }
@@ -87,7 +89,7 @@ void tkbc_server_shutdown_client(Client client) {
     free(message.elements);
   }
 
-  size_t thread_id = client.kite_id;
+  pthread_t thread_id = client.thread_id;
   if (!tkbc_server_remove_client_from_list(client)) {
     tkbc_logger(stderr,
                 "INFO: Client:" CLIENT_FMT
@@ -95,7 +97,9 @@ void tkbc_server_shutdown_client(Client client) {
                 CLIENT_ARG(client));
   }
 
-  pthread_cancel(threads[thread_id]);
+  if (pthread_cancel(threads[thread_id]) != 0) {
+    tkbc_logger(stderr, "INFO: Client: Thread is not valid\n");
+  }
 }
 
 bool tkbc_server_brodcast_client(Client client, const char *message) {
@@ -199,8 +203,13 @@ bool tkbc_message_srcipt_block_frames_value() {
   Clients cs = {0};
   if (!tkbc_server_brodcast_all(&cs, message.elements)) {
     for (size_t i = 0; i < cs.count; ++i) {
-      pthread_mutex_lock(&mutex);
+      if (pthread_mutex_lock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
       tkbc_server_shutdown_client(cs.elements[i]);
+      if (pthread_mutex_unlock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex unlock");
+      }
     }
     free(cs.elements);
     check_return(false);
@@ -249,8 +258,13 @@ bool tkbc_message_kite_value(size_t client_id) {
   Clients cs = {0};
   if (!tkbc_server_brodcast_all_exept(&cs, client_id, message.elements)) {
     for (size_t i = 0; i < cs.count; ++i) {
-      pthread_mutex_lock(&mutex);
+      if (pthread_mutex_lock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
       tkbc_server_shutdown_client(cs.elements[i]);
+      if (pthread_mutex_unlock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
     }
     free(cs.elements);
     check_return(false);
@@ -289,6 +303,39 @@ bool tkbc_message_clientkites(Client client) {
 check:
   free(message.elements);
   return ok ? true : false;
+}
+
+bool tkbc_message_kites_brodcast_all(Clients *cs) {
+  Message message = {0};
+  char buf[64] = {0};
+  bool ok = true;
+
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITES);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", env->kite_array->count);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+
+  if (pthread_mutex_lock(&mutex) != 0) {
+    assert(0 && "ERROR:mutex lock");
+  }
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    Kite_State *kite_state = &env->kite_array->elements[i];
+    tkbc_message_append_kite(kite_state, &message);
+  }
+  if (pthread_mutex_unlock(&mutex) != 0) {
+    assert(0 && "ERROR:mutex unlock");
+  }
+  tkbc_dapc(&message, "\r\n", 2);
+  tkbc_dap(&message, 0);
+  if (!tkbc_server_brodcast_all(cs, message.elements)) {
+    check_return(false);
+  }
+check:
+  free(message.elements);
+  return ok;
 }
 
 bool tkbc_message_clientkites_brodcast_all(Clients *cs) {
@@ -400,7 +447,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 12);
+    assert(MESSAGE_COUNT == 13);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -423,11 +470,11 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "HELLO\n");
     } break;
     case MESSAGE_KITEVALUE: {
-      int check = tkbc_single_kitevalue(lexer);
-      if (check == -1) {
+      size_t kite_id;
+      if (!tkbc_single_kitevalue(lexer, &kite_id)) {
         goto err;
       }
-      if (check == 1) {
+      if (!tkbc_message_kite_value(kite_id)) {
         check_return(false);
       }
 
@@ -444,11 +491,25 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         check_return(false);
       }
       for (size_t id = 0; id < kite_count; ++id) {
-        int check = tkbc_single_kitevalue(lexer);
-        if (check == -1) {
+        size_t kite_id;
+        if (!tkbc_single_kitevalue(lexer, &kite_id)) {
           goto err;
         }
-        if (check == 1) {
+        Clients cs = {0};
+        if (!tkbc_message_kites_brodcast_all(&cs)) {
+          if (cs.count == 0) {
+            check_return(false);
+          }
+          for (size_t i = 0; i < cs.count; ++i) {
+            if (pthread_mutex_lock(&mutex) != 0) {
+              assert(0 && "ERROR:mutex lock");
+            }
+            tkbc_server_shutdown_client(cs.elements[i]);
+            if (pthread_mutex_unlock(&mutex) != 0) {
+              assert(0 && "ERROR:mutex unlock");
+            }
+          }
+          free(cs.elements);
           check_return(false);
         }
       }
@@ -911,13 +972,11 @@ check:
   return ok ? true : false;
 }
 
-int tkbc_single_kitevalue(Lexer *lexer) {
-  int ok = 0;
-  size_t kite_id;
+bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id) {
   float x, y, angle;
   Color color;
-  if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle, &color)) {
-    return -1;
+  if (!tkbc_parse_message_kite_value(lexer, kite_id, &x, &y, &angle, &color)) {
+    return false;
   }
 
   if (pthread_mutex_lock(&mutex) != 0) {
@@ -925,7 +984,7 @@ int tkbc_single_kitevalue(Lexer *lexer) {
   }
 
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (kite_id == env->kite_array->elements[i].kite_id) {
+    if (*kite_id == env->kite_array->elements[i].kite_id) {
       Kite *kite = env->kite_array->elements[i].kite;
       kite->center.x = x;
       kite->center.y = y;
@@ -934,15 +993,10 @@ int tkbc_single_kitevalue(Lexer *lexer) {
       tkbc_center_rotation(kite, NULL, kite->angle);
     }
   }
-  if (!tkbc_message_kite_value(kite_id)) {
-    check_return(1);
-  }
-
-check:
   if (pthread_mutex_unlock(&mutex) != 0) {
     assert(0 && "ERROR:mutex unlock");
   }
-  return ok;
+  return true;
 }
 
 void *tkbc_client_handler(void *client) {
@@ -973,7 +1027,9 @@ void *tkbc_client_handler(void *client) {
       goto check;
     }
     for (size_t i = 0; i < cs.count; ++i) {
-      pthread_mutex_lock(&mutex);
+      if (pthread_mutex_lock(&mutex) != 0) {
+        assert(0 && "ERROR:mutex lock");
+      }
       tkbc_server_shutdown_client(cs.elements[i]);
     }
     free(cs.elements);

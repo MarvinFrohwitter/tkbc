@@ -130,6 +130,7 @@ int main(int argc, char *argv[]) {
       }
       Client client = {
           .kite_id = env->kite_id_counter++,
+          .thread_id = clients_visited,
           .socket_id = client_socket_id,
           .client_address = client_address,
           .client_address_length = address_length,

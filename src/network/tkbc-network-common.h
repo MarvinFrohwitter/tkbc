@@ -22,6 +22,7 @@
 typedef struct {
   ssize_t kite_id;
 
+  pthread_t thread_id;
   int socket_id;
   struct sockaddr_in client_address;
   socklen_t client_address_length;
@@ -52,6 +53,7 @@ typedef enum {
   MESSAGE_KITEADD,
   MESSAGE_CLIENT_DISCONNECT,
   MESSAGE_CLIENTKITES,
+  MESSAGE_KITES,
   MESSAGE_KITES_POSITIONS,
   MESSAGE_KITEVALUE,
   MESSAGE_SCRIPT,

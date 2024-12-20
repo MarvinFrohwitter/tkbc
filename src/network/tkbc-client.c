@@ -197,7 +197,7 @@ bool received_message_handler() {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 12);
+    assert(MESSAGE_COUNT == 13);
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -253,6 +253,24 @@ bool received_message_handler() {
       }
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEADD\n");
+    } break;
+    case MESSAGE_KITES: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        check_return(false);
+      }
+      size_t kite_count = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        check_return(false);
+      }
+      for (size_t i = 0; i < kite_count; ++i) {
+        if (!tkbc_parse_single_kite_value(lexer)) {
+          goto err;
+        }
+      }
+
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES\n");
     } break;
     case MESSAGE_KITEVALUE: {
       size_t kite_id;
@@ -583,8 +601,10 @@ check:
   env->send_scripts += counter;
   // env->block_frames->count -= counter;
   // if (!ok) {
-  //   memmove(env->block_frames->elements, &env->block_frames->elements[counter],
-  //           sizeof(*env->block_frames->elements) * env->block_frames->count);
+  //   memmove(env->block_frames->elements,
+  //   &env->block_frames->elements[counter],
+  //           sizeof(*env->block_frames->elements) *
+  //           env->block_frames->count);
   // }
   if (message.elements) {
     free(message.elements);

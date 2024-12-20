@@ -1,4 +1,5 @@
 #include "tkbc-network-common.h"
+#include "../choreographer/tkbc.h"
 #include "../global/tkbc-utils.h"
 
 #include <ctype.h>
@@ -41,32 +42,57 @@ uint16_t tkbc_port_parsing(const char *port_check) {
   return (uint16_t)port;
 }
 
-bool tkbc_message_append_clientkite(size_t client_id, Message *message) {
+void tkbc_message_append_kite(Kite_State *kite_state, Message *message) {
   char buf[64];
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", kite_state->kite_id);
+  tkbc_dapc(message, buf, strlen(buf));
+  tkbc_dap(message, ':');
+  memset(buf, 0, sizeof(buf));
+  float x = kite_state->kite->center.x;
+  float y = kite_state->kite->center.y;
+  float angle = kite_state->kite->angle;
+  snprintf(buf, sizeof(buf), "(%f,%f):%f", x, y, angle);
+  tkbc_dapc(message, buf, strlen(buf));
+
+  tkbc_dap(message, ':');
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%u", *(uint32_t *)&kite_state->kite->body_color);
+  tkbc_dapc(message, buf, strlen(buf));
+  tkbc_dap(message, ':');
+}
+
+bool tkbc_message_append_clientkite(size_t client_id, Message *message) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (client_id == env->kite_array->elements[i].kite_id) {
-      memset(buf, 0, sizeof(buf));
-      snprintf(buf, sizeof(buf), "%zu", client_id);
-      tkbc_dapc(message, buf, strlen(buf));
-
-      tkbc_dap(message, ':');
-      memset(buf, 0, sizeof(buf));
-      float x = env->kite_array->elements[i].kite->center.x;
-      float y = env->kite_array->elements[i].kite->center.y;
-      float angle = env->kite_array->elements[i].kite->angle;
-      snprintf(buf, sizeof(buf), "(%f,%f):%f", x, y, angle);
-      tkbc_dapc(message, buf, strlen(buf));
-
-      tkbc_dap(message, ':');
-      memset(buf, 0, sizeof(buf));
-      snprintf(buf, sizeof(buf), "%u",
-               *(uint32_t *)&env->kite_array->elements[i].kite->body_color);
-      tkbc_dapc(message, buf, strlen(buf));
-      tkbc_dap(message, ':');
+      Kite_State *kite_state = &env->kite_array->elements[i];
+      tkbc_message_append_kite(kite_state, message);
       return true;
     }
   }
   return false;
+}
+
+bool tkbc_parse_single_kite_value(Lexer *lexer) {
+
+  size_t kite_id;
+  float x, y, angle;
+  Color color;
+  if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle, &color)) {
+    return false;
+  }
+
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    if (kite_id == env->kite_array->elements[i].kite_id) {
+      Kite *kite = env->kite_array->elements[i].kite;
+      kite->center.x = x;
+      kite->center.y = y;
+      kite->angle = angle;
+      kite->body_color = color;
+      tkbc_center_rotation(kite, NULL, kite->angle);
+    }
+  }
+  return true;
 }
 
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
