@@ -3,7 +3,7 @@
 #include "cb.h"
 
 #define CC "gcc"
-#define RAYLIBPATH "external/raylib-5.0/src/"
+#define RAYLIBPATH "external/raylib-5.5_linux_amd64"
 #define CHOREOGRAPHERPATH "src/choreographer/"
 
 char *shift_args(int *argc, char ***argv) {
@@ -18,32 +18,19 @@ char *shift_args(int *argc, char ***argv) {
   return old_argv;
 }
 
-void include(Cmd *cmd) {
-  INCLUDE(cmd, "-I", RAYLIBPATH);
-  INCLUDE(cmd, "-I", "src/global/");
-  INCLUDE(cmd, "-I", "src/choreographer/");
-  INCLUDE(cmd, "-I", "src/network/");
-  INCLUDE(cmd, "-I", "tkbc_scripts/");
-  INCLUDE(cmd, "-I", "build/");
-}
+void include(Cmd *cmd) { INCLUDE(cmd, "-I", RAYLIBPATH "/include/"); }
 
 void cflags(Cmd *cmd) {
   CFLAGS(cmd, "-x", "c");
-  CFLAGS(cmd, "-O3", "-pedantic", "-Wall", "-Wextra", "-ggdb");
+  CFLAGS(cmd, "-fPIC", "-O3", "-pedantic", "-Wall", "-Wextra", "-ggdb");
 }
 
 void linker(Cmd *cmd, bool link_dynamic) {
-
-  LDFLAGS(cmd, "-L", RAYLIBPATH);
-  // LDFLAGS(cmd, "-L", "src/global/");
-  // LDFLAGS(cmd, "-L", "src/choreographer/");
-  // LDFLAGS(cmd, "-L", "src/network/");
-  // LDFLAGS(cmd, "-L", "tkbc_scripts/");
-  // LDFLAGS(cmd, "-L", "build/");
+  LDFLAGS(cmd, "-L", RAYLIBPATH "/lib/");
 
   if (link_dynamic) {
-    LDFLAGS(cmd, "-Wl,-rpath=" RAYLIBPATH);
-    LDFLAGS(cmd, "-Wl,-rpath=../" RAYLIBPATH);
+    LDFLAGS(cmd, "-Wl,-rpath=" RAYLIBPATH "/lib/");
+    LDFLAGS(cmd, "-Wl,-rpath=../" RAYLIBPATH "/lib/");
     LIBS(cmd, "-l:libraylib.so", "-lm");
   } else {
     LIBS(cmd, "-l:libraylib.a", "-lm");
@@ -61,12 +48,38 @@ void pre_build(Cmd *cmd) {
 }
 
 void raylib(Cmd *cmd, bool link_dynamic) {
-  // Build raylib
-  if (link_dynamic) {
-    cb_cmd_push(cmd, "make", "-e", "RAYLIB_LIBTYPE=SHARED", "-C", RAYLIBPATH);
-  } else {
-    cb_cmd_push(cmd, "make", "-C", RAYLIBPATH);
+
+  const char *files[] = {
+      "rcore",   "raudio", "rglfw",     "rmodels",
+      "rshapes", "rtext",  "rtextures", "utils",
+  };
+  char buf1[64] = {0};
+  char buf2[64] = {0};
+  for (size_t i = 0; i < (sizeof files / sizeof files[0]); ++i) {
+    cb_cmd_push(cmd, CC);
+    cb_cmd_push(cmd, "-DPLATFORM_DESKTOP", "-DGRAPHICS_API_OPENGL_33");
+    cb_cmd_push(cmd, "-D_GNU_SOURCE");
+    CFLAGS(cmd, "-static", "-fPIC", "-O3", "-ggdb");
+    INCLUDE(cmd, "-I", "./external/raylib-5.0/src/external/glfw/include/GLFW/");
+
+    memset(buf1, 0, sizeof(buf1));
+    cb_cmd_push(cmd, "-c");
+    sprintf(buf1, "%s/%s.c", RAYLIBPATH, files[i]);
+    // This is depend on space that is 0 in the buffer.
+    cb_cmd_push(cmd, buf1);
+
+    memset(buf2, 0, sizeof(buf2));
+    cb_cmd_push(cmd, "-o");
+    sprintf(buf2, "%s/%s.o", RAYLIBPATH, files[i]);
+    // This is depend on space that is 0 in the buffer.
+    cb_cmd_push(cmd, buf2);
+
+    if (!cb_run_sync(cmd))
+      exit(EXIT_FAILURE);
   }
+
+  cb_cmd_push(cmd, "ar", "-r", "external/raylib-5.0/src/libraylib.a",
+              "external/raylib-5.0/src/*.o");
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
 }
@@ -149,7 +162,8 @@ int main(int argc, char *argv[]) {
 
   Cmd cmd = {0};
   pre_build(&cmd);
-  raylib(&cmd, linkoption);
+  // raylib(&cmd, linkoption);
+
   kite_script(&cmd);
   choreographer(&cmd, linkoption);
   server(&cmd, linkoption);

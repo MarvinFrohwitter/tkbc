@@ -261,7 +261,7 @@ void tkbc_file_handler(Env *env) {
         }
         tkbc_script_parser(env);
       } else {
-        if (IsSoundReady(env->sound)) {
+        if (IsSoundValid(env->sound)) {
           StopSound(env->sound);
           UnloadSound(env->sound);
         }

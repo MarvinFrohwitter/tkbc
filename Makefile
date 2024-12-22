@@ -1,18 +1,19 @@
 # clang bug with size_t, variadics, optimization and compiler caching
 CC = gcc
-RAYLIBPATH = external/raylib-5.0/src
+RAYLIBPATH = external/raylib-5.5_linux_amd64
 INCLUDE = -I src/choreographer/ -I src/global/ -I src/network/
-INCLUDE += -I ${RAYLIBPATH} -I tkbc_scripts/ -I build/
-LIBS = -L ${RAYLIBPATH}
+INCLUDE += -I tkbc_scripts/ -I build/
+INCLUDE += -I ${RAYLIBPATH}/include/
+LIBS = -L ${RAYLIBPATH}/lib/
 LIBS += -l:libraylib.a
 LIBS += -lm
-CFLAGS = -x c -O0 -pedantic -Wall -Wextra -ggdb
+CFLAGS = -x c -O0 -fPIC -pedantic -Wall -Wextra -ggdb
 CHOREOGRAPHERPATH = src/choreographer
 CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c
-CHOREOGRAPHER_FILES = ${CHOREOGRAPHERPATH}/tkbc.c ${CHOREOGRAPHERPATH}/tkbc-ffmpeg.c ${CHOREOGRAPHERPATH}/tkbc-input-handler.c ${CHOREOGRAPHERPATH}/tkbc-script-api.c ${CHOREOGRAPHERPATH}/tkbc-script-handler.c ${CHOREOGRAPHERPATH}/tkbc-sound-handler.c ${CHOREOGRAPHERPATH}/tkbc-team-figures-api.c ${CHOREOGRAPHERPATH}/tkbc-ui.c ${CHOREOGRAPHERPATH}/tkbc-parser.c ${CHOREOGRAPHERPATH}/tkbc-script-converter.c
+CHOREOGRAPHER_FILES = ${shell find ${CHOREOGRAPHERPATH}/ ! -name "main.c" -name "*.c"}
 CHOREOGRAPHER += ${CHOREOGRAPHER_FILES}
 
-all: options clean build tkbc raylib server client
+all: options clean build tkbc server client
 
 options:
 	@echo tbkc build options:
@@ -21,21 +22,18 @@ options:
 	@echo "CC     = ${CC}"
 
 
-server: build raylib first.o
+server: build first.o
 	${CC} ${INCLUDE} ${CFLAGS} -static -o build/server src/network/tkbc-server.c src/network/tkbc-server-client-handler.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
-client: build raylib first.o
+client: build first.o
 	${CC} ${INCLUDE} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
 
-tkbc: build raylib first.o
+tkbc: build first.o
 	${CC} ${INCLUDE} ${CFLAGS} -o build/tkbc ${CHOREOGRAPHER} ${LIBS}
 
-first.o: build raylib
+first.o: build
 	${CC} ${INCLUDE} ${CFLAGS} -c tkbc_scripts/first.c -o build/first.o
-
-raylib:
-	$(MAKE) -C ${RAYLIBPATH}
 
 build:
 	mkdir -p build
@@ -43,4 +41,4 @@ build:
 clean:
 	rm -r build
 
-.PHONY: all clean options tkbc tkbc.o build raylib server client
+.PHONY: all clean options tkbc tkbc.o build server client
