@@ -405,15 +405,14 @@ check:
   return ok ? true : false;
 }
 
-void *message_recieving(void *client) {
-  int client_socket = *((int *)client);
+void *message_recieving() {
 
   for (;;) {
     char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
     // The recv call blocks.
     int message_ckeck =
-        recv(client_socket, buffer, sizeof(buffer), MSG_NOSIGNAL);
+        recv(client.socket_id, buffer, sizeof(buffer), MSG_NOSIGNAL);
     if (message_ckeck == -1) {
       tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
       break;
@@ -705,8 +704,7 @@ int main(int argc, char *argv[]) {
   // char *port_check = tkbc_shift_args(&argc, &argv);
   // uint16_t port = tkbc_port_parsing(port_check);
 
-  int client_socket = tkbc_client_socket_creation("127.0.0.1", 8080);
-  client.socket_id = client_socket;
+  client.socket_id = tkbc_client_socket_creation("127.0.0.1", 8080);
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
   SetTraceLogLevel(LOG_NONE);
@@ -717,7 +715,7 @@ int main(int argc, char *argv[]) {
   tkbc_init_sound(40);
   env = tkbc_init_env();
   pthread_t thread;
-  pthread_create(&thread, NULL, message_recieving, (void *)&client_socket);
+  pthread_create(&thread, NULL, message_recieving, NULL);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
@@ -750,11 +748,11 @@ int main(int argc, char *argv[]) {
     free(send_message_queue.elements);
   }
 
-  shutdown(client_socket, SHUT_WR);
+  shutdown(client.socket_id, SHUT_WR);
   char buf[1024] = {0};
   int n;
   do {
-    n = read(client_socket, buf, sizeof(buf));
+    n = read(client.socket_id, buf, sizeof(buf));
   } while (n > 0);
 
   if (n == 0) {
@@ -763,7 +761,7 @@ int main(int argc, char *argv[]) {
   if (n < 0) {
     tkbc_logger(stderr, "ERROR: reading failed: %s\n", strerror(errno));
   }
-  if (close(client_socket) == -1) {
+  if (close(client.socket_id) == -1) {
     tkbc_logger(stderr, "ERROR: Could not close socket: %s\n", strerror(errno));
   }
 
