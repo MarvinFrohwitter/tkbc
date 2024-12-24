@@ -34,8 +34,9 @@
 
 Env *env = {0};
 Client client = {0};
-Message receive_message_queue = {0};
+Message receive_queue = {0};
 Message send_message_queue = {0};
+bool quit = false;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void tkbc_client_usage(const char *program_name) {
@@ -157,22 +158,12 @@ bool received_message_handler() {
   Message message = {0};
   Token token;
   bool ok = true;
-  if (pthread_mutex_lock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex lock");
-  }
-  if (receive_message_queue.count == 0) {
-    if (pthread_mutex_unlock(&mutex) != 0) {
-      assert(0 && "ERROR:mutex unlock");
-    }
+  if (receive_queue.count == 0) {
     check_return(true);
   }
-  tkbc_dapc(&message, receive_message_queue.elements,
-            receive_message_queue.count);
+  tkbc_dapc(&message, receive_queue.elements, receive_queue.count);
   tkbc_dap(&message, 0);
-  receive_message_queue.count = 0;
-  if (pthread_mutex_unlock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex unlock");
-  }
+  receive_queue.count = 0;
 
   Lexer *lexer = lexer_new(__FILE__, message.elements, message.count, 0);
   do {
@@ -406,31 +397,65 @@ check:
 }
 
 void *message_recieving() {
-
+  size_t size = 1024;
+  ssize_t n = 0;
+  receive_queue.elements = malloc(size);
+  receive_queue.capacity = size;
   for (;;) {
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-    // The recv call blocks.
-    int message_ckeck =
-        recv(client.socket_id, buffer, sizeof(buffer), MSG_NOSIGNAL);
-    if (message_ckeck == -1) {
-      tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+    receive_queue.count = 0;
+    do {
+      n = recv(client.socket_id, &receive_queue.elements[receive_queue.count],
+               size, MSG_NOSIGNAL | MSG_DONTWAIT);
+      if (n == -1) {
+        break;
+      }
+      receive_queue.count += n;
+      if (receive_queue.count >= receive_queue.capacity) {
+        receive_queue.capacity += size;
+        receive_queue.elements =
+            realloc(receive_queue.elements,
+                    sizeof(*receive_queue.elements) * receive_queue.capacity);
+        if (receive_queue.elements == NULL) {
+          fprintf(stderr, "ERROR: realloc failed!\n");
+        }
+      }
+    } while (n > 0);
+    if (n == -1) {
+      if (errno != EAGAIN) {
+        tkbc_logger(stderr, "ERROR: read: %d\n", errno);
+        tkbc_logger(stderr, "ERROR: read: %s\n", strerror(errno));
+        break;
+      }
+    }
+    if (receive_queue.count == 0) {
+      n = recv(client.socket_id, &receive_queue.elements[receive_queue.count],
+               size, MSG_NOSIGNAL | MSG_PEEK);
+      if (n == -1) {
+        if (errno != EAGAIN) {
+          tkbc_logger(stderr, "ERROR: MSG_PEEK: %d\n", errno);
+          tkbc_logger(stderr, "ERROR: MSG_PEEK: %s\n", strerror(errno));
+          break;
+        }
+      }
+      if (n == 0) {
+        break;
+      }
+      continue;
+    }
+
+    if (!received_message_handler()) {
+      if (n > 0) {
+        printf("---------------------------------\n");
+        for (size_t i = 0; i < receive_queue.count; ++i) {
+          printf("%c", receive_queue.elements[i]);
+        }
+        printf("---------------------------------\n");
+      }
       break;
-    }
-
-    if (pthread_mutex_lock(&mutex) != 0) {
-      assert(0 && "ERROR:mutex lock");
-    }
-
-    // This assumes that the message is less than the buffer size and read
-    // completely.
-    tkbc_dapc(&receive_message_queue, buffer, strlen(buffer));
-
-    if (pthread_mutex_unlock(&mutex) != 0) {
-      assert(0 && "ERROR:mutex unlock");
     }
   }
 
+  quit = true;
   pthread_exit(NULL);
 }
 
@@ -718,11 +743,11 @@ int main(int argc, char *argv[]) {
   pthread_create(&thread, NULL, message_recieving, NULL);
 
   while (!WindowShouldClose()) {
-    BeginDrawing();
-    ClearBackground(SKYBLUE);
-    if (!received_message_handler()) {
+    if (quit) {
       break;
     }
+    BeginDrawing();
+    ClearBackground(SKYBLUE);
     sending_script_handler();
     send_message_handler();
 
@@ -741,8 +766,8 @@ int main(int argc, char *argv[]) {
   CloseWindow();
 
   pthread_cancel(thread);
-  if (receive_message_queue.elements) {
-    free(receive_message_queue.elements);
+  if (receive_queue.elements) {
+    free(receive_queue.elements);
   }
   if (send_message_queue.elements) {
     free(send_message_queue.elements);

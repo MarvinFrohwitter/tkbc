@@ -1045,9 +1045,13 @@ void *tkbc_client_handler(void *client) {
               inet_ntoa(c.client_address.sin_addr),
               ntohs(c.client_address.sin_port));
 
+  // Note: If the server is closed forcefully the memory has to be deallocated
+  // by to OS, because there is no way to access it from the main thread for all
+  // the clients, but that is fine. If the client is closed by it's own handling
+  // the memory is deallocated.
   Message receive_queue = {0};
   size_t size = 1024;
-  receive_queue.elements = calloc(1, size);
+  receive_queue.elements = malloc(size);
   receive_queue.capacity = size;
   ssize_t n = 0;
   for (;;) {
@@ -1083,7 +1087,7 @@ void *tkbc_client_handler(void *client) {
           break;
         }
       }
-      // If the client has disconnected n ==0  and we should close the
+      // If the client has disconnected n == 0  and we should close the
       // connection.
       if (n == 0) {
         break;
@@ -1103,6 +1107,9 @@ void *tkbc_client_handler(void *client) {
     }
   }
 
+  if (receive_queue.elements) {
+    free(receive_queue.elements);
+  }
 check:
   tkbc_server_shutdown_client(c);
   return NULL;
