@@ -135,7 +135,7 @@ Frame *tkbc__script_wait(Env *env, float duration) {
 
   Wait_Action *action;
   action_alloc(Wait_Action);
-  ((Wait_Action *)action)->starttime = GetTime();
+  ((Wait_Action *)action)->starttime = tkbc_get_time();
 
   Frame *frame = tkbc_init_frame();
   frame->finished = false;
@@ -166,7 +166,7 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
 
   Quit_Action *action;
   action_alloc(Quit_Action);
-  ((Quit_Action *)action)->starttime = GetTime();
+  ((Quit_Action *)action)->starttime = tkbc_get_time();
 
   Frame *frame = tkbc_init_frame();
   frame->finished = false;

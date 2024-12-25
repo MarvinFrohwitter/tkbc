@@ -2,9 +2,12 @@
 #define TKBC_UTILS_H_
 
 #include <assert.h>
+#include <errno.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "tkbc-types.h"
 
@@ -129,6 +132,8 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
                                bool isgenerated);
 int tkbc_read_file(char *filename, Content *content);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
+double tkbc_get_time();
+float tkbc_get_frame_time();
 float tkbc_clamp(float z, float a, float b);
 
 #endif // TKBC_UTILS_H_
@@ -354,6 +359,52 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]) {
 
   fprintf(stream, "[INFO] [CMD] %s\n", cmd_string.elements);
   free(cmd_string.elements);
+}
+
+/**
+ * @brief The function is a wrapper for the GetTime() that is not available
+ * in the server computation.
+ *
+ * @return The time since the program has initialized.
+ */
+double tkbc_get_time() {
+#ifdef TKBC_SERVER
+  struct timespec ts;
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+    fprintf(stderr, "ERROR:%s\n", strerror(errno));
+    exit(0);
+  }
+  return (double)((uint64_t)ts.tv_sec * (uint64_t)1e9 + (uint64_t)ts.tv_nsec);
+#else
+  return GetTime();
+#endif // PROTOCOL_VERSION
+}
+
+#ifdef TKBC_SERVER
+static float tkbc_last_frame_time = 0;
+#endif // PROTOCOL_VERSION
+/**
+ * @brief The function is a wrapper for the GetFrameTime() that is not available
+ * in the server computation.
+ *
+ * @return The delta time off a computation cycle.
+ */
+float tkbc_get_frame_time() {
+#ifdef TKBC_SERVER
+  struct timespec ts;
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+    fprintf(stderr, "ERROR:%s\n", strerror(errno));
+    exit(0);
+  }
+  float current_time =
+      (float)((uint64_t)ts.tv_sec * (uint64_t)1e9 + (uint64_t)ts.tv_nsec);
+
+  float dt = current_time - tkbc_last_frame_time;
+  tkbc_last_frame_time = current_time;
+  return dt;
+#else
+  return GetFrameTime();
+#endif // PROTOCOL_VERSION
 }
 
 /**

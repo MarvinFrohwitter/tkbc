@@ -169,7 +169,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       frame->finished = true;
       frame->duration = 0;
     } else {
-      double current_time = GetTime();
+      double current_time = tkbc_get_time();
       frame->duration -= current_time - action->starttime;
       action->starttime = current_time;
     }
@@ -186,7 +186,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     if (frame->duration <= 0) {
       frame->finished = true;
     } else {
-      double current_time = GetTime();
+      double current_time = tkbc_get_time();
       frame->duration -= current_time - action->starttime;
       action->starttime = current_time;
     }
@@ -441,7 +441,7 @@ void tkbc_patch_frames_current_time(Frames *frames) {
     switch (frame->kind) {
     case KITE_QUIT:
     case KITE_WAIT: {
-      ((Wait_Action *)frame->action)->starttime = GetTime();
+      ((Wait_Action *)frame->action)->starttime = tkbc_get_time();
     } break;
     default: {
     }
@@ -707,7 +707,7 @@ void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
     return;
   }
 
-  float dt = GetFrameTime();
+  float dt = tkbc_get_frame_time();
   Vector2 d = Vector2Subtract(position, kite->old_center);
   Vector2 dnorm = Vector2Normalize(d);
   Vector2 dnormscale = Vector2Scale(dnorm, (Vector2Length(d) / duration * dt));
@@ -766,14 +766,13 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
     return;
   }
 
-  float dt = GetFrameTime();
-  int fps = GetFPS();
+  float dt = tkbc_get_frame_time();
 
   // float d = angle - state->kite->old_angle;
   // float dnorm = fmodf(d, 360);
   // float dnormscale = dnorm + (d / (duration * dt));
 
-  float segment_size = fabsf(angle / duration) / (float)fps;
+  float segment_size = fabsf(angle / duration) * dt;
   float remaining_angle = 0;
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
     if (env->frames->kite_frame_positions->elements[k].kite_id ==
@@ -781,7 +780,7 @@ void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
 
       if (!adding) {
         float pre_angle = env->frames->kite_frame_positions->elements[k].angle;
-        segment_size = fabsf((pre_angle - angle) / duration) / (float)fps;
+        segment_size = fabsf((pre_angle - angle) / duration) * dt;
       }
 
       env->frames->kite_frame_positions->elements[k].remaining_angle -=
@@ -869,14 +868,13 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
     return;
   }
 
-  float dt = GetFrameTime();
-  int fps = GetFPS();
+  float dt = tkbc_get_frame_time();
 
   // float d = angle - state->kite->old_angle;
   // float dnorm = fmodf(d, 360);
   // float dnormscale = dnorm + (d / (duration * dt));
 
-  float segment_size = fabsf(angle / duration) / (float)fps;
+  float segment_size = fabsf(angle / duration) * dt;
   float remaining_angle = 0;
   for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
     if (env->frames->kite_frame_positions->elements[k].kite_id ==
@@ -884,7 +882,7 @@ void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
 
       if (!adding) {
         float pre_angle = env->frames->kite_frame_positions->elements[k].angle;
-        segment_size = fabsf((pre_angle - angle) / duration) / (float)fps;
+        segment_size = fabsf((pre_angle - angle) / duration) * dt;
       }
 
       env->frames->kite_frame_positions->elements[k].remaining_angle -=

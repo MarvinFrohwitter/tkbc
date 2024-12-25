@@ -19,9 +19,10 @@ void tkbc_input_handler(Kite_State *state) {
   state->fly_velocity = 10;
   state->turn_velocity = 1;
 
-  state->turn_velocity *= GetFrameTime();
+  float dt = tkbc_get_frame_time();
+  state->turn_velocity *= dt;
   state->turn_velocity *= state->kite->turn_speed;
-  state->fly_velocity *= GetFrameTime();
+  state->fly_velocity *= dt;
   state->fly_velocity *= state->kite->fly_speed;
 
   if (IsKeyDown(KEY_N))
@@ -89,8 +90,7 @@ void tkbc_input_handler_kite_array(Env *env) {
 
         for (size_t k = 0; k < frame->kite_id_array->count; ++k) {
           if (i - 1 != frame->kite_id_array->elements[k]) {
-            tkbc_dap(&new_kite_index_array,
-                     frame->kite_id_array->elements[k]);
+            tkbc_dap(&new_kite_index_array, frame->kite_id_array->elements[k]);
           }
         }
 
