@@ -381,7 +381,7 @@ double tkbc_get_time() {
 }
 
 #ifdef TKBC_SERVER
-static float tkbc_last_frame_time = 0;
+static double tkbc_last_frame_time = 0;
 #endif // PROTOCOL_VERSION
 /**
  * @brief The function is a wrapper for the GetFrameTime() that is not available
@@ -396,12 +396,12 @@ float tkbc_get_frame_time() {
     fprintf(stderr, "ERROR:%s\n", strerror(errno));
     exit(0);
   }
-  float current_time =
+  double current_time =
       (float)((uint64_t)ts.tv_sec * (uint64_t)1e9 + (uint64_t)ts.tv_nsec);
 
-  float dt = current_time - tkbc_last_frame_time;
+  double dt = current_time - tkbc_last_frame_time;
   tkbc_last_frame_time = current_time;
-  return dt;
+  return (float)dt;
 #else
   return GetFrameTime();
 #endif // PROTOCOL_VERSION
