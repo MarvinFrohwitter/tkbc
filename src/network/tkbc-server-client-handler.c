@@ -73,15 +73,11 @@ void tkbc_server_shutdown_client(Client client) {
       // is just broadcasted to all except this one and if the other clients are
       // in the middle of a shutdown the thread is closed correctly by this call
       // the execution of the other shutdown is killed.
-      if (pthread_mutex_lock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
+      pthread_mutex_lock(&mutex);
       tkbc_server_shutdown_client(cs.elements[i]);
     }
   }
-  if (pthread_mutex_unlock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex unlock");
-  }
+  pthread_mutex_unlock(&mutex);
   if (cs.elements) {
     free(cs.elements);
   }
@@ -180,7 +176,8 @@ check:
   return ok ? true : false;
 }
 
-bool tkbc_message_srcipt_block_frames_value() {
+bool tkbc_message_srcipt_block_frames_value(size_t block_index,
+                                            size_t block_frame_count) {
   Message message = {0};
   bool ok = true;
   char buf[64] = {0};
@@ -190,11 +187,11 @@ bool tkbc_message_srcipt_block_frames_value() {
   tkbc_dap(&message, ':');
 
   memset(&buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", env->frames->block_index);
+  snprintf(buf, sizeof(buf), "%zu", block_index);
   tkbc_dapc(&message, buf, strlen(buf));
   tkbc_dap(&message, ':');
   memset(&buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", env->block_frame->count);
+  snprintf(buf, sizeof(buf), "%zu", block_frame_count);
   tkbc_dapc(&message, buf, strlen(buf));
   tkbc_dap(&message, ':');
   tkbc_dapc(&message, "\r\n", 2);
@@ -203,20 +200,16 @@ bool tkbc_message_srcipt_block_frames_value() {
   Clients cs = {0};
   if (!tkbc_server_brodcast_all(&cs, message.elements)) {
     for (size_t i = 0; i < cs.count; ++i) {
-      if (pthread_mutex_lock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
+      pthread_mutex_lock(&mutex);
       tkbc_server_shutdown_client(cs.elements[i]);
-      if (pthread_mutex_unlock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex unlock");
-      }
+      pthread_mutex_unlock(&mutex);
     }
     free(cs.elements);
     check_return(false);
   }
 check:
   free(message.elements);
-  return ok ? true : false;
+  return ok;
 }
 
 bool tkbc_message_kiteadd(Clients *cs, size_t client_index) {
@@ -258,13 +251,9 @@ bool tkbc_message_kite_value(size_t client_id) {
   Clients cs = {0};
   if (!tkbc_server_brodcast_all_exept(&cs, client_id, message.elements)) {
     for (size_t i = 0; i < cs.count; ++i) {
-      if (pthread_mutex_lock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
+      pthread_mutex_lock(&mutex);
       tkbc_server_shutdown_client(cs.elements[i]);
-      if (pthread_mutex_unlock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
+      pthread_mutex_unlock(&mutex);
     }
     free(cs.elements);
     check_return(false);
@@ -318,16 +307,12 @@ bool tkbc_message_kites_brodcast_all(Clients *cs) {
   tkbc_dapc(&message, buf, strlen(buf));
   tkbc_dap(&message, ':');
 
-  if (pthread_mutex_lock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex lock");
-  }
+  pthread_mutex_lock(&mutex);
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     Kite_State *kite_state = &env->kite_array->elements[i];
     tkbc_message_append_kite(kite_state, &message);
   }
-  if (pthread_mutex_unlock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex unlock");
-  }
+  pthread_mutex_unlock(&mutex);
   tkbc_dapc(&message, "\r\n", 2);
   tkbc_dap(&message, 0);
   if (!tkbc_server_brodcast_all(cs, message.elements)) {
@@ -393,10 +378,7 @@ check:
 }
 
 bool tkbc_server_remove_client_from_list(Client client) {
-  if (pthread_mutex_lock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex lock");
-  }
-
+  pthread_mutex_lock(&mutex);
   for (size_t i = 0; i < clients->count; ++i) {
     if (client.kite_id == clients->elements[i].kite_id) {
       if (i + 1 < clients->count) {
@@ -405,15 +387,11 @@ bool tkbc_server_remove_client_from_list(Client client) {
       }
       clients->count -= 1;
 
-      if (pthread_mutex_unlock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex unlock");
-      }
+      pthread_mutex_unlock(&mutex);
       return true;
     }
   }
-  if (pthread_mutex_unlock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex unlock");
-  }
+  pthread_mutex_unlock(&mutex);
   return false;
 }
 
@@ -501,13 +479,9 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
             check_return(false);
           }
           for (size_t i = 0; i < cs.count; ++i) {
-            if (pthread_mutex_lock(&mutex) != 0) {
-              assert(0 && "ERROR:mutex lock");
-            }
+            pthread_mutex_lock(&mutex);
             tkbc_server_shutdown_client(cs.elements[i]);
-            if (pthread_mutex_unlock(&mutex) != 0) {
-              assert(0 && "ERROR:mutex unlock");
-            }
+            pthread_mutex_unlock(&mutex);
           }
           free(cs.elements);
           check_return(false);
@@ -517,9 +491,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES_POSITIONS\n");
     } break;
     case MESSAGE_SCRIPT: {
-      if (pthread_mutex_lock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
+      pthread_mutex_lock(&mutex);
 
       Content tmp_buffer = {0};
       bool script_parse_fail = false;
@@ -843,15 +815,15 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         }
 
         tkbc_dap(env->block_frames, *tkbc_deep_copy_block_frame(scb));
+        env->script_counter = env->block_frames->count;
+        env->server_script_block_index_count = env->script_counter;
       }
       scb->count = 0;
 
       if (tmp_buffer.elements) {
         free(tmp_buffer.elements);
       }
-      if (pthread_mutex_unlock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex unlock");
-      }
+      pthread_mutex_unlock(&mutex);
     script_err:
       if (script_parse_fail) {
         goto err;
@@ -860,45 +832,33 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT\n");
     } break;
     case MESSAGE_SCRIPT_TOGGLE: {
-      if (pthread_mutex_lock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
+      pthread_mutex_lock(&mutex);
       env->script_finished = !env->script_finished;
-      if (pthread_mutex_unlock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex unlock");
-      }
+      pthread_mutex_unlock(&mutex);
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_TOGGLE\n");
     } break;
     case MESSAGE_SCRIPT_NEXT: {
-      if (pthread_mutex_lock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
-      if (env->script_counter <= env->block_frames->count) {
-        if (pthread_mutex_unlock(&mutex) != 0) {
-          assert(0 && "ERROR:mutex unlock");
-        }
+      pthread_mutex_lock(&mutex);
+
+      if (env->script_counter > env->block_frames->count) {
+        pthread_mutex_unlock(&mutex);
         goto err;
       }
-
       if (env->script_counter > 0) {
         // Switch to next script.
-        size_t count = env->block_frames->count;
 
         // NOTE: For this to work for the first iteration it relies on the
         // calloc functionality to zero out the rest of the struct.
-        size_t id = env->block_frame->script_id;
-        size_t script_index = id % count;
+        size_t script_index = env->block_frame->script_id % env->script_counter;
         env->block_frame = &env->block_frames->elements[script_index];
         env->frames = &env->block_frame->elements[0];
 
         tkbc_set_kite_positions_from_kite_frames_positions(env);
-        env->script_finished = false;
+        env->script_finished = true;
+        tkbc_unwrap_handler_message_clientkites_brodcast_all();
       }
-
-      if (pthread_mutex_unlock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex unlock");
-      }
+      pthread_mutex_unlock(&mutex);
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_NEXT\n");
     } break;
@@ -910,14 +870,10 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       }
       bool drag_left = atoi(lexer_token_to_cstr(lexer, &token));
 
-      if (pthread_mutex_lock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
+      pthread_mutex_lock(&mutex);
       {
         if (env->block_frame->count <= 0) {
-          if (pthread_mutex_unlock(&mutex) != 0) {
-            assert(0 && "ERROR:mutex unlock");
-          }
+          pthread_mutex_unlock(&mutex);
           goto err;
         }
 
@@ -932,15 +888,14 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         }
         tkbc_set_kite_positions_from_kite_frames_positions(env);
       }
-      if (pthread_mutex_unlock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex unlock");
-      }
+      pthread_mutex_unlock(&mutex);
 
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         goto err;
       }
-      tkbc_message_srcipt_block_frames_value();
+      tkbc_message_srcipt_block_frames_value(env->frames->block_index,
+                                             env->block_frame->count);
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_SCRUB\n");
     } break;
     default:
@@ -979,10 +934,7 @@ bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id) {
     return false;
   }
 
-  if (pthread_mutex_lock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex lock");
-  }
-
+  pthread_mutex_lock(&mutex);
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (*kite_id == env->kite_array->elements[i].kite_id) {
       Kite *kite = env->kite_array->elements[i].kite;
@@ -993,9 +945,7 @@ bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id) {
       tkbc_center_rotation(kite, NULL, kite->angle);
     }
   }
-  if (pthread_mutex_unlock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex unlock");
-  }
+  pthread_mutex_unlock(&mutex);
   return true;
 }
 
@@ -1016,9 +966,7 @@ void *tkbc_client_handler(void *client) {
                        .x = kite_state->kite->center.x + 200 + 200 * c.kite_id};
   tkbc_center_rotation(kite_state->kite, &shift_pos, kite_state->kite->angle);
 
-  if (pthread_mutex_lock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex lock");
-  }
+  pthread_mutex_lock(&mutex);
   tkbc_dap(env->kite_array, *kite_state);
 
   Clients cs = {0};
@@ -1027,9 +975,7 @@ void *tkbc_client_handler(void *client) {
       goto check;
     }
     for (size_t i = 0; i < cs.count; ++i) {
-      if (pthread_mutex_lock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
+      pthread_mutex_lock(&mutex);
       tkbc_server_shutdown_client(cs.elements[i]);
     }
     free(cs.elements);
@@ -1037,9 +983,7 @@ void *tkbc_client_handler(void *client) {
   if (!tkbc_message_clientkites(c)) {
     goto check;
   }
-  if (pthread_mutex_unlock(&mutex) != 0) {
-    assert(0 && "ERROR:mutex unlock");
-  }
+  pthread_mutex_unlock(&mutex);
 
   tkbc_logger(stderr, "INFO: Connection from host %s, port %hd\n",
               inet_ntoa(c.client_address.sin_addr),
@@ -1113,4 +1057,14 @@ void *tkbc_client_handler(void *client) {
 check:
   tkbc_server_shutdown_client(c);
   return NULL;
+}
+
+void tkbc_unwrap_handler_message_clientkites_brodcast_all() {
+  Clients cs = {0};
+  if (!tkbc_message_clientkites_brodcast_all(&cs)) {
+    for (size_t i = 0; i < cs.count; ++i) {
+      tkbc_server_shutdown_client(cs.elements[i]);
+    }
+    free(cs.elements);
+  }
 }

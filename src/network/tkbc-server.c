@@ -125,9 +125,7 @@ int main(int argc, char *argv[]) {
     int client_socket_id = accept(
         server_socket, (struct sockaddr *)&client_address, &address_length);
     if (client_socket_id != -1) {
-      if (pthread_mutex_lock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex lock");
-      }
+      pthread_mutex_lock(&mutex);
       Client client = {
           .kite_id = env->kite_id_counter++,
           .thread_id = clients_visited,
@@ -141,9 +139,7 @@ int main(int argc, char *argv[]) {
 
       assert(clients->count > 0);
       Client c = clients->elements[clients->count - 1];
-      if (pthread_mutex_unlock(&mutex) != 0) {
-        assert(0 && "ERROR:mutex unlock");
-      }
+      pthread_mutex_unlock(&mutex);
       pthread_create(&threads[clients_visited++], NULL, tkbc_client_handler,
                      &c);
     } else {
@@ -158,26 +154,27 @@ int main(int argc, char *argv[]) {
 
 void *tkbc_script_execution_handler() {
   for (;;) {
+    bool check = false;
     pthread_mutex_lock(&mutex);
-    if (env->block_frames->count > 0) {
+    if (env->script_counter > 0 && env->block_frame->count > 0) {
       if (!tkbc_script_finished(env)) {
-        size_t index = env->frames->block_index;
+        size_t bindex = env->frames->block_index;
+        size_t bframe_count = env->block_frame->count;
         tkbc_script_update_frames(env);
-        if (env->frames->block_index != index) {
-          tkbc_message_srcipt_block_frames_value();
+
+        if (env->frames->block_index != bindex) {
+          bindex = env->frames->block_index;
+          tkbc_message_srcipt_block_frames_value(bindex, bframe_count);
         }
-        Clients cs = {0};
-        if (!tkbc_message_clientkites_brodcast_all(&cs)) {
-          for (size_t i = 0; i < cs.count; ++i) {
-            pthread_mutex_lock(&mutex);
-            tkbc_server_shutdown_client(cs.elements[i]);
-          }
-          free(cs.elements);
-        }
+        tkbc_unwrap_handler_message_clientkites_brodcast_all();
+        check = true;
       }
     }
     pthread_mutex_unlock(&mutex);
-    sleep(1);
+    // TODO: Think about this hack to reduce computation load.
+    if (!check) {
+      sleep(1);
+    }
   }
   pthread_exit(NULL);
 }
@@ -185,13 +182,9 @@ void *tkbc_script_execution_handler() {
 void signalhandler(int signal) {
   (void)signal;
   for (size_t i = 0; i < clients->count; ++i) {
-    if (pthread_mutex_lock(&mutex) != 0) {
-      assert(0 && "ERROR:mutex lock");
-    }
+    pthread_mutex_lock(&mutex);
     tkbc_server_shutdown_client(clients->elements[i]);
-    if (pthread_mutex_unlock(&mutex) != 0) {
-      assert(0 && "ERROR:mutex unlock");
-    }
+    pthread_mutex_unlock(&mutex);
   }
   pthread_cancel(execution_thread);
 

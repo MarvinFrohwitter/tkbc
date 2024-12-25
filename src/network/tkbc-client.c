@@ -268,23 +268,8 @@ bool received_message_handler() {
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES\n");
     } break;
     case MESSAGE_KITEVALUE: {
-      size_t kite_id;
-      float x, y, angle;
-      Color color;
-      if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                         &color)) {
+      if (!tkbc_parse_single_kite_value(lexer)) {
         goto err;
-      }
-
-      for (size_t i = 0; i < env->kite_array->count; ++i) {
-        if (kite_id == env->kite_array->elements[i].kite_id) {
-          Kite *kite = env->kite_array->elements[i].kite;
-          kite->center.x = x;
-          kite->center.y = y;
-          kite->angle = angle;
-          kite->body_color = color;
-          tkbc_center_rotation(kite, NULL, kite->angle);
-        }
       }
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEVALUE\n");
@@ -743,6 +728,11 @@ int main(int argc, char *argv[]) {
   SetExitKey(KEY_ESCAPE);
   tkbc_init_sound(40);
   env = tkbc_init_env();
+
+  size_t count = env->kite_array->count;
+  sending_script_handler();
+  env->kite_array->count = count;
+
   pthread_t thread;
   pthread_create(&thread, NULL, message_recieving, NULL);
 
@@ -752,7 +742,6 @@ int main(int argc, char *argv[]) {
     }
     BeginDrawing();
     ClearBackground(SKYBLUE);
-    sending_script_handler();
     send_message_handler();
 
     tkbc_draw_kite_array(env->kite_array);
