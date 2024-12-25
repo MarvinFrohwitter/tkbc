@@ -79,6 +79,10 @@ const char *tkbc_host_parsing(const char *host_check) {
 
 int tkbc_client_socket_creation(const char *addr, uint16_t port) {
   int client_socket = socket(AF_INET, SOCK_STREAM, 0);
+  if (client_socket == -1) {
+    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+    exit(1);
+  }
 
   int option = 1;
   int sso = setsockopt(client_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
