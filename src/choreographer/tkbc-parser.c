@@ -321,7 +321,7 @@ check:
   if (kis.elements) {
     free(kis.elements);
   }
-  return ok ? true : false;
+  return ok;
 }
 
 bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
@@ -407,7 +407,7 @@ check:
   if (kis.elements) {
     free(kis.elements);
   }
-  return ok ? true : false;
+  return ok;
 }
 
 bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
@@ -508,5 +508,5 @@ check:
   if (kis.elements) {
     free(kis.elements);
   }
-  return ok ? true : false;
+  return ok;
 }

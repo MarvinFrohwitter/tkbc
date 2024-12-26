@@ -382,7 +382,7 @@ bool received_message_handler() {
 
   lexer_del(lexer);
 check:
-  return ok ? true : false;
+  return ok;
 }
 
 void *message_recieving() {
@@ -434,11 +434,11 @@ void *message_recieving() {
 
     if (!received_message_handler()) {
       if (n > 0) {
-        printf("---------------------------------\n");
+        fprintf(stderr, "---------------------------------\n");
         for (size_t i = 0; i < receive_queue.count; ++i) {
-          printf("%c", receive_queue.elements[i]);
+          fprintf(stderr, "%c", receive_queue.elements[i]);
         }
-        printf("---------------------------------\n");
+        fprintf(stderr, "---------------------------------\n");
       }
       break;
     }
@@ -622,7 +622,7 @@ check:
   if (message.elements) {
     free(message.elements);
   }
-  return ok ? true : false;
+  return ok;
 }
 
 void tkbc_client_file_handler() {

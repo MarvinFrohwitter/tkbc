@@ -193,5 +193,5 @@ check:
   if (buffer.elements) {
     free(buffer.elements);
   }
-  return ok ? true : false;
+  return ok;
 }

@@ -173,7 +173,7 @@ check:
   if (message.elements) {
     free(message.elements);
   }
-  return ok ? true : false;
+  return ok;
 }
 
 bool tkbc_message_srcipt_block_frames_value(size_t block_index,
@@ -231,7 +231,7 @@ bool tkbc_message_kiteadd(Clients *cs, size_t client_index) {
   }
 check:
   free(message.elements);
-  return ok ? true : false;
+  return ok;
 }
 
 bool tkbc_message_kite_value(size_t client_id) {
@@ -260,7 +260,7 @@ bool tkbc_message_kite_value(size_t client_id) {
   }
 check:
   free(message.elements);
-  return ok ? true : false;
+  return ok;
 }
 
 bool tkbc_message_clientkites(Client client) {
@@ -291,7 +291,7 @@ bool tkbc_message_clientkites(Client client) {
   }
 check:
   free(message.elements);
-  return ok ? true : false;
+  return ok;
 }
 
 bool tkbc_message_kites_brodcast_all(Clients *cs) {
@@ -374,7 +374,7 @@ check:
   if (csi.elements) {
     free(csi.elements);
   }
-  return ok ? true : false;
+  return ok;
 }
 
 bool tkbc_server_remove_client_from_list(Client client) {
@@ -924,7 +924,7 @@ check:
   if (lexer->buffer.elements) {
     free(lexer->buffer.elements);
   }
-  return ok ? true : false;
+  return ok;
 }
 
 bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id) {

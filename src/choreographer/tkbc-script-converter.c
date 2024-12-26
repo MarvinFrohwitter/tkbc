@@ -136,5 +136,5 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
 
 check:
   fclose(file);
-  return ok ? true : false;
+  return ok;
 }
