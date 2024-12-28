@@ -187,14 +187,14 @@ void *tkbc_script_execution_handler() {
 
 void signalhandler(int signal) {
   (void)signal;
+  tkbc_logger(stderr, "INFO: Closing...\n");
+
   for (size_t i = 0; i < clients->count; ++i) {
     pthread_mutex_lock(&mutex);
-    tkbc_server_shutdown_client(clients->elements[i]);
+    tkbc_server_shutdown_client(clients->elements[i], true);
     pthread_mutex_unlock(&mutex);
   }
   pthread_cancel(execution_thread);
-
-  tkbc_logger(stderr, "INFO: Closing...\n");
 
   shutdown(server_socket, SHUT_RDWR);
   if (close(server_socket) == -1) {

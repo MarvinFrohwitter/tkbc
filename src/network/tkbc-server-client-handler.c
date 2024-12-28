@@ -23,26 +23,16 @@ extern Clients *clients;
 extern pthread_t threads[SERVER_CONNETCTIONS];
 extern pthread_mutex_t mutex;
 
-void tkbc_server_shutdown_client(Client client) {
+void tkbc_server_shutdown_client(Client client, bool force) {
   shutdown(client.socket_id, SHUT_WR);
-  char read_buffer[1024] = {0};
-  int n;
-  do {
-    n = read(client.socket_id, read_buffer, sizeof(read_buffer));
-  } while (n > 0);
-
-  if (n == 0) {
-    tkbc_logger(stderr,
-                "INFO: Could not read any more data from the client:" CLIENT_FMT
-                ".\n",
-                CLIENT_ARG(client));
-  }
-  if (n < 0) {
-    tkbc_logger(stderr, "ERROR: reading failed: %s\n", strerror(errno));
-  }
-
+  for (char b[1024];
+       recv(client.socket_id, b, sizeof(b), MSG_NOSIGNAL | MSG_DONTWAIT) > 0;)
+    ;
   if (close(client.socket_id) == -1) {
     tkbc_logger(stderr, "ERROR: Close socket: %s\n", strerror(errno));
+  }
+  if (force) {
+    goto check;
   }
 
   Message message = {0};
@@ -74,7 +64,7 @@ void tkbc_server_shutdown_client(Client client) {
       // in the middle of a shutdown the thread is closed correctly by this call
       // the execution of the other shutdown is killed.
       pthread_mutex_lock(&mutex);
-      tkbc_server_shutdown_client(cs.elements[i]);
+      tkbc_server_shutdown_client(cs.elements[i], false);
     }
   }
   pthread_mutex_unlock(&mutex);
@@ -93,6 +83,7 @@ void tkbc_server_shutdown_client(Client client) {
                 CLIENT_ARG(client));
   }
 
+check:
   if (pthread_cancel(threads[thread_id]) != 0) {
     tkbc_logger(stderr, "INFO: Client: Thread is not valid\n");
   }
@@ -201,7 +192,7 @@ bool tkbc_message_srcipt_block_frames_value(size_t block_index,
   if (!tkbc_server_brodcast_all(&cs, message.elements)) {
     for (size_t i = 0; i < cs.count; ++i) {
       pthread_mutex_lock(&mutex);
-      tkbc_server_shutdown_client(cs.elements[i]);
+      tkbc_server_shutdown_client(cs.elements[i], false);
       pthread_mutex_unlock(&mutex);
     }
     free(cs.elements);
@@ -252,7 +243,7 @@ bool tkbc_message_kite_value(size_t client_id) {
   if (!tkbc_server_brodcast_all_exept(&cs, client_id, message.elements)) {
     for (size_t i = 0; i < cs.count; ++i) {
       pthread_mutex_lock(&mutex);
-      tkbc_server_shutdown_client(cs.elements[i]);
+      tkbc_server_shutdown_client(cs.elements[i], false);
       pthread_mutex_unlock(&mutex);
     }
     free(cs.elements);
@@ -481,7 +472,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
           }
           for (size_t i = 0; i < cs.count; ++i) {
             pthread_mutex_lock(&mutex);
-            tkbc_server_shutdown_client(cs.elements[i]);
+            tkbc_server_shutdown_client(cs.elements[i], false);
             pthread_mutex_unlock(&mutex);
           }
           free(cs.elements);
@@ -977,7 +968,7 @@ void *tkbc_client_handler(void *client) {
     }
     for (size_t i = 0; i < cs.count; ++i) {
       pthread_mutex_lock(&mutex);
-      tkbc_server_shutdown_client(cs.elements[i]);
+      tkbc_server_shutdown_client(cs.elements[i], false);
     }
     free(cs.elements);
   }
@@ -1056,7 +1047,7 @@ void *tkbc_client_handler(void *client) {
     free(receive_queue.elements);
   }
 check:
-  tkbc_server_shutdown_client(c);
+  tkbc_server_shutdown_client(c, false);
   return NULL;
 }
 
@@ -1064,7 +1055,7 @@ void tkbc_unwrap_handler_message_clientkites_brodcast_all() {
   Clients cs = {0};
   if (!tkbc_message_clientkites_brodcast_all(&cs)) {
     for (size_t i = 0; i < cs.count; ++i) {
-      tkbc_server_shutdown_client(cs.elements[i]);
+      tkbc_server_shutdown_client(cs.elements[i], false);
     }
     free(cs.elements);
   }
