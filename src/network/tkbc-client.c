@@ -705,16 +705,16 @@ void tkbc_client_input_handler_script() {
 int main(int argc, char *argv[]) {
   client.kite_id = -1;
 
-  // char *program_name = tkbc_shift_args(&argc, &argv);
-  // tkbc_client_commandline_check(argc, program_name);
+  char *program_name = tkbc_shift_args(&argc, &argv);
+  tkbc_client_commandline_check(argc, program_name);
 
-  // const char *host_check = tkbc_shift_args(&argc, &argv);
-  // const char *host = tkbc_host_parsing(host_check);
+  const char *host_check = tkbc_shift_args(&argc, &argv);
+  const char *host = tkbc_host_parsing(host_check);
 
-  // char *port_check = tkbc_shift_args(&argc, &argv);
-  // uint16_t port = tkbc_port_parsing(port_check);
+  char *port_check = tkbc_shift_args(&argc, &argv);
+  uint16_t port = tkbc_port_parsing(port_check);
 
-  client.socket_id = tkbc_client_socket_creation("127.0.0.1", 8080);
+  client.socket_id = tkbc_client_socket_creation(host, port);
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
   SetTraceLogLevel(LOG_NONE);

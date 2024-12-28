@@ -102,13 +102,13 @@ int main(int argc, char *argv[]) {
   char *start = "The server has started.";
   tkbc_fprintf(stderr, "INFO", "%s\n", start);
 
-  // char *program_name = tkbc_shift_args(&argc, &argv);
-  // tkbc_server_commandline_check(argc, program_name);
+  char *program_name = tkbc_shift_args(&argc, &argv);
+  tkbc_server_commandline_check(argc, program_name);
 
-  // char *port_check = tkbc_shift_args(&argc, &argv);
-  // uint16_t port = tkbc_port_parsing(port_check);
+  char *port_check = tkbc_shift_args(&argc, &argv);
+  uint16_t port = tkbc_port_parsing(port_check);
 
-  server_socket = tkbc_server_socket_creation(INADDR_ANY, 8080);
+  server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
   tkbc_logger(stderr, "INFO:Server socket: %d\n", server_socket);
   env = tkbc_init_env();
   clients = tkbc_init_clients();
