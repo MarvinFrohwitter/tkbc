@@ -137,23 +137,24 @@ void sending_script_handler() {
   }
 }
 
-void send_message_handler() {
+bool send_message_handler() {
   if (send_message_queue.count) {
     ssize_t n = send(client.socket_id, send_message_queue.elements,
                      send_message_queue.count, MSG_NOSIGNAL);
     if (n == 0) {
       tkbc_logger(stderr, "ERROR no bytes where send to the server!\n");
-      return;
+      return false;
     }
     if (n == -1) {
       tkbc_dap(&send_message_queue, 0);
       tkbc_logger(stderr, "ERROR: Could not broadcast message: %s\n",
                   send_message_queue.elements);
       tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
-      return;
+      return false;
     }
   }
   send_message_queue.count = 0;
+  return true;
 }
 
 bool received_message_handler() {
@@ -738,7 +739,11 @@ int main(int argc, char *argv[]) {
 
     BeginDrawing();
     ClearBackground(SKYBLUE);
-    send_message_handler();
+    if (!send_message_handler()) {
+      // TODO: Implement a handler for a server disconnect. That could be a
+      // popup that presents a handler.
+      break;
+    }
 
     tkbc_draw_kite_array(env->kite_array);
     tkbc_draw_ui(env);
