@@ -14,7 +14,7 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
 void sending_script_handler();
 void send_message_handler();
 bool received_message_handler();
-void *message_recieving();
+bool message_queue_handler();
 void tkbc_client_input_handler_kite();
 bool tkbc_message_append_script(size_t script_id, Message *send_message_queue);
 bool tkbc_message_script();

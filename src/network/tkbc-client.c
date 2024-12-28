@@ -17,7 +17,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <netinet/in.h>
-#include <pthread.h>
 #include <raylib.h>
 #include <raymath.h>
 #include <stdbool.h>
@@ -34,10 +33,9 @@
 
 Env *env = {0};
 Client client = {0};
+#define RECEIVE_QUEUE_SIZE 1024
 Message receive_queue = {0};
 Message send_message_queue = {0};
-bool quit = false;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void tkbc_client_usage(const char *program_name) {
   tkbc_logger(stderr, "Usage:\n");
@@ -385,67 +383,52 @@ check:
   return ok;
 }
 
-void *message_recieving() {
-  size_t size = 1024;
-  ssize_t n = 0;
-  receive_queue.elements = malloc(size);
-  receive_queue.capacity = size;
-  for (;;) {
-    receive_queue.count = 0;
-    do {
-      n = recv(client.socket_id, &receive_queue.elements[receive_queue.count],
-               size, MSG_NOSIGNAL | MSG_DONTWAIT);
-      if (n == -1) {
-        break;
-      }
-      receive_queue.count += n;
-      if (receive_queue.count >= receive_queue.capacity) {
-        receive_queue.capacity += size;
-        receive_queue.elements =
-            realloc(receive_queue.elements,
-                    sizeof(*receive_queue.elements) * receive_queue.capacity);
-        if (receive_queue.elements == NULL) {
-          fprintf(stderr, "ERROR: realloc failed!\n");
-        }
-      }
-    } while (n > 0);
-    if (n == -1) {
-      if (errno != EAGAIN) {
-        tkbc_logger(stderr, "ERROR: read: %d\n", errno);
-        tkbc_logger(stderr, "ERROR: read: %s\n", strerror(errno));
-        break;
-      }
-    }
-    if (receive_queue.count == 0) {
-      n = recv(client.socket_id, &receive_queue.elements[receive_queue.count],
-               size, MSG_NOSIGNAL | MSG_PEEK);
-      if (n == -1) {
-        if (errno != EAGAIN) {
-          tkbc_logger(stderr, "ERROR: MSG_PEEK: %d\n", errno);
-          tkbc_logger(stderr, "ERROR: MSG_PEEK: %s\n", strerror(errno));
-          break;
-        }
-      }
-      if (n == 0) {
-        break;
-      }
-      continue;
-    }
+bool message_queue_handler() {
+  if (receive_queue.capacity >= 16 * RECEIVE_QUEUE_SIZE) {
+    receive_queue.elements =
+        realloc(receive_queue.elements,
+                sizeof(*receive_queue.elements) * RECEIVE_QUEUE_SIZE);
+  }
 
-    if (!received_message_handler()) {
-      if (n > 0) {
-        fprintf(stderr, "---------------------------------\n");
-        for (size_t i = 0; i < receive_queue.count; ++i) {
-          fprintf(stderr, "%c", receive_queue.elements[i]);
-        }
-        fprintf(stderr, "---------------------------------\n");
-      }
+  ssize_t n = 0;
+  receive_queue.count = 0;
+  do {
+    n = recv(client.socket_id, &receive_queue.elements[receive_queue.count],
+             RECEIVE_QUEUE_SIZE, MSG_NOSIGNAL | MSG_DONTWAIT);
+    if (n == -1) {
       break;
+    }
+    receive_queue.count += n;
+    if (receive_queue.count >= receive_queue.capacity) {
+      receive_queue.capacity += RECEIVE_QUEUE_SIZE;
+      receive_queue.elements =
+          realloc(receive_queue.elements,
+                  sizeof(*receive_queue.elements) * receive_queue.capacity);
+      if (receive_queue.elements == NULL) {
+        fprintf(stderr, "ERROR: realloc failed!\n");
+      }
+    }
+  } while (n > 0);
+
+  if (n == -1) {
+    if (errno != EAGAIN) {
+      tkbc_logger(stderr, "ERROR: read: %d\n", errno);
+      tkbc_logger(stderr, "ERROR: read: %s\n", strerror(errno));
+      return false;
     }
   }
 
-  quit = true;
-  pthread_exit(NULL);
+  if (!received_message_handler()) {
+    if (n > 0) {
+      fprintf(stderr, "---------------------------------\n");
+      for (size_t i = 0; i < receive_queue.count; ++i) {
+        fprintf(stderr, "%c", receive_queue.elements[i]);
+      }
+      fprintf(stderr, "---------------------------------\n");
+    }
+    return false;
+  }
+  return true;
 }
 
 void tkbc_client_input_handler_kite() {
@@ -733,13 +716,14 @@ int main(int argc, char *argv[]) {
   sending_script_handler();
   env->kite_array->count = count;
 
-  pthread_t thread;
-  pthread_create(&thread, NULL, message_recieving, NULL);
+  receive_queue.elements = malloc(RECEIVE_QUEUE_SIZE);
+  receive_queue.capacity += RECEIVE_QUEUE_SIZE;
 
   while (!WindowShouldClose()) {
-    if (quit) {
+    if (!message_queue_handler()) {
       break;
     }
+
     BeginDrawing();
     ClearBackground(SKYBLUE);
     send_message_handler();
@@ -758,7 +742,6 @@ int main(int argc, char *argv[]) {
   };
   CloseWindow();
 
-  pthread_cancel(thread);
   if (receive_queue.elements) {
     free(receive_queue.elements);
   }

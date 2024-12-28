@@ -22,7 +22,7 @@
 typedef struct {
   ssize_t kite_id;
 
-  pthread_t thread_id;
+  size_t thread_id;
   int socket_id;
   struct sockaddr_in client_address;
   socklen_t client_address_length;
