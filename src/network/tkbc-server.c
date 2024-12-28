@@ -81,7 +81,7 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
     tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
     exit(1);
   }
-  tkbc_logger(stderr, "INFO: Listening to port: %hu\n", port);
+  tkbc_fprintf(stderr, "INFO", "%s: %hu\n", "Listening to port", port);
 
   return socket_id;
 }
@@ -99,8 +99,7 @@ int main(int argc, char *argv[]) {
   signal(SIGABRT, signalhandler);
   signal(SIGINT, signalhandler);
   signal(SIGTERM, signalhandler);
-  char *start = "The server has started.";
-  tkbc_fprintf(stderr, "INFO", "%s\n", start);
+  tkbc_fprintf(stderr, "INFO", "%s\n", "The server has started.");
 
   char *program_name = tkbc_shift_args(&argc, &argv);
   tkbc_server_commandline_check(argc, program_name);
@@ -109,7 +108,7 @@ int main(int argc, char *argv[]) {
   uint16_t port = tkbc_port_parsing(port_check);
 
   server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
-  tkbc_logger(stderr, "INFO:Server socket: %d\n", server_socket);
+  tkbc_fprintf(stderr, "INFO", "%s: %d\n", "Server socket", server_socket);
   env = tkbc_init_env();
   clients = tkbc_init_clients();
   size_t clients_visited = 0;
@@ -140,8 +139,8 @@ int main(int argc, char *argv[]) {
           .client_address_length = address_length,
       };
       tkbc_dap(clients, client);
-      tkbc_logger(stderr, "INFO: Client:" CLIENT_FMT " has connected.\n",
-                  CLIENT_ARG(client));
+      tkbc_fprintf(stderr, "INFO", "CLIENT: " CLIENT_FMT " has connected.\n",
+                   CLIENT_ARG(client));
 
       assert(clients->count > 0);
       Client c = clients->elements[clients->count - 1];
@@ -187,7 +186,7 @@ void *tkbc_script_execution_handler() {
 
 void signalhandler(int signal) {
   (void)signal;
-  tkbc_logger(stderr, "INFO: Closing...\n");
+  tkbc_fprintf(stderr, "INFO", "Closing...\n");
 
   for (size_t i = 0; i < clients->count; ++i) {
     pthread_mutex_lock(&mutex);

@@ -977,10 +977,6 @@ void *tkbc_client_handler(void *client) {
   }
   pthread_mutex_unlock(&mutex);
 
-  tkbc_logger(stderr, "INFO: Connection from host %s, port %hd\n",
-              inet_ntoa(c.client_address.sin_addr),
-              ntohs(c.client_address.sin_port));
-
   // Note: If the server is closed forcefully the memory has to be deallocated
   // by to OS, because there is no way to access it from the main thread for all
   // the clients, but that is fine. If the client is closed by it's own handling
