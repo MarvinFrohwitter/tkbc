@@ -115,6 +115,11 @@ int main(int argc, char *argv[]) {
   size_t clients_visited = 0;
 
   pthread_create(&execution_thread, NULL, tkbc_script_execution_handler, NULL);
+  if (pthread_detach(execution_thread)) {
+    tkbc_fprintf(stderr, "ERROR", "%s: %s\n",
+                 "Detaching execution thread has gone worng", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
 
   for (;;) {
     if (clients_visited > SERVER_CONNETCTIONS) {
