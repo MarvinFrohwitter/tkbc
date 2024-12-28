@@ -174,7 +174,8 @@ bool received_message_handler() {
       break;
     }
     if (token.kind == INVALID) {
-      goto err;
+      // This is '\0' same as EOF in this case.
+      break;
     }
     if (token.kind == ERROR) {
       goto err;
@@ -367,7 +368,9 @@ bool received_message_handler() {
     continue;
 
   err: {
-    char *rn = strstr(message.elements, "\r\n");
+    tkbc_dap(&message, 0);
+    message.count -= 1;
+    char *rn = strstr(message.elements + lexer->position, "\r\n");
     if (rn != NULL) {
       int jump_length = rn + 2 - &lexer->content[lexer->position];
       lexer_chop_char(lexer, jump_length);
@@ -395,6 +398,15 @@ bool message_queue_handler() {
   do {
     n = recv(client.socket_id, &receive_queue.elements[receive_queue.count],
              RECEIVE_QUEUE_SIZE, MSG_NOSIGNAL | MSG_DONTWAIT);
+    if (receive_queue.capacity >= 32 * RECEIVE_QUEUE_SIZE) {
+      fprintf(stderr, "ERROR: 32 : %zu\n", receive_queue.capacity);
+      assert(0 && "The receive_queue is massive");
+    }
+    if (receive_queue.capacity >= 16 * RECEIVE_QUEUE_SIZE) {
+      fprintf(stderr, "ERROR: 16 : %zu\n", receive_queue.capacity);
+      assert(0 && "The receive_queue is massive");
+    }
+
     if (n == -1) {
       break;
     }

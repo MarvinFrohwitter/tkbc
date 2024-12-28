@@ -409,7 +409,8 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       break;
     }
     if (token.kind == INVALID) {
-      goto err;
+      // This is '\0' same as EOF in this case.
+      break;
     }
     if (token.kind == ERROR) {
       goto err;
@@ -907,7 +908,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
   err: {
     tkbc_dap(&receive_message_queue, 0);
     receive_message_queue.count -= 1;
-    char *rn = strstr(receive_message_queue.elements, "\r\n");
+    char *rn = strstr(receive_message_queue.elements + lexer->position, "\r\n");
     if (rn != NULL) {
       int jump_length = rn + 2 - &lexer->content[lexer->position];
       lexer_chop_char(lexer, jump_length);
