@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 #define SERVER_CONNETCTIONS 64
-#define CLIENT_FMT "Index: %zu, Socket: %d, Address: (%s:%hd)"
+#define CLIENT_FMT "Index: %zu, Socket: %d, Address: (%s:%hu)"
 #define CLIENT_ARG(c)                                                          \
   ((c).kite_id), ((c).socket_id), (inet_ntoa((c).client_address.sin_addr)),    \
       (ntohs((c).client_address.sin_port))

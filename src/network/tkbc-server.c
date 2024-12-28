@@ -126,8 +126,8 @@ int main(int argc, char *argv[]) {
       signalhandler(SIGINT);
       return 1;
     }
-    struct sockaddr_in client_address = {0};
-    socklen_t address_length = 0;
+    struct sockaddr_in client_address;
+    socklen_t address_length = sizeof(client_address);
     int client_socket_id = accept(
         server_socket, (struct sockaddr *)&client_address, &address_length);
     if (client_socket_id != -1) {
