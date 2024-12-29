@@ -44,9 +44,10 @@ void tkbc_script_end(Env *env) {
 
     if (!env->script_finished) {
       env->script_finished = true;
-      fprintf(stderr, "=========== FROM THE SCRIPT END FUNCTION ========\n");
-      fprintf(stderr, "KITE: INFO: The script has finished successfully.\n");
-      fprintf(stderr, "=================================================\n");
+      tkbc_fprintf(stderr, "INFO", "=======================================\n");
+      tkbc_fprintf(stderr, "INFO", "- From the script end function.\n");
+      tkbc_fprintf(stderr, "INFO", "- The script has finished successfully.\n");
+      tkbc_fprintf(stderr, "INFO", "=======================================\n");
     }
   }
 }
@@ -102,7 +103,7 @@ void tkbc_script_update_frames(Env *env) {
     }
   } else {
     env->script_finished = true;
-    fprintf(stderr, "KITE: INFO: The script has finished successfully.\n");
+    tkbc_fprintf(stderr, "INFO", "The script has finished successfully.\n");
   }
 }
 
@@ -366,7 +367,8 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
   for (size_t i = 0; i < kite_count; ++i) {
     tkbc_dap(env->kite_array, *tkbc_init_kite());
     // The id starts from 0.
-    env->kite_array->elements[env->kite_array->count - 1].kite_id = env->kite_id_counter++;
+    env->kite_array->elements[env->kite_array->count - 1].kite_id =
+        env->kite_id_counter++;
     env->kite_array->elements[env->kite_array->count - 1].kite->body_color =
         color_array[i % ARRAY_LENGTH(color_array)];
   }
@@ -381,7 +383,6 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
 }
 
 void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
-
   fprintf(stream, "Script: %zu\n", block_frame->script_id);
   for (size_t block = 0; block < block_frame->count; ++block) {
     fprintf(stream, "  Block-Index: %zu\n",

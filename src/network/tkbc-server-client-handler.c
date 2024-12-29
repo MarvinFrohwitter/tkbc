@@ -29,7 +29,7 @@ void tkbc_server_shutdown_client(Client client, bool force) {
        recv(client.socket_id, b, sizeof(b), MSG_NOSIGNAL | MSG_DONTWAIT) > 0;)
     ;
   if (close(client.socket_id) == -1) {
-    tkbc_logger(stderr, "ERROR: Close socket: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "Close socket: %s\n", strerror(errno));
   }
   if (force) {
     goto check;
@@ -51,7 +51,7 @@ void tkbc_server_shutdown_client(Client client, bool force) {
   int err = pthread_mutex_lock(&mutex);
   if (err != 0) {
     if (err == EDEADLK) {
-      fprintf(stderr, "The mutex lock is already set.\n");
+      tkbc_fprintf(stderr, "WARNING", "The mutex lock is already set.\n");
     } else {
       assert(0 && "ERROR:mutex lock");
     }
@@ -77,15 +77,15 @@ void tkbc_server_shutdown_client(Client client, bool force) {
 
   pthread_t thread_id = client.thread_id;
   if (!tkbc_server_remove_client_from_list(client)) {
-    tkbc_logger(stderr,
-                "INFO: Client:" CLIENT_FMT
-                ": could not be removed after broken pipe\n",
-                CLIENT_ARG(client));
+    tkbc_fprintf(stderr, "INFO",
+                 "Client:" CLIENT_FMT
+                 ": could not be removed after broken pipe\n",
+                 CLIENT_ARG(client));
   }
 
 check:
   if (pthread_cancel(threads[thread_id]) != 0) {
-    tkbc_logger(stderr, "INFO: Client: Thread is not valid\n");
+    tkbc_fprintf(stderr, "INFO", "Client: Thread is not valid\n");
   }
 }
 
@@ -94,21 +94,20 @@ bool tkbc_server_brodcast_client(Client client, const char *message) {
   ssize_t send_check =
       send(client.socket_id, message, strlen(message), MSG_NOSIGNAL);
   if (send_check == 0) {
-    tkbc_logger(stderr,
-                "ERROR no bytes where send to the client:" CLIENT_FMT "\n",
-                CLIENT_ARG(client));
+    tkbc_fprintf(stderr, "ERROR",
+                 "No bytes where send to the client:" CLIENT_FMT "\n",
+                 CLIENT_ARG(client));
   }
   if (send_check == -1) {
-    tkbc_logger(stderr,
-                "ERROR: Client:" CLIENT_FMT
-                ":Could not broadcast message: %s\n",
-                CLIENT_ARG(client), message);
-    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR",
+                 "Client:" CLIENT_FMT ":Could not broadcast message: %s\n",
+                 CLIENT_ARG(client), message);
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
 
     return false;
   } else {
-    tkbc_logger(stderr, "INFO: The amount %ld send to:" CLIENT_FMT "\n",
-                send_check, CLIENT_ARG(client));
+    tkbc_fprintf(stderr, "INFO", "The amount %ld send to:" CLIENT_FMT "\n",
+                 send_check, CLIENT_ARG(client));
   }
   return true;
 }
@@ -428,8 +427,8 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       const char *greeting = "\"Hello server from client!1.0\"";
       const char *compare = lexer_token_to_cstr(lexer, &token);
       if (strncmp(compare, greeting, strlen(greeting)) != 0) {
-        tkbc_logger(stderr, "ERROR: Hello Message failed!\n");
-        tkbc_logger(stderr, "ERROR: Wrong protocol version!");
+        tkbc_fprintf(stderr, "ERROR", "Hello message failed!\n");
+        tkbc_fprintf(stderr, "ERROR", "Wrong protocol version!\n");
         check_return(false);
       }
       token = lexer_next(lexer);
@@ -891,7 +890,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_SCRUB\n");
     } break;
     default:
-      tkbc_logger(stderr, "ERROR: Unknown KIND: %d\n", kind);
+      tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind);
       exit(1);
     }
     continue;
@@ -905,8 +904,8 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       lexer_chop_char(lexer, jump_length);
       continue;
     }
-    tkbc_logger(stderr, "message.elements = %s\n",
-                receive_message_queue.elements);
+    tkbc_fprintf(stderr, "WARNING", "receive_message_queue: %s\n",
+                 receive_message_queue.elements);
     break;
   }
   } while (token.kind != EOF_TOKEN);
@@ -1004,8 +1003,8 @@ void *tkbc_client_handler(void *client) {
     } while (n > 0);
     if (n == -1) {
       if (errno != EAGAIN) {
-        tkbc_logger(stderr, "ERROR: read: %d\n", errno);
-        tkbc_logger(stderr, "ERROR: read: %s\n", strerror(errno));
+        tkbc_fprintf(stderr, "ERROR", "Read: %d\n", errno);
+        tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
         break;
       }
     }
@@ -1014,8 +1013,8 @@ void *tkbc_client_handler(void *client) {
                MSG_NOSIGNAL | MSG_PEEK);
       if (n == -1) {
         if (errno != EAGAIN) {
-          tkbc_logger(stderr, "ERROR: MSG_PEEK: %d\n", errno);
-          tkbc_logger(stderr, "ERROR: MSG_PEEK: %s\n", strerror(errno));
+          tkbc_fprintf(stderr, "ERROR", "MSG_PEEK: %d\n", errno);
+          tkbc_fprintf(stderr, "ERROR", "MSG_PEEK: %s\n", strerror(errno));
           break;
         }
       }

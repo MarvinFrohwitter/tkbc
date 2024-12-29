@@ -21,56 +21,56 @@
 Env *tkbc_init_env(void) {
   Env *env = calloc(1, sizeof(*env));
   if (env == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
   env->kite_array = calloc(1, sizeof(*env->kite_array));
   if (env->kite_array == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
   env->frames = calloc(1, sizeof(*env->frames));
   if (env->frames == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
   env->frames->kite_frame_positions =
       calloc(1, sizeof(*env->frames->kite_frame_positions));
   if (env->frames->kite_frame_positions == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
   env->block_frame = calloc(1, sizeof(*env->block_frame));
   if (env->block_frame == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
   env->block_frames = calloc(1, sizeof(*env->block_frames));
   if (env->block_frames == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
   env->scratch_buf_frames = calloc(1, sizeof(*env->scratch_buf_frames));
   if (env->scratch_buf_frames == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
   env->scratch_buf_block_frame =
       calloc(1, sizeof(*env->scratch_buf_block_frame));
   if (env->scratch_buf_block_frame == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
   env->scratch_buf_frames->kite_frame_positions =
       calloc(1, sizeof(*env->scratch_buf_frames->kite_frame_positions));
   if (env->scratch_buf_frames->kite_frame_positions == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
@@ -119,14 +119,14 @@ Env *tkbc_init_env(void) {
 Kite_State *tkbc_init_kite(void) {
   Kite_State *state = calloc(1, sizeof(*state));
   if (state == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
   tkbc_set_kite_state_defaults(state);
   state->kite = calloc(1, sizeof(*state->kite));
   if (state->kite == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
   tkbc_set_kite_defaults(state->kite, true);
@@ -248,7 +248,7 @@ void tkbc_file_handler(Env *env) {
     char *file_path;
     for (size_t i = 0; i < file_path_list.count && i < 1; ++i) {
       file_path = file_path_list.paths[i];
-      fprintf(stderr, "INFO: FILE: PATH: %s\n", file_path);
+      tkbc_fprintf(stderr, "INFO", "FILE: PATH: %s\n", file_path);
 
       if (strstr(file_path, ".kite")) {
         if (env->script_file_name != NULL) {
@@ -256,8 +256,9 @@ void tkbc_file_handler(Env *env) {
         }
         env->script_file_name = strdup(file_path);
         if (env->script_file_name == NULL) {
-          fprintf(stderr, "The allocation has failed in: %s: %d: %s\n",
-                  __FILE__, __LINE__, strerror(errno));
+          tkbc_fprintf(stderr, "ERROR",
+                       "The allocation has failed in: %s: %d: %s\n", __FILE__,
+                       __LINE__, strerror(errno));
         }
         tkbc_script_parser(env);
       } else {
@@ -276,8 +277,9 @@ void tkbc_file_handler(Env *env) {
       }
       env->sound_file_name = strdup(file_path);
       if (env->sound_file_name == NULL) {
-        fprintf(stderr, "The allocation has failed in: %s: %d: %s\n", __FILE__,
-                __LINE__, strerror(errno));
+        tkbc_fprintf(stderr, "ERROR",
+                     "The allocation has failed in: %s: %d: %s\n", __FILE__,
+                     __LINE__, strerror(errno));
       }
     }
 

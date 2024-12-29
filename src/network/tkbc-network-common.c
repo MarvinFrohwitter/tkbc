@@ -13,29 +13,18 @@
 
 extern Env *env;
 
-int tkbc_logger(FILE *stream, const char *fmt, ...) {
-  int ret = 0;
-  va_list args;
-  va_start(args, fmt);
-#ifdef TKBC_NETWORK_LOGGING
-  ret = vfprintf(stream, fmt, args);
-#endif /* ifdef TKBC_NETWORK_LOGGING */
-  va_end(args);
-  return ret;
-}
-
 uint16_t tkbc_port_parsing(const char *port_check) {
   for (size_t i = 0; i < strlen(port_check); ++i) {
     if (!isdigit(port_check[i])) {
-      tkbc_logger(stderr, "ERROR: The given port [%s] is not valid.\n",
-                  port_check);
+      tkbc_fprintf(stderr, "ERROR", "The given port [%s] is not valid.\n",
+                   port_check);
       exit(1);
     }
   }
   int port = atoi(port_check);
   if (port >= 65535 || port <= 0) {
-    tkbc_logger(stderr, "ERROR: The given port [%s] is not valid.\n",
-                port_check);
+    tkbc_fprintf(stderr, "ERROR", "The given port [%s] is not valid.\n",
+                 port_check);
     exit(1);
   }
 

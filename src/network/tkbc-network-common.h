@@ -10,11 +10,8 @@
 #include <stdio.h>
 
 #define PROTOCOL_VERSION "1.0"
-#define TKBC_NETWORK_LOGGING
 
-#ifdef TKBC_NETWORK_LOGGING
 #define TKBC_LOGGING
-#endif // TKBC_NETWORK_LOGGING
 #define TKBC_LOGGING_ERROR
 #define TKBC_LOGGING_INFO
 #define TKBC_LOGGING_WARNING
@@ -64,7 +61,6 @@ typedef enum {
   MESSAGE_COUNT,
 } Message_Kind;
 
-int tkbc_logger(FILE *stream, const char *fmt, ...);
 uint16_t tkbc_port_parsing(const char *port_check);
 bool tkbc_message_append_clientkite(size_t client_id, Message *message);
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,

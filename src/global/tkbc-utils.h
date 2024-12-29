@@ -112,7 +112,7 @@
   do {                                                                         \
     action = calloc(1, sizeof(type));                                          \
     if (action == NULL) {                                                      \
-      fprintf(stderr, "ERROR: No more memory can be allocated.\n");            \
+      tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");     \
       return NULL;                                                             \
     }                                                                          \
   } while (0)
@@ -295,7 +295,7 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
 
   } break;
   default: {
-    fprintf(stderr, "KIND = %d\n", kind);
+    tkbc_fprintf(stderr, "ERROR", "KIND: %d\n", kind);
     assert(0 && "Unsupported Kite Action");
   } break;
   }
@@ -305,7 +305,8 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
 int tkbc_read_file(char *filename, Content *content) {
   FILE *file = fopen(filename, "rb");
   if (file == NULL) {
-    fprintf(stderr, "Error:%s:%d:%s\n", __FILE__, __LINE__, strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
+                 strerror(errno));
     return -1;
   }
 
@@ -324,7 +325,8 @@ int tkbc_read_file(char *filename, Content *content) {
   }
 
   if (fclose(file) == EOF) {
-    fprintf(stderr, "Error:%s:%d:%s\n", __FILE__, __LINE__, strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
+                 strerror(errno));
     return -1;
   }
   return 0;
@@ -357,7 +359,7 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]) {
   cmd_string.count--;
   tkbc_dap(&cmd_string, '\0');
 
-  fprintf(stream, "[INFO] [CMD] %s\n", cmd_string.elements);
+  tkbc_fprintf(stream, "INFO", "%s %s\n", "[CMD]", cmd_string.elements);
   free(cmd_string.elements);
 }
 
@@ -371,7 +373,7 @@ double tkbc_get_time() {
 #ifdef TKBC_SERVER
   struct timespec ts;
   if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
-    fprintf(stderr, "ERROR:%s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     exit(0);
   }
   return (double)((uint64_t)ts.tv_sec * (uint64_t)1e9 + (uint64_t)ts.tv_nsec);
@@ -393,7 +395,7 @@ float tkbc_get_frame_time() {
 #ifdef TKBC_SERVER
   struct timespec ts;
   if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
-    fprintf(stderr, "ERROR:%s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     exit(0);
   }
   double current_time =

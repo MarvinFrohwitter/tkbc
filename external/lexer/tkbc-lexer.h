@@ -1266,8 +1266,8 @@ handle:
   fprintf(stderr, "ERROR: The assumed final broken token:          [%s]\n",
           final_token);
   fprintf(stderr, "Failed at CHAR: [%c]\n", lexer->content[lexer->position]);
-  fprintf(stderr, "         POS:  [%zu]\n", current_lexer_posion);
-  fprintf(stderr, "         LINE: [%llu]\n", lexer->line_count);
+  fprintf(stderr, "          POS:  [%zu]\n", current_lexer_posion);
+  fprintf(stderr, "          LINE: [%llu]\n", lexer->line_count);
   fprintf(stderr, "--------------------------------------------------------\n");
   fprintf(stderr, "The current file name: %s\n", lexer->file_name);
   fprintf(stderr, "--------------------------------------------------------\n");

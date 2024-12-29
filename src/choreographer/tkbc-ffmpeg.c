@@ -47,9 +47,9 @@ bool tkbc_ffmpeg_end(Env *env) {
 
   int close_status = close(env->pipe);
   if (close_status < 0) {
-    fprintf(stderr,
-            "ERROR: The ffmpeg_end function could not close the pipe: %d: %s\n",
-            env->pipe, strerror(errno));
+    tkbc_fprintf(stderr, "ERROR",
+                 "The ffmpeg_end() function could not close the pipe: %d: %s\n",
+                 env->pipe, strerror(errno));
   }
   env->recording = false;
   bool status = tkbc_ffmpeg_wait(env->pid);
@@ -74,8 +74,8 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   int fildes[2];
   int pipe_status = pipe(fildes);
   if (-1 == pipe_status) {
-    fprintf(stderr, "ERROR: Creating the pipe has failed with:%s\n",
-            strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "Creating the pipe has failed with:%s\n",
+                 strerror(errno));
   }
 
   char resolution[32] = {0};
@@ -86,23 +86,25 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
 
   pid_t pid = fork();
   if (0 > pid) {
-    fprintf(stderr, "[ERROR]: The fork was not possible:%s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "The fork was not possible:%s\n",
+                 strerror(errno));
     return false;
   }
 
   if (0 == pid) {
     if (dup2(fildes[0], STDIN_FILENO) < 0) {
-      fprintf(stderr, "ERROR: Could not reopen pipe: %s\n", strerror(errno));
+      tkbc_fprintf(stderr, "ERROR", "Could not reopen pipe: %s\n",
+                   strerror(errno));
       exit(1);
     }
 
     // Close the write filed so ffmpeg can not write to the pipe back.
     int close_status = close(fildes[1]);
     if (close_status < 0) {
-      fprintf(stderr,
-              "ERROR: The ffmpeg_end function could not close the pipe field: "
-              "%d: %s\n",
-              fildes[1], strerror(errno));
+      tkbc_fprintf(stderr, "ERROR",
+                   "The ffmpeg_end() function could not close the pipe field: "
+                   "%d: %s\n",
+                   fildes[1], strerror(errno));
     }
 
     int return_code;
@@ -180,8 +182,8 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
     }
 
     if (return_code < 0) {
-      fprintf(stderr, "[ERROR]: The execvp has failed with:%s\n",
-              strerror(errno));
+      tkbc_fprintf(stderr, "ERROR", "The execvp has failed with:%s\n",
+                   strerror(errno));
       exit(1);
     }
     assert(0 && "UNREACHABLE: Possible bug in kernel or libc!");
@@ -189,9 +191,9 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
 
   int close_status = close(fildes[0]);
   if (close_status < 0) {
-    fprintf(stderr,
-            "ERROR: The ffmpeg_end function could not close the pipe: %d: %s\n",
-            fildes[0], strerror(errno));
+    tkbc_fprintf(stderr, "ERROR",
+                 "The ffmpeg_end() function could not close the pipe: %d: %s\n",
+                 fildes[0], strerror(errno));
   }
   env->pipe = fildes[1];
   env->pid = pid;
@@ -211,22 +213,22 @@ bool tkbc_ffmpeg_wait(pid_t pid) {
   while (true) {
     int status = 0;
     if (0 > waitpid(pid, &status, 0)) {
-      fprintf(stderr, "[ERROR]: Waiting on process %d has failed:%s\n", pid,
-              strerror(errno));
+      tkbc_fprintf(stderr, "ERROR", "Waiting on process %d has failed:%s\n",
+                   pid, strerror(errno));
       return false;
     }
     if (WIFEXITED(status)) {
       int exit_status = WEXITSTATUS(status);
       if (0 != exit_status) {
-        fprintf(stderr, "[ERROR]: Process exited with exit code:%d\n",
-                exit_status);
+        tkbc_fprintf(stderr, "ERROR", "Process exited with exit code:%d\n",
+                     exit_status);
         return false;
       }
       break;
     }
     if (WIFSIGNALED(status)) {
-      fprintf(stderr, "[ERROR]: Process was terminated by:%s\n",
-              strsignal(WTERMSIG(status)));
+      tkbc_fprintf(stderr, "ERROR", "Process was terminated by:%s\n",
+                   strsignal(WTERMSIG(status)));
       return false;
     }
   }
@@ -248,8 +250,8 @@ void tkbc_ffmpeg_write_image(Env *env) {
           write(env->pipe, (uint32_t *)image.data + image.width * y,
                 sizeof(uint32_t) * image.width);
       if (write_status < 0) {
-        fprintf(stderr, "ERROR: Could not write to the pipe: %s\n",
-                strerror(errno));
+        tkbc_fprintf(stderr, "ERROR", "Could not write to the pipe: %s\n",
+                     strerror(errno));
       }
     }
 

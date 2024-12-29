@@ -21,12 +21,12 @@
 Frame *tkbc_init_frame(void) {
   Frame *frame = calloc(1, sizeof(*frame));
   if (frame == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
   frame->kite_id_array = calloc(1, sizeof(*frame->kite_id_array));
   if (frame->kite_id_array == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
@@ -51,7 +51,7 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
 
   Frames *new_frames = calloc(1, sizeof(*new_frames));
   if (new_frames == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
@@ -59,7 +59,7 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
     new_frames->kite_frame_positions =
         calloc(1, sizeof(*new_frames->kite_frame_positions));
     if (new_frames->kite_frame_positions == NULL) {
-      fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+      tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
       return NULL;
     }
 
@@ -88,7 +88,7 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
 
     Kite_Ids *new_kite_index_array = calloc(1, sizeof(*new_kite_index_array));
     if (new_kite_index_array == NULL) {
-      fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+      tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
       return NULL;
     }
 
@@ -117,7 +117,7 @@ Block_Frame *tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
 
   Block_Frame *new_block_frame = calloc(1, sizeof(*new_block_frame));
   if (new_block_frame == NULL) {
-    fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
 
@@ -213,7 +213,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       // kite.center + action->position - kite.center + kite->old_center
 
       if (!kite) {
-        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
+        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
       assert(kite != NULL);
       tkbc_script_move(kite, Vector2Add(kite->old_center, action->position),
@@ -242,7 +242,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (!kite) {
-        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
+        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
       assert(kite != NULL);
       tkbc_script_move(kite, action->position, frame->duration);
@@ -271,7 +271,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (!state) {
-        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
+        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
       assert(state != NULL);
 
@@ -313,7 +313,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (!state) {
-        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
+        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
       assert(state != NULL);
       tkbc_script_rotate(env, state, action->angle, frame->duration, false);
@@ -354,7 +354,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (!state) {
-        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
+        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
       assert(state != NULL);
       tkbc_script_rotate_tip(env, state, action->tip, action->angle,
@@ -396,7 +396,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       if (!state) {
-        fprintf(stderr, "ERROR: The kite index array is invalid.\n");
+        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
       assert(state != NULL);
       tkbc_script_rotate_tip(env, state, action->tip, action->angle,
@@ -507,7 +507,7 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
         frames->kite_frame_positions =
             calloc(1, sizeof(*frames->kite_frame_positions));
         if (frames->kite_frame_positions == NULL) {
-          fprintf(stderr, "ERROR: No more memory can be allocated.\n");
+          tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
           assert(0 && "ERROR: No more memory left!");
         }
       }

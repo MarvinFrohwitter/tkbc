@@ -38,18 +38,18 @@ Message receive_queue = {0};
 Message send_message_queue = {0};
 
 void tkbc_client_usage(const char *program_name) {
-  tkbc_logger(stderr, "Usage:\n");
-  tkbc_logger(stderr, "       %s <HOST> <PORT> \n", program_name);
+  tkbc_fprintf(stderr, "INFO", "Usage:\n");
+  tkbc_fprintf(stderr, "INFO", "      %s <HOST> <PORT> \n", program_name);
 }
 
 void tkbc_client_commandline_check(int argc, const char *program_name) {
   if (argc > 2) {
-    tkbc_logger(stderr, "ERROR: To may arguments.\n");
+    tkbc_fprintf(stderr, "ERROR", "To may arguments.\n");
     tkbc_client_usage(program_name);
     exit(1);
   }
   if (argc == 0) {
-    tkbc_logger(stderr, "ERROR: No arguments were provided.\n");
+    tkbc_fprintf(stderr, "ERROR", "No arguments were provided.\n");
     tkbc_client_usage(program_name);
     exit(1);
   }
@@ -64,8 +64,8 @@ const char *tkbc_host_parsing(const char *host_check) {
 
   for (size_t i = 0; i < strlen(host_check); ++i) {
     if (!isdigit(host_check[i]) && host_check[i] != '.') {
-      tkbc_logger(stderr, "ERROR: The given host [%s] is not supported.\n",
-                  host_check);
+      tkbc_fprintf(stderr, "ERROR", "The given host [%s] is not supported.\n",
+                   host_check);
       exit(1);
     }
   }
@@ -78,7 +78,7 @@ const char *tkbc_host_parsing(const char *host_check) {
 int tkbc_client_socket_creation(const char *addr, uint16_t port) {
   int client_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (client_socket == -1) {
-    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     exit(1);
   }
 
@@ -86,7 +86,7 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
   int sso = setsockopt(client_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
                        sizeof(option));
   if (sso == -1) {
-    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
   }
 
   struct sockaddr_in server_address;
@@ -99,13 +99,13 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
               sizeof(server_address));
 
   if (connection_status == -1) {
-    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     exit(1);
   }
 
-  tkbc_logger(stderr, "Connected to Server: %s:%hd\n",
-              inet_ntoa(server_address.sin_addr),
-              ntohs(server_address.sin_port));
+  tkbc_fprintf(stderr, "INFO", "Connected to Server: %s:%hd\n",
+               inet_ntoa(server_address.sin_addr),
+               ntohs(server_address.sin_port));
 
   return client_socket;
 }
@@ -142,14 +142,14 @@ bool send_message_handler() {
     ssize_t n = send(client.socket_id, send_message_queue.elements,
                      send_message_queue.count, MSG_NOSIGNAL);
     if (n == 0) {
-      tkbc_logger(stderr, "ERROR no bytes where send to the server!\n");
+      tkbc_fprintf(stderr, "ERROR", "No bytes where send to the server!\n");
       return false;
     }
     if (n == -1) {
       tkbc_dap(&send_message_queue, 0);
-      tkbc_logger(stderr, "ERROR: Could not broadcast message: %s\n",
-                  send_message_queue.elements);
-      tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+      tkbc_fprintf(stderr, "ERROR", "Could not broadcast message: %s\n",
+                   send_message_queue.elements);
+      tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
       return false;
     }
   }
@@ -203,8 +203,8 @@ bool received_message_handler() {
       const char *greeting = "\"Hello client from server!1.0\"";
       const char *compare = lexer_token_to_cstr(lexer, &token);
       if (strncmp(compare, greeting, strlen(greeting)) != 0) {
-        tkbc_logger(stderr, "ERROR: Hello Message failed!\n");
-        tkbc_logger(stderr, "ERROR: Wrong protocol version!");
+        tkbc_fprintf(stderr, "ERROR", "Hello message failed!\n");
+        tkbc_fprintf(stderr, "ERROR", "Wrong protocol version!\n");
         check_return(false);
       }
       token = lexer_next(lexer);
@@ -363,7 +363,7 @@ bool received_message_handler() {
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "CLIENT_DISCONNET\n");
     } break;
     default:
-      tkbc_logger(stderr, "ERROR: Unknown KIND: %d\n", kind);
+      tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind);
       exit(1);
     }
     continue;
@@ -377,7 +377,7 @@ bool received_message_handler() {
       lexer_chop_char(lexer, jump_length);
       continue;
     }
-    tkbc_logger(stderr, "message.elements = %s\n", message.elements);
+    tkbc_fprintf(stderr, "WARNING", "Message: %s\n", message.elements);
     check_return(false);
   }
   } while (token.kind != EOF_TOKEN);
@@ -400,11 +400,11 @@ bool message_queue_handler() {
     n = recv(client.socket_id, &receive_queue.elements[receive_queue.count],
              RECEIVE_QUEUE_SIZE, MSG_NOSIGNAL | MSG_DONTWAIT);
     if (receive_queue.capacity >= 32 * RECEIVE_QUEUE_SIZE) {
-      fprintf(stderr, "ERROR: 32 : %zu\n", receive_queue.capacity);
+      tkbc_fprintf(stderr, "ERROR", "32 : %zu\n", receive_queue.capacity);
       assert(0 && "The receive_queue is massive");
     }
     if (receive_queue.capacity >= 16 * RECEIVE_QUEUE_SIZE) {
-      fprintf(stderr, "ERROR: 16 : %zu\n", receive_queue.capacity);
+      tkbc_fprintf(stderr, "ERROR", "16 : %zu\n", receive_queue.capacity);
       assert(0 && "The receive_queue is massive");
     }
 
@@ -418,26 +418,26 @@ bool message_queue_handler() {
           realloc(receive_queue.elements,
                   sizeof(*receive_queue.elements) * receive_queue.capacity);
       if (receive_queue.elements == NULL) {
-        fprintf(stderr, "ERROR: realloc failed!\n");
+        tkbc_fprintf(stderr, "ERROR", "realloc() failed!\n");
       }
     }
   } while (n > 0);
 
   if (n == -1) {
     if (errno != EAGAIN) {
-      tkbc_logger(stderr, "ERROR: read: %d\n", errno);
-      tkbc_logger(stderr, "ERROR: read: %s\n", strerror(errno));
+      tkbc_fprintf(stderr, "ERROR", "Read: %d\n", errno);
+      tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
       return false;
     }
   }
 
   if (!received_message_handler()) {
     if (n > 0) {
-      fprintf(stderr, "---------------------------------\n");
+      tkbc_fprintf(stderr, "WARNING", "---------------------------------\n");
       for (size_t i = 0; i < receive_queue.count; ++i) {
         fprintf(stderr, "%c", receive_queue.elements[i]);
       }
-      fprintf(stderr, "---------------------------------\n");
+      tkbc_fprintf(stderr, "WARNING", "---------------------------------\n");
     }
     return false;
   }
@@ -584,8 +584,8 @@ bool tkbc_message_script() {
   for (size_t i = env->send_scripts; i < env->block_frames->count; ++i) {
     if (!tkbc_message_append_script(env->block_frames->elements[i].script_id,
                                     &message)) {
-      fprintf(stderr,
-              "ERROR: The script could not be appended to the message.\n");
+      tkbc_fprintf(stderr, "ERROR",
+                   "The script could not be appended to the message.\n");
       check_return(false);
     }
 
@@ -774,13 +774,14 @@ int main(int argc, char *argv[]) {
   } while (n > 0);
 
   if (n == 0) {
-    tkbc_logger(stderr, "INFO: Could not read any more data.\n");
+    tkbc_fprintf(stderr, "INFO", "Could not read any more data.\n");
   }
   if (n < 0) {
-    tkbc_logger(stderr, "ERROR: reading failed: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "Reading failed: %s\n", strerror(errno));
   }
   if (close(client.socket_id) == -1) {
-    tkbc_logger(stderr, "ERROR: Could not close socket: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
+                 strerror(errno));
   }
 
   tkbc_sound_destroy(env->sound);

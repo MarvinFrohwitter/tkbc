@@ -140,15 +140,15 @@ void tkbc_script_parser(Env *env) {
     err:
     case ERROR:
     default:
-      fprintf(stderr, "ERROR: Invalid token: %s\n",
-              lexer_token_to_cstr(lexer, &t));
+      tkbc_fprintf(stderr, "ERROR", "Invalid token: %s\n",
+                   lexer_token_to_cstr(lexer, &t));
     }
 
     t = lexer_next(lexer);
   }
 
   if (script_begin) {
-    fprintf(stderr, "ERROR: script END is not defined.");
+    tkbc_fprintf(stderr, "ERROR", "Script END is not defined.");
     tkbc_script_end(env);
   }
 
@@ -197,10 +197,10 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Token *t,
       int number = atoi(lexer_token_to_cstr(lexer, t));
       tkbc_dap(dest_kis, number);
       if (!tkbc_parsed_kis_is_in_env(env, number)) {
-        fprintf(stderr,
-                "ERROR: The given kites in the listing are invalid: "
-                "Position:%llu:%ld\n",
-                lexer->line_count, (t->content - lexer->content));
+        tkbc_fprintf(stderr, "ERROR",
+                     "The given kites in the listing are invalid: "
+                     "Position:%llu:%ld\n",
+                     lexer->line_count, (t->content - lexer->content));
         return false;
       }
       *t = lexer_next(lexer);

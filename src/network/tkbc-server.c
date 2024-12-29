@@ -34,18 +34,18 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 // static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 void tkbc_server_usage(const char *program_name) {
-  tkbc_logger(stderr, "Usage:\n");
-  tkbc_logger(stderr, "       %s <PORT> \n", program_name);
+  tkbc_fprintf(stderr, "INFO", "Usage:\n");
+  tkbc_fprintf(stderr, "INFO", "      %s <PORT> \n", program_name);
 }
 
 void tkbc_server_commandline_check(int argc, const char *program_name) {
   if (argc > 1) {
-    tkbc_logger(stderr, "ERROR: To may arguments.\n");
+    tkbc_fprintf(stderr, "ERROR", "To may arguments.\n");
     tkbc_server_usage(program_name);
     exit(1);
   }
   if (argc == 0) {
-    tkbc_logger(stderr, "ERROR: No arguments were provided.\n");
+    tkbc_fprintf(stderr, "ERROR", "No arguments were provided.\n");
     tkbc_server_usage(program_name);
     exit(1);
   }
@@ -54,14 +54,14 @@ void tkbc_server_commandline_check(int argc, const char *program_name) {
 int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   int socket_id = socket(AF_INET, SOCK_STREAM, 0);
   if (socket_id == -1) {
-    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     exit(1);
   }
   int option = 1;
   int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
                        sizeof(option));
   if (sso == -1) {
-    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
   }
 
   struct sockaddr_in server_addr;
@@ -72,13 +72,13 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   int bind_status =
       bind(socket_id, (struct sockaddr *)&server_addr, sizeof(server_addr));
   if (bind_status == -1) {
-    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     exit(1);
   }
 
   int listen_status = listen(socket_id, SERVER_CONNETCTIONS);
   if (listen_status == -1) {
-    tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     exit(1);
   }
   tkbc_fprintf(stderr, "INFO", "%s: %hu\n", "Listening to port", port);
@@ -89,7 +89,7 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
 Clients *tkbc_init_clients(void) {
   Clients *clients = calloc(1, sizeof(*clients));
   if (clients == NULL) {
-    tkbc_logger(stderr, "ERROR: No more memory can be allocated.\n");
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
   return clients;
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
       pthread_create(&threads[clients_visited++], NULL, tkbc_client_handler,
                      &c);
     } else {
-      tkbc_logger(stderr, "ERROR: %s\n", strerror(errno));
+      tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
       assert(0 && "accept error");
     }
   }
@@ -197,7 +197,7 @@ void signalhandler(int signal) {
 
   shutdown(server_socket, SHUT_RDWR);
   if (close(server_socket) == -1) {
-    tkbc_logger(stderr, "ERROR: Main Server Socket: %s\n", strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "Main Server Socket: %s\n", strerror(errno));
   }
   if (clients->elements) {
     free(clients->elements);
