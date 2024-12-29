@@ -598,8 +598,9 @@ bool tkbc_message_script() {
     message.count = 0;
     counter++;
 
+    // TODO: @Cleanup
     if (i == 0) {
-      FILE *file = fopen("OP", "wb");
+      FILE *file = fopen("SCIPT_1_PROTOCOL_VERSION_" PROTOCOL_VERSION, "wb");
       for (size_t k = 0; k < send_message_queue.count; ++k) {
         fprintf(file, "%c", send_message_queue.elements[k]);
       }
