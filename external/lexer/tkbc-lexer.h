@@ -19,8 +19,8 @@
 // TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef TKBC_LEXER_H_
-#define TKBC_LEXER_H_
+#ifndef LEXER_H_
+#define LEXER_H_
 #include <stddef.h>
 
 #ifndef BASICLEXDEF
@@ -31,7 +31,7 @@
 // #define LEX_LOGERROR
 #endif // LEX_LOGERROR
 
-#ifdef TKBC_LEXER_IMPLEMENTAION
+#ifdef LEXER_IMPLEMENTAION
 
 #ifndef LEXDEF
 #define LEXDEF static inline
@@ -43,7 +43,7 @@
 #define LEXDEF
 #endif // LEXDEF
 
-#endif // TKBC_LEXER_IMPLEMENTAION
+#endif // LEXER_IMPLEMENTAION
 
 typedef struct {
   char *elements;
@@ -318,9 +318,9 @@ LEXDEF int is_sybol_alpha_and_(char c);
 /* ==========================================================================
  */
 
-#endif // TKBC_LEXER_H_
+#endif // LEXER_H_
 
-#ifdef TKBC_LEXER_IMPLEMENTAION
+#ifdef LEXER_IMPLEMENTAION
 
 #include <assert.h>
 #include <ctype.h>
@@ -1565,4 +1565,4 @@ LEXDEF int lexer_punctuator_set_token(Lexer *lexer, Token *token,
   return 1;
 }
 
-#endif // TKBC_LEXER_IMPLEMENTAION
+#endif // LEXER_IMPLEMENTAION

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TKBC_LEXER_IMPLEMENTAION
+#define LEXER_IMPLEMENTAION
 #define EXLEX_IMPLEMENTATION
 #define LEX_LOGERROR
 #include "../../external/lexer/tkbc-lexer.h"
