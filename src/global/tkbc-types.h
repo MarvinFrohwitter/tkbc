@@ -28,9 +28,6 @@ typedef struct {
   Vector2 position; // The position that is located at the center of the top
                     // leading edge.
   float angle;      // The rotation is in degrees around the center position.
-
-  // --- Script only use -----------------------------------------------------
-  float remaining_angle; // The remaining rotation angle.
 } Kite_Position;         // The combined position and rotation angle.
 
 typedef struct {

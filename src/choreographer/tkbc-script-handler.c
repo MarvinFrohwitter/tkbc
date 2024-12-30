@@ -254,7 +254,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
   } break;
   case KITE_ROTATION_ADD: {
-    Kite_State *state;
     Kite *kite;
     Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
@@ -264,39 +263,25 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
         if (env_frame->kite_id_array->elements[i] ==
             env->kite_array->elements[k].kite_id) {
-          state = &env->kite_array->elements[k];
-          kite = state->kite;
+          kite = env->kite_array->elements[k].kite;
           break;
         }
       }
-
-      if (!state) {
-        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
-      }
-      assert(state != NULL);
 
       tkbc_script_rotate(kite, action->angle, frame->duration, true);
 
-      float remaining_angle = 0;
-      for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-        if (env->frames->kite_frame_positions->elements[k].kite_id ==
-            state->kite_id) {
-
-          remaining_angle =
-              env->frames->kite_frame_positions->elements[k].remaining_angle;
-          break;
+      if (action->angle <= 0) {
+        if (fabsf(kite->old_angle + action->angle) <= fabsf(kite->angle)) {
+          frame->finished = true;
         }
-      }
-
-      if (remaining_angle <= 0 ||
-          FloatEquals(floorf(kite->old_angle + action->angle),
-                      floorf(kite->angle))) {
-        frame->finished = true;
+      } else {
+        if (kite->old_angle + action->angle <= kite->angle) {
+          frame->finished = true;
+        }
       }
     }
   } break;
   case KITE_ROTATION: {
-    Kite_State *state;
     Kite *kite;
     Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
@@ -306,38 +291,26 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
         if (env_frame->kite_id_array->elements[i] ==
             env->kite_array->elements[k].kite_id) {
-          state = &env->kite_array->elements[k];
-          kite = state->kite;
+          kite = env->kite_array->elements[k].kite;
           break;
         }
       }
 
-      if (!state) {
-        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
-      }
-      assert(state != NULL);
       tkbc_script_rotate(kite, action->angle, frame->duration, false);
 
-      float remaining_angle = 0;
-      for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-        if (env->frames->kite_frame_positions->elements[k].kite_id ==
-            state->kite_id) {
-
-          remaining_angle =
-              env->frames->kite_frame_positions->elements[k].remaining_angle;
-          break;
-        }
-      }
-
       // NOTE: Different from the ADDing version.
-      if (remaining_angle <= 0 ||
-          FloatEquals(floorf(action->angle), floorf(kite->angle))) {
-        frame->finished = true;
+      if (action->angle <= 0) {
+        if (fabsf(action->angle) <= fabsf(kite->angle)) {
+          frame->finished = true;
+        }
+      } else {
+        if (action->angle <= kite->angle) {
+          frame->finished = true;
+        }
       }
     }
   } break;
   case KITE_TIP_ROTATION_ADD: {
-    Kite_State *state;
     Kite *kite;
     Tip_Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
@@ -347,39 +320,26 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
         if (env_frame->kite_id_array->elements[i] ==
             env->kite_array->elements[k].kite_id) {
-          state = &env->kite_array->elements[k];
-          kite = state->kite;
+          kite = env->kite_array->elements[k].kite;
           break;
         }
       }
 
-      if (!state) {
-        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
-      }
-      assert(state != NULL);
       tkbc_script_rotate_tip(kite, action->tip, action->angle, frame->duration,
                              true);
 
-      float remaining_angle = 0;
-      for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-        if (env->frames->kite_frame_positions->elements[k].kite_id ==
-            state->kite_id) {
-
-          remaining_angle =
-              env->frames->kite_frame_positions->elements[k].remaining_angle;
-          break;
+      if (action->angle <= 0) {
+        if (fabsf(kite->old_angle + action->angle) <= fabsf(kite->angle)) {
+          frame->finished = true;
         }
-      }
-
-      if (remaining_angle <= 0 ||
-          FloatEquals(floorf(kite->old_angle + action->angle),
-                      floorf(kite->angle))) {
-        frame->finished = true;
+      } else {
+        if (kite->old_angle + action->angle <= kite->angle) {
+          frame->finished = true;
+        }
       }
     }
   } break;
   case KITE_TIP_ROTATION: {
-    Kite_State *state;
     Kite *kite;
     Tip_Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
@@ -389,34 +349,23 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
         if (env_frame->kite_id_array->elements[i] ==
             env->kite_array->elements[k].kite_id) {
-          state = &env->kite_array->elements[k];
-          kite = state->kite;
+          kite = env->kite_array->elements[k].kite;
           break;
         }
       }
 
-      if (!state) {
-        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
-      }
-      assert(state != NULL);
       tkbc_script_rotate_tip(kite, action->tip, action->angle, frame->duration,
                              false);
 
-      float remaining_angle = 0;
-      for (size_t k = 0; k < env->frames->kite_frame_positions->count; ++k) {
-        if (env->frames->kite_frame_positions->elements[k].kite_id ==
-            state->kite_id) {
-
-          remaining_angle =
-              env->frames->kite_frame_positions->elements[k].remaining_angle;
-          break;
-        }
-      }
-
       // NOTE: Different from the ADDing version.
-      if (remaining_angle <= 0 ||
-          FloatEquals(floorf(action->angle), floorf(kite->angle))) {
-        frame->finished = true;
+      if (action->angle <= 0) {
+        if (fabsf(action->angle) <= fabsf(kite->angle)) {
+          frame->finished = true;
+        }
+      } else {
+        if (action->angle <= kite->angle) {
+          frame->finished = true;
+        }
       }
     }
   } break;
@@ -460,6 +409,7 @@ void tkbc_patch_frames_current_time(Frames *frames) {
  */
 void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
   for (size_t i = 0; i < frames->count; ++i) {
+    Frame *frame = &frames->elements[i];
     if (frames->elements[i].kite_id_array == NULL) {
       continue;
     }
@@ -474,32 +424,10 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
         }
       }
 
-      Frame *f = &frames->elements[i];
-      float patch_angle = 0;
-      assert(ACTION_KIND_COUNT == 9 &&
-             "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
-      switch (f->kind) {
-      case KITE_TIP_ROTATION:
-      case KITE_ROTATION: {
-        Rotation_Action *a = f->action;
-        patch_angle =
-            fabsf(env->kite_array->elements[kite_index].kite->angle - a->angle);
-
-      } break;
-      case KITE_TIP_ROTATION_ADD:
-      case KITE_ROTATION_ADD: {
-        Rotation_Action *a = f->action;
-        patch_angle = fabsf(a->angle);
-      } break;
-      default: {
-      }
-      }
-
       Kite_Position kite_position = {
           .kite_id = kite_id,
           .position = env->kite_array->elements[kite_index].kite->center,
           .angle = env->kite_array->elements[kite_index].kite->angle,
-          .remaining_angle = patch_angle,
       };
 
       // For the case just frames buffer is on the stack allocated.
@@ -516,12 +444,12 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
       for (size_t k = 0; k < frames->kite_frame_positions->count; ++k) {
         if (frames->kite_frame_positions->elements[k].kite_id == kite_id) {
           contains = true;
-          // NOTE: Patching remaining_angle in case the kite_position was
+          // NOTE: Patching angle in case the kite_position was
           // already added by just a move action, but later the corresponding
           // angle action is handled.
           assert(ACTION_KIND_COUNT == 9 &&
                  "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
-          switch (f->kind) {
+          switch (frame->kind) {
           case KITE_MOVE:
           case KITE_MOVE_ADD: {
             frames->kite_frame_positions->elements[k].position =
@@ -531,8 +459,6 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
           case KITE_ROTATION:
           case KITE_TIP_ROTATION_ADD:
           case KITE_ROTATION_ADD: {
-            frames->kite_frame_positions->elements[k].remaining_angle =
-                kite_position.remaining_angle;
             frames->kite_frame_positions->elements[k].angle =
                 kite_position.angle;
           } break;
