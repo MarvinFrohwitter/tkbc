@@ -26,11 +26,8 @@ void tkbc_scrub_frames(Env *env);
 // ===========================================================================
 
 void tkbc_script_move(Kite *kite, Vector2 position, float duration);
-
-void tkbc_script_rotate(Env *env, Kite_State *state, float angle,
-                        float duration, bool adding);
-
-void tkbc_script_rotate_tip(Env *env, Kite_State *state, TIP tip, float angle,
-                            float duration, bool adding);
+void tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding);
+void tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
+                            bool adding);
 
 #endif // TKBC_SCRIPT_HANDLER_H_
