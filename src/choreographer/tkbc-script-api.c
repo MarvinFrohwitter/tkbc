@@ -257,40 +257,19 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     // Patching frames
     Frame *frame = &frames->elements[i];
     frame->index = i;
-    assert(ACTION_KIND_COUNT == 9 &&
-           "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
-    switch (frame->kind) {
-    case KITE_MOVE:
-    case KITE_MOVE_ADD: {
-      for (size_t i = 0; i < frame->kite_id_array->count; ++i) {
-        for (size_t k = 0; k < env->kite_array->count; ++k) {
-          if (frame->kite_id_array->elements[i] ==
-              env->kite_array->elements[k].kite_id) {
-
-            Kite *kite = env->kite_array->elements[k].kite;
-            kite->old_center = kite->center;
-            break;
-          }
-        }
-      }
-
-    } break;
-    case KITE_ROTATION_ADD:
-    case KITE_TIP_ROTATION_ADD: {
-      for (size_t i = 0; i < frame->kite_id_array->count; ++i) {
-        for (size_t k = 0; k < env->kite_array->count; ++k) {
-          if (env->kite_array->elements[i].kite_id ==
-              frame->kite_id_array->elements[k]) {
-            Kite *kite = env->kite_array->elements[k].kite;
-            kite->old_angle = kite->angle;
-            kite->old_center = kite->center;
-            break;
-          }
-        }
-      }
-    } break;
-    default: {
+    if (frame->kind == KITE_WAIT || frame->kind == KITE_QUIT) {
+      continue;
     }
+
+    for (size_t j = 0; j < frame->kite_id_array->count; ++j) {
+      for (size_t k = 0; k < env->kite_array->count; ++k) {
+        if (frame->kite_id_array->elements[j] ==
+            env->kite_array->elements[k].kite_id) {
+          Kite *kite = env->kite_array->elements[k].kite;
+          kite->old_angle = kite->angle;
+          kite->old_center = kite->center;
+        }
+      }
     }
   }
 
@@ -353,9 +332,9 @@ Kite_Ids tkbc_indexs_range(int start, int end) {
 }
 
 /**
- * @brief The function initializes the amount of kites that are provided in the
- * arguments and inserts them in the global kite_array. It also sets a different
- * color for each kite, rather than the default color.
+ * @brief The function initializes the amount of kites that are provided in
+ * the arguments and inserts them in the global kite_array. It also sets a
+ * different color for each kite, rather than the default color.
  *
  * @param env The global state of the application.
  * @param kite_count The amount of kites that are pushed to the kite array.
@@ -518,7 +497,6 @@ void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
       fprintf(stream, "      Angle:%f\n", kp->angle);
       fprintf(stream, "      Position:(%f,%f)\n", kp->position.x,
               kp->position.y);
-      fprintf(stream, "      Remaining-Angle:%f\n", kp->remaining_angle);
       fprintf(stream, "      }\n");
     }
     fprintf(stream, "    }\n");
