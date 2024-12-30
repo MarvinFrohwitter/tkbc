@@ -683,15 +683,12 @@ void tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
   }
 
   float dt = tkbc_get_frame_time();
-  // float d = fabsf(angle - state->kite->old_angle);
   float d = fabsf(angle);
   float ds = d / duration * dt;
 
   if (ds >= fabsf(kite->old_angle) + d) {
-
     // TODO: This part is not needed if the computation of the float for the
     // finished frame is correctly detected.
-
     if (adding) {
       if (angle <= 0) {
         tkbc_center_rotation(kite, NULL, kite->old_angle - angle);
@@ -706,12 +703,15 @@ void tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
       }
     }
 
+    return;
+  }
+  // NOTE: For the non adding version the finish detection will stop the
+  // calculation at the correct point so the angle computation is not needed
+  // her.
+  if (angle <= 0) {
+    tkbc_center_rotation(kite, NULL, kite->angle - ds);
   } else {
-    if (angle <= 0) {
-      tkbc_center_rotation(kite, NULL, kite->angle - ds);
-    } else {
-      tkbc_center_rotation(kite, NULL, kite->angle + ds);
-    }
+    tkbc_center_rotation(kite, NULL, kite->angle + ds);
   }
 }
 
@@ -753,7 +753,6 @@ void tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
   }
 
   float dt = tkbc_get_frame_time();
-  // float d = fabsf(angle - state->kite->old_angle);
   float d = fabsf(angle);
   float ds = d / duration * dt;
 
@@ -766,11 +765,14 @@ void tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
       tkbc_tip_rotation(kite, &kite->old_center, kite->old_angle + angle, tip);
     }
 
+    return;
+  }
+  // NOTE: For the non adding version the finish detection will stop the
+  // calculation at the correct point so the angle computation is not needed
+  // her.
+  if (angle <= 0) {
+    tkbc_tip_rotation(kite, NULL, kite->angle - ds, tip);
   } else {
-    if (angle <= 0) {
-      tkbc_tip_rotation(kite, NULL, kite->angle - ds, tip);
-    } else {
-      tkbc_tip_rotation(kite, NULL, kite->angle + ds, tip);
-    }
+    tkbc_tip_rotation(kite, NULL, kite->angle + ds, tip);
   }
 }
