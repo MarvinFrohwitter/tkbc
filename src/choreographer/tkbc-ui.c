@@ -1,6 +1,7 @@
 #include <assert.h>
 
 #include "../global/tkbc-types.h"
+#include "../global/tkbc-utils.h"
 #include "raylib.h"
 #include "tkbc-ui.h"
 #include "tkbc.h"
@@ -13,8 +14,8 @@
  */
 void tkbc_draw_ui(Env *env) {
 
-  env->window_height = GetScreenHeight();
-  env->window_width = GetScreenWidth();
+  env->window_height = tkbc_get_screen_height();
+  env->window_width = tkbc_get_screen_width();
 
   if (env->block_frame->count > 0) {
     // A script is currently executing.

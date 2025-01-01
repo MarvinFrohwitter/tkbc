@@ -76,8 +76,8 @@ Env *tkbc_init_env(void) {
 
   env->kite_id_counter = 0;
   env->script_setup = true;
-  env->window_width = GetScreenWidth();
-  env->window_height = GetScreenHeight();
+  env->window_width = tkbc_get_screen_width();
+  env->window_height = tkbc_get_screen_height();
   env->script_interrupt = false;
   env->script_finished = true;
   env->script_counter = 0;
@@ -135,7 +135,7 @@ Kite_State *tkbc_init_kite(void) {
                              ? state->kite->width / 2
                              : state->kite->height;
 
-  Vector2 start_pos = {.y = GetScreenHeight() - 2 * viewport_padding,
+  Vector2 start_pos = {.y = tkbc_get_screen_height() - 2 * viewport_padding,
                        .x = state->kite->center.x};
   tkbc_center_rotation(state->kite, &start_pos, state->kite->angle);
   return state;
@@ -300,8 +300,8 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
     kite->center.x = 0;
     kite->center.y = 0;
 
-    kite->center.x = GetScreenWidth() / 2.0f;
-    kite->center.y = GetScreenHeight() / 2.0f;
+    kite->center.x = tkbc_get_screen_width() / 2.0f;
+    kite->center.y = tkbc_get_screen_height() / 2.0f;
   }
 
   kite->fly_speed = 30;

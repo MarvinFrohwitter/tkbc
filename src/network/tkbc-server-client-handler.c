@@ -12,10 +12,12 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
+#include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 
 extern Env *env;
@@ -951,11 +953,8 @@ void *tkbc_client_handler(void *client) {
   Color color_array[] = {BLUE, PURPLE, GREEN, RED, TEAL};
   Kite_State *kite_state = tkbc_init_kite();
   kite_state->kite_id = c.kite_id;
-  kite_state->kite->body_color =
-      color_array[c.kite_id % ARRAY_LENGTH(color_array)];
-  Vector2 shift_pos = {.y = kite_state->kite->center.y,
-                       .x = kite_state->kite->center.x + 200 + 200 * c.kite_id};
-  tkbc_center_rotation(kite_state->kite, &shift_pos, kite_state->kite->angle);
+  float r = (float)rand() / RAND_MAX;
+  kite_state->kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
 
   pthread_mutex_lock(&mutex);
   tkbc_dap(env->kite_array, *kite_state);

@@ -132,6 +132,8 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
                                bool isgenerated);
 int tkbc_read_file(char *filename, Content *content);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
+int tkbc_get_screen_height();
+int tkbc_get_screen_width();
 double tkbc_get_time();
 float tkbc_get_frame_time();
 float tkbc_clamp(float z, float a, float b);
@@ -144,7 +146,8 @@ float tkbc_clamp(float z, float a, float b);
 
 // ========================== KITE UTILS =====================================
 
-#include "errno.h"
+#include "raylib.h"
+#include <errno.h>
 
 /**
  * @brief The function provides a simple logging capability that supports a
@@ -361,6 +364,43 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]) {
 
   tkbc_fprintf(stream, "INFO", "%s %s\n", "[CMD]", cmd_string.elements);
   free(cmd_string.elements);
+}
+
+#ifdef TKBC_SERVER
+extern Env *env;
+#endif // PROTOCOL_VERSION
+/**
+ * @brief The function is a wrapper for the GetScreenHeight() that is not
+ * available in the server computation.
+ *
+ * @return The screen height of the window.
+ */
+int tkbc_get_screen_height() {
+#ifdef TKBC_SERVER
+  if (env == NULL) {
+    return 0;
+  }
+  return env->window_height;
+#else
+  return GetScreenHeight();
+#endif // PROTOCOL_VERSION
+}
+
+/**
+ * @brief The function is a wrapper for the GetScreenWidth() that is not
+ * available in the server computation.
+ *
+ * @return The screen width of the window.
+ */
+int tkbc_get_screen_width() {
+#ifdef TKBC_SERVER
+  if (env == NULL) {
+    return 0;
+  }
+  return env->window_width;
+#else
+  return GetScreenWidth();
+#endif // PROTOCOL_VERSION
 }
 
 /**

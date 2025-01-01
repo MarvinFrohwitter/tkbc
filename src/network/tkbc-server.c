@@ -4,6 +4,7 @@
 #include "tkbc-server-client-handler.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
 #include <netinet/in.h>
@@ -101,15 +102,19 @@ int main(int argc, char *argv[]) {
   signal(SIGTERM, signalhandler);
   tkbc_fprintf(stderr, "INFO", "%s\n", "The server has started.");
 
-  char *program_name = tkbc_shift_args(&argc, &argv);
-  tkbc_server_commandline_check(argc, program_name);
+  // char *program_name = tkbc_shift_args(&argc, &argv);
+  // tkbc_server_commandline_check(argc, program_name);
 
-  char *port_check = tkbc_shift_args(&argc, &argv);
-  uint16_t port = tkbc_port_parsing(port_check);
+  // char *port_check = tkbc_shift_args(&argc, &argv);
+  // uint16_t port = tkbc_port_parsing(port_check);
 
-  server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
+  server_socket = tkbc_server_socket_creation(INADDR_ANY, 8080);
   tkbc_fprintf(stderr, "INFO", "%s: %d\n", "Server socket", server_socket);
+
+  srand(time(NULL));
   env = tkbc_init_env();
+  env->window_width = 1920;
+  env->window_height = 1080;
   clients = tkbc_init_clients();
   size_t clients_visited = 0;
 

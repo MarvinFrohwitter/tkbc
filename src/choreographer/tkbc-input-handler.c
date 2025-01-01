@@ -318,7 +318,7 @@ void tkbc_input_check_movement(Kite_State *state) {
   int viewport_padding = state->kite->width > state->kite->height
                              ? state->kite->width / 2
                              : state->kite->height;
-  Vector2 window = {GetScreenWidth(), GetScreenHeight()};
+  Vector2 window = {tkbc_get_screen_width(), tkbc_get_screen_height()};
   window.x -= viewport_padding;
   window.y -= viewport_padding;
 
