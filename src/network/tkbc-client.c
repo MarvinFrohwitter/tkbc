@@ -9,6 +9,7 @@
 #include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc-sound-handler.h"
 #include "../choreographer/tkbc.h"
+#include "../global/tkbc-popup.h"
 
 #include "../../external/lexer/tkbc-lexer.h"
 #include "../../tkbc_scripts/first.c"
@@ -138,23 +139,25 @@ void sending_script_handler() {
 }
 
 bool send_message_handler() {
+  bool ok = true;
   if (send_message_queue.count) {
     ssize_t n = send(client.socket_id, send_message_queue.elements,
                      send_message_queue.count, MSG_NOSIGNAL);
     if (n == 0) {
       tkbc_fprintf(stderr, "ERROR", "No bytes where send to the server!\n");
-      return false;
+      check_return(false);
     }
     if (n == -1) {
       tkbc_dap(&send_message_queue, 0);
       tkbc_fprintf(stderr, "ERROR", "Could not broadcast message: %s\n",
                    send_message_queue.elements);
       tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-      return false;
+      check_return(false);
     }
   }
+check:
   send_message_queue.count = 0;
-  return true;
+  return ok;
 }
 
 bool received_message_handler() {
@@ -733,6 +736,8 @@ int main(int argc, char *argv[]) {
   receive_queue.elements = malloc(RECEIVE_QUEUE_SIZE);
   receive_queue.capacity += RECEIVE_QUEUE_SIZE;
 
+  Popup disconnect = {0};
+  bool sending = true;
   while (!WindowShouldClose()) {
     if (!message_queue_handler()) {
       break;
@@ -740,15 +745,28 @@ int main(int argc, char *argv[]) {
 
     BeginDrawing();
     ClearBackground(SKYBLUE);
-    if (!send_message_handler()) {
-      // TODO: Implement a handler for a server disconnect. That could be a
-      // popup that presents a handler.
+    if (sending) {
+      sending = send_message_handler();
+      if (!sending) {
+        disconnect = tkbc_popup_message("The server has disconnected!");
+      }
+    }
+
+    int interaction_disconnect = tkbc_check_popup_interaction(&disconnect);
+    if (interaction_disconnect == 1) {
       break;
+    } else if (interaction_disconnect == -1) {
+      disconnect.active = false;
     }
 
     tkbc_draw_kite_array(env->kite_array);
     tkbc_draw_ui(env);
+    tkbc_popup_resize_disconnect(&disconnect);
+    tkbc_draw_popup(&disconnect);
     EndDrawing();
+    if (disconnect.active) {
+      continue;
+    }
 
     tkbc_client_file_handler();
     tkbc_input_sound_handler(env);
@@ -757,6 +775,10 @@ int main(int argc, char *argv[]) {
     // The end of the current frame has to be executed so ffmpeg gets the full
     // executed fame.
     tkbc_ffmpeg_handler(env, "output.mp4");
+    if (!sending) {
+      // Clearing for offline continuation.
+      send_message_queue.count = 0;
+    }
   };
   CloseWindow();
 
@@ -787,5 +809,6 @@ int main(int argc, char *argv[]) {
 
   tkbc_sound_destroy(env->sound);
   tkbc_destroy_env(env);
+  tkbc_fprintf(stderr, "INFO", "EXITED SUCCESSFULLY.\n");
   return 0;
 }

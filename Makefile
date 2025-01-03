@@ -26,7 +26,7 @@ server: build first.o
 	${CC} ${INCLUDE} ${CFLAGS} -static -o build/server src/network/tkbc-server.c src/network/tkbc-server-client-handler.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
 client: build first.o
-	${CC} ${INCLUDE} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
 
 tkbc: build first.o

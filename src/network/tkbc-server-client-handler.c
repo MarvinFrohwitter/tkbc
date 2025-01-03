@@ -950,7 +950,6 @@ void *tkbc_client_handler(void *client) {
 
   tkbc_message_hello(c);
 
-  Color color_array[] = {BLUE, PURPLE, GREEN, RED, TEAL};
   Kite_State *kite_state = tkbc_init_kite();
   kite_state->kite_id = c.kite_id;
   float r = (float)rand() / RAND_MAX;

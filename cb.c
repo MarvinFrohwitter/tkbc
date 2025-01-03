@@ -143,6 +143,7 @@ void client(Cmd *cmd, bool link_dynamic) {
   cb_cmd_push(cmd, "-o", "build/client");
   cb_cmd_push(cmd, "src/network/tkbc-client.c");
   cb_cmd_push(cmd, "src/network/tkbc-network-common.c");
+  cb_cmd_push(cmd, "src/global/tkbc-popup.c");
   choreographer_files(cmd);
   linker(cmd, link_dynamic);
   if (!cb_run_sync(cmd))
