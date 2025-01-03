@@ -668,9 +668,9 @@ void tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
   if (duration <= 0) {
     if (adding) {
       if (angle <= 0) {
-        tkbc_center_rotation(kite, NULL, kite->angle - angle);
+        tkbc_center_rotation(kite, NULL, kite->old_angle - angle);
       } else {
-        tkbc_center_rotation(kite, NULL, kite->angle + angle);
+        tkbc_center_rotation(kite, NULL, kite->old_angle + angle);
       }
     } else {
       if (angle <= 0) {
@@ -687,8 +687,6 @@ void tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
   float ds = d / duration * dt;
 
   if (ds >= fabsf(kite->old_angle) + d) {
-    // TODO: This part is not needed if the computation of the float for the
-    // finished frame is correctly detected.
     if (adding) {
       if (angle <= 0) {
         tkbc_center_rotation(kite, NULL, kite->old_angle - angle);
@@ -738,9 +736,9 @@ void tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
   if (duration <= 0) {
     if (adding) {
       if (angle <= 0) {
-        tkbc_tip_rotation(kite, NULL, kite->angle - angle, tip);
+        tkbc_tip_rotation(kite, NULL, kite->old_angle - angle, tip);
       } else {
-        tkbc_tip_rotation(kite, NULL, kite->angle + angle, tip);
+        tkbc_tip_rotation(kite, NULL, kite->old_angle + angle, tip);
       }
     } else {
       if (angle <= 0) {
