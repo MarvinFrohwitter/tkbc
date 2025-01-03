@@ -943,9 +943,6 @@ bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id) {
 }
 
 void *tkbc_client_handler(void *client) {
-  // TODO: Check that clients can't have the same socket id as someone before.
-  // In this case the messages that are broadcasted to all clients will only
-  // be partially be distributed.
   Client c = *(Client *)client;
 
   tkbc_message_hello(c);
