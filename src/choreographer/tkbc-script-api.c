@@ -268,6 +268,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
           Kite *kite = env->kite_array->elements[k].kite;
           kite->old_angle = kite->angle;
           kite->old_center = kite->center;
+          break;
         }
       }
     }
