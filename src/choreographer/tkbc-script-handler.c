@@ -269,8 +269,15 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       tkbc_script_rotate(kite, action->angle, frame->duration, true);
+      if (action->angle == 0) {
+        frame->duration -= tkbc_get_frame_time();
+        if (frame->duration <= 0) {
+          frame->finished = true;
+        }
+        continue;
+      }
 
-      if (action->angle <= 0) {
+      if (action->angle < 0) {
         if (fabsf(kite->old_angle + action->angle) <= fabsf(kite->angle)) {
           frame->finished = true;
         }
@@ -296,10 +303,21 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         }
       }
 
-      tkbc_script_rotate(kite, action->angle, frame->duration, false);
+      float intermediate_angle =
+          check_angle_zero(kite, frame->kind, action, frame->duration);
+      float d =
+          tkbc_script_rotate(kite, intermediate_angle, frame->duration, false);
 
+      // TODO: the finish detection is not correct  for positive angle and 0.
+      if (action->angle == 0) {
+        bool result = fabsf(kite->angle) <= d * fmaxf(1.0f, fabsf(kite->angle));
+        if (result) {
+          frame->finished = true;
+        }
+        continue;
+      }
       // NOTE: Different from the ADDing version.
-      if (action->angle <= 0) {
+      if (action->angle < 0) {
         if (fabsf(action->angle) <= fabsf(kite->angle)) {
           frame->finished = true;
         }
@@ -327,8 +345,15 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
       tkbc_script_rotate_tip(kite, action->tip, action->angle, frame->duration,
                              true);
+      if (action->angle == 0) {
+        frame->duration -= tkbc_get_frame_time();
+        if (frame->duration <= 0) {
+          frame->finished = true;
+        }
+        continue;
+      }
 
-      if (action->angle <= 0) {
+      if (action->angle < 0) {
         if (fabsf(kite->old_angle + action->angle) <= fabsf(kite->angle)) {
           frame->finished = true;
         }
@@ -354,11 +379,21 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         }
       }
 
-      tkbc_script_rotate_tip(kite, action->tip, action->angle, frame->duration,
-                             false);
+      float intermediate_angle =
+          check_angle_zero(kite, frame->kind, action, frame->duration);
+      float d = tkbc_script_rotate_tip(kite, action->tip, intermediate_angle,
+                                       frame->duration, false);
 
+      // TODO: the finish detection is not correct  for positive angle and 0.
+      if (action->angle == 0) {
+        bool result = fabsf(kite->angle) <= d * fmaxf(1.0f, fabsf(kite->angle));
+        if (result) {
+          frame->finished = true;
+        }
+        continue;
+      }
       // NOTE: Different from the ADDing version.
-      if (action->angle <= 0) {
+      if (action->angle < 0) {
         if (fabsf(action->angle) <= fabsf(kite->angle)) {
           frame->finished = true;
         }
@@ -659,27 +694,28 @@ void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
  * angle.
  * @param adding The parameter changes if the angle value is going to be added
  * to the kite or if the kite angle should change to the given angle.
+ * @return The delta amount the kite angle changes.
  */
-void tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
+float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
 
   // NOTE: For the instant rotation the computation can be simpler by just
   // calling the direction angles, but for future line wrap calculation the
   // actual rotation direction is called instead.
   if (duration <= 0) {
     if (adding) {
-      if (angle <= 0) {
+      if (signbit(angle) != 0) {
         tkbc_center_rotation(kite, NULL, kite->old_angle - angle);
       } else {
         tkbc_center_rotation(kite, NULL, kite->old_angle + angle);
       }
     } else {
-      if (angle <= 0) {
+      if (signbit(angle) != 0) {
         tkbc_center_rotation(kite, NULL, -angle);
       } else {
         tkbc_center_rotation(kite, NULL, angle);
       }
     }
-    return;
+    return angle;
   }
 
   float dt = tkbc_get_frame_time();
@@ -688,29 +724,30 @@ void tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
 
   if (ds >= fabsf(kite->old_angle) + d) {
     if (adding) {
-      if (angle <= 0) {
+      if (signbit(angle) != 0) {
         tkbc_center_rotation(kite, NULL, kite->old_angle - angle);
       } else {
         tkbc_center_rotation(kite, NULL, kite->old_angle + angle);
       }
     } else {
-      if (angle <= 0) {
+      if (signbit(angle) != 0) {
         tkbc_center_rotation(kite, NULL, -angle);
       } else {
         tkbc_center_rotation(kite, NULL, angle);
       }
     }
 
-    return;
+    return ds;
   }
   // NOTE: For the non adding version the finish detection will stop the
   // calculation at the correct point so the angle computation is not needed
   // her.
-  if (angle <= 0) {
+  if (signbit(angle) != 0) {
     tkbc_center_rotation(kite, NULL, kite->angle - ds);
   } else {
     tkbc_center_rotation(kite, NULL, kite->angle + ds);
   }
+  return ds;
 }
 
 /**
@@ -726,28 +763,29 @@ void tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
  * angle.
  * @param adding The parameter changes if the angle value is going to be added
  * to the kite or if the kite angle should change to the given angle.
+ * @return The delta amount the kite angle changes.
  */
-void tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
-                            bool adding) {
+float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
+                             bool adding) {
 
   // NOTE: For the instant rotation the computation can be simpler by just
   // calling the direction angles, but for future line wrap calculation the
   // actual rotation direction is called instead.
   if (duration <= 0) {
     if (adding) {
-      if (angle <= 0) {
+      if (signbit(angle) != 0) {
         tkbc_tip_rotation(kite, NULL, kite->old_angle - angle, tip);
       } else {
         tkbc_tip_rotation(kite, NULL, kite->old_angle + angle, tip);
       }
     } else {
-      if (angle <= 0) {
+      if (signbit(angle) != 0) {
         tkbc_tip_rotation(kite, NULL, -angle, tip);
       } else {
         tkbc_tip_rotation(kite, NULL, angle, tip);
       }
     }
-    return;
+    return angle;
   }
 
   float dt = tkbc_get_frame_time();
@@ -757,20 +795,96 @@ void tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
   if (ds >= fabsf(kite->old_angle) + d) {
     // Provided the old position, because the kite center moves as a circle
     // around the old fixed position.
-    if (angle <= 0) {
+    if (signbit(angle) != 0) {
       tkbc_tip_rotation(kite, &kite->old_center, kite->old_angle - angle, tip);
     } else {
       tkbc_tip_rotation(kite, &kite->old_center, kite->old_angle + angle, tip);
     }
 
-    return;
+    return ds;
   }
   // NOTE: For the non adding version the finish detection will stop the
   // calculation at the correct point so the angle computation is not needed
   // her.
-  if (angle <= 0) {
+  if (signbit(angle) != 0) {
     tkbc_tip_rotation(kite, NULL, kite->angle - ds, tip);
   } else {
     tkbc_tip_rotation(kite, NULL, kite->angle + ds, tip);
+  }
+  return ds;
+}
+
+/**
+ * @brief The function computes the intermediate angle that represents the
+ * difference to zero from the current kite angle and respects the sign of the
+ * 0 angle. The intermediate angle is returned and the action stays unmodified.
+ *
+ * @param kite The kite the intermediate angel should be calculated for.
+ * @param kind The action kind.
+ * @param action The frame action that is a rotation variant.
+ * @param duration The current frame duration.
+ * @return The intermediate angle that represents the distance to 0.
+ */
+float check_angle_zero(Kite *kite, Action_Kind kind, void *action,
+                       float duration) {
+  switch (kind) {
+  case KITE_ROTATION:
+  case KITE_ROTATION_ADD:
+    if (((Rotation_Action *)action)->angle == 0 && duration > 0) {
+      if (signbit(((Rotation_Action *)action)->angle) == 0) {
+        // Positive 0
+        if (kite->old_angle < 0) {
+          // Negative angle 0 = -90 +90
+          return fabsf(fmodf(kite->old_angle, 360));
+        } else {
+          // Positive angle 0 = 90 +270 ->  270 = + 360 - (90)
+          return 360 - fmodf(kite->old_angle, 360);
+        }
+      } else {
+        // Negative 0
+        if (kite->old_angle < 0) {
+          // Negative angle 0 = -90 -270 -> -270 = -360 + 90 = -(360 - (90))
+          return -(360 - fmodf(kite->old_angle, 360));
+
+        } else {
+          // Positive angle 0 = 90 -90
+          return -fabsf(fmodf(kite->old_angle, 360));
+        }
+      }
+    } else {
+      return ((Rotation_Action *)action)->angle;
+    }
+    break;
+  case KITE_TIP_ROTATION:
+  case KITE_TIP_ROTATION_ADD:
+    if (((Tip_Rotation_Action *)action)->angle == 0 && duration > 0) {
+      if (signbit(((Tip_Rotation_Action *)action)->angle) == 0) {
+        // Positive 0
+        if (kite->old_angle < 0) {
+          // Negative angle 0 = -90 +90
+          return fabsf(fmodf(kite->old_angle, 360));
+        } else {
+          // Positive angle 0 = 90 +270 ->  270 = + 360 - (90)
+          return 360 - fmodf(kite->old_angle, 360);
+        }
+      } else {
+        // Negative 0
+        if (kite->old_angle < 0) {
+          // Negative angle 0 = -90 -270 -> -270 = -360 + 90 = -(360 - (90))
+          return -(360 - fmodf(kite->old_angle, 360));
+
+        } else {
+          // Positive angle 0 = 90 -90
+          return -fabsf(fmodf(kite->old_angle, 360));
+        }
+      }
+    } else {
+      return ((Tip_Rotation_Action *)action)->angle;
+    }
+
+    break;
+
+  default:
+    assert(0 && "UNREACHABLE check_angle_zero()");
   }
 }
