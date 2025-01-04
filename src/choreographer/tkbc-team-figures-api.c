@@ -99,7 +99,7 @@ bool tkbc_script_team_mountain(Env *env, Kite_Ids kite_index_array,
                                float move_duration, float rotation_duration) {
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
-  Kite *kite = env->kite_array->elements[0].kite;
+  Kite *kite = env->vanilla_kite;
 
   float full_kite_width = kite->width + kite->spread;
   float full_kite_height = kite->height;
@@ -184,7 +184,7 @@ bool tkbc_script_team_valley(Env *env, Kite_Ids kite_index_array,
                              float rotation_duration) {
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
-  Kite *kite = env->kite_array->elements[0].kite;
+  Kite *kite = env->vanilla_kite;
 
   float full_kite_width = kite->width + kite->spread;
   float full_kite_height = kite->height;
@@ -271,7 +271,7 @@ bool tkbc_script_team_arc(Env *env, Kite_Ids kite_index_array, Vector2 position,
   float start_angle = angle;
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
-  Kite *kite = env->kite_array->elements[0].kite;
+  Kite *kite = env->vanilla_kite;
 
   float full_kite_width = kite->width + kite->spread;
   float full_kite_height = kite->height;
@@ -369,7 +369,7 @@ bool tkbc_script_team_mouth(Env *env, Kite_Ids kite_index_array,
   float start_angle = angle;
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
-  Kite *kite = env->kite_array->elements[0].kite;
+  Kite *kite = env->vanilla_kite;
 
   float full_kite_width = kite->width + kite->spread;
   float full_kite_height = kite->height;
@@ -487,7 +487,7 @@ bool tkbc_script_team_grid(Env *env, Kite_Ids kite_index_array,
                            float move_duration) {
 
   assert(env->kite_array->count > 0 && "No kites in the kite array!");
-  Kite *kite = env->kite_array->elements[0].kite;
+  Kite *kite = env->vanilla_kite;
 
   float full_kite_width = kite->width + kite->spread;
   float full_kite_height = kite->height;

@@ -28,7 +28,7 @@ typedef struct {
   Vector2 position; // The position that is located at the center of the top
                     // leading edge.
   float angle;      // The rotation is in degrees around the center position.
-} Kite_Position;         // The combined position and rotation angle.
+} Kite_Position;    // The combined position and rotation angle.
 
 typedef struct {
   float old_angle; // The rotation angle before the frame interpolation has
@@ -218,6 +218,7 @@ typedef struct {
                    // blocks.
 
 typedef struct {
+  Kite *vanilla_kite;      // A representation of all the default kite values.
   Kite_States *kite_array; // The kites that are generated for the current
                            // session of the application.
   size_t kite_id_counter;  // The identifier counter for the kite.

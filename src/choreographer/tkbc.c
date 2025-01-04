@@ -24,6 +24,11 @@ Env *tkbc_init_env(void) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
+  env->vanilla_kite = calloc(1, sizeof(*env->vanilla_kite));
+  if (env->vanilla_kite == NULL) {
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+    return NULL;
+  }
   env->kite_array = calloc(1, sizeof(*env->kite_array));
   if (env->kite_array == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
@@ -74,6 +79,7 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
+  tkbc_set_kite_defaults(env->vanilla_kite, true);
   env->kite_id_counter = 0;
   env->script_setup = true;
   env->window_width = tkbc_get_screen_width();
@@ -154,6 +160,7 @@ void tkbc_destroy_env(Env *env) {
   if (env->script_file_name != NULL) {
     free(env->script_file_name);
   }
+  free(env->vanilla_kite);
   tkbc_destroy_kite_array(env->kite_array);
   free(env->kite_array->elements);
   free(env->kite_array);
