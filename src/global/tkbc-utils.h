@@ -137,6 +137,7 @@ int tkbc_get_screen_width();
 double tkbc_get_time();
 float tkbc_get_frame_time();
 float tkbc_clamp(float z, float a, float b);
+bool tkbc_float_equals_epsilon(float x, float y, float epsilon);
 
 #endif // TKBC_UTILS_H_
 
@@ -148,6 +149,7 @@ float tkbc_clamp(float z, float a, float b);
 
 #include "raylib.h"
 #include <errno.h>
+#include <math.h>
 
 /**
  * @brief The function provides a simple logging capability that supports a
@@ -466,4 +468,20 @@ float tkbc_clamp(float z, float a, float b) {
   return s < b ? s : b;
 }
 
+/**
+ * @brief The function checks if tow floats are equal to another with a custom
+ * epsilon.
+ *
+ * @param x The first value to compare.
+ * @param y The second value to compare.
+ * @param epsilon The value that represents the maximum difference  between x
+ * and y.
+ * @return True if x and y are the same in respect to epsilon, otherwise false.
+ */
+bool tkbc_float_equals_epsilon(float x, float y, float epsilon) {
+  int result =
+      (fabsf(x - y)) <= (epsilon * fmaxf(1.0f, fmaxf(fabsf(x), fabsf(y))));
+
+  return result;
+}
 #endif // TKBC_UTILS_IMPLEMENTATION

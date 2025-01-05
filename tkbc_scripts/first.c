@@ -92,9 +92,9 @@ void tkbc_script_input(Env *env) {
   Vector2 offset = {0};
   Vector2 position = {.x = env->window_width / 2.0,
                       .y = env->window_height / 2.0};
-  float move_duration = 3;
+  float move_duration = 1;
   float wait_time = 0.5;
-  float rotation_duration = 3;
+  float rotation_duration = 1;
   // float ball_radius = (kite->width + kite->spread);
 
   Kite_Ids ki = tkbc_kite_array_generate(env, 2);
@@ -184,10 +184,14 @@ void tkbc_script_input(Env *env) {
 
   tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
+  // TODO: BROKEN 0 duration.
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION, ki,
-                               &(CLITERAL(Rotation_Action){.angle = 90}), 1));
-  tkbc_register_frames(env, tkbc_script_wait(1));
+                               &(CLITERAL(Rotation_Action){.angle = 0}), 0));
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION, ki,
+                               &(CLITERAL(Rotation_Action){.angle = -90}), 1));
+  tkbc_register_frames(env, tkbc_script_wait(4));
 
   // TODO: The sign of the -0 is optimized away by the compiler in external kite
   // scripts is works and the rotation direction is respected in the
@@ -196,12 +200,6 @@ void tkbc_script_input(Env *env) {
       env, tkbc_frame_generate(KITE_ROTATION, ki,
                                &(CLITERAL(Rotation_Action){.angle = -0}), 2));
   tkbc_register_frames(env, tkbc_script_wait(1));
-
-  // TODO: In the second split box just one side is rotating.
-  // The first bad commit was 7956a44
-  // = fix: Removed remaining_angle from the rotation
-  // = finish detection, and more important from the Kite_Position struct that
-  // = was a hack anyway.
   tkbc_script_team_split_box_up(env, ki, ODD, 300, move_duration,
                                 rotation_duration);
   tkbc_script_team_split_box_up(env, ki, EVEN, 300, move_duration,
