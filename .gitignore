@@ -4,4 +4,4 @@ cb
 
 build/
 tags
-
+*.kite
