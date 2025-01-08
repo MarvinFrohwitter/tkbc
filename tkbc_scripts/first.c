@@ -5,7 +5,7 @@
 void rotation_checkup(Env *env, Kite_Ids ki) {
 
   float wait_time = 0.5;
-  float rotation_duration = 1;
+  float rotation_duration = 3;
 
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
@@ -181,24 +181,38 @@ void tkbc_script_input(Env *env) {
                                                     .position.y = -300,
                                                 }),
                                                 5));
-
-  tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
-  // TODO: BROKEN 0 duration.
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, ki,
-                               &(CLITERAL(Rotation_Action){.angle = 0}), 0));
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION, ki,
-                               &(CLITERAL(Rotation_Action){.angle = -90}), 1));
-  tkbc_register_frames(env, tkbc_script_wait(4));
-
-  // TODO: The sign of the -0 is optimized away by the compiler in external kite
-  // scripts is works and the rotation direction is respected in the
-  // implementation. This has to be investigated.
+  // TODO: The sign of the -0 is optimized away by the compiler even with -O0,
+  // in external kite scripts is works and the rotation direction is respected
+  // in the implementation. This has to be investigated.
   tkbc_register_frames(
       env, tkbc_frame_generate(KITE_ROTATION, ki,
                                &(CLITERAL(Rotation_Action){.angle = -0}), 2));
+
+  tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
+  tkbc_register_frames(env, tkbc_script_wait(1));
+  tkbc_register_frames(
+      env, tkbc_frame_generate(KITE_ROTATION, ki,
+                               &(CLITERAL(Rotation_Action){.angle = -0}), 2));
+  tkbc_register_frames(env, tkbc_script_wait(1));
+  tkbc_register_frames(
+      env,
+      tkbc_frame_generate(KITE_ROTATION_ADD, ki,
+                          &(CLITERAL(Rotation_Add_Action){.angle = -90}), 0));
+  tkbc_register_frames(env, tkbc_script_wait(1));
+  tkbc_register_frames(
+      env,
+      tkbc_frame_generate(KITE_ROTATION_ADD, ki,
+                          &(CLITERAL(Rotation_Add_Action){.angle = -180}), 0));
+  tkbc_register_frames(env, tkbc_script_wait(1));
+
+  tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, ki,
+                                                &(CLITERAL(Move_Add_Action){
+                                                    .position.x = 0,
+                                                    .position.y = -300,
+                                                }),
+                                                5));
+  tkbc_register_frames(env, tkbc_script_wait(1));
+
   tkbc_register_frames(env, tkbc_script_wait(1));
   tkbc_script_team_split_box_up(env, ki, ODD, 300, move_duration,
                                 rotation_duration);
