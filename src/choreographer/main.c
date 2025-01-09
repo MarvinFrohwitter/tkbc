@@ -56,7 +56,7 @@ int main(void) {
     if (env->script_setup) {
       // For detection if the begin and end is called correctly.
       env->script_setup = false;
-      tkbc_script_input(env);
+      tkbc__script_input(env);
       for (size_t i = 0; i < env->block_frames->count; ++i) {
         tkbc_print_script(stderr, &env->block_frames->elements[i]);
         char buf[32];

@@ -11,7 +11,7 @@
  *
  * @param env The global state of the application.
  */
-void tkbc_script_begin(Env *env) {
+void tkbc__script_begin(Env *env) {
   env->script_interrupt = true;
   env->script_setup = true;
   env->script_counter++;
@@ -23,7 +23,7 @@ void tkbc_script_begin(Env *env) {
  *
  * @param env The global state of the application.
  */
-void tkbc_script_end(Env *env) {
+void tkbc__script_end(Env *env) {
   tkbc_register_frames(env, tkbc_script_wait(0));
   env->script_interrupt = false;
 

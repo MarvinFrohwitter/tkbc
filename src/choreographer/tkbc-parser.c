@@ -35,10 +35,10 @@ void tkbc_script_parser(Env *env) {
     case IDENTIFIER: {
       if (strncmp("BEGIN", t.content, t.size) == 0) {
         script_begin = true;
-        tkbc_script_begin(env);
+        tkbc__script_begin(env);
         break;
       } else if (strncmp("END", t.content, t.size) == 0) {
-        tkbc_script_end(env);
+        tkbc__script_end(env);
         script_begin = false;
         break;
       } else if (strncmp("KITES", t.content, t.size) == 0) {
@@ -149,7 +149,7 @@ void tkbc_script_parser(Env *env) {
 
   if (script_begin) {
     tkbc_fprintf(stderr, "ERROR", "Script END is not defined.");
-    tkbc_script_end(env);
+    tkbc__script_end(env);
   }
 
   lexer_del(lexer);

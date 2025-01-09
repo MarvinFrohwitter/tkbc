@@ -22,7 +22,8 @@ void include(Cmd *cmd) { INCLUDE(cmd, "-I", RAYLIBPATH "/include/"); }
 
 void cflags(Cmd *cmd) {
   CFLAGS(cmd, "-x", "c");
-  CFLAGS(cmd, "-fPIC", "-O3", "-pedantic", "-Wall", "-Wextra", "-ggdb");
+  CFLAGS(cmd, "-fPIC", "-O3", "-pedantic", "-Wall", "-Wextra",
+         "-Wno-missing-braces", "-ggdb");
 }
 
 void linker(Cmd *cmd, bool link_dynamic) {
