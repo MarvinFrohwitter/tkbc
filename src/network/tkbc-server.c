@@ -4,7 +4,6 @@
 #include "tkbc-server-client-handler.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
 #include <netinet/in.h>
@@ -32,14 +31,13 @@ pthread_t execution_thread;
 #include "../global/tkbc-utils.h"
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-// static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 void tkbc_server_usage(const char *program_name) {
   tkbc_fprintf(stderr, "INFO", "Usage:\n");
   tkbc_fprintf(stderr, "INFO", "      %s <PORT> \n", program_name);
 }
 
-void tkbc_server_commandline_check(int argc, const char *program_name) {
+bool tkbc_server_commandline_check(int argc, const char *program_name) {
   if (argc > 1) {
     tkbc_fprintf(stderr, "ERROR", "To may arguments.\n");
     tkbc_server_usage(program_name);
@@ -47,9 +45,10 @@ void tkbc_server_commandline_check(int argc, const char *program_name) {
   }
   if (argc == 0) {
     tkbc_fprintf(stderr, "ERROR", "No arguments were provided.\n");
-    tkbc_server_usage(program_name);
-    exit(1);
+    tkbc_fprintf(stderr, "ERROR", "The default port 8080 is used.\n");
+    return false;
   }
+  return true;
 }
 
 int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
@@ -102,13 +101,14 @@ int main(int argc, char *argv[]) {
   signal(SIGTERM, signalhandler);
   tkbc_fprintf(stderr, "INFO", "%s\n", "The server has started.");
 
-  // char *program_name = tkbc_shift_args(&argc, &argv);
-  // tkbc_server_commandline_check(argc, program_name);
+  char *program_name = tkbc_shift_args(&argc, &argv);
+  uint16_t port = 8080;
+  if (tkbc_server_commandline_check(argc, program_name)) {
+    char *port_check = tkbc_shift_args(&argc, &argv);
+    port = tkbc_port_parsing(port_check);
+  }
 
-  // char *port_check = tkbc_shift_args(&argc, &argv);
-  // uint16_t port = tkbc_port_parsing(port_check);
-
-  server_socket = tkbc_server_socket_creation(INADDR_ANY, 8080);
+  server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
   tkbc_fprintf(stderr, "INFO", "%s: %d\n", "Server socket", server_socket);
 
   srand(time(NULL));

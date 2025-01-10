@@ -43,7 +43,7 @@ void tkbc_client_usage(const char *program_name) {
   tkbc_fprintf(stderr, "INFO", "      %s <HOST> <PORT> \n", program_name);
 }
 
-void tkbc_client_commandline_check(int argc, const char *program_name) {
+bool tkbc_client_commandline_check(int argc, const char *program_name) {
   if (argc > 2) {
     tkbc_fprintf(stderr, "ERROR", "To may arguments.\n");
     tkbc_client_usage(program_name);
@@ -51,9 +51,11 @@ void tkbc_client_commandline_check(int argc, const char *program_name) {
   }
   if (argc == 0) {
     tkbc_fprintf(stderr, "ERROR", "No arguments were provided.\n");
-    tkbc_client_usage(program_name);
-    exit(1);
+    tkbc_fprintf(stderr, "ERROR",
+                 "The default localhost and port 8080 is used.\n");
+    return false;
   }
+  return true;
 }
 
 const char *tkbc_host_parsing(const char *host_check) {
@@ -709,16 +711,18 @@ void tkbc_client_input_handler_script() {
 int main(int argc, char *argv[]) {
   client.kite_id = -1;
 
-  // char *program_name = tkbc_shift_args(&argc, &argv);
-  // tkbc_client_commandline_check(argc, program_name);
+  char *program_name = tkbc_shift_args(&argc, &argv);
+  uint16_t port = 8080;
+  const char *host = "127.0.0.1";
+  if (tkbc_client_commandline_check(argc, program_name)) {
+    const char *host_check = tkbc_shift_args(&argc, &argv);
+    host = tkbc_host_parsing(host_check);
 
-  // const char *host_check = tkbc_shift_args(&argc, &argv);
-  // const char *host = tkbc_host_parsing(host_check);
+    char *port_check = tkbc_shift_args(&argc, &argv);
+    port = tkbc_port_parsing(port_check);
+  }
 
-  // char *port_check = tkbc_shift_args(&argc, &argv);
-  // uint16_t port = tkbc_port_parsing(port_check);
-
-  client.socket_id = tkbc_client_socket_creation("127.0.0.1", 8080);
+  client.socket_id = tkbc_client_socket_creation(host, port);
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
   SetTraceLogLevel(LOG_NONE);
