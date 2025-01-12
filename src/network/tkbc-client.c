@@ -38,11 +38,24 @@ Client client = {0};
 Message receive_queue = {0};
 Message send_message_queue = {0};
 
+/**
+ * @brief The function prints the way the program should be called.
+ *
+ * @param program_name The name of the program that is currently executing.
+ */
 void tkbc_client_usage(const char *program_name) {
   tkbc_fprintf(stderr, "INFO", "Usage:\n");
   tkbc_fprintf(stderr, "INFO", "      %s <HOST> <PORT> \n", program_name);
 }
 
+/**
+ * @brief The function checks if host and port is given to that program
+ * execution.
+ *
+ * @param argc The commandline argument count.
+ * @param program_name The name of the program that is currently executing.
+ * @return True if there are enough arguments, otherwise false.
+ */
 bool tkbc_client_commandline_check(int argc, const char *program_name) {
   if (argc > 2) {
     tkbc_fprintf(stderr, "ERROR", "To may arguments.\n");
@@ -58,6 +71,13 @@ bool tkbc_client_commandline_check(int argc, const char *program_name) {
   return true;
 }
 
+/**
+ * @brief The function checks if the given sting is a valid host address.
+ *
+ * @param host_check The possible sting that can contain the host.
+ * @return The given host if the parsing was flawless, otherwise the program
+ * crashes.
+ */
 const char *tkbc_host_parsing(const char *host_check) {
 
   const char *host = "127.0.0.1";
@@ -78,6 +98,15 @@ const char *tkbc_host_parsing(const char *host_check) {
   return host;
 }
 
+/**
+ * @brief This function can be used to create a new client socket and connect it
+ * to the server.
+ *
+ * @param addr The address of the server the client should connect to.
+ * @param port The port where the server is available.
+ * @return The client socket if the creation and connection has succeeded,
+ * otherwise the program crashes.
+ */
 int tkbc_client_socket_creation(const char *addr, uint16_t port) {
   int client_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (client_socket == -1) {
@@ -113,6 +142,16 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
   return client_socket;
 }
 
+/**
+ * @brief The function registers a new kite out of the given values and sets
+ * default for every other part.
+ *
+ * @param kite_id The new kite id the kite gets.
+ * @param x The new positional x value of the center of the kite.
+ * @param y The new positional y value of the center of the kite.
+ * @param angle The new rotation angle of the kite.
+ * @param color The new body color of the kite.
+ */
 void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
                                     float angle, Color color) {
   Kite_State *kite_state = tkbc_init_kite();
@@ -125,6 +164,10 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
   tkbc_dap(env->kite_array, *kite_state);
 }
 
+/**
+ * @brief The function prepares the sending of the default scripts that are
+ * compiled into the client and pushes them into the send_message_queue.
+ */
 void sending_script_handler() {
   if (env->script_setup) {
     // For detection if the begin and end is called correctly.
@@ -140,9 +183,17 @@ void sending_script_handler() {
   }
 }
 
+/**
+ * @brief The function sends all the messages in the send_message_queue to the
+ * server. The send_message_queue is reset in every case after the call.
+ *
+ * @return True if all the messages in the message buffer are send to the server
+ * and the message buffer is cleared, otherwise false if an error has occurred.
+ */
 bool send_message_handler() {
   bool ok = true;
   if (send_message_queue.count) {
+    // NOTE: this assumes the whole message buffer could be send in one go.
     ssize_t n = send(client.socket_id, send_message_queue.elements,
                      send_message_queue.count, MSG_NOSIGNAL);
     if (n == 0) {
@@ -162,6 +213,13 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function parses the incoming messages from the server and handles
+ * the resulting behavior.
+ *
+ * @return True if the parsing was successful an all resulting actions could be
+ * handled, otherwise false and a parsing error has occurred.
+ */
 bool received_message_handler() {
   Message message = {0};
   Token token;
@@ -392,8 +450,14 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function handles the incoming messages from the server.
+ *
+ * @return True if the reading and parsing of the received messages from the
+ * server was successful, otherwise false.
+ */
 bool message_queue_handler() {
-  if (receive_queue.capacity >= 16 * RECEIVE_QUEUE_SIZE) {
+  if (receive_queue.capacity >= 32 * RECEIVE_QUEUE_SIZE) {
     receive_queue.elements =
         realloc(receive_queue.elements,
                 sizeof(*receive_queue.elements) * RECEIVE_QUEUE_SIZE);
@@ -449,6 +513,11 @@ bool message_queue_handler() {
   return true;
 }
 
+/**
+ * @brief The function constructs a message KITEVALUE out of the kite that is
+ * associated with this current client. The result is written to the
+ * send_message_queue.
+ */
 void tkbc_client_input_handler_kite() {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].kite_id == (size_t)client.kite_id) {
@@ -479,6 +548,16 @@ void tkbc_client_input_handler_kite() {
   }
 }
 
+/**
+ * @brief The function appends the script found from the given script_id in the
+ * block_frames to the given message structure.
+ *
+ * @param script_id The script number the should be appended.
+ * @param message The message structure the should hold the data after the
+ * computation.
+ * @return True if the script was found and is correctly appended, otherwise
+ * false.
+ */
 bool tkbc_message_append_script(size_t script_id, Message *message) {
   char buf[64] = {0};
   for (size_t i = 0; i < env->block_frames->count; ++i) {
@@ -582,6 +661,13 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
   return false;
 }
 
+/**
+ * @brief The function can be used to construct the message script out of the
+ * currently registered block frames. The result is directly written to the
+ * send_message_queue ready to be send to the server.
+ *
+ * @return True if the message script could be constructed, otherwise false.
+ */
 bool tkbc_message_script() {
   Message message = {0};
   bool ok = true;
@@ -627,6 +713,11 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function handles the files, that can be registered via drag and
+ * drop, those can contain music and the scripts files that have a '.kite'
+ * extension other files are ignored.
+ */
 void tkbc_client_file_handler() {
   tkbc_file_handler(env);
   if (env->block_frames->count > 0) {
@@ -634,6 +725,10 @@ void tkbc_client_file_handler() {
   }
 }
 
+/**
+ * @brief The function warps the user key inputs for script control into
+ * messages that are send to the server.
+ */
 void tkbc_client_input_handler_script() {
   if (env->script_counter <= 0) {
     return;
@@ -708,6 +803,17 @@ void tkbc_client_input_handler_script() {
   }
 }
 
+/**
+ * @brief The function is the entry point and sets up the client socket and the
+ * connection to the server. The main event loop is created and managed. In
+ * there message communication to server is handled as well as all the input
+ * from the user.
+ *
+ * @param argc The commandline argument count.
+ * @param argv The arguments form the commandline.
+ * @return The exit code of program that is always 0 or the execution is kill
+ * before with code 1.
+ */
 int main(int argc, char *argv[]) {
   client.kite_id = -1;
 
