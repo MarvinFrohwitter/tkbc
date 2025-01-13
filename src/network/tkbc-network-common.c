@@ -13,6 +13,14 @@
 
 extern Env *env;
 
+/**
+ * @brief The function checks if the given port is valid and if so returns the
+ * port as a number. If the given string does not contain a valid port the
+ * program will crash.
+ *
+ * @param port_check The character string that is potently a port.
+ * @return The parsed port as a uint16_t.
+ */
 uint16_t tkbc_port_parsing(const char *port_check) {
   for (size_t i = 0; i < strlen(port_check); ++i) {
     if (!isdigit(port_check[i])) {
@@ -31,6 +39,13 @@ uint16_t tkbc_port_parsing(const char *port_check) {
   return (uint16_t)port;
 }
 
+/**
+ * @brief The function constructs a message part that contains the information
+ * from the given kite_state.
+ *
+ * @param kite_state The kite state where the information is extracted from.
+ * @param message The Message struct that should contain the serialized data.
+ */
 void tkbc_message_append_kite(Kite_State *kite_state, Message *message) {
   char buf[64];
   memset(buf, 0, sizeof(buf));
@@ -51,6 +66,15 @@ void tkbc_message_append_kite(Kite_State *kite_state, Message *message) {
   tkbc_dap(message, ':');
 }
 
+/**
+ * @brief The function constructs the message part of a kite
+ *
+ * @param client_id The id of the kite which data should be appended to the
+ * message.
+ * @param message The Message struct that should contain the serialized data.
+ * @return True if the given kite id was found and the data is appended,
+ * otherwise false.
+ */
 bool tkbc_message_append_clientkite(size_t client_id, Message *message) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (client_id == env->kite_array->elements[i].kite_id) {
@@ -62,6 +86,14 @@ bool tkbc_message_append_clientkite(size_t client_id, Message *message) {
   return false;
 }
 
+/**
+ * @brief The function extracts the values that should belong to a kite out of
+ * the lexer data.
+ *
+ * @param lexer The current state and data of the sting to parse.
+ * @return True if the kite values can be parsed out of the data the lexer
+ * contains.
+ */
 bool tkbc_parse_single_kite_value(Lexer *lexer) {
 
   size_t kite_id;
@@ -84,6 +116,19 @@ bool tkbc_parse_single_kite_value(Lexer *lexer) {
   return true;
 }
 
+/**
+ * @brief The function parses all values out of a single MESSAGE_KITEVALUE that
+ * should be located in the lexer data.
+ *
+ * @param lexer The current state and data of the sting to parse.
+ * @param kite_id The id the corresponding parsed value is assigned to.
+ * @param x The x position the corresponding parsed value is assigned to.
+ * @param y The y position the corresponding parsed value is assigned to.
+ * @param angle The angle the corresponding parsed value is assigned to.
+ * @param color The color the corresponding parsed value is assigned to.
+ * @return True if all values have been parsed correctly and are assigned,
+ * otherwise false.
+ */
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
                                    float *y, float *angle, Color *color) {
   Content buffer = {0};

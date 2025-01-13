@@ -32,11 +32,23 @@ pthread_t execution_thread;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+/**
+ * @brief The function prints the way the program should be called.
+ *
+ * @param program_name The name of the program that is currently executing.
+ */
 void tkbc_server_usage(const char *program_name) {
   tkbc_fprintf(stderr, "INFO", "Usage:\n");
   tkbc_fprintf(stderr, "INFO", "      %s <PORT> \n", program_name);
 }
 
+/**
+ * @brief The function checks if a port is given to that program.
+ *
+ * @param argc The commandline argument count.
+ * @param program_name The name of the program that is currently executing.
+ * @return True if there are enough arguments, otherwise false.
+ */
 bool tkbc_server_commandline_check(int argc, const char *program_name) {
   if (argc > 1) {
     tkbc_fprintf(stderr, "ERROR", "To may arguments.\n");
@@ -51,6 +63,14 @@ bool tkbc_server_commandline_check(int argc, const char *program_name) {
   return true;
 }
 
+/**
+ * @brief The function creates a new server socket and sets up the bind and
+ * listing.
+ *
+ * @param addr The address space that the socket should be bound to.
+ * @param port The port where the server is listing for connections.
+ * @return The newly creates socket id.
+ */
 int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   int socket_id = socket(AF_INET, SOCK_STREAM, 0);
   if (socket_id == -1) {
@@ -86,6 +106,11 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   return socket_id;
 }
 
+/**
+ * @brief The function allocates a pointer of type Client on the heap.
+ *
+ * @return The Clients pointer if successful, otherwise false.
+ */
 Clients *tkbc_init_clients(void) {
   Clients *clients = calloc(1, sizeof(*clients));
   if (clients == NULL) {
@@ -95,6 +120,15 @@ Clients *tkbc_init_clients(void) {
   return clients;
 }
 
+/**
+ * @brief The function is responsible for setting up the server socket and
+ * handling all incoming client connection.
+ *
+ * @param argc The commandline argument count.
+ * @param argv The arguments form the commandline.
+ * @return The function never returns. The program is terminated by an exit
+ * call, in any situation it has an unacceptable error.
+ */
 int main(int argc, char *argv[]) {
   signal(SIGABRT, signalhandler);
   signal(SIGINT, signalhandler);
@@ -128,6 +162,8 @@ int main(int argc, char *argv[]) {
   for (;;) {
     if (clients_visited > SERVER_CONNETCTIONS) {
       signalhandler(SIGINT);
+      // This part is never reached, just for documentation purpose that
+      // the state is in a failure situation.
       return 1;
     }
     struct sockaddr_in client_address;
@@ -158,10 +194,16 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // This part is never reached, just for documentation purpose that
+  // the state is in a success situation.
   signalhandler(SIGINT);
   return 0;
 }
 
+/**
+ * @brief The function that represents the independent base execution. It
+ * updates the state of the current script execution.
+ */
 void *tkbc_script_execution_handler() {
   for (;;) {
     bool check = false;
@@ -189,6 +231,12 @@ void *tkbc_script_execution_handler() {
   pthread_exit(NULL);
 }
 
+/**
+ * @brief The function represents the closing handler of the server. It can be
+ * used as a signal handler or be called if the server should be shutdown-
+ *
+ * @param signal The signal that might has occurred.
+ */
 void signalhandler(int signal) {
   (void)signal;
   tkbc_fprintf(stderr, "INFO", "Closing...\n");
