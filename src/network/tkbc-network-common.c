@@ -217,8 +217,9 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
   if (token.kind != NUMBER) {
     check_return(false);
   }
-  size_t color_number = atoi(lexer_token_to_cstr(lexer, &token));
-  *color = *(Color *)&color_number;
+  uint32_t color_number = atoi(lexer_token_to_cstr(lexer, &token));
+  Color *c = (Color *)&color_number;
+  *color = *c;
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     check_return(false);

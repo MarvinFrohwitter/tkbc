@@ -26,6 +26,7 @@ extern pthread_t threads[SERVER_CONNETCTIONS];
 extern pthread_mutex_t mutex;
 
 void tkbc_server_shutdown_client(Client client, bool force) {
+  pthread_t thread_id = client.thread_id;
   shutdown(client.socket_id, SHUT_WR);
   for (char b[1024];
        recv(client.socket_id, b, sizeof(b), MSG_NOSIGNAL | MSG_DONTWAIT) > 0;)
@@ -77,7 +78,6 @@ void tkbc_server_shutdown_client(Client client, bool force) {
     free(message.elements);
   }
 
-  pthread_t thread_id = client.thread_id;
   if (!tkbc_server_remove_client_from_list(client)) {
     tkbc_fprintf(stderr, "INFO",
                  "Client:" CLIENT_FMT
@@ -143,17 +143,18 @@ bool tkbc_message_hello(Client client) {
   Message message = {0};
   bool ok = true;
   char buf[64] = {0};
+  char *quote = "\"";
 
   snprintf(buf, sizeof(buf), "%d", MESSAGE_HELLO);
   tkbc_dapc(&message, buf, strlen(buf));
   tkbc_dap(&message, ':');
 
-  tkbc_dapc(&message, "\"", 1);
+  tkbc_dapc(&message, quote, 1);
   const char *m = "Hello client from server!";
   tkbc_dapc(&message, m, strlen(m));
 
   tkbc_dapc(&message, PROTOCOL_VERSION, strlen(PROTOCOL_VERSION));
-  tkbc_dapc(&message, "\"", 1);
+  tkbc_dapc(&message, quote, 1);
   tkbc_dap(&message, ':');
   tkbc_dapc(&message, "\r\n", 2);
 

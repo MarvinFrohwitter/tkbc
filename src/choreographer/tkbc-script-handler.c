@@ -193,7 +193,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
   } break;
   case KITE_MOVE_ADD: {
-    Kite *kite;
+    Kite *kite = NULL;
     Move_Add_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
     assert(env_frame->kite_id_array->count > 0);
@@ -227,7 +227,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
   } break;
   case KITE_MOVE: {
-    Kite *kite;
+    Kite *kite = NULL;
     Move_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
     assert(env_frame->kite_id_array->count > 0);
@@ -254,7 +254,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
   } break;
   case KITE_ROTATION_ADD: {
-    Kite *kite;
+    Kite *kite = NULL;
     Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
     assert(env_frame->kite_id_array->count > 0);
@@ -266,6 +266,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
           kite = env->kite_array->elements[k].kite;
           break;
         }
+      }
+      if (kite == NULL) {
+        assert(0 && "Unexpected data lose.");
       }
 
       float d = tkbc_script_rotate(kite, action->angle, frame->duration, true);
@@ -287,7 +290,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
   case KITE_ROTATION: {
-    Kite *kite;
+    Kite *kite = NULL;
     Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
     assert(env_frame->kite_id_array->count > 0);
@@ -299,6 +302,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
           kite = env->kite_array->elements[k].kite;
           break;
         }
+      }
+      if (kite == NULL) {
+        assert(0 && "Unexpected data lose.");
       }
 
       float intermediate_angle =
@@ -329,7 +335,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
   case KITE_TIP_ROTATION_ADD: {
-    Kite *kite;
+    Kite *kite = NULL;
     Tip_Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
     assert(env_frame->kite_id_array->count > 0);
@@ -341,6 +347,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
           kite = env->kite_array->elements[k].kite;
           break;
         }
+      }
+      if (kite == NULL) {
+        assert(0 && "Unexpected data lose.");
       }
 
       float d = tkbc_script_rotate_tip(kite, action->tip, action->angle,
@@ -363,7 +372,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
   case KITE_TIP_ROTATION: {
-    Kite *kite;
+    Kite *kite = NULL;
     Tip_Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
     assert(env_frame->kite_id_array->count > 0);
@@ -375,6 +384,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
           kite = env->kite_array->elements[k].kite;
           break;
         }
+      }
+      if (kite == NULL) {
+        assert(0 && "Unexpected data lose.");
       }
 
       float intermediate_angle =
@@ -577,7 +589,7 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
   // TODO: Think about kites that are move in the previous frame but not in the
   // current one. The kites can end up in wired locations, because the state is
   // not exactly as if the script has executed from the beginning.
-  Kite *kite;
+  Kite *kite = NULL;
   for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
     for (size_t k = 0; k < env->kite_array->count; ++k) {
       if (env->frames->kite_frame_positions->elements[i].kite_id ==
@@ -585,6 +597,9 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
         kite = env->kite_array->elements[k].kite;
         break;
       }
+    }
+    if (kite == NULL) {
+      assert(0 && "Unexpected data lose.");
     }
 
     Vector2 position = env->frames->kite_frame_positions->elements[i].position;
