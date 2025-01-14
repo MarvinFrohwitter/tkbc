@@ -35,6 +35,8 @@ __```:Key:``` ```:Function Description:```__
 
 ```KEY_ENTER``` Set all kites in start position face up (angle = 0).
 
+```KEY_1|...|KEY_9``` Toggles the selection of a kite.
+
 ```KEY_N``` Rotate all selected kites face up (angle = 0).
 
 ```KEY_R``` Rotate all selected kites at the center clockwise.
