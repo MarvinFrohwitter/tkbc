@@ -88,12 +88,12 @@ void pair(Env *env, Kite_Ids ki) {
   float rotation_duration = 1;
   int space = 100;
 
-  tkbc_script_begin();
+  tkbc_script_begin
   COLLECTION(
 
       KITE_MOVE(ID(0), env->window_width / 2.0 - kite.width - space,
                 env->window_height - kite.height - space, 0),
-      KITE_MOVE(tkbc_indexs_append(1),
+      KITE_MOVE(ID(1),
                 env->window_width / 2.0 + kite.width + space,
                 env->window_height - kite.height - space, 0),
       KITE_ROTATION(ki, 0, 0),
@@ -112,29 +112,30 @@ void pair(Env *env, Kite_Ids ki) {
   );
   SET(
 
-      KITE_MOVE_ADD(ID(1), -kite.width - 2 * space - kite.width / 2.0,
+      KITE_MOVE_ADD(ID(1),
+                    -kite.width - 2 * space - kite.width / 2.0,
                     -kite.width - space - space, move_duration),
       KITE_ROTATION_ADD(tkbc_indexs_append(1), 270, rotation_duration)
 
   );
   SET(
 
-      KITE_MOVE(ID(1), move_duration,
+      KITE_MOVE(ID(1),
                 env->window_width / 2.0 + kite.width + space,
-                env->window_height - kite.height - space),
+                env->window_height - kite.height - space, move_duration),
       KITE_ROTATION_ADD(tkbc_indexs_append(1), -315, rotation_duration)
 
   );
   SET(
 
-      KITE_MOVE(ID(0), move_duration,
+      KITE_MOVE(ID(0),
                 env->window_width / 2.0 - kite.width - space,
-                env->window_height - kite.height - space),
+                env->window_height - kite.height - space, move_duration),
       KITE_ROTATION_ADD(tkbc_indexs_append(0), 315, rotation_duration)
 
   );
 
-  tkbc_script_end();
+  tkbc_script_end
 }
 
 // The env of type Env is passed automatically into the scope of the
@@ -153,7 +154,7 @@ tkbc_script_input {
 
   pair(env, ki);
 
-  tkbc_script_begin();
+  tkbc_script_begin
   tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, ki,
                                                 &(CLITERAL(Move_Add_Action){
                                                     .position.x = 0,
@@ -208,9 +209,9 @@ tkbc_script_input {
                        tkbc_script_wait(1.5), tkbc_script_frames_quit(7));
 
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
-  tkbc_script_end();
+  tkbc_script_end
 
-  tkbc_script_begin();
+  tkbc_script_begin
   tkbc_register_frames(env,
                        tkbc_frame_generate(KITE_MOVE_ADD, ki,
                                            &(CLITERAL(Move_Add_Action){
@@ -223,9 +224,9 @@ tkbc_script_input {
   tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
   rotation_checkup(env, ki);
-  tkbc_script_end();
+  tkbc_script_end
 
-  tkbc_script_begin();
+  tkbc_script_begin
   tkbc_register_frames(env,
                        tkbc_frame_generate(KITE_MOVE_ADD, ki,
                                            &(CLITERAL(Move_Add_Action){
@@ -298,5 +299,5 @@ tkbc_script_input {
 
   tkbc_register_frames(env, tkbc_script_wait(1));
 
-  tkbc_script_end();
+  tkbc_script_end
 }
