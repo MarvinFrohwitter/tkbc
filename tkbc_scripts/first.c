@@ -91,11 +91,11 @@ void pair(Env *env, Kite_Ids ki) {
   tkbc_script_begin();
   COLLECTION(
 
-      KITE_MOVE(ID(0), 0, env->window_width / 2.0 - kite.width - space,
-                env->window_height - kite.height - space),
-      KITE_MOVE(tkbc_indexs_append(1), 0,
+      KITE_MOVE(ID(0), env->window_width / 2.0 - kite.width - space,
+                env->window_height - kite.height - space, 0),
+      KITE_MOVE(tkbc_indexs_append(1),
                 env->window_width / 2.0 + kite.width + space,
-                env->window_height - kite.height - space),
+                env->window_height - kite.height - space, 0),
       KITE_ROTATION(ki, 0, 0),
 
       // Just for documentation
@@ -105,18 +105,16 @@ void pair(Env *env, Kite_Ids ki) {
   SET(KITE_WAIT(wait_time));
   SET(
 
-      KITE_MOVE_ADD(ID(0), move_duration,
-                    kite.width + 2 * space + kite.width / 2.0,
-                    -kite.width - space - space),
-      KITE_ROTATION_ADD(tkbc_indexs_append(0), rotation_duration, -270)
+      KITE_MOVE_ADD(ID(0), kite.width + 2 * space + kite.width / 2.0,
+                    -kite.width - space - space, move_duration),
+      KITE_ROTATION_ADD(tkbc_indexs_append(0), -270, rotation_duration)
 
   );
   SET(
 
-      KITE_MOVE_ADD(ID(1), move_duration,
-                    -kite.width - 2 * space - kite.width / 2.0,
-                    -kite.width - space - space),
-      KITE_ROTATION_ADD(tkbc_indexs_append(1), rotation_duration, 270)
+      KITE_MOVE_ADD(ID(1), -kite.width - 2 * space - kite.width / 2.0,
+                    -kite.width - space - space, move_duration),
+      KITE_ROTATION_ADD(tkbc_indexs_append(1), 270, rotation_duration)
 
   );
   SET(
@@ -124,7 +122,7 @@ void pair(Env *env, Kite_Ids ki) {
       KITE_MOVE(ID(1), move_duration,
                 env->window_width / 2.0 + kite.width + space,
                 env->window_height - kite.height - space),
-      KITE_ROTATION_ADD(tkbc_indexs_append(1), rotation_duration, -315)
+      KITE_ROTATION_ADD(tkbc_indexs_append(1), -315, rotation_duration)
 
   );
   SET(
@@ -132,7 +130,7 @@ void pair(Env *env, Kite_Ids ki) {
       KITE_MOVE(ID(0), move_duration,
                 env->window_width / 2.0 - kite.width - space,
                 env->window_height - kite.height - space),
-      KITE_ROTATION_ADD(tkbc_indexs_append(0), rotation_duration, 315)
+      KITE_ROTATION_ADD(tkbc_indexs_append(0), 315, rotation_duration)
 
   );
 

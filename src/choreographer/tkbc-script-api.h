@@ -44,24 +44,36 @@ void tkbc__register_frames(Env *env, ...);
 
 #define KITE_WAIT(duration) tkbc_script_wait(duration)
 #define KITE_QUIT(duration) tkbc_script_frames_quit(duration)
-#define KITE_MOVE_ADD(kite_ids, duration, ...)                                 \
-  tkbc_frame_generate(KITE_MOVE_ADD, kite_ids,                                 \
-                      (&(Move_Add_Action){__VA_ARGS__}), duration)
-#define KITE_MOVE(kite_ids, duration, ...)                                     \
-  tkbc_frame_generate(KITE_MOVE, kite_ids, (&(Move_Action){__VA_ARGS__}),      \
-                      duration)
-#define KITE_ROTATION_ADD(kite_ids, duration, ...)                             \
+
+#define KITE_MOVE_ADD(kite_ids, pos_x, pos_y, duration)                        \
+  tkbc_frame_generate(                                                         \
+      KITE_MOVE_ADD, kite_ids,                                                 \
+      (&(Move_Add_Action){.position.x = pos_x, .position.y = pos_y}),          \
+      duration)
+
+#define KITE_MOVE(kite_ids, pos_x, pos_y, duration)                            \
+  tkbc_frame_generate(                                                         \
+      KITE_MOVE, kite_ids,                                                     \
+      (&(Move_Action){.position.x = pos_x, .position.y = pos_y}), duration)
+
+#define KITE_ROTATION_ADD(kite_ids, new_angle, duration)                       \
   tkbc_frame_generate(KITE_ROTATION_ADD, kite_ids,                             \
-                      (&(Rotation_Add_Action){__VA_ARGS__}), duration)
-#define KITE_ROTATION(kite_ids, duration, ...)                                 \
+                      (&(Rotation_Add_Action){.angle = new_angle}), duration)
+
+#define KITE_ROTATION(kite_ids, new_angle, duration)                           \
   tkbc_frame_generate(KITE_ROTATION, kite_ids,                                 \
-                      (&(Rotation_Action){__VA_ARGS__}), duration)
-#define KITE_TIP_ROTATION_ADD(kite_ids, duration, ...)                         \
-  tkbc_frame_generate(KITE_TIP_ROTATION_ADD, kite_ids,                         \
-                      (&(Tip_Rotation_Add_Action){__VA_ARGS__}), duration)
-#define KITE_TIP_ROTATION(kite_ids, duration, ...)                             \
-  tkbc_frame_generate(KITE_TIP_ROTATION, kite_ids,                             \
-                      (&(Tip_Rotation_Action){__VA_ARGS__}), duration)
+                      (&(Rotation_Action){.angle = new_angle}), duration)
+
+#define KITE_TIP_ROTATION_ADD(kite_ids, new_angle, new_tip, duration)          \
+  tkbc_frame_generate(                                                         \
+      KITE_TIP_ROTATION_ADD, kite_ids,                                         \
+      (&(Tip_Rotation_Add_Action){.angle = new_angle, .tip = new_tip}),        \
+      duration)
+
+#define KITE_TIP_ROTATION(kite_ids, new_angle, new_tip, duration)              \
+  tkbc_frame_generate(                                                         \
+      KITE_TIP_ROTATION, kite_ids,                                             \
+      (&(Tip_Rotation_Action){.angle = new_angle, .tip = new_tip}), duration)
 
 void tkbc_register_frames_array(Env *env, Frames *frames);
 
