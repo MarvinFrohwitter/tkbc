@@ -11,6 +11,12 @@
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 
+/**
+ * @brief The function parses the script that is currently represented by the
+ * filename in env->script_file_name.
+ *
+ * @param env The env that represents the global state of the application.
+ */
 void tkbc_script_parser(Env *env) {
   Content tmp_buffer = {0};
   Content content = {0};
@@ -178,6 +184,20 @@ bool tkbc_parsed_kis_is_in_env(Env *env, Index index) {
   return false;
 }
 
+/**
+ * @brief The function parses the kite ids and unions them with the given
+ * orig_kis that are then placed into dest_kis.
+ *
+ * @param env The global state of the application.
+ * @param lexer The data to parse should be located in her.
+ * @param t THe current lexer token.
+ * @param dest_kis The out parameter contains the union of the parsed and
+ * already existing kis.
+ * @param orig_kis The already generated and existing kis.
+ * @return True if the merging has worked, false if there are no kites generated
+ * yet but the KITES keyword is used or if a to high id was specified in the
+ * script that is not generated.
+ */
 bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Token *t,
                                      Kite_Ids *dest_kis, Kite_Ids orig_kis) {
 
@@ -212,6 +232,26 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Token *t,
   return true;
 }
 
+/**
+ * @brief The function parses a possible move action out of the current
+ * lexer content.
+ *
+ * @param env The global state of the application.
+ * @param lexer The data to parse should be located in her.
+ * @param kind The kind specifies if the adding or non adding version is
+ * expected.
+ * @param frames The out parameter is filled with the generated frame if the
+ * parsing succeeds.
+ * @param ki The already generated kite ids to compare to the possible new
+ * parsed kite ids.
+ * @param brace Represents if the parsing has happened inside a frame block.
+ * These for these blocks the frame has to be generated for parallel
+ * visualisation.
+ * @param tmp_buffer A scratch buffer for number sign constructing after
+ * parsing.
+ * @return True if the parsing and frame construction has worked, otherwise
+ * false.
+ */
 bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
                      Kite_Ids ki, bool brace, Content *tmp_buffer) {
   bool ok = true;
@@ -324,6 +364,26 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function parses a possible rotation action out of the current
+ * lexer content.
+ *
+ * @param env The global state of the application.
+ * @param lexer The data to parse should be located in her.
+ * @param kind The kind specifies if the adding or non adding version is
+ * expected.
+ * @param frames The out parameter is filled with the generated frame if the
+ * parsing succeeds.
+ * @param ki The already generated kite ids to compare to the possible new
+ * parsed kite ids.
+ * @param brace Represents if the parsing has happened inside a frame block.
+ * These for these blocks the frame has to be generated for parallel
+ * visualisation.
+ * @param tmp_buffer A scratch buffer for number sign constructing after
+ * parsing.
+ * @return True if the parsing and frame construction has worked, otherwise
+ * false.
+ */
 bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
                          Frames *frames, Kite_Ids ki, bool brace,
                          Content *tmp_buffer) {
@@ -410,6 +470,26 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function parses a possible tip rotation action out of the current
+ * lexer content.
+ *
+ * @param env The global state of the application.
+ * @param lexer The
+ * @param kind The kind specifies if the adding or non adding version is
+ * expected.
+ * @param frames The out parameter is filled with the generated frame if the
+ * parsing succeeds.
+ * @param ki The already generated kite ids to compare to the possible new
+ * parsed kite ids.
+ * @param brace Represents if the parsing has happened inside a frame block.
+ * These for these blocks the frame has to be generated for parallel
+ * visualisation.
+ * @param tmp_buffer A scratch buffer for number sign constructing after
+ * parsing.
+ * @return True if the parsing and frame construction has worked, otherwise
+ * false.
+ */
 bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
                              Frames *frames, Kite_Ids ki, bool brace,
                              Content *tmp_buffer) {

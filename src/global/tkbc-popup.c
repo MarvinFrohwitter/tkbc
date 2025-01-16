@@ -2,6 +2,13 @@
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-utils.h"
 
+/**
+ * @brief The function checks if the given popup has a click interaction.
+ *
+ * @param popup The popup that should be checked.
+ * @return 0 if no interaction has happen, -1 if the cross was clicked, greater
+ * then 0 for the corresponding option interaction.
+ */
 int tkbc_check_popup_interaction(Popup *popup) {
   if (CheckCollisionPointRec(GetMousePosition(), popup->cross)) {
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -16,6 +23,11 @@ int tkbc_check_popup_interaction(Popup *popup) {
   return 0;
 }
 
+/**
+ * @brief The function updates/sets new values for the given disconnect popup.
+ *
+ * @param popup The popup where the values should be updated.
+ */
 void tkbc_popup_resize_disconnect(Popup *popup) {
   int win_width = tkbc_get_screen_width();
   int win_height = tkbc_get_screen_height();
@@ -46,6 +58,14 @@ void tkbc_popup_resize_disconnect(Popup *popup) {
   popup->option1_text = "QUIT";
 }
 
+/**
+ * @brief The function draws the given popup with respect to its internal
+ * values.
+ *
+ * @param popup The popup that should be displayed on the screen.
+ * @return True if the popup could be displayed; in respect to that if it is
+ * active, otherwise false.
+ */
 bool tkbc_draw_popup(Popup *popup) {
   if (popup->active) {
     Color save_cross_color = popup->cross_color;
@@ -112,6 +132,13 @@ bool tkbc_draw_popup(Popup *popup) {
   return false;
 }
 
+/**
+ * @brief The function creates a popup and sets the given message as its main
+ * text.
+ *
+ * @param message The text that should be displayed in the main bounding box.
+ * @return The new created popup.
+ */
 Popup tkbc_popup_message(const char *message) {
   int font_size = 30;
   int text_width = MeasureText(message, font_size);

@@ -25,6 +25,14 @@ extern Clients *clients;
 extern pthread_t threads[SERVER_CONNETCTIONS];
 extern pthread_mutex_t mutex;
 
+/**
+ * @brief The function shutdown the client connection that is given by the
+ * client argument.
+ *
+ * @param client The client connection that should be closed.
+ * @param force Represents that every action that might not shutdown the client
+ * immediately is omitted.
+ */
 void tkbc_server_shutdown_client(Client client, bool force) {
   pthread_t thread_id = client.thread_id;
   shutdown(client.socket_id, SHUT_WR);
@@ -91,6 +99,14 @@ check:
   }
 }
 
+/**
+ * @brief The function sends the given message to the specified client.
+ *
+ * @param client The client where the message should be send to.
+ * @param message The data that should be send to the client.
+ * @return False if an error has occurred while sending the message data to the
+ * client.
+ */
 bool tkbc_server_brodcast_client(Client client, const char *message) {
 
   ssize_t send_check =
@@ -114,6 +130,18 @@ bool tkbc_server_brodcast_client(Client client, const char *message) {
   return true;
 }
 
+/**
+ * @brief The function sends the given message to all registered clients except
+ * the specified client_id.
+ *
+ * @param cs The struct that contains all the clients where the message could
+ * not be send to.
+ * @param client_id The id that specifies the one client that should not get the
+ * message.
+ * @param message The data that should be send to the clients.
+ * @return True if no errors occurred and the cs is empty, otherwise false and
+ * cs is filled with the client connections that had errors.
+ */
 bool tkbc_server_brodcast_all_exept(Clients *cs, size_t client_id,
                                     const char *message) {
   bool ok = true;
@@ -128,6 +156,15 @@ bool tkbc_server_brodcast_all_exept(Clients *cs, size_t client_id,
   return ok;
 }
 
+/**
+ * @brief The function sends the given message to all registered clients.
+ *
+ * @param cs The struct that contains all the clients where the message could
+ * not be send to.
+ * @param message The data that should be send to the clients.
+ * @return True if no errors occurred and the cs is empty, otherwise false and
+ * cs is filled with the client connections that had errors.
+ */
 bool tkbc_server_brodcast_all(Clients *cs, const char *message) {
   bool ok = true;
   for (size_t i = 0; i < clients->count; ++i) {
@@ -139,6 +176,13 @@ bool tkbc_server_brodcast_all(Clients *cs, const char *message) {
   return ok;
 }
 
+/**
+ * @brief The function constructs the hello message. That is used to establish
+ * the handshake with the server respecting the current PROTOCOL_VERSION.
+ *
+ * @param client The client id where the message should be send to.
+ * @return True if no error occurred while sending the message to the client.
+ */
 bool tkbc_message_hello(Client client) {
   Message message = {0};
   bool ok = true;
@@ -169,6 +213,15 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function constructs all the scripts that specified in a block
+ * frame.
+ *
+ * @param block_index The script index.
+ * @param block_frame_count The amount of scripts that are available.
+ * @return True if the construction and sending the message to all registered
+ * clients was successful, otherwise false.
+ */
 bool tkbc_message_srcipt_block_frames_value(size_t block_index,
                                             size_t block_frame_count) {
   Message message = {0};
@@ -205,6 +258,15 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function constructs the message KITEADD that is send to all
+ * clients, whenever a new client has connected to the server.
+ *
+ * @param cs The struct that contains all the clients where the message could be
+ * send to.
+ * @param client_index The id of the client that has connected.
+ * @return True if id was found and the sending has nor raised any errors.
+ */
 bool tkbc_message_kiteadd(Clients *cs, size_t client_index) {
   Message message = {0};
   bool ok = true;
@@ -227,6 +289,15 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function constructs the message KITEVALUE that contains a data
+ * serialization for one specified kite.
+ *
+ * @param client_id The client id that corresponds to the data that should be
+ * appended.
+ * @return True if the serialization has finished without errors, otherwise
+ * false.
+ */
 bool tkbc_message_kite_value(size_t client_id) {
   Message message = {0};
   bool ok = true;
@@ -256,6 +327,13 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function constructs and send the message CLIENTKITES that contain
+ * all the data from the current registered kites.
+ *
+ * @param client The client that should get the message.
+ * @return True if the message was send successfully, otherwise false.
+ */
 bool tkbc_message_clientkites(Client client) {
   Message message = {0};
   char buf[64] = {0};
@@ -287,6 +365,14 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function constructs and sends the message KITES to all registered
+ * kites.
+ *
+ * @param cs The struct that contains all the clients where the message could be
+ * send too.
+ * @return True if the message was send successfully, otherwise false.
+ */
 bool tkbc_message_kites_brodcast_all(Clients *cs) {
   Message message = {0};
   char buf[64] = {0};
@@ -316,6 +402,14 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function constructs and sends the message CLIENTKITES to all
+ * registered kites.
+ *
+ * @param cs The struct that contains all the clients where the message could be
+ * send too.
+ * @return True if the message was send successfully, otherwise false.
+ */
 bool tkbc_message_clientkites_brodcast_all(Clients *cs) {
   Message message = {0};
   char buf[64] = {0};
@@ -370,6 +464,13 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function removes the specified client from the registered list.
+ *
+ * @param client The client who should be removed from the registration list.
+ * @return True if the client could be removed, otherwise if an error occurred
+ * false is returned, that is the case if the client is not found in the list.
+ */
 bool tkbc_server_remove_client_from_list(Client client) {
   pthread_mutex_lock(&mutex);
   for (size_t i = 0; i < clients->count; ++i) {
@@ -388,6 +489,17 @@ bool tkbc_server_remove_client_from_list(Client client) {
   return false;
 }
 
+/**
+ * @brief The function parses the messages out of the given
+ * receive_message_queue data. If an invalid message is found the rest of the
+ * receive_message_queue till the '\r\n' is dorpped. The parser continues from
+ * there as recovery.
+ *
+ * @param receive_message_queue The messages that have been received by the
+ * server.
+ * @return True if every message is parsed correctly from the data, false if an
+ * parsing error has occurred.
+ */
 bool tkbc_server_received_message_handler(Message receive_message_queue) {
   Token token;
   bool ok = true;
@@ -735,7 +847,6 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
               script_parse_fail = true;
               goto script_err;
             }
-            // TODO: The kis maybe have to be heap allocated.
             Kite_Ids kis = {0};
             for (size_t k = 1; k <= kite_ids_count; ++k) {
               token = lexer_next(lexer);
@@ -921,6 +1032,14 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function parses the KITEVALUE message out of the current lexer
+ * data.
+ *
+ * @param lexer The current state of the data to parse.
+ * @param kite_id The id that is assigned from the parsed value.
+ * @return True if the parsing had not no errors, otherwise false.
+ */
 bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id) {
   float x, y, angle;
   Color color;
@@ -943,6 +1062,12 @@ bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id) {
   return true;
 }
 
+/**
+ * @brief The function manages initial handshake and incoming messages from the
+ * client.
+ *
+ * @param client The client of which the connection should be handled.
+ */
 void *tkbc_client_handler(void *client) {
   Client c = *(Client *)client;
 
@@ -1042,6 +1167,11 @@ check:
   return NULL;
 }
 
+/**
+ * @brief The function is an error handler that updates all the client states
+ * and handles all error that occur while broadcasting. It also checks for
+ * client disconnects and shuts down the broken connection.
+ */
 void tkbc_unwrap_handler_message_clientkites_brodcast_all() {
   Clients cs = {0};
   if (!tkbc_message_clientkites_brodcast_all(&cs)) {

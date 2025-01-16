@@ -59,7 +59,7 @@ typedef enum {
   MESSAGE_SCRIPT_NEXT,
   MESSAGE_SCRIPT_SCRUB,
   MESSAGE_COUNT,
-} Message_Kind;
+} Message_Kind; // Messages that are supported in the current PROTOCOL_VERSION.
 
 uint16_t tkbc_port_parsing(const char *port_check);
 bool tkbc_message_append_clientkite(size_t client_id, Message *message);

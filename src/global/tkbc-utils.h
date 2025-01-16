@@ -307,6 +307,16 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
   return action;
 }
 
+/**
+ * @brief The function reads a file in 4KB steps into memory given by the
+ * content structure. For errors the specific error is already logged into
+ * stderr.
+ *
+ * @param filename The file path that should be read into memory.
+ * @param content The resulting memory pointer that contains the file content
+ * after reading.
+ * @return 0 if no errors occured, otherwise -1.
+ */
 int tkbc_read_file(char *filename, Content *content) {
   FILE *file = fopen(filename, "rb");
   if (file == NULL) {
