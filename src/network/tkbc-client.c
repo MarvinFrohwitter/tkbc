@@ -263,7 +263,7 @@ bool received_message_handler() {
         check_return(false);
       }
 
-      const char *greeting = "\"Hello client from server!1.0\"";
+      const char *greeting = "\"Hello client from server!"PROTOCOL_VERSION"\"";
       const char *compare = lexer_token_to_cstr(lexer, &token);
       if (strncmp(compare, greeting, strlen(greeting)) != 0) {
         tkbc_fprintf(stderr, "ERROR", "Hello message failed!\n");
