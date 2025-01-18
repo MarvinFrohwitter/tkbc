@@ -139,7 +139,9 @@ Block_Frame *tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
 void tkbc_destroy_frames(Frames *frames) {
   if (frames->count != 0) {
     for (size_t i = 0; i < frames->count; ++i) {
-      free(frames->elements[i].kite_id_array);
+      if (frames->elements[i].kite_id_array) {
+        free(frames->elements[i].kite_id_array);
+      }
       free(frames->elements[i].action);
     }
 

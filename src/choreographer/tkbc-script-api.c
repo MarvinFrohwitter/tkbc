@@ -142,7 +142,7 @@ Frame *tkbc__script_wait(Env *env, float duration) {
   frame->finished = false;
   frame->duration = duration;
   frame->kind = KITE_WAIT;
-  (frame->action) = action;
+  frame->action = action;
   frame->kite_id_array = NULL;
 
   return frame;
