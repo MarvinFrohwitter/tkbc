@@ -659,12 +659,12 @@ void tkbc_scrub_frames(Env *env) {
 void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
 
   if (duration <= 0) {
-    tkbc_center_rotation(kite, &position, kite->angle);
+    tkbc_kite_update_position(kite, &position);
     return;
   }
 
   if (Vector2Equals(kite->center, position)) {
-    tkbc_center_rotation(kite, &position, kite->angle);
+    tkbc_kite_update_position(kite, &position);
     return;
   }
 
@@ -675,10 +675,10 @@ void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
 
   if (Vector2Length(dnormscale) >=
       Vector2Length(Vector2Subtract(position, kite->center))) {
-    tkbc_center_rotation(kite, &position, kite->angle);
+    tkbc_kite_update_position(kite, &position);
   } else {
     Vector2 it = Vector2Add(kite->center, dnormscale);
-    tkbc_center_rotation(kite, &it, kite->angle);
+    tkbc_kite_update_position(kite, &it);
   }
 }
 
@@ -703,9 +703,9 @@ float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
   // actual rotation direction is called instead.
   if (duration <= 0) {
     if (adding) {
-      tkbc_center_rotation(kite, NULL, kite->old_angle + angle);
+      tkbc_kite_update_angle(kite, kite->old_angle + angle);
     } else {
-      tkbc_center_rotation(kite, NULL, angle);
+      tkbc_kite_update_angle(kite, angle);
     }
     return fabsf(angle);
   }
@@ -716,9 +716,9 @@ float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
 
   if (ds >= fabsf(kite->old_angle) + d) {
     if (adding) {
-      tkbc_center_rotation(kite, NULL, kite->old_angle + angle);
+      tkbc_kite_update_angle(kite, kite->old_angle + angle);
     } else {
-      tkbc_center_rotation(kite, NULL, angle);
+      tkbc_kite_update_angle(kite, angle);
     }
     return fabsf(ds);
   }
@@ -726,9 +726,9 @@ float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
   // calculation at the correct point so the angle computation is not needed
   // her.
   if (signbit(angle) != 0) {
-    tkbc_center_rotation(kite, NULL, kite->angle - ds);
+    tkbc_kite_update_angle(kite, kite->angle - ds);
   } else {
-    tkbc_center_rotation(kite, NULL, kite->angle + ds);
+    tkbc_kite_update_angle(kite, kite->angle + ds);
   }
   return fabsf(ds);
 }

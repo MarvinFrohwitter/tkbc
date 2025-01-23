@@ -160,7 +160,7 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
   kite_state->kite->center.y = y;
   kite_state->kite->angle = angle;
   kite_state->kite->body_color = color;
-  tkbc_center_rotation(kite_state->kite, NULL, kite_state->kite->angle);
+  tkbc_kite_update_internal(kite_state->kite);
   tkbc_dap(env->kite_array, *kite_state);
 }
 
@@ -263,7 +263,8 @@ bool received_message_handler() {
         check_return(false);
       }
 
-      const char *greeting = "\"Hello client from server!"PROTOCOL_VERSION"\"";
+      const char *greeting =
+          "\"Hello client from server!" PROTOCOL_VERSION "\"";
       const char *compare = lexer_token_to_cstr(lexer, &token);
       if (strncmp(compare, greeting, strlen(greeting)) != 0) {
         tkbc_fprintf(stderr, "ERROR", "Hello message failed!\n");

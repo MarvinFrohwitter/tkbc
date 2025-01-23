@@ -31,6 +31,9 @@ void tkbc_set_kite_state_defaults(Kite_State *state);
 
 // ========================== KITE POSITION ==================================
 
+void tkbc_kite_update_internal(Kite *kite);
+void tkbc_kite_update_position(Kite *kite, Vector2 *position);
+void tkbc_kite_update_angle(Kite *kite, float center_deg_rotation);
 void tkbc_center_rotation(Kite *kite, Vector2 *position,
                           float center_deg_rotation);
 void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,

@@ -110,7 +110,7 @@ bool tkbc_parse_single_kite_value(Lexer *lexer) {
       kite->center.y = y;
       kite->angle = angle;
       kite->body_color = color;
-      tkbc_center_rotation(kite, NULL, kite->angle);
+      tkbc_kite_update_internal(kite);
     }
   }
   return true;

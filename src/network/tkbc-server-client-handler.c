@@ -1056,7 +1056,7 @@ bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id) {
       kite->center.y = y;
       kite->angle = angle;
       kite->body_color = color;
-      tkbc_center_rotation(kite, NULL, kite->angle);
+      tkbc_kite_update_internal(kite);
     }
   }
   pthread_mutex_unlock(&mutex);

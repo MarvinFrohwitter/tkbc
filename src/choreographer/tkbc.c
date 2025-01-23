@@ -143,7 +143,7 @@ Kite_State *tkbc_init_kite(void) {
 
   Vector2 start_pos = {.y = tkbc_get_screen_height() - 2 * viewport_padding,
                        .x = state->kite->center.x};
-  tkbc_center_rotation(state->kite, &start_pos, state->kite->angle);
+  tkbc_kite_update_position(state->kite, &start_pos);
   return state;
 }
 
@@ -333,7 +333,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
   kite->spread *= kite->scale;
   kite->width *= kite->scale * 2;
 
-  tkbc_center_rotation(kite, NULL, kite->angle);
+  tkbc_kite_update_internal(kite);
 
   // The computation is correct because of the previous given angle = 0.
   kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
@@ -361,6 +361,45 @@ void tkbc_set_kite_state_defaults(Kite_State *state) {
 // ===========================================================================
 // ========================== KITE POSITION ==================================
 // ===========================================================================
+
+/**
+ * @brief The function updates all the internal geometric values according to
+ * the current set position and angle. This can be used to set the internal
+ * position and angle and then update the rest of the geometric values that are
+ * responsible for the kite shape.
+ *
+ * @param kite The kite that is going to be modified.
+ */
+void tkbc_kite_update_internal(Kite *kite) {
+  tkbc_center_rotation(kite, NULL, kite->angle);
+}
+
+/**
+ * @brief The function updates all the internal values according to the new
+ position with the current angle. This can be used in terms of positioning
+ * the kite and for updating the (internal) geometric
+ * values that are responsible for the kite shape.
+ *
+ * @param kite The kite that is going to be modified.
+ * @param position The new position for the kite at the center of the leading
+ * edge or NULL for internal center position of the kite structure.
+ */
+void tkbc_kite_update_position(Kite *kite, Vector2 *position) {
+  tkbc_center_rotation(kite, position, kite->angle);
+}
+
+/**
+ * @brief The function updates all the internal values according to the new
+ * angle with the current position. This can be used to update the angle and set
+ * the values for the (internal) geometric shape of the kite.
+ *
+ * @param kite The kite that is going to be modified.
+ * @param center_deg_rotation The rotation of the kite that is set to the given
+ * rotation.
+ */
+void tkbc_kite_update_angle(Kite *kite, float center_deg_rotation) {
+  tkbc_center_rotation(kite, NULL, center_deg_rotation);
+}
 
 /**
  * @brief The function computes all the internal points for the kite and its
@@ -444,7 +483,7 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
                        TIP tip) {
 
   if (position != NULL) {
-    tkbc_center_rotation(kite, position, kite->angle);
+    tkbc_kite_update_position(kite, position);
   }
 
   float_t length = (kite->width / 2.f + kite->spread);
@@ -498,7 +537,7 @@ void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
                           TIP tip, bool below) {
 
   if (position != NULL) {
-    tkbc_center_rotation(kite, position, kite->angle);
+    tkbc_kite_update_position(kite, position);
   }
 
   Vector2 pos = {0};
