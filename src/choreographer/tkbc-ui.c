@@ -28,9 +28,6 @@ void tkbc_draw_ui(Env *env) {
 #endif // TKBC_CLIENT
   }
 
-  if (env->rendering) {
-    DrawCircleV(CLITERAL(Vector2){20, 20}, 10, RED);
-  }
   DrawFPS(env->window_width / 2, 10);
 }
 
@@ -93,6 +90,10 @@ void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
 
   if (env->timeline_hoverover || env->timeline_interaction) {
     DrawRectangleRec(env->timeline_base, ColorBrightness(BLACK, 0.3));
-    DrawRectangleRec(env->timeline_front, ColorBrightness(TEAL, 0.1));
+    if (env->rendering) {
+      DrawRectangleRec(env->timeline_front, ColorBrightness(RED, 0.1));
+    } else {
+      DrawRectangleRec(env->timeline_front, ColorBrightness(TEAL, 0.1));
+    }
   }
 }
