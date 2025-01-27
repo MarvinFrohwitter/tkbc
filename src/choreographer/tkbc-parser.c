@@ -1,5 +1,6 @@
 #include "tkbc-parser.h"
 #include "tkbc-script-api.h"
+#include "tkbc-team-figures-api.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -39,7 +40,34 @@ void tkbc_script_parser(Env *env) {
     case COMMENT:
       break;
     case IDENTIFIER: {
-      if (strncmp("BEGIN", t.content, t.size) == 0) {
+      if (strncmp("EXTERN", t.content, t.size) == 0) {
+        bool ok = true;
+        t = lexer_next(lexer);
+        if (t.kind != IDENTIFIER) {
+          break;
+        }
+
+        char *function_name = strdup(lexer_token_to_cstr(lexer, &t));
+        assert(function_name != NULL);
+        Kite_Ids kis = {0};
+        if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
+          check_return(false);
+        }
+        if (!tkbc_parse_team_figures(env, kis, lexer, function_name,
+                                     tmp_buffer)) {
+          check_return(false);
+        }
+
+      check:
+        free(function_name);
+        if (kis.elements) {
+          free(kis.elements);
+        }
+        if (!ok) {
+          goto err;
+        }
+        break;
+      } else if (strncmp("BEGIN", t.content, t.size) == 0) {
         script_begin = true;
         tkbc__script_begin(env);
         break;
@@ -68,37 +96,37 @@ void tkbc_script_parser(Env *env) {
         break;
       } else if (strncmp("MOVE", t.content, t.size) == 0) {
         if (!tkbc_parse_move(env, lexer, KITE_MOVE, &frames, ki, brace,
-                             &tmp_buffer)) {
+                             tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
         if (!tkbc_parse_move(env, lexer, KITE_MOVE_ADD, &frames, ki, brace,
-                             &tmp_buffer)) {
+                             tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("ROTATION", t.content, t.size) == 0) {
         if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION, &frames, ki, brace,
-                                 &tmp_buffer)) {
+                                 tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("ROTATION_ADD", t.content, t.size) == 0) {
         if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION_ADD, &frames, ki,
-                                 brace, &tmp_buffer)) {
+                                 brace, tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("TIP_ROTATION", t.content, t.size) == 0) {
         if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION, &frames, ki,
-                                     brace, &tmp_buffer)) {
+                                     brace, tmp_buffer)) {
           break;
         }
         break;
       } else if (strncmp("TIP_ROTATION_ADD", t.content, t.size) == 0) {
         if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION_ADD, &frames,
-                                     ki, brace, &tmp_buffer)) {
+                                     ki, brace, tmp_buffer)) {
           goto err;
         }
         break;
@@ -190,20 +218,19 @@ bool tkbc_parsed_kis_is_in_env(Env *env, Index index) {
  *
  * @param env The global state of the application.
  * @param lexer The data to parse should be located in her.
- * @param t THe current lexer token.
  * @param dest_kis The out parameter contains the union of the parsed and
  * already existing kis.
  * @param orig_kis The already generated and existing kis.
- * @return True if the merging has worked, false if there are no kites generated
- * yet but the KITES keyword is used or if a to high id was specified in the
- * script that is not generated.
+ * @return True if the merging has worked, false if there are no kites
+ * generated yet but the KITES keyword is used or if a to high id was
+ * specified in the script that is not generated, or if an parser error
+ * occurred.
  */
-bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Token *t,
-                                     Kite_Ids *dest_kis, Kite_Ids orig_kis) {
+bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
+                                     Kite_Ids orig_kis) {
 
-  *t = lexer_next(lexer);
-  if (strncmp("KITES", t->content, t->size) == 0) {
-    *t = lexer_next(lexer);
+  Token t = lexer_next(lexer);
+  if (strncmp("KITES", t.content, t.size) == 0) {
     if (orig_kis.count == 0) {
       return false;
     }
@@ -211,20 +238,25 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Token *t,
       tkbc_dap(dest_kis, orig_kis.elements[i]);
     }
 
-  } else if (t->kind == PUNCT_LPAREN) {
-    *t = lexer_next(lexer);
-    while (t->kind == NUMBER) {
-      int number = atoi(lexer_token_to_cstr(lexer, t));
+  } else if (t.kind == PUNCT_LPAREN) {
+    t = lexer_next(lexer);
+    while (t.kind == NUMBER) {
+      int number = atoi(lexer_token_to_cstr(lexer, &t));
       tkbc_dap(dest_kis, number);
       if (!tkbc_parsed_kis_is_in_env(env, number)) {
         tkbc_fprintf(stderr, "ERROR",
                      "The given kites in the listing are invalid: "
                      "Position:%llu:%ld\n",
-                     lexer->line_count, (t->content - lexer->content));
+                     lexer->line_count, (t.content - lexer->content));
         return false;
       }
-      *t = lexer_next(lexer);
+      t = lexer_next(lexer);
     }
+
+    if (t.kind != PUNCT_RPAREN) {
+      return false;
+    }
+
   } else {
     return false;
   }
@@ -253,74 +285,24 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Token *t,
  * false.
  */
 bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
-                     Kite_Ids ki, bool brace, Content *tmp_buffer) {
+                     Kite_Ids ki, bool brace, Content tmp_buffer) {
   bool ok = true;
   Kite_Ids kis = {0};
-  Token t = {0};
-  char sign;
+  float x, y, duration;
 
-  if (!tkbc_parse_kis_after_generation(env, lexer, &t, &kis, ki)) {
+  if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
     check_return(false);
   }
 
-  bool issign = false;
-  if (strncmp("-", t.content, t.size) == 0 ||
-      strncmp("+", t.content, t.size) == 0) {
-    issign = true;
-    sign = *(char *)t.content;
+  if (!tkbc_parse_float(&x, lexer, tmp_buffer)) {
+    return false;
   }
-
-  if (t.kind != PUNCT_RPAREN && t.kind != NUMBER && !issign) {
-    check_return(false);
+  if (!tkbc_parse_float(&y, lexer, tmp_buffer)) {
+    return false;
   }
-
-  if (t.kind != NUMBER) {
-    t = lexer_next(lexer);
+  if (!tkbc_parse_float(&duration, lexer, tmp_buffer)) {
+    return false;
   }
-
-  if (strncmp("-", t.content, t.size) == 0 ||
-      strncmp("+", t.content, t.size) == 0) {
-    issign = true;
-    sign = *(char *)t.content;
-    t = lexer_next(lexer);
-  }
-
-  tmp_buffer->count = 0;
-  if (issign) {
-    tkbc_dap(tmp_buffer, sign);
-  }
-  tkbc_dapc(tmp_buffer, t.content, t.size);
-  tkbc_dap(tmp_buffer, 0);
-
-  float x = atof(tmp_buffer->elements);
-  t = lexer_next(lexer);
-
-  issign = false;
-  if (strncmp("-", t.content, t.size) == 0 ||
-      strncmp("+", t.content, t.size) == 0) {
-    issign = true;
-    sign = *(char *)t.content;
-  }
-
-  if (t.kind != NUMBER && !issign) {
-    check_return(false);
-  }
-
-  if (t.kind != NUMBER) {
-    t = lexer_next(lexer);
-  }
-
-  tmp_buffer->count = 0;
-  if (issign) {
-    tkbc_dap(tmp_buffer, sign);
-  }
-  tkbc_dapc(tmp_buffer, t.content, t.size);
-  tkbc_dap(tmp_buffer, 0);
-
-  float y = atof(tmp_buffer->elements);
-  t = lexer_next(lexer);
-
-  float duration = atof(lexer_token_to_cstr(lexer, &t));
 
   if (kind == KITE_MOVE_ADD) {
     if (brace) {
@@ -386,49 +368,21 @@ check:
  */
 bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
                          Frames *frames, Kite_Ids ki, bool brace,
-                         Content *tmp_buffer) {
+                         Content tmp_buffer) {
   bool ok = true;
   Kite_Ids kis = {0};
-  Token t = {0};
-  char sign;
+  float angle, duration;
 
-  if (!tkbc_parse_kis_after_generation(env, lexer, &t, &kis, ki)) {
+  if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
     check_return(false);
   }
 
-  bool issign = false;
-  if (strncmp("-", t.content, t.size) == 0 ||
-      strncmp("+", t.content, t.size) == 0) {
-    issign = true;
-    sign = *(char *)t.content;
+  if (!tkbc_parse_float(&angle, lexer, tmp_buffer)) {
+    return false;
   }
-
-  if (t.kind != PUNCT_RPAREN && t.kind != NUMBER && !issign) {
-    check_return(false);
+  if (!tkbc_parse_float(&duration, lexer, tmp_buffer)) {
+    return false;
   }
-
-  if (t.kind != NUMBER) {
-    t = lexer_next(lexer);
-  }
-
-  if (strncmp("-", t.content, t.size) == 0 ||
-      strncmp("+", t.content, t.size) == 0) {
-    issign = true;
-    sign = *(char *)t.content;
-    t = lexer_next(lexer);
-  }
-
-  tmp_buffer->count = 0;
-  if (issign) {
-    tkbc_dap(tmp_buffer, sign);
-  }
-  tkbc_dapc(tmp_buffer, t.content, t.size);
-  tkbc_dap(tmp_buffer, 0);
-
-  float angle = atof(tmp_buffer->elements);
-  t = lexer_next(lexer);
-
-  float duration = atof(lexer_token_to_cstr(lexer, &t));
 
   if (kind == KITE_ROTATION_ADD) {
     if (brace) {
@@ -471,8 +425,8 @@ check:
 }
 
 /**
- * @brief The function parses a possible tip rotation action out of the current
- * lexer content.
+ * @brief The function parses a possible tip rotation action out of the
+ * current lexer content.
  *
  * @param env The global state of the application.
  * @param lexer The
@@ -492,49 +446,21 @@ check:
  */
 bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
                              Frames *frames, Kite_Ids ki, bool brace,
-                             Content *tmp_buffer) {
+                             Content tmp_buffer) {
   bool ok = true;
   Kite_Ids kis = {0};
-  Token t = {0};
   TIP tip;
-  char sign;
+  float angle, duration;
 
-  if (!tkbc_parse_kis_after_generation(env, lexer, &t, &kis, ki)) {
+  if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
     check_return(false);
   }
 
-  bool issign = false;
-  if (strncmp("-", t.content, t.size) == 0 ||
-      strncmp("+", t.content, t.size) == 0) {
-    issign = true;
-    sign = *(char *)t.content;
+  if (!tkbc_parse_float(&angle, lexer, tmp_buffer)) {
+    return false;
   }
 
-  if (t.kind != PUNCT_RPAREN && t.kind != NUMBER && !issign) {
-    check_return(false);
-  }
-
-  if (t.kind != NUMBER) {
-    t = lexer_next(lexer);
-  }
-
-  if (strncmp("-", t.content, t.size) == 0 ||
-      strncmp("+", t.content, t.size) == 0) {
-    issign = true;
-    sign = *(char *)t.content;
-    t = lexer_next(lexer);
-  }
-
-  tmp_buffer->count = 0;
-  if (issign) {
-    tkbc_dap(tmp_buffer, sign);
-  }
-  tkbc_dapc(tmp_buffer, t.content, t.size);
-  tkbc_dap(tmp_buffer, 0);
-
-  float angle = atof(tmp_buffer->elements);
-  t = lexer_next(lexer);
-
+  Token t = lexer_next(lexer);
   if (strncmp("RIGHT", t.content, t.size) == 0) {
     tip = RIGHT_TIP;
   } else if (strncmp("LEFT", t.content, t.size) == 0) {
@@ -543,8 +469,9 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     check_return(false);
   }
 
-  t = lexer_next(lexer);
-  float duration = atof(lexer_token_to_cstr(lexer, &t));
+  if (!tkbc_parse_float(&duration, lexer, tmp_buffer)) {
+    return false;
+  }
 
   if (kind == KITE_TIP_ROTATION_ADD) {
     if (brace) {
@@ -589,4 +516,415 @@ check:
     free(kis.elements);
   }
   return ok;
+}
+
+#define tkbc_parse_number_prolog(lexer, tmp_buffer)                            \
+  do {                                                                         \
+    Token token = lexer_next(lexer);                                           \
+    char sign;                                                                 \
+    bool issign = false;                                                       \
+                                                                               \
+    if (strncmp("-", token.content, token.size) == 0 ||                        \
+        strncmp("+", token.content, token.size) == 0) {                        \
+      issign = true;                                                           \
+      sign = *(char *)token.content;                                           \
+    }                                                                          \
+                                                                               \
+    if (token.kind != NUMBER && !issign) {                                     \
+      return false;                                                            \
+    }                                                                          \
+    if (issign) {                                                              \
+      token = lexer_next(lexer);                                               \
+    }                                                                          \
+    if (token.kind != NUMBER) {                                                \
+      return false;                                                            \
+    }                                                                          \
+                                                                               \
+    tmp_buffer.count = 0;                                                      \
+    if (issign) {                                                              \
+      tkbc_dap(&tmp_buffer, sign);                                             \
+    }                                                                          \
+    tkbc_dapc(&tmp_buffer, token.content, token.size);                         \
+    tkbc_dap(&tmp_buffer, 0);                                                  \
+  } while (0)
+
+bool tkbc_parse_float(float *number, Lexer *lexer, Content tmp_buffer) {
+  tkbc_parse_number_prolog(lexer, tmp_buffer);
+  *number = atof(tmp_buffer.elements);
+  return true;
+}
+
+bool tkbc_parse_size_t(size_t *number, Lexer *lexer, Content tmp_buffer) {
+  tkbc_parse_number_prolog(lexer, tmp_buffer);
+  *number = (size_t)atol(tmp_buffer.elements);
+  return true;
+}
+
+bool tkbc_parse_team_figures(Env *env, Kite_Ids kis, Lexer *lexer,
+                             const char *function_name, Content tmp_buffer) {
+
+  if (strcmp("TEAM_LINE", function_name) == 0) {
+    Vector2 position, offset;
+    float h_padding, move_duration;
+
+    if (!tkbc_parse_float(&position.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&position.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&h_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_line(env, kis, position, offset, h_padding, move_duration);
+  } else if (strcmp("TEAM_GRID", function_name) == 0) {
+    Kite_Ids kis = {0};
+    Vector2 position, offset;
+    float v_padding, h_padding;
+    size_t rows, columns;
+    float move_duration;
+
+    if (!tkbc_parse_float(&position.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&position.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&v_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&h_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&rows, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&columns, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_grid(env, kis, position, offset, v_padding, h_padding,
+                          rows, columns, move_duration);
+  } else if (strcmp("TEAM_MOUNTAIN", function_name) == 0) {
+    Vector2 position, offset;
+    float v_padding, h_padding;
+    float move_duration, rotation_duration;
+
+    if (!tkbc_parse_float(&position.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&position.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&v_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&h_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_mountain(env, kis, position, offset, v_padding, h_padding,
+                              move_duration, rotation_duration);
+  } else if (strcmp("TEAM_VALLEY", function_name) == 0) {
+    Vector2 position, offset;
+    float v_padding, h_padding;
+    float move_duration, rotation_duration;
+
+    if (!tkbc_parse_float(&position.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&position.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&v_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&h_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_valley(env, kis, position, offset, v_padding, h_padding,
+                            move_duration, rotation_duration);
+  } else if (strcmp("TEAM_ARC", function_name) == 0) {
+    Vector2 position, offset;
+    float v_padding, h_padding;
+    float angle;
+    float move_duration, rotation_duration;
+
+    if (!tkbc_parse_float(&position.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&position.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&v_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&h_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_arc(env, kis, position, offset, v_padding, h_padding,
+                         angle, move_duration, rotation_duration);
+  } else if (strcmp("TEAM_MOUTH", function_name) == 0) {
+    Vector2 position, offset;
+    float v_padding, h_padding;
+    float angle;
+    float move_duration, rotation_duration;
+
+    if (!tkbc_parse_float(&position.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&position.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.x, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&offset.y, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&v_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&h_padding, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_mouth(env, kis, position, offset, v_padding, h_padding,
+                           angle, move_duration, rotation_duration);
+  } else if (strcmp("TEAM_BOX", function_name) == 0) {
+    DIRECTION direction;
+    float angle, box_size;
+    float move_duration, rotation_duration;
+
+    {
+      Token token = lexer_next(lexer);
+      if (token.kind != IDENTIFIER) {
+        return false;
+      }
+      if (strcmp("LEFT", lexer_token_to_cstr(lexer, &token)) == 0) {
+        direction = LEFT;
+      } else if (strcmp("RIGHT", lexer_token_to_cstr(lexer, &token)) == 0) {
+        direction = RIGHT;
+      } else {
+        return false;
+      }
+    }
+
+    if (!tkbc_parse_float(&angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&box_size, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_box(env, kis, direction, angle, box_size, move_duration,
+                         rotation_duration);
+  } else if (strcmp("TEAM_BOX_LEFT", function_name) == 0) {
+    float box_size;
+    float move_duration, rotation_duration;
+
+    if (!tkbc_parse_float(&box_size, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_box_left(env, kis, box_size, move_duration,
+                              rotation_duration);
+  } else if (strcmp("TEAM_BOX_RIGHT", function_name) == 0) {
+    float box_size;
+    float move_duration, rotation_duration;
+
+    if (!tkbc_parse_float(&box_size, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_box_right(env, kis, box_size, move_duration,
+                               rotation_duration);
+  } else if (strcmp("TEAM_SPLIT_BOX_UP", function_name) == 0) {
+    ODD_EVEN odd_even;
+    float box_size;
+    float move_duration, rotation_duration;
+
+    {
+      Token token = lexer_next(lexer);
+      if (token.kind != IDENTIFIER) {
+        return false;
+      }
+      if (strcmp("ODD", lexer_token_to_cstr(lexer, &token)) == 0) {
+        odd_even = ODD;
+      } else if (strcmp("EVEN", lexer_token_to_cstr(lexer, &token)) == 0) {
+        odd_even = EVEN;
+      } else {
+        return false;
+      }
+    }
+
+    if (!tkbc_parse_float(&box_size, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_split_box_up(env, kis, odd_even, box_size, move_duration,
+                                  rotation_duration);
+
+  } else if (strcmp("TEAM_DIAMOND", function_name) == 0) {
+    DIRECTION direction;
+    float angle, box_size;
+    float move_duration, rotation_duration;
+
+    {
+      Token token = lexer_next(lexer);
+      if (token.kind != IDENTIFIER) {
+        return false;
+      }
+      if (strcmp("LEFT", lexer_token_to_cstr(lexer, &token)) == 0) {
+        direction = LEFT;
+      } else if (strcmp("RIGHT", lexer_token_to_cstr(lexer, &token)) == 0) {
+        direction = RIGHT;
+      } else {
+        return false;
+      }
+    }
+
+    if (!tkbc_parse_float(&angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&box_size, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_diamond(env, kis, direction, angle, box_size,
+                             move_duration, rotation_duration);
+  } else if (strcmp("TEAM_DIAMOND_LEFT", function_name) == 0) {
+    float box_size;
+    float move_duration, rotation_duration;
+
+    if (!tkbc_parse_float(&box_size, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_diamond_left(env, kis, box_size, move_duration,
+                                  rotation_duration);
+  } else if (strcmp("TEAM_DIAMOND_RIGHT", function_name) == 0) {
+    float box_size;
+    float move_duration, rotation_duration;
+
+    if (!tkbc_parse_float(&box_size, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_diamond_right(env, kis, box_size, move_duration,
+                                   rotation_duration);
+  }
+
+  return true;
 }

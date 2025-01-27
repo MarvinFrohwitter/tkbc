@@ -249,8 +249,8 @@ tkbc_script_input {
   tkbc_script_team_box_left(env, ki, 300, move_duration, rotation_duration);
   tkbc_script_team_box_right(env, ki, 300, move_duration, rotation_duration);
   tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_script_team_dimond_left(env, ki, 300, move_duration, rotation_duration);
-  tkbc_script_team_dimond_right(env, ki, 300, move_duration, rotation_duration);
+  tkbc_script_team_diamond_left(env, ki, 300, move_duration, rotation_duration);
+  tkbc_script_team_diamond_right(env, ki, 300, move_duration, rotation_duration);
 
   tkbc_register_frames(env, tkbc_script_wait(1));
   tkbc_register_frames(
