@@ -45,7 +45,7 @@ typedef struct {
 
 // name : kind : data
 typedef enum {
-  MESSAGE_ZERO,
+  MESSAGE_ZERO = 0,
   MESSAGE_HELLO,
   MESSAGE_KITEADD,
   MESSAGE_CLIENT_DISCONNECT,

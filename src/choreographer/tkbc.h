@@ -8,7 +8,9 @@
 
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
+#ifndef EPSILON
 #define EPSILON 0.001f
+#endif // EPSILON
 static const int TARGET_FPS = 120;
 
 // ===========================================================================

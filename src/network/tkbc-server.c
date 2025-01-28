@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
   pthread_create(&execution_thread, NULL, tkbc_script_execution_handler, NULL);
   if (pthread_detach(execution_thread)) {
     tkbc_fprintf(stderr, "ERROR", "%s: %s\n",
-                 "Detaching execution thread has gone worng", strerror(errno));
+                 "Detaching execution thread has gone wrong", strerror(errno));
     exit(EXIT_FAILURE);
   }
 

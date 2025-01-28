@@ -72,9 +72,9 @@ bool tkbc_client_commandline_check(int argc, const char *program_name) {
 }
 
 /**
- * @brief The function checks if the given sting is a valid host address.
+ * @brief The function checks if the given string is a valid host address.
  *
- * @param host_check The possible sting that can contain the host.
+ * @param host_check The possible string that can contain the host.
  * @return The given host if the parsing was flawless, otherwise the program
  * crashes.
  */
