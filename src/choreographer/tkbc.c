@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <math.h>
 #include <raylib.h>
+#include <raymath.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -529,61 +530,52 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
  * @param position The new position for the kite at the center of the leading
  * edge or NULL for internal center position of the kite structure.
  * @param deg_rotation The kite rotation in degrees.
+ * @param radius The radius of the circle center to the leading edge center.
  * @param tip The tip that will be chosen to calculate the beginning of the
  * circle.
  * @param below The area where the rotation will happen.
  */
 void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
-                          TIP tip, bool below) {
+                          float radius, TIP tip, bool below) {
 
+  if (radius == -1) {
+    radius = kite->height;
+  }
   if (position != NULL) {
     tkbc_kite_update_position(kite, position);
   }
 
-  Vector2 pos = {0};
-  pos = kite->center;
-
-  // TODO: Change back to full circle size
-  // float_t length = k->height;
-  float_t length = kite->height / 2;
+  if (RIGHT_TIP == tip && below) {
+    deg_rotation = -deg_rotation;
+  }
+  if (LEFT_TIP == tip && !below) {
+    deg_rotation = -deg_rotation;
+  }
   float phi = (PI * (deg_rotation) / 180);
-  float center_angle = 0;
+
+  Vector2 leading_edge = {
+      .x = kite->right.v3.x - kite->left.v1.x,
+      .y = kite->right.v3.y - kite->left.v1.y,
+  };
+  Vector2 orthogonal = {
+      .x = leading_edge.y,
+      .y = -leading_edge.x,
+  };
+  Vector2 inter = Vector2Scale(Vector2Normalize(orthogonal), radius);
+
+  Vector2 circle_center;
   if (below) {
-    center_angle = (PI * (360 - 270) / 180);
+    circle_center = Vector2Add(kite->center, inter);
   } else {
-    center_angle = (PI * (360 - 90) / 180);
+    circle_center = Vector2Subtract(kite->center, inter);
   }
 
-  // center rotation point;
-  pos.x += length * cosf(center_angle);
-  pos.y += length * sinf(center_angle);
+  Vector2 pos = circle_center;
+  pos.x += radius * cosf(phi);
+  pos.y -= radius * sinf(phi);
 
-  switch (tip) {
-  case LEFT_TIP: {
-
-    // With out it just flies a circle
-    // pos->x -= ceilf(length);
-
-    // Move the rotation position to the left tip.
-    pos.x = kite->left.v1.x;
-    pos.y = kite->left.v1.y;
-    // Then rotate
-    pos.x += length * cosf(phi);
-    pos.y -= length * sinf(phi);
-  } break;
-  case RIGHT_TIP: {
-
-    // Move the rotation position to the right tip.
-    pos.x = kite->right.v3.x;
-    pos.y = kite->right.v3.y;
-    // Then rotate
-    pos.x -= length * cosf(phi);
-    pos.y += length * sinf(phi);
-
-  } break;
-  default:
-    assert(0 && "The chosen TIP is not valid!");
-  }
+  // Just compute a center rotation instead at the new shifted position.
+  tkbc_center_rotation(kite, &pos, deg_rotation);
 }
 
 // ===========================================================================
