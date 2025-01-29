@@ -406,8 +406,8 @@ check:
  * @brief The function constructs and sends the message CLIENTKITES to all
  * registered kites.
  *
- * @param cs The struct that contains all the clients where the message could be
- * send too.
+ * @param cs The struct that contains all the clients where the message could
+ * not be send too and could not be constructed.
  * @return True if the message was send successfully, otherwise false.
  */
 bool tkbc_message_clientkites_brodcast_all(Clients *cs) {
@@ -420,13 +420,14 @@ bool tkbc_message_clientkites_brodcast_all(Clients *cs) {
   tkbc_dap(&message, ':');
 
   memset(buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", cs->count);
+  snprintf(buf, sizeof(buf), "%zu", clients->count);
   tkbc_dapc(&message, buf, strlen(buf));
 
   tkbc_dap(&message, ':');
-  for (size_t i = 0; i < cs->count; ++i) {
-    if (!tkbc_message_append_clientkite(cs->elements[i].kite_id, &message)) {
-      tkbc_dap(cs, cs->elements[i]);
+  for (size_t i = 0; i < clients->count; ++i) {
+    if (!tkbc_message_append_clientkite(clients->elements[i].kite_id,
+                                        &message)) {
+      tkbc_dap(cs, clients->elements[i]);
       ok = false;
     }
   }
