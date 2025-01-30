@@ -146,6 +146,8 @@ int main(int argc, char *argv[]) {
   tkbc_fprintf(stderr, "INFO", "%s: %d\n", "Server socket", server_socket);
 
   srand(time(NULL));
+  // Get the first 0 out of the way.
+  tkbc_get_frame_time();
   env = tkbc_init_env();
   env->window_width = 1920;
   env->window_height = 1080;

@@ -315,7 +315,7 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
  * @param filename The file path that should be read into memory.
  * @param content The resulting memory pointer that contains the file content
  * after reading.
- * @return 0 if no errors occured, otherwise -1.
+ * @return 0 if no errors occurred, otherwise -1.
  */
 int tkbc_read_file(char *filename, Content *content) {
   FILE *file = fopen(filename, "rb");
@@ -434,9 +434,6 @@ double tkbc_get_time() {
 #endif // PROTOCOL_VERSION
 }
 
-#ifdef TKBC_SERVER
-static double tkbc_last_frame_time = 0;
-#endif // PROTOCOL_VERSION
 /**
  * @brief The function is a wrapper for the GetFrameTime() that is not available
  * in the server computation.
@@ -445,15 +442,20 @@ static double tkbc_last_frame_time = 0;
  */
 float tkbc_get_frame_time() {
 #ifdef TKBC_SERVER
+  static double tkbc_last_frame_time = 0;
   struct timespec ts;
   if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     exit(0);
   }
   double current_time =
-      (float)((uint64_t)ts.tv_sec * (uint64_t)1e9 + (uint64_t)ts.tv_nsec);
+      (uint64_t)ts.tv_sec * (uint64_t)1e9 + (uint64_t)ts.tv_nsec;
 
-  double dt = current_time - tkbc_last_frame_time;
+  double dt = (current_time - tkbc_last_frame_time) * 1e-9;
+  if (tkbc_last_frame_time == 0) {
+    tkbc_last_frame_time = current_time;
+    return 0;
+  }
   tkbc_last_frame_time = current_time;
   return (float)dt;
 #else
