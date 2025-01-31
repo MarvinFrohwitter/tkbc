@@ -69,6 +69,7 @@ int main(void) {
       tkbc_script_update_frames(env);
     }
 
+    tkbc_update_kites_for_resize_window(env);
     tkbc_draw_kite_array(env->kite_array);
     tkbc_draw_ui(env);
     EndDrawing();

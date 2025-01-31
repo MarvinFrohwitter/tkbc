@@ -608,3 +608,40 @@ void tkbc_draw_kite_array(Kite_States *kite_states) {
     tkbc_draw_kite(kite_states->elements[i].kite);
   }
 }
+
+/**
+ * @brief The function can be used to move all registered kites from there
+ * original position to the new one with the new screen size. It is useful if
+ * the screen size changes, than the kites are possible out of the view space
+ * and with this function they will be responsive inside the view port.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_update_kites_for_resize_window(Env *env) {
+  // TODO: Decide what to do with the dynamic simulations. They are bound
+  // sometimes to fixed sizes in the script and can't be moved that easy to the
+  // new dimensions.
+  if (!tkbc_script_finished(env)) {
+    return;
+  }
+
+  size_t width = tkbc_get_screen_width();
+  size_t height = tkbc_get_screen_height();
+
+  if (env->window_width != width || env->window_height != height) {
+    for (size_t i = 0; i < env->kite_array->count; ++i) {
+      Kite *kite = env->kite_array->elements[i].kite;
+      kite->center.x = kite->center.x / (float)env->window_width * (float)width;
+      kite->center.y =
+          kite->center.y / (float)env->window_height * (float)height;
+      kite->old_center.x =
+          kite->old_center.x / (float)env->window_width * (float)width;
+      kite->old_center.y =
+          kite->old_center.y / (float)env->window_height * (float)height;
+      tkbc_kite_update_internal(kite);
+    }
+
+    env->window_width = width;
+    env->window_height = height;
+  }
+}

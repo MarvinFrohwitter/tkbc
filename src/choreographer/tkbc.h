@@ -47,6 +47,7 @@ void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
 
 void tkbc_draw_kite(Kite *kite);
 void tkbc_draw_kite_array(Kite_States *kite_states);
+void tkbc_update_kites_for_resize_window(Env *env);
 
 // ========================== UI DECLARATIONS ==============================
 
