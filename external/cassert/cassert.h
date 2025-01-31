@@ -3,7 +3,6 @@
 
 #include <assert.h>
 #include <limits.h>
-#include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -72,8 +71,6 @@ typedef enum {
   UINT16_T_EQ,
   UINT32_T_EQ,
   UINT64_T_EQ,
-  FLOAT_T_EQ,
-  DOUBLE_T_EQ,
 
   SIZE_T_MAX_EQ,
   SIZE_T_MIN_EQ,
@@ -229,7 +226,7 @@ typedef struct {
 // and it is also just needed if some cassert_functions are called and you
 // provide a custom comparison function to the cassert_type_compare_function
 // macro. Here are the Assert_Types that involve heap allocation:
-// DOUBLE_EQ: DOUBLE_T_EQ: FLOAT_EQ: FLOAT_T_EQ:
+// DOUBLE_EQ: DOUBLE_EQ: FLOAT_EQ: FLOAT_EQ:
 // STRING_INT64_EQ: STRING_FLOAT_EQ: STRING_DOUBLE_EQ:
 void cassert_free_case_value_mem(Cassert *cassert);
 void cassert_array_free_case_value_mem(Test *test);
@@ -291,16 +288,24 @@ void cassert_print_tests(Tests *tests);
 #define eps 0.01
 #endif // !epsilon
 
-static inline bool float_equals(float_t x, float_t y) {
-  return (fabsf(x - y)) <= (eps * fmaxf(1.0f, fmaxf(fabsf(x), fabsf(y))));
+static inline double cassert_fmax(double x, double y) { return x < y ? y : x; }
+static inline float cassert_fmaxf(float x, float y) { return x < y ? y : x; }
+static inline double cassert_fabs(double x) { return 0 <= x ? x : -x; }
+static inline float cassert_fabsf(float x) { return 0 <= x ? x : -x; }
+
+static inline bool float_equals(float x, float y) {
+  return (cassert_fabsf(x - y)) <=
+         (eps * cassert_fmaxf(
+                    1.0f, cassert_fmaxf(cassert_fabsf(x), cassert_fabsf(y))));
 }
-static inline bool double_equals(double_t x, double_t y) {
-  return (fabs(x - y)) <= (eps * fmax(1.0f, fmax(fabs(x), fabs(y))));
+static inline bool double_equals(double x, double y) {
+  return (cassert_fabs(x - y)) <=
+         (eps *
+          cassert_fmax(1.0f, cassert_fmax(cassert_fabs(x), cassert_fabs(y))));
 }
 
 #define cassert_type_float_compare(type, a, compare, b)                        \
-  cassert_type_compare_function(type, ((float_t)(a)), float_equals,            \
-                                ((float_t)(b)))
+  cassert_type_compare_function(type, ((float)(a)), float_equals, ((float)(b)))
 
 #define cassert_type_double_compare(type, a, compare, b)                       \
   cassert_type_compare_function(type, (a), double_equals, (b))
@@ -352,18 +357,18 @@ enum { _float, _double, _int64 };
       };                                                                       \
       break;                                                                   \
     case _float:                                                               \
-      *(float_t *)cassert.value2 = (float_t)(number);                          \
+      *(float *)cassert.value2 = (float)(number);                              \
       cassert.assert_type = STRING_FLOAT_EQ;                                   \
       if (snprintf(number_string, sizeof(number_string), "%f\n",               \
-                   (float_t)(number)) < 0) {                                   \
+                   (float)(number)) < 0) {                                     \
         exit(EXIT_FAILURE);                                                    \
       };                                                                       \
       break;                                                                   \
     case _double:                                                              \
-      *(double_t *)cassert.value2 = (double_t)(number);                        \
+      *(double *)cassert.value2 = (double)(number);                            \
       cassert.assert_type = STRING_DOUBLE_EQ;                                  \
       if (snprintf(number_string, sizeof(number_string), "%lf\n",              \
-                   (double_t)(number)) < 0) {                                  \
+                   (double)(number)) < 0) {                                    \
         exit(EXIT_FAILURE);                                                    \
       };                                                                       \
       break;                                                                   \
@@ -514,11 +519,6 @@ enum { _float, _double, _int64 };
 #define cassert_ulong_long_eq(a, b)                                            \
   cassert_type_compare(ULONG_LONG_EQ, a, ==, b);
 
-#define cassert_float_eq(a, b) cassert_type_float_compare(FLOAT_EQ, a, ==, b);
-
-#define cassert_double_eq(a, b)                                                \
-  cassert_type_double_compare(DOUBLE_EQ, a, ==, b);
-
 #define cassert_size_t_eq(a, b) cassert_type_compare(SIZE_T_EQ, a, ==, b);
 
 #define cassert_int8_t_eq(a, b) cassert_type_compare(INT8_T_EQ, a, ==, b);
@@ -537,11 +537,10 @@ enum { _float, _double, _int64 };
 
 #define cassert_uint64_t_eq(a, b) cassert_type_compare(UINT64_T_EQ, a, ==, b);
 
-#define cassert_float_t_eq(a, b)                                               \
-  cassert_type_float_compare(FLOAT_T_EQ, a, ==, b);
+#define cassert_float_eq(a, b) cassert_type_float_compare(FLOAT_EQ, a, ==, b);
 
-#define cassert_double_t_eq(a, b)                                              \
-  cassert_type_double_compare(DOUBLE_T_EQ, a, ==, b);
+#define cassert_double_eq(a, b)                                                \
+  cassert_type_double_compare(DOUBLE_EQ, a, ==, b);
 
 #endif // CASSERT_H_
 
@@ -555,7 +554,7 @@ enum { _float, _double, _int64 };
 int cassert_min(int a, int b) { return a < b ? a : b; }
 
 const char *cassert_str_assert_type(Assert_Type assert_type) {
-  static_assert(ASSERT_TYPE_COUNT == 70, "assert types count has changed");
+  static_assert(ASSERT_TYPE_COUNT == 68, "assert types count has changed");
   switch (assert_type) {
   case STRING_EQ:
     return "STRING_EQ";
@@ -613,10 +612,6 @@ const char *cassert_str_assert_type(Assert_Type assert_type) {
     return "FLOAT_EQ";
   case DOUBLE_EQ:
     return "DOUBLE_EQ";
-  case FLOAT_T_EQ:
-    return "FLOAT_T_EQ";
-  case DOUBLE_T_EQ:
-    return "DOUBLE_T_EQ";
   case SIZE_T_MAX_EQ:
     return "SIZE_T_MAX_EQ";
   case SIZE_T_MIN_EQ:
@@ -746,9 +741,9 @@ int cassert_print(Cassert cassert) {
                            (char *)cassert.value2, LOC_ARG(cassert));
   case FLOAT_EQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
-                           "%f:%s:%f ->" LOC_FMT, *((float_t *)cassert.value1),
+                           "%f:%s:%f ->" LOC_FMT, *((float *)cassert.value1),
                            cassert_str_assert_type(cassert.assert_type),
-                           *((float_t *)cassert.value2), LOC_ARG(cassert));
+                           *((float *)cassert.value2), LOC_ARG(cassert));
   case INT_EQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%d:%s:%d ->" LOC_FMT, (int64_t *)cassert.value1,
@@ -764,12 +759,12 @@ int cassert_print(Cassert cassert) {
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%s:%s:%f ->" LOC_FMT, (char *)cassert.value1,
                            cassert_str_assert_type(cassert.assert_type),
-                           *(float_t *)cassert.value2, LOC_ARG(cassert));
+                           *(float *)cassert.value2, LOC_ARG(cassert));
   case STRING_DOUBLE_EQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%s:%s:%lf ->" LOC_FMT, (char *)cassert.value1,
                            cassert_str_assert_type(cassert.assert_type),
-                           *(double_t *)cassert.value2, LOC_ARG(cassert));
+                           *(double *)cassert.value2, LOC_ARG(cassert));
   case PTR_EQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%p:%s:%p ->" LOC_FMT, (uintptr_t *)cassert.value1,
@@ -881,9 +876,7 @@ void cassert_print_tests(Tests *tests) {
 void cassert_free_case_value_mem(Cassert *cassert) {
   switch (cassert->assert_type) {
   case DOUBLE_EQ:
-  case DOUBLE_T_EQ:
-  case FLOAT_EQ:
-  case FLOAT_T_EQ: {
+  case FLOAT_EQ: {
     if (cassert->value1) {
       free(cassert->value1);
     }
