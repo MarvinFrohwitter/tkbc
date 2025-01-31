@@ -621,7 +621,7 @@ void tkbc_update_kites_for_resize_window(Env *env) {
   // TODO: Decide what to do with the dynamic simulations. They are bound
   // sometimes to fixed sizes in the script and can't be moved that easy to the
   // new dimensions.
-  if (!tkbc_script_finished(env)) {
+  if (!env->script_finished) {
     return;
   }
 
