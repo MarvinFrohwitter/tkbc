@@ -351,6 +351,42 @@ END
 
 A full example is provided in ./tkbc_scripts/first.kite.
 
+The Team calls can be used in the '.kite' files in the following way.
+The exact types of the variables can be assumed as in the C declarations above.
+They are mostly float except rows and cols, but the types could maybe change so
+the C declarations are up to date.
+```JS
+EXTERN TEAM_LINE KITES position.x position.y offset.x offset.y h_padding move_duration
+EXTERN TEAM_GRID KITES position.x position.y offset.x offset.y v_padding h_padding rows columns move_duration
+EXTERN TEAM_BALL KITES position.x position.y offset.x offset.y radius move_duration rotation_duration
+EXTERN TEAM_MOUNTAIN KITES position.x position.y offset.x offset.y v_padding h_padding move_duration rotation_duration
+EXTERN TEAM_VALLEY KITES position.x position.y offset.x offset.y v_padding h_padding move_duration rotation_duration
+EXTERN TEAM_ARC KITES position.x position.y offset.x offset.y v_padding h_padding angle move_duration rotation_duration
+EXTERN TEAM_MOUTH KITES position.x position.y offset.x offset.y v_padding h_padding angle move_duration rotation_duration
+EXTERN TEAM_BOX KITES DIRECTION direction angle box_size move_duration rotation_duration
+EXTERN TEAM_BOX_LEFT KITES box_size move_duration rotation_duration
+EXTERN TEAM_BOX_RIGHT KITES box_size move_duration rotation_duration
+EXTERN TEAM_SPLIT_BOX_UP KITES odd_even box_size move_duration rotation_duration
+EXTERN TEAM_DIAMOND KITES direction angle box_size move_duration rotation_duration
+EXTERN TEAM_DIAMOND_LEFT KITES box_size move_duration rotation_duration
+EXTERN TEAM_DIAMOND_RIGHT KITES box_size move_duration rotation_duration
+```
+A more specific example would be the following.
+```Scala
+KITES 4
+BEGIN
+ROTATION (0 1 2 3) -90.000000 1.000000
+EXTERN TEAM_BOX KITES LEFT -90 100 5.1 3.4
+EXTERN TEAM_BOX (0 1 2 3) RIGHT -90 100 5.1 3.4
+{
+    MOVE_ADD (0 1 2 3) 0.000000 -300.000000 9.000000
+    WAIT 1.500000
+    QUIT 7.000000
+}
+EXTERN TEAM_SPLIT_BOX_UP KITES ODD 100 5 3
+EXTERN TEAM_SPLIT_BOX_UP KITES EVEN 100 5 3
+END
+```
 ---
 
 ## Mappings
