@@ -74,6 +74,7 @@ typedef struct {
                        // value with the delta time and the variable turn_speed
                        // that is stored in the kite itself.
 
+  bool mouse_control; // The indication if the kite follows the mouse position.
   bool interrupt_movement;   // The ability of the kite to move in user control.
   bool interrupt_smoothness; // The ability if the kite to turn smooth in user
                              // control.

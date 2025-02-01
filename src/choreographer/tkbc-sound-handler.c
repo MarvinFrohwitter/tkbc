@@ -37,10 +37,10 @@ void tkbc_sound_destroy(Sound sound) {
  */
 void tkbc_input_sound_handler(Env *env) {
   // Handles current loaded sound file.
-  if (IsKeyPressed(KEY_S) &&
+  if (IsKeyPressed(KEY_N) &&
       (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
     StopSound(env->sound);
-  } else if (IsKeyPressed(KEY_S)) {
+  } else if (IsKeyPressed(KEY_N)) {
     PlaySound(env->sound);
   } else if (IsKeyPressed(KEY_M) &&
              (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {

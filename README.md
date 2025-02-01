@@ -405,7 +405,7 @@ END
 
 `KEY_1|...|KEY_9` Toggles the selection of a kite.
 
-`KEY_N` Rotate all selected kites face up (angle = 0).
+`KEY_X` Rotate all selected kites face up (angle = 0).
 
 `KEY_R` Rotate all selected kites at the center clockwise.
 
@@ -437,9 +437,9 @@ END
 
 `KEY_TAB` Switches to the next loaded script.
 
-`KEY_S` Plays the currently loaded sound.
+`KEY_N` Plays the currently loaded sound.
 
-`SHIFT + KEY_S` Stops the current sound track.
+`SHIFT + KEY_N` Stops the current sound track.
 
 `KEY_M` Pauses the current sound track.
 
