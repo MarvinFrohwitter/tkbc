@@ -1,6 +1,7 @@
 // ========================== Sound Handler ==================================
 
 #include "../global/tkbc-types.h"
+#include "tkbc-keymaps.h"
 #include <raylib.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,15 +38,23 @@ void tkbc_sound_destroy(Sound sound) {
  */
 void tkbc_input_sound_handler(Env *env) {
   // Handles current loaded sound file.
-  if (IsKeyPressed(KEY_N) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+  // KEY_N && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+  KeyMap keymap = tkbc_hash_to_keymap(*env->keymaps, 1028);
+  if (IsKeyPressed(keymap.key) &&
+      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
     StopSound(env->sound);
-  } else if (IsKeyPressed(KEY_N)) {
+    // KEY_N
+  } else if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1027))) {
     PlaySound(env->sound);
-  } else if (IsKeyPressed(KEY_M) &&
-             (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+  }
+
+  keymap = tkbc_hash_to_keymap(*env->keymaps, 1030);
+  // KEY_M && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+  if (IsKeyPressed(keymap.key) &&
+      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
     ResumeSound(env->sound);
-  } else if (IsKeyPressed(KEY_M)) {
+    // KEY_M
+  } else if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1029))) {
     PauseSound(env->sound);
   }
 }

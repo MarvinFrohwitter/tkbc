@@ -130,7 +130,7 @@ char *tkbc_ptoa(char *buffer, size_t buffer_size, void *number, Types type);
 char *tkbc_shift_args(int *argc, char ***argv);
 void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
                                bool isgenerated);
-int tkbc_read_file(char *filename, Content *content);
+int tkbc_read_file(const char *filename, Content *content);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 int tkbc_get_screen_height();
 int tkbc_get_screen_width();
@@ -317,12 +317,14 @@ void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
  * after reading.
  * @return 0 if no errors occurred, otherwise -1.
  */
-int tkbc_read_file(char *filename, Content *content) {
+int tkbc_read_file(const char *filename, Content *content) {
+  int ok = 0;
   FILE *file = fopen(filename, "rb");
   if (file == NULL) {
     tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
                  strerror(errno));
-    return -1;
+    ok = -1;
+    return ok;
   }
 
   size_t chunk_size = 4 * 1024;
@@ -331,7 +333,8 @@ int tkbc_read_file(char *filename, Content *content) {
     memset(chunk, 0, chunk_size);
     if (chunk_size != fread(chunk, chunk_size, 1, file)) {
       if (ferror(file) == -1) {
-        return -1;
+        ok = -1;
+        break;
       }
     }
     tkbc_dapc(content, chunk, chunk_size);
@@ -342,9 +345,9 @@ int tkbc_read_file(char *filename, Content *content) {
   if (fclose(file) == EOF) {
     tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
                  strerror(errno));
-    return -1;
+    ok = -1;
   }
-  return 0;
+  return ok;
 }
 
 /**

@@ -1,5 +1,6 @@
 #include "tkbc-input-handler.h"
 #include "../global/tkbc-utils.h"
+#include "tkbc-keymaps.h"
 
 #include "tkbc.h"
 #include <raymath.h>
@@ -10,9 +11,10 @@
  * @brief The function handles all the keyboard input that is provided to
  * control the given state.
  *
+ * @param keymaps The current set keymaps.
  * @param state The current state of a kite that should be handled.
  */
-void tkbc_input_handler(Kite_State *state) {
+void tkbc_input_handler(KeyMaps keymaps, Kite_State *state) {
   if (!state->kite_input_handler_active) {
     return;
   }
@@ -26,40 +28,48 @@ void tkbc_input_handler(Kite_State *state) {
   state->fly_velocity *= dt;
   state->fly_velocity *= state->kite->fly_speed;
 
-  if (IsKeyDown(KEY_X))
+  // KEY_X
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, 1011)))
     tkbc_kite_update_angle(state->kite, 0);
 
-  if (IsKeyUp(KEY_R) && IsKeyUp(KEY_T)) {
+  // KEY_R && KEY_T
+  if (IsKeyUp(tkbc_hash_to_key(keymaps, 1012)) &&
+      IsKeyUp(tkbc_hash_to_key(keymaps, 1014))) {
     state->interrupt_smoothness = false;
   }
   if (state->interrupt_smoothness) {
     return;
   }
 
-  tkbc_input_check_speed(state);
-  if (IsKeyPressed(KEY_F)) {
+  tkbc_input_check_speed(keymaps, state);
+  // KEY_F
+  if (IsKeyPressed(tkbc_hash_to_key(keymaps, 1016))) {
     state->fixed = !state->fixed;
     return;
   }
 
-  tkbc_mouse_control(state);
+  tkbc_mouse_control(keymaps, state);
   if (!state->mouse_control) {
     tkbc_input_check_mouse(state);
-    tkbc_input_check_rotation(state);
-    tkbc_input_check_tip_turn(state);
-    tkbc_input_check_circle(state);
+    tkbc_input_check_rotation(keymaps, state);
+    tkbc_input_check_tip_turn(keymaps, state);
+    tkbc_input_check_circle(keymaps, state);
   }
 
   if (!state->iscenter) {
     // NOTE: Currently not check for arrow KEY_RIGHT and KEY_LEFT, so that you
     // can still move the kite with no interrupt but with steps of 45 degrees
     // angle.
-    if (IsKeyUp(KEY_T) && IsKeyUp(KEY_H) && IsKeyUp(KEY_L)) {
+    // KEY_T && KEY_H && KEY_L
+    KeyMap keymap = tkbc_hash_to_keymap(keymaps, 1014);
+    if (IsKeyUp(keymap.key) && IsKeyUp(keymap.selection_key1) &&
+        IsKeyUp(keymap.selection_key2)) {
       state->interrupt_movement = false;
     }
   } else {
     state->iscenter = false;
-    if (IsKeyUp(KEY_R)) {
+    // KEY_R
+    if (IsKeyUp(tkbc_hash_to_keymap(keymaps, 1012).key)) {
       state->interrupt_movement = false;
     }
   }
@@ -68,7 +78,7 @@ void tkbc_input_handler(Kite_State *state) {
   }
 
   if (!state->mouse_control) {
-    tkbc_input_check_movement(state);
+    tkbc_input_check_movement(keymaps, state);
   }
 }
 
@@ -122,7 +132,7 @@ void tkbc_input_handler_kite_array(Env *env) {
 
   // To handle all of the kites currently registered in the kite array.
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    tkbc_input_handler(&env->kite_array->elements[i]);
+    tkbc_input_handler(*env->keymaps, &env->kite_array->elements[i]);
   }
 }
 
@@ -130,11 +140,14 @@ void tkbc_input_handler_kite_array(Env *env) {
  * @brief The function handles the corresponding rotation invoked by the key
  * input.
  *
+ * @param keymaps The current set keymaps.
  * @param s The current state of a kite that should be handled.
  */
-void tkbc_input_check_rotation(Kite_State *s) {
-  if (IsKeyDown(KEY_R) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+void tkbc_input_check_rotation(KeyMaps keymaps, Kite_State *s) {
+  KeyMap keymap = tkbc_hash_to_keymap(keymaps, 1013);
+  // KEY_R && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+  if (IsKeyDown(keymap.key) &&
+      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
     s->iscenter = true;
 
     if (!s->fixed) {
@@ -148,7 +161,7 @@ void tkbc_input_check_rotation(Kite_State *s) {
     }
     s->interrupt_smoothness = true;
 
-  } else if (IsKeyDown(KEY_R)) {
+  } else if (IsKeyDown(tkbc_hash_to_keymap(keymaps, 1012).key)) {
     s->iscenter = true;
 
     if (!s->fixed) {
@@ -168,32 +181,23 @@ void tkbc_input_check_rotation(Kite_State *s) {
  * @brief The function handles the corresponding tip turn rotation invoked by
  * the key input.
  *
+ * @param keymaps The current set keymaps.
  * @param s The current state of a kite that should be handled.
  */
-void tkbc_input_check_tip_turn(Kite_State *s) {
+void tkbc_input_check_tip_turn(KeyMaps keymaps, Kite_State *s) {
   // TODO: Think about the clamp in terms of a tip rotation
-
-  if (!IsKeyDown(KEY_T)) {
+  // KEY_T
+  if (!IsKeyDown(tkbc_hash_to_keymap(keymaps, 1014).key)) {
     return;
   }
 
-  if (IsKeyDown(KEY_T) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+  KeyMap keymap = tkbc_hash_to_keymap(keymaps, 1015);
+  // KEY_T && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+  if (IsKeyDown(keymap.key) &&
+      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
 
-    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-      if (!s->fixed) {
-        tkbc_tip_rotation(s->kite, NULL, s->kite->angle + 1 + s->turn_velocity,
-                          RIGHT_TIP);
-        return;
-      }
-      if (!s->interrupt_smoothness) {
-        s->interrupt_movement = true;
-        tkbc_tip_rotation(s->kite, NULL, s->kite->angle + 45, RIGHT_TIP);
-      }
-      s->interrupt_smoothness = true;
-    }
-
-    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+    // KEY_H
+    if (IsKeyDown(keymap.selection_key1) || IsKeyDown(KEY_LEFT)) {
       if (!s->fixed) {
         tkbc_tip_rotation(s->kite, NULL, s->kite->angle + 1 + s->turn_velocity,
                           LEFT_TIP);
@@ -206,22 +210,25 @@ void tkbc_input_check_tip_turn(Kite_State *s) {
       s->interrupt_smoothness = true;
     }
 
+    // KEY_L && KEY_RIGHT
+    if (IsKeyDown(keymap.selection_key2) || IsKeyDown(KEY_RIGHT)) {
+      if (!s->fixed) {
+        tkbc_tip_rotation(s->kite, NULL, s->kite->angle + 1 + s->turn_velocity,
+                          RIGHT_TIP);
+        return;
+      }
+      if (!s->interrupt_smoothness) {
+        s->interrupt_movement = true;
+        tkbc_tip_rotation(s->kite, NULL, s->kite->angle + 45, RIGHT_TIP);
+      }
+      s->interrupt_smoothness = true;
+    }
+
     return;
   }
 
-  if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-    if (!s->fixed) {
-      tkbc_tip_rotation(s->kite, NULL, s->kite->angle - 1 - s->turn_velocity,
-                        RIGHT_TIP);
-      return;
-    }
-    if (!s->interrupt_smoothness) {
-      s->interrupt_movement = true;
-      tkbc_tip_rotation(s->kite, NULL, s->kite->angle - 45, RIGHT_TIP);
-    }
-    s->interrupt_smoothness = true;
-  }
-  if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+  if (IsKeyDown(tkbc_hash_to_keymap(keymaps, 1014).selection_key1) ||
+      IsKeyDown(KEY_LEFT)) {
     if (!s->fixed) {
       tkbc_tip_rotation(s->kite, NULL, s->kite->angle - 1 - s->turn_velocity,
                         LEFT_TIP);
@@ -233,23 +240,57 @@ void tkbc_input_check_tip_turn(Kite_State *s) {
     }
     s->interrupt_smoothness = true;
   }
+  if (IsKeyDown(tkbc_hash_to_keymap(keymaps, 1014).selection_key2) ||
+      IsKeyDown(KEY_RIGHT)) {
+    if (!s->fixed) {
+      tkbc_tip_rotation(s->kite, NULL, s->kite->angle - 1 - s->turn_velocity,
+                        RIGHT_TIP);
+      return;
+    }
+    if (!s->interrupt_smoothness) {
+      s->interrupt_movement = true;
+      tkbc_tip_rotation(s->kite, NULL, s->kite->angle - 45, RIGHT_TIP);
+    }
+    s->interrupt_smoothness = true;
+  }
 }
 
 /**
  * @brief [TODO:description] currently not working!
  *
+ * @param keymaps The current set keymaps.
  * @param s The current state of a kite that should be handled.
  */
-void tkbc_input_check_circle(Kite_State *s) {
-  if (!IsKeyPressed(KEY_C)) {
+void tkbc_input_check_circle(KeyMaps keymaps, Kite_State *s) {
+  // KEY_C
+  if (!IsKeyPressed(tkbc_hash_to_keymap(keymaps, 1031).key)) {
     return;
   }
 
-  if (IsKeyPressed(KEY_C) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+  KeyMap keymap = tkbc_hash_to_keymap(keymaps, 1032);
+  // KEY_C
+  if (IsKeyPressed(keymap.key) &&
+      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
 
     // state->interrupt_movement = true;
-    if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+    // KEY_H
+    if (IsKeyDown(keymap.selection_key1) || IsKeyDown(KEY_LEFT)) {
+      if (!s->fixed) {
+        tkbc_circle_rotation(s->kite, NULL,
+                             s->kite->angle - 1 - s->turn_velocity, -1,
+                             LEFT_TIP, false);
+        return;
+      }
+      if (!s->interrupt_smoothness) {
+        s->interrupt_movement = true;
+        tkbc_circle_rotation(s->kite, NULL, s->kite->angle - 45, -1, LEFT_TIP,
+                             false);
+      }
+      s->interrupt_smoothness = true;
+    }
+
+    // KEY_L
+    if (IsKeyDown(keymap.selection_key2) || IsKeyDown(KEY_RIGHT)) {
 
       if (!s->fixed) {
         tkbc_circle_rotation(s->kite, NULL,
@@ -264,39 +305,13 @@ void tkbc_input_check_circle(Kite_State *s) {
       }
       s->interrupt_smoothness = true;
     }
-
-    if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
-      if (!s->fixed) {
-        tkbc_circle_rotation(s->kite, NULL,
-                             s->kite->angle - 1 - s->turn_velocity, -1,
-                             LEFT_TIP, false);
-        return;
-      }
-      if (!s->interrupt_smoothness) {
-        s->interrupt_movement = true;
-        tkbc_circle_rotation(s->kite, NULL, s->kite->angle - 45, -1, LEFT_TIP,
-                             false);
-      }
-      s->interrupt_smoothness = true;
-    }
     return;
   }
 
   // state->interrupt_movement = true;
-  if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
-    if (!s->fixed) {
-      tkbc_circle_rotation(s->kite, NULL, s->kite->angle - 1 - s->turn_velocity,
-                           -1, RIGHT_TIP, true);
-      return;
-    }
-    if (!s->interrupt_smoothness) {
-      s->interrupt_movement = true;
-      tkbc_circle_rotation(s->kite, NULL, s->kite->angle - 45, -1, RIGHT_TIP,
-                           true);
-    }
-    s->interrupt_smoothness = true;
-  }
-  if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+  // KEY_H
+  if (IsKeyDown(tkbc_hash_to_keymap(keymaps, 1031).selection_key1) ||
+      IsKeyDown(KEY_LEFT)) {
     if (!s->fixed) {
       tkbc_circle_rotation(s->kite, NULL, s->kite->angle + 1 + s->turn_velocity,
                            -1, LEFT_TIP, true);
@@ -309,15 +324,31 @@ void tkbc_input_check_circle(Kite_State *s) {
     }
     s->interrupt_smoothness = true;
   }
+  // KEY_L
+  if (IsKeyDown(tkbc_hash_to_keymap(keymaps, 1031).selection_key1) ||
+      IsKeyDown(KEY_RIGHT)) {
+    if (!s->fixed) {
+      tkbc_circle_rotation(s->kite, NULL, s->kite->angle - 1 - s->turn_velocity,
+                           -1, RIGHT_TIP, true);
+      return;
+    }
+    if (!s->interrupt_smoothness) {
+      s->interrupt_movement = true;
+      tkbc_circle_rotation(s->kite, NULL, s->kite->angle - 45, -1, RIGHT_TIP,
+                           true);
+    }
+    s->interrupt_smoothness = true;
+  }
 }
 
 /**
  * @brief The function handles the key presses invoked by the caller related to
  * basic movement of the kite.
  *
+ * @param keymaps The current set keymaps.
  * @param state The current state of a kite that should be handled.
  */
-void tkbc_input_check_movement(Kite_State *state) {
+void tkbc_input_check_movement(KeyMaps keymaps, Kite_State *state) {
   int viewport_padding = state->kite->width > state->kite->height
                              ? state->kite->width / 2
                              : state->kite->height;
@@ -325,22 +356,26 @@ void tkbc_input_check_movement(Kite_State *state) {
   window.x -= viewport_padding;
   window.y -= viewport_padding;
 
-  if (IsKeyDown(KEY_J) || IsKeyDown(KEY_DOWN)) {
-    state->kite->center.y =
-        tkbc_clamp(state->kite->center.y + state->fly_velocity,
-                   viewport_padding, window.y);
-  }
-  if (IsKeyDown(KEY_K) || IsKeyDown(KEY_UP)) {
-    state->kite->center.y =
-        tkbc_clamp(state->kite->center.y - state->fly_velocity,
-                   viewport_padding, window.y);
-  }
-  if (IsKeyDown(KEY_H) || IsKeyDown(KEY_LEFT)) {
+  // KEY_H
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, 1017)) || IsKeyDown(KEY_LEFT)) {
     state->kite->center.x =
         tkbc_clamp(state->kite->center.x - state->fly_velocity,
                    viewport_padding, window.x);
   }
-  if (IsKeyDown(KEY_L) || IsKeyDown(KEY_RIGHT)) {
+  // KEY_J
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, 1018)) || IsKeyDown(KEY_DOWN)) {
+    state->kite->center.y =
+        tkbc_clamp(state->kite->center.y + state->fly_velocity,
+                   viewport_padding, window.y);
+  }
+  // KEY_K
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, 1019)) || IsKeyDown(KEY_UP)) {
+    state->kite->center.y =
+        tkbc_clamp(state->kite->center.y - state->fly_velocity,
+                   viewport_padding, window.y);
+  }
+  // KEY_L
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, 1020)) || IsKeyDown(KEY_RIGHT)) {
     state->kite->center.x =
         tkbc_clamp(state->kite->center.x + state->fly_velocity,
                    viewport_padding, window.x);
@@ -353,27 +388,34 @@ void tkbc_input_check_movement(Kite_State *state) {
  * @brief The function controls the turn speed and the fly speed of the kite
  * corresponding to the key presses.
  *
+ * @param keymaps The current set keymaps.
  * @param state The current state of a kite that should be handled.
  */
-void tkbc_input_check_speed(Kite_State *state) {
+void tkbc_input_check_speed(KeyMaps keymaps, Kite_State *state) {
 
-  if (IsKeyDown(KEY_P) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+  KeyMap keymap = tkbc_hash_to_keymap(keymaps, 1022);
+  // KEY_P && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+  if (IsKeyDown(keymap.key) &&
+      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
     if (state->kite->fly_speed > 0) {
       state->kite->fly_speed -= 1;
     }
-  } else if (IsKeyDown(KEY_P)) {
+    // KEY_P
+  } else if (IsKeyDown(tkbc_hash_to_key(keymaps, 1021))) {
     if (state->kite->fly_speed <= 100) {
       state->kite->fly_speed += 1;
     }
   }
 
-  if (IsKeyDown(KEY_O) &&
-      (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))) {
+  keymap = tkbc_hash_to_keymap(keymaps, 1024);
+  // KEY_O && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+  if (IsKeyDown(keymap.key) &&
+      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
     if (state->kite->turn_speed > 0) {
       state->kite->turn_speed -= 1;
     }
-  } else if (IsKeyDown(KEY_O)) {
+    // KEY_O
+  } else if (IsKeyDown(tkbc_hash_to_key(keymaps, 1023))) {
     if (state->kite->turn_speed <= 100) {
       state->kite->turn_speed += 1;
     }
@@ -402,10 +444,12 @@ void tkbc_input_check_mouse(Kite_State *state) {
  * can move the kite towards, away and left and right around the mouse, with the
  * keyboard input keys [w,a,s,d] or alternative with [up, left, down, right].
  *
+ * @param keymaps The current set keymaps.
  * @param state The current state of a kite that should be handled.
  */
-void tkbc_mouse_control(Kite_State *state) {
-  if (IsKeyPressed(KEY_ZERO)) {
+void tkbc_mouse_control(KeyMaps keymaps, Kite_State *state) {
+  // KEY_ZERO
+  if (IsKeyPressed(tkbc_hash_to_key(keymaps, 1033))) {
     state->mouse_control = !state->mouse_control;
   }
   if (!state->mouse_control) {
@@ -439,21 +483,25 @@ void tkbc_mouse_control(Kite_State *state) {
   d = Vector2Normalize(d);
   face = Vector2Normalize(face);
 
-  if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) {
-    kite->center.x = tkbc_clamp(kite->center.x - t * d.x, padding, window.x);
-    kite->center.y = tkbc_clamp(kite->center.y - t * d.y, padding, window.y);
-  }
-  if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
+  // KEY_W
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, 1034)) || IsKeyDown(KEY_UP)) {
     kite->center.x = tkbc_clamp(kite->center.x + t * d.x, padding, window.x);
     kite->center.y = tkbc_clamp(kite->center.y + t * d.y, padding, window.y);
   }
-  if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
-    kite->center.x = tkbc_clamp(kite->center.x - t * face.x, padding, window.x);
-    kite->center.y = tkbc_clamp(kite->center.y - t * face.y, padding, window.y);
-  }
-  if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+  // KEY_A
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, 1035)) || IsKeyDown(KEY_RIGHT)) {
     kite->center.x = tkbc_clamp(kite->center.x + t * face.x, padding, window.x);
     kite->center.y = tkbc_clamp(kite->center.y + t * face.y, padding, window.y);
+  }
+  // KEY_S
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, 1036)) || IsKeyDown(KEY_DOWN)) {
+    kite->center.x = tkbc_clamp(kite->center.x - t * d.x, padding, window.x);
+    kite->center.y = tkbc_clamp(kite->center.y - t * d.y, padding, window.y);
+  }
+  // KEY_D
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, 1037)) || IsKeyDown(KEY_LEFT)) {
+    kite->center.x = tkbc_clamp(kite->center.x - t * face.x, padding, window.x);
+    kite->center.y = tkbc_clamp(kite->center.y - t * face.y, padding, window.y);
   }
 
   tkbc_kite_update_internal(state->kite);

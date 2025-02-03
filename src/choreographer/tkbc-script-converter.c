@@ -26,6 +26,11 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
   bool ok = true;
   size_t max_kites = 0;
   FILE *file = fopen(filename, "wb");
+  if (file == NULL) {
+    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
+                 strerror(errno));
+    return -1;
+  }
 
   fprintf(file, "KITES  \n");
   // Padding for Maximum number that can be inserted later for KITES.

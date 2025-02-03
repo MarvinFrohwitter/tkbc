@@ -58,7 +58,7 @@ typedef struct Lexer {
   unsigned long long int next_start_position;
 
   unsigned long long int line_count;
-  char *file_name;
+  const char *file_name;
 
   Lexer_Scratch_Buffer buffer;
 } Lexer;
@@ -273,7 +273,7 @@ typedef struct Token {
 /* ==========================================================================
  */
 
-BASICLEXDEF Lexer *lexer_new(char *file_path, char *content, size_t size,
+BASICLEXDEF Lexer *lexer_new(const char *file_path, char *content, size_t size,
                              size_t position);
 BASICLEXDEF void lexer_del(Lexer *lexer);
 BASICLEXDEF Token lexer_next(Lexer *lexer);
@@ -336,7 +336,7 @@ LEXDEF int is_sybol_alpha_and_(char c);
 /* @param size The content length. */
 /* @param The position of the content the lexer should begin tokenise. */
 /* @return Lexer The function returns a new initialized lexer. */
-BASICLEXDEF Lexer *lexer_new(char *file_path, char *content, size_t size,
+BASICLEXDEF Lexer *lexer_new(const char *file_path, char *content, size_t size,
                              size_t position) {
   Lexer *lexer = calloc(1, sizeof(Lexer));
   if (lexer == NULL) {

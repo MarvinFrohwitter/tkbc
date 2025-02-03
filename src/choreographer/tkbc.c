@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "../global/tkbc-utils.h"
+#include "tkbc-keymaps.h"
 #include "tkbc-parser.h"
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
@@ -80,6 +81,14 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
+  env->keymaps = calloc(1, sizeof(*env->keymaps));
+  if (env->keymaps == NULL) {
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+    return NULL;
+  }
+
+  tkbc_set_keymaps_defaults(env->keymaps);
+
   tkbc_set_kite_defaults(env->vanilla_kite, true);
   env->kite_id_counter = 0;
   env->script_setup = true;
@@ -113,6 +122,10 @@ Env *tkbc_init_env(void) {
   env->timeline_segments = 0;
   env->timeline_hoverover = false;
   env->timeline_interaction = false;
+
+  env->keymaps_interaction = false;
+  env->keymaps_mouse_interaction = false;
+  env->keymaps_mouse_interaction_box = 0;
 
   return env;
 }
@@ -155,6 +168,9 @@ Kite_State *tkbc_init_kite(void) {
  */
 void tkbc_destroy_env(Env *env) {
 
+  if (env->keymaps != NULL) {
+    free(env->keymaps);
+  }
   if (env->sound_file_name != NULL) {
     free(env->sound_file_name);
   }
@@ -357,6 +373,7 @@ void tkbc_set_kite_state_defaults(Kite_State *state) {
   state->fixed = true;
   state->interrupt_movement = false;
   state->interrupt_smoothness = false;
+  state->mouse_control = false;
 }
 
 // ===========================================================================

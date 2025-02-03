@@ -5,6 +5,7 @@
 
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include "tkbc-keymaps.h"
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
 
@@ -553,14 +554,17 @@ size_t tkbc_check_finished_frames_count(Env *env) {
  */
 void tkbc_input_handler_script(Env *env) {
   // Hard reset to startposition angel 0
-  if (IsKeyDown(KEY_ENTER)) {
+  // KEY_ENTER
+  if (IsKeyDown(tkbc_hash_to_key(*env->keymaps, 1010))) {
     tkbc_kite_array_start_position(env->kite_array, env->window_width,
                                    env->window_height);
   }
-  if (IsKeyPressed(KEY_SPACE)) {
+  // KEY_SPACE
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1025))) {
     env->script_finished = !env->script_finished;
   }
-  if (IsKeyPressed(KEY_TAB)) {
+  // KEY_TAB
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1026))) {
     assert(env->script_counter <= env->block_frames->count);
 
     if (env->script_counter > 0) {

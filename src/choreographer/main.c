@@ -4,6 +4,7 @@
 
 #include "tkbc-ffmpeg.h"
 #include "tkbc-input-handler.h"
+#include "tkbc-keymaps.h"
 #include "tkbc-script-api.h"
 #include "tkbc-script-converter.h"
 #include "tkbc-sound-handler.h"
@@ -30,7 +31,7 @@ int main(void) {
   // SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(TARGET_FPS);
-  SetExitKey(KEY_ESCAPE);
+  SetExitKey(KEY_Q);
 
 #ifdef LOADIMAGE
   Image background_image =
@@ -41,6 +42,8 @@ int main(void) {
   tkbc_init_sound(40);
 
   Env *env = tkbc_init_env();
+  tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
+  tkbc_setup_keymaps(env->keymaps);
 
   while (!WindowShouldClose()) {
     BeginDrawing();
@@ -75,12 +78,14 @@ int main(void) {
     EndDrawing();
 
     tkbc_file_handler(env);
-    tkbc_input_sound_handler(env);
-    tkbc_input_handler_kite_array(env);
-    tkbc_input_handler_script(env);
-    // The end of the current frame has to be executed so ffmpeg gets the full
-    // executed fame.
-    tkbc_ffmpeg_handler(env, "output.mp4");
+    if (!env->keymaps_interaction) {
+      tkbc_input_sound_handler(env);
+      tkbc_input_handler_kite_array(env);
+      tkbc_input_handler_script(env);
+      // The end of the current frame has to be executed so ffmpeg gets the full
+      // executed fame.
+      tkbc_ffmpeg_handler(env, "output.mp4");
+    }
   };
 
   tkbc_destroy_env(env);

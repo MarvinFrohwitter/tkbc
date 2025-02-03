@@ -6,6 +6,7 @@
 
 #include "../choreographer/tkbc-ffmpeg.h"
 #include "../choreographer/tkbc-input-handler.h"
+#include "../choreographer/tkbc-keymaps.h"
 #include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc-sound-handler.h"
 #include "../choreographer/tkbc.h"
@@ -530,7 +531,7 @@ void tkbc_client_input_handler_kite() {
       float angle = kite_state->kite->angle;
 
       kite_state->kite_input_handler_active = true;
-      tkbc_input_handler(kite_state);
+      tkbc_input_handler(*env->keymaps, kite_state);
 
       if (Vector2Equals(pos, kite_state->kite->center)) {
         if (FloatEquals(angle, kite_state->kite->angle)) {
@@ -736,7 +737,8 @@ void tkbc_client_input_handler_script() {
   }
 
   // Hard reset to startposition angel 0
-  if (IsKeyDown(KEY_ENTER)) {
+  // KEY_ENTER
+  if (IsKeyDown(tkbc_hash_to_key(*env->keymaps, 1010))) {
     tkbc_kite_array_start_position(env->kite_array, env->window_width,
                                    env->window_height);
     char buf[64] = {0};
@@ -772,7 +774,8 @@ void tkbc_client_input_handler_script() {
     tkbc_dapc(&send_message_queue, "\r\n", 2);
   }
 
-  if (IsKeyPressed(KEY_SPACE)) {
+  // KEY_SPACE
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1025))) {
     char buf[64] = {0};
     snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_TOGGLE);
     tkbc_dapc(&send_message_queue, buf, strlen(buf));
@@ -780,7 +783,8 @@ void tkbc_client_input_handler_script() {
     tkbc_dapc(&send_message_queue, "\r\n", 2);
   }
 
-  if (IsKeyPressed(KEY_TAB)) {
+  // KEY_TAB
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1026))) {
     char buf[64] = {0};
     snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_NEXT);
     tkbc_dapc(&send_message_queue, buf, strlen(buf));
@@ -836,9 +840,11 @@ int main(int argc, char *argv[]) {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(TARGET_FPS);
-  SetExitKey(KEY_ESCAPE);
+  SetExitKey(KEY_Q);
   tkbc_init_sound(40);
   env = tkbc_init_env();
+  tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
+  tkbc_setup_keymaps(env->keymaps);
 
   size_t count = env->kite_array->count;
   sending_script_handler();
@@ -881,12 +887,14 @@ int main(int argc, char *argv[]) {
     }
 
     tkbc_client_file_handler();
-    tkbc_input_sound_handler(env);
-    tkbc_client_input_handler_kite();
-    tkbc_client_input_handler_script();
-    // The end of the current frame has to be executed so ffmpeg gets the full
-    // executed fame.
-    tkbc_ffmpeg_handler(env, "output.mp4");
+    if (!env->keymaps_interaction) {
+      tkbc_input_sound_handler(env);
+      tkbc_client_input_handler_kite();
+      tkbc_client_input_handler_script();
+      // The end of the current frame has to be executed so ffmpeg gets the full
+      // executed fame.
+      tkbc_ffmpeg_handler(env, "output.mp4");
+    }
     if (!sending) {
       // Clearing for offline continuation.
       send_message_queue.count = 0;

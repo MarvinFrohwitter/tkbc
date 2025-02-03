@@ -393,7 +393,9 @@ END
 
 **`:Key:` `:Function Description:`**
 
-`KEY_ESCAPE` Quits the Program.
+`KEY_F1` Change key mappings.
+
+`KEY_Q` Quits the Program.
 
 `KEY_B` Take a Screenshot.
 

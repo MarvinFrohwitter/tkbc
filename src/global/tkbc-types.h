@@ -10,6 +10,27 @@
 // ===========================================================================
 
 typedef struct {
+  const char *description;
+  const char *mod_key_str;
+  const char *mod_co_key_str;
+  const char *selection_key1_str;
+  const char *selection_key2_str;
+  const char *key_str;
+  int mod_key;
+  int mod_co_key;
+  int selection_key1;
+  int selection_key2;
+  int key;
+  int hash;
+} KeyMap;
+
+typedef struct KeyMaps {
+  KeyMap *elements;
+  size_t count;
+  size_t capacity;
+} KeyMaps;
+
+typedef struct {
   char *elements;
   size_t count;
   size_t capacity;
@@ -261,6 +282,10 @@ typedef struct {
   Sound sound;           // The current loaded sound.
 
   // -------UI-------
+  KeyMaps *keymaps;         // The current keymaps
+  bool keymaps_interaction; // The status if the keymaps are currently edited.
+  bool keymaps_mouse_interaction;       // Checks if a keymap was clicked.
+  size_t keymaps_mouse_interaction_box; // The id of the box the is clicked.
   Rectangle timeline_base;  // The rectangle that is below the slider.
   Rectangle timeline_front; // The rectangle that represents the slider.
 

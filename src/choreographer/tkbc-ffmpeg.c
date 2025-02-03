@@ -9,6 +9,7 @@
 
 #include "../global/tkbc-utils.h"
 #include "tkbc-ffmpeg.h"
+#include "tkbc-keymaps.h"
 
 /**
  * @brief The function controls the keyboard input of the start and stop video
@@ -18,16 +19,19 @@
  * @param output_file_path The file path of the output video.
  */
 void tkbc_ffmpeg_handler(Env *env, const char *output_file_path) {
-  if (IsKeyPressed(KEY_B)) {
+  // KEY_B
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1027))) {
     TakeScreenshot("1.png");
   }
   // The handler has to be carefully checked because the same key is used
   // multiple times and that can cause problems, with reinitializing the
   // ffmpeg child process where the old one is still running.
-  if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) &&
-      IsKeyPressed(KEY_V)) {
+  KeyMap keymap = tkbc_hash_to_keymap(*env->keymaps, 1009);
+  // KEY_V && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+  if (IsKeyPressed(keymap.key) &&
+      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
     tkbc_ffmpeg_end(env);
-  } else if (IsKeyPressed(KEY_V)) {
+  } else if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1008))) {
     if (!env->rendering) {
       tkbc_ffmpeg_create_proc(env, output_file_path);
     }
