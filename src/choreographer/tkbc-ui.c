@@ -31,7 +31,9 @@ void tkbc_draw_ui(Env *env) {
 
   tkbc_ui_keymaps(env);
 
-  DrawFPS(env->window_width / 2, 10);
+  if (!env->rendering) {
+    DrawFPS(env->window_width / 2, 10);
+  }
 }
 
 /**
