@@ -118,11 +118,11 @@
   } while (0)
 
 typedef enum {
-  SIZE_T,
-  INT,
-  LONG,
-  FLOAT,
-  DOUBLE,
+  TYPE_SIZE_T,
+  TYPE_INT,
+  TYPE_LONG,
+  TYPE_FLOAT,
+  TYPE_DOUBLE,
 } Types;
 
 int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...);
@@ -214,14 +214,14 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
  */
 char *tkbc_ptoa(char *buffer, size_t buffer_size, void *number, Types type) {
   memset(buffer, 0, buffer_size);
-  if ((type) == SIZE_T) {
+  if ((type) == TYPE_SIZE_T) {
     snprintf(buffer, buffer_size - 1, "%zu", *((size_t *)number));
-  } else if ((type) == INT) {
+  } else if ((type) == TYPE_INT) {
     snprintf(buffer, buffer_size - 1, "%d", *((int *)number));
-  } else if ((type) == FLOAT) {
+  } else if ((type) == TYPE_FLOAT) {
     snprintf(buffer, buffer_size - 1, "%f", *((float *)number));
-  } else if ((type) == DOUBLE) {
-    snprintf(buffer, buffer_size - 1, "%f", *((double *)number));
+  } else if ((type) == TYPE_DOUBLE) {
+    snprintf(buffer, buffer_size - 1, "%lf", *((double *)number));
   }
   buffer[buffer_size - 1] = 0;
   return buffer;

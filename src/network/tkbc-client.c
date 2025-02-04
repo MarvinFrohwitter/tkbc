@@ -564,32 +564,32 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
   char buf[64] = {0};
   for (size_t i = 0; i < env->block_frames->count; ++i) {
     if (env->block_frames->elements[i].script_id == script_id) {
-      tkbc_ptoa(buf, sizeof(buf), &script_id, SIZE_T);
+      tkbc_ptoa(buf, sizeof(buf), &script_id, TYPE_SIZE_T);
       tkbc_dapc(message, buf, strlen(buf));
       tkbc_dap(message, ':');
 
       Block_Frame *block_frame = &env->block_frames->elements[i];
-      tkbc_ptoa(buf, sizeof(buf), &block_frame->count, SIZE_T);
+      tkbc_ptoa(buf, sizeof(buf), &block_frame->count, TYPE_SIZE_T);
       tkbc_dapc(message, buf, strlen(buf));
       tkbc_dap(message, ':');
       for (size_t j = 0; j < block_frame->count; ++j) {
         tkbc_ptoa(buf, sizeof(buf), &block_frame->elements[j].block_index,
-                  SIZE_T);
+                  TYPE_SIZE_T);
         tkbc_dapc(message, buf, strlen(buf));
         tkbc_dap(message, ':');
 
         Frames *frames = &block_frame->elements[j];
-        tkbc_ptoa(buf, sizeof(buf), &frames->count, SIZE_T);
+        tkbc_ptoa(buf, sizeof(buf), &frames->count, TYPE_SIZE_T);
         tkbc_dapc(message, buf, strlen(buf));
         tkbc_dap(message, ':');
         for (size_t k = 0; k < frames->count; ++k) {
-          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].index, SIZE_T);
+          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].index, TYPE_SIZE_T);
           tkbc_dapc(message, buf, strlen(buf));
           tkbc_dap(message, ':');
-          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].finished, INT);
+          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].finished, TYPE_INT);
           tkbc_dapc(message, buf, strlen(buf));
           tkbc_dap(message, ':');
-          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].kind, INT);
+          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].kind, TYPE_INT);
           tkbc_dapc(message, buf, strlen(buf));
           tkbc_dap(message, ':');
 
@@ -599,34 +599,34 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
           case KITE_QUIT:
           case KITE_WAIT: {
             Wait_Action *action = frames->elements[k].action;
-            tkbc_ptoa(buf, sizeof(buf), &action->starttime, DOUBLE);
+            tkbc_ptoa(buf, sizeof(buf), &action->starttime, TYPE_DOUBLE);
             tkbc_dapc(message, buf, strlen(buf));
           } break;
 
           case KITE_MOVE:
           case KITE_MOVE_ADD: {
             Move_Action *action = frames->elements[k].action;
-            tkbc_ptoa(buf, sizeof(buf), &action->position.x, FLOAT);
+            tkbc_ptoa(buf, sizeof(buf), &action->position.x, TYPE_FLOAT);
             tkbc_dapc(message, buf, strlen(buf));
             tkbc_dap(message, ':');
-            tkbc_ptoa(buf, sizeof(buf), &action->position.y, FLOAT);
+            tkbc_ptoa(buf, sizeof(buf), &action->position.y, TYPE_FLOAT);
             tkbc_dapc(message, buf, strlen(buf));
           } break;
 
           case KITE_ROTATION:
           case KITE_ROTATION_ADD: {
             Rotation_Action *action = frames->elements[k].action;
-            tkbc_ptoa(buf, sizeof(buf), &action->angle, FLOAT);
+            tkbc_ptoa(buf, sizeof(buf), &action->angle, TYPE_FLOAT);
             tkbc_dapc(message, buf, strlen(buf));
           } break;
 
           case KITE_TIP_ROTATION:
           case KITE_TIP_ROTATION_ADD: {
             Tip_Rotation_Action *action = frames->elements[k].action;
-            tkbc_ptoa(buf, sizeof(buf), &action->tip, INT);
+            tkbc_ptoa(buf, sizeof(buf), &action->tip, TYPE_INT);
             tkbc_dapc(message, buf, strlen(buf));
             tkbc_dap(message, ':');
-            tkbc_ptoa(buf, sizeof(buf), &action->angle, FLOAT);
+            tkbc_ptoa(buf, sizeof(buf), &action->angle, TYPE_FLOAT);
             tkbc_dapc(message, buf, strlen(buf));
           } break;
 
@@ -635,18 +635,18 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
           }
 
           tkbc_dap(message, ':');
-          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].duration, FLOAT);
+          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].duration, TYPE_FLOAT);
           tkbc_dapc(message, buf, strlen(buf));
 
           Kite_Ids *kite_ids = frames->elements[k].kite_id_array;
           if (kite_ids) {
             tkbc_dap(message, ':');
-            tkbc_ptoa(buf, sizeof(buf), &kite_ids->count, SIZE_T);
+            tkbc_ptoa(buf, sizeof(buf), &kite_ids->count, TYPE_SIZE_T);
             tkbc_dapc(message, buf, strlen(buf));
             tkbc_dap(message, ':');
             tkbc_dap(message, '(');
             for (size_t id = 0; id < kite_ids->count; ++id) {
-              tkbc_ptoa(buf, sizeof(buf), &kite_ids->elements[id], SIZE_T);
+              tkbc_ptoa(buf, sizeof(buf), &kite_ids->elements[id], TYPE_SIZE_T);
               tkbc_dapc(message, buf, strlen(buf));
               tkbc_dap(message, ',');
             }
