@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 #include "tkbc-keymaps.h"
 #include "tkbc-parser.h"
@@ -99,7 +100,6 @@ Env *tkbc_init_env(void) {
   env->script_counter = 0;
   env->recording = false;
   env->rendering = false;
-  env->pipe = 0;
   env->fps = TARGET_FPS;
   env->sound_file_name = NULL;
   env->script_file_name = NULL;

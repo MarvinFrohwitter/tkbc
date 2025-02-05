@@ -239,6 +239,8 @@ typedef struct {
 } Block_Frames;    // A dynamic array collection that combined multiple frame
                    // blocks.
 
+typedef struct Process Process;
+
 typedef struct {
   Kite *vanilla_kite;      // A representation of all the default kite values.
   Kite_States *kite_array; // The kites that are generated for the current
@@ -275,8 +277,7 @@ typedef struct {
   // -------FFMPEG-------
   bool recording;        // The state if the recording of the window.
   bool rendering;        // The state of the rendering ffmpeg process
-  int pipe;              // The pipe the ffmpeg process receives data through.
-  pid_t pid;             // The process number the ffmpeg child process gets.
+  Process *ffmpeg;       // The pipe and pid of the ffmpeg subprocess.
   char *sound_file_name; // The name of the sound file that should be included
                          // in the rendered video.
   Sound sound;           // The current loaded sound.
