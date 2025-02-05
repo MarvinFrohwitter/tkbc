@@ -662,3 +662,19 @@ void tkbc_update_kites_for_resize_window(Env *env) {
     env->window_height = height;
   }
 }
+
+/**
+ * @brief The function returns one of the defined raylib colors.
+ *
+ * @return color definition from raylib.
+ */
+Color tkbc_get_random_color() {
+  Color colors[] = {
+      LIGHTGRAY, GRAY,  DARKGRAY,  YELLOW,  GOLD,   ORANGE,
+      PINK,      RED,   MAROON,    GREEN,   LIME,   DARKGREEN,
+      SKYBLUE,   BLUE,  DARKBLUE,  PURPLE,  VIOLET, DARKPURPLE,
+      BEIGE,     BROWN, DARKBROWN, MAGENTA,
+  };
+
+  return colors[rand() % ARRAY_LENGTH(colors)];
+}

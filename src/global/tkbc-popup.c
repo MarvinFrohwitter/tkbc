@@ -106,7 +106,7 @@ bool tkbc_draw_popup(Popup *popup) {
                  opt1_text_size.x / 2.0 - factor * shift_factor,
              popup->option1.y + popup->option1.height / 2.0 -
                  opt1_text_size.y / 2.0 + factor * shift_factor,
-             opt1_text_size.y, BLACK);
+             opt1_text_size.y, TKBC_UI_BLACK);
 
     DrawRectangleRec(popup->cross, popup->cross_color);
     Vector2 start_pos = {.x = popup->cross.x, .y = popup->cross.y};
@@ -114,12 +114,12 @@ bool tkbc_draw_popup(Popup *popup) {
                        .y = popup->cross.y + popup->cross.height};
 
     float thick = 3;
-    DrawLineEx(start_pos, end_pos, thick, BLACK);
+    DrawLineEx(start_pos, end_pos, thick, TKBC_UI_BLACK);
     start_pos.x = popup->cross.x + popup->cross.width;
     start_pos.y = popup->cross.y;
     end_pos.x = popup->cross.x;
     end_pos.y = popup->cross.y + popup->cross.height;
-    DrawLineEx(start_pos, end_pos, thick, BLACK);
+    DrawLineEx(start_pos, end_pos, thick, TKBC_UI_BLACK);
     DrawText(popup->text,
              popup->base.x + ((popup->base.width - popup->text_width) / 2.0),
              popup->base.y + popup->base.height / 2 - popup->font_size / 2.0,
@@ -145,13 +145,13 @@ Popup tkbc_popup_message(const char *message) {
 
   Popup frame = {
       .active = true,
-      .base_color = GRAY,
-      .cross_color = RED,
-      .option1_color = TEAL,
+      .base_color = TKBC_UI_LIGHTGRAY,
+      .cross_color = TKBC_UI_RED,
+      .option1_color = TKBC_UI_TEAL,
       .text = message,
       .font_size = font_size,
       .text_width = text_width,
-      .text_color = BLACK,
+      .text_color = TKBC_UI_BLACK,
   };
 
   return frame;

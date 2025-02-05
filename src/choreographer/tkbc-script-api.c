@@ -342,15 +342,13 @@ Kite_Ids tkbc_indexs_range(int start, int end) {
  * @return The kite indies that are appended to the kite array.
  */
 Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
-  Color color_array[] = {BLUE, GREEN, PURPLE, RED, TEAL};
-
   for (size_t i = 0; i < kite_count; ++i) {
     tkbc_dap(env->kite_array, *tkbc_init_kite());
     // The id starts from 0.
     env->kite_array->elements[env->kite_array->count - 1].kite_id =
         env->kite_id_counter++;
     env->kite_array->elements[env->kite_array->count - 1].kite->body_color =
-        color_array[i % ARRAY_LENGTH(color_array)];
+        tkbc_get_random_color();
   }
 
   tkbc_kite_array_start_position(env->kite_array, env->window_width,

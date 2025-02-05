@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
@@ -32,7 +33,15 @@ void tkbc_draw_ui(Env *env) {
   tkbc_ui_keymaps(env);
 
   if (!env->rendering) {
-    DrawFPS(env->window_width / 2, 10);
+    Color color = TKBC_UI_TEAL;
+    int fps = GetFPS();
+    if (fps < 25) {
+      color = TKBC_UI_PURPLE;
+    }
+
+    char buf[16] = {0};
+    sprintf(buf, "%2i FPS", fps);
+    DrawText(buf, env->window_width / 2, 10, 20, color);
   }
 }
 
@@ -94,11 +103,11 @@ void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
   }
 
   if (env->timeline_hoverover || env->timeline_interaction) {
-    DrawRectangleRec(env->timeline_base, ColorBrightness(BLACK, 0.3));
+    DrawRectangleRec(env->timeline_base, TKBC_UI_GRAY);
     if (env->rendering) {
-      DrawRectangleRec(env->timeline_front, ColorBrightness(RED, 0.1));
+      DrawRectangleRec(env->timeline_front, TKBC_UI_RED);
     } else {
-      DrawRectangleRec(env->timeline_front, ColorBrightness(TEAL, 0.1));
+      DrawRectangleRec(env->timeline_front, TKBC_UI_TEAL);
     }
   }
 }
@@ -112,7 +121,7 @@ void tkbc_ui_keymaps(Env *env) {
     return;
   }
   Rectangle rec = {0, 0, env->window_width * 0.4, env->window_height};
-  DrawRectangleRec(rec, ColorAlpha(GRAY, 0.5));
+  DrawRectangleRec(rec, TKBC_UI_GRAY_ALPHA);
 
   int padding = 10;
   float box_height = 80;
@@ -122,11 +131,11 @@ void tkbc_ui_keymaps(Env *env) {
   for (size_t box = 0; box < count - 1 && box < env->keymaps->count; ++box) {
     if (CheckCollisionPointRec(GetMousePosition(), rec) &&
         !env->keymaps_mouse_interaction) {
-      DrawRectangleRec(rec, ColorAlpha(TEAL, 0.5));
+      DrawRectangleRec(rec, TKBC_UI_TEAL_ALPHA);
     }
     if (env->keymaps_mouse_interaction &&
         box == env->keymaps_mouse_interaction_box) {
-      DrawRectangleRec(rec, ColorAlpha(TEAL, 0.5));
+      DrawRectangleRec(rec, TKBC_UI_TEAL_ALPHA);
     }
 
     int font_size = 22;
@@ -140,7 +149,7 @@ void tkbc_ui_keymaps(Env *env) {
              font_box.y + 2 * padding > box_height / 2.0);
 
     DrawText(env->keymaps->elements[box].description, rec.x + padding,
-             rec.y + padding, font_size, BLACK);
+             rec.y + padding, font_size, TKBC_UI_BLACK);
 
     Rectangle mainkey_box = {
         .x = rec.x + padding,
@@ -149,7 +158,7 @@ void tkbc_ui_keymaps(Env *env) {
         .height = box_height / 2.0 - padding,
     };
 
-    DrawRectangleRec(mainkey_box, LIGHTGRAY);
+    DrawRectangleRec(mainkey_box, TKBC_UI_LIGHTGRAY_ALPHA);
 
     if (CheckCollisionPointRec(GetMousePosition(), mainkey_box)) {
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -157,12 +166,12 @@ void tkbc_ui_keymaps(Env *env) {
         env->keymaps_mouse_interaction_box = box;
       }
       if (!env->keymaps_mouse_interaction) {
-        DrawRectangleRec(mainkey_box, DARKPURPLE);
+        DrawRectangleRec(mainkey_box, TKBC_UI_DARKPURPLE_ALPHA);
       }
     }
     if (env->keymaps_mouse_interaction &&
         box == env->keymaps_mouse_interaction_box) {
-      DrawRectangleRec(mainkey_box, PURPLE);
+      DrawRectangleRec(mainkey_box, TKBC_UI_PURPLE_ALPHA);
     }
 
     if (env->keymaps_mouse_interaction) {
@@ -182,7 +191,8 @@ void tkbc_ui_keymaps(Env *env) {
     DrawText(env->keymaps->elements[box].key_str,
              mainkey_box.x + mainkey_box.width * 0.1,
              mainkey_box.y + mainkey_box.height * 0.1,
-             (int)(mainkey_box.height - mainkey_box.height * 0.1), BLACK);
+             (int)(mainkey_box.height - mainkey_box.height * 0.1),
+             TKBC_UI_BLACK);
 
     rec.y += box_height;
   }
@@ -193,9 +203,9 @@ void tkbc_ui_keymaps(Env *env) {
   rec.y = env->window_height - rec.height * 2;
 
   if (CheckCollisionPointRec(GetMousePosition(), rec)) {
-    DrawRectangleRec(rec, PURPLE);
+    DrawRectangleRec(rec, TKBC_UI_PURPLE_ALPHA);
   } else {
-    DrawRectangleRec(rec, ColorAlpha(TEAL, 0.5));
+    DrawRectangleRec(rec, TKBC_UI_TEAL_ALPHA);
   }
   if (!env->keymaps_mouse_interaction) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
@@ -205,7 +215,7 @@ void tkbc_ui_keymaps(Env *env) {
   }
 
   DrawText("SAVE", rec.x + rec.width * 0.1, rec.y + rec.height * 0.2, 30,
-           BLACK);
+           TKBC_UI_BLACK);
 
   rec.width = (env->window_width * 0.2) / 4.0;
   rec.height = (env->window_height * 0.15) / 4.0;
@@ -213,9 +223,9 @@ void tkbc_ui_keymaps(Env *env) {
   rec.y = env->window_height - rec.height * 2;
 
   if (CheckCollisionPointRec(GetMousePosition(), rec)) {
-    DrawRectangleRec(rec, PURPLE);
+    DrawRectangleRec(rec, TKBC_UI_PURPLE_ALPHA);
   } else {
-    DrawRectangleRec(rec, ColorAlpha(TEAL, 0.5));
+    DrawRectangleRec(rec, TKBC_UI_TEAL_ALPHA);
   }
   if (!env->keymaps_mouse_interaction) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
@@ -226,5 +236,5 @@ void tkbc_ui_keymaps(Env *env) {
   }
 
   DrawText("LOAD", rec.x + rec.width * 0.1, rec.y + rec.height * 0.2, 30,
-           BLACK);
+           TKBC_UI_BLACK);
 }

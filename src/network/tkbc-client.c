@@ -635,7 +635,8 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
           }
 
           tkbc_dap(message, ':');
-          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].duration, TYPE_FLOAT);
+          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].duration,
+                    TYPE_FLOAT);
           tkbc_dapc(message, buf, strlen(buf));
 
           Kite_Ids *kite_ids = frames->elements[k].kite_id_array;
@@ -861,7 +862,7 @@ int main(int argc, char *argv[]) {
     }
 
     BeginDrawing();
-    ClearBackground(SKYBLUE);
+    ClearBackground(TKBC_UI_SKYBLUE);
     if (sending) {
       sending = send_message_handler();
       if (!sending) {

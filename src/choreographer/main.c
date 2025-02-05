@@ -53,7 +53,7 @@ int main(void) {
     float scale_width = (float)env->window_width / background_texture.width;
     float scale_height = (float)env->window_height / background_texture.height;
     float scale = fmaxf(scale_width, scale_height);
-    DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, WHITE);
+    DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, TKBC_UI_WHITE);
 #endif /* ifdef LOADIMAGE */
 
     if (env->script_setup) {

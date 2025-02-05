@@ -6,6 +6,23 @@
 
 #define TEAL CLITERAL(Color){0, 128, 128, 255} // Teal
 
+#define TKBC_UI_WHITE ColorBrightness(WHITE, 0)
+#define TKBC_UI_SKYBLUE ColorBrightness(SKYBLUE, 0)
+#define TKBC_UI_PURPLE ColorBrightness(PURPLE, 0)
+#define TKBC_UI_LIGHTGRAY ColorBrightness(LIGHTGRAY, 0)
+
+#define TKBC_UI_TEAL ColorBrightness(TEAL, 0.1)
+#define TKBC_UI_GRAY ColorBrightness(GRAY, -0.2)
+#define TKBC_UI_RED ColorBrightness(RED, -0.3)
+#define TKBC_UI_BLACK ColorBrightness(BLACK, -0.2)
+
+#define ALPHA_RATIO 0.7
+#define TKBC_UI_TEAL_ALPHA ColorAlpha(TKBC_UI_TEAL, ALPHA_RATIO)
+#define TKBC_UI_PURPLE_ALPHA ColorAlpha(PURPLE, ALPHA_RATIO)
+#define TKBC_UI_DARKPURPLE_ALPHA ColorAlpha(DARKPURPLE, ALPHA_RATIO)
+#define TKBC_UI_LIGHTGRAY_ALPHA ColorAlpha(GRAY, ALPHA_RATIO - 0.2)
+#define TKBC_UI_GRAY_ALPHA ColorAlpha(GRAY, ALPHA_RATIO - 0.2)
+
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
 #ifndef EPSILON
@@ -53,5 +70,6 @@ void tkbc_update_kites_for_resize_window(Env *env);
 
 void tkbc_draw_ui(Env *env);
 void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count);
+Color tkbc_get_random_color();
 
 #endif // TKBC_H_
