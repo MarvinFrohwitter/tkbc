@@ -103,7 +103,7 @@ void choreographer_files(Cmd *cmd) {
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-sound-handler.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-team-figures-api.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-ui.c");
-  cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-keympas.c");
+  cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-keymaps.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-parser.c");
   cb_cmd_push(cmd, CHOREOGRAPHERPATH "tkbc-script-converter.c");
 }
