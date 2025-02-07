@@ -391,6 +391,9 @@ const char *lexer_token_to_cstr(Lexer *lexer, Token *token) {
 /* content. */
 /* @return Token the Error token or the Invalid token. */
 LEXDEF Token lexer_chop_char(Lexer *lexer, size_t count) {
+  if (!lexer_check_boundery(lexer)) {
+    return lexer_invalid_token(lexer);
+  }
   for (size_t i = 0; i < count; i++) {
     if (lexer->content[lexer->position] == '\n') {
       lexer->line_count++;
@@ -990,7 +993,7 @@ BASICLEXDEF Token lexer_next(Lexer *lexer) {
   token.kind = INVALID;
 
   lexer_trim_left(lexer);
-  if (lexer->position > lexer->content_length) {
+  if (lexer->position >= lexer->content_length) {
     return lexer_eof_token();
   }
 
