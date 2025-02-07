@@ -104,6 +104,30 @@ Env *tkbc_init_env(void) {
   env->sound_file_name = NULL;
   env->script_file_name = NULL;
 
+  env->keymaps_base =
+      (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
+
+  env->box_height = 80;
+  // -1 for the left out box at the bottom
+  env->screen_items = (env->window_height / env->box_height) - 1;
+  env->scrollbar_width = env->keymaps_base.width * 0.025;
+
+  env->keymaps_scrollbar = (Rectangle){
+      .x = env->keymaps_base.x + env->keymaps_base.width - env->scrollbar_width,
+      .y = 0,
+      .width = env->scrollbar_width,
+      .height = env->box_height * env->screen_items,
+  };
+
+  env->keymaps_inner_scrollbar = (Rectangle){
+      .x = env->keymaps_base.x + env->keymaps_base.width -
+           env->keymaps_scrollbar.width,
+      .y = 0,
+      .width = env->keymaps_scrollbar.width,
+      .height = env->keymaps_scrollbar.height /
+                (float)(env->keymaps->count - env->screen_items + 1),
+  };
+
   float margin = 10;
   env->timeline_base.width = env->window_width / 2.0f;
   env->timeline_base.height = env->window_height / 42.0f;

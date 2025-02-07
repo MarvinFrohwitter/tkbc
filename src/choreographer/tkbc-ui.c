@@ -117,25 +117,100 @@ void tkbc_ui_keymaps(Env *env) {
   if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1000))) {
     env->keymaps_interaction = !env->keymaps_interaction;
   }
+  if (IsKeyPressed(KEY_ESCAPE)) {
+    env->keymaps_interaction = false;
+  }
   if (!env->keymaps_interaction) {
     return;
   }
-  Rectangle rec = {0, 0, env->window_width * 0.4, env->window_height};
-  DrawRectangleRec(rec, TKBC_UI_GRAY_ALPHA);
+  env->keymaps_base =
+      (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
+  DrawRectangleRec(env->keymaps_base, TKBC_UI_GRAY_ALPHA);
 
+  //
+  // The scroll_bar handle
+  env->screen_items = (env->window_height / env->box_height) - 1;
+  env->scrollbar_width = env->keymaps_base.width * 0.025;
+
+  env->keymaps_scrollbar.x =
+      env->keymaps_base.x + env->keymaps_base.width - env->scrollbar_width;
+  env->keymaps_scrollbar.width = env->scrollbar_width;
+  env->keymaps_scrollbar.height = env->box_height * env->screen_items;
+  DrawRectangleRec(env->keymaps_scrollbar, TKBC_UI_LIGHTGRAY_ALPHA);
+
+  //
+  // The inner scroll_bar handle
+  env->keymaps_inner_scrollbar.x = env->keymaps_base.x +
+                                   env->keymaps_base.width -
+                                   env->keymaps_scrollbar.width;
+  env->keymaps_inner_scrollbar.width = env->keymaps_scrollbar.width;
+  env->keymaps_inner_scrollbar.height =
+      env->keymaps_scrollbar.height /
+      (float)(env->keymaps->count - env->screen_items + 1);
+
+  float old_inner_sclolbar_y = env->keymaps_inner_scrollbar.y;
+  float new_inner_sclolbar_y =
+      (env->keymaps_inner_scrollbar.height) * env->keymaps_top_interaction_box;
+  //
+  // To lerp between the things it has to be move out side to be static
+  env->keymaps_inner_scrollbar.y =
+      old_inner_sclolbar_y +
+      (new_inner_sclolbar_y - old_inner_sclolbar_y) * tkbc_get_frame_time();
+
+  // Enable to remove LERP.
+  env->keymaps_inner_scrollbar.y = new_inner_sclolbar_y;
+
+  DrawRectangleRec(env->keymaps_inner_scrollbar, TKBC_UI_DARKPURPLE_ALPHA);
+
+  if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
+    env->keymaps_scollbar_interaction = false;
+  }
+  if (CheckCollisionPointRec(GetMousePosition(),
+                             env->keymaps_inner_scrollbar) &&
+      IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    env->keymaps_scollbar_interaction = true;
+  }
+
+  if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_scrollbar) &&
+      IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    env->keymaps_scollbar_interaction = true;
+  }
+
+  if (env->keymaps_scollbar_interaction || GetMouseWheelMove()) {
+    Vector2 mouse_pos = GetMousePosition();
+    float sb_center_y = env->keymaps_inner_scrollbar.y +
+                        env->keymaps_inner_scrollbar.height / 2.0;
+    if (mouse_pos.y > sb_center_y || GetMouseWheelMoveV().y > sb_center_y) {
+
+      if (env->keymaps_top_interaction_box <
+          env->keymaps->count - env->screen_items) {
+        env->keymaps_top_interaction_box += 1;
+      }
+
+    } else {
+      if (env->keymaps_top_interaction_box > 0) {
+        env->keymaps_top_interaction_box -= 1;
+      }
+    }
+  }
+
+  // TODO: Think about UI scaling.
+  //
+  // The displayment key bind boxes.
   int padding = 10;
-  float box_height = 80;
-  size_t count = (env->window_height / box_height);
-
-  rec.height = box_height;
-  for (size_t box = 0; box < count - 1 && box < env->keymaps->count; ++box) {
-    if (CheckCollisionPointRec(GetMousePosition(), rec) &&
+  env->keymaps_base.height = env->box_height;
+  env->keymaps_base.width -= env->keymaps_scrollbar.width;
+  for (size_t box = env->keymaps_top_interaction_box;
+       box < env->screen_items + env->keymaps_top_interaction_box &&
+       box < env->keymaps->count;
+       ++box) {
+    if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base) &&
         !env->keymaps_mouse_interaction) {
-      DrawRectangleRec(rec, TKBC_UI_TEAL_ALPHA);
+      DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
     }
     if (env->keymaps_mouse_interaction &&
         box == env->keymaps_mouse_interaction_box) {
-      DrawRectangleRec(rec, TKBC_UI_TEAL_ALPHA);
+      DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
     }
 
     int font_size = 22;
@@ -145,17 +220,18 @@ void tkbc_ui_keymaps(Env *env) {
           MeasureTextEx(GetFontDefault(),
                         env->keymaps->elements[box].description, font_size, 0);
       font_size -= 1;
-    } while (font_box.x + 2 * padding > rec.width &&
-             font_box.y + 2 * padding > box_height / 2.0);
+    } while (font_box.x + 2 * padding > env->keymaps_base.width &&
+             font_box.y + 2 * padding > env->box_height / 2.0);
 
-    DrawText(env->keymaps->elements[box].description, rec.x + padding,
-             rec.y + padding, font_size, TKBC_UI_BLACK);
+    DrawText(env->keymaps->elements[box].description,
+             env->keymaps_base.x + padding, env->keymaps_base.y + padding,
+             font_size, TKBC_UI_BLACK);
 
     Rectangle mainkey_box = {
-        .x = rec.x + padding,
-        .y = rec.y + box_height / 2.0,
-        .width = rec.width * 0.75,
-        .height = box_height / 2.0 - padding,
+        .x = env->keymaps_base.x + padding,
+        .y = env->keymaps_base.y + env->box_height / 2.0,
+        .width = env->keymaps_base.width * 0.75,
+        .height = env->box_height / 2.0 - padding,
     };
 
     DrawRectangleRec(mainkey_box, TKBC_UI_LIGHTGRAY_ALPHA);
@@ -194,47 +270,52 @@ void tkbc_ui_keymaps(Env *env) {
              (int)(mainkey_box.height - mainkey_box.height * 0.1),
              TKBC_UI_BLACK);
 
-    rec.y += box_height;
+    env->keymaps_base.y += env->box_height;
   }
 
-  rec.width = (env->window_width * 0.2) / 4.0;
-  rec.height = (env->window_height * 0.15) / 4.0;
-  rec.x = env->window_width * 0.2 - rec.width - rec.width * 0.2;
-  rec.y = env->window_height - rec.height * 2;
+  //
+  // Displayment of the load and save buttons.
+  env->keymaps_base.width = (env->window_width * 0.2) / 4.0;
+  env->keymaps_base.height = (env->window_height * 0.15) / 4.0;
+  env->keymaps_base.x = env->window_width * 0.2 - env->keymaps_base.width -
+                        env->keymaps_base.width * 0.2;
+  env->keymaps_base.y = env->window_height - env->keymaps_base.height * 2;
 
-  if (CheckCollisionPointRec(GetMousePosition(), rec)) {
-    DrawRectangleRec(rec, TKBC_UI_PURPLE_ALPHA);
+  if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+    DrawRectangleRec(env->keymaps_base, TKBC_UI_PURPLE_ALPHA);
   } else {
-    DrawRectangleRec(rec, TKBC_UI_TEAL_ALPHA);
+    DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
   }
   if (!env->keymaps_mouse_interaction) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-        CheckCollisionPointRec(GetMousePosition(), rec)) {
+        CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
       tkbc_save_keymaps_to_file(*env->keymaps, ".tkbc-keymaps");
     }
   }
 
-  DrawText("SAVE", rec.x + rec.width * 0.1, rec.y + rec.height * 0.2, 30,
+  DrawText("SAVE", env->keymaps_base.x + env->keymaps_base.width * 0.1,
+           env->keymaps_base.y + env->keymaps_base.height * 0.2, 30,
            TKBC_UI_BLACK);
 
-  rec.width = (env->window_width * 0.2) / 4.0;
-  rec.height = (env->window_height * 0.15) / 4.0;
-  rec.x = rec.width * 0.2;
-  rec.y = env->window_height - rec.height * 2;
+  env->keymaps_base.width = (env->window_width * 0.2) / 4.0;
+  env->keymaps_base.height = (env->window_height * 0.15) / 4.0;
+  env->keymaps_base.x = env->keymaps_base.width * 0.2;
+  env->keymaps_base.y = env->window_height - env->keymaps_base.height * 2;
 
-  if (CheckCollisionPointRec(GetMousePosition(), rec)) {
-    DrawRectangleRec(rec, TKBC_UI_PURPLE_ALPHA);
+  if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+    DrawRectangleRec(env->keymaps_base, TKBC_UI_PURPLE_ALPHA);
   } else {
-    DrawRectangleRec(rec, TKBC_UI_TEAL_ALPHA);
+    DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
   }
   if (!env->keymaps_mouse_interaction) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-        CheckCollisionPointRec(GetMousePosition(), rec)) {
+        CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
       tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
       tkbc_setup_keymaps(env->keymaps);
     }
   }
 
-  DrawText("LOAD", rec.x + rec.width * 0.1, rec.y + rec.height * 0.2, 30,
+  DrawText("LOAD", env->keymaps_base.x + env->keymaps_base.width * 0.1,
+           env->keymaps_base.y + env->keymaps_base.height * 0.2, 30,
            TKBC_UI_BLACK);
 }

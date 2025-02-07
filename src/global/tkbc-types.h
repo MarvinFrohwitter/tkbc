@@ -247,57 +247,69 @@ typedef struct {
                            // session of the application.
   size_t kite_id_counter;  // The identifier counter for the kite.
 
-  Frames *frames; // A representation of the current active drawable frames.
-  Block_Frame *block_frame;   // The collection of all the frames that should be
+  Frames *frames;             // A view of the current active drawable frames.
+  Block_Frame *block_frame;   // A view of all the frames that should be
                               // executed in a script.
   Block_Frames *block_frames; // The collection of all the parsed scripts.
 
   char *script_file_name; // The name of the script file '.kite'.
-  bool script_setup;     // The indication if the initial setup run is executed.
-  bool script_interrupt; // The indication if a script is currently going to be
-                         // loaded.
-  bool script_finished;  // The indication a script has finished.
-  size_t script_counter; // Represents the amount of scripts that were loaded,
-                         // starts with 1.
-  size_t send_scripts;   // Represents the amount of scripts that where send to
-                         // the peer partner starts; with 1.
+  size_t script_counter;  // Represents the amount of scripts that were loaded,
+                          // starts with 1.
+  size_t send_scripts;    // Represents the amount of scripts that where send to
+                          // the peer partner starts; with 1.
   size_t server_script_block_index; // Represents of the block index the server
                                     // is currently executing.
   size_t server_script_block_index_count; // Represents of the current block
                                           // index count from the server.
+  bool script_setup;     // The indication if the initial setup run is executed.
+  bool script_interrupt; // The indication if a script is currently going to be
+                         // loaded.
+  bool script_finished;  // The indication a script has finished.
+  bool free_bool_that_can_be_used_for_struct_packing;
 
+  int fps;              // The fps of the application.
   size_t window_width;  // The window width of the application.
   size_t window_height; // The window height of the application.
-  int fps;              // The fps of the application.
 
   Frames *scratch_buf_frames; // A buffer that can be used to construct frames.
   Block_Frame *scratch_buf_block_frame; // A buffer that can be used to
                                         // construct a block_frame.
 
   // -------FFMPEG-------
-  bool recording;        // The state if the recording of the window.
-  bool rendering;        // The state of the rendering ffmpeg process
+  Sound sound;           // The current loaded sound.
   Process *ffmpeg;       // The pipe and pid of the ffmpeg subprocess.
   char *sound_file_name; // The name of the sound file that should be included
                          // in the rendered video.
-  Sound sound;           // The current loaded sound.
+  bool recording;        // The state if the recording of the window.
+  bool rendering;        // The state of the rendering ffmpeg process
 
   // -------UI-------
-  KeyMaps *keymaps;         // The current keymaps
   bool keymaps_interaction; // The status if the keymaps are currently edited.
-  bool keymaps_mouse_interaction;       // Checks if a keymap was clicked.
+  bool keymaps_mouse_interaction; // Checks if a keymap was clicked.
+  float scrollbar_width;  // The width of the scrollbar for the keymap settings.
+  size_t box_height; // The height of one box that contains a keymap description
+  size_t screen_items; // The amount of keymaps that can currently be displayed.
   size_t keymaps_mouse_interaction_box; // The id of the box the is clicked.
-  Rectangle timeline_base;  // The rectangle that is below the slider.
-  Rectangle timeline_front; // The rectangle that represents the slider.
+  size_t keymaps_top_interaction_box; // The id the current first displayed box.
+  Rectangle keymaps_base; // The base bounding box of the keymaps settings.
+  Rectangle keymaps_scrollbar; // The base of the scrollbar for the keymaps.
+  Rectangle
+      keymaps_inner_scrollbar; // The indicator inside the keymaps scrollbar.
+                     // and its keybinding selection box.
+  KeyMaps *keymaps;                   // The current keymaps
+  bool keymaps_scollbar_interaction;  // Checks if the scrollbar is currently
+                                      // moved.
 
-  float timeline_segment_width;  // The width of a single frame in the timeline.
+  bool timeline_hoverover;      // The status if the mouse is currently of the
+                                // timeline.
+  bool timeline_interaction;    // The status if the user controls the timeline.
+  Rectangle timeline_base;      // The rectangle that is below the slider.
+  Rectangle timeline_front;     // The rectangle that represents the slider.
+  float timeline_segment_width; // The width of a single frame in the timeline.
   float timeline_segments_width; // The width of all the finished frames in the
                                  // timeline.
   size_t timeline_segments; // The amount of frames that the timeline displays.
 
-  bool timeline_hoverover;   // The status if the mouse is currently of the
-                             // timeline.
-  bool timeline_interaction; // The status if the user controls the timeline.
-} Env;                       // The global state of the application.
+} Env; // The global state of the application.
 
 #endif // TKBC_TYPES_H_
