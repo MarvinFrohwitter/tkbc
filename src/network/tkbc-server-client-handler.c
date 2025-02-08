@@ -43,7 +43,7 @@ void tkbc_server_shutdown_client(Client client, bool force) {
     tkbc_fprintf(stderr, "ERROR", "Close socket: %s\n", strerror(errno));
   }
   if (force) {
-    goto check;
+    goto force;
   }
 
   Message message = {0};
@@ -86,14 +86,27 @@ void tkbc_server_shutdown_client(Client client, bool force) {
     free(message.elements);
   }
 
-  if (!tkbc_server_remove_client_from_list(client)) {
+force: {}
+  int err_check = tkbc_server_remove_client(client, false);
+  if (1 == err_check) {
     tkbc_fprintf(stderr, "INFO",
                  "Client:" CLIENT_FMT
-                 ": could not be removed after broken pipe\n",
+                 ":Kite could not be removed: not found.\n",
+                 CLIENT_ARG(client));
+    if (0 != tkbc_server_remove_client(client, true)) {
+      tkbc_fprintf(stderr, "INFO",
+                   "Client:" CLIENT_FMT
+                   ": could not be removed after broken pipe: not found.\n",
+                   CLIENT_ARG(client));
+    }
+  }
+  if (-1 == err_check) {
+    tkbc_fprintf(stderr, "INFO",
+                 "Client:" CLIENT_FMT
+                 ": could not be removed after broken pipe: not found.\n",
                  CLIENT_ARG(client));
   }
 
-check:
   if (pthread_cancel(threads[thread_id]) != 0) {
     tkbc_fprintf(stderr, "INFO", "Client: Thread is not valid\n");
   }
@@ -469,11 +482,20 @@ check:
  * @brief The function removes the specified client from the registered list.
  *
  * @param client The client who should be removed from the registration list.
- * @return True if the client could be removed, otherwise if an error occurred
- * false is returned, that is the case if the client is not found in the list.
+ * @return 1 if the kite could not be removed, -1 if the client could not be
+ * removed, 0 if no errors occurred.
  */
-bool tkbc_server_remove_client_from_list(Client client) {
+int tkbc_server_remove_client(Client client, bool retry) {
+  bool ok = 0;
   pthread_mutex_lock(&mutex);
+  if (retry) {
+    goto retry;
+  }
+  if (!tkbc_remove_kite_from_list(env->kite_array, client.kite_id)) {
+    check_return(1);
+  }
+
+retry:
   for (size_t i = 0; i < clients->count; ++i) {
     if (client.kite_id == clients->elements[i].kite_id) {
       if (i + 1 < clients->count) {
@@ -481,13 +503,14 @@ bool tkbc_server_remove_client_from_list(Client client) {
                 sizeof(client) * clients->count - i - 1);
       }
       clients->count -= 1;
-
-      pthread_mutex_unlock(&mutex);
-      return true;
+      check_return(0);
     }
   }
+  check_return(-1);
+
+check:
   pthread_mutex_unlock(&mutex);
-  return false;
+  return ok;
 }
 
 /**
