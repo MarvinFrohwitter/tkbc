@@ -38,18 +38,6 @@ void tkbc__script_end(Env *env) {
   tkbc_dap(env->block_frames,
            *tkbc_deep_copy_block_frame(env->scratch_buf_block_frame));
   env->scratch_buf_block_frame->count = 0;
-
-  if (tkbc_check_finished_frames(env) &&
-      (env->block_frame->count == env->frames->block_index + 1)) {
-
-    if (!env->script_finished) {
-      env->script_finished = true;
-      tkbc_fprintf(stderr, "INFO", "=======================================\n");
-      tkbc_fprintf(stderr, "INFO", "- From the script end function.\n");
-      tkbc_fprintf(stderr, "INFO", "- The script has finished successfully.\n");
-      tkbc_fprintf(stderr, "INFO", "=======================================\n");
-    }
-  }
 }
 
 /**

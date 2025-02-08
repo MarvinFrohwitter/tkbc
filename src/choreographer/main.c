@@ -88,8 +88,8 @@ int main(void) {
     }
   };
 
-  tkbc_destroy_env(env);
   tkbc_sound_destroy(env->sound);
+  tkbc_destroy_env(env);
   CloseWindow();
   return 0;
 }

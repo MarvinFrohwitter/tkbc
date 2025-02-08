@@ -186,10 +186,9 @@ int main(int argc, char *argv[]) {
                    CLIENT_ARG(client));
 
       assert(clients->count > 0);
-      Client c = clients->elements[clients->count - 1];
+      Client *c = &clients->elements[clients->count - 1];
       pthread_mutex_unlock(&mutex);
-      pthread_create(&threads[clients_visited++], NULL, tkbc_client_handler,
-                     &c);
+      pthread_create(&threads[clients_visited++], NULL, tkbc_client_handler, c);
     } else {
       tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
       assert(0 && "accept error");
@@ -257,5 +256,6 @@ void signalhandler(int signal) {
   if (clients->elements) {
     free(clients->elements);
   }
+  tkbc_destroy_env(env);
   exit(EXIT_SUCCESS);
 }

@@ -90,7 +90,7 @@ bool tkbc_message_append_clientkite(size_t client_id, Message *message) {
  * @brief The function extracts the values that should belong to a kite out of
  * the lexer data.
  *
- * @param lexer The current state and data of the sting to parse.
+ * @param lexer The current state and data of the string to parse.
  * @return True if the kite values can be parsed out of the data the lexer
  * contains.
  */
@@ -120,7 +120,7 @@ bool tkbc_parse_single_kite_value(Lexer *lexer) {
  * @brief The function parses all values out of a single MESSAGE_KITEVALUE that
  * should be located in the lexer data.
  *
- * @param lexer The current state and data of the sting to parse.
+ * @param lexer The current state and data of the string to parse.
  * @param kite_id The id the corresponding parsed value is assigned to.
  * @param x The x position the corresponding parsed value is assigned to.
  * @param y The y position the corresponding parsed value is assigned to.

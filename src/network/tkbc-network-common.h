@@ -37,12 +37,6 @@ typedef struct {
   size_t capacity;
 } Message;
 
-typedef struct {
-  Message *elements;
-  size_t count;
-  size_t capacity;
-} Messages;
-
 // name : kind : data
 typedef enum {
   MESSAGE_ZERO = 0,
