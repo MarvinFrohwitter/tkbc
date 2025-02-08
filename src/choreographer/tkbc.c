@@ -251,6 +251,28 @@ void tkbc_destroy_kite_array(Kite_States *kite_states) {
 }
 
 /**
+ * @brief The function can be used to remove a kite from the given list by the
+ * given kite_id.
+ *
+ * @param kite_array The list of kite Kite_State that should may contain the
+ * kite.
+ * @param kite_id The id of the kite that should be removed.
+ * @return True if the kite is removed successfully, otherwise false.
+ */
+bool tkbc_remove_kite_from_list(Kite_States *kite_array, size_t kite_id) {
+  for (size_t i = 0; i < kite_array->count; ++i) {
+    if (kite_array->elements[i].kite_id == kite_id) {
+      if (i + 1 < kite_array->count) {
+        memmove(&kite_array->elements[i], &kite_array->elements[i + 1],
+                sizeof(*kite_array->elements) * (kite_array->count - 1 - i));
+      }
+      kite_array->count -= 1;
+      return true;
+    }
+  }
+  return false;
+}
+/**
  * @brief The function computes the spaced start positions for the kite_array
  * and set the kites back to the default state values.
  *
