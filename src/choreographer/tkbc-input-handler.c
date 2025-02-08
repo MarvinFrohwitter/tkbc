@@ -94,19 +94,39 @@ void tkbc_input_handler_kite_array(Env *env) {
   for (size_t i = 1; i <= 9; ++i) {
     if (IsKeyPressed(i + 48) && env->kite_array->count >= i) {
 
+      env->kite_array->elements[i - 1].kite_input_handler_active =
+          !env->kite_array->elements[i - 1].kite_input_handler_active;
+
+      if (env->frames == NULL) {
+        continue;
+      }
+
       for (size_t j = 0; j < env->frames->count; ++j) {
-
-        Kite_Ids new_kite_index_array = {0};
         Frame *frame = &env->frames->elements[j];
-
         if (frame->kite_id_array == NULL) {
           continue;
         }
 
-        for (size_t k = 0; k < frame->kite_id_array->count; ++k) {
-          if (i - 1 != frame->kite_id_array->elements[k]) {
-            tkbc_dap(&new_kite_index_array, frame->kite_id_array->elements[k]);
+        bool contains = false;
+        size_t k = 0;
+        for (; k < frame->kite_id_array->count; ++k) {
+          if (i - 1 == frame->kite_id_array->elements[k]) {
+            contains = true;
+            break;
           }
+        }
+
+        if (!contains) {
+          tkbc_dap(frame->kite_id_array, i - 1);
+          continue;
+        }
+
+        Kite_Ids new_kite_index_array = {0};
+        tkbc_dapc(&new_kite_index_array, frame->kite_id_array->elements, k);
+        if (k + 1 < frame->kite_id_array->count) {
+          tkbc_dapc(&new_kite_index_array,
+                    &frame->kite_id_array->elements[k + 1],
+                    frame->kite_id_array->count - 1 - k);
         }
 
         if (new_kite_index_array.count != 0) {
@@ -124,9 +144,6 @@ void tkbc_input_handler_kite_array(Env *env) {
           frame->kite_id_array = NULL;
         }
       }
-
-      env->kite_array->elements[i - 1].kite_input_handler_active =
-          !env->kite_array->elements[i - 1].kite_input_handler_active;
     }
   }
 
