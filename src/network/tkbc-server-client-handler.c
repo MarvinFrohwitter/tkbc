@@ -1054,6 +1054,7 @@ check:
   if (lexer->buffer.elements) {
     free(lexer->buffer.elements);
   }
+  free(lexer);
   return ok;
 }
 

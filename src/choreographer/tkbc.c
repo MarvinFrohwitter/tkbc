@@ -192,9 +192,13 @@ Kite_State *tkbc_init_kite(void) {
  */
 void tkbc_destroy_env(Env *env) {
 
+  if (env->keymaps->elements != NULL) {
+    free(env->keymaps->elements);
+  }
   if (env->keymaps != NULL) {
     free(env->keymaps);
   }
+
   if (env->sound_file_name != NULL) {
     free(env->sound_file_name);
   }

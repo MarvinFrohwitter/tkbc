@@ -625,7 +625,7 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_scrub_frames(Env *env) {
-  if (env->block_frame->count <= 0) {
+  if (env->block_frame == NULL) {
     return;
   }
 

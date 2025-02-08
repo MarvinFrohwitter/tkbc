@@ -209,8 +209,8 @@ void *tkbc_script_execution_handler() {
   for (;;) {
     bool check = false;
     pthread_mutex_lock(&mutex);
-    if (env->script_counter > 0 && env->block_frame->count > 0) {
-      if (!tkbc_script_finished(env)) {
+    if (env->script_counter > 0) {
+      if (!tkbc_script_finished(env) && env->block_frame != NULL) {
         size_t bindex = env->frames->block_index;
         size_t bframe_count = env->block_frame->count;
         tkbc_script_update_frames(env);
