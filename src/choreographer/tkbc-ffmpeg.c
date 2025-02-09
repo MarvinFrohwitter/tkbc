@@ -206,6 +206,10 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
  * false.
  */
 bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
+  if (!env->rendering) {
+    return true;
+  }
+
   BOOL close_status = CloseHandle(env->ffmpeg->pipe);
   if (close_status == 0) {
     tkbc_fprintf(stderr, "ERROR",
@@ -320,6 +324,9 @@ int tkbc_ffmpeg_write_image(Env *env) {
  * false.
  */
 bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
+  if (!env->rendering) {
+    return true;
+  }
 
   int close_status = close(env->ffmpeg->pipe);
   if (close_status < 0) {
