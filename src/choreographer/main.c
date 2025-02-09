@@ -1,3 +1,8 @@
+#define TKBC_LOGGING
+#define TKBC_LOGGING_ERROR
+#define TKBC_LOGGING_INFO
+#define TKBC_LOGGING_WARNING
+
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 #undef TKBC_UTILS_IMPLEMENTAION
@@ -18,6 +23,7 @@
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
+
 
 /**
  * @brief The main function that handles the event loop.
