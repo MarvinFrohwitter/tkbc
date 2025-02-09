@@ -87,6 +87,7 @@ void tkbc_init_keymaps_defaults(KeyMaps *keymaps) {
   for (size_t i = 0; i < ARRAY_LENGTH(default_keymaps); ++i) {
     tkbc_dap(keymaps, default_keymaps[i]);
   }
+  tkbc_setup_keymaps_strs(keymaps);
 }
 
 void tkbc_set_keymaps_defaults(KeyMaps *keymaps) {
