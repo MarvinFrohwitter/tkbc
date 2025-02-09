@@ -24,7 +24,6 @@
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 
-
 /**
  * @brief The main function that handles the event loop.
  *
@@ -49,7 +48,6 @@ int main(void) {
 
   Env *env = tkbc_init_env();
   tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
-  tkbc_setup_keymaps(env->keymaps);
 
   while (!WindowShouldClose()) {
     BeginDrawing();

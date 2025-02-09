@@ -88,7 +88,7 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
-  tkbc_set_keymaps_defaults(env->keymaps);
+  tkbc_init_keymaps_defaults(env->keymaps);
 
   tkbc_set_kite_defaults(env->vanilla_kite, true);
   env->kite_id_counter = 0;

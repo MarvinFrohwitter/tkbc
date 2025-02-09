@@ -58,6 +58,7 @@ int tkbc_load_keymaps_from_file(KeyMaps *keymaps, const char *filename) {
       }
     }
   }
+  tkbc_setup_keymaps_strs(keymaps);
 
 check:
   lexer_del(lexer);
@@ -82,13 +83,32 @@ bool tkbc_save_keymaps_to_file(KeyMaps keymaps, const char *filename) {
   return true;
 }
 
-void tkbc_set_keymaps_defaults(KeyMaps *keymaps) {
+void tkbc_init_keymaps_defaults(KeyMaps *keymaps) {
   for (size_t i = 0; i < ARRAY_LENGTH(default_keymaps); ++i) {
     tkbc_dap(keymaps, default_keymaps[i]);
   }
 }
 
-void tkbc_setup_keymaps(KeyMaps *keymaps) {
+void tkbc_set_keymaps_defaults(KeyMaps *keymaps) {
+  size_t default_keymaps_count = ARRAY_LENGTH(default_keymaps);
+  printf("default_keymaps_count = %zu\n", default_keymaps_count);
+  printf("keymaps->count = %zu\n", keymaps->count);
+  assert(keymaps->count == default_keymaps_count);
+  for (size_t i = 0; i < default_keymaps_count; ++i) {
+    for (size_t j = 0; j < keymaps->count; ++j) {
+      if (keymaps->elements[j].hash == default_keymaps[i].hash) {
+        keymaps->elements[j].mod_key = default_keymaps[i].mod_key;
+        keymaps->elements[j].mod_co_key = default_keymaps[i].mod_co_key;
+        keymaps->elements[j].selection_key1 = default_keymaps[i].selection_key1;
+        keymaps->elements[j].selection_key2 = default_keymaps[i].selection_key2;
+        keymaps->elements[j].key = default_keymaps[i].key;
+      }
+    }
+  }
+  tkbc_setup_keymaps_strs(keymaps);
+}
+
+void tkbc_setup_keymaps_strs(KeyMaps *keymaps) {
   for (size_t i = 0; i < keymaps->count; ++i) {
     keymaps->elements[i].mod_key_str =
         tkbc_key_to_str(keymaps->elements[i].mod_key);

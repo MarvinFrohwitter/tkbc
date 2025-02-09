@@ -113,12 +113,15 @@ void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
 }
 
 void tkbc_ui_keymaps(Env *env) {
-  // KEY_F1
+  // This will ensure that the settings can always be left regardless to which
+  // keybinding is set. For opening and closing.
+  if (IsKeyPressed(KEY_ESCAPE) &&
+      tkbc_hash_to_key(*env->keymaps, 1000) != KEY_ESCAPE) {
+    env->keymaps_interaction = false;
+  }
+  // KEY_ESCAPE
   if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1000))) {
     env->keymaps_interaction = !env->keymaps_interaction;
-  }
-  if (IsKeyPressed(KEY_ESCAPE)) {
-    env->keymaps_interaction = false;
   }
   if (!env->keymaps_interaction) {
     return;
@@ -255,6 +258,8 @@ void tkbc_ui_keymaps(Env *env) {
       if (key == 0) {
         goto key_change_skip;
       }
+      // NOTE: This KEY_ESCAPE disables the ability to set KEY_ESCAPE for any
+      // keymap.
       if (key != KEY_ESCAPE) {
         env->keymaps->elements[env->keymaps_mouse_interaction_box].key = key;
         env->keymaps->elements[env->keymaps_mouse_interaction_box].key_str =
@@ -275,47 +280,77 @@ void tkbc_ui_keymaps(Env *env) {
 
   //
   // Displayment of the load and save buttons.
-  env->keymaps_base.width = (env->window_width * 0.2) / 4.0;
-  env->keymaps_base.height = (env->window_height * 0.15) / 4.0;
-  env->keymaps_base.x = env->window_width * 0.2 - env->keymaps_base.width -
-                        env->keymaps_base.width * 0.2;
-  env->keymaps_base.y = env->window_height - env->keymaps_base.height * 2;
+  Vector2 text_size = {0};
+  size_t interaction_buttons_count = 3;
+  env->keymaps_base.width =
+      (env->keymaps_base.width - (padding * (interaction_buttons_count * 1))) /
+      interaction_buttons_count;
+  env->keymaps_base.height = env->box_height * 0.5;
+  env->keymaps_base.x += padding;
+  env->keymaps_base.y =
+      env->box_height * env->screen_items + env->keymaps_base.height;
+  size_t font_size = env->keymaps_base.height * 0.75;
 
   if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
-    DrawRectangleRec(env->keymaps_base, TKBC_UI_PURPLE_ALPHA);
+    DrawRectangleRec(env->keymaps_base, TKBC_UI_DARKPURPLE_ALPHA);
   } else {
     DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
   }
   if (!env->keymaps_mouse_interaction) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
         CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+      DrawRectangleRec(env->keymaps_base, TKBC_UI_PURPLE_ALPHA);
+      tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
+      tkbc_setup_keymaps_strs(env->keymaps);
+    }
+  }
+  const char *load = "LOAD";
+  text_size = MeasureTextEx(GetFontDefault(), load, font_size, 0);
+  DrawText(
+      load,
+      env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
+      env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
+      font_size, TKBC_UI_BLACK);
+
+  env->keymaps_base.x += padding + env->keymaps_base.width;
+  if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+    DrawRectangleRec(env->keymaps_base, TKBC_UI_DARKPURPLE_ALPHA);
+  } else {
+    DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
+  }
+  if (!env->keymaps_mouse_interaction) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+        CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+      DrawRectangleRec(env->keymaps_base, TKBC_UI_PURPLE_ALPHA);
+      tkbc_set_keymaps_defaults(env->keymaps);
+    }
+  }
+  const char *reset = "RESET";
+  text_size = MeasureTextEx(GetFontDefault(), reset, font_size, 0);
+  DrawText(
+      reset,
+      env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
+      env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
+      font_size, TKBC_UI_BLACK);
+
+  env->keymaps_base.x += padding + env->keymaps_base.width;
+  if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+    DrawRectangleRec(env->keymaps_base, TKBC_UI_DARKPURPLE_ALPHA);
+  } else {
+    DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
+  }
+  if (!env->keymaps_mouse_interaction) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+        CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+      DrawRectangleRec(env->keymaps_base, TKBC_UI_PURPLE_ALPHA);
       tkbc_save_keymaps_to_file(*env->keymaps, ".tkbc-keymaps");
     }
   }
-
-  DrawText("SAVE", env->keymaps_base.x + env->keymaps_base.width * 0.1,
-           env->keymaps_base.y + env->keymaps_base.height * 0.2, 30,
-           TKBC_UI_BLACK);
-
-  env->keymaps_base.width = (env->window_width * 0.2) / 4.0;
-  env->keymaps_base.height = (env->window_height * 0.15) / 4.0;
-  env->keymaps_base.x = env->keymaps_base.width * 0.2;
-  env->keymaps_base.y = env->window_height - env->keymaps_base.height * 2;
-
-  if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
-    DrawRectangleRec(env->keymaps_base, TKBC_UI_PURPLE_ALPHA);
-  } else {
-    DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
-  }
-  if (!env->keymaps_mouse_interaction) {
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-        CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
-      tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
-      tkbc_setup_keymaps(env->keymaps);
-    }
-  }
-
-  DrawText("LOAD", env->keymaps_base.x + env->keymaps_base.width * 0.1,
-           env->keymaps_base.y + env->keymaps_base.height * 0.2, 30,
-           TKBC_UI_BLACK);
+  const char *save = "SAVE";
+  text_size = MeasureTextEx(GetFontDefault(), save, font_size, 0);
+  DrawText(
+      save,
+      env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
+      env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
+      font_size, TKBC_UI_BLACK);
 }

@@ -3,7 +3,7 @@
 static KeyMap default_keymaps[] = {
     {
         .description = "Change key mappings.",
-        .key = KEY_F1,
+        .key = KEY_ESCAPE,
         .hash = 1000,
     },
 

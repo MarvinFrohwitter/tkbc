@@ -845,7 +845,6 @@ int main(int argc, char *argv[]) {
   tkbc_init_sound(40);
   env = tkbc_init_env();
   tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
-  tkbc_setup_keymaps(env->keymaps);
 
   size_t count = env->kite_array->count;
   sending_script_handler();
