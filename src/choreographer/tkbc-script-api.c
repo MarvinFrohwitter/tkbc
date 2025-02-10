@@ -131,8 +131,8 @@ Frame *tkbc__script_wait(Env *env, float duration) {
   frame->duration = duration;
   frame->kind = KITE_WAIT;
   frame->action = action;
-  frame->kite_id_array = NULL;
 
+  memset(&frame->kite_id_array, 0, sizeof(frame->kite_id_array));
   return frame;
 }
 
@@ -162,8 +162,8 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
   frame->duration = duration;
   frame->kind = KITE_QUIT;
   frame->action = action;
-  frame->kite_id_array = NULL;
 
+  memset(&frame->kite_id_array, 0, sizeof(frame->kite_id_array));
   return frame;
 }
 
@@ -194,7 +194,7 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_indexs,
   Frame *frame = tkbc_init_frame();
   void *action = tkbc_move_action_to_heap(raw_action, kind, true);
 
-  tkbc_dapc(frame->kite_id_array, kite_indexs.elements, kite_indexs.count);
+  tkbc_dapc(&frame->kite_id_array, kite_indexs.elements, kite_indexs.count);
 
   frame->duration = duration;
   frame->kind = kind;
@@ -249,9 +249,9 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
       continue;
     }
 
-    for (size_t j = 0; j < frame->kite_id_array->count; ++j) {
+    for (size_t j = 0; j < frame->kite_id_array.count; ++j) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (frame->kite_id_array->elements[j] ==
+        if (frame->kite_id_array.elements[j] ==
             env->kite_array->elements[k].kite_id) {
           Kite *kite = env->kite_array->elements[k].kite;
           kite->old_angle = kite->angle;
@@ -361,20 +361,20 @@ void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
       fprintf(stream, "      Index:%zu\n",
               block_frame->elements[block].elements[frame].index);
 
-      if (block_frame->elements[block].elements[frame].kite_id_array) {
+      if (block_frame->elements[block].elements[frame].kite_id_array.count) {
         fprintf(stream, "      Kite-Ids: [%zu",
                 block_frame->elements[block]
                     .elements[frame]
-                    .kite_id_array->elements[0]);
+                    .kite_id_array.elements[0]);
 
         for (size_t index = 1;
              index <
-             block_frame->elements[block].elements[frame].kite_id_array->count;
+             block_frame->elements[block].elements[frame].kite_id_array.count;
              ++index) {
           fprintf(stream, ", %zu",
                   block_frame->elements[block]
                       .elements[frame]
-                      .kite_id_array->elements[index]);
+                      .kite_id_array.elements[index]);
         }
       } else {
         fprintf(stream, "      Kite-Indies: [");

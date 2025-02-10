@@ -104,29 +104,29 @@ void tkbc_input_handler_kite_array(Env *env) {
 
     for (size_t j = 0; j < env->frames->count; ++j) {
       Frame *frame = &env->frames->elements[j];
-      if (frame->kite_id_array == NULL) {
+      if (!frame->kite_id_array.count) {
         continue;
       }
 
       bool contains = false;
       size_t k = 0;
-      for (; k < frame->kite_id_array->count; ++k) {
-        if (i - 1 == frame->kite_id_array->elements[k]) {
+      for (; k < frame->kite_id_array.count; ++k) {
+        if (i - 1 == frame->kite_id_array.elements[k]) {
           contains = true;
           break;
         }
       }
 
       if (!contains) {
-        tkbc_dap(frame->kite_id_array, i - 1);
+        tkbc_dap(&frame->kite_id_array, i - 1);
         continue;
       }
 
       Kite_Ids new_kite_index_array = {0};
-      tkbc_dapc(&new_kite_index_array, frame->kite_id_array->elements, k);
-      if (k + 1 < frame->kite_id_array->count) {
-        tkbc_dapc(&new_kite_index_array, &frame->kite_id_array->elements[k + 1],
-                  frame->kite_id_array->count - 1 - k);
+      tkbc_dapc(&new_kite_index_array, frame->kite_id_array.elements, k);
+      if (k + 1 < frame->kite_id_array.count) {
+        tkbc_dapc(&new_kite_index_array, &frame->kite_id_array.elements[k + 1],
+                  frame->kite_id_array.count - 1 - k);
       }
 
       if (new_kite_index_array.count == 0) {
@@ -137,8 +137,8 @@ void tkbc_input_handler_kite_array(Env *env) {
       }
 
       // If there are kites left in the frame
-      frame->kite_id_array->count = 0;
-      tkbc_dapc(frame->kite_id_array, new_kite_index_array.elements,
+      frame->kite_id_array.count = 0;
+      tkbc_dapc(&frame->kite_id_array, new_kite_index_array.elements,
                 new_kite_index_array.count);
       free(new_kite_index_array.elements);
     }

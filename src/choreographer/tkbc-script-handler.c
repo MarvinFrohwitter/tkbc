@@ -25,11 +25,6 @@ Frame *tkbc_init_frame(void) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
-  frame->kite_id_array = calloc(1, sizeof(*frame->kite_id_array));
-  if (frame->kite_id_array == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
 
   return frame;
 }
@@ -81,7 +76,7 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
           frames->elements[i].action, frames->elements[i].kind, false);
     }
 
-    Kite_Ids *old_kite_index_array = frames->elements[i].kite_id_array;
+    Kite_Ids *old_kite_index_array = &frames->elements[i].kite_id_array;
     if (old_kite_index_array == NULL) {
       tkbc_dap(new_frames, new_frame);
       continue;
@@ -96,7 +91,7 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
     tkbc_dapc(new_kite_index_array, old_kite_index_array->elements,
               old_kite_index_array->count);
 
-    new_frame.kite_id_array = new_kite_index_array;
+    new_frame.kite_id_array = *new_kite_index_array;
 
     tkbc_dap(new_frames, new_frame);
   }
@@ -140,9 +135,6 @@ Block_Frame *tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
 void tkbc_destroy_frames(Frames *frames) {
   if (frames->count != 0) {
     for (size_t i = 0; i < frames->count; ++i) {
-      if (frames->elements[i].kite_id_array) {
-        free(frames->elements[i].kite_id_array);
-      }
       free(frames->elements[i].action);
     }
 
@@ -199,11 +191,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     Kite *kite = NULL;
     Move_Add_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
-    assert(env_frame->kite_id_array->count > 0);
 
-    for (size_t i = 0; i < env_frame->kite_id_array->count; ++i) {
+    for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array->elements[i] ==
+        if (env_frame->kite_id_array.elements[i] ==
             env->kite_array->elements[k].kite_id) {
           kite = env->kite_array->elements[k].kite;
           break;
@@ -233,11 +224,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     Kite *kite = NULL;
     Move_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
-    assert(env_frame->kite_id_array->count > 0);
 
-    for (size_t i = 0; i < env_frame->kite_id_array->count; ++i) {
+    for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array->elements[i] ==
+        if (env_frame->kite_id_array.elements[i] ==
             env->kite_array->elements[k].kite_id) {
           kite = env->kite_array->elements[k].kite;
           break;
@@ -260,11 +250,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     Kite *kite = NULL;
     Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
-    assert(env_frame->kite_id_array->count > 0);
 
-    for (size_t i = 0; i < env_frame->kite_id_array->count; ++i) {
+    for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array->elements[i] ==
+        if (env_frame->kite_id_array.elements[i] ==
             env->kite_array->elements[k].kite_id) {
           kite = env->kite_array->elements[k].kite;
           break;
@@ -296,11 +285,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     Kite *kite = NULL;
     Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
-    assert(env_frame->kite_id_array->count > 0);
 
-    for (size_t i = 0; i < env_frame->kite_id_array->count; ++i) {
+    for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array->elements[i] ==
+        if (env_frame->kite_id_array.elements[i] ==
             env->kite_array->elements[k].kite_id) {
           kite = env->kite_array->elements[k].kite;
           break;
@@ -341,11 +329,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     Kite *kite = NULL;
     Tip_Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
-    assert(env_frame->kite_id_array->count > 0);
 
-    for (size_t i = 0; i < env_frame->kite_id_array->count; ++i) {
+    for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array->elements[i] ==
+        if (env_frame->kite_id_array.elements[i] ==
             env->kite_array->elements[k].kite_id) {
           kite = env->kite_array->elements[k].kite;
           break;
@@ -378,11 +365,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     Kite *kite = NULL;
     Tip_Rotation_Action *action = frame->action;
     Frame *env_frame = &env->frames->elements[frame->index];
-    assert(env_frame->kite_id_array->count > 0);
 
-    for (size_t i = 0; i < env_frame->kite_id_array->count; ++i) {
+    for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
       for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array->elements[i] ==
+        if (env_frame->kite_id_array.elements[i] ==
             env->kite_array->elements[k].kite_id) {
           kite = env->kite_array->elements[k].kite;
           break;
@@ -459,12 +445,12 @@ void tkbc_patch_frames_current_time(Frames *frames) {
  */
 void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
   for (size_t i = 0; i < frames->count; ++i) {
-    if (frames->elements[i].kite_id_array == NULL) {
+    if (!frames->elements[i].kite_id_array.count) {
       continue;
     }
 
-    for (size_t j = 0; j < frames->elements[i].kite_id_array->count; ++j) {
-      Index kite_id = frames->elements[i].kite_id_array->elements[j];
+    for (size_t j = 0; j < frames->elements[i].kite_id_array.count; ++j) {
+      Index kite_id = frames->elements[i].kite_id_array.elements[j];
       Index kite_index = 0;
       for (size_t index = 0; index < env->kite_array->count; ++index) {
         if (kite_id == env->kite_array->elements[index].kite_id) {

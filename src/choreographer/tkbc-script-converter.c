@@ -45,8 +45,8 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
     for (size_t frame = 0; frame < block_frame->elements[frames].count;
          ++frame) {
       Frame *f = &block_frame->elements[frames].elements[frame];
-      if (f->kite_id_array) {
-        max_kites = fmaxf(max_kites, f->kite_id_array->count);
+      if (f->kite_id_array.count) {
+        max_kites = fmaxf(max_kites, f->kite_id_array.count);
       }
 
       switch (f->kind) {
@@ -61,7 +61,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_MOVE: {
         Move_Action *action = (Move_Action *)f->action;
         fprintf(file, "MOVE ");
-        if (!tkbc_print_kites(file, *f->kite_id_array)) {
+        if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
         fprintf(file, " %f %f", action->position.x, action->position.y);
@@ -71,7 +71,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_MOVE_ADD: {
         Move_Add_Action *action = (Move_Add_Action *)f->action;
         fprintf(file, "MOVE_ADD ");
-        if (!tkbc_print_kites(file, *f->kite_id_array)) {
+        if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
         fprintf(file, " %f %f", action->position.x, action->position.y);
@@ -81,7 +81,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_ROTATION: {
         Rotation_Action *action = (Rotation_Action *)f->action;
         fprintf(file, "ROTATION ");
-        if (!tkbc_print_kites(file, *f->kite_id_array)) {
+        if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
         fprintf(file, " %f", action->angle);
@@ -91,7 +91,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_ROTATION_ADD: {
         Rotation_Add_Action *action = (Rotation_Add_Action *)f->action;
         fprintf(file, "ROTATION_ADD ");
-        if (!tkbc_print_kites(file, *f->kite_id_array)) {
+        if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
         fprintf(file, " %f", action->angle);
@@ -101,7 +101,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_TIP_ROTATION: {
         Tip_Rotation_Action *action = (Tip_Rotation_Action *)f->action;
         fprintf(file, "TIP_ROTATION ");
-        if (!tkbc_print_kites(file, *f->kite_id_array)) {
+        if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
         fprintf(file, " %f %s", action->angle,
@@ -112,7 +112,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_TIP_ROTATION_ADD: {
         Tip_Rotation_Add_Action *action = (Tip_Rotation_Add_Action *)f->action;
         fprintf(file, "TIP_ROTATION_ADD ");
-        if (!tkbc_print_kites(file, *f->kite_id_array)) {
+        if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
         fprintf(file, " %f %s", action->angle,

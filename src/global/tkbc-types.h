@@ -192,9 +192,9 @@ typedef struct {
 } Kite_Ids;        // A dynamic array that can hold kite_ids.
 
 typedef struct {
-  Kite_Ids *kite_id_array; // The collection of kite_ids that should be
-                           // part of the performed action.
-  Index index;             // The index of the current frame in the
+  Kite_Ids kite_id_array; // The collection of kite_ids that should be
+                          // part of the performed action.
+  Index index;            // The index of the current frame in the
   float duration;   // The time in seconds it should take to perform an action.
   Action_Kind kind; // A representation of the kind of the action pointer.
   void *action;     // The action the frame should be responsible for.

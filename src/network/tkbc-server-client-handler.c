@@ -872,7 +872,6 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
               script_parse_fail = true;
               goto script_err;
             }
-            Kite_Ids kis = {0};
             for (size_t k = 1; k <= kite_ids_count; ++k) {
               token = lexer_next(lexer);
               if (token.kind != NUMBER) {
@@ -882,7 +881,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
 
               size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
               bool contains = false;
-              tkbc_dap(&kis, kite_id);
+              tkbc_dap(&frame.kite_id_array, kite_id);
               for (size_t id = 0; id < possible_new_kis.count; ++id) {
                 if (possible_new_kis.elements[id] == kite_id) {
                   contains = true;
@@ -903,7 +902,6 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
                 goto script_err;
               }
             }
-            frame.kite_id_array = &kis;
           }
 
           token = lexer_next(lexer);
