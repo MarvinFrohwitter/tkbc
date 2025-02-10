@@ -841,10 +841,10 @@ int main(int argc, char *argv[]) {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(TARGET_FPS);
-  SetExitKey(KEY_Q);
-  tkbc_init_sound(40);
-  env = tkbc_init_env();
+  Env *env = tkbc_init_env();
   tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
+  SetExitKey(tkbc_hash_to_key(*env->keymaps, 1005));
+  tkbc_init_sound(40);
 
   size_t count = env->kite_array->count;
   sending_script_handler();

@@ -264,6 +264,10 @@ void tkbc_ui_keymaps(Env *env) {
         env->keymaps->elements[env->keymaps_mouse_interaction_box].key = key;
         env->keymaps->elements[env->keymaps_mouse_interaction_box].key_str =
             tkbc_key_to_str(key);
+        if (env->keymaps->elements[env->keymaps_mouse_interaction_box].hash ==
+            1005) {
+          SetExitKey(tkbc_hash_to_key(*env->keymaps, 1005));
+        }
       }
       env->keymaps_mouse_interaction = false;
     }
@@ -302,6 +306,7 @@ void tkbc_ui_keymaps(Env *env) {
       DrawRectangleRec(env->keymaps_base, TKBC_UI_PURPLE_ALPHA);
       tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
       tkbc_setup_keymaps_strs(env->keymaps);
+      SetExitKey(tkbc_hash_to_key(*env->keymaps, 1005));
     }
   }
   const char *load = "LOAD";
@@ -323,6 +328,7 @@ void tkbc_ui_keymaps(Env *env) {
         CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
       DrawRectangleRec(env->keymaps_base, TKBC_UI_PURPLE_ALPHA);
       tkbc_set_keymaps_defaults(env->keymaps);
+      SetExitKey(tkbc_hash_to_key(*env->keymaps, 1005));
     }
   }
   const char *reset = "RESET";

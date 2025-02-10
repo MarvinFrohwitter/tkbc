@@ -10,8 +10,10 @@ static KeyMap default_keymaps[] = {
     {
         .description = "Quits the Program.",
         .key = KEY_Q,
-        .hash = 1006,
+        .hash = 1005,
     },
+
+
     {
         .description = "Take a Screenshot.",
         .key = KEY_B,

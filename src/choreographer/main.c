@@ -36,18 +36,17 @@ int main(void) {
   // SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(TARGET_FPS);
-  SetExitKey(KEY_Q);
+
+  Env *env = tkbc_init_env();
+  tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
+  SetExitKey(tkbc_hash_to_key(*env->keymaps, 1005));
+  tkbc_init_sound(40);
 
 #ifdef LOADIMAGE
   Image background_image =
       LoadImage("/home/marvin/Entwicklung/c/tkbc/assets/background.png");
   Texture2D background_texture = LoadTextureFromImage(background_image);
 #endif /* ifdef LOADIMAGE */
-
-  tkbc_init_sound(40);
-
-  Env *env = tkbc_init_env();
-  tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
 
   while (!WindowShouldClose()) {
     BeginDrawing();
