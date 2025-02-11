@@ -1104,6 +1104,9 @@ void *tkbc_client_handler(void *client) {
 
   pthread_mutex_lock(&mutex);
   tkbc_dap(env->kite_array, *kite_state);
+  // Just free the state and not the kite inside, because the kite is a pointer
+  // that lives on and is valid in the copy to the env->kite_array.
+  free(kite_state);
 
   Clients cs = {0};
   if (!tkbc_message_kiteadd(&cs, c.kite_id)) {

@@ -115,9 +115,6 @@ bool tkbc_script_finished(Env *env) { return env->script_finished; }
  * @return The new created wait action frame.
  */
 Frame *tkbc__script_wait(Env *env, float duration) {
-  // if (env->script_finished) {
-  //   return NULL;
-  // }
   if (!env->script_setup) {
     return NULL;
   }
@@ -127,7 +124,6 @@ Frame *tkbc__script_wait(Env *env, float duration) {
   ((Wait_Action *)action)->starttime = tkbc_get_time();
 
   Frame *frame = tkbc_init_frame();
-  frame->finished = false;
   frame->duration = duration;
   frame->kind = KITE_WAIT;
   frame->action = action;
@@ -146,9 +142,6 @@ Frame *tkbc__script_wait(Env *env, float duration) {
  * frame.
  */
 Frame *tkbc__script_frames_quit(Env *env, float duration) {
-  // if (env->script_finished) {
-  //   return NULL;
-  // }
   if (!env->script_setup) {
     return NULL;
   }
@@ -158,7 +151,6 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
   ((Quit_Action *)action)->starttime = tkbc_get_time();
 
   Frame *frame = tkbc_init_frame();
-  frame->finished = false;
   frame->duration = duration;
   frame->kind = KITE_QUIT;
   frame->action = action;
@@ -183,10 +175,6 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
  */
 Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_indexs,
                             void *raw_action, float duration) {
-
-  // if (env->script_finished) {
-  //   return NULL;
-  // }
   if (!env->script_setup) {
     return NULL;
   }
@@ -199,7 +187,6 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_indexs,
   frame->duration = duration;
   frame->kind = kind;
   frame->action = action;
-  frame->finished = false;
   return frame;
 }
 

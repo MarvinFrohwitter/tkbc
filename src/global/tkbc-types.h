@@ -286,19 +286,19 @@ typedef struct {
   // -------UI-------
   bool keymaps_interaction; // The status if the keymaps are currently edited.
   bool keymaps_mouse_interaction; // Checks if a keymap was clicked.
-  float scrollbar_width;  // The width of the scrollbar for the keymap settings.
+  float scrollbar_width; // The width of the scrollbar for the keymap settings.
   size_t box_height; // The height of one box that contains a keymap description
   size_t screen_items; // The amount of keymaps that can currently be displayed.
   size_t keymaps_mouse_interaction_box; // The id of the box the is clicked.
   size_t keymaps_top_interaction_box; // The id the current first displayed box.
-  Rectangle keymaps_base; // The base bounding box of the keymaps settings.
+  Rectangle keymaps_base;      // The base bounding box of the keymaps settings.
   Rectangle keymaps_scrollbar; // The base of the scrollbar for the keymaps.
   Rectangle
       keymaps_inner_scrollbar; // The indicator inside the keymaps scrollbar.
-                     // and its keybinding selection box.
-  KeyMaps *keymaps;                   // The current keymaps
-  bool keymaps_scollbar_interaction;  // Checks if the scrollbar is currently
-                                      // moved.
+                               // and its keybinding selection box.
+  KeyMaps *keymaps;            // The current keymaps
+  bool keymaps_scollbar_interaction; // Checks if the scrollbar is currently
+                                     // moved.
 
   bool timeline_hoverover;      // The status if the mouse is currently of the
                                 // timeline.
