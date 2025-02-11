@@ -65,35 +65,29 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
   }
 
   for (size_t i = 0; i < frames->count; ++i) {
-    Frame new_frame = frames->elements[i];
+    Frame *frame = calloc(1, sizeof(*frame));
+    assert(frame != NULL && "No RAM left");
+    frame->index = frames->elements[i].index;
+    frame->duration = frames->elements[i].duration;
+    frame->finished = frames->elements[i].finished;
+    frame->kind = frames->elements[i].kind;
 
-    void *old_action = frames->elements[i].action;
-    if (old_action == NULL) {
-      tkbc_dap(new_frames, new_frame);
+    if (frames->elements[i].action == NULL) {
+      tkbc_dap(new_frames, *frame);
       continue;
     } else {
-      new_frame.action = tkbc_move_action_to_heap(
-          frames->elements[i].action, frames->elements[i].kind, false);
+      frame->action = tkbc_move_action_to_heap(frames->elements[i].action,
+                                               frames->elements[i].kind, false);
     }
 
-    Kite_Ids *old_kite_index_array = &frames->elements[i].kite_id_array;
-    if (old_kite_index_array == NULL) {
-      tkbc_dap(new_frames, new_frame);
-      continue;
+    if (frames->elements[i].kite_id_array.count) {
+      tkbc_dapc(&frame->kite_id_array,
+                frames->elements[i].kite_id_array.elements,
+                frames->elements[i].kite_id_array.count);
     }
 
-    Kite_Ids *new_kite_index_array = calloc(1, sizeof(*new_kite_index_array));
-    if (new_kite_index_array == NULL) {
-      tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-      return NULL;
-    }
-
-    tkbc_dapc(new_kite_index_array, old_kite_index_array->elements,
-              old_kite_index_array->count);
-
-    new_frame.kite_id_array = *new_kite_index_array;
-
-    tkbc_dap(new_frames, new_frame);
+    tkbc_dap(new_frames, *frame);
+    free(frame);
   }
 
   new_frames->block_index = frames->block_index;
