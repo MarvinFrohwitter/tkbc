@@ -65,29 +65,27 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
   }
 
   for (size_t i = 0; i < frames->count; ++i) {
-    Frame *frame = calloc(1, sizeof(*frame));
-    assert(frame != NULL && "No RAM left");
-    frame->index = frames->elements[i].index;
-    frame->duration = frames->elements[i].duration;
-    frame->finished = frames->elements[i].finished;
-    frame->kind = frames->elements[i].kind;
+    Frame frame = {0};
+    frame.index = frames->elements[i].index;
+    frame.duration = frames->elements[i].duration;
+    frame.finished = frames->elements[i].finished;
+    frame.kind = frames->elements[i].kind;
 
     if (frames->elements[i].action == NULL) {
-      tkbc_dap(new_frames, *frame);
+      tkbc_dap(new_frames, frame);
       continue;
     } else {
-      frame->action = tkbc_move_action_to_heap(frames->elements[i].action,
+      frame.action = tkbc_move_action_to_heap(frames->elements[i].action,
                                                frames->elements[i].kind, false);
     }
 
     if (frames->elements[i].kite_id_array.count) {
-      tkbc_dapc(&frame->kite_id_array,
+      tkbc_dapc(&frame.kite_id_array,
                 frames->elements[i].kite_id_array.elements,
                 frames->elements[i].kite_id_array.count);
     }
 
-    tkbc_dap(new_frames, *frame);
-    free(frame);
+    tkbc_dap(new_frames, frame);
   }
 
   new_frames->block_index = frames->block_index;

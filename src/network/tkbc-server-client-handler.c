@@ -498,10 +498,9 @@ int tkbc_server_remove_client(Client client, bool retry) {
 retry:
   for (size_t i = 0; i < clients->count; ++i) {
     if (client.kite_id == clients->elements[i].kite_id) {
-      if (i + 1 < clients->count) {
-        memmove(&clients->elements[i], &clients->elements[i + 1],
-                sizeof(client) * clients->count - i - 1);
-      }
+      Client c_temp = clients->elements[i];
+      clients->elements[i] = clients->elements[clients->count - 1];
+      clients->elements[clients->count - 1] = c_temp;
       clients->count -= 1;
       check_return(0);
     }

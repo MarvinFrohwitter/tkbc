@@ -264,12 +264,15 @@ void tkbc_destroy_kite_array(Kite_States *kite_states) {
  * @return True if the kite is removed successfully, otherwise false.
  */
 bool tkbc_remove_kite_from_list(Kite_States *kite_array, size_t kite_id) {
+  if (kite_array == NULL) {
+    return false;
+  }
   for (size_t i = 0; i < kite_array->count; ++i) {
     if (kite_array->elements[i].kite_id == kite_id) {
-      if (i + 1 < kite_array->count) {
-        memmove(&kite_array->elements[i], &kite_array->elements[i + 1],
-                sizeof(*kite_array->elements) * (kite_array->count - 1 - i));
-      }
+      Kite_State ks_temp = kite_array->elements[i];
+      kite_array->elements[i] = kite_array->elements[kite_array->count - 1];
+      kite_array->elements[kite_array->count - 1] = ks_temp;
+      free(kite_array->elements[kite_array->count - 1].kite);
       kite_array->count -= 1;
       return true;
     }
