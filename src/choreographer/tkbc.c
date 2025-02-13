@@ -37,24 +37,6 @@ Env *tkbc_init_env(void) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
-  env->frames = calloc(1, sizeof(*env->frames));
-  if (env->frames == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
-
-  env->frames->kite_frame_positions =
-      calloc(1, sizeof(*env->frames->kite_frame_positions));
-  if (env->frames->kite_frame_positions == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
-
-  env->block_frame = calloc(1, sizeof(*env->block_frame));
-  if (env->block_frame == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
 
   env->block_frames = calloc(1, sizeof(*env->block_frames));
   if (env->block_frames == NULL) {
