@@ -19,7 +19,7 @@ void tkbc_draw_ui(Env *env) {
   env->window_height = tkbc_get_screen_height();
   env->window_width = tkbc_get_screen_width();
 
-  if (!env->script_finished) {
+  if (env->frames) {
     // A script is currently executing.
 #ifdef TKBC_CLIENT
     tkbc_ui_timeline(env, env->server_script_block_index,
