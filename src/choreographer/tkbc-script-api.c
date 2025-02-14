@@ -119,14 +119,13 @@ Frame *tkbc__script_wait(Env *env, float duration) {
     return NULL;
   }
 
-  Wait_Action *action;
-  action_alloc(Wait_Action);
-  ((Wait_Action *)action)->starttime = tkbc_get_time();
+  Wait_Action action;
+  action.starttime = tkbc_get_time();
 
   Frame *frame = tkbc_init_frame();
   frame->duration = duration;
   frame->kind = KITE_WAIT;
-  frame->action = action;
+  frame->action.as_wait = action;
 
   memset(&frame->kite_id_array, 0, sizeof(frame->kite_id_array));
   return frame;
@@ -146,14 +145,13 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
     return NULL;
   }
 
-  Quit_Action *action;
-  action_alloc(Quit_Action);
-  ((Quit_Action *)action)->starttime = tkbc_get_time();
+  Quit_Action action;
+  action.starttime = tkbc_get_time();
 
   Frame *frame = tkbc_init_frame();
   frame->duration = duration;
   frame->kind = KITE_QUIT;
-  frame->action = action;
+  frame->action.as_quit = action;
 
   memset(&frame->kite_id_array, 0, sizeof(frame->kite_id_array));
   return frame;
@@ -174,19 +172,17 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
  * @return The frame that is constructed to represent the given action.
  */
 Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_indexs,
-                            void *raw_action, float duration) {
+                            Action raw_action, float duration) {
   if (!env->script_setup) {
     return NULL;
   }
 
   Frame *frame = tkbc_init_frame();
-  void *action = tkbc_move_action_to_heap(raw_action, kind, true);
-
   tkbc_dapc(&frame->kite_id_array, kite_indexs.elements, kite_indexs.count);
 
   frame->duration = duration;
   frame->kind = kind;
-  frame->action = action;
+  frame->action = raw_action;
   return frame;
 }
 
@@ -260,12 +256,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
   if (!isscratch) {
     tkbc_destroy_frames(frames);
   }
-  if (isscratch) {
-    for (size_t i = 0; i < env->scratch_buf_frames->count; ++i) {
-      free(env->scratch_buf_frames->elements[i].action);
-    }
-    env->scratch_buf_frames->count = 0;
-  }
+  env->scratch_buf_frames->count = 0;
 }
 
 /**
@@ -383,74 +374,65 @@ void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
 
       case KITE_QUIT: {
         fprintf(stream, "      Action-Kind: KITE_QUIT\n");
-        Quit_Action *action =
-            (Quit_Action *)block_frame->elements[block].elements[frame].action;
-        fprintf(stream, "        Time:%fs)\n", (float)action->starttime);
+        Quit_Action action =
+            block_frame->elements[block].elements[frame].action.as_quit;
+        fprintf(stream, "        Time:%fs)\n", (float)action.starttime);
       } break;
 
       case KITE_WAIT: {
         fprintf(stream, "      Action-Kind: KITE_WAIT\n");
-        Wait_Action *action =
-            (Wait_Action *)block_frame->elements[block].elements[frame].action;
-        fprintf(stream, "        Time:%fs)\n", (float)action->starttime);
+        Wait_Action action =
+            block_frame->elements[block].elements[frame].action.as_wait;
+        fprintf(stream, "        Time:%fs)\n", (float)action.starttime);
       } break;
 
       case KITE_MOVE: {
         fprintf(stream, "      Action-Kind: Kite_Move\n");
-        Move_Action *action =
-            (Move_Action *)block_frame->elements[block].elements[frame].action;
-        fprintf(stream, "        Position:(%f,%f)\n", action->position.y,
-                action->position.y);
+        Move_Action action =
+            block_frame->elements[block].elements[frame].action.as_move;
+        fprintf(stream, "        Position:(%f,%f)\n", action.position.y,
+                action.position.y);
       } break;
 
       case KITE_MOVE_ADD: {
         fprintf(stream, "      Action-Kind: KITE_MOVE_ADD\n");
-        Move_Add_Action *action =
-            (Move_Add_Action *)block_frame->elements[block]
-                .elements[frame]
-                .action;
-        fprintf(stream, "        Position:(%f,%f)\n", action->position.y,
-                action->position.y);
+        Move_Add_Action action =
+            block_frame->elements[block].elements[frame].action.as_move_add;
+        fprintf(stream, "        Position:(%f,%f)\n", action.position.y,
+                action.position.y);
       } break;
 
       case KITE_ROTATION: {
         fprintf(stream, "      Action-Kind: KITE_ROTATION\n");
-        Rotation_Action *action =
-            (Rotation_Action *)block_frame->elements[block]
-                .elements[frame]
-                .action;
-        fprintf(stream, "        Angle:%f\n", action->angle);
+        Rotation_Action action =
+            block_frame->elements[block].elements[frame].action.as_rotation;
+        fprintf(stream, "        Angle:%f\n", action.angle);
       } break;
 
       case KITE_ROTATION_ADD: {
         fprintf(stream, "      Action-Kind: KITE_ROTATION_ADD\n");
-        Rotation_Add_Action *action =
-            (Rotation_Add_Action *)block_frame->elements[block]
-                .elements[frame]
-                .action;
-        fprintf(stream, "        Angle:%f\n", action->angle);
+        Rotation_Add_Action action =
+            block_frame->elements[block].elements[frame].action.as_rotation_add;
+        fprintf(stream, "        Angle:%f\n", action.angle);
       } break;
 
       case KITE_TIP_ROTATION: {
         fprintf(stream, "      Action-Kind: KITE_TIP_ROTATION\n");
-        Tip_Rotation_Action *action =
-            (Tip_Rotation_Action *)block_frame->elements[block]
-                .elements[frame]
-                .action;
-        fprintf(stream, "        Angle:%f\n", action->angle);
+        Tip_Rotation_Action action =
+            block_frame->elements[block].elements[frame].action.as_tip_rotation;
+        fprintf(stream, "        Angle:%f\n", action.angle);
         fprintf(stream, "        Tip:%s\n",
-                action->tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
+                action.tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
       } break;
 
       case KITE_TIP_ROTATION_ADD: {
         fprintf(stream, "      Action-Kind: KITE_TIP_ROTATION_ADD\n");
-        Tip_Rotation_Add_Action *action =
-            (Tip_Rotation_Add_Action *)block_frame->elements[block]
-                .elements[frame]
-                .action;
-        fprintf(stream, "        Angle:%f\n", action->angle);
+        Tip_Rotation_Add_Action action = block_frame->elements[block]
+                                             .elements[frame]
+                                             .action.as_tip_rotation_add;
+        fprintf(stream, "        Angle:%f\n", action.angle);
         fprintf(stream, "        Tip:%s\n",
-                action->tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
+                action.tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
       } break;
 
       default: {

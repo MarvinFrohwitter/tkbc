@@ -714,7 +714,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
           }
 
           char sign;
-          void *action = NULL;
+          Action action;
           assert(ACTION_KIND_COUNT == 9 &&
                  "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
           switch (frame.kind) {
@@ -732,8 +732,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
             }
             tkbc_dapc(&tmp_buffer, token.content, token.size);
             tkbc_dap(&tmp_buffer, 0);
-            action_alloc(Wait_Action);
-            ((Wait_Action *)action)->starttime = atof(tmp_buffer.elements);
+            action.as_wait.starttime = atof(tmp_buffer.elements);
             tmp_buffer.count = 0;
           } break;
 
@@ -751,8 +750,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
             }
             tkbc_dapc(&tmp_buffer, token.content, token.size);
             tkbc_dap(&tmp_buffer, 0);
-            action_alloc(Move_Action);
-            ((Move_Action *)action)->position.x = atof(tmp_buffer.elements);
+            action.as_move.position.x = atof(tmp_buffer.elements);
             tmp_buffer.count = 0;
 
             token = lexer_next(lexer);
@@ -773,7 +771,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
             }
             tkbc_dapc(&tmp_buffer, token.content, token.size);
             tkbc_dap(&tmp_buffer, 0);
-            ((Move_Action *)action)->position.y = atof(tmp_buffer.elements);
+            action.as_move.position.y = atof(tmp_buffer.elements);
             tmp_buffer.count = 0;
           } break;
 
@@ -791,8 +789,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
             }
             tkbc_dapc(&tmp_buffer, token.content, token.size);
             tkbc_dap(&tmp_buffer, 0);
-            action_alloc(Rotation_Action);
-            ((Rotation_Action *)action)->angle = atof(tmp_buffer.elements);
+            action.as_rotation.angle = atof(tmp_buffer.elements);
             tmp_buffer.count = 0;
           } break;
 
@@ -803,8 +800,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
               script_parse_fail = true;
               goto script_err;
             }
-            action_alloc(Tip_Rotation_Action);
-            ((Tip_Rotation_Action *)action)->tip =
+            action.as_tip_rotation.tip =
                 atoi(lexer_token_to_cstr(lexer, &token));
 
             token = lexer_next(lexer);
@@ -825,7 +821,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
             }
             tkbc_dapc(&tmp_buffer, token.content, token.size);
             tkbc_dap(&tmp_buffer, 0);
-            ((Tip_Rotation_Action *)action)->angle = atof(tmp_buffer.elements);
+            action.as_tip_rotation.angle = atof(tmp_buffer.elements);
             tmp_buffer.count = 0;
           } break;
 

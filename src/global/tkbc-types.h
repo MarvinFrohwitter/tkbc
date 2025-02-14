@@ -159,16 +159,16 @@ typedef Wait_Action Quit_Action; // The action that is responsible for force
 
 typedef union { // The collection of all the possible actions that can be used
                 // in a script.
-  Tip_Rotation_Action tip_rotation_action;
-  Rotation_Action rotation_action;
-  Move_Action move_action;
+  Tip_Rotation_Action as_tip_rotation;
+  Rotation_Action as_rotation;
+  Move_Action as_move;
 
-  Tip_Rotation_Action tip_rotation_add_action;
-  Rotation_Action rotation_add_action;
-  Move_Action move_add_action;
+  Tip_Rotation_Action as_tip_rotation_add;
+  Rotation_Action as_rotation_add;
+  Move_Action as_move_add;
 
-  Wait_Action wait_action;
-  Quit_Action quit_action;
+  Wait_Action as_wait;
+  Quit_Action as_quit;
 } Action;
 
 typedef enum {
@@ -197,7 +197,7 @@ typedef struct {
   Index index;            // The index of the current frame in the
   float duration;   // The time in seconds it should take to perform an action.
   Action_Kind kind; // A representation of the kind of the action pointer.
-  void *action;     // The action the frame should be responsible for.
+  Action action;    // The action the frame should be responsible for.
   bool finished;    // Represents the state of the currently handled frame.
 } Frame;            // Combined action for the kites that are listed in the
                     // kite_id_array.

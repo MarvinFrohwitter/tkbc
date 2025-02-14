@@ -59,64 +59,64 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       } break;
 
       case KITE_MOVE: {
-        Move_Action *action = (Move_Action *)f->action;
+        Move_Action action = f->action.as_move;
         fprintf(file, "MOVE ");
         if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
-        fprintf(file, " %f %f", action->position.x, action->position.y);
+        fprintf(file, " %f %f", action.position.x, action.position.y);
 
       } break;
 
       case KITE_MOVE_ADD: {
-        Move_Add_Action *action = (Move_Add_Action *)f->action;
+        Move_Add_Action action = f->action.as_move_add;
         fprintf(file, "MOVE_ADD ");
         if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
-        fprintf(file, " %f %f", action->position.x, action->position.y);
+        fprintf(file, " %f %f", action.position.x, action.position.y);
 
       } break;
 
       case KITE_ROTATION: {
-        Rotation_Action *action = (Rotation_Action *)f->action;
+        Rotation_Action action = f->action.as_rotation;
         fprintf(file, "ROTATION ");
         if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
-        fprintf(file, " %f", action->angle);
+        fprintf(file, " %f", action.angle);
 
       } break;
 
       case KITE_ROTATION_ADD: {
-        Rotation_Add_Action *action = (Rotation_Add_Action *)f->action;
+        Rotation_Add_Action action = f->action.as_rotation_add;
         fprintf(file, "ROTATION_ADD ");
         if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
-        fprintf(file, " %f", action->angle);
+        fprintf(file, " %f", action.angle);
 
       } break;
 
       case KITE_TIP_ROTATION: {
-        Tip_Rotation_Action *action = (Tip_Rotation_Action *)f->action;
+        Tip_Rotation_Action action = f->action.as_tip_rotation;
         fprintf(file, "TIP_ROTATION ");
         if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
-        fprintf(file, " %f %s", action->angle,
-                action->tip == LEFT_TIP ? "LEFT" : "RIGHT");
+        fprintf(file, " %f %s", action.angle,
+                action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
       } break;
 
       case KITE_TIP_ROTATION_ADD: {
-        Tip_Rotation_Add_Action *action = (Tip_Rotation_Add_Action *)f->action;
+        Tip_Rotation_Add_Action action = f->action.as_tip_rotation_add;
         fprintf(file, "TIP_ROTATION_ADD ");
         if (!tkbc_print_kites(file, f->kite_id_array)) {
           check_return(false);
         }
-        fprintf(file, " %f %s", action->angle,
-                action->tip == LEFT_TIP ? "LEFT" : "RIGHT");
+        fprintf(file, " %f %s", action.angle,
+                action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
       } break;
 

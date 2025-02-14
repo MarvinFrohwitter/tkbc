@@ -70,14 +70,7 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
     frame.duration = frames->elements[i].duration;
     frame.finished = frames->elements[i].finished;
     frame.kind = frames->elements[i].kind;
-
-    if (frames->elements[i].action == NULL) {
-      tkbc_dap(new_frames, frame);
-      continue;
-    } else {
-      frame.action = tkbc_move_action_to_heap(frames->elements[i].action,
-                                              frames->elements[i].kind, false);
-    }
+    frame.action = frames->elements[i].action;
 
     if (frames->elements[i].kite_id_array.count) {
       tkbc_dapc(&frame.kite_id_array,
@@ -126,10 +119,6 @@ Block_Frame *tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
  */
 void tkbc_destroy_frames(Frames *frames) {
   if (frames->count != 0) {
-    for (size_t i = 0; i < frames->count; ++i) {
-      free(frames->elements[i].action);
-    }
-
     if (frames->kite_frame_positions != NULL) {
       free(frames->kite_frame_positions->elements);
     }
@@ -151,7 +140,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
   switch (frame->kind) {
   case KITE_WAIT: {
-    Wait_Action *action = frame->action;
+    Wait_Action *action = &frame->action.as_wait;
     if (frame->duration <= 0) {
       frame->finished = true;
       frame->duration = 0;
@@ -169,7 +158,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       break;
     }
 
-    Quit_Action *action = frame->action;
+    Quit_Action *action = &frame->action.as_quit;
     if (frame->duration <= 0) {
       frame->finished = true;
     } else {
@@ -181,7 +170,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   } break;
   case KITE_MOVE_ADD: {
     Kite *kite = NULL;
-    Move_Add_Action *action = frame->action;
+    Move_Add_Action *action = &frame->action.as_move_add;
     Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -214,7 +203,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   } break;
   case KITE_MOVE: {
     Kite *kite = NULL;
-    Move_Action *action = frame->action;
+    Move_Action *action = &frame->action.as_move;
     Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -240,7 +229,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   } break;
   case KITE_ROTATION_ADD: {
     Kite *kite = NULL;
-    Rotation_Action *action = frame->action;
+    Rotation_Action *action = &frame->action.as_rotation_add;
     Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -275,7 +264,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   } break;
   case KITE_ROTATION: {
     Kite *kite = NULL;
-    Rotation_Action *action = frame->action;
+    Rotation_Action *action = &frame->action.as_rotation;
     Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -290,8 +279,8 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         assert(0 && "Unexpected data lose.");
       }
 
-      float intermediate_angle =
-          check_angle_zero(kite, frame->kind, action, frame->duration);
+      float intermediate_angle = check_angle_zero(
+          kite, frame->kind, *(Action *)action, frame->duration);
       float d =
           tkbc_script_rotate(kite, intermediate_angle, frame->duration, false);
 
@@ -319,7 +308,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   } break;
   case KITE_TIP_ROTATION_ADD: {
     Kite *kite = NULL;
-    Tip_Rotation_Action *action = frame->action;
+    Tip_Rotation_Action *action = &frame->action.as_tip_rotation_add;
     Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -355,7 +344,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   } break;
   case KITE_TIP_ROTATION: {
     Kite *kite = NULL;
-    Tip_Rotation_Action *action = frame->action;
+    Tip_Rotation_Action *action = &frame->action.as_tip_rotation;
     Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -370,8 +359,8 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         assert(0 && "Unexpected data lose.");
       }
 
-      float intermediate_angle =
-          check_angle_zero(kite, frame->kind, action, frame->duration);
+      float intermediate_angle = check_angle_zero(
+          kite, frame->kind, *(Action *)action, frame->duration);
       float d = tkbc_script_rotate_tip(kite, action->tip, intermediate_angle,
                                        frame->duration, false);
 
@@ -418,7 +407,7 @@ void tkbc_patch_frames_current_time(Frames *frames) {
     switch (frame->kind) {
     case KITE_QUIT:
     case KITE_WAIT: {
-      ((Wait_Action *)frame->action)->starttime = tkbc_get_time();
+      frame->action.as_wait.starttime = tkbc_get_time();
     } break;
     default: {
     }
@@ -770,43 +759,6 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
 }
 
 /**
- * @brief The macro computes the intermediate angle that represents the
- * difference to zero from the current kite angle and respects the sign of the
- * 0 angle. The intermediate angle is returned and the action stays unmodified.
- */
-#define check_zero(action_type)                                                \
-  do {                                                                         \
-    if (((action_type *)action)->angle == 0 && duration > 0) {                 \
-      if (signbit(((action_type *)action)->angle) == 0) {                      \
-        /* Positive 0 */                                                       \
-        if (kite->old_angle < 0) {                                             \
-          /* Negative angle 0 = -90 +90 */                                     \
-          return fabsf(fmodf(kite->old_angle, 360));                           \
-        } else {                                                               \
-          /* Positive angle 0 = 90 +270 ->  270 = + 360 - (90) */              \
-          /* The case where the old angle is already 0 is handled by the outer \
-           * mod. */                                                           \
-          return fmodf(360 - fmodf(kite->old_angle, 360), 360);                \
-        }                                                                      \
-      } else {                                                                 \
-        /* Negative 0 */                                                       \
-        if (kite->old_angle < 0) {                                             \
-          /* Negative angle 0 = -90 -270 -> -270 = -360 + 90 = -(360 - (90))   \
-           */                                                                  \
-          /* The case where the old angle is already 0 is handled by the outer \
-           * mod. */                                                           \
-          return -fmodf(360 - fmodf(kite->old_angle, 360), 360);               \
-                                                                               \
-        } else {                                                               \
-          /* Positive angle 0 = 90 -90 */                                      \
-          return -fabsf(fmodf(kite->old_angle, 360));                          \
-        }                                                                      \
-      }                                                                        \
-    } else {                                                                   \
-      return ((action_type *)action)->angle;                                   \
-    }                                                                          \
-  } while (0);
-/**
  * @brief The function computes the intermediate angle that represents the
  * difference to zero from the current kite angle and respects the sign of the
  * 0 angle. The intermediate angle is returned and the action stays unmodified.
@@ -817,47 +769,60 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
  * @param duration The current frame duration.
  * @return The intermediate angle that represents the distance to 0.
  */
-float check_angle_zero(Kite *kite, Action_Kind kind, void *action,
+float check_angle_zero(Kite *kite, Action_Kind kind, Action action,
                        float duration) {
   switch (kind) {
   case KITE_ROTATION:
   case KITE_ROTATION_ADD:
-    do {
-      if (((Rotation_Action *)action)->angle == 0 && duration > 0) {
-        if (signbit(((Rotation_Action *)action)->angle) == 0) {
-          /* Positive 0 */
-          if (kite->old_angle < 0) {
-            /* Negative angle 0 = -90 +90 */
-            return fabsf(fmodf(kite->old_angle, 360));
-          } else {
-            /* Positive angle 0 = 90 +270 ->  270 = + 360 - (90) */
-            /* The case where the old angle is already 0 is handled by the outer
-             * mod. */
-            return fmodf(360 - fmodf(kite->old_angle, 360), 360);
-          }
-        } else {
-          /* Negative 0 */
-          if (kite->old_angle < 0) {
-            /* Negative angle 0 = -90 -270 -> -270 = -360 + 90 = -(360 - (90))
-             */
-            /* The case where the old angle is already 0 is handled by the outer
-             * mod. */
-            return -fmodf(360 - fmodf(kite->old_angle, 360), 360);
+    if (action.as_rotation.angle != 0 || duration <= 0) {
+      return action.as_rotation.angle;
+    }
 
-          } else {
-            /* Positive angle 0 = 90 -90 */
-            return -fabsf(fmodf(kite->old_angle, 360));
-          }
-        }
+    if (signbit(action.as_rotation.angle) == 0) {
+      /* Positive 0 */
+      if (kite->old_angle < 0) {
+        /* Negative angle 0 = -90 +90 */
+        return fabsf(fmodf(kite->old_angle, 360));
       } else {
-        return ((Rotation_Action *)action)->angle;
+        /* Positive angle 0 = 90 +270 ->  270 = + 360 - (90) */
+        /* The case where the old angle is already 0 is handled by the outer
+         * mod. */
+        return fmodf(360 - fmodf(kite->old_angle, 360), 360);
       }
-    } while (0);
-    break;
+    } else {
+      /* Negative 0 */
+      if (kite->old_angle < 0) {
+        /* Negative angle 0 = -90 -270 -> -270 = -360 + 90 = -(360 - (90))
+         */
+        /* The case where the old angle is already 0 is handled by the outer
+         * mod. */
+        return -fmodf(360 - fmodf(kite->old_angle, 360), 360);
+
+      } else {
+        /* Positive angle 0 = 90 -90 */
+        return -fabsf(fmodf(kite->old_angle, 360));
+      }
+    }
+
   case KITE_TIP_ROTATION:
   case KITE_TIP_ROTATION_ADD:
-    check_zero(Tip_Rotation_Action);
-    break;
+    if (action.as_tip_rotation.angle != 0 || duration <= 0) {
+      return action.as_tip_rotation.angle;
+    }
+
+    if (signbit(action.as_tip_rotation.angle) == 0) {
+      if (kite->old_angle < 0) {
+        return fabsf(fmodf(kite->old_angle, 360));
+      } else {
+        return fmodf(360 - fmodf(kite->old_angle, 360), 360);
+      }
+    } else {
+      if (kite->old_angle < 0) {
+        return -fmodf(360 - fmodf(kite->old_angle, 360), 360);
+      } else {
+        return -fabsf(fmodf(kite->old_angle, 360));
+      }
+    }
   default:
     assert(0 && "UNREACHABLE check_angle_zero()");
   }

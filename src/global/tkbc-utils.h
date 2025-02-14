@@ -103,20 +103,6 @@
     goto check;                                                                \
   } while (0)
 
-/**
- * The macro allocates according to the given action type the action on the
- * heap.
- * @param type The action type definition to allocate.
- */
-#define action_alloc(type)                                                     \
-  do {                                                                         \
-    action = calloc(1, sizeof(type));                                          \
-    if (action == NULL) {                                                      \
-      tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");     \
-      return NULL;                                                             \
-    }                                                                          \
-  } while (0)
-
 typedef enum {
   TYPE_SIZE_T,
   TYPE_INT,
@@ -128,8 +114,6 @@ typedef enum {
 int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...);
 char *tkbc_ptoa(char *buffer, size_t buffer_size, void *number, Types type);
 char *tkbc_shift_args(int *argc, char ***argv);
-void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
-                               bool isgenerated);
 int tkbc_read_file(const char *filename, Content *content);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 int tkbc_get_screen_height();
@@ -244,67 +228,6 @@ char *tkbc_shift_args(int *argc, char ***argv) {
     assert(*argc > 0 && "ERROR: No more arguments left!");
 
   return old_argv;
-}
-
-/**
- * @brief The function creates a new heap copy of the given action. If the
- * provided one is already on the heap a second one will be created on the heap,
- * else the stack allocation will be moved to heap and can be dropped after this
- * function call.
- *
- * @param raw_action The action that will be moved to the heap.
- * @param kind The action kind that identifies the type of the action.
- * @param isgenerated Indicates the specific use for the initialization of a
- * frame, where the quit and wait actions are handled separate, differently than
- * in the deep copy function.
- */
-void *tkbc_move_action_to_heap(void *raw_action, Action_Kind kind,
-                               bool isgenerated) {
-
-  void *action = NULL;
-  assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
-  switch (kind) {
-  case KITE_QUIT:
-  case KITE_WAIT: {
-    if (!isgenerated) {
-      action_alloc(Wait_Action);
-      ((Wait_Action *)action)->starttime =
-          ((Wait_Action *)raw_action)->starttime;
-    }
-  } break;
-  case KITE_MOVE:
-  case KITE_MOVE_ADD: {
-    action_alloc(Move_Action);
-    ((Move_Action *)action)->position.x =
-        ((Move_Action *)raw_action)->position.x;
-    ((Move_Action *)action)->position.y =
-        ((Move_Action *)raw_action)->position.y;
-
-  } break;
-  case KITE_ROTATION:
-  case KITE_ROTATION_ADD: {
-
-    action_alloc(Rotation_Action);
-    ((Rotation_Action *)action)->angle = ((Rotation_Action *)raw_action)->angle;
-
-  } break;
-  case KITE_TIP_ROTATION:
-  case KITE_TIP_ROTATION_ADD: {
-
-    action_alloc(Tip_Rotation_Action);
-    ((Tip_Rotation_Action *)action)->tip =
-        ((Tip_Rotation_Action *)raw_action)->tip;
-
-    ((Tip_Rotation_Action *)action)->angle =
-        ((Tip_Rotation_Action *)raw_action)->angle;
-
-  } break;
-  default: {
-    tkbc_fprintf(stderr, "ERROR", "KIND: %d\n", kind);
-    assert(0 && "Unsupported Kite Action");
-  } break;
-  }
-  return action;
 }
 
 /**
