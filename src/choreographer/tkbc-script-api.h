@@ -15,8 +15,8 @@ void tkbc__script_end(Env *env);
 
 #define tkbc_script_input void tkbc__script_input(Env *env)
 
-#define tkbc_script_begin tkbc__script_begin(env);
-#define tkbc_script_end tkbc__script_end(env);
+#define tkbc_script_begin() tkbc__script_begin(env)
+#define tkbc_script_end() tkbc__script_end(env)
 
 void tkbc_script_update_frames(Env *env);
 bool tkbc_script_finished(Env *env);

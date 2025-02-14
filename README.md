@@ -44,9 +44,9 @@ Step 2 Set up the script scope
 ```C
 // Create the script scope.
 tkbc_script_input {
-  tkbc_script_begin
+  tkbc_script_begin();
     // Here goes the script.
-  tkbc_script_end
+  tkbc_script_end();
 }
 ```
 
@@ -55,13 +55,13 @@ Multiple script can be provided with another begin and end call.
 ```C
 // Create more scripts.
 tkbc_script_input {
-  tkbc_script_begin
+  tkbc_script_begin();
     // Here goes the first script.
-  tkbc_script_end
+  tkbc_script_end();
 
-  tkbc_script_begin
+  tkbc_script_begin();
     // Here goes the second script.
-  tkbc_script_end
+  tkbc_script_end();
 }
 ```
 
@@ -355,6 +355,7 @@ The Team calls can be used in the '.kite' files in the following way.
 The exact types of the variables can be assumed as in the C declarations above.
 They are mostly float except rows and cols, but the types could maybe change so
 the C declarations are up to date.
+
 ```JS
 EXTERN TEAM_LINE KITES position.x position.y offset.x offset.y h_padding move_duration
 EXTERN TEAM_GRID KITES position.x position.y offset.x offset.y v_padding h_padding rows columns move_duration
@@ -371,7 +372,9 @@ EXTERN TEAM_DIAMOND KITES direction angle box_size move_duration rotation_durati
 EXTERN TEAM_DIAMOND_LEFT KITES box_size move_duration rotation_duration
 EXTERN TEAM_DIAMOND_RIGHT KITES box_size move_duration rotation_duration
 ```
+
 A more specific example would be the following.
+
 ```Scala
 KITES 4
 BEGIN
@@ -387,6 +390,7 @@ EXTERN TEAM_SPLIT_BOX_UP KITES ODD 100 5 3
 EXTERN TEAM_SPLIT_BOX_UP KITES EVEN 100 5 3
 END
 ```
+
 ---
 
 ## Mappings
