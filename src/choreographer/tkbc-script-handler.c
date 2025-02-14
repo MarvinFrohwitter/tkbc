@@ -76,7 +76,7 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
       continue;
     } else {
       frame.action = tkbc_move_action_to_heap(frames->elements[i].action,
-                                               frames->elements[i].kind, false);
+                                              frames->elements[i].kind, false);
     }
 
     if (frames->elements[i].kite_id_array.count) {

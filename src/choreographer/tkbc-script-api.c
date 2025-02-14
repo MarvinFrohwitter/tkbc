@@ -257,9 +257,14 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
       ->elements[env->scratch_buf_block_frame->count - 1]
       .block_index = env->scratch_buf_block_frame->count - 1;
 
-  env->scratch_buf_frames->count = 0;
   if (!isscratch) {
     tkbc_destroy_frames(frames);
+  }
+  if (isscratch) {
+    for (size_t i = 0; i < env->scratch_buf_frames->count; ++i) {
+      free(env->scratch_buf_frames->elements[i].action);
+    }
+    env->scratch_buf_frames->count = 0;
   }
 }
 
