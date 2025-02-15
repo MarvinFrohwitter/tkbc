@@ -51,17 +51,10 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
     return NULL;
   }
 
-  if (frames->kite_frame_positions != NULL) {
-    new_frames->kite_frame_positions =
-        calloc(1, sizeof(*new_frames->kite_frame_positions));
-    if (new_frames->kite_frame_positions == NULL) {
-      tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-      return NULL;
-    }
-
-    tkbc_dapc(new_frames->kite_frame_positions,
-              frames->kite_frame_positions->elements,
-              frames->kite_frame_positions->count);
+  if (frames->kite_frame_positions.count) {
+    tkbc_dapc(&new_frames->kite_frame_positions,
+              frames->kite_frame_positions.elements,
+              frames->kite_frame_positions.count);
   }
 
   for (size_t i = 0; i < frames->count; ++i) {
@@ -119,8 +112,8 @@ Block_Frame *tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
  */
 void tkbc_destroy_frames(Frames *frames) {
   if (frames->count != 0) {
-    if (frames->kite_frame_positions != NULL) {
-      free(frames->kite_frame_positions->elements);
+    if (frames->kite_frame_positions.elements != NULL) {
+      free(frames->kite_frame_positions.elements);
     }
     frames->count = 0;
   }
@@ -446,32 +439,22 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
           .angle = env->kite_array->elements[kite_index].kite->angle,
       };
 
-      // For the case just frames buffer is on the stack allocated.
-      if (frames->kite_frame_positions == NULL) {
-        frames->kite_frame_positions =
-            calloc(1, sizeof(*frames->kite_frame_positions));
-        if (frames->kite_frame_positions == NULL) {
-          tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-          assert(0 && "ERROR: No more memory left!");
-        }
-      }
-
       bool contains = false;
-      for (size_t k = 0; k < frames->kite_frame_positions->count; ++k) {
-        if (frames->kite_frame_positions->elements[k].kite_id == kite_id) {
+      for (size_t k = 0; k < frames->kite_frame_positions.count; ++k) {
+        if (frames->kite_frame_positions.elements[k].kite_id == kite_id) {
           contains = true;
           // NOTE: Patching angle in case the kite_position was
           // already added by just a move action, but later the corresponding
           // angle action is handled.
-          frames->kite_frame_positions->elements[k].position =
+          frames->kite_frame_positions.elements[k].position =
               kite_position.position;
-          frames->kite_frame_positions->elements[k].angle = kite_position.angle;
+          frames->kite_frame_positions.elements[k].angle = kite_position.angle;
           break;
         }
       }
 
       if (!contains) {
-        tkbc_dap(frames->kite_frame_positions, kite_position);
+        tkbc_dap(&frames->kite_frame_positions, kite_position);
       }
     }
   }
@@ -562,9 +545,9 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
   // current one. The kites can end up in wired locations, because the state is
   // not exactly as if the script has executed from the beginning.
   Kite *kite = NULL;
-  for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
+  for (size_t i = 0; i < env->frames->kite_frame_positions.count; ++i) {
     for (size_t k = 0; k < env->kite_array->count; ++k) {
-      if (env->frames->kite_frame_positions->elements[i].kite_id ==
+      if (env->frames->kite_frame_positions.elements[i].kite_id ==
           env->kite_array->elements[k].kite_id) {
         kite = env->kite_array->elements[k].kite;
         break;
@@ -574,8 +557,8 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
       assert(0 && "Unexpected data lose.");
     }
 
-    Vector2 position = env->frames->kite_frame_positions->elements[i].position;
-    float angle = env->frames->kite_frame_positions->elements[i].angle;
+    Vector2 position = env->frames->kite_frame_positions.elements[i].position;
+    float angle = env->frames->kite_frame_positions.elements[i].angle;
 
     tkbc_center_rotation(kite, &position, angle);
 

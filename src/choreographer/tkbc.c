@@ -57,13 +57,6 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
-  env->scratch_buf_frames->kite_frame_positions =
-      calloc(1, sizeof(*env->scratch_buf_frames->kite_frame_positions));
-  if (env->scratch_buf_frames->kite_frame_positions == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
-
   env->keymaps = calloc(1, sizeof(*env->keymaps));
   if (env->keymaps == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
@@ -211,7 +204,6 @@ void tkbc_destroy_env(Env *env) {
   free(env->scratch_buf_block_frame);
 
   tkbc_destroy_frames(env->scratch_buf_frames);
-  free(env->scratch_buf_frames->kite_frame_positions);
   free(env->scratch_buf_frames->elements);
   free(env->scratch_buf_frames);
   free(env);

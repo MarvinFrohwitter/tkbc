@@ -216,7 +216,7 @@ typedef struct {
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
   Index block_index; // The index in the block_frame array after registration.
-  Kite_Positions *kite_frame_positions; // The start position of the kite in the
+  Kite_Positions kite_frame_positions; // The start position of the kite in the
                                         // current frame.
 } Frames; // A dynamic array collection that holds the type frame.
 

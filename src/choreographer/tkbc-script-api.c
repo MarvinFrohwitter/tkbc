@@ -67,9 +67,9 @@ void tkbc_script_update_frames(Env *env) {
 
       tkbc_patch_frames_current_time(env->frames);
 
-      for (size_t i = 0; i < env->frames->kite_frame_positions->count; ++i) {
+      for (size_t i = 0; i < env->frames->kite_frame_positions.count; ++i) {
         for (size_t k = 0; k < env->kite_array->count; ++k) {
-          if (env->frames->kite_frame_positions->elements[i].kite_id ==
+          if (env->frames->kite_frame_positions.elements[i].kite_id ==
               env->kite_array->elements[k].kite_id) {
             Kite *kite = env->kite_array->elements[k].kite;
 
@@ -80,8 +80,8 @@ void tkbc_script_update_frames(Env *env) {
             kite->old_angle = kite->angle;
             kite->old_center = kite->center;
 
-            env->frames->kite_frame_positions->elements[i].angle = kite->angle;
-            env->frames->kite_frame_positions->elements[i].position =
+            env->frames->kite_frame_positions.elements[i].angle = kite->angle;
+            env->frames->kite_frame_positions.elements[i].position =
                 kite->center;
 
             break;
@@ -447,13 +447,13 @@ void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
     fprintf(stream, "    {\n");
     for (size_t kite_frame_poition = 0;
          kite_frame_poition <
-         block_frame->elements[block].kite_frame_positions->count;
+         block_frame->elements[block].kite_frame_positions.count;
          ++kite_frame_poition) {
 
       fprintf(stream, "      {\n");
       Kite_Position *kp =
           &block_frame->elements[block]
-               .kite_frame_positions->elements[kite_frame_poition];
+               .kite_frame_positions.elements[kite_frame_poition];
       fprintf(stream, "      Kite:%zu\n", kp->kite_id);
       fprintf(stream, "      Angle:%f\n", kp->angle);
       fprintf(stream, "      Position:(%f,%f)\n", kp->position.x,
