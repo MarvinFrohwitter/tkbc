@@ -36,8 +36,7 @@
 Env *env = {0};
 Client client = {0};
 #define RECEIVE_QUEUE_SIZE 1024
-Message receive_queue = {0};
-Message send_message_queue = {0};
+Message tkbc_send_message_queue = {0};
 
 /**
  * @brief The function prints the way the program should be called.
@@ -193,24 +192,24 @@ void sending_script_handler() {
  */
 bool send_message_handler() {
   bool ok = true;
-  if (send_message_queue.count) {
+  if (tkbc_send_message_queue.count) {
     // NOTE: this assumes the whole message buffer could be send in one go.
-    ssize_t n = send(client.socket_id, send_message_queue.elements,
-                     send_message_queue.count, MSG_NOSIGNAL);
+    ssize_t n = send(client.socket_id, tkbc_send_message_queue.elements,
+                     tkbc_send_message_queue.count, MSG_NOSIGNAL);
     if (n == 0) {
       tkbc_fprintf(stderr, "ERROR", "No bytes where send to the server!\n");
       check_return(false);
     }
     if (n == -1) {
-      tkbc_dap(&send_message_queue, 0);
+      tkbc_dap(&tkbc_send_message_queue, 0);
       tkbc_fprintf(stderr, "ERROR", "Could not broadcast message: %s\n",
-                   send_message_queue.elements);
+                   tkbc_send_message_queue.elements);
       tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
       check_return(false);
     }
   }
 check:
-  send_message_queue.count = 0;
+  tkbc_send_message_queue.count = 0;
   return ok;
 }
 
@@ -218,21 +217,18 @@ check:
  * @brief The function parses the incoming messages from the server and handles
  * the resulting behavior.
  *
+ * @param message The message to parse and handle.
  * @return True if the parsing was successful an all resulting actions could be
  * handled, otherwise false and a parsing error has occurred.
  */
-bool received_message_handler() {
-  Message message = {0};
+bool received_message_handler(Message *message) {
   Token token;
   bool ok = true;
-  if (receive_queue.count == 0) {
-    check_return(true);
+  if (message->count == 0) {
+    return ok;
   }
-  tkbc_dapc(&message, receive_queue.elements, receive_queue.count);
-  tkbc_dap(&message, 0);
-  receive_queue.count = 0;
 
-  Lexer *lexer = lexer_new(__FILE__, message.elements, message.count, 0);
+  Lexer *lexer = lexer_new(__FILE__, message->elements, message->count, 0);
   do {
     token = lexer_next(lexer);
     if (token.kind == EOF_TOKEN) {
@@ -280,18 +276,18 @@ bool received_message_handler() {
       {
         char buf[64] = {0};
         snprintf(buf, sizeof(buf), "%d", MESSAGE_HELLO);
-        tkbc_dapc(&send_message_queue, buf, strlen(buf));
-        tkbc_dap(&send_message_queue, ':');
+        tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+        tkbc_dap(&tkbc_send_message_queue, ':');
 
-        tkbc_dapc(&send_message_queue, "\"", 1);
+        tkbc_dapc(&tkbc_send_message_queue, "\"", 1);
         const char *m = "Hello server from client!";
-        tkbc_dapc(&send_message_queue, m, strlen(m));
+        tkbc_dapc(&tkbc_send_message_queue, m, strlen(m));
 
-        tkbc_dapc(&send_message_queue, PROTOCOL_VERSION,
+        tkbc_dapc(&tkbc_send_message_queue, PROTOCOL_VERSION,
                   strlen(PROTOCOL_VERSION));
-        tkbc_dapc(&send_message_queue, "\"", 1);
-        tkbc_dap(&send_message_queue, ':');
-        tkbc_dapc(&send_message_queue, "\r\n", 2);
+        tkbc_dapc(&tkbc_send_message_queue, "\"", 1);
+        tkbc_dap(&tkbc_send_message_queue, ':');
+        tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
       }
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "HELLO\n");
@@ -412,17 +408,13 @@ bool received_message_handler() {
         check_return(false);
       }
 
-      for (size_t i = 0; i < env->kite_array->count; ++i) {
-        if (env->kite_array->elements[i].kite_id == kite_id) {
-          if (i + 1 < env->kite_array->count) {
-            memmove(&env->kite_array->elements[i],
-                    &env->kite_array->elements[i + 1],
-                    sizeof(*env->kite_array->elements) *
-                        (env->kite_array->count - 1 - i));
-          }
-          env->kite_array->count -= 1;
-          break;
-        }
+      if (!tkbc_remove_kite_from_list(env->kite_array, kite_id)) {
+        // TODO Should this be a client crash? If some other client kite was
+        // not registered and is now not found, this should not trigger that
+        // every client, that has nothing to do with this miss behavior of the
+        // server, crashes.
+        // The kite is not known by the client anyway.
+        /* check_return(false); */
       }
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "CLIENT_DISCONNET\n");
@@ -434,80 +426,126 @@ bool received_message_handler() {
     continue;
 
   err: {
-    tkbc_dap(&message, 0);
-    message.count -= 1;
-    char *rn = strstr(message.elements + lexer->position, "\r\n");
+    tkbc_dap(message, 0);
+    message->count -= 1;
+    char *rn = strstr(message->elements + lexer->position, "\r\n");
     if (rn != NULL) {
       int jump_length = rn + 2 - &lexer->content[lexer->position];
       lexer_chop_char(lexer, jump_length);
       continue;
     }
-    tkbc_fprintf(stderr, "WARNING", "Message: %s\n", message.elements);
+    tkbc_fprintf(stderr, "WARNING", "Message: %s\n", message->elements);
     check_return(false);
   }
   } while (token.kind != EOF_TOKEN);
 
-  lexer_del(lexer);
 check:
+  // No lexer_del() for performant reuse of the message.
+  if (lexer->buffer.elements) {
+    free(lexer->buffer.elements);
+  }
+  free(lexer);
+  message->count = 0;
   return ok;
+}
+
+static char static_buffer[16 * 1024] = {0};
+
+bool tkbc_check_is_less_than_max_allowed_capacity_and_handle(Message *message) {
+  if (message->capacity < 256 * RECEIVE_QUEUE_SIZE) {
+    return true;
+  }
+  tkbc_fprintf(stderr, "ERROR", "The size was bigger than 64KB: %zu\n",
+               message->capacity);
+
+  // Think about adding a small extra space (64bytes) in the initial allocation
+  // because this thing will trigger reallocation in every case.
+  tkbc_dap(message, 0);
+  char *rest_ptr = strrchr(message->elements, '\n');
+
+  unsigned long d = labs(rest_ptr - (message->elements + message->count));
+
+  // The equal save one byte for the buffer null terminator that is set later.
+  if (d >= sizeof(static_buffer)) {
+    // This should not happen, because the max message length is less than
+    // 16Kb.
+    fprintf(stderr, "The amount of the unhandled read buffer => %lu\n", d);
+    assert(0 && "ERROR:The scratch buffer is to small!");
+  }
+
+  if (d > 0) {
+    memcpy(static_buffer, rest_ptr, d);
+    static_buffer[d] = 0;
+    message->count -= d;
+  }
+  return false;
 }
 
 /**
  * @brief The function handles the incoming messages from the server.
  *
+ * @param message The message buffer to which the read message should be
+ * appended.
  * @return True if the reading and parsing of the received messages from the
  * server was successful, otherwise false.
  */
-bool message_queue_handler() {
-  if (receive_queue.capacity >= 32 * RECEIVE_QUEUE_SIZE) {
-    receive_queue.elements =
-        realloc(receive_queue.elements,
-                sizeof(*receive_queue.elements) * RECEIVE_QUEUE_SIZE);
+bool message_queue_handler(Message *message) {
+  if (message->capacity >= 64 * RECEIVE_QUEUE_SIZE) {
+    message->capacity = RECEIVE_QUEUE_SIZE;
+    free(message->elements);
+    message->elements = realloc(message->elements,
+                                sizeof(*message->elements) * message->capacity);
   }
 
   ssize_t n = 0;
-  receive_queue.count = 0;
+  message->count = 0;
   do {
-    n = recv(client.socket_id, &receive_queue.elements[receive_queue.count],
+    if (*static_buffer) {
+      tkbc_dapc(message, static_buffer, strlen(static_buffer));
+      memset(static_buffer, 0, sizeof(static_buffer));
+    }
+
+    if (message->count + RECEIVE_QUEUE_SIZE > message->capacity) {
+      while (message->capacity < message->count + RECEIVE_QUEUE_SIZE) {
+        message->capacity += RECEIVE_QUEUE_SIZE;
+      }
+
+      message->elements = realloc(
+          message->elements, sizeof(*message->elements) * message->capacity);
+      if (message->elements == NULL) {
+        tkbc_fprintf(stderr, "ERROR", "Realloc failed!: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+      }
+    }
+    n = recv(client.socket_id, &message->elements[message->count],
              RECEIVE_QUEUE_SIZE, MSG_NOSIGNAL | MSG_DONTWAIT);
-    if (receive_queue.capacity >= 32 * RECEIVE_QUEUE_SIZE) {
-      tkbc_fprintf(stderr, "ERROR", "32 : %zu\n", receive_queue.capacity);
-      assert(0 && "The receive_queue is massive");
-    }
-    if (receive_queue.capacity >= 16 * RECEIVE_QUEUE_SIZE) {
-      tkbc_fprintf(stderr, "ERROR", "16 : %zu\n", receive_queue.capacity);
-      assert(0 && "The receive_queue is massive");
-    }
 
     if (n == -1) {
       break;
     }
-    receive_queue.count += n;
-    if (receive_queue.count >= receive_queue.capacity) {
-      receive_queue.capacity += RECEIVE_QUEUE_SIZE;
-      receive_queue.elements =
-          realloc(receive_queue.elements,
-                  sizeof(*receive_queue.elements) * receive_queue.capacity);
-      if (receive_queue.elements == NULL) {
-        tkbc_fprintf(stderr, "ERROR", "realloc() failed!\n");
-      }
+
+    if (!tkbc_check_is_less_than_max_allowed_capacity_and_handle(message)) {
+      break;
     }
+
+    message->count += n;
   } while (n > 0);
 
   if (n == -1) {
     if (errno != EAGAIN) {
-      tkbc_fprintf(stderr, "ERROR", "Read: %d\n", errno);
       tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
       return false;
     }
+    if (errno == EAGAIN && message->count == 0) {
+      return true;
+    }
   }
 
-  if (!received_message_handler()) {
+  if (!received_message_handler(message)) {
     if (n > 0) {
       tkbc_fprintf(stderr, "WARNING", "---------------------------------\n");
-      for (size_t i = 0; i < receive_queue.count; ++i) {
-        fprintf(stderr, "%c", receive_queue.elements[i]);
-      }
+      assert(message->count < INT_MAX);
+      fprintf(stderr, "%.*s", (int)message->count, message->elements);
       tkbc_fprintf(stderr, "WARNING", "---------------------------------\n");
     }
     return false;
@@ -541,10 +579,10 @@ void tkbc_client_input_handler_kite() {
 
       char buf[64] = {0};
       snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEVALUE);
-      tkbc_dapc(&send_message_queue, buf, strlen(buf));
-      tkbc_dap(&send_message_queue, ':');
-      tkbc_message_append_clientkite(client.kite_id, &send_message_queue);
-      tkbc_dapc(&send_message_queue, "\r\n", 2);
+      tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+      tkbc_dap(&tkbc_send_message_queue, ':');
+      tkbc_message_append_clientkite(client.kite_id, &tkbc_send_message_queue);
+      tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
       return;
     }
   }
@@ -598,35 +636,36 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
           switch (frames->elements[k].kind) {
           case KITE_QUIT:
           case KITE_WAIT: {
-            Wait_Action *action = frames->elements[k].action;
-            tkbc_ptoa(buf, sizeof(buf), &action->starttime, TYPE_DOUBLE);
+            Wait_Action action = frames->elements[k].action.as_wait;
+            tkbc_ptoa(buf, sizeof(buf), &action.starttime, TYPE_DOUBLE);
             tkbc_dapc(message, buf, strlen(buf));
           } break;
 
           case KITE_MOVE:
           case KITE_MOVE_ADD: {
-            Move_Action *action = frames->elements[k].action;
-            tkbc_ptoa(buf, sizeof(buf), &action->position.x, TYPE_FLOAT);
+            Move_Action action = frames->elements[k].action.as_move;
+            tkbc_ptoa(buf, sizeof(buf), &action.position.x, TYPE_FLOAT);
             tkbc_dapc(message, buf, strlen(buf));
             tkbc_dap(message, ':');
-            tkbc_ptoa(buf, sizeof(buf), &action->position.y, TYPE_FLOAT);
+            tkbc_ptoa(buf, sizeof(buf), &action.position.y, TYPE_FLOAT);
             tkbc_dapc(message, buf, strlen(buf));
           } break;
 
           case KITE_ROTATION:
           case KITE_ROTATION_ADD: {
-            Rotation_Action *action = frames->elements[k].action;
-            tkbc_ptoa(buf, sizeof(buf), &action->angle, TYPE_FLOAT);
+            Rotation_Action action = frames->elements[k].action.as_rotation;
+            tkbc_ptoa(buf, sizeof(buf), &action.angle, TYPE_FLOAT);
             tkbc_dapc(message, buf, strlen(buf));
           } break;
 
           case KITE_TIP_ROTATION:
           case KITE_TIP_ROTATION_ADD: {
-            Tip_Rotation_Action *action = frames->elements[k].action;
-            tkbc_ptoa(buf, sizeof(buf), &action->tip, TYPE_INT);
+            Tip_Rotation_Action action =
+                frames->elements[k].action.as_tip_rotation;
+            tkbc_ptoa(buf, sizeof(buf), &action.tip, TYPE_INT);
             tkbc_dapc(message, buf, strlen(buf));
             tkbc_dap(message, ':');
-            tkbc_ptoa(buf, sizeof(buf), &action->angle, TYPE_FLOAT);
+            tkbc_ptoa(buf, sizeof(buf), &action.angle, TYPE_FLOAT);
             tkbc_dapc(message, buf, strlen(buf));
           } break;
 
@@ -685,18 +724,18 @@ bool tkbc_message_script() {
 
     char buf[64] = {0};
     snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT);
-    tkbc_dapc(&send_message_queue, buf, strlen(buf));
-    tkbc_dap(&send_message_queue, ':');
-    tkbc_dapc(&send_message_queue, message.elements, message.count);
-    tkbc_dapc(&send_message_queue, "\r\n", 2);
+    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+    tkbc_dap(&tkbc_send_message_queue, ':');
+    tkbc_dapc(&tkbc_send_message_queue, message.elements, message.count);
+    tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
     message.count = 0;
     counter++;
 
     // TODO: @Cleanup
     if (i == 0) {
       FILE *file = fopen("SCIPT_1_PROTOCOL_VERSION_" PROTOCOL_VERSION, "wb");
-      for (size_t k = 0; k < send_message_queue.count; ++k) {
-        fprintf(file, "%c", send_message_queue.elements[k]);
+      for (size_t k = 0; k < tkbc_send_message_queue.count; ++k) {
+        fprintf(file, "%c", tkbc_send_message_queue.elements[k]);
       }
       fclose(file);
     }
@@ -744,53 +783,53 @@ void tkbc_client_input_handler_script() {
                                    env->window_height);
     char buf[64] = {0};
     snprintf(buf, sizeof(buf), "%d", MESSAGE_KITES_POSITIONS);
-    tkbc_dapc(&send_message_queue, buf, strlen(buf));
-    tkbc_dap(&send_message_queue, ':');
+    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+    tkbc_dap(&tkbc_send_message_queue, ':');
 
     memset(buf, 0, sizeof(buf));
     snprintf(buf, sizeof(buf), "%zu", env->kite_array->count);
-    tkbc_dapc(&send_message_queue, buf, strlen(buf));
+    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
 
-    tkbc_dap(&send_message_queue, ':');
+    tkbc_dap(&tkbc_send_message_queue, ':');
     for (size_t i = 0; i < env->kite_array->count; ++i) {
       memset(buf, 0, sizeof(buf));
       snprintf(buf, sizeof(buf), "%zu", env->kite_array->elements[i].kite_id);
-      tkbc_dapc(&send_message_queue, buf, strlen(buf));
+      tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
 
-      tkbc_dap(&send_message_queue, ':');
+      tkbc_dap(&tkbc_send_message_queue, ':');
       memset(buf, 0, sizeof(buf));
       float x = env->kite_array->elements[i].kite->center.x;
       float y = env->kite_array->elements[i].kite->center.y;
       float angle = env->kite_array->elements[i].kite->angle;
       snprintf(buf, sizeof(buf), "(%f,%f):%f", x, y, angle);
-      tkbc_dapc(&send_message_queue, buf, strlen(buf));
+      tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
 
-      tkbc_dap(&send_message_queue, ':');
+      tkbc_dap(&tkbc_send_message_queue, ':');
       memset(buf, 0, sizeof(buf));
       snprintf(buf, sizeof(buf), "%u",
                *(uint32_t *)&env->kite_array->elements[i].kite->body_color);
-      tkbc_dapc(&send_message_queue, buf, strlen(buf));
-      tkbc_dap(&send_message_queue, ':');
+      tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+      tkbc_dap(&tkbc_send_message_queue, ':');
     }
-    tkbc_dapc(&send_message_queue, "\r\n", 2);
+    tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
   }
 
   // KEY_SPACE
   if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1025))) {
     char buf[64] = {0};
     snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_TOGGLE);
-    tkbc_dapc(&send_message_queue, buf, strlen(buf));
-    tkbc_dap(&send_message_queue, ':');
-    tkbc_dapc(&send_message_queue, "\r\n", 2);
+    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+    tkbc_dap(&tkbc_send_message_queue, ':');
+    tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
   }
 
   // KEY_TAB
   if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1026))) {
     char buf[64] = {0};
     snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_NEXT);
-    tkbc_dapc(&send_message_queue, buf, strlen(buf));
-    tkbc_dap(&send_message_queue, ':');
-    tkbc_dapc(&send_message_queue, "\r\n", 2);
+    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+    tkbc_dap(&tkbc_send_message_queue, ':');
+    tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
   }
 
   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
@@ -801,11 +840,11 @@ void tkbc_client_input_handler_script() {
 
     char buf[64] = {0};
     snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_SCRUB);
-    tkbc_dapc(&send_message_queue, buf, strlen(buf));
-    tkbc_dap(&send_message_queue, ':');
-    tkbc_dap(&send_message_queue, drag_left);
-    tkbc_dap(&send_message_queue, ':');
-    tkbc_dapc(&send_message_queue, "\r\n", 2);
+    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+    tkbc_dap(&tkbc_send_message_queue, ':');
+    tkbc_dap(&tkbc_send_message_queue, drag_left);
+    tkbc_dap(&tkbc_send_message_queue, ':');
+    tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
   }
 }
 
@@ -841,7 +880,7 @@ int main(int argc, char *argv[]) {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   SetTargetFPS(TARGET_FPS);
-  Env *env = tkbc_init_env();
+  env = tkbc_init_env();
   tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
   SetExitKey(tkbc_hash_to_key(*env->keymaps, 1005));
   tkbc_init_sound(40);
@@ -850,13 +889,12 @@ int main(int argc, char *argv[]) {
   sending_script_handler();
   env->kite_array->count = count;
 
-  receive_queue.elements = malloc(RECEIVE_QUEUE_SIZE);
-  receive_queue.capacity += RECEIVE_QUEUE_SIZE;
+  Message tkbc_receive_queue = {0};
 
   Popup disconnect = {0};
   bool sending = true;
   while (!WindowShouldClose()) {
-    if (!message_queue_handler()) {
+    if (!message_queue_handler(&tkbc_receive_queue)) {
       break;
     }
 
@@ -897,16 +935,16 @@ int main(int argc, char *argv[]) {
     }
     if (!sending) {
       // Clearing for offline continuation.
-      send_message_queue.count = 0;
+      tkbc_send_message_queue.count = 0;
     }
   };
   CloseWindow();
 
-  if (receive_queue.elements) {
-    free(receive_queue.elements);
+  if (tkbc_receive_queue.elements) {
+    free(tkbc_receive_queue.elements);
   }
-  if (send_message_queue.elements) {
-    free(send_message_queue.elements);
+  if (tkbc_send_message_queue.elements) {
+    free(tkbc_send_message_queue.elements);
   }
 
   shutdown(client.socket_id, SHUT_WR);

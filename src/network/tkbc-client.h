@@ -13,8 +13,9 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
                                     float angle, Color color);
 void sending_script_handler();
 bool send_message_handler();
-bool received_message_handler();
-bool message_queue_handler();
+bool received_message_handler(Message *message);
+bool message_queue_handler(Message *message);
+bool tkbc_check_is_less_than_max_allowed_capacity_and_handle(Message *message);
 void tkbc_client_input_handler_kite();
 bool tkbc_message_append_script(size_t script_id, Message *send_message_queue);
 bool tkbc_message_script();
