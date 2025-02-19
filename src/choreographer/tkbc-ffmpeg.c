@@ -46,7 +46,7 @@ struct Process {
  */
 void tkbc_ffmpeg_handler(Env *env, const char *output_file_path) {
   // KEY_B
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1027))) {
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1007))) {
     TakeScreenshot("1.png");
   }
   // The handler has to be carefully checked because the same key is used
