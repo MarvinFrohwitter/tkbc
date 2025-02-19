@@ -262,12 +262,16 @@ typedef struct {
   Block_Frames *block_frames; // The collection of all the parsed scripts.
 
   char *script_file_name; // The name of the script file '.kite'.
-  size_t script_counter;  // Represents the amount of scripts that were loaded,
-                          // starts with 1.
-  size_t send_scripts;    // Represents the amount of scripts that where send to
-                          // the peer partner starts; with 1.
+
+  // TODO: Remove it
+  size_t script_counter; // Represents the amount of scripts that were loaded,
+                         // starts with 1.
+  size_t send_scripts;   // Represents the amount of scripts that where send to
+                         // the peer partner starts; with 1.
   size_t server_script_block_index; // Represents of the block index the server
                                     // is currently executing.
+
+  // TODO: Remove it
   size_t server_script_block_index_count; // Represents of the current block
                                           // index count from the server.
   bool script_setup;     // The indication if the initial setup run is executed.

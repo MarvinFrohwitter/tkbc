@@ -907,6 +907,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
           tkbc_dap(frames, frame);
         }
         tkbc_dap(scb, *tkbc_deep_copy_frames(frames));
+        tkbc_destroy_frames(frames);
         frames->count = 0;
       }
 
@@ -969,16 +970,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         goto err;
       }
       if (env->script_counter > 0) {
-        // Switch to next script.
-
-        // NOTE: For this to work for the first iteration it relies on the
-        // calloc functionality to zero out the rest of the struct.
-        size_t script_index = env->block_frame->script_id % env->script_counter;
-        env->block_frame = &env->block_frames->elements[script_index];
-        env->frames = &env->block_frame->elements[0];
-
-        tkbc_set_kite_positions_from_kite_frames_positions(env);
-        env->script_finished = true;
+        tkbc_load_next_script(env);
         tkbc_unwrap_handler_message_clientkites_brodcast_all();
       }
       pthread_mutex_unlock(&mutex);

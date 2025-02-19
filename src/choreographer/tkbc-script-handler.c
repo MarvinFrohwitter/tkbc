@@ -99,6 +99,7 @@ Block_Frame *tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
   for (size_t i = 0; i < block_frame->count; ++i) {
     tkbc_dap(new_block_frame,
              *tkbc_deep_copy_frames(&block_frame->elements[i]));
+    tkbc_destroy_frames(&block_frame->elements[i]);
   }
   new_block_frame->script_id = block_frame->script_id;
   return new_block_frame;
@@ -497,6 +498,25 @@ size_t tkbc_check_finished_frames_count(Env *env) {
 }
 
 /**
+ * @brief The function switches to the next available script. It loads the views
+ * block_frame and frames in the env. And sets the kite_frame_positions.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_load_next_script(Env *env) {
+  // Switch to next script.
+  size_t count = env->block_frames->count;
+  // NOTE: The first iteration has no loaded value jet so 0 is default.
+  size_t id = env->block_frame == NULL ? 0 : env->block_frame->script_id;
+  size_t script_index = id % count;
+  env->block_frame = &env->block_frames->elements[script_index];
+  env->frames = &env->block_frame->elements[0];
+
+  tkbc_set_kite_positions_from_kite_frames_positions(env);
+  env->script_finished = false;
+}
+
+/**
  * @brief The function checks for the user input that is related to a script
  * execution. It can control the timeline and stop and start the execution.
  *
@@ -518,16 +538,7 @@ void tkbc_input_handler_script(Env *env) {
     assert(env->script_counter <= env->block_frames->count);
 
     if (env->script_counter > 0) {
-      // Switch to next script.
-      size_t count = env->block_frames->count;
-      // NOTE: The first iteration has no loaded value jet so 0 is default.
-      size_t id = env->block_frame == NULL ? 0 : env->block_frame->script_id;
-      size_t script_index = id % count;
-      env->block_frame = &env->block_frames->elements[script_index];
-      env->frames = &env->block_frame->elements[0];
-
-      tkbc_set_kite_positions_from_kite_frames_positions(env);
-      env->script_finished = false;
+      tkbc_load_next_script(env);
     }
   }
 
