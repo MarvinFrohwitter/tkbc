@@ -679,7 +679,7 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
           tkbc_dapc(message, buf, strlen(buf));
 
           Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
-          if (kite_ids) {
+          if (kite_ids->count) {
             tkbc_dap(message, ':');
             tkbc_ptoa(buf, sizeof(buf), &kite_ids->count, TYPE_SIZE_T);
             tkbc_dapc(message, buf, strlen(buf));
