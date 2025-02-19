@@ -308,17 +308,30 @@ void tkbc_ui_keymaps(Env *env) {
     env->keymaps_scollbar_interaction = true;
   }
 
-  if (env->keymaps_scollbar_interaction || GetMouseWheelMove()) {
+  if (env->keymaps_scollbar_interaction) {
     Vector2 mouse_pos = GetMousePosition();
     float sb_center_y = env->keymaps_inner_scrollbar.y +
                         env->keymaps_inner_scrollbar.height / 2.0;
-    if (mouse_pos.y > sb_center_y || GetMouseWheelMoveV().y > sb_center_y) {
+    if (mouse_pos.y > sb_center_y) {
 
       if (env->keymaps_top_interaction_box <
           env->keymaps->count - env->screen_items) {
         env->keymaps_top_interaction_box += 1;
       }
 
+    } else {
+      if (env->keymaps_top_interaction_box > 0) {
+        env->keymaps_top_interaction_box -= 1;
+      }
+    }
+  }
+
+  if (GetMouseWheelMove()) {
+    if (GetMouseWheelMoveV().y < 0) {
+      if (env->keymaps_top_interaction_box <
+          env->keymaps->count - env->screen_items) {
+        env->keymaps_top_interaction_box += 1;
+      }
     } else {
       if (env->keymaps_top_interaction_box > 0) {
         env->keymaps_top_interaction_box -= 1;
