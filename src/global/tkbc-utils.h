@@ -122,6 +122,7 @@ double tkbc_get_time();
 float tkbc_get_frame_time();
 float tkbc_clamp(float z, float a, float b);
 bool tkbc_float_equals_epsilon(float x, float y, float epsilon);
+bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2);
 
 #endif // TKBC_UTILS_H_
 
@@ -421,5 +422,18 @@ bool tkbc_float_equals_epsilon(float x, float y, float epsilon) {
       (fabsf(x - y)) <= (epsilon * fmaxf(1.0f, fmaxf(fabsf(x), fabsf(y))));
 
   return result;
+}
+
+/**
+ * @brief This function check if two rectangles are the same.
+ *
+ * @param r1 The first rectangle.
+ * @param r2 The second rectangle.
+ * @return True if the given rectangles are the same, otherwise false.
+ */
+bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2) {
+
+  return r1.x == r2.x && r1.y == r2.y && r1.width == r2.width &&
+         r1.height == r2.height;
 }
 #endif // TKBC_UTILS_IMPLEMENTATION

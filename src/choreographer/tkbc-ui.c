@@ -112,6 +112,134 @@ void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
   }
 }
 
+/**
+ * @brief The function sets the new keybinding corresponding to the given
+ * rectangle. The handling of the drawing of the text and the box color is also
+ * dynamically changed.
+ *
+ * @param env The global state of the application.
+ * @param rectangle The rectangle of the key box that should be handled.
+ * @param iteration The number of the key box within a keymap.
+ * @param cur_major_box The base rectangle number of a single keymap.
+ */
+void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration,
+                       size_t cur_major_box) {
+  DrawRectangleRec(rectangle, TKBC_UI_LIGHTGRAY_ALPHA);
+
+  if (CheckCollisionPointRec(GetMousePosition(), rectangle)) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+      env->keymaps_mouse_interaction = true;
+      env->keymaps_mouse_interaction_box = cur_major_box;
+      env->keymaps_interaction_rec_number = iteration;
+    }
+
+    if (!env->keymaps_mouse_interaction) {
+      DrawRectangleRec(rectangle, TKBC_UI_DARKPURPLE_ALPHA);
+    }
+  }
+
+  if (env->keymaps_mouse_interaction &&
+      cur_major_box == env->keymaps_mouse_interaction_box &&
+      env->keymaps_interaction_rec_number == iteration) {
+    DrawRectangleRec(rectangle, TKBC_UI_PURPLE_ALPHA);
+  }
+
+  if (!env->keymaps_mouse_interaction) {
+    goto key_change_skip;
+  }
+
+  int key = GetKeyPressed();
+  if (key == 0) {
+    goto key_change_skip;
+  }
+  // NOTE: This KEY_ESCAPE disables the ability to set KEY_ESCAPE for any
+  // keymap.
+  if (key != KEY_ESCAPE) {
+    switch (env->keymaps_interaction_rec_number) {
+    case BOX_MOD_KEY:
+      env->keymaps->elements[env->keymaps_mouse_interaction_box].mod_key = key;
+      env->keymaps->elements[env->keymaps_mouse_interaction_box].mod_key_str =
+          tkbc_key_to_str(key);
+      break;
+    case BOX_MOD_CO_KEY:
+      env->keymaps->elements[env->keymaps_mouse_interaction_box].mod_co_key =
+          key;
+      env->keymaps->elements[env->keymaps_mouse_interaction_box]
+          .mod_co_key_str = tkbc_key_to_str(key);
+      break;
+    case BOX_SELECTION_KEY1:
+      env->keymaps->elements[env->keymaps_mouse_interaction_box]
+          .selection_key1 = key;
+      env->keymaps->elements[env->keymaps_mouse_interaction_box]
+          .selection_key1_str = tkbc_key_to_str(key);
+      break;
+    case BOX_SELECTION_KEY2:
+      env->keymaps->elements[env->keymaps_mouse_interaction_box]
+          .selection_key2 = key;
+      env->keymaps->elements[env->keymaps_mouse_interaction_box]
+          .selection_key2_str = tkbc_key_to_str(key);
+      break;
+    case BOX_KEY:
+      env->keymaps->elements[env->keymaps_mouse_interaction_box].key = key;
+      env->keymaps->elements[env->keymaps_mouse_interaction_box].key_str =
+          tkbc_key_to_str(key);
+      break;
+    default:
+      assert(0 && "UNREACHABLE tkbc_draw_key_box()");
+    }
+
+    if (env->keymaps->elements[env->keymaps_mouse_interaction_box].hash ==
+        1005) {
+      SetExitKey(tkbc_hash_to_key(*env->keymaps, 1005));
+    }
+
+    env->keymaps_mouse_interaction = false;
+    env->keymaps_interaction_rec_number = -1;
+  }
+
+key_change_skip: {}
+  Vector2 text_size = {0};
+  int font_size = 18;
+
+  const char *str;
+  switch (iteration) {
+  case BOX_MOD_KEY:
+    str = env->keymaps->elements[cur_major_box].mod_key_str;
+    break;
+  case BOX_MOD_CO_KEY:
+    str = env->keymaps->elements[cur_major_box].mod_co_key_str;
+    break;
+  case BOX_SELECTION_KEY1:
+    str = env->keymaps->elements[cur_major_box].selection_key1_str;
+    break;
+  case BOX_SELECTION_KEY2:
+    str = env->keymaps->elements[cur_major_box].selection_key2_str;
+    break;
+  case BOX_KEY:
+    str = env->keymaps->elements[cur_major_box].key_str;
+    break;
+  default:
+    assert(0 && "UNREACHABLE tkbc_draw_key_box()");
+  }
+
+  // TODO: Made the text scale
+  if (strcmp(str, tkbc_key_to_str(KEY_NULL)) == 0) {
+    str = "---";
+  }
+  text_size = MeasureTextEx(GetFontDefault(), str, font_size, 0);
+  DrawText(str, rectangle.x + rectangle.width * 0.5 - text_size.x * 0.5,
+           rectangle.y + rectangle.height * 0.5 - text_size.y * 0.5, font_size,
+           TKBC_UI_BLACK);
+}
+
+/**
+ * @brief The function displays the keymaps settings and handles the interaction
+ * with it. That includes loading and saving them to a file as well as setting
+ * all the new defined keybinds from the user or even resetting them to the
+ * defaults.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_ui_keymaps(Env *env) {
   // This will ensure that the settings can always be left regardless to which
   // keybinding is set. For opening and closing.
@@ -122,6 +250,7 @@ void tkbc_ui_keymaps(Env *env) {
   // KEY_ESCAPE
   if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1000))) {
     env->keymaps_interaction = !env->keymaps_interaction;
+    env->keymaps_mouse_interaction = false;
   }
   if (!env->keymaps_interaction) {
     return;
@@ -203,10 +332,22 @@ void tkbc_ui_keymaps(Env *env) {
   int padding = 10;
   env->keymaps_base.height = env->box_height;
   env->keymaps_base.width -= env->keymaps_scrollbar.width;
+  Vector2 text_size;
   for (size_t box = env->keymaps_top_interaction_box;
        box < env->screen_items + env->keymaps_top_interaction_box &&
        box < env->keymaps->count;
        ++box) {
+
+    size_t key_box_count = 5;
+    Rectangle key_box = {
+        .x = env->keymaps_base.x + padding,
+        .y = env->keymaps_base.y + env->box_height / 2.0,
+
+        .width = (env->keymaps_base.width - (padding * (key_box_count + 1))) /
+                 key_box_count,
+        .height = env->box_height / 2.0 - padding,
+    };
+
     if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base) &&
         !env->keymaps_mouse_interaction) {
       DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
@@ -217,74 +358,34 @@ void tkbc_ui_keymaps(Env *env) {
     }
 
     int font_size = 22;
-    Vector2 font_box;
     do {
-      font_box =
+      text_size =
           MeasureTextEx(GetFontDefault(),
                         env->keymaps->elements[box].description, font_size, 0);
       font_size -= 1;
-    } while (font_box.x + 2 * padding > env->keymaps_base.width &&
-             font_box.y + 2 * padding > env->box_height / 2.0);
+    } while (text_size.x + 2 * padding > env->keymaps_base.width &&
+             text_size.y + 2 * padding > env->box_height / 2.0);
 
     DrawText(env->keymaps->elements[box].description,
              env->keymaps_base.x + padding, env->keymaps_base.y + padding,
              font_size, TKBC_UI_BLACK);
 
-    Rectangle mainkey_box = {
-        .x = env->keymaps_base.x + padding,
-        .y = env->keymaps_base.y + env->box_height / 2.0,
-        .width = env->keymaps_base.width * 0.75,
-        .height = env->box_height / 2.0 - padding,
-    };
+    for (size_t i = 0; i < key_box_count; ++i) {
+      // BOX_MOD_KEY
+      // BOX_MOD_CO_KEY
+      // BOX_SELECTION_KEY1
+      // BOX_SELECTION_KEY2
+      // BOX_KEY
+      tkbc_draw_key_box(env, key_box, i, box);
 
-    DrawRectangleRec(mainkey_box, TKBC_UI_LIGHTGRAY_ALPHA);
-
-    if (CheckCollisionPointRec(GetMousePosition(), mainkey_box)) {
-      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        env->keymaps_mouse_interaction = true;
-        env->keymaps_mouse_interaction_box = box;
-      }
-      if (!env->keymaps_mouse_interaction) {
-        DrawRectangleRec(mainkey_box, TKBC_UI_DARKPURPLE_ALPHA);
-      }
+      key_box.x += key_box.width + padding;
     }
-    if (env->keymaps_mouse_interaction &&
-        box == env->keymaps_mouse_interaction_box) {
-      DrawRectangleRec(mainkey_box, TKBC_UI_PURPLE_ALPHA);
-    }
-
-    if (env->keymaps_mouse_interaction) {
-      int key = GetKeyPressed();
-      if (key == 0) {
-        goto key_change_skip;
-      }
-      // NOTE: This KEY_ESCAPE disables the ability to set KEY_ESCAPE for any
-      // keymap.
-      if (key != KEY_ESCAPE) {
-        env->keymaps->elements[env->keymaps_mouse_interaction_box].key = key;
-        env->keymaps->elements[env->keymaps_mouse_interaction_box].key_str =
-            tkbc_key_to_str(key);
-        if (env->keymaps->elements[env->keymaps_mouse_interaction_box].hash ==
-            1005) {
-          SetExitKey(tkbc_hash_to_key(*env->keymaps, 1005));
-        }
-      }
-      env->keymaps_mouse_interaction = false;
-    }
-
-  key_change_skip:
-    DrawText(env->keymaps->elements[box].key_str,
-             mainkey_box.x + mainkey_box.width * 0.1,
-             mainkey_box.y + mainkey_box.height * 0.1,
-             (int)(mainkey_box.height - mainkey_box.height * 0.1),
-             TKBC_UI_BLACK);
 
     env->keymaps_base.y += env->box_height;
   }
 
   //
   // Displayment of the load and save buttons.
-  Vector2 text_size = {0};
   size_t interaction_buttons_count = 3;
   env->keymaps_base.width =
       (env->keymaps_base.width - (padding * (interaction_buttons_count * 1))) /

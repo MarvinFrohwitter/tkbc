@@ -125,6 +125,7 @@ Env *tkbc_init_env(void) {
   env->keymaps_interaction = false;
   env->keymaps_mouse_interaction = false;
   env->keymaps_mouse_interaction_box = 0;
+  env->keymaps_interaction_rec_number = -1;
 
   return env;
 }

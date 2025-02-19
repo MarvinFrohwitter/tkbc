@@ -13,7 +13,6 @@ static KeyMap default_keymaps[] = {
         .hash = 1005,
     },
 
-
     {
         .description = "Take a Screenshot.",
         .key = KEY_B,
@@ -86,26 +85,26 @@ static KeyMap default_keymaps[] = {
 
     // TODO: More than one key?.
     {
-        .description = "KEY_LEFT | KEY_H Moves the selected kites by the set "
+        .description = "Moves the selected kites by the set "
                        "speed to the left.",
         .key = KEY_H,
         .hash = 1017,
     },
     {
-        .description = "KEY_DOWN | KEY_J Moves the selected kites by the set "
+        .description = "Moves the selected kites by the set "
                        "speed to the down.",
         .key = KEY_J,
         .hash = 1018,
     },
 
     {
-        .description = "KEY_UP | KEY_K Moves the selected kites by the set "
+        .description = "Moves the selected kites by the set "
                        "speed to the up.",
         .key = KEY_K,
         .hash = 1019,
     },
     {
-        .description = "KEY_RIGHT | KEY_L Moves the selected kites by the set "
+        .description = "Moves the selected kites by the set "
                        "speed to the right.",
         .key = KEY_L,
         .hash = 1020,
@@ -198,25 +197,25 @@ static KeyMap default_keymaps[] = {
         .hash = 1033,
     },
     {
-        .description = "KEY_LEFT | KEY_W Moves the selected kites by the set "
+        .description = "Moves the selected kites by the set "
                        "speed towards the mouse.",
         .key = KEY_W,
         .hash = 1034,
     },
     {
-        .description = "KEY_DOWN | KEY_A Moves the selected kites by the set "
+        .description = "Moves the selected kites by the set "
                        "speed left to the mouse.",
         .key = KEY_A,
         .hash = 1035,
     },
     {
-        .description = "KEY_UP | KEY_S Moves the selected kites by the set "
+        .description = "Moves the selected kites by the set "
                        "speed away from the mouse.",
         .key = KEY_S,
         .hash = 1036,
     },
     {
-        .description = "KEY_RIGHT | KEY_D Moves the selected kites by the set "
+        .description = "Moves the selected kites by the set "
                        "speed right to the mouse.",
         .key = KEY_D,
         .hash = 1037,

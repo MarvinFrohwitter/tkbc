@@ -116,6 +116,15 @@ typedef struct {
                // state.
 
 typedef enum {
+  BOX_INVALID = -1,
+  BOX_MOD_KEY = 0,
+  BOX_MOD_CO_KEY = 1,
+  BOX_SELECTION_KEY1 = 2,
+  BOX_SELECTION_KEY2 = 3,
+  BOX_KEY = 4,
+} Key_Box;
+
+typedef enum {
   LEFT_TIP,
   RIGHT_TIP
 } TIP; // The left and right tip of the leading edge.
@@ -217,7 +226,7 @@ typedef struct {
                    // the number of collection elements of the array type.
   Index block_index; // The index in the block_frame array after registration.
   Kite_Positions kite_frame_positions; // The start position of the kite in the
-                                        // current frame.
+                                       // current frame.
 } Frames; // A dynamic array collection that holds the type frame.
 
 typedef struct {
@@ -285,7 +294,9 @@ typedef struct {
 
   // -------UI-------
   bool keymaps_interaction; // The status if the keymaps are currently edited.
-  bool keymaps_mouse_interaction; // Checks if a keymap was clicked.
+  bool keymaps_mouse_interaction;         // Checks if a keymap was clicked.
+  Key_Box keymaps_interaction_rec_number; // Represents the box number by kind.
+
   float scrollbar_width; // The width of the scrollbar for the keymap settings.
   size_t box_height; // The height of one box that contains a keymap description
   size_t screen_items; // The amount of keymaps that can currently be displayed.
