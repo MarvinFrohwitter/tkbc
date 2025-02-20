@@ -92,8 +92,6 @@ void tkbc_init_keymaps_defaults(KeyMaps *keymaps) {
 
 void tkbc_set_keymaps_defaults(KeyMaps *keymaps) {
   size_t default_keymaps_count = ARRAY_LENGTH(default_keymaps);
-  printf("default_keymaps_count = %zu\n", default_keymaps_count);
-  printf("keymaps->count = %zu\n", keymaps->count);
   assert(keymaps->count == default_keymaps_count);
   for (size_t i = 0; i < default_keymaps_count; ++i) {
     for (size_t j = 0; j < keymaps->count; ++j) {
@@ -144,229 +142,229 @@ KeyMap tkbc_hash_to_keymap(KeyMaps keymaps, int hash) {
 const char *tkbc_key_to_str(int key) {
   switch (key) {
   case KEY_NULL: // Key: NULL, used for no key pressed
-    return "key_null";
+    return "null";
   // Alphanumeric keys
   case KEY_APOSTROPHE: // Key: '
-    return "key_apostrophe";
+    return "apostrophe";
   case KEY_COMMA: // Key: ,
-    return "key_comma";
+    return "comma";
   case KEY_MINUS: // Key: -
-    return "key_minus";
+    return "minus";
   case KEY_PERIOD: // Key: .
-    return "key_period";
+    return "period";
   case KEY_SLASH: // Key: /
-    return "key_slash";
+    return "slash";
   case KEY_ZERO: // Key: 0
-    return "key_zero";
+    return "zero";
   case KEY_ONE: // Key: 1
-    return "key_one";
+    return "one";
   case KEY_TWO: // Key: 2
-    return "key_two";
+    return "two";
   case KEY_THREE: // Key: 3
-    return "key_three";
+    return "three";
   case KEY_FOUR: // Key: 4
-    return "key_four";
+    return "four";
   case KEY_FIVE: // Key: 5
-    return "key_five";
+    return "five";
   case KEY_SIX: // Key: 6
-    return "key_six";
+    return "six";
   case KEY_SEVEN: // Key: 7
-    return "key_seven";
+    return "seven";
   case KEY_EIGHT: // Key: 8
-    return "key_eight";
+    return "eight";
   case KEY_NINE: // Key: 9
-    return "key_nine";
+    return "nine";
   case KEY_SEMICOLON: // Key: ;
-    return "key_semicolon";
+    return "semicolon";
   case KEY_EQUAL: // Key: =
-    return "key_equal";
+    return "equal";
   case KEY_A: // Key: A | a
-    return "key_a";
+    return "a";
   case KEY_B: // Key: B | b
-    return "key_b";
+    return "b";
   case KEY_C: // Key: C | c
-    return "key_c";
+    return "c";
   case KEY_D: // Key: D | d
-    return "key_d";
+    return "d";
   case KEY_E: // Key: E | e
-    return "key_e";
+    return "e";
   case KEY_F: // Key: F | f
-    return "key_f";
+    return "f";
   case KEY_G: // Key: G | g
-    return "key_g";
+    return "g";
   case KEY_H: // Key: H | h
-    return "key_h";
+    return "h";
   case KEY_I: // Key: I | i
-    return "key_i";
+    return "i";
   case KEY_J: // Key: J | j
-    return "key_j";
+    return "j";
   case KEY_K: // Key: K | k
-    return "key_k";
+    return "k";
   case KEY_L: // Key: L | l
-    return "key_l";
+    return "l";
   case KEY_M: // Key: M | m
-    return "key_m";
+    return "m";
   case KEY_N: // Key: N | n
-    return "key_n";
+    return "n";
   case KEY_O: // Key: O | o
-    return "key_o";
+    return "o";
   case KEY_P: // Key: P | p
-    return "key_p";
+    return "p";
   case KEY_Q: // Key: Q | q
-    return "key_q";
+    return "q";
   case KEY_R: // Key: R | r
-    return "key_r";
+    return "r";
   case KEY_S: // Key: S | s
-    return "key_s";
+    return "s";
   case KEY_T: // Key: T | t
-    return "key_t";
+    return "t";
   case KEY_U: // Key: U | u
-    return "key_u";
+    return "u";
   case KEY_V: // Key: V | v
-    return "key_v";
+    return "v";
   case KEY_W: // Key: W | w
-    return "key_w";
+    return "w";
   case KEY_X: // Key: X | x
-    return "key_x";
+    return "x";
   case KEY_Y: // Key: Y | y
-    return "key_y";
+    return "y";
   case KEY_Z: // Key: Z | z
-    return "key_z";
+    return "z";
   case KEY_LEFT_BRACKET: // Key: [
-    return "key_left_bracket";
+    return "left_bracket";
   case KEY_BACKSLASH: // Key: '\'
-    return "key_backslash";
+    return "backslash";
   case KEY_RIGHT_BRACKET: // Key: ]
-    return "key_right_bracket";
+    return "right_bracket";
   case KEY_GRAVE: // Key: `
-    return "key_grave";
+    return "grave";
   // Function keys
   case KEY_SPACE: // Key: Space
-    return "key_space";
+    return "space";
   case KEY_ESCAPE: // Key: Esc
-    return "key_escape";
+    return "escape";
   case KEY_ENTER: // Key: Enter
-    return "key_enter";
+    return "enter";
   case KEY_TAB: // Key: Tab
-    return "key_tab";
+    return "tab";
   case KEY_BACKSPACE: // Key: Backspace
-    return "key_backspace";
+    return "backspace";
   case KEY_INSERT: // Key: Ins
-    return "key_insert";
+    return "insert";
   case KEY_DELETE: // Key: Del
-    return "key_delete";
+    return "delete";
   case KEY_RIGHT: // Key: Cursor right
-    return "key_right";
+    return "right";
   case KEY_LEFT: // Key: Cursor left
-    return "key_left";
+    return "left";
   case KEY_DOWN: // Key: Cursor down
-    return "key_down";
+    return "down";
   case KEY_UP: // Key: Cursor up
-    return "key_up";
+    return "up";
   case KEY_PAGE_UP: // Key: Page up
-    return "key_page_up";
+    return "page_up";
   case KEY_PAGE_DOWN: // Key: Page down
-    return "key_page_down";
+    return "page_down";
   case KEY_HOME: // Key: Home
-    return "key_home";
+    return "home";
   case KEY_END: // Key: End
-    return "key_end";
+    return "end";
   case KEY_CAPS_LOCK: // Key: Caps lock
-    return "key_caps_lock";
+    return "caps_lock";
   case KEY_SCROLL_LOCK: // Key: Scroll down
-    return "key_scroll_lock";
+    return "scroll_lock";
   case KEY_NUM_LOCK: // Key: Num lock
-    return "key_num_lock";
+    return "num_lock";
   case KEY_PRINT_SCREEN: // Key: Print screen
-    return "key_print_screen";
+    return "print_screen";
   case KEY_PAUSE: // Key: Pause
-    return "key_pause";
+    return "pause";
   case KEY_F1: // Key: F1
-    return "key_f1";
+    return "f1";
   case KEY_F2: // Key: F2
-    return "key_f2";
+    return "f2";
   case KEY_F3: // Key: F3
-    return "key_f3";
+    return "f3";
   case KEY_F4: // Key: F4
-    return "key_f4";
+    return "f4";
   case KEY_F5: // Key: F5
-    return "key_f5";
+    return "f5";
   case KEY_F6: // Key: F6
-    return "key_f6";
+    return "f6";
   case KEY_F7: // Key: F7
-    return "key_f7";
+    return "f7";
   case KEY_F8: // Key: F8
-    return "key_f8";
+    return "f8";
   case KEY_F9: // Key: F9
-    return "key_f9";
+    return "f9";
   case KEY_F10: // Key: F10
-    return "key_f10";
+    return "f10";
   case KEY_F11: // Key: F11
-    return "key_f11";
+    return "f11";
   case KEY_F12: // Key: F12
-    return "key_f12";
+    return "f12";
   case KEY_LEFT_SHIFT: // Key: Shift left
-    return "key_left_shift";
+    return "left_shift";
   case KEY_LEFT_CONTROL: // Key: Control left
-    return "key_left_control";
+    return "left_control";
   case KEY_LEFT_ALT: // Key: Alt left
-    return "key_left_alt";
+    return "left_alt";
   case KEY_LEFT_SUPER: // Key: Super left
-    return "key_left_super";
+    return "left_super";
   case KEY_RIGHT_SHIFT: // Key: Shift right
-    return "key_right_shift";
+    return "right_shift";
   case KEY_RIGHT_CONTROL: // Key: Control right
-    return "key_right_control";
+    return "right_control";
   case KEY_RIGHT_ALT: // Key: Alt right
-    return "key_right_alt";
+    return "right_alt";
   case KEY_RIGHT_SUPER: // Key: Super right
-    return "key_right_super";
+    return "right_super";
   case KEY_KB_MENU: // Key: KB menu
-    return "key_kb_menu";
+    return "kb_menu";
   // Keypad keys
   case KEY_KP_0: // Key: Keypad 0
-    return "key_kp_0";
+    return "kp_0";
   case KEY_KP_1: // Key: Keypad 1
-    return "key_kp_1";
+    return "kp_1";
   case KEY_KP_2: // Key: Keypad 2
-    return "key_kp_2";
+    return "kp_2";
   case KEY_KP_3: // Key: Keypad 3
-    return "key_kp_3";
+    return "kp_3";
   case KEY_KP_4: // Key: Keypad 4
-    return "key_kp_4";
+    return "kp_4";
   case KEY_KP_5: // Key: Keypad 5
-    return "key_kp_5";
+    return "kp_5";
   case KEY_KP_6: // Key: Keypad 6
-    return "key_kp_6";
+    return "kp_6";
   case KEY_KP_7: // Key: Keypad 7
-    return "key_kp_7";
+    return "kp_7";
   case KEY_KP_8: // Key: Keypad 8
-    return "key_kp_8";
+    return "kp_8";
   case KEY_KP_9: // Key: Keypad 9
-    return "key_kp_9";
+    return "kp_9";
   case KEY_KP_DECIMAL: // Key: Keypad .
-    return "key_kp_decimal";
+    return "kp_decimal";
   case KEY_KP_DIVIDE: // Key: Keypad /
-    return "key_kp_divide";
+    return "kp_divide";
   case KEY_KP_MULTIPLY: // Key: Keypad *
-    return "key_kp_multiply";
+    return "kp_multiply";
   case KEY_KP_SUBTRACT: // Key: Keypad -
-    return "key_kp_subtract";
+    return "kp_subtract";
   case KEY_KP_ADD: // Key: Keypad +
-    return "key_kp_add";
+    return "kp_add";
   case KEY_KP_ENTER: // Key: Keypad Enter
-    return "key_kp_enter";
+    return "kp_enter";
   case KEY_KP_EQUAL: // Key: Keypad =
-    return "key_kp_equal";
+    return "kp_equal";
   // Android key buttons
   case KEY_BACK: // Key: Android back button
-    return "key_back";
+    return "back";
   case KEY_MENU: // Key: Android menu button
-    return "key_menu";
+    return "menu";
   case KEY_VOLUME_UP: // Key: Android volume up button
-    return "key_volume_up";
+    return "volume_up";
   case KEY_VOLUME_DOWN: // Key: Android volume down button
-    return "key_volume_down";
+    return "volume_down";
   default:
     assert(0 && "UNKNOWN KEY");
   }
