@@ -54,13 +54,13 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
                                    float rotation_duration);
 
 void tkbc_script_team_diamond(Env *env, Kite_Ids kite_index_array,
-                             DIRECTION direction, float angle, float box_size,
-                             float move_duration, float rotation_duration);
+                              DIRECTION direction, float angle, float box_size,
+                              float move_duration, float rotation_duration);
 void tkbc_script_team_diamond_left(Env *env, Kite_Ids kite_index_array,
-                                  float box_size, float move_duration,
-                                  float rotation_duration);
-void tkbc_script_team_diamond_right(Env *env, Kite_Ids kite_index_array,
                                    float box_size, float move_duration,
                                    float rotation_duration);
+void tkbc_script_team_diamond_right(Env *env, Kite_Ids kite_index_array,
+                                    float box_size, float move_duration,
+                                    float rotation_duration);
 
 #endif // TKBC_TEAM_FIGURES_API_H_

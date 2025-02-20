@@ -525,16 +525,18 @@ void tkbc_load_next_script(Env *env) {
 void tkbc_input_handler_script(Env *env) {
   // Hard reset to startposition angel 0
   // KEY_ENTER
-  if (IsKeyDown(tkbc_hash_to_key(*env->keymaps, 1010))) {
+  if (IsKeyDown(
+          tkbc_hash_to_key(*env->keymaps, KMH_SET_KITES_TO_START_POSITION))) {
     tkbc_kite_array_start_position(env->kite_array, env->window_width,
                                    env->window_height);
   }
   // KEY_SPACE
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1025))) {
+  if (IsKeyPressed(
+          tkbc_hash_to_key(*env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION))) {
     env->script_finished = !env->script_finished;
   }
   // KEY_TAB
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1026))) {
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
     assert(env->script_counter <= env->block_frames->count);
 
     if (env->script_counter > 0) {

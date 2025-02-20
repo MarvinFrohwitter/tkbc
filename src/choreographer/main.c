@@ -39,7 +39,7 @@ int main(void) {
 
   Env *env = tkbc_init_env();
   tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
-  SetExitKey(tkbc_hash_to_key(*env->keymaps, 1005));
+  SetExitKey(tkbc_hash_to_key(*env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
 
 #ifdef LOADIMAGE

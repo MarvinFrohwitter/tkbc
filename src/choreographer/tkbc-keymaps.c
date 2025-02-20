@@ -7,7 +7,7 @@
 
 #include "../config.h"
 
-int tkbc_load_keymaps_from_file(KeyMaps *keymaps, const char *filename) {
+int tkbc_load_keymaps_from_file(Key_Maps *keymaps, const char *filename) {
   Content content = {0};
   int ok = tkbc_read_file(filename, &content);
   if (ok == -1) {
@@ -65,7 +65,7 @@ check:
   return ok;
 }
 
-bool tkbc_save_keymaps_to_file(KeyMaps keymaps, const char *filename) {
+bool tkbc_save_keymaps_to_file(Key_Maps keymaps, const char *filename) {
   FILE *file = fopen(filename, "wb");
   if (file == NULL) {
     tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
@@ -83,14 +83,14 @@ bool tkbc_save_keymaps_to_file(KeyMaps keymaps, const char *filename) {
   return true;
 }
 
-void tkbc_init_keymaps_defaults(KeyMaps *keymaps) {
+void tkbc_init_keymaps_defaults(Key_Maps *keymaps) {
   for (size_t i = 0; i < ARRAY_LENGTH(default_keymaps); ++i) {
     tkbc_dap(keymaps, default_keymaps[i]);
   }
   tkbc_setup_keymaps_strs(keymaps);
 }
 
-void tkbc_set_keymaps_defaults(KeyMaps *keymaps) {
+void tkbc_set_keymaps_defaults(Key_Maps *keymaps) {
   size_t default_keymaps_count = ARRAY_LENGTH(default_keymaps);
   assert(keymaps->count == default_keymaps_count);
   for (size_t i = 0; i < default_keymaps_count; ++i) {
@@ -107,7 +107,7 @@ void tkbc_set_keymaps_defaults(KeyMaps *keymaps) {
   tkbc_setup_keymaps_strs(keymaps);
 }
 
-void tkbc_setup_keymaps_strs(KeyMaps *keymaps) {
+void tkbc_setup_keymaps_strs(Key_Maps *keymaps) {
   for (size_t i = 0; i < keymaps->count; ++i) {
     keymaps->elements[i].mod_key_str =
         tkbc_key_to_str(keymaps->elements[i].mod_key);
@@ -121,7 +121,7 @@ void tkbc_setup_keymaps_strs(KeyMaps *keymaps) {
   }
 }
 
-int tkbc_hash_to_key(KeyMaps keymaps, int hash) {
+int tkbc_hash_to_key(Key_Maps keymaps, int hash) {
   for (size_t i = 0; i < keymaps.count; ++i) {
     if (hash == keymaps.elements[i].hash) {
       return keymaps.elements[i].key;
@@ -130,13 +130,13 @@ int tkbc_hash_to_key(KeyMaps keymaps, int hash) {
   return 0;
 }
 
-KeyMap tkbc_hash_to_keymap(KeyMaps keymaps, int hash) {
+Key_Map tkbc_hash_to_keymap(Key_Maps keymaps, int hash) {
   for (size_t i = 0; i < keymaps.count; ++i) {
     if (hash == keymaps.elements[i].hash) {
       return keymaps.elements[i];
     }
   }
-  return (KeyMap){0};
+  return (Key_Map){0};
 }
 
 const char *tkbc_key_to_str(int key) {

@@ -22,13 +22,59 @@ typedef struct {
   int selection_key2;
   int key;
   int hash;
-} KeyMap;
+} Key_Map;
 
 typedef struct KeyMaps {
-  KeyMap *elements;
+  Key_Map *elements;
   size_t count;
   size_t capacity;
-} KeyMaps;
+} Key_Maps;
+
+typedef enum {
+  KMH_CHANGE_KEY_MAPPINGS = 1000,
+  KMH_QUIT_PROGRAM,
+  KMH_TAKE_SCREENSHOT,
+  KMH_BEGIN_RECORDING,
+  KMH_END_RECORDING,
+
+  KMH_SET_KITES_TO_START_POSITION,
+  KMH_ROTATE_KITES_ANGLE_ZERO,
+
+  KMH_ROTATE_KITES_CENTER_CLOCKWISE,
+  KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE,
+  KMH_ROTATE_KITES_TIP_CLOCKWISE,
+  KMH_ROTATE_KITES_TIP_ANTICLOCKWISE,
+  KMH_ROTATE_KITES_CIRCLE_CLOCKWISE,
+  KMH_ROTATE_KITES_CIRCLE_ANTICLOCKWISE,
+
+  KMH_TOGGLE_FIXED,
+
+  KMH_MOVES_KITES_LEFT,
+  KMH_MOVES_KITES_DOWN,
+  KMH_MOVES_KITES_UP,
+  KMH_MOVES_KITES_RIGHT,
+
+  KMH_INCREASE_FLY_SPEED,
+  KMH_REDUCE_FLY_SPEED,
+  KMH_INCREASE_TURN_SPEED,
+  KMH_REDUCE_TURN_SPEED,
+
+  KMH_TOGGLE_SCRIPT_EXECUTION,
+  KMH_SWITCHES_NEXT_SCRIPT,
+
+  KMH_PLAYS_SOUND,
+  KMH_STOPS_SOUND,
+  KMH_PAUSES_SOUND,
+  KMH_RESUMES_SOUND,
+
+  KMH_SWITCH_MOUSE_CONTOL_MOVEMENT,
+
+  KMH_MOVES_KITES_TOWARDS_MOUSE,
+  KMH_MOVES_KITES_AWAY_MOUSE,
+  KMH_MOVES_KITES_LEFT_AROUND_MOUSE,
+  KMH_MOVES_KITES_RIGHT_AROUND_MOUSE,
+  KMH_COUNT,
+} Key_Map_Hash;
 
 typedef struct {
   char *elements;
@@ -311,7 +357,7 @@ typedef struct {
   Rectangle
       keymaps_inner_scrollbar; // The indicator inside the keymaps scrollbar.
                                // and its keybinding selection box.
-  KeyMaps *keymaps;            // The current keymaps
+  Key_Maps *keymaps;           // The current keymaps
   bool keymaps_scollbar_interaction; // Checks if the scrollbar is currently
                                      // moved.
 

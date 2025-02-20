@@ -449,6 +449,8 @@ check:
   return ok;
 }
 
+// TODO: Remove the buffer from the static memory.
+
 static char static_buffer[16 * 1024] = {0};
 
 bool tkbc_check_is_less_than_max_allowed_capacity_and_handle(Message *message) {
@@ -778,7 +780,8 @@ void tkbc_client_input_handler_script() {
 
   // Hard reset to startposition angel 0
   // KEY_ENTER
-  if (IsKeyDown(tkbc_hash_to_key(*env->keymaps, 1010))) {
+  if (IsKeyDown(
+          tkbc_hash_to_key(*env->keymaps, KMH_SET_KITES_TO_START_POSITION))) {
     tkbc_kite_array_start_position(env->kite_array, env->window_width,
                                    env->window_height);
     char buf[64] = {0};
@@ -815,7 +818,8 @@ void tkbc_client_input_handler_script() {
   }
 
   // KEY_SPACE
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1025))) {
+  if (IsKeyPressed(
+          tkbc_hash_to_key(*env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION))) {
     char buf[64] = {0};
     snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_TOGGLE);
     tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
@@ -824,7 +828,7 @@ void tkbc_client_input_handler_script() {
   }
 
   // KEY_TAB
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, 1026))) {
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
     char buf[64] = {0};
     snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_NEXT);
     tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
@@ -882,7 +886,7 @@ int main(int argc, char *argv[]) {
   SetTargetFPS(TARGET_FPS);
   env = tkbc_init_env();
   tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
-  SetExitKey(tkbc_hash_to_key(*env->keymaps, 1005));
+  SetExitKey(tkbc_hash_to_key(*env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
 
   size_t count = env->kite_array->count;
