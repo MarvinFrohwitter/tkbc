@@ -45,11 +45,11 @@ clean:
 	rm -r build
 
 test: options
-	${CC} ${INCLUDE} ${CFLAGS} -o build/test_geometrics src/tests/tkbc_test_geometrics.c ${CHOREOGRAPHER_FILES} ${LIBS}
-	./build/test_geometrics
+	${CC} ${INCLUDE} ${CFLAGS} -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	./build/tests
 
 test-short: options
-	${CC} ${INCLUDE} ${CFLAGS} -DSHORT_LOG -o build/test_geometrics src/tests/tkbc_test_geometrics.c ${CHOREOGRAPHER_FILES} ${LIBS}
-	./build/test_geometrics
+	${CC} ${INCLUDE} ${CFLAGS} -DSHORT_LOG -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	./build/tests
 
 .PHONY: all clean options tkbc tkbc.o build server client test

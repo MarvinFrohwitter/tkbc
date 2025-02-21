@@ -1,5 +1,3 @@
-#define eps 0.01
-#define CASSERT_IMPLEMENTATION
 #include "../../external/cassert/cassert.h"
 
 #include "../choreographer/tkbc.h"
@@ -38,8 +36,9 @@ Test kite_update_internal() {
   cassert_float_eq(kite.left.v1.x, position.x);
   cassert_float_eq(kite.left.v1.y, position.y + kite.width / 2.0);
 
-  cassert_float_eq(kite.left.v2.x, position.x + kite.height);
-  cassert_float_eq(kite.left.v2.y, position.y + kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.left.v2.x, position.x + kite.height);
+  cassert_float_eq_epsilon(kite.left.v2.y,
+                           position.y + kite.inner_space * approx);
 
   cassert_float_eq(kite.left.v3.x, position.x);
   cassert_float_eq(kite.left.v3.y, position.y - kite.overlap);
@@ -47,8 +46,9 @@ Test kite_update_internal() {
   cassert_float_eq(kite.right.v1.x, position.x);
   cassert_float_eq(kite.right.v1.y, position.y + kite.overlap);
 
-  cassert_float_eq(kite.right.v2.x, position.x + kite.height);
-  cassert_float_eq(kite.right.v2.y, position.y - kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.right.v2.x, position.x + kite.height);
+  cassert_float_eq_epsilon(kite.right.v2.y,
+                           position.y - kite.inner_space * approx);
 
   cassert_float_eq(kite.right.v3.x, position.x);
   cassert_float_eq(kite.right.v3.y, position.y - kite.width / 2.0);
@@ -87,8 +87,9 @@ Test kite_update_position() {
   cassert_float_eq(kite.left.v1.x, position.x - kite.width / 2);
   cassert_float_eq(kite.left.v1.y, position.y);
 
-  cassert_float_eq(kite.left.v2.x, position.x - kite.inner_space * approx);
-  cassert_float_eq(kite.left.v2.y, position.y + kite.height);
+  cassert_float_eq_epsilon(kite.left.v2.x,
+                           position.x - kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.left.v2.y, position.y + kite.height);
 
   cassert_float_eq(kite.left.v3.x, position.x + kite.overlap);
   cassert_float_eq(kite.left.v3.y, position.y);
@@ -96,8 +97,9 @@ Test kite_update_position() {
   cassert_float_eq(kite.right.v1.x, position.x - kite.overlap);
   cassert_float_eq(kite.right.v1.y, position.y);
 
-  cassert_float_eq(kite.right.v2.x, position.x + kite.inner_space * approx);
-  cassert_float_eq(kite.right.v2.y, position.y + kite.height);
+  cassert_float_eq_epsilon(kite.right.v2.x,
+                           position.x + kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.right.v2.y, position.y + kite.height);
 
   cassert_float_eq(kite.right.v3.x, position.x + kite.width / 2);
   cassert_float_eq(kite.right.v3.y, position.y);
@@ -133,27 +135,27 @@ Test kite_update_angle() {
   cassert_float_eq(kite.old_center.y, 0);
   cassert_float_eq(kite.old_angle, 0);
 
-  cassert_float_eq(kite.left.v1.x, 0);
-  cassert_float_eq(kite.left.v1.y, kite.width / 2);
+  cassert_float_eq_epsilon(kite.left.v1.x, 0);
+  cassert_float_eq_epsilon(kite.left.v1.y, kite.width / 2);
 
-  cassert_float_eq(kite.left.v2.x, kite.height);
-  cassert_float_eq(kite.left.v2.y, kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.left.v2.x, kite.height);
+  cassert_float_eq_epsilon(kite.left.v2.y, kite.inner_space * approx);
 
-  cassert_float_eq(kite.left.v3.x, 0);
+  cassert_float_eq_epsilon(kite.left.v3.x, 0);
   cassert_float_eq(kite.left.v3.y, -kite.overlap);
 
-  cassert_float_eq(kite.right.v1.x, 0);
+  cassert_float_eq_epsilon(kite.right.v1.x, 0);
   cassert_float_eq(kite.right.v1.y, +kite.overlap);
 
-  cassert_float_eq(kite.right.v2.x, kite.height);
-  cassert_float_eq(kite.right.v2.y, -kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.right.v2.x, kite.height);
+  cassert_float_eq_epsilon(kite.right.v2.y, -kite.inner_space * approx);
 
-  cassert_float_eq(kite.right.v3.x, 0);
+  cassert_float_eq_epsilon(kite.right.v3.x, 0);
   cassert_float_eq(kite.right.v3.y, -kite.width / 2);
 
   cassert_float_eq(kite.rec.width, kite.width);
   cassert_float_eq(kite.rec.height, 3 * PI * kite.spread);
-  cassert_float_eq(kite.rec.x, 0);
+  cassert_float_eq_epsilon(kite.rec.x, 0);
   cassert_float_eq(kite.rec.y, kite.width / 2);
 
   return test;
@@ -185,8 +187,9 @@ Test center_rotation() {
   cassert_float_eq(kite.left.v1.x, position.x);
   cassert_float_eq(kite.left.v1.y, position.y + kite.width / 2.0);
 
-  cassert_float_eq(kite.left.v2.x, position.x + kite.height);
-  cassert_float_eq(kite.left.v2.y, position.y + kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.left.v2.x, position.x + kite.height);
+  cassert_float_eq_epsilon(kite.left.v2.y,
+                           position.y + kite.inner_space * approx);
 
   cassert_float_eq(kite.left.v3.x, position.x);
   cassert_float_eq(kite.left.v3.y, position.y - kite.overlap);
@@ -194,8 +197,9 @@ Test center_rotation() {
   cassert_float_eq(kite.right.v1.x, position.x);
   cassert_float_eq(kite.right.v1.y, position.y + kite.overlap);
 
-  cassert_float_eq(kite.right.v2.x, position.x + kite.height);
-  cassert_float_eq(kite.right.v2.y, position.y - kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.right.v2.x, position.x + kite.height);
+  cassert_float_eq_epsilon(kite.right.v2.y,
+                           position.y - kite.inner_space * approx);
 
   cassert_float_eq(kite.right.v3.x, position.x);
   cassert_float_eq(kite.right.v3.y, position.y - kite.width / 2.0);
@@ -235,9 +239,10 @@ Test tip_rotation_left() {
   cassert_float_eq(kite.left.v1.x, position.x - kite.width / 2);
   cassert_float_eq(kite.left.v1.y, position.y);
 
-  cassert_float_eq(kite.left.v2.x, position.x - kite.width / 2 + kite.height);
-  cassert_float_eq(kite.left.v2.y,
-                   position.y - kite.width / 2 + kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.left.v2.x,
+                           position.x - kite.width / 2 + kite.height);
+  cassert_float_eq_epsilon(kite.left.v2.y, position.y - kite.width / 2 +
+                                               kite.inner_space * approx);
 
   cassert_float_eq(kite.left.v3.x, position.x - kite.width / 2);
   cassert_float_eq(kite.left.v3.y, position.y - kite.width / 2 - kite.overlap);
@@ -245,9 +250,10 @@ Test tip_rotation_left() {
   cassert_float_eq(kite.right.v1.x, position.x - kite.width / 2);
   cassert_float_eq(kite.right.v1.y, position.y - kite.width / 2 + kite.overlap);
 
-  cassert_float_eq(kite.right.v2.x, position.x - kite.width / 2 + kite.height);
-  cassert_float_eq(kite.right.v2.y,
-                   position.y - kite.width / 2 - kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.right.v2.x,
+                           position.x - kite.width / 2 + kite.height);
+  cassert_float_eq_epsilon(kite.right.v2.y, position.y - kite.width / 2 -
+                                                kite.inner_space * approx);
 
   cassert_float_eq(kite.right.v3.x, position.x - kite.width / 2);
   cassert_float_eq(kite.right.v3.y, position.y - kite.width);
@@ -287,9 +293,10 @@ Test tip_rotation_right() {
   cassert_float_eq(kite.left.v1.x, position.x + kite.width / 2);
   cassert_float_eq(kite.left.v1.y, position.y + kite.width);
 
-  cassert_float_eq(kite.left.v2.x, position.x + kite.width / 2 + kite.height);
-  cassert_float_eq(kite.left.v2.y,
-                   position.y + kite.width / 2 + kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.left.v2.x,
+                           position.x + kite.width / 2 + kite.height);
+  cassert_float_eq_epsilon(kite.left.v2.y, position.y + kite.width / 2 +
+                                               kite.inner_space * approx);
 
   cassert_float_eq(kite.left.v3.x, position.x + kite.width / 2);
   cassert_float_eq(kite.left.v3.y, position.y + kite.width / 2 - kite.overlap);
@@ -297,9 +304,10 @@ Test tip_rotation_right() {
   cassert_float_eq(kite.right.v1.x, position.x + kite.width / 2);
   cassert_float_eq(kite.right.v1.y, position.y + kite.width / 2 + kite.overlap);
 
-  cassert_float_eq(kite.right.v2.x, position.x + kite.width / 2 + kite.height);
-  cassert_float_eq(kite.right.v2.y,
-                   position.y + kite.width / 2 - kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.right.v2.x,
+                           position.x + kite.width / 2 + kite.height);
+  cassert_float_eq_epsilon(kite.right.v2.y, position.y + kite.width / 2 -
+                                                kite.inner_space * approx);
 
   cassert_float_eq(kite.right.v3.x, position.x + kite.width / 2);
   cassert_float_eq(kite.right.v3.y, position.y);
@@ -341,9 +349,9 @@ Test circle_rotation_left_below() {
   cassert_float_eq(kite.left.v1.x, position.x - radius);
   cassert_float_eq(kite.left.v1.y, position.y + radius + kite.width / 2);
 
-  cassert_float_eq(kite.left.v2.x, position.x - radius + kite.height);
-  cassert_float_eq(kite.left.v2.y,
-                   position.y + radius + kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.left.v2.x, position.x - radius + kite.height);
+  cassert_float_eq_epsilon(kite.left.v2.y,
+                           position.y + radius + kite.inner_space * approx);
 
   cassert_float_eq(kite.left.v3.x, position.y + radius);
   cassert_float_eq(kite.left.v3.y, position.y + radius - kite.overlap);
@@ -351,9 +359,9 @@ Test circle_rotation_left_below() {
   cassert_float_eq(kite.right.v1.x, position.y + radius);
   cassert_float_eq(kite.right.v1.y, position.y + radius + kite.overlap);
 
-  cassert_float_eq(kite.right.v2.x, position.x - radius + kite.height);
-  cassert_float_eq(kite.right.v2.y,
-                   position.y + radius - kite.inner_space * approx);
+  cassert_float_eq_epsilon(kite.right.v2.x, position.x - radius + kite.height);
+  cassert_float_eq_epsilon(kite.right.v2.y,
+                           position.y + radius - kite.inner_space * approx);
 
   cassert_float_eq(kite.right.v3.x, position.y + radius);
   cassert_float_eq(kite.right.v3.y, position.y + radius - kite.width / 2);
@@ -366,24 +374,13 @@ Test circle_rotation_left_below() {
   return test;
 }
 
-int main() {
-  cassert_tests {
-    cassert_dap(&tests, center_rotation());
-    cassert_dap(&tests, tip_rotation_left());
-    cassert_dap(&tests, tip_rotation_right());
-    cassert_dap(&tests, kite_update_internal());
-    cassert_dap(&tests, kite_update_position());
-    cassert_dap(&tests, kite_update_angle());
+void tkbc_test_geometrics(Tests *tests) {
+  cassert_dap(tests, center_rotation());
+  cassert_dap(tests, tip_rotation_left());
+  cassert_dap(tests, tip_rotation_right());
+  cassert_dap(tests, kite_update_internal());
+  cassert_dap(tests, kite_update_position());
+  cassert_dap(tests, kite_update_angle());
 
-    cassert_dap(&tests, circle_rotation_left_below());
-  }
-
-#ifdef SHORT_LOG
-  cassert_short_print_tests(&tests);
-#else
-  cassert_print_tests(&tests);
-#endif // SHORT_LOG
-
-  cassert_free_tests(&tests);
-  return 0;
+  cassert_dap(tests, circle_rotation_left_below());
 }
