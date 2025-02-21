@@ -9,9 +9,6 @@
 
 #include "raymath.h"
 
-// TODO: Update to the newer API calls with thinks like SET(...).
-// ========================== Script Team Figures ============================
-
 /**
  * @brief The function can be used to move the given kites via index to a ball
  * position facing out.
@@ -51,22 +48,16 @@ bool tkbc_script_team_ball(Env *env, Kite_Ids kite_index_array,
         (180 - (180 - (deg_base_rotation + 90))) + deg_base_rotation;
     deg_base_rotation += segment_size;
     {
-      Frame *frame = tkbc_frame_generate(
-          KITE_MOVE, tkbc_indexs_append(kite_index_array.elements[i]),
-          &(CLITERAL(Move_Action){.position.x = place.x,
-                                  .position.y = place.y}),
-          move_duration);
-
+      Frame *frame = KITE_MOVE(ID(kite_index_array.elements[i]), place.x,
+                               place.y, move_duration);
       if (frame == NULL)
         return false;
 
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     {
-      Frame *frame = tkbc_frame_generate(
-          KITE_ROTATION, tkbc_indexs_append(kite_index_array.elements[i]),
-          &(CLITERAL(Rotation_Action){.angle = deg_angle}), rotation_duration);
-
+      Frame *frame = KITE_ROTATION(ID(kite_index_array.elements[i]), deg_angle,
+                                   rotation_duration);
       if (frame == NULL)
         return false;
 
@@ -124,24 +115,17 @@ bool tkbc_script_team_mountain(Env *env, Kite_Ids kite_index_array,
       break;
     }
     {
-      Frame *frame = tkbc_frame_generate(
-          KITE_MOVE, tkbc_indexs_append(kite_index_array.elements[i]),
-          &(CLITERAL(Move_Action){
-              .position.x = anchor.x + x_space * column,
-              .position.y = anchor.y + y_space * row,
-          }),
-          move_duration);
-
+      Frame *frame = KITE_MOVE(ID(kite_index_array.elements[i]),
+                               anchor.x + x_space * column,
+                               anchor.y + y_space * row, move_duration);
       if (frame == NULL)
         return false;
 
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     {
-      Frame *frame = tkbc_frame_generate(
-          KITE_ROTATION, tkbc_indexs_append(kite_index_array.elements[i]),
-          &(CLITERAL(Rotation_Action){.angle = 0}), rotation_duration);
-
+      Frame *frame =
+          KITE_ROTATION(ID(kite_index_array.elements[i]), 0, rotation_duration);
       if (frame == NULL)
         return false;
 
@@ -207,24 +191,17 @@ bool tkbc_script_team_valley(Env *env, Kite_Ids kite_index_array,
       break;
     }
     {
-      Frame *frame = tkbc_frame_generate(
-          KITE_MOVE, tkbc_indexs_append(kite_index_array.elements[i]),
-          &(CLITERAL(Move_Action){
-              .position.x = anchor.x + x_space * column,
-              .position.y = anchor.y + y_space * row,
-          }),
-          move_duration);
-
+      Frame *frame = KITE_MOVE(ID(kite_index_array.elements[i]),
+                               anchor.x + x_space * column,
+                               anchor.y + y_space * row, move_duration);
       if (frame == NULL)
         return false;
 
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     {
-      Frame *frame = tkbc_frame_generate(
-          KITE_ROTATION, tkbc_indexs_append(kite_index_array.elements[i]),
-          &(CLITERAL(Rotation_Action){.angle = 0}), rotation_duration);
-
+      Frame *frame =
+          KITE_ROTATION(ID(kite_index_array.elements[i]), 0, rotation_duration);
       if (frame == NULL)
         return false;
 
@@ -295,14 +272,9 @@ bool tkbc_script_team_arc(Env *env, Kite_Ids kite_index_array, Vector2 position,
       break;
     }
     {
-      Frame *frame = tkbc_frame_generate(
-          KITE_MOVE, tkbc_indexs_append(kite_index_array.elements[i]),
-          &(CLITERAL(Move_Action){
-              .position.x = anchor.x + x_space * column,
-              .position.y = anchor.y + y_space * row,
-          }),
-          move_duration);
-
+      Frame *frame = KITE_MOVE(ID(kite_index_array.elements[i]),
+                               anchor.x + x_space * column,
+                               anchor.y + y_space * row, move_duration);
       if (frame == NULL)
         return false;
 
@@ -312,10 +284,8 @@ bool tkbc_script_team_arc(Env *env, Kite_Ids kite_index_array, Vector2 position,
       angle = 0;
     }
     {
-      Frame *frame = tkbc_frame_generate(
-          KITE_ROTATION, tkbc_indexs_append(kite_index_array.elements[i]),
-          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
-
+      Frame *frame = KITE_ROTATION(ID(kite_index_array.elements[i]), angle,
+                                   rotation_duration);
       if (frame == NULL)
         return false;
 
@@ -391,14 +361,9 @@ bool tkbc_script_team_mouth(Env *env, Kite_Ids kite_index_array,
       break;
     }
     {
-      Frame *frame = tkbc_frame_generate(
-          KITE_MOVE, tkbc_indexs_append(kite_index_array.elements[i]),
-          &(CLITERAL(Move_Action){
-              .position.x = anchor.x + x_space * column,
-              .position.y = anchor.y + y_space * row,
-          }),
-          move_duration);
-
+      Frame *frame = KITE_MOVE(ID(kite_index_array.elements[i]),
+                               anchor.x + x_space * column,
+                               anchor.y + y_space * row, move_duration);
       if (frame == NULL)
         return false;
 
@@ -408,10 +373,8 @@ bool tkbc_script_team_mouth(Env *env, Kite_Ids kite_index_array,
       angle = 0;
     }
     {
-      Frame *frame = tkbc_frame_generate(
-          KITE_ROTATION, tkbc_indexs_append(kite_index_array.elements[i]),
-          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
-
+      Frame *frame = KITE_ROTATION(ID(kite_index_array.elements[i]), angle,
+                                   rotation_duration);
       if (frame == NULL)
         return false;
 
@@ -498,14 +461,9 @@ bool tkbc_script_team_grid(Env *env, Kite_Ids kite_index_array,
       if (kite_index_array.count <= i) {
         break;
       }
-      Frame *frame = tkbc_frame_generate(
-          KITE_MOVE, tkbc_indexs_append(kite_index_array.elements[i++]),
-          &(CLITERAL(Move_Action){
-              .position.x = anchor.x + x_space * column,
-              .position.y = anchor.y + y_space * row,
-          }),
-          move_duration);
-
+      Frame *frame = KITE_MOVE(ID(kite_index_array.elements[i++]),
+                               anchor.x + x_space * column,
+                               anchor.y + y_space * row, move_duration);
       if (frame == NULL)
         return false;
 
@@ -539,95 +497,37 @@ void tkbc_script_team_box(Env *env, Kite_Ids kite_index_array,
     angle = -angle;
   }
 
-  tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                                &(CLITERAL(Move_Add_Action){
-                                                    .position.x = 0,
-                                                    .position.y = -box_size / 2,
-                                                }),
-                                                move_duration));
-
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
-                               &(CLITERAL(Rotation_Action){.angle = angle}),
-                               rotation_duration));
+  SET(KITE_MOVE_ADD(kite_index_array, 0, -box_size / 2, move_duration));
+  SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
 
   switch (direction) {
-  case LEFT: {
-    tkbc_register_frames(env,
-                         tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                             &(CLITERAL(Move_Add_Action){
-                                                 .position.x = -box_size,
-                                                 .position.y = 0,
-                                             }),
-                                             move_duration));
-
-  } break;
-  case RIGHT: {
-    tkbc_register_frames(env,
-                         tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                             &(CLITERAL(Move_Add_Action){
-                                                 .position.x = box_size,
-                                                 .position.y = 0,
-                                             }),
-                                             move_duration));
-
-  } break;
+  case LEFT:
+    SET(KITE_MOVE_ADD(kite_index_array, -box_size, 0, move_duration));
+    break;
+  case RIGHT:
+    SET(KITE_MOVE_ADD(kite_index_array, box_size, 0, move_duration));
+    break;
   default:
     assert(0 && "UNREACHABLE");
   }
 
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
-                               &(CLITERAL(Rotation_Action){.angle = angle}),
-                               rotation_duration));
-
-  tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                                &(CLITERAL(Move_Add_Action){
-                                                    .position.x = 0,
-                                                    .position.y = box_size,
-                                                }),
-                                                move_duration));
-
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
-                               &(CLITERAL(Rotation_Action){.angle = angle}),
-                               rotation_duration));
+  SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
+  SET(KITE_MOVE_ADD(kite_index_array, 0, box_size, move_duration));
+  SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
 
   switch (direction) {
-  case LEFT: {
-
-    tkbc_register_frames(env,
-                         tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                             &(CLITERAL(Move_Add_Action){
-                                                 .position.x = box_size,
-                                                 .position.y = 0,
-                                             }),
-                                             move_duration));
-  } break;
-  case RIGHT: {
-    tkbc_register_frames(env,
-                         tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                             &(CLITERAL(Move_Add_Action){
-                                                 .position.x = -box_size,
-                                                 .position.y = 0,
-                                             }),
-                                             move_duration));
-  } break;
+  case LEFT:
+    SET(KITE_MOVE_ADD(kite_index_array, box_size, 0, move_duration));
+    break;
+  case RIGHT:
+    SET(KITE_MOVE_ADD(kite_index_array, -box_size, 0, move_duration));
+    break;
   default:
     assert(0 && "UNREACHABLE");
   }
 
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
-                               &(CLITERAL(Rotation_Action){.angle = angle}),
-                               rotation_duration));
-
-  tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                                &(CLITERAL(Move_Add_Action){
-                                                    .position.x = 0,
-                                                    .position.y = -box_size / 2,
-                                                }),
-                                                move_duration));
+  SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
+  SET(KITE_MOVE_ADD(kite_index_array, 0, -box_size / 2, move_duration));
 }
 
 /**
@@ -695,370 +595,320 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
   switch (odd_even) {
   case ODD: {
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = -angle}), rotation_duration);
+
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), -angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = 0,
-              .position.y = -box_size,
-          }),
-          move_duration);
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), 0, -box_size,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = 0,
-              .position.y = box_size,
-          }),
-          move_duration);
+
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), 0, box_size,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = -angle}), rotation_duration);
+
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), -angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = -box_size,
-              .position.y = 0,
-          }),
-          move_duration);
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), -box_size, 0,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = -box_size,
-              .position.y = 0,
-          }),
-          move_duration);
+
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), -box_size, 0,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = -angle}), rotation_duration);
+
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), -angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = 0,
-              .position.y = box_size,
-          }),
-          move_duration);
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), 0, box_size,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = 0,
-              .position.y = -box_size,
-          }),
-          move_duration);
+
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), 0, -box_size,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = -angle}), rotation_duration);
+
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), -angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = box_size,
-              .position.y = 0,
-          }),
-          move_duration);
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), box_size, 0,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = box_size,
-              .position.y = 0,
-          }),
-          move_duration);
+
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), box_size, 0,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
   } break;
   case EVEN: {
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = -angle}), rotation_duration);
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), -angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
+
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = 0,
-              .position.y = box_size,
-          }),
-          move_duration);
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), 0, box_size,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = 0,
-              .position.y = -box_size,
-          }),
-          move_duration);
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), 0, -box_size,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = -angle}), rotation_duration);
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), -angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
+
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = -box_size,
-              .position.y = 0,
-          }),
-          move_duration);
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), -box_size, 0,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = -box_size,
-              .position.y = 0,
-          }),
-          move_duration);
+
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), -box_size, 0,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = -angle}), rotation_duration);
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), -angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
+
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = 0,
-              .position.y = -box_size,
-          }),
-          move_duration);
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), 0, -box_size,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = 0,
-              .position.y = box_size,
-          }),
-          move_duration);
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), 0, box_size,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = -angle}), rotation_duration);
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), -angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_ROTATION_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Rotation_Action){.angle = angle}), rotation_duration);
+
+      frame = KITE_ROTATION_ADD(ID(kite_index_array.elements[i--]), angle,
+                                rotation_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
 
     for (int i = kite_index_array.count - 1; i >= 0;) {
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = box_size,
-              .position.y = 0,
-          }),
-          move_duration);
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), box_size, 0,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
-      frame = tkbc_frame_generate(
-          KITE_MOVE_ADD, tkbc_indexs_append(kite_index_array.elements[i--]),
-          &(CLITERAL(Move_Add_Action){
-              .position.x = box_size,
-              .position.y = 0,
-          }),
-          move_duration);
+
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i--]), box_size, 0,
+                            move_duration);
       if (frame == NULL)
         return false;
+
       tkbc_dap(env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, env->scratch_buf_frames);
@@ -1089,125 +939,69 @@ void tkbc_script_team_diamond(Env *env, Kite_Ids kite_index_array,
   if (direction == RIGHT) {
     angle = -angle;
   }
+  double sqrt2 = sqrt(2);
 
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
-                               &(CLITERAL(Rotation_Action){.angle = angle / 2}),
-                               rotation_duration));
+  SET(KITE_ROTATION_ADD(kite_index_array, angle / 2, rotation_duration));
 
   switch (direction) {
-  case RIGHT: {
-    tkbc_register_frames(
-        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                 &(CLITERAL(Move_Add_Action){
-                                     .position.x = box_size / sqrt(2),
-                                     .position.y = -box_size / sqrt(2),
-                                 }),
-                                 move_duration));
-
-  } break;
-  case LEFT: {
-    tkbc_register_frames(
-        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                 &(CLITERAL(Move_Add_Action){
-                                     .position.x = -box_size / sqrt(2),
-                                     .position.y = -box_size / sqrt(2),
-                                 }),
-                                 move_duration));
-
-  } break;
+  case RIGHT:
+    SET(KITE_MOVE_ADD(kite_index_array, box_size / sqrt2, -box_size / sqrt2,
+                      move_duration));
+    break;
+  case LEFT:
+    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2, -box_size / sqrt2,
+                      move_duration));
+    break;
   default:
     assert(0 && "UNREACHABLE");
   }
 
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
-                               &(CLITERAL(Rotation_Action){.angle = angle}),
-                               rotation_duration));
+  SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
 
   switch (direction) {
-  case RIGHT: {
-    tkbc_register_frames(
-        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                 &(CLITERAL(Move_Add_Action){
-                                     .position.x = box_size / sqrt(2),
-                                     .position.y = box_size / sqrt(2),
-                                 }),
-                                 move_duration));
-  } break;
-  case LEFT: {
-    tkbc_register_frames(
-        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                 &(CLITERAL(Move_Add_Action){
-                                     .position.x = -box_size / sqrt(2),
-                                     .position.y = box_size / sqrt(2),
-                                 }),
-                                 move_duration));
-  } break;
+  case RIGHT:
+    SET(KITE_MOVE_ADD(kite_index_array, box_size / sqrt2, box_size / sqrt2,
+                      move_duration));
+    break;
+  case LEFT:
+    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2, box_size / sqrt2,
+                      move_duration));
+    break;
   default:
     assert(0 && "UNREACHABLE");
   }
 
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
-                               &(CLITERAL(Rotation_Action){.angle = angle}),
-                               rotation_duration));
+  SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
 
   switch (direction) {
-  case RIGHT: {
-    tkbc_register_frames(
-        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                 &(CLITERAL(Move_Add_Action){
-                                     .position.x = -box_size / sqrt(2),
-                                     .position.y = box_size / sqrt(2),
-                                 }),
-                                 move_duration));
-  } break;
-  case LEFT: {
-    tkbc_register_frames(
-        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                 &(CLITERAL(Move_Add_Action){
-                                     .position.x = box_size / sqrt(2),
-                                     .position.y = box_size / sqrt(2),
-                                 }),
-                                 move_duration));
-  } break;
+  case RIGHT:
+    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2, box_size / sqrt2,
+                      move_duration));
+    break;
+  case LEFT:
+    SET(KITE_MOVE_ADD(kite_index_array, box_size / sqrt2, box_size / sqrt2,
+                      move_duration));
+    break;
   default:
     assert(0 && "UNREACHABLE");
   }
 
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
-                               &(CLITERAL(Rotation_Action){.angle = angle}),
-                               rotation_duration));
+  SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
 
   switch (direction) {
-  case RIGHT: {
-    tkbc_register_frames(
-        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                 &(CLITERAL(Move_Add_Action){
-                                     .position.x = -box_size / sqrt(2),
-                                     .position.y = -box_size / sqrt(2),
-                                 }),
-                                 move_duration));
-  } break;
-  case LEFT: {
-    tkbc_register_frames(
-        env, tkbc_frame_generate(KITE_MOVE_ADD, kite_index_array,
-                                 &(CLITERAL(Move_Add_Action){
-                                     .position.x = box_size / sqrt(2),
-                                     .position.y = -box_size / sqrt(2),
-                                 }),
-                                 move_duration));
-  } break;
+  case RIGHT:
+    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2, -box_size / sqrt2,
+                      move_duration));
+    break;
+  case LEFT:
+    SET(KITE_MOVE_ADD(kite_index_array, box_size / sqrt2, -box_size / sqrt2,
+                      move_duration));
+    break;
   default:
     assert(0 && "UNREACHABLE");
   }
 
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, kite_index_array,
-                               &(CLITERAL(Rotation_Action){.angle = angle / 2}),
-                               rotation_duration));
+  SET(KITE_ROTATION_ADD(kite_index_array, angle / 2, rotation_duration));
 }
 
 /**
