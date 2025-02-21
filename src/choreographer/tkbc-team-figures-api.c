@@ -497,7 +497,7 @@ void tkbc_script_team_box(Env *env, Kite_Ids kite_index_array,
     angle = -angle;
   }
 
-  SET(KITE_MOVE(kite_index_array, 0, -box_size / 2, move_duration));
+  SET(KITE_MOVE_ADD(kite_index_array, 0, -box_size / 2, move_duration));
   SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
 
   switch (direction) {
@@ -949,8 +949,8 @@ void tkbc_script_team_diamond(Env *env, Kite_Ids kite_index_array,
                       move_duration));
     break;
   case LEFT:
-    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2,
-                      -box_size / sqrt2, move_duration));
+    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2, -box_size / sqrt2,
+                      move_duration));
     break;
   default:
     assert(0 && "UNREACHABLE");
@@ -990,8 +990,8 @@ void tkbc_script_team_diamond(Env *env, Kite_Ids kite_index_array,
 
   switch (direction) {
   case RIGHT:
-    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2,
-                      -box_size / sqrt2, move_duration));
+    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2, -box_size / sqrt2,
+                      move_duration));
     break;
   case LEFT:
     SET(KITE_MOVE_ADD(kite_index_array, box_size / sqrt2, -box_size / sqrt2,
