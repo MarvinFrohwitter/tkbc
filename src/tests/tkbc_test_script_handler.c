@@ -6,8 +6,7 @@
 #include <string.h>
 
 Test deep_copy_frames() {
-  Test test = {0};
-  test.name = "tkbc_deep_copy_frames()";
+  Test test = cassert_init_test("tkbc_deep_copy_frames()");
 
   Frames *frames = malloc(sizeof(*frames));
   memset(frames, 0, sizeof(*frames));
@@ -81,6 +80,24 @@ Test deep_copy_frames() {
   return test;
 }
 
+Test init_frame() {
+  Test test = cassert_init_test("tkbc_init_frame()");
+
+  uintptr_t stack = 0;
+  Frame *frame;
+  cassert_ptr_neq(&frame, &stack + 0);
+  cassert_ptr_eq(&frame, &stack + 1);
+
+  void *frame_before = frame;
+  cassert_ptr_eq(frame, frame_before);
+
+  frame = tkbc_init_frame();
+  cassert_ptr_neq(frame, frame_before);
+
+  return test;
+}
+
 void tkbc_test_script_handler(Tests *tests) {
   cassert_dap(tests, deep_copy_frames());
+  cassert_dap(tests, init_frame());
 }

@@ -223,6 +223,9 @@ typedef struct {
   } while (0)
 
 #define cassert_tests Tests tests = {0};
+static inline Test cassert_init_test(const char *name) {
+  return (Test){.name = name};
+}
 // The free functions are just needed if xou want to clean up every used memory
 // and it is also just needed if some cassert_functions are called and you
 // provide a custom comparison function to the cassert_type_compare_function
@@ -528,7 +531,8 @@ enum { _float, _double, _int64 };
 
 //--- eq ---
 
-#define cassert_ptr_eq(a, b) cassert_type_compare(PTR_EQ, a, ==, b);
+#define cassert_ptr_eq(a, b)                                                   \
+  cassert_type_compare(PTR_EQ, (void *)(a), ==, (void *)(b));
 
 #define cassert_size_t_max_eq(a)                                               \
   cassert_type_compare(SIZE_T_MAX_EQ, a, ==, SIZE_MAX);
@@ -687,7 +691,8 @@ enum { _float, _double, _int64 };
   cassert_type_double_compare(DOUBLE_EQ, a, ==, b);
 
 //--- neq ---
-#define cassert_ptr_neq(a, b) cassert_type_compare(PTR_EQ, a, !=, b);
+#define cassert_ptr_neq(a, b)                                                  \
+  cassert_type_compare(PTR_EQ, (void *)(a), !=, (void *)(b));
 
 #define cassert_size_t_max_neq(a)                                              \
   cassert_type_compare(SIZE_T_MAX_EQ, a, !=, SIZE_MAX);

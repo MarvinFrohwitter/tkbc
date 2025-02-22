@@ -7,8 +7,7 @@
 #include "../global/tkbc-utils.h"
 
 Test kite_update_internal() {
-  Test test = {0};
-  test.name = "tkbc_kite_update_internal()";
+  Test test = cassert_init_test("tkbc_kite_update_internal()");
 
   Kite_State *kite_state = tkbc_init_kite();
   Kite kite = *kite_state->kite;
@@ -62,8 +61,7 @@ Test kite_update_internal() {
 }
 
 Test kite_update_position() {
-  Test test = {0};
-  test.name = "tkbc_kite_update_position()";
+  Test test = cassert_init_test("tkbc_kite_update_position()");
 
   Kite_State *kite_state = tkbc_init_kite();
   Kite kite = *kite_state->kite;
@@ -113,8 +111,7 @@ Test kite_update_position() {
 }
 
 Test kite_update_angle() {
-  Test test = {0};
-  test.name = "tkbc_kite_update_angle()";
+  Test test = cassert_init_test("tkbc_kite_update_angle()");
 
   Kite_State *kite_state = tkbc_init_kite();
   Kite kite = *kite_state->kite;
@@ -162,8 +159,7 @@ Test kite_update_angle() {
 }
 
 Test center_rotation() {
-  Test test = {0};
-  test.name = "tkbc_center_rotation()";
+  Test test = cassert_init_test("tkbc_center_rotation()");
 
   Kite_State *kite_state = tkbc_init_kite();
   Kite kite = *kite_state->kite;
@@ -213,8 +209,7 @@ Test center_rotation() {
 }
 
 Test tip_rotation_left() {
-  Test test = {0};
-  test.name = "tkbc_tip_rotation(LEFT)";
+  Test test = cassert_init_test("tkbc_tip_rotation(LEFT)");
 
   Kite_State *kite_state = tkbc_init_kite();
   Kite kite = *kite_state->kite;
@@ -267,8 +262,7 @@ Test tip_rotation_left() {
 }
 
 Test tip_rotation_right() {
-  Test test = {0};
-  test.name = "tkbc_tip_rotation(RIGHT)";
+  Test test = cassert_init_test("tkbc_tip_rotation(RIGHT)");
 
   Kite_State *kite_state = tkbc_init_kite();
   Kite kite = *kite_state->kite;
@@ -321,8 +315,7 @@ Test tip_rotation_right() {
 }
 
 Test circle_rotation_left_below() {
-  Test test = {0};
-  test.name = "tkbc_circle_rotation(RIGHT)";
+  Test test = cassert_init_test("tkbc_circle_rotation(RIGHT)");
 
   Kite_State *kite_state = tkbc_init_kite();
   Kite kite = *kite_state->kite;
