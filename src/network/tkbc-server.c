@@ -243,9 +243,7 @@ void signalhandler(int signal) {
   tkbc_fprintf(stderr, "INFO", "Closing...\n");
 
   for (size_t i = 0; i < clients->count; ++i) {
-    pthread_mutex_lock(&mutex);
     tkbc_server_shutdown_client(clients->elements[i], true);
-    pthread_mutex_unlock(&mutex);
   }
   pthread_cancel(execution_thread);
 
