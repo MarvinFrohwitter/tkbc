@@ -86,6 +86,10 @@ Test init_frame() {
   uintptr_t stack = 0;
   Frame *frame;
   cassert_ptr_neq(&frame, &stack + 0);
+  cassert_set_last_cassert_description(
+      &test, "A stack variable and the next one should not have the same stack "
+             "address.");
+
   cassert_ptr_eq(&frame, &stack + 1);
 
   void *frame_before = frame;
@@ -93,6 +97,8 @@ Test init_frame() {
 
   frame = tkbc_init_frame();
   cassert_ptr_neq(frame, frame_before);
+  cassert_set_last_cassert_description(
+      &test, "Frame before and after should not be the same.");
 
   return test;
 }

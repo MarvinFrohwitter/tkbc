@@ -16,11 +16,13 @@
 #define TERM_FAIL " \033[31mFAIL\033[0m "
 #define TERM_NAME " \033[34mNAME\033[0m "
 #define TERM_AMOUNT "\033[34mAMOUNT\033[0m"
+#define TERM_ASSERT "\033[34mASSERT\033[0m"
 
 #define OK "  OK  "
 #define FAIL " FAIL "
 #define NAME " NAME "
 #define AMOUNT "AMOUNT"
+#define ASSERT "ASSERT"
 
 #define SIZE_MIN 0
 #define UINT8_MIN 0
@@ -36,6 +38,8 @@
 
 typedef enum {
   UNKNOWN_EQ,
+
+  // EQ
   ANY_EQ,
   BOOL_EQ,
   STRING_EQ,
@@ -118,6 +122,89 @@ typedef enum {
   LONG_LONG_MIN_EQ,
   ULONG_LONG_MIN_EQ,
 
+  // NEQ
+  ANY_NEQ,
+  BOOL_NEQ,
+  STRING_NEQ,
+  STRING_INT64_NEQ,
+  STRING_FLOAT_NEQ,
+  STRING_DOUBLE_NEQ,
+  CHAR_NUMBER_NEQ,
+  PTR_NEQ,
+
+  CHAR_NEQ,
+  UCHAR_NEQ,
+
+  SHORT_NEQ,
+  INT_NEQ,
+  LONG_NEQ,
+  LONG_LONG_NEQ,
+  FLOAT_NEQ,
+  DOUBLE_NEQ,
+
+  USHORT_NEQ,
+  UINT_NEQ,
+  ULONG_NEQ,
+  ULONG_LONG_NEQ,
+
+  SSIZE_T_NEQ,
+  SIZE_T_NEQ,
+
+  INT8_T_NEQ,
+  INT16_T_NEQ,
+  INT32_T_NEQ,
+  INT64_T_NEQ,
+
+  UINT8_T_NEQ,
+  UINT16_T_NEQ,
+  UINT32_T_NEQ,
+  UINT64_T_NEQ,
+
+  SIZE_T_MAX_NEQ,
+  SIZE_T_MIN_NEQ,
+
+  INT8_T_MAX_NEQ,
+  INT16_T_MAX_NEQ,
+  INT32_T_MAX_NEQ,
+  INT64_T_MAX_NEQ,
+
+  INT8_T_MIN_NEQ,
+  INT16_T_MIN_NEQ,
+  INT32_T_MIN_NEQ,
+  INT64_T_MIN_NEQ,
+
+  UINT8_T_MAX_NEQ,
+  UINT16_T_MAX_NEQ,
+  UINT32_T_MAX_NEQ,
+  UINT64_T_MAX_NEQ,
+
+  UINT8_T_MIN_NEQ,
+  UINT16_T_MIN_NEQ,
+  UINT32_T_MIN_NEQ,
+  UINT64_T_MIN_NEQ,
+
+  CHAR_MAX_NEQ,
+  UCHAR_MAX_NEQ,
+  SHORT_MAX_NEQ,
+  USHORT_MAX_NEQ,
+  INT_MAX_NEQ,
+  UINT_MAX_NEQ,
+  LONG_MAX_NEQ,
+  ULONG_MAX_NEQ,
+  LONG_LONG_MAX_NEQ,
+  ULONG_LONG_MAX_NEQ,
+
+  CHAR_MIN_NEQ,
+  UCHAR_MIN_NEQ,
+  SHORT_MIN_NEQ,
+  USHORT_MIN_NEQ,
+  INT_MIN_NEQ,
+  UINT_MIN_NEQ,
+  LONG_MIN_NEQ,
+  ULONG_MIN_NEQ,
+  LONG_LONG_MIN_NEQ,
+  ULONG_LONG_MIN_NEQ,
+
   ASSERT_TYPE_COUNT,
 } Assert_Type;
 
@@ -129,6 +216,8 @@ typedef struct {
   void *value2;
   size_t line;
   const char *file;
+  const char *description;
+  const char *operation_str;
 } Cassert;
 
 typedef struct {
@@ -239,6 +328,8 @@ void cassert_free_tests(Tests *tests);
 
 int cassert_min(int a, int b);
 const char *cassert_str_assert_type(Assert_Type assert_type);
+bool cassert_set_last_cassert_description(Test *test, const char *description);
+int print_operation_and_description(Cassert cassert);
 
 int cassert_print(Cassert cassert);
 int cassert_print_failure_case(Cassert cassert);
@@ -264,6 +355,7 @@ void cassert_print_tests(Tests *tests);
     assert(cassert.value2 != NULL);                                            \
     *(typeof((a)) *)cassert.value1 = (a);                                      \
     *(typeof((b)) *)cassert.value2 = (b);                                      \
+    cassert.operation_str = #a #cf_ex #b;                                      \
     cassert.result = compare_function((a), cf_ex, (b), (param));               \
     if (!cassert.result) {                                                     \
       cassert.failed = true;                                                   \
@@ -283,6 +375,7 @@ void cassert_print_tests(Tests *tests);
     assert(cassert.value2 != NULL);                                            \
     *(typeof((a)) *)cassert.value1 = (a);                                      \
     *(typeof((b)) *)cassert.value2 = (b);                                      \
+    cassert.operation_str = #a #cf_ex #b;                                      \
     cassert.result = compare_function((a), cf_ex, (b));                        \
     if (!cassert.result) {                                                     \
       cassert.failed = true;                                                   \
@@ -302,6 +395,7 @@ void cassert_print_tests(Tests *tests);
     assert(cassert.value2 != NULL);                                            \
     *(typeof((a)) *)cassert.value1 = (a);                                      \
     *(typeof((b)) *)cassert.value2 = (b);                                      \
+    cassert.operation_str = #a #compare_function #b;                           \
     cassert.result = compare_function((a), (b));                               \
     if (!cassert.result) {                                                     \
       cassert.failed = true;                                                   \
@@ -317,6 +411,7 @@ void cassert_print_tests(Tests *tests);
     cassert.assert_type = type;                                                \
     cassert.value1 = (void *)(a);                                              \
     cassert.value2 = (void *)(b);                                              \
+    cassert.operation_str = #a #compare #b;                                    \
     cassert.result = (a)compare(b) ? 1 : 0;                                    \
     if (!cassert.result) {                                                     \
       cassert.failed = true;                                                   \
@@ -326,14 +421,19 @@ void cassert_print_tests(Tests *tests);
 
 #define cassert_eq(a, compare, b)                                              \
   cassert_type_compare(ANY_EQ, (a), compare, (b))
+// NOTE: Wrapping the compare in parentheses breaks some inline expressions.
+// Use cassert_eq() instead and negate manual if needed.
+#define cassert_neq(a, compare, b)                                             \
+  cassert_type_compare(ANY_NEQ, (a), !(compare), (b))
 
 #define cassert_bool_eq(a, b) cassert_type_compare(BOOL_EQ, (a), ==, (b))
-#define cassert_bool_neq(a, b) cassert_type_compare(BOOL_EQ, (a), !=, (b))
+#define cassert_bool_neq(a, b) cassert_type_compare(BOOL_NEQ, (a), !=, (b))
 
 #ifndef eps
 #define eps 0.01
 #endif // !epsilon
 
+const char *term_color(const char *str);
 static inline double cassert_fmax(double x, double y) { return x < y ? y : x; }
 static inline float cassert_fmaxf(float x, float y) { return x < y ? y : x; }
 static inline double cassert_fabs(double x) { return 0 <= x ? x : -x; }
@@ -392,6 +492,7 @@ static inline bool double_equals(double x, double y) {
     cassert.value2 = (void *)(b);                                              \
     assert(cassert.value1 != NULL);                                            \
     assert(cassert.value2 != NULL);                                            \
+    cassert.operation_str = #a "==" #b;                                        \
     cassert.result = strncmp(a, b, cassert_min(strlen(a), strlen(b)));         \
     if (cassert.result != 0) {                                                 \
       cassert.failed = true;                                                   \
@@ -402,13 +503,14 @@ static inline bool double_equals(double x, double y) {
 #define cassert_string_neq(a, b)                                               \
   do {                                                                         \
     Cassert cassert = {0};                                                     \
-    cassert.assert_type = STRING_EQ;                                           \
+    cassert.assert_type = STRING_NEQ;                                          \
     cassert.file = __FILE__;                                                   \
     cassert.line = __LINE__;                                                   \
     cassert.value1 = (void *)(a);                                              \
     cassert.value2 = (void *)(b);                                              \
     assert(cassert.value1 != NULL);                                            \
     assert(cassert.value2 != NULL);                                            \
+    cassert.operation_str = #a "!=" #b;                                        \
     cassert.result = !strncmp(a, b, cassert_min(strlen(a), strlen(b)));        \
     if (cassert.result != 0) {                                                 \
       cassert.failed = true;                                                   \
@@ -420,7 +522,7 @@ static inline bool double_equals(double x, double y) {
   cassert_type_compare(CHAR_NUMBER_EQ, c, +48 ==, number);
 
 #define cassert_char_number_neq(c, number)                                     \
-  cassert_type_compare(CHAR_NUMBER_EQ, c, +48 !=, number);
+  cassert_type_compare(CHAR_NUMBER_NEQ, c, +48 !=, number);
 
 enum { _float, _double, _int64 };
 #define cassert_string_int64_eq(string, number)                                \
@@ -474,6 +576,7 @@ enum { _float, _double, _int64 };
     default:                                                                   \
       exit(EXIT_FAILURE);                                                      \
     }                                                                          \
+    cassert.operation_str = #string "==" #number;                              \
     cassert.result =                                                           \
         strncmp(string, number_string,                                         \
                 cassert_min(strlen(string), strlen(number_string)));           \
@@ -495,7 +598,7 @@ enum { _float, _double, _int64 };
     switch (type) {                                                            \
     case _int64:                                                               \
       *(int64_t *)cassert.value2 = (int64_t)(number);                          \
-      cassert.assert_type = STRING_INT64_EQ;                                   \
+      cassert.assert_type = STRING_INT64_NEQ;                                  \
       if (snprintf(number_string, sizeof(number_string), "%ld\n",              \
                    (int64_t)(number)) < 0) {                                   \
         exit(EXIT_FAILURE);                                                    \
@@ -503,7 +606,7 @@ enum { _float, _double, _int64 };
       break;                                                                   \
     case _float:                                                               \
       *(float *)cassert.value2 = (float)(number);                              \
-      cassert.assert_type = STRING_FLOAT_EQ;                                   \
+      cassert.assert_type = STRING_FLOAT_NEQ;                                  \
       if (snprintf(number_string, sizeof(number_string), "%f\n",               \
                    (float)(number)) < 0) {                                     \
         exit(EXIT_FAILURE);                                                    \
@@ -511,7 +614,7 @@ enum { _float, _double, _int64 };
       break;                                                                   \
     case _double:                                                              \
       *(double *)cassert.value2 = (double)(number);                            \
-      cassert.assert_type = STRING_DOUBLE_EQ;                                  \
+      cassert.assert_type = STRING_DOUBLE_NEQ;                                 \
       if (snprintf(number_string, sizeof(number_string), "%lf\n",              \
                    (double)(number)) < 0) {                                    \
         exit(EXIT_FAILURE);                                                    \
@@ -520,6 +623,7 @@ enum { _float, _double, _int64 };
     default:                                                                   \
       exit(EXIT_FAILURE);                                                      \
     }                                                                          \
+    cassert.operation_str = #string "!=" #number;                              \
     cassert.result =                                                           \
         !strncmp(string, number_string,                                        \
                  cassert_min(strlen(string), strlen(number_string)));          \
@@ -692,171 +796,181 @@ enum { _float, _double, _int64 };
 
 //--- neq ---
 #define cassert_ptr_neq(a, b)                                                  \
-  cassert_type_compare(PTR_EQ, (void *)(a), !=, (void *)(b));
+  cassert_type_compare(PTR_NEQ, (void *)(a), !=, (void *)(b));
 
 #define cassert_size_t_max_neq(a)                                              \
-  cassert_type_compare(SIZE_T_MAX_EQ, a, !=, SIZE_MAX);
+  cassert_type_compare(SIZE_T_MAX_NEQ, a, !=, SIZE_MAX);
 
 #define cassert_size_t_min_neq(a)                                              \
-  cassert_type_compare(SIZE_T_MIN_EQ, a, !=, SIZE_MIN);
+  cassert_type_compare(SIZE_T_MIN_NEQ, a, !=, SIZE_MIN);
 
 #define cassert_int8_t_max_neq(a)                                              \
-  cassert_type_compare(INT8_T_MAX_EQ, a, !=, INT8_MAX);
+  cassert_type_compare(INT8_T_MAX_NEQ, a, !=, INT8_MAX);
 
 #define cassert_int8_t_min_neq(a)                                              \
-  cassert_type_compare(INT8_T_MIN_EQ, a, !=, INT8_MIN);
+  cassert_type_compare(INT8_T_MIN_NEQ, a, !=, INT8_MIN);
 
 #define cassert_uint8_t_max_neq(a)                                             \
-  cassert_type_compare(UINT8_T_MAX_EQ, a, !=, UINT8_MAX);
+  cassert_type_compare(UINT8_T_MAX_NEQ, a, !=, UINT8_MAX);
 
 #define cassert_uint8_t_min_neq(a)                                             \
-  cassert_type_compare(UINT8_T_MIN_EQ, a, !=, UINT8_MIN);
+  cassert_type_compare(UINT8_T_MIN_NEQ, a, !=, UINT8_MIN);
 
 #define cassert_int16_t_max_neq(a)                                             \
-  cassert_type_compare(INT16_T_MAX_EQ, a, !=, INT16_MAX);
+  cassert_type_compare(INT16_T_MAX_NEQ, a, !=, INT16_MAX);
 
 #define cassert_int16_t_min_neq(a)                                             \
-  cassert_type_compare(INT16_T_MIN_EQ, a, !=, INT16_MIN);
+  cassert_type_compare(INT16_T_MIN_NEQ, a, !=, INT16_MIN);
 
 #define cassert_uint16_t_max_neq(a)                                            \
-  cassert_type_compare(UINT16_T_MAX_EQ, a, !=, UINT16_MAX);
+  cassert_type_compare(UINT16_T_MAX_NEQ, a, !=, UINT16_MAX);
 
 #define cassert_uint16_t_min_neq(a)                                            \
-  cassert_type_compare(UINT16_T_MIN_EQ, a, !=, UINT16_MIN);
+  cassert_type_compare(UINT16_T_MIN_NEQ, a, !=, UINT16_MIN);
 
 #define cassert_int32_t_max_neq(a)                                             \
-  cassert_type_compare(INT32_T_MAX_EQ, a, !=, INT32_MAX);
+  cassert_type_compare(INT32_T_MAX_NEQ, a, !=, INT32_MAX);
 
 #define cassert_int32_t_min_neq(a)                                             \
-  cassert_type_compare(INT32_T_MIN_EQ, a, !=, INT32_MIN);
+  cassert_type_compare(INT32_T_MIN_NEQ, a, !=, INT32_MIN);
 
 #define cassert_uint32_t_max_neq(a)                                            \
-  cassert_type_compare(UINT32_T_MAX_EQ, a, !=, UINT32_MAX);
+  cassert_type_compare(UINT32_T_MAX_NEQ, a, !=, UINT32_MAX);
 
 #define cassert_uint32_t_min_neq(a)                                            \
-  cassert_type_compare(UINT32_T_MIN_EQ, a, !=, UINT32_MIN);
+  cassert_type_compare(UINT32_T_MIN_NEQ, a, !=, UINT32_MIN);
 
 #define cassert_int64_t_max_neq(a)                                             \
-  cassert_type_compare(INT64_T_MAX_EQ, a, !=, INT64_MAX);
+  cassert_type_compare(INT64_T_MAX_NEQ, a, !=, INT64_MAX);
 
 #define cassert_int64_t_min_neq(a)                                             \
-  cassert_type_compare(INT64_T_MIN_EQ, a, !=, INT64_MIN);
+  cassert_type_compare(INT64_T_MIN_NEQ, a, !=, INT64_MIN);
 
 #define cassert_uint64_t_max_neq(a)                                            \
-  cassert_type_compare(UINT64_T_MAX_EQ, a, !=, UINT64_MAX);
+  cassert_type_compare(UINT64_T_MAX_NEQ, a, !=, UINT64_MAX);
 
 #define cassert_uint64_t_min_neq(a)                                            \
-  cassert_type_compare(UINT64_T_MIN_EQ, a, !=, UINT64_MIN);
+  cassert_type_compare(UINT64_T_MIN_NEQ, a, !=, UINT64_MIN);
 
 #define cassert_char_max_neq(a)                                                \
-  cassert_type_compare(CHAR_MAX_EQ, a, !=, CHAR_MAX);
+  cassert_type_compare(CHAR_MAX_NEQ, a, !=, CHAR_MAX);
 
 #define cassert_uchar_max_neq(a)                                               \
-  cassert_type_compare(UCHAR_MAX_EQ, a, !=, UCHAR_MAX);
+  cassert_type_compare(UCHAR_MAX_NEQ, a, !=, UCHAR_MAX);
 
 #define cassert_short_max_neq(a)                                               \
-  cassert_type_compare(SHORT_MAX_EQ, a, !=, SHRT_MAX);
+  cassert_type_compare(SHORT_MAX_NEQ, a, !=, SHRT_MAX);
 
 #define cassert_ushort_max_neq(a)                                              \
-  cassert_type_compare(USHORT_MAX_EQ, a, !=, USHRT_MAX);
+  cassert_type_compare(USHORT_MAX_NEQ, a, !=, USHRT_MAX);
 
-#define cassert_int_max_neq(a) cassert_type_compare(INT_MAX_EQ, a, !=, INT_MAX);
+#define cassert_int_max_neq(a)                                                 \
+  cassert_type_compare(INT_MAX_NEQ, a, !=, INT_MAX);
 
 #define cassert_unit_max_neq(a)                                                \
-  cassert_type_compare(UINT_MAX_EQ, a, !=, UINT_MAX);
+  cassert_type_compare(UINT_MAX_NEQ, a, !=, UINT_MAX);
 
 #define cassert_long_max_neq(a)                                                \
-  cassert_type_compare(LONG_MAX_EQ, a, !=, LONG_MAX);
+  cassert_type_compare(LONG_MAX_NEQ, a, !=, LONG_MAX);
 
 #define cassert_ulong_max_neq(a)                                               \
-  cassert_type_compare(ULONG_MAX_EQ, a, !=, ULONG_MAX);
+  cassert_type_compare(ULONG_MAX_NEQ, a, !=, ULONG_MAX);
 
 #define cassert_long_long_max_neq(a)                                           \
-  cassert_type_compare(LONG_LONG_MAX_EQ, a, !=, LLONG_MAX);
+  cassert_type_compare(LONG_LONG_MAX_NEQ, a, !=, LLONG_MAX);
 
 #define cassert_ulong_long_max_neq(a)                                          \
-  cassert_type_compare(ULONG_LONG_MAX_EQ, a, !=, ULLONG_MAX);
+  cassert_type_compare(ULONG_LONG_MAX_NEQ, a, !=, ULLONG_MAX);
 
 #define cassert_char_min_neq(a)                                                \
-  cassert_type_compare(CHAR_MIN_EQ, a, !=, CHAR_MIN);
+  cassert_type_compare(CHAR_MIN_NEQ, a, !=, CHAR_MIN);
 
 #define cassert_uchar_min_neq(a)                                               \
-  cassert_type_compare(UCHAR_MIN_EQ, a, !=, UCHAR_MIN);
+  cassert_type_compare(UCHAR_MIN_NEQ, a, !=, UCHAR_MIN);
 
 #define cassert_short_min_neq(a)                                               \
-  cassert_type_compare(SHORT_MIN_EQ, a, !=, SHRT_MIN);
+  cassert_type_compare(SHORT_MIN_NEQ, a, !=, SHRT_MIN);
 
 #define cassert_ushort_min_neq(a)                                              \
-  cassert_type_compare(USHORT_MIN_EQ, a, !=, USHRT_MIN);
+  cassert_type_compare(USHORT_MIN_NEQ, a, !=, USHRT_MIN);
 
-#define cassert_int_min_neq(a) cassert_type_compare(INT_MIN_EQ, a, !=, INT_MIN);
+#define cassert_int_min_neq(a)                                                 \
+  cassert_type_compare(INT_MIN_NEQ, a, !=, INT_MIN);
 
 #define cassert_unit_min_neq(a)                                                \
-  cassert_type_compare(UINT_MIN_EQ, a, !=, UINT_MIN);
+  cassert_type_compare(UINT_MIN_NEQ, a, !=, UINT_MIN);
 
 #define cassert_long_min_neq(a)                                                \
-  cassert_type_compare(LONG_MIN_EQ, a, !=, LONG_MIN);
+  cassert_type_compare(LONG_MIN_NEQ, a, !=, LONG_MIN);
 
 #define cassert_ulong_min_neq(a)                                               \
-  cassert_type_compare(ULONG_MIN_EQ, a, !=, ULONG_MIN);
+  cassert_type_compare(ULONG_MIN_NEQ, a, !=, ULONG_MIN);
 
 #define cassert_long_long_min_neq(a)                                           \
-  cassert_type_compare(LONG_LONG_MIN_EQ, a, !=, LLONG_MIN);
+  cassert_type_compare(LONG_LONG_MIN_NEQ, a, !=, LLONG_MIN);
 
 #define cassert_ulong_long_min_neq(a)                                          \
-  cassert_type_compare(ULONG_LONG_MIN_EQ, a, !=, ULLONG_MIN);
+  cassert_type_compare(ULONG_LONG_MIN_NEQ, a, !=, ULLONG_MIN);
 
-#define cassert_char_neq(a, b) cassert_type_compare(CHAR_EQ, a, !=, b);
+#define cassert_char_neq(a, b) cassert_type_compare(CHAR_NEQ, a, !=, b);
 
-#define cassert_uchar_neq(a, b) cassert_type_compare(UCHAR_EQ, a, !=, b);
+#define cassert_uchar_neq(a, b) cassert_type_compare(UCHAR_NEQ, a, !=, b);
 
-#define cassert_short_neq(a, b) cassert_type_compare(SHORT_EQ, a, !=, b);
+#define cassert_short_neq(a, b) cassert_type_compare(SHORT_NEQ, a, !=, b);
 
-#define cassert_ushort_neq(a, b) cassert_type_compare(USHORT_EQ, a, !=, b);
+#define cassert_ushort_neq(a, b) cassert_type_compare(USHORT_NEQ, a, !=, b);
 
-#define cassert_int_neq(a, b) cassert_type_compare(INT_EQ, a, !=, b);
+#define cassert_int_neq(a, b) cassert_type_compare(INT_NEQ, a, !=, b);
 
-#define cassert_uint_neq(a, b) cassert_type_compare(UINT_EQ, a, !=, b);
+#define cassert_uint_neq(a, b) cassert_type_compare(UINT_NEQ, a, !=, b);
 
-#define cassert_long_neq(a, b) cassert_type_compare(LONG_EQ, a, !=, b);
+#define cassert_long_neq(a, b) cassert_type_compare(LONG_NEQ, a, !=, b);
 
-#define cassert_ulong_neq(a, b) cassert_type_compare(ULONG_EQ, a, !=, b);
+#define cassert_ulong_neq(a, b) cassert_type_compare(ULONG_NEQ, a, !=, b);
 
 #define cassert_long_long_neq(a, b)                                            \
-  cassert_type_compare(LONG_LONG_EQ, a, !=, b);
+  cassert_type_compare(LONG_LONG_NEQ, a, !=, b);
 
 #define cassert_ulong_long_neq(a, b)                                           \
-  cassert_type_compare(ULONG_LONG_EQ, a, !=, b);
+  cassert_type_compare(ULONG_LONG_NEQ, a, !=, b);
 
-#define cassert_size_t_neq(a, b) cassert_type_compare(SIZE_T_EQ, a, !=, b);
+#define cassert_size_t_neq(a, b) cassert_type_compare(SIZE_T_NEQ, a, !=, b);
 
-#define cassert_int8_t_neq(a, b) cassert_type_compare(INT8_T_EQ, a, !=, b);
+#define cassert_int8_t_neq(a, b) cassert_type_compare(INT8_T_NEQ, a, !=, b);
 
-#define cassert_int16_t_neq(a, b) cassert_type_compare(INT16_T_EQ, a, !=, b);
+#define cassert_int16_t_neq(a, b) cassert_type_compare(INT16_T_NEQ, a, !=, b);
 
-#define cassert_int32_t_neq(a, b) cassert_type_compare(INT32_T_EQ, a, !=, b);
+#define cassert_int32_t_neq(a, b) cassert_type_compare(INT32_T_NEQ, a, !=, b);
 
-#define cassert_int64_t_neq(a, b) cassert_type_compare(INT64_T_EQ, a, !=, b);
+#define cassert_int64_t_neq(a, b) cassert_type_compare(INT64_T_NEQ, a, !=, b);
 
-#define cassert_Uint8_t_neq(a, b) cassert_type_compare(UINT8_T_EQ, a, !=, b);
+#define cassert_Uint8_t_neq(a, b) cassert_type_compare(UINT8_T_NEQ, a, !=, b);
 
-#define cassert_uint16_t_neq(a, b) cassert_type_compare(UINT16_T_EQ, a, !=, b);
+#define cassert_uint16_t_neq(a, b) cassert_type_compare(UINT16_T_NEQ, a, !=, b);
 
-#define cassert_uint32_t_neq(a, b) cassert_type_compare(UINT32_T_EQ, a, !=, b);
+#define cassert_uint32_t_neq(a, b) cassert_type_compare(UINT32_T_NEQ, a, !=, b);
 
-#define cassert_uint64_t_neq(a, b) cassert_type_compare(UINT64_T_EQ, a, !=, b);
+#define cassert_uint64_t_neq(a, b) cassert_type_compare(UINT64_T_NEQ, a, !=, b);
 
-#define cassert_float_neq(a, b) cassert_type_float_compare(FLOAT_EQ, a, !=, b);
+#define cassert_float_neq(a, b) cassert_type_float_compare(FLOAT_NEQ, a, !=, b);
 
 #define cassert_double_neq(a, b)                                               \
-  cassert_type_double_compare(DOUBLE_EQ, a, !=, b);
+  cassert_type_double_compare(DOUBLE_NEQ, a, !=, b);
 
+// ---------------------------------------------------------------------------
 // --- epsilon comparison ---
 #define cassert_float_eq_epsilon(a, b)                                         \
   cassert_type_float_compare_epsilon(FLOAT_EQ, a, <=, b, eps);
 
 #define cassert_double_eq_epsilon(a, b)                                        \
   cassert_type_double_compare_epsilon(DOUBLE_EQ, a, <=, b, eps);
+
+// --- neq epsilon comparison ---
+#define cassert_float_neq_epsilon(a, b)                                        \
+  cassert_type_float_compare_epsilon(FLOAT_NEQ, a, >, b, eps);
+
+#define cassert_double_neq_epsilon(a, b)                                       \
+  cassert_type_double_compare_epsilon(DOUBLE_NEQ, a, >, b, eps);
 
 #endif // CASSERT_H_
 
@@ -870,7 +984,7 @@ enum { _float, _double, _int64 };
 int cassert_min(int a, int b) { return a < b ? a : b; }
 
 const char *cassert_str_assert_type(Assert_Type assert_type) {
-  static_assert(ASSERT_TYPE_COUNT == 69, "assert types count has changed");
+  static_assert(ASSERT_TYPE_COUNT == 137, "assert types count has changed");
   switch (assert_type) {
   case ANY_EQ:
     return "ANY_EQ";
@@ -1009,6 +1123,143 @@ const char *cassert_str_assert_type(Assert_Type assert_type) {
   case ULONG_LONG_MIN_EQ:
     return "ULONG_LONG_MIN_EQ";
 
+  case ANY_NEQ:
+    return "ANY_NEQ";
+  case BOOL_NEQ:
+    return "BOOL_NEQ";
+  case STRING_NEQ:
+    return "STRING_NEQ";
+  case STRING_INT64_NEQ:
+    return "STRING_INT64_NEQ";
+  case STRING_FLOAT_NEQ:
+    return "STRING_FLOAT_NEQ";
+  case STRING_DOUBLE_NEQ:
+    return "STRING_DOUBLE_NEQ";
+  case CHAR_NUMBER_NEQ:
+    return "CHAR_NUMBER_NEQ";
+  case PTR_NEQ:
+    return "PTR_NEQ";
+  case CHAR_NEQ:
+    return "CHAR_NEQ";
+  case UCHAR_NEQ:
+    return "UCHAR_NEQ";
+  case SHORT_NEQ:
+    return "SHORT_NEQ";
+  case INT_NEQ:
+    return "INT_NEQ";
+  case LONG_NEQ:
+    return "LONG_NEQ";
+  case LONG_LONG_NEQ:
+    return "LONG_LONG_NEQ";
+  case USHORT_NEQ:
+    return "USHORT_NEQ";
+  case UINT_NEQ:
+    return "UINT_NEQ";
+  case ULONG_NEQ:
+    return "ULONG_NEQ";
+  case ULONG_LONG_NEQ:
+    return "ULONG_LONG_NEQ";
+  case SSIZE_T_NEQ:
+    return "SSIZE_T_NEQ";
+  case SIZE_T_NEQ:
+    return "SIZE_T_NEQ";
+  case INT8_T_NEQ:
+    return "INT8_T_NEQ";
+  case INT16_T_NEQ:
+    return "INT16_T_NEQ";
+  case INT32_T_NEQ:
+    return "INT32_T_NEQ";
+  case INT64_T_NEQ:
+    return "INT64_T_NEQ";
+  case UINT8_T_NEQ:
+    return "UINT8_T_NEQ";
+  case UINT16_T_NEQ:
+    return "UINT16_T_NEQ";
+  case UINT32_T_NEQ:
+    return "UINT32_T_NEQ";
+  case UINT64_T_NEQ:
+    return "UINT64_T_NEQ";
+  case FLOAT_NEQ:
+    return "FLOAT_NEQ";
+  case DOUBLE_NEQ:
+    return "DOUBLE_NEQ";
+  case SIZE_T_MAX_NEQ:
+    return "SIZE_T_MAX_NEQ";
+  case SIZE_T_MIN_NEQ:
+    return "SIZE_T_MIN_NEQ";
+  case INT8_T_MAX_NEQ:
+    return "INT8_T_MAX_NEQ";
+  case INT16_T_MAX_NEQ:
+    return "INT16_T_MAX_NEQ";
+  case INT32_T_MAX_NEQ:
+    return "INT32_T_MAX_NEQ";
+  case INT64_T_MAX_NEQ:
+    return "INT64_T_MAX_NEQ";
+  case INT8_T_MIN_NEQ:
+    return "INT8_T_MIN_NEQ";
+  case INT16_T_MIN_NEQ:
+    return "INT16_T_MIN_NEQ";
+  case INT32_T_MIN_NEQ:
+    return "INT32_T_MIN_NEQ";
+  case INT64_T_MIN_NEQ:
+    return "INT64_T_MIN_NEQ";
+  case UINT8_T_MAX_NEQ:
+    return "UINT8_T_MAX_NEQ";
+  case UINT16_T_MAX_NEQ:
+    return "UINT16_T_MAX_NEQ";
+  case UINT32_T_MAX_NEQ:
+    return "UINT32_T_MAX_NEQ";
+  case UINT64_T_MAX_NEQ:
+    return "UINT64_T_MAX_NEQ";
+  case UINT8_T_MIN_NEQ:
+    return "UINT8_T_MIN_NEQ";
+  case UINT16_T_MIN_NEQ:
+    return "UINT16_T_MIN_NEQ";
+  case UINT32_T_MIN_NEQ:
+    return "UINT32_T_MIN_NEQ";
+  case UINT64_T_MIN_NEQ:
+    return "UINT64_T_MIN_NEQ";
+  case CHAR_MAX_NEQ:
+    return "CHAR_MAX_NEQ";
+  case UCHAR_MAX_NEQ:
+    return "UCHAR_MAX_NEQ";
+  case SHORT_MAX_NEQ:
+    return "SHORT_MAX_NEQ";
+  case USHORT_MAX_NEQ:
+    return "USHORT_MAX_NEQ";
+  case INT_MAX_NEQ:
+    return "INT_MAX_NEQ";
+  case UINT_MAX_NEQ:
+    return "UINT_MAX_NEQ";
+  case LONG_MAX_NEQ:
+    return "LONG_MAX_NEQ";
+  case ULONG_MAX_NEQ:
+    return "ULONG_MAX_NEQ";
+  case LONG_LONG_MAX_NEQ:
+    return "LONG_LONG_MAX_NEQ";
+  case ULONG_LONG_MAX_NEQ:
+    return "ULONG_LONG_MAX_NEQ";
+  case CHAR_MIN_NEQ:
+    return "CHAR_MIN_NEQ";
+  case UCHAR_MIN_NEQ:
+    return "UCHAR_MIN_NEQ";
+  case SHORT_MIN_NEQ:
+    return "SHORT_MIN_NEQ";
+  case USHORT_MIN_NEQ:
+    return "USHORT_MIN_NEQ";
+  case INT_MIN_NEQ:
+    return "INT_MIN_NEQ";
+  case UINT_MIN_NEQ:
+    return "UINT_MIN_NEQ";
+  case LONG_MIN_NEQ:
+    return "LONG_MIN_NEQ";
+  case ULONG_MIN_NEQ:
+    return "ULONG_MIN_NEQ";
+  case LONG_LONG_MIN_NEQ:
+    return "LONG_LONG_MIN_NEQ";
+  case ULONG_LONG_MIN_NEQ:
+    return "ULONG_LONG_MIN_NEQ";
+
   case ASSERT_TYPE_COUNT:
   case UNKNOWN_EQ:
   default:
@@ -1036,6 +1287,38 @@ int cassert_fprintf(FILE *stream, const char *status, const char *fmt, ...) {
   return ret;
 }
 
+const char *term_color(const char *str) {
+  if (isatty(STDERR_FILENO)) {
+    if (strncmp("ASSERT", str, 6) == 0) {
+      return TERM_ASSERT;
+    } else if (strncmp("AMOUNT", str, 6) == 0) {
+      return TERM_AMOUNT;
+    } else if (strncmp("NAME", str, 4) == 0) {
+      return TERM_NAME;
+    } else if (strncmp("FAIL", str, 4) == 0) {
+      return TERM_FAIL;
+    } else if (strncmp("OK", str, 2) == 0) {
+      return TERM_OK;
+    } else {
+      assert(0 && "UNREACHABLE term_color()");
+    }
+  } else {
+    if (strncmp("ASSERT", str, 6) == 0) {
+      return ASSERT;
+    } else if (strncmp("AMOUNT", str, 6) == 0) {
+      return AMOUNT;
+    } else if (strncmp("NAME", str, 4) == 0) {
+      return NAME;
+    } else if (strncmp("FAIL", str, 4) == 0) {
+      return FAIL;
+    } else if (strncmp("OK", str, 2) == 0) {
+      return OK;
+    } else {
+      assert(0 && "UNREACHABLE term_color()");
+    }
+  }
+}
+
 const char *booltostr(bool value) {
   if (isatty(STDERR_FILENO)) {
     return value ? TERM_OK : TERM_FAIL;
@@ -1044,54 +1327,104 @@ const char *booltostr(bool value) {
   }
 }
 
+int print_operation_and_description(Cassert cassert) {
+  size_t space = 1;
+  size_t nullterminator = 1;
+  size_t dash = 1;
+  size_t len = 0;
+  if (cassert.description) {
+    len = strlen(cassert.description);
+  }
+  size_t buffer_size = len + 2 * space + 2 * dash + nullterminator;
+  size_t byte_size = sizeof(char) * buffer_size;
+  char *desc_buf = malloc(byte_size);
+  memset(desc_buf, 0, byte_size);
+  if (len > 0) {
+    snprintf(desc_buf, buffer_size, " -- %s\n", cassert.description);
+  }
+
+  len = 0;
+  if (cassert.operation_str) {
+    len = strlen(cassert.operation_str);
+  }
+  buffer_size = len + nullterminator;
+  byte_size = sizeof(char) * buffer_size;
+  char *operation_buf = malloc(byte_size);
+  memset(operation_buf, 0, byte_size);
+  if (len > 0) {
+    snprintf(operation_buf, buffer_size, "%s\n", cassert.operation_str);
+  }
+
+  int ret = -1;
+  if (cassert.description || cassert.operation_str) {
+    ret = cassert_fprintf(stderr, term_color(ASSERT), "%s%s", operation_buf,
+                          desc_buf);
+  }
+  free(operation_buf);
+  free(desc_buf);
+  return ret;
+}
+
 #define LOC_FMT " %s:%d"
 #define LOC_ARG(arg) (arg).file, (arg).line
 
 int cassert_print(Cassert cassert) {
+#ifdef PRINT_OPERATION_AND_DESCRIPTION
+  print_operation_and_description(cassert);
+#endif // PRINT_DESCRIPTION
   switch (cassert.assert_type) {
   case ANY_EQ:
+  case ANY_NEQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%p:%s:%p ->" LOC_FMT, cassert.value1,
                            cassert_str_assert_type(cassert.assert_type),
                            cassert.value2, LOC_ARG(cassert));
   case BOOL_EQ:
+  case BOOL_NEQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%s:%s:%s ->" LOC_FMT,
                            cassert.value1 ? "TRUE" : "FALSE",
                            cassert_str_assert_type(cassert.assert_type),
                            cassert.value2 ? "TRUE" : "FALSE", LOC_ARG(cassert));
   case STRING_EQ:
+  case STRING_NEQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%s:%s:%s ->" LOC_FMT, (char *)cassert.value1,
                            cassert_str_assert_type(cassert.assert_type),
                            (char *)cassert.value2, LOC_ARG(cassert));
   case FLOAT_EQ:
+  case FLOAT_NEQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%f:%s:%f ->" LOC_FMT, *((float *)cassert.value1),
                            cassert_str_assert_type(cassert.assert_type),
                            *((float *)cassert.value2), LOC_ARG(cassert));
   case INT_EQ:
+  case INT_NEQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%d:%s:%d ->" LOC_FMT, (int64_t *)cassert.value1,
                            cassert_str_assert_type(cassert.assert_type),
                            (int64_t *)cassert.value2, LOC_ARG(cassert));
 
   case STRING_INT64_EQ:
+  case STRING_INT64_NEQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%s:%s:%ld ->" LOC_FMT, (char *)cassert.value1,
                            cassert_str_assert_type(cassert.assert_type),
                            *(int64_t *)cassert.value2, LOC_ARG(cassert));
   case STRING_FLOAT_EQ:
+  case STRING_FLOAT_NEQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%s:%s:%f ->" LOC_FMT, (char *)cassert.value1,
                            cassert_str_assert_type(cassert.assert_type),
                            *(float *)cassert.value2, LOC_ARG(cassert));
   case STRING_DOUBLE_EQ:
+  case STRING_DOUBLE_NEQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%s:%s:%lf ->" LOC_FMT, (char *)cassert.value1,
                            cassert_str_assert_type(cassert.assert_type),
                            *(double *)cassert.value2, LOC_ARG(cassert));
   case PTR_EQ:
+  case PTR_NEQ:
     return cassert_fprintf(stderr, booltostr(!cassert.failed),
                            "%p:%s:%p ->" LOC_FMT, (uintptr_t *)cassert.value1,
                            cassert_str_assert_type(cassert.assert_type),
@@ -1238,6 +1571,14 @@ void cassert_free_tests(Tests *tests) {
     cassert_free_test(&tests->elements[i]);
   }
   free(tests->elements);
+}
+
+bool cassert_set_last_cassert_description(Test *test, const char *description) {
+  if (test->count == 0) {
+    return false;
+  }
+  test->elements[test->count - 1].description = description;
+  return true;
 }
 
 #endif // CASSERT_IMPLEMENTATION
