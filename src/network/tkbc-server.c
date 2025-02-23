@@ -57,7 +57,7 @@ bool tkbc_server_commandline_check(int argc, const char *program_name) {
   }
   if (argc == 0) {
     tkbc_fprintf(stderr, "ERROR", "No arguments were provided.\n");
-    tkbc_fprintf(stderr, "ERROR", "The default port 8080 is used.\n");
+    tkbc_fprintf(stderr, "INFO", "The default port 8080 is used.\n");
     return false;
   }
   return true;

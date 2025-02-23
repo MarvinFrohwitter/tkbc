@@ -38,7 +38,9 @@ int main(void) {
   SetTargetFPS(TARGET_FPS);
 
   Env *env = tkbc_init_env();
-  tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
+  if (tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps")) {
+    tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
+  }
   SetExitKey(tkbc_hash_to_key(*env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
 
