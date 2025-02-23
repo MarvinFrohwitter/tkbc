@@ -23,7 +23,7 @@ void tkbc_draw_ui(Env *env) {
     // A script is currently executing.
 #ifdef TKBC_CLIENT
     tkbc_ui_timeline(env, env->server_script_block_index,
-                     env->server_script_block_index_count);
+                     env->block_frame->count);
 
 #else
     tkbc_ui_timeline(env, env->frames->block_index, env->block_frame->count);

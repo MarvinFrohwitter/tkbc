@@ -212,12 +212,12 @@ void *tkbc_script_execution_handler() {
     if (env->script_counter > 0) {
       if (!tkbc_script_finished(env) && env->block_frame != NULL) {
         size_t bindex = env->frames->block_index;
-        size_t bframe_count = env->block_frame->count;
         tkbc_script_update_frames(env);
 
         if (env->frames->block_index != bindex) {
           bindex = env->frames->block_index;
-          tkbc_message_srcipt_block_frames_value(bindex, bframe_count);
+          tkbc_message_srcipt_block_frames_value(
+              env->block_frame->script_id, env->block_frame->count, bindex);
         }
         tkbc_unwrap_handler_message_clientkites_brodcast_all();
         check = true;

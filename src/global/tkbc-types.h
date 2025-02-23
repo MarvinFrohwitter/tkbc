@@ -317,14 +317,10 @@ typedef struct {
   size_t server_script_block_index; // Represents of the block index the server
                                     // is currently executing.
 
-  // TODO: Remove it
-  size_t server_script_block_index_count; // Represents of the current block
-                                          // index count from the server.
   bool script_setup;     // The indication if the initial setup run is executed.
   bool script_interrupt; // The indication if a script is currently going to be
                          // loaded.
   bool script_finished;  // The indication a script has finished.
-  bool free_bool_that_can_be_used_for_struct_packing;
 
   int fps;              // The fps of the application.
   size_t window_width;  // The window width of the application.

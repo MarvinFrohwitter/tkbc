@@ -230,13 +230,15 @@ check:
  * @brief The function constructs all the scripts that specified in a block
  * frame.
  *
- * @param block_index The script index.
+ * @param script_id The id that is the current load script.
  * @param block_frame_count The amount of scripts that are available.
+ * @param block_index The script index.
  * @return True if the construction and sending the message to all registered
  * clients was successful, otherwise false.
  */
-bool tkbc_message_srcipt_block_frames_value(size_t block_index,
-                                            size_t block_frame_count) {
+bool tkbc_message_srcipt_block_frames_value(size_t script_id,
+                                            size_t block_frame_count,
+                                            size_t block_index) {
   Message message = {0};
   bool ok = true;
   char buf[64] = {0};
@@ -246,11 +248,15 @@ bool tkbc_message_srcipt_block_frames_value(size_t block_index,
   tkbc_dap(&message, ':');
 
   memset(&buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", block_index);
+  snprintf(buf, sizeof(buf), "%zu", script_id);
   tkbc_dapc(&message, buf, strlen(buf));
   tkbc_dap(&message, ':');
   memset(&buf, 0, sizeof(buf));
   snprintf(buf, sizeof(buf), "%zu", block_frame_count);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  memset(&buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", block_index);
   tkbc_dapc(&message, buf, strlen(buf));
   tkbc_dap(&message, ':');
   tkbc_dapc(&message, "\r\n", 2);
@@ -940,7 +946,6 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
 
         tkbc_dap(env->block_frames, *tkbc_deep_copy_block_frame(scb));
         env->script_counter = env->block_frames->count;
-        env->server_script_block_index_count = env->script_counter;
       }
       scb->count = 0;
 
@@ -969,10 +974,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         pthread_mutex_unlock(&mutex);
         goto err;
       }
-      if (env->script_counter > 0) {
-        tkbc_load_next_script(env);
-        tkbc_unwrap_handler_message_clientkites_brodcast_all();
-      }
+      tkbc_load_next_script(env);
       pthread_mutex_unlock(&mutex);
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_NEXT\n");
@@ -1009,8 +1011,10 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       if (token.kind != PUNCT_COLON) {
         goto err;
       }
-      tkbc_message_srcipt_block_frames_value(env->frames->block_index,
-                                             env->block_frame->count);
+      tkbc_message_srcipt_block_frames_value(env->block_frame->script_id,
+                                             env->block_frame->count,
+                                             env->frames->block_index);
+
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_SCRUB\n");
     } break;
     default:

@@ -504,14 +504,34 @@ size_t tkbc_check_finished_frames_count(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_load_next_script(Env *env) {
+  if (env->script_counter == 0) {
+    return;
+  }
   // Switch to next script.
-  size_t count = env->block_frames->count;
   // NOTE: The first iteration has no loaded value jet so 0 is default.
   size_t id = env->block_frame == NULL ? 0 : env->block_frame->script_id;
-  size_t script_index = id % count;
-  env->block_frame = &env->block_frames->elements[script_index];
-  env->frames = &env->block_frame->elements[0];
+  size_t script_index = id % env->block_frames->count;
+  size_t script_id = env->block_frames->elements[script_index].script_id;
+  tkbc_load_script_id(env, script_id);
+}
 
+/**
+ * @brief The function sets the views of the script in the env and loads the
+ * corresponding kite_frame_positions of the first frame.
+ *
+ * @param env The global state of the application.
+ * @param script_id The id of the script that should be loaded into the current
+ * execution.
+ */
+void tkbc_load_script_id(Env *env, size_t script_id) {
+  for (size_t i = 0; i < env->block_frames->count; ++i) {
+    if (env->block_frames->elements[i].script_id == script_id) {
+      env->block_frame = &env->block_frames->elements[i];
+      break;
+    }
+  }
+
+  env->frames = &env->block_frame->elements[0];
   tkbc_set_kite_positions_from_kite_frames_positions(env);
   env->script_finished = false;
 }
@@ -538,10 +558,7 @@ void tkbc_input_handler_script(Env *env) {
   // KEY_TAB
   if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
     assert(env->script_counter <= env->block_frames->count);
-
-    if (env->script_counter > 0) {
-      tkbc_load_next_script(env);
-    }
+    tkbc_load_next_script(env);
   }
 
   tkbc_scrub_frames(env);

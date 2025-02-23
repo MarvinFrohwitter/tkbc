@@ -9,7 +9,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#define PROTOCOL_VERSION "0.2"
+#define PROTOCOL_VERSION "0.2.001"
 
 #define TKBC_LOGGING
 #define TKBC_LOGGING_ERROR
