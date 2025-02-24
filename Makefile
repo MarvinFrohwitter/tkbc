@@ -48,6 +48,10 @@ test: options
 	${CC} ${INCLUDE} ${CFLAGS} -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	./build/tests
 
+test-verbose: options
+	${CC} ${INCLUDE} ${CFLAGS} -DPRINT_OPERATION_AND_DESCRIPTION -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	./build/tests
+
 test-short: options
 	${CC} ${INCLUDE} ${CFLAGS} -DSHORT_LOG -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	./build/tests

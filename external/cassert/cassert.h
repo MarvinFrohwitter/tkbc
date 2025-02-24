@@ -24,6 +24,9 @@
 #define AMOUNT "AMOUNT"
 #define ASSERT "ASSERT"
 
+#define CASSERT_NEQ "!="
+#define CASSERT_EQ "=="
+
 #define SIZE_MIN 0
 #define UINT8_MIN 0
 #define UINT16_MIN 0
@@ -214,6 +217,7 @@ typedef struct {
   int result;
   void *value1;
   void *value2;
+  const char *comparison;
   size_t line;
   const char *file;
   const char *description;
@@ -331,9 +335,9 @@ const char *cassert_str_assert_type(Assert_Type assert_type);
 bool cassert_set_last_cassert_description(Test *test, const char *description);
 int print_operation_and_description(Cassert cassert);
 
-int cassert_print(Cassert cassert);
-int cassert_print_failure_case(Cassert cassert);
-int cassert_print_success_case(Cassert cassert);
+int cassert_print(Cassert cassert, int len_assert_type);
+int cassert_print_failure_case(Cassert cassert, int len_assert_type);
+int cassert_print_success_case(Cassert cassert, int len_assert_type);
 int cassert_print_all_cases(Test *test);
 int cassert_print_all_failure_cases(Test *test);
 int cassert_print_all_success_cases(Test *test);
@@ -355,7 +359,8 @@ void cassert_print_tests(Tests *tests);
     assert(cassert.value2 != NULL);                                            \
     *(typeof((a)) *)cassert.value1 = (a);                                      \
     *(typeof((b)) *)cassert.value2 = (b);                                      \
-    cassert.operation_str = #a #cf_ex #b;                                      \
+    cassert.comparison = #cf_ex;                                               \
+    cassert.operation_str = #a " " #cf_ex " " #b;                              \
     cassert.result = compare_function((a), cf_ex, (b), (param));               \
     if (!cassert.result) {                                                     \
       cassert.failed = true;                                                   \
@@ -375,7 +380,8 @@ void cassert_print_tests(Tests *tests);
     assert(cassert.value2 != NULL);                                            \
     *(typeof((a)) *)cassert.value1 = (a);                                      \
     *(typeof((b)) *)cassert.value2 = (b);                                      \
-    cassert.operation_str = #a #cf_ex #b;                                      \
+    cassert.comparison = #cf_ex;                                               \
+    cassert.operation_str = #a " " #cf_ex " " #b;                              \
     cassert.result = compare_function((a), cf_ex, (b));                        \
     if (!cassert.result) {                                                     \
       cassert.failed = true;                                                   \
@@ -395,7 +401,8 @@ void cassert_print_tests(Tests *tests);
     assert(cassert.value2 != NULL);                                            \
     *(typeof((a)) *)cassert.value1 = (a);                                      \
     *(typeof((b)) *)cassert.value2 = (b);                                      \
-    cassert.operation_str = #a #compare_function #b;                           \
+    cassert.comparison = #compare_function;                                    \
+    cassert.operation_str = #a " " #compare_function " " #b;                   \
     cassert.result = compare_function((a), (b));                               \
     if (!cassert.result) {                                                     \
       cassert.failed = true;                                                   \
@@ -411,7 +418,8 @@ void cassert_print_tests(Tests *tests);
     cassert.assert_type = type;                                                \
     cassert.value1 = (void *)(a);                                              \
     cassert.value2 = (void *)(b);                                              \
-    cassert.operation_str = #a #compare #b;                                    \
+    cassert.comparison = #compare;                                             \
+    cassert.operation_str = #a " " #compare " " #b;                            \
     cassert.result = (a)compare(b) ? 1 : 0;                                    \
     if (!cassert.result) {                                                     \
       cassert.failed = true;                                                   \
@@ -492,7 +500,8 @@ static inline bool double_equals(double x, double y) {
     cassert.value2 = (void *)(b);                                              \
     assert(cassert.value1 != NULL);                                            \
     assert(cassert.value2 != NULL);                                            \
-    cassert.operation_str = #a "==" #b;                                        \
+    cassert.comparison = CASSERT_EQ;                                           \
+    cassert.operation_str = #a " " CASSERT_EQ " " #b;                          \
     cassert.result = strncmp(a, b, cassert_min(strlen(a), strlen(b)));         \
     if (cassert.result != 0) {                                                 \
       cassert.failed = true;                                                   \
@@ -510,7 +519,8 @@ static inline bool double_equals(double x, double y) {
     cassert.value2 = (void *)(b);                                              \
     assert(cassert.value1 != NULL);                                            \
     assert(cassert.value2 != NULL);                                            \
-    cassert.operation_str = #a "!=" #b;                                        \
+    cassert.comparison = CASSERT_NEQ;                                          \
+    cassert.operation_str = #a " " CASSERT_NEQ " " #b;                         \
     cassert.result = !strncmp(a, b, cassert_min(strlen(a), strlen(b)));        \
     if (cassert.result != 0) {                                                 \
       cassert.failed = true;                                                   \
@@ -576,7 +586,8 @@ enum { _float, _double, _int64 };
     default:                                                                   \
       exit(EXIT_FAILURE);                                                      \
     }                                                                          \
-    cassert.operation_str = #string "==" #number;                              \
+    cassert.comparison = CASSERT_EQ;                                           \
+    cassert.operation_str = #string " " CASSERT_EQ " " #number;                \
     cassert.result =                                                           \
         strncmp(string, number_string,                                         \
                 cassert_min(strlen(string), strlen(number_string)));           \
@@ -623,7 +634,8 @@ enum { _float, _double, _int64 };
     default:                                                                   \
       exit(EXIT_FAILURE);                                                      \
     }                                                                          \
-    cassert.operation_str = #string "!=" #number;                              \
+    cassert.comparison = CASSERT_NEQ;                                          \
+    cassert.operation_str = #string " " CASSERT_NEQ " " #number;               \
     cassert.result =                                                           \
         !strncmp(string, number_string,                                        \
                  cassert_min(strlen(string), strlen(number_string)));          \
@@ -1289,42 +1301,35 @@ int cassert_fprintf(FILE *stream, const char *status, const char *fmt, ...) {
 
 const char *term_color(const char *str) {
   if (isatty(STDERR_FILENO)) {
-    if (strncmp("ASSERT", str, 6) == 0) {
+    if (strncmp(ASSERT, str, strlen(ASSERT)) == 0) {
       return TERM_ASSERT;
-    } else if (strncmp("AMOUNT", str, 6) == 0) {
+    } else if (strncmp(AMOUNT, str, strlen(AMOUNT)) == 0) {
       return TERM_AMOUNT;
-    } else if (strncmp("NAME", str, 4) == 0) {
+    } else if (strncmp(NAME, str, strlen(NAME)) == 0) {
       return TERM_NAME;
-    } else if (strncmp("FAIL", str, 4) == 0) {
+    } else if (strncmp(FAIL, str, strlen(FAIL)) == 0) {
       return TERM_FAIL;
-    } else if (strncmp("OK", str, 2) == 0) {
+    } else if (strncmp(OK, str, strlen(OK)) == 0) {
       return TERM_OK;
-    } else {
-      assert(0 && "UNREACHABLE term_color()");
     }
   } else {
-    if (strncmp("ASSERT", str, 6) == 0) {
+    if (strncmp(ASSERT, str, strlen(ASSERT)) == 0) {
       return ASSERT;
-    } else if (strncmp("AMOUNT", str, 6) == 0) {
+    } else if (strncmp(AMOUNT, str, strlen(AMOUNT)) == 0) {
       return AMOUNT;
-    } else if (strncmp("NAME", str, 4) == 0) {
+    } else if (strncmp(NAME, str, strlen(NAME)) == 0) {
       return NAME;
-    } else if (strncmp("FAIL", str, 4) == 0) {
+    } else if (strncmp(FAIL, str, strlen(FAIL)) == 0) {
       return FAIL;
-    } else if (strncmp("OK", str, 2) == 0) {
+    } else if (strncmp(OK, str, strlen(OK)) == 0) {
       return OK;
-    } else {
-      assert(0 && "UNREACHABLE term_color()");
     }
   }
+  assert(0 && "UNREACHABLE term_color()");
 }
 
 const char *booltostr(bool value) {
-  if (isatty(STDERR_FILENO)) {
-    return value ? TERM_OK : TERM_FAIL;
-  } else {
-    return value ? OK : FAIL;
-  }
+  return value ? term_color(OK) : term_color(FAIL);
 }
 
 int print_operation_and_description(Cassert cassert) {
@@ -1367,94 +1372,106 @@ int print_operation_and_description(Cassert cassert) {
 
 #define LOC_FMT " %s:%d"
 #define LOC_ARG(arg) (arg).file, (arg).line
+#define TERM_ASSERT_TYPE_FMT "|\033[34m%-*s\033[0m| "
+#define ASSERT_TYPE_FMT "|%-*s| "
 
-int cassert_print(Cassert cassert) {
+#define cassert_print_fmtf(fmt_value1, fmt_value2, value1, value2)             \
+  do {                                                                         \
+    if (isatty(STDERR_FILENO)) {                                               \
+      return cassert_fprintf(                                                  \
+          stream, booltostr(!cassert.failed),                                  \
+          TERM_ASSERT_TYPE_FMT fmt_value1 " %s " fmt_value2 " ->" LOC_FMT, n,  \
+          cassert_str_assert_type(cassert.assert_type), (value1),              \
+          cassert.comparison, (value2), LOC_ARG(cassert));                     \
+    } else {                                                                   \
+      return cassert_fprintf(                                                  \
+          stream, booltostr(!cassert.failed),                                  \
+          ASSERT_TYPE_FMT fmt_value1 " %s " fmt_value2 " ->" LOC_FMT, n,       \
+          cassert_str_assert_type(cassert.assert_type), (value1),              \
+          cassert.comparison, (value2), LOC_ARG(cassert));                     \
+    }                                                                          \
+  } while (0)
+
+int cassert_print_internal(FILE *stream, Cassert cassert, int len_assert_type) {
+  // NOTE: n is used in the macro cassert_print_fmtf() that indirectly calls to
+  // n without accepting it as an argument.
+  int n = len_assert_type;
+
 #ifdef PRINT_OPERATION_AND_DESCRIPTION
   print_operation_and_description(cassert);
 #endif // PRINT_DESCRIPTION
   switch (cassert.assert_type) {
   case ANY_EQ:
   case ANY_NEQ:
-    return cassert_fprintf(stderr, booltostr(!cassert.failed),
-                           "%p:%s:%p ->" LOC_FMT, cassert.value1,
-                           cassert_str_assert_type(cassert.assert_type),
-                           cassert.value2, LOC_ARG(cassert));
+    cassert_print_fmtf("%p", "%p", cassert.value1, cassert.value2);
   case BOOL_EQ:
   case BOOL_NEQ:
-    return cassert_fprintf(stderr, booltostr(!cassert.failed),
-                           "%s:%s:%s ->" LOC_FMT,
-                           cassert.value1 ? "TRUE" : "FALSE",
-                           cassert_str_assert_type(cassert.assert_type),
-                           cassert.value2 ? "TRUE" : "FALSE", LOC_ARG(cassert));
+    cassert_print_fmtf("%s", "%s", cassert.value1 ? "TRUE" : "FALSE",
+                       cassert.value2 ? "TRUE" : "FALSE");
   case STRING_EQ:
   case STRING_NEQ:
-    return cassert_fprintf(stderr, booltostr(!cassert.failed),
-                           "%s:%s:%s ->" LOC_FMT, (char *)cassert.value1,
-                           cassert_str_assert_type(cassert.assert_type),
-                           (char *)cassert.value2, LOC_ARG(cassert));
+    cassert_print_fmtf("%s", "%s", (char *)cassert.value1,
+                       (char *)cassert.value2);
   case FLOAT_EQ:
   case FLOAT_NEQ:
-    return cassert_fprintf(stderr, booltostr(!cassert.failed),
-                           "%f:%s:%f ->" LOC_FMT, *((float *)cassert.value1),
-                           cassert_str_assert_type(cassert.assert_type),
-                           *((float *)cassert.value2), LOC_ARG(cassert));
+    cassert_print_fmtf("%f", "%f", *(float *)cassert.value1,
+                       *(float *)cassert.value2);
   case INT_EQ:
   case INT_NEQ:
-    return cassert_fprintf(stderr, booltostr(!cassert.failed),
-                           "%d:%s:%d ->" LOC_FMT, (int64_t *)cassert.value1,
-                           cassert_str_assert_type(cassert.assert_type),
-                           (int64_t *)cassert.value2, LOC_ARG(cassert));
-
+    cassert_print_fmtf("%d", "%d", (int64_t *)cassert.value1,
+                       (int64_t *)cassert.value2);
   case STRING_INT64_EQ:
   case STRING_INT64_NEQ:
-    return cassert_fprintf(stderr, booltostr(!cassert.failed),
-                           "%s:%s:%ld ->" LOC_FMT, (char *)cassert.value1,
-                           cassert_str_assert_type(cassert.assert_type),
-                           *(int64_t *)cassert.value2, LOC_ARG(cassert));
+    cassert_print_fmtf("%s", "%ld", (char *)cassert.value1,
+                       *(int64_t *)cassert.value2);
   case STRING_FLOAT_EQ:
   case STRING_FLOAT_NEQ:
-    return cassert_fprintf(stderr, booltostr(!cassert.failed),
-                           "%s:%s:%f ->" LOC_FMT, (char *)cassert.value1,
-                           cassert_str_assert_type(cassert.assert_type),
-                           *(float *)cassert.value2, LOC_ARG(cassert));
+    cassert_print_fmtf("%s", "%f", (char *)cassert.value1,
+                       *(float *)cassert.value2);
   case STRING_DOUBLE_EQ:
   case STRING_DOUBLE_NEQ:
-    return cassert_fprintf(stderr, booltostr(!cassert.failed),
-                           "%s:%s:%lf ->" LOC_FMT, (char *)cassert.value1,
-                           cassert_str_assert_type(cassert.assert_type),
-                           *(double *)cassert.value2, LOC_ARG(cassert));
+    cassert_print_fmtf("%s", "%lf", (char *)cassert.value1,
+                       *(double *)cassert.value2);
   case PTR_EQ:
   case PTR_NEQ:
-    return cassert_fprintf(stderr, booltostr(!cassert.failed),
-                           "%p:%s:%p ->" LOC_FMT, (uintptr_t *)cassert.value1,
-                           cassert_str_assert_type(cassert.assert_type),
-                           (uintptr_t *)cassert.value2, LOC_ARG(cassert));
+    cassert_print_fmtf("%p", "%p", (uintptr_t *)cassert.value1,
+                       (uintptr_t *)cassert.value2);
   case UNKNOWN_EQ:
   default:
-    return cassert_fprintf(stderr, booltostr(!cassert.failed), "%s ->" LOC_FMT,
+    return cassert_fprintf(stream, booltostr(!cassert.failed), "%s ->" LOC_FMT,
                            cassert_str_assert_type(cassert.assert_type),
                            LOC_ARG(cassert));
   }
 }
 
-int cassert_print_failure_case(Cassert cassert) {
+int cassert_print(Cassert cassert, int len_assert_type) {
+  return cassert_print_internal(stderr, cassert, len_assert_type);
+}
+
+int cassert_print_failure_case(Cassert cassert, int len_assert_type) {
   if (cassert.failed) {
-    return cassert_print(cassert);
+    return cassert_print(cassert, len_assert_type);
   }
   return 0;
 }
 
-int cassert_print_success_case(Cassert cassert) {
+int cassert_print_success_case(Cassert cassert, int len_assert_type) {
   if (!cassert.failed) {
-    return cassert_print(cassert);
+    return cassert_print(cassert, len_assert_type);
   }
   return 0;
 }
 
 int cassert_print_all_cases(Test *test) {
+  int max_len = 0;
+  for (size_t i = 0; i < test->count; ++i) {
+    max_len = cassert_fmax(max_len, strlen(cassert_str_assert_type(
+                                        test->elements[i].assert_type)));
+  }
+
   int result = 0;
   for (size_t c = 0; c < test->count; ++c) {
-    if (cassert_print(test->elements[c]) < 0) {
+    if (cassert_print(test->elements[c], max_len) < 0) {
       result = -1;
     }
   }
@@ -1462,9 +1479,14 @@ int cassert_print_all_cases(Test *test) {
 }
 
 int cassert_print_all_failure_cases(Test *test) {
+  int max_len = 0;
+  for (size_t i = 0; i < test->count; ++i) {
+    max_len = cassert_fmax(max_len, strlen(cassert_str_assert_type(
+                                        test->elements[i].assert_type)));
+  }
   int result = 0;
   for (size_t c = 0; c < test->count; ++c) {
-    if (cassert_print_failure_case(test->elements[c]) < 0) {
+    if (cassert_print_failure_case(test->elements[c], max_len) < 0) {
       result = -1;
     }
   }
@@ -1472,9 +1494,14 @@ int cassert_print_all_failure_cases(Test *test) {
 }
 
 int cassert_print_all_success_cases(Test *test) {
+  int max_len = 0;
+  for (size_t i = 0; i < test->count; ++i) {
+    max_len = cassert_fmax(max_len, strlen(cassert_str_assert_type(
+                                        test->elements[i].assert_type)));
+  }
   int result = 0;
   for (size_t c = 0; c < test->count; ++c) {
-    if (cassert_print_success_case(test->elements[c]) < 0) {
+    if (cassert_print_success_case(test->elements[c], max_len) < 0) {
       result = -1;
     }
   }

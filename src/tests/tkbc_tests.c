@@ -2,7 +2,6 @@
 #include "tkbc_test_script_handler.c"
 
 #define eps 0.01
-#define PRINT_OPERATION_AND_DESCRIPTION
 #define CASSERT_IMPLEMENTATION
 #include "../../external/cassert/cassert.h"
 
