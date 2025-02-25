@@ -107,6 +107,22 @@ Test deep_copy_block_frame() {
   Test test = cassert_init_test("deep_copy_block_frame()");
   Block_Frame block_frame = {0};
   Frames frames = {0};
+  Frame frame = {0};
+
+  frame.kite_id_array = ID(1, 2);
+  frame.kind = KITE_MOVE;
+  frame.action.as_move.position = (Vector2){.x = 300, .y = 400};
+  cassert_dap(&frames, frame);
+
+  cassert_dap(
+      &frames.kite_frame_positions,
+      ((Kite_Position){
+          .kite_id = 1, .position.x = 100, .position.y = 200, .angle = 90}));
+  cassert_dap(
+      &frames.kite_frame_positions,
+      ((Kite_Position){
+          .kite_id = 2, .position.x = 150, .position.y = 250, .angle = 180}));
+
   cassert_dap(&block_frame, frames);
 
   Block_Frame new_block_frame = tkbc_deep_copy_block_frame(&block_frame);
@@ -118,11 +134,17 @@ Test deep_copy_block_frame() {
 
   cassert_ptr_neq(block_frame.elements, new_block_frame.elements);
 
-  cassert_ptr_eq(block_frame.elements, NULL);
-  cassert_ptr_eq(new_block_frame.elements, NULL);
+  for (size_t i = 0; i < block_frame.count; ++i) {
+    tkbc_destroy_frames_internal_data(&block_frame.elements[i]);
+  }
+  for (size_t i = 0; i < new_block_frame.count; ++i) {
+    tkbc_destroy_frames_internal_data(&new_block_frame.elements[i]);
+  }
 
   free(block_frame.elements);
   free(new_block_frame.elements);
+  block_frame.elements = NULL;
+  new_block_frame.elements = NULL;
   cassert_ptr_eq(block_frame.elements, NULL);
   cassert_ptr_eq(new_block_frame.elements, NULL);
 

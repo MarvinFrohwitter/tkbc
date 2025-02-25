@@ -33,12 +33,16 @@ void tkbc__script_end(Env *env) {
   }
   env->script_setup = false;
 
-  assert(env->scratch_buf_block_frame->count > 0);
-  env->scratch_buf_block_frame->script_id = env->script_counter;
+  assert(env->scratch_buf_block_frame.count > 0);
+  env->scratch_buf_block_frame.script_id = env->script_counter;
   tkbc_dap(env->block_frames,
-           tkbc_deep_copy_block_frame(env->scratch_buf_block_frame));
+           tkbc_deep_copy_block_frame(&env->scratch_buf_block_frame));
 
-  env->scratch_buf_block_frame->count = 0;
+  for (size_t i = 0; i < env->scratch_buf_block_frame.count; ++i) {
+    tkbc_destroy_frames_internal_data(
+        &env->scratch_buf_block_frame.elements[i]);
+  }
+  env->scratch_buf_block_frame.count = 0;
 }
 
 /**
@@ -194,17 +198,17 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_indexs,
  * @param env The environment that holds the current state of the application.
  */
 void tkbc__register_frames(Env *env, ...) {
-  env->scratch_buf_frames->count = 0;
+  tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
 
   va_list args;
   va_start(args, env);
   Frame *frame = va_arg(args, Frame *);
   while (frame != NULL) {
-    tkbc_dap(env->scratch_buf_frames, *frame);
+    tkbc_dap(&env->scratch_buf_frames, *frame);
     frame = va_arg(args, Frame *);
   }
   va_end(args);
-  tkbc_register_frames_array(env, env->scratch_buf_frames);
+  tkbc_register_frames_array(env, &env->scratch_buf_frames);
 }
 
 /**
@@ -221,7 +225,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     return;
   }
   bool isscratch = false;
-  if (env->scratch_buf_frames == frames) {
+  if (&env->scratch_buf_frames == frames) {
     isscratch = true;
   }
 
@@ -245,19 +249,19 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
       }
     }
   }
-
   tkbc_patch_block_frame_kite_positions(env, frames);
-  tkbc_dap(env->scratch_buf_block_frame, tkbc_deep_copy_frames(frames));
+  Frames copy_frames = tkbc_deep_copy_frames(frames);
+  tkbc_dap(&env->scratch_buf_block_frame, copy_frames);
+  tkbc_reset_frames_internal_data(frames);
 
-  assert((int)env->scratch_buf_block_frame->count - 1 >= 0);
+  assert((int)env->scratch_buf_block_frame.count - 1 >= 0);
   env->scratch_buf_block_frame
-      ->elements[env->scratch_buf_block_frame->count - 1]
-      .block_index = env->scratch_buf_block_frame->count - 1;
+      .elements[env->scratch_buf_block_frame.count - 1]
+      .block_index = env->scratch_buf_block_frame.count - 1;
 
   if (!isscratch) {
     tkbc_destroy_frames_internal_data(frames);
   }
-  env->scratch_buf_frames->count = 0;
 }
 
 /**

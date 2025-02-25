@@ -11,6 +11,7 @@ Frame *tkbc_init_frame(void);
 Frames tkbc_deep_copy_frames(Frames *frames);
 Block_Frame tkbc_deep_copy_block_frame(Block_Frame *block_frame);
 void tkbc_destroy_frames_internal_data(Frames *frames);
+void tkbc_reset_frames_internal_data(Frames *frames);
 void tkbc_render_frame(Env *env, Frame *frame);
 
 void tkbc_patch_frames_current_time(Frames *frames);

@@ -326,9 +326,9 @@ typedef struct {
   size_t window_width;  // The window width of the application.
   size_t window_height; // The window height of the application.
 
-  Frames *scratch_buf_frames; // A buffer that can be used to construct frames.
-  Block_Frame *scratch_buf_block_frame; // A buffer that can be used to
-                                        // construct a block_frame.
+  Frames scratch_buf_frames; // A buffer that can be used to construct frames.
+  Block_Frame scratch_buf_block_frame; // A buffer that can be used to
+                                       // construct a block_frame.
 
   // -------FFMPEG-------
   Sound sound;           // The current loaded sound.

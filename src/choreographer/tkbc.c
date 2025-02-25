@@ -44,19 +44,6 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
-  env->scratch_buf_frames = calloc(1, sizeof(*env->scratch_buf_frames));
-  if (env->scratch_buf_frames == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
-
-  env->scratch_buf_block_frame =
-      calloc(1, sizeof(*env->scratch_buf_block_frame));
-  if (env->scratch_buf_block_frame == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
-
   env->keymaps = calloc(1, sizeof(*env->keymaps));
   if (env->keymaps == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
@@ -196,8 +183,6 @@ void tkbc_destroy_env(Env *env) {
       tkbc_destroy_frames_internal_data(
           &env->block_frames->elements[j].elements[i]);
     }
-    free(env->block_frames->elements[j].elements);
-    env->block_frames->elements[j].elements = NULL;
   }
 
   free(env->block_frames->elements);
@@ -205,20 +190,12 @@ void tkbc_destroy_env(Env *env) {
   free(env->block_frames);
   env->block_frames = NULL;
 
-  for (size_t i = 0; i < env->scratch_buf_block_frame->count; ++i) {
+  for (size_t i = 0; i < env->scratch_buf_block_frame.count; ++i) {
     tkbc_destroy_frames_internal_data(
-        &env->scratch_buf_block_frame->elements[i]);
+        &env->scratch_buf_block_frame.elements[i]);
   }
-  free(env->scratch_buf_block_frame->elements);
-  env->scratch_buf_block_frame->elements = NULL;
-  free(env->scratch_buf_block_frame);
-  env->scratch_buf_block_frame = NULL;
 
-  tkbc_destroy_frames_internal_data(env->scratch_buf_frames);
-  free(env->scratch_buf_frames->elements);
-  env->scratch_buf_frames->elements = NULL;
-  free(env->scratch_buf_frames);
-  env->scratch_buf_frames = NULL;
+  tkbc_destroy_frames_internal_data(&env->scratch_buf_frames);
   free(env);
   env = NULL;
 }

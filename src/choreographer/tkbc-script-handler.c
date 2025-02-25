@@ -96,7 +96,6 @@ Block_Frame tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
   for (size_t i = 0; i < block_frame->count; ++i) {
     tkbc_dap(&new_block_frame,
              tkbc_deep_copy_frames(&block_frame->elements[i]));
-    tkbc_destroy_frames_internal_data(&block_frame->elements[i]);
   }
   return new_block_frame;
 }
@@ -112,6 +111,34 @@ void tkbc_destroy_frames_internal_data(Frames *frames) {
     return;
   }
 
+  tkbc_reset_frames_internal_data(frames);
+
+  if (frames->elements) {
+    free(frames->elements);
+    frames->elements = NULL;
+  }
+
+  if (frames->kite_frame_positions.elements) {
+    free(frames->kite_frame_positions.elements);
+    frames->kite_frame_positions.elements = NULL;
+  }
+
+  frames->count = 0;
+}
+
+/**
+ * @brief The function can be used to free all the related memory inside of the
+ * elements given frames but not the elements and the kite_frame_positions. The
+ * count is just reset in the frames and kite_frame_positions. It recursevly
+ * handles all the internal saved values.
+ *
+ * @param frames The frames that should be reset.
+ */
+void tkbc_reset_frames_internal_data(Frames *frames) {
+  if (!frames) {
+    return;
+  }
+
   for (size_t i = 0; i < frames->count; ++i) {
     if (frames->elements[i].kite_id_array.elements) {
       free(frames->elements[i].kite_id_array.elements);
@@ -119,10 +146,7 @@ void tkbc_destroy_frames_internal_data(Frames *frames) {
     }
   }
 
-  if (frames->kite_frame_positions.elements) {
-    free(frames->kite_frame_positions.elements);
-    frames->kite_frame_positions.elements = NULL;
-  }
+  frames->kite_frame_positions.count = 0;
   frames->count = 0;
 }
 

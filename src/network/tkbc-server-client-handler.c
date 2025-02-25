@@ -643,8 +643,8 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
 
       Content tmp_buffer = {0};
       bool script_parse_fail = false;
-      Block_Frame *scb = env->scratch_buf_block_frame;
-      Frames *frames = env->scratch_buf_frames;
+      Block_Frame *scb_block_frame = &env->scratch_buf_block_frame;
+      Frames *scb_frames = &env->scratch_buf_frames;
       Kite_Ids possible_new_kis = {0};
 
       token = lexer_next(lexer);
@@ -652,7 +652,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         script_parse_fail = true;
         goto script_err;
       }
-      scb->script_id = atoi(lexer_token_to_cstr(lexer, &token));
+      scb_block_frame->script_id = atoi(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         script_parse_fail = true;
@@ -676,7 +676,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
           script_parse_fail = true;
           goto script_err;
         }
-        frames->block_index = atoi(lexer_token_to_cstr(lexer, &token));
+        scb_frames->block_index = atoi(lexer_token_to_cstr(lexer, &token));
         token = lexer_next(lexer);
         if (token.kind != PUNCT_COLON) {
           script_parse_fail = true;
@@ -922,16 +922,17 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
             script_parse_fail = true;
             goto script_err;
           }
-          tkbc_dap(frames, frame);
+          tkbc_dap(scb_frames, frame);
         }
-        tkbc_dap(scb, tkbc_deep_copy_frames(frames));
-        tkbc_destroy_frames_internal_data(frames);
-        frames->count = 0;
+
+        tkbc_dap(scb_block_frame, tkbc_deep_copy_frames(scb_frames));
+        tkbc_reset_frames_internal_data(scb_frames);
       }
 
       bool found = false;
       for (size_t i = 0; i < env->block_frames->count; ++i) {
-        if (env->block_frames->elements[i].script_id == scb->script_id) {
+        if (env->block_frames->elements[i].script_id ==
+            scb_block_frame->script_id) {
           found = true;
         }
       }
@@ -953,14 +954,19 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         }
 
         // Set the first kite frame positions
-        for (size_t i = 0; i < scb->count; ++i) {
-          tkbc_patch_block_frame_kite_positions(env, &scb->elements[i]);
+        for (size_t i = 0; i < scb_block_frame->count; ++i) {
+          tkbc_patch_block_frame_kite_positions(env,
+                                                &scb_block_frame->elements[i]);
         }
 
-        tkbc_dap(env->block_frames, tkbc_deep_copy_block_frame(scb));
+        tkbc_dap(env->block_frames,
+                 tkbc_deep_copy_block_frame(scb_block_frame));
+        for (size_t i = 0; i < scb_block_frame->count; ++i) {
+          tkbc_destroy_frames_internal_data(&scb_block_frame->elements[i]);
+        }
         env->script_counter = env->block_frames->count;
       }
-      scb->count = 0;
+      scb_block_frame->count = 0;
 
       if (tmp_buffer.elements) {
         free(tmp_buffer.elements);
