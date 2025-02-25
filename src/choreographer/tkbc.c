@@ -183,8 +183,6 @@ void tkbc_destroy_env(Env *env) {
   }
   free(env->vanilla_kite);
   tkbc_destroy_kite_array(env->kite_array);
-  free(env->kite_array->elements);
-  free(env->kite_array);
 
   for (size_t j = 0; j < env->block_frames->count; ++j) {
     // The frames are just a mapped in version of block_frame no need to handle
@@ -215,7 +213,10 @@ void tkbc_destroy_env(Env *env) {
  *
  * @param state The current state of a kite.
  */
-void tkbc_destroy_kite(Kite_State *state) { free(state->kite); }
+void tkbc_destroy_kite(Kite_State *state) {
+  free(state->kite);
+  free(state);
+}
 
 /**
  * @brief The function frees all the kites that are registered in the given
@@ -225,8 +226,10 @@ void tkbc_destroy_kite(Kite_State *state) { free(state->kite); }
  */
 void tkbc_destroy_kite_array(Kite_States *kite_states) {
   for (size_t i = 0; i < kite_states->count; ++i) {
-    tkbc_destroy_kite(&kite_states->elements[i]);
+    free(kite_states->elements[i].kite);
   }
+  free(kite_states->elements);
+  free(kite_states);
 }
 
 /**

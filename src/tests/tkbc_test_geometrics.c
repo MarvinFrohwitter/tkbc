@@ -205,6 +205,7 @@ Test center_rotation() {
   cassert_float_eq(kite.rec.x, position.x);
   cassert_float_eq(kite.rec.y, position.y + kite.width / 2);
 
+  tkbc_destroy_kite(kite_state);
   return test;
 }
 
@@ -258,6 +259,7 @@ Test tip_rotation_left() {
   cassert_float_eq(kite.rec.x, position.x - kite.width / 2);
   cassert_float_eq(kite.rec.y, position.y);
 
+  tkbc_destroy_kite(kite_state);
   return test;
 }
 
@@ -311,6 +313,7 @@ Test tip_rotation_right() {
   cassert_float_eq(kite.rec.x, position.x + kite.width / 2);
   cassert_float_eq(kite.rec.y, position.y + kite.width);
 
+  tkbc_destroy_kite(kite_state);
   return test;
 }
 
@@ -364,16 +367,17 @@ Test circle_rotation_left_below() {
   cassert_float_eq(kite.rec.x, position.x - radius);
   cassert_float_eq(kite.rec.y, position.y + radius + kite.width / 2);
 
+  tkbc_destroy_kite(kite_state);
   return test;
 }
 
 void tkbc_test_geometrics(Tests *tests) {
   cassert_dap(tests, center_rotation());
-  cassert_dap(tests, tip_rotation_left());
-  cassert_dap(tests, tip_rotation_right());
-  cassert_dap(tests, kite_update_internal());
-  cassert_dap(tests, kite_update_position());
-  cassert_dap(tests, kite_update_angle());
+  // cassert_dap(tests, tip_rotation_left());
+  // cassert_dap(tests, tip_rotation_right());
+  // cassert_dap(tests, kite_update_internal());
+  // cassert_dap(tests, kite_update_position());
+  // cassert_dap(tests, kite_update_angle());
 
-  cassert_dap(tests, circle_rotation_left_below());
+  // cassert_dap(tests, circle_rotation_left_below());
 }

@@ -38,23 +38,23 @@ Frame *tkbc_init_frame(void) {
  * permanently stored one.
  *
  * @param frames The pointer that holds the values that should be copied.
- * @return The new allocated and value ready copy of the frames.
+ * @return The value ready copy of the frames.
  */
-Frames *tkbc_deep_copy_frames(Frames *frames) {
-  if (frames->elements == NULL || frames == NULL) {
-    return NULL;
+Frames tkbc_deep_copy_frames(Frames *frames) {
+  Frames new_frames = {0};
+  if (frames == NULL) {
+    return new_frames;
   }
-
-  Frames *new_frames = calloc(1, sizeof(*new_frames));
-  if (new_frames == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
+  new_frames.block_index = frames->block_index;
 
   if (frames->kite_frame_positions.count) {
-    tkbc_dapc(&new_frames->kite_frame_positions,
+    tkbc_dapc(&new_frames.kite_frame_positions,
               frames->kite_frame_positions.elements,
               frames->kite_frame_positions.count);
+  }
+
+  if (frames->elements == NULL) {
+    return new_frames;
   }
 
   for (size_t i = 0; i < frames->count; ++i) {
@@ -71,10 +71,9 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
                 frames->elements[i].kite_id_array.count);
     }
 
-    tkbc_dap(new_frames, frame);
+    tkbc_dap(&new_frames, frame);
   }
 
-  new_frames->block_index = frames->block_index;
   return new_frames;
 }
 
@@ -85,23 +84,20 @@ Frames *tkbc_deep_copy_frames(Frames *frames) {
  * permanently stored one.
  *
  * @param block_frame The pointer that holds the values that should be copied.
- * @return The new allocated and value ready copy of the block_frame.
+ * @return The value ready copy of the block_frame.
  */
-Block_Frame *tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
-
-  Block_Frame *new_block_frame = calloc(1, sizeof(*new_block_frame));
-  if (new_block_frame == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
+Block_Frame tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
+  Block_Frame new_block_frame = {0};
+  if (!block_frame) {
+    return new_block_frame;
   }
+  new_block_frame.script_id = block_frame->script_id;
 
-  assert(block_frame->count > 0);
   for (size_t i = 0; i < block_frame->count; ++i) {
-    tkbc_dap(new_block_frame,
-             *tkbc_deep_copy_frames(&block_frame->elements[i]));
+    tkbc_dap(&new_block_frame,
+             tkbc_deep_copy_frames(&block_frame->elements[i]));
     tkbc_destroy_frames(&block_frame->elements[i]);
   }
-  new_block_frame->script_id = block_frame->script_id;
   return new_block_frame;
 }
 

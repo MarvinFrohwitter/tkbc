@@ -26,45 +26,45 @@ Test deep_copy_frames() {
       ((Kite_Position){
           .kite_id = 2, .position.x = 150, .position.y = 250, .angle = 180}));
 
-  Frames *new_frames = tkbc_deep_copy_frames(frames);
+  Frames new_frames = tkbc_deep_copy_frames(frames);
 
-  cassert_int_eq(frames->count, new_frames->count);
-  cassert_int_eq(frames->capacity, new_frames->capacity);
-  cassert_int_eq(frames->block_index, new_frames->block_index);
+  cassert_int_eq(frames->count, new_frames.count);
+  cassert_int_eq(frames->capacity, new_frames.capacity);
+  cassert_int_eq(frames->block_index, new_frames.block_index);
 
-  cassert_ptr_neq(frames, new_frames);
+  cassert_ptr_neq(frames, &new_frames);
   cassert_ptr_neq(&frames->kite_frame_positions,
-                  &new_frames->kite_frame_positions);
+                  &new_frames.kite_frame_positions);
   cassert_ptr_neq(frames->kite_frame_positions.elements,
-                  new_frames->kite_frame_positions.elements);
+                  new_frames.kite_frame_positions.elements);
   cassert_int_eq(frames->kite_frame_positions.elements->kite_id,
-                 new_frames->kite_frame_positions.elements->kite_id);
+                 new_frames.kite_frame_positions.elements->kite_id);
   cassert_float_eq(frames->kite_frame_positions.elements->position.x,
-                   new_frames->kite_frame_positions.elements->position.x);
+                   new_frames.kite_frame_positions.elements->position.x);
   cassert_float_eq(frames->kite_frame_positions.elements->position.y,
-                   new_frames->kite_frame_positions.elements->position.y);
+                   new_frames.kite_frame_positions.elements->position.y);
   cassert_float_eq(frames->kite_frame_positions.elements->angle,
-                   new_frames->kite_frame_positions.elements->angle);
+                   new_frames.kite_frame_positions.elements->angle);
 
-  cassert_ptr_neq(frames->elements, new_frames->elements);
+  cassert_ptr_neq(frames->elements, new_frames.elements);
   cassert_ptr_neq(&frames->elements->kite_id_array,
-                  &new_frames->elements->kite_id_array);
+                  &new_frames.elements->kite_id_array);
   cassert_ptr_neq(frames->elements->kite_id_array.elements,
-                  new_frames->elements->kite_id_array.elements);
+                  new_frames.elements->kite_id_array.elements);
 
   cassert_int_eq(frames->elements->kite_id_array.count,
-                 new_frames->elements->kite_id_array.count);
+                 new_frames.elements->kite_id_array.count);
   cassert_int_eq(frames->elements->kite_id_array.capacity,
-                 new_frames->elements->kite_id_array.capacity);
+                 new_frames.elements->kite_id_array.capacity);
 
-  cassert_bool_eq(frames->elements->finished, new_frames->elements->finished);
-  cassert_int_eq(frames->elements->index, new_frames->elements->index);
-  cassert_int_eq(frames->elements->kind, new_frames->elements->kind);
-  cassert_float_eq(frames->elements->duration, new_frames->elements->duration);
+  cassert_bool_eq(frames->elements->finished, new_frames.elements->finished);
+  cassert_int_eq(frames->elements->index, new_frames.elements->index);
+  cassert_int_eq(frames->elements->kind, new_frames.elements->kind);
+  cassert_float_eq(frames->elements->duration, new_frames.elements->duration);
   cassert_float_eq(frames->elements->action.as_move.position.x,
-                   new_frames->elements->action.as_move.position.x);
+                   new_frames.elements->action.as_move.position.x);
   cassert_float_eq(frames->elements->action.as_move.position.y,
-                   new_frames->elements->action.as_move.position.y);
+                   new_frames.elements->action.as_move.position.y);
 
   free(frame);
 
@@ -73,10 +73,9 @@ Test deep_copy_frames() {
   free(frames->kite_frame_positions.elements);
   free(frames);
 
-  free(new_frames->elements->kite_id_array.elements);
-  free(new_frames->elements);
-  free(new_frames->kite_frame_positions.elements);
-  free(new_frames);
+  free(new_frames.elements->kite_id_array.elements);
+  free(new_frames.elements);
+  free(new_frames.kite_frame_positions.elements);
   return test;
 }
 
@@ -100,6 +99,7 @@ Test init_frame() {
   cassert_set_last_cassert_description(
       &test, "Frame before and after should not be the same.");
 
+  free(frame);
   return test;
 }
 

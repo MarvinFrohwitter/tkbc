@@ -912,7 +912,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
           }
           tkbc_dap(frames, frame);
         }
-        tkbc_dap(scb, *tkbc_deep_copy_frames(frames));
+        tkbc_dap(scb, tkbc_deep_copy_frames(frames));
         tkbc_destroy_frames(frames);
         frames->count = 0;
       }
@@ -944,7 +944,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
           tkbc_patch_block_frame_kite_positions(env, &scb->elements[i]);
         }
 
-        tkbc_dap(env->block_frames, *tkbc_deep_copy_block_frame(scb));
+        tkbc_dap(env->block_frames, tkbc_deep_copy_block_frame(scb));
         env->script_counter = env->block_frames->count;
       }
       scb->count = 0;

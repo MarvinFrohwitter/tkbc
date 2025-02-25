@@ -36,7 +36,7 @@ void tkbc__script_end(Env *env) {
   assert(env->scratch_buf_block_frame->count > 0);
   env->scratch_buf_block_frame->script_id = env->script_counter;
   tkbc_dap(env->block_frames,
-           *tkbc_deep_copy_block_frame(env->scratch_buf_block_frame));
+           tkbc_deep_copy_block_frame(env->scratch_buf_block_frame));
   env->scratch_buf_block_frame->count = 0;
 }
 
@@ -246,7 +246,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
   }
 
   tkbc_patch_block_frame_kite_positions(env, frames);
-  tkbc_dap(env->scratch_buf_block_frame, *tkbc_deep_copy_frames(frames));
+  tkbc_dap(env->scratch_buf_block_frame, tkbc_deep_copy_frames(frames));
 
   assert((int)env->scratch_buf_block_frame->count - 1 >= 0);
   env->scratch_buf_block_frame
