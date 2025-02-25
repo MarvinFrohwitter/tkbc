@@ -39,13 +39,11 @@
       else                                                                     \
         (dynamic_array)->capacity = (dynamic_array)->capacity * 2;             \
                                                                                \
-      void *to_free_internal = (dynamic_array)->elements;                      \
       (dynamic_array)->elements = realloc((dynamic_array)->elements,           \
                                           sizeof(*(dynamic_array)->elements) * \
                                               (dynamic_array)->capacity);      \
                                                                                \
       if ((dynamic_array)->elements == NULL) {                                 \
-        free(to_free_internal);                                                \
         fprintf(                                                               \
             stderr,                                                            \
             "The allocation for the dynamic array has failed in: %s: %d\n",    \
@@ -79,12 +77,10 @@
                (dynamic_array)->count + new_elements_count) {                  \
           (dynamic_array)->capacity = (dynamic_array)->capacity * 2;           \
         }                                                                      \
-        void *to_free_internal = (dynamic_array)->elements;                    \
         (dynamic_array)->elements = realloc(                                   \
             (dynamic_array)->elements,                                         \
             sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);   \
         if ((dynamic_array)->elements == NULL) {                               \
-          free(to_free_internal);                                              \
           fprintf(                                                             \
               stderr,                                                          \
               "The allocation for the dynamic array has failed in: %s: %d\n",  \

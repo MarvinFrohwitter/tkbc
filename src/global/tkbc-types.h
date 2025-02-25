@@ -251,8 +251,8 @@ typedef struct {
                           // part of the performed action.
   Index index;            // The index of the current frame in the
   float duration;   // The time in seconds it should take to perform an action.
-  Action_Kind kind; // A representation of the kind of the action pointer.
   Action action;    // The action the frame should be responsible for.
+  Action_Kind kind; // A representation of the kind of the action pointer.
   bool finished;    // Represents the state of the currently handled frame.
 } Frame;            // Combined action for the kites that are listed in the
                     // kite_id_array.

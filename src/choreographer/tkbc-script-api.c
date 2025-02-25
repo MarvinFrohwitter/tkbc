@@ -128,11 +128,12 @@ Frame *tkbc__script_wait(Env *env, float duration) {
   action.starttime = tkbc_get_time();
 
   Frame *frame = tkbc_init_frame();
+  if (!frame) {
+    return NULL;
+  }
   frame->duration = duration;
   frame->kind = KITE_WAIT;
   frame->action.as_wait = action;
-
-  memset(&frame->kite_id_array, 0, sizeof(frame->kite_id_array));
   return frame;
 }
 
@@ -154,11 +155,12 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
   action.starttime = tkbc_get_time();
 
   Frame *frame = tkbc_init_frame();
+  if (!frame) {
+    return NULL;
+  }
   frame->duration = duration;
   frame->kind = KITE_QUIT;
   frame->action.as_quit = action;
-
-  memset(&frame->kite_id_array, 0, sizeof(frame->kite_id_array));
   return frame;
 }
 
@@ -170,20 +172,25 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
  * @param env The environment that holds the current state of the application.
  * It is passed implicit by the macro call.
  * @param kind The action kind to identify the given raw_action.
- * @param kite_indexs The list of kite indizes that are present in the kite
+ * @param kite_ids The list of kite indizes that are present in the kite
  * array, were the frame action should be applied to.
  * @param raw_action The action that matches the given kind.
  * @param duration The duration the action should take.
- * @return The frame that is constructed to represent the given action.
+ * @return The frame that is constructed to represent the given action or NULL
+ * if the frame could not be allocated or the call has happen outside a script
+ * declaration.
  */
-Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_indexs,
+Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
                             Action raw_action, float duration) {
   if (!env->script_setup) {
     return NULL;
   }
 
   Frame *frame = tkbc_init_frame();
-  tkbc_dapc(&frame->kite_id_array, kite_indexs.elements, kite_indexs.count);
+  if (!frame) {
+    return NULL;
+  }
+  tkbc_dapc(&frame->kite_id_array, kite_ids.elements, kite_ids.count);
 
   frame->duration = duration;
   frame->kind = kind;
@@ -255,8 +262,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
   tkbc_reset_frames_internal_data(frames);
 
   assert((int)env->scratch_buf_block_frame.count - 1 >= 0);
-  env->scratch_buf_block_frame
-      .elements[env->scratch_buf_block_frame.count - 1]
+  env->scratch_buf_block_frame.elements[env->scratch_buf_block_frame.count - 1]
       .block_index = env->scratch_buf_block_frame.count - 1;
 
   if (!isscratch) {

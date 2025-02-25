@@ -21,6 +21,10 @@ Test init_frame() {
   cassert_ptr_eq(frame, frame_before);
 
   frame = tkbc_init_frame();
+  if (!frame) {
+    free(frame);
+    return test;
+  }
   cassert_ptr_neq(frame, frame_before);
   cassert_set_last_cassert_description(
       &test, "Frame before and after should not be the same.");

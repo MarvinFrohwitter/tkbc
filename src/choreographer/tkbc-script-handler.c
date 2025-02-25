@@ -2,6 +2,7 @@
 #include <math.h>
 #include <raylib.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
@@ -20,12 +21,12 @@
  * @return A new on the heap allocated frame region is given back.
  */
 Frame *tkbc_init_frame(void) {
-  Frame *frame = calloc(1, sizeof(*frame));
+  Frame *frame = malloc(sizeof(*frame));
   if (frame == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
-
+  memset(frame, 0, sizeof(*frame));
   return frame;
 }
 
