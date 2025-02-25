@@ -187,6 +187,7 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
   ret = vfprintf(stream, c.elements, args);
   va_end(args);
   free(c.elements);
+  c.element = NULL;
 #endif // TKBC_LOGGING
   (void)level;
   (void)fmt;
@@ -309,6 +310,7 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]) {
 
   tkbc_fprintf(stream, "INFO", "%s %s\n", "[CMD]", cmd_string.elements);
   free(cmd_string.elements);
+  cmd_string.elements = NULL;
 }
 
 #ifdef TKBC_SERVER

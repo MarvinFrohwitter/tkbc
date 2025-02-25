@@ -81,9 +81,11 @@ void tkbc_server_shutdown_client(Client client, bool force) {
   pthread_mutex_unlock(&mutex);
   if (cs.elements) {
     free(cs.elements);
+    cs.elements = NULL;
   }
   if (message.elements) {
     free(message.elements);
+    message.elements = NULL;
   }
 
 force: {}
@@ -222,6 +224,7 @@ bool tkbc_message_hello(Client client) {
 check:
   if (message.elements) {
     free(message.elements);
+    message.elements = NULL;
   }
   return ok;
 }
@@ -270,10 +273,12 @@ bool tkbc_message_srcipt_block_frames_value(size_t script_id,
       pthread_mutex_unlock(&mutex);
     }
     free(cs.elements);
+    cs.elements = NULL;
     check_return(false);
   }
 check:
   free(message.elements);
+  message.elements = NULL;
   return ok;
 }
 
@@ -305,6 +310,7 @@ bool tkbc_message_kiteadd(Clients *cs, size_t client_index) {
   }
 check:
   free(message.elements);
+  message.elements = NULL;
   return ok;
 }
 
@@ -339,10 +345,12 @@ bool tkbc_message_kite_value(size_t client_id) {
       pthread_mutex_unlock(&mutex);
     }
     free(cs.elements);
+    cs.elements = NULL;
     check_return(false);
   }
 check:
   free(message.elements);
+  message.elements = NULL;
   return ok;
 }
 
@@ -381,6 +389,7 @@ bool tkbc_message_clientkites(Client client) {
   }
 check:
   free(message.elements);
+  message.elements = NULL;
   return ok;
 }
 
@@ -417,7 +426,7 @@ bool tkbc_message_kites_brodcast_all(Clients *cs) {
     check_return(false);
   }
 check:
-  free(message.elements);
+  message.elements = NULL;
   return ok;
 }
 
@@ -478,8 +487,10 @@ bool tkbc_message_clientkites_brodcast_all(Clients *cs) {
   }
 check:
   free(message.elements);
+  message.elements = NULL;
   if (csi.elements) {
     free(csi.elements);
+    csi.elements = NULL;
   }
   return ok;
 }
@@ -620,6 +631,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
             pthread_mutex_unlock(&mutex);
           }
           free(cs.elements);
+          cs.elements = NULL;
           check_return(false);
         }
       }
@@ -913,7 +925,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
           tkbc_dap(frames, frame);
         }
         tkbc_dap(scb, tkbc_deep_copy_frames(frames));
-        tkbc_destroy_frames(frames);
+        tkbc_destroy_frames_internal_data(frames);
         frames->count = 0;
       }
 
@@ -937,6 +949,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         tkbc_kite_array_generate(env, kite_count);
         if (possible_new_kis.elements) {
           free(possible_new_kis.elements);
+          possible_new_kis.elements = NULL;
         }
 
         // Set the first kite frame positions
@@ -951,6 +964,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
 
       if (tmp_buffer.elements) {
         free(tmp_buffer.elements);
+        tmp_buffer.elements = NULL;
       }
       pthread_mutex_unlock(&mutex);
     script_err:
@@ -1042,8 +1056,10 @@ check:
   // No lexer_del() for performant reuse of the receive_message_queue.
   if (lexer->buffer.elements) {
     free(lexer->buffer.elements);
+    lexer->buffer.elements = NULL;
   }
   free(lexer);
+  lexer = NULL;
   return ok;
 }
 
@@ -1098,6 +1114,7 @@ void *tkbc_client_handler(void *client) {
   // Just free the state and not the kite inside, because the kite is a pointer
   // that lives on and is valid in the copy to the env->kite_array.
   free(kite_state);
+  kite_state = NULL;
 
   Clients cs = {0};
   if (!tkbc_message_kiteadd(&cs, c.kite_id)) {
@@ -1109,6 +1126,7 @@ void *tkbc_client_handler(void *client) {
       tkbc_server_shutdown_client(cs.elements[i], false);
     }
     free(cs.elements);
+    cs.elements = NULL;
   }
   if (!tkbc_message_clientkites(c)) {
     goto check;
@@ -1179,6 +1197,7 @@ void *tkbc_client_handler(void *client) {
 
   if (receive_queue.elements) {
     free(receive_queue.elements);
+    receive_queue.elements = NULL;
   }
 check:
   tkbc_server_shutdown_client(c, false);
@@ -1197,5 +1216,6 @@ void tkbc_unwrap_handler_message_clientkites_brodcast_all() {
       tkbc_server_shutdown_client(cs.elements[i], false);
     }
     free(cs.elements);
+    cs.elements = NULL;
   }
 }

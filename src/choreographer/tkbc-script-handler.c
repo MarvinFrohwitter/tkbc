@@ -96,7 +96,7 @@ Block_Frame tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
   for (size_t i = 0; i < block_frame->count; ++i) {
     tkbc_dap(&new_block_frame,
              tkbc_deep_copy_frames(&block_frame->elements[i]));
-    tkbc_destroy_frames(&block_frame->elements[i]);
+    tkbc_destroy_frames_internal_data(&block_frame->elements[i]);
   }
   return new_block_frame;
 }
@@ -107,13 +107,23 @@ Block_Frame tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
  *
  * @param frames The frames the memory should be free.
  */
-void tkbc_destroy_frames(Frames *frames) {
-  if (frames->count != 0) {
-    if (frames->kite_frame_positions.elements != NULL) {
-      free(frames->kite_frame_positions.elements);
-    }
-    frames->count = 0;
+void tkbc_destroy_frames_internal_data(Frames *frames) {
+  if (!frames) {
+    return;
   }
+
+  for (size_t i = 0; i < frames->count; ++i) {
+    if (frames->elements[i].kite_id_array.elements) {
+      free(frames->elements[i].kite_id_array.elements);
+      frames->elements[i].kite_id_array.elements = NULL;
+    }
+  }
+
+  if (frames->kite_frame_positions.elements) {
+    free(frames->kite_frame_positions.elements);
+    frames->kite_frame_positions.elements = NULL;
+  }
+  frames->count = 0;
 }
 
 /**

@@ -253,6 +253,7 @@ void signalhandler(int signal) {
   }
   if (clients->elements) {
     free(clients->elements);
+    clients->elements = NULL;
   }
   tkbc_destroy_env(env);
   exit(EXIT_SUCCESS);

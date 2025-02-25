@@ -339,6 +339,7 @@ bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
   bool status = tkbc_ffmpeg_wait(*env->ffmpeg, is_kill_foreced);
   env->rendering = false;
   free(env->ffmpeg);
+  env->ffmpeg = NULL;
   return status;
 }
 

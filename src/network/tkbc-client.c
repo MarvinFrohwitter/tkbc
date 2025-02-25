@@ -472,8 +472,10 @@ check:
   // No lexer_del() for performant reuse of the message.
   if (lexer->buffer.elements) {
     free(lexer->buffer.elements);
+    lexer->buffer.elements = NULL;
   }
   free(lexer);
+  lexer = NULL;
   message->count = 0;
   return ok;
 }
@@ -524,6 +526,7 @@ bool message_queue_handler(Message *message) {
   if (message->capacity >= 64 * RECEIVE_QUEUE_SIZE) {
     message->capacity = RECEIVE_QUEUE_SIZE;
     free(message->elements);
+    message->elements = NULL;
     message->elements = realloc(message->elements,
                                 sizeof(*message->elements) * message->capacity);
   }
@@ -782,6 +785,7 @@ check:
   // }
   if (message.elements) {
     free(message.elements);
+    message.elements = NULL;
   }
   return ok;
 }
@@ -977,9 +981,11 @@ int main(int argc, char *argv[]) {
 
   if (tkbc_receive_queue.elements) {
     free(tkbc_receive_queue.elements);
+    tkbc_receive_queue.elements = NULL;
   }
   if (tkbc_send_message_queue.elements) {
     free(tkbc_send_message_queue.elements);
+    tkbc_send_message_queue.elements = NULL;
   }
 
   shutdown(client.socket_id, SHUT_WR);

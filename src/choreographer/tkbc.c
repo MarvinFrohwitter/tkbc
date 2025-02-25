@@ -170,42 +170,57 @@ void tkbc_destroy_env(Env *env) {
 
   if (env->keymaps->elements != NULL) {
     free(env->keymaps->elements);
+    env->keymaps->elements = NULL;
   }
   if (env->keymaps != NULL) {
     free(env->keymaps);
+    env->keymaps = NULL;
   }
 
   if (env->sound_file_name != NULL) {
     free(env->sound_file_name);
+    env->sound_file_name = NULL;
   }
   if (env->script_file_name != NULL) {
     free(env->script_file_name);
+    env->script_file_name = NULL;
   }
   free(env->vanilla_kite);
+  env->vanilla_kite = NULL;
   tkbc_destroy_kite_array(env->kite_array);
 
   for (size_t j = 0; j < env->block_frames->count; ++j) {
     // The frames are just a mapped in version of block_frame no need to handle
     // them separately.
     for (size_t i = 0; i < env->block_frames->elements[j].count; ++i) {
-      tkbc_destroy_frames(&env->block_frames->elements[j].elements[i]);
+      tkbc_destroy_frames_internal_data(
+          &env->block_frames->elements[j].elements[i]);
     }
     free(env->block_frames->elements[j].elements);
+    env->block_frames->elements[j].elements = NULL;
   }
 
   free(env->block_frames->elements);
+  env->block_frames->elements = NULL;
   free(env->block_frames);
+  env->block_frames = NULL;
 
   for (size_t i = 0; i < env->scratch_buf_block_frame->count; ++i) {
-    tkbc_destroy_frames(&env->scratch_buf_block_frame->elements[i]);
+    tkbc_destroy_frames_internal_data(
+        &env->scratch_buf_block_frame->elements[i]);
   }
   free(env->scratch_buf_block_frame->elements);
+  env->scratch_buf_block_frame->elements = NULL;
   free(env->scratch_buf_block_frame);
+  env->scratch_buf_block_frame = NULL;
 
-  tkbc_destroy_frames(env->scratch_buf_frames);
+  tkbc_destroy_frames_internal_data(env->scratch_buf_frames);
   free(env->scratch_buf_frames->elements);
+  env->scratch_buf_frames->elements = NULL;
   free(env->scratch_buf_frames);
+  env->scratch_buf_frames = NULL;
   free(env);
+  env = NULL;
 }
 
 /**
@@ -215,7 +230,9 @@ void tkbc_destroy_env(Env *env) {
  */
 void tkbc_destroy_kite(Kite_State *state) {
   free(state->kite);
+  state->kite = NULL;
   free(state);
+  state = NULL;
 }
 
 /**
@@ -227,9 +244,12 @@ void tkbc_destroy_kite(Kite_State *state) {
 void tkbc_destroy_kite_array(Kite_States *kite_states) {
   for (size_t i = 0; i < kite_states->count; ++i) {
     free(kite_states->elements[i].kite);
+    kite_states->elements[i].kite = NULL;
   }
   free(kite_states->elements);
+  kite_states->elements = NULL;
   free(kite_states);
+  kite_states = NULL;
 }
 
 /**
@@ -251,6 +271,7 @@ bool tkbc_remove_kite_from_list(Kite_States *kite_array, size_t kite_id) {
       kite_array->elements[i] = kite_array->elements[kite_array->count - 1];
       kite_array->elements[kite_array->count - 1] = ks_temp;
       free(kite_array->elements[kite_array->count - 1].kite);
+      kite_array->elements[kite_array->count - 1].kite = NULL;
       kite_array->count -= 1;
       return true;
     }
@@ -308,6 +329,7 @@ void tkbc_file_handler(Env *env) {
       if (strstr(file_path, ".kite")) {
         if (env->script_file_name != NULL) {
           free(env->script_file_name);
+          env->script_file_name = NULL;
         }
         env->script_file_name = strdup(file_path);
         if (env->script_file_name == NULL) {
@@ -329,6 +351,7 @@ void tkbc_file_handler(Env *env) {
       // Checks drag and dropped audio files.
       if (env->sound_file_name != NULL) {
         free(env->sound_file_name);
+        env->sound_file_name = NULL;
       }
       env->sound_file_name = strdup(file_path);
       if (env->sound_file_name == NULL) {

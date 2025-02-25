@@ -143,6 +143,7 @@ void tkbc_input_handler_kite_array(Env *env) {
       tkbc_dapc(&frame->kite_id_array, new_kite_index_array.elements,
                 new_kite_index_array.count);
       free(new_kite_index_array.elements);
+      new_kite_index_array.elements = NULL;
     }
   }
 

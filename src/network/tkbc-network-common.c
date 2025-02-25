@@ -227,6 +227,7 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
 check:
   if (buffer.elements) {
     free(buffer.elements);
+    buffer.elements = NULL;
   }
   return ok;
 }

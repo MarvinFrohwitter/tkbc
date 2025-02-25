@@ -60,8 +60,10 @@ void tkbc_script_parser(Env *env) {
 
       check:
         free(function_name);
+        function_name = NULL;
         if (kis.elements) {
           free(kis.elements);
+          kis.elements = NULL;
         }
         if (!ok) {
           goto err;
@@ -189,10 +191,13 @@ void tkbc_script_parser(Env *env) {
   lexer_del(lexer);
   if (tmp_buffer.elements)
     free(tmp_buffer.elements);
+  tmp_buffer.elements = NULL;
   if (frames.elements)
     free(frames.elements);
+  frames.elements = NULL;
   if (ki.elements)
     free(ki.elements);
+  ki.elements = NULL;
 }
 
 /**
@@ -342,6 +347,7 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
 check:
   if (kis.elements) {
     free(kis.elements);
+    kis.elements = NULL;
   }
   return ok;
 }
@@ -420,6 +426,7 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
 check:
   if (kis.elements) {
     free(kis.elements);
+    kis.elements = NULL;
   }
   return ok;
 }
@@ -514,6 +521,7 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
 check:
   if (kis.elements) {
     free(kis.elements);
+    kis.elements = NULL;
   }
   return ok;
 }

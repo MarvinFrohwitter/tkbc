@@ -37,6 +37,7 @@ void tkbc__script_end(Env *env) {
   env->scratch_buf_block_frame->script_id = env->script_counter;
   tkbc_dap(env->block_frames,
            tkbc_deep_copy_block_frame(env->scratch_buf_block_frame));
+
   env->scratch_buf_block_frame->count = 0;
 }
 
@@ -254,7 +255,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
       .block_index = env->scratch_buf_block_frame->count - 1;
 
   if (!isscratch) {
-    tkbc_destroy_frames(frames);
+    tkbc_destroy_frames_internal_data(frames);
   }
   env->scratch_buf_frames->count = 0;
 }

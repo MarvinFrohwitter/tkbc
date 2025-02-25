@@ -5,6 +5,30 @@
 #include "../global/tkbc-types.h"
 #include <string.h>
 
+Test init_frame() {
+  Test test = cassert_init_test("tkbc_init_frame()");
+
+  uintptr_t stack = 0;
+  Frame *frame;
+  cassert_ptr_neq(&frame, &stack + 0);
+  cassert_set_last_cassert_description(
+      &test, "A stack variable and the next one should not have the same stack "
+             "address.");
+
+  cassert_ptr_eq(&frame, &stack + 1);
+
+  void *frame_before = frame;
+  cassert_ptr_eq(frame, frame_before);
+
+  frame = tkbc_init_frame();
+  cassert_ptr_neq(frame, frame_before);
+  cassert_set_last_cassert_description(
+      &test, "Frame before and after should not be the same.");
+
+  free(frame);
+  return test;
+}
+
 Test deep_copy_frames() {
   Test test = cassert_init_test("tkbc_deep_copy_frames()");
 
@@ -28,13 +52,13 @@ Test deep_copy_frames() {
 
   Frames new_frames = tkbc_deep_copy_frames(frames);
 
+  cassert_ptr_neq(frames, &new_frames);
   cassert_int_eq(frames->count, new_frames.count);
   cassert_int_eq(frames->capacity, new_frames.capacity);
   cassert_int_eq(frames->block_index, new_frames.block_index);
-
-  cassert_ptr_neq(frames, &new_frames);
   cassert_ptr_neq(&frames->kite_frame_positions,
                   &new_frames.kite_frame_positions);
+
   cassert_ptr_neq(frames->kite_frame_positions.elements,
                   new_frames.kite_frame_positions.elements);
   cassert_int_eq(frames->kite_frame_positions.elements->kite_id,
@@ -79,31 +103,34 @@ Test deep_copy_frames() {
   return test;
 }
 
-Test init_frame() {
-  Test test = cassert_init_test("tkbc_init_frame()");
+Test deep_copy_block_frame() {
+  Test test = cassert_init_test("deep_copy_block_frame()");
+  Block_Frame block_frame = {0};
+  Frames frames = {0};
+  cassert_dap(&block_frame, frames);
 
-  uintptr_t stack = 0;
-  Frame *frame;
-  cassert_ptr_neq(&frame, &stack + 0);
-  cassert_set_last_cassert_description(
-      &test, "A stack variable and the next one should not have the same stack "
-             "address.");
+  Block_Frame new_block_frame = tkbc_deep_copy_block_frame(&block_frame);
+  cassert_ptr_neq(&block_frame, &new_block_frame);
+  cassert_int_eq(block_frame.count, new_block_frame.count);
+  cassert_int_eq(block_frame.capacity, new_block_frame.capacity);
+  cassert_int_eq(block_frame.script_id, new_block_frame.script_id);
+  cassert_ptr_neq(&block_frame.elements, &new_block_frame.elements);
 
-  cassert_ptr_eq(&frame, &stack + 1);
+  cassert_ptr_neq(block_frame.elements, new_block_frame.elements);
 
-  void *frame_before = frame;
-  cassert_ptr_eq(frame, frame_before);
+  cassert_ptr_eq(block_frame.elements, NULL);
+  cassert_ptr_eq(new_block_frame.elements, NULL);
 
-  frame = tkbc_init_frame();
-  cassert_ptr_neq(frame, frame_before);
-  cassert_set_last_cassert_description(
-      &test, "Frame before and after should not be the same.");
+  free(block_frame.elements);
+  free(new_block_frame.elements);
+  cassert_ptr_eq(block_frame.elements, NULL);
+  cassert_ptr_eq(new_block_frame.elements, NULL);
 
-  free(frame);
   return test;
 }
 
 void tkbc_test_script_handler(Tests *tests) {
-  cassert_dap(tests, deep_copy_frames());
   cassert_dap(tests, init_frame());
+  cassert_dap(tests, deep_copy_frames());
+  cassert_dap(tests, deep_copy_block_frame());
 }
