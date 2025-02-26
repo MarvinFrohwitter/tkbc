@@ -79,6 +79,7 @@ void tkbc__register_frames(Env *env, ...);
       (duration))
 
 void tkbc_register_frames_array(Env *env, Frames *frames);
+void tkbc_sript_team_scratch_buf_frames_append_and_free(Env *env, Frame *frame);
 
 Kite_Ids tkbc__indexs_append(Env *env, ...);
 #define tkbc_indexs_append(...) tkbc__indexs_append(env, __VA_ARGS__, INT_MAX)

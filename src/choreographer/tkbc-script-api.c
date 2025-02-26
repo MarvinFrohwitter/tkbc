@@ -225,6 +225,26 @@ void tkbc__register_frames(Env *env, ...) {
 }
 
 /**
+ * @brief The function copies the given frame to the scratch_buf_frames and
+ * frees the original pointer and dependent on the creation also the
+ * kite_id_array.
+ *
+ * @param env The global state of the application.
+ * @param frame The frames the should be appended to the scratch_buf_frames.
+ */
+void tkbc_sript_team_scratch_buf_frames_append_and_free(Env *env,
+                                                        Frame *frame) {
+  tkbc_dap(&env->scratch_buf_frames, tkbc_deep_copy_frame(frame));
+  if (env->script_id_append) {
+    free(frame->kite_id_array.elements);
+    frame->kite_id_array.elements = NULL;
+    env->script_id_append = false;
+  }
+  free(frame);
+  frame = NULL;
+}
+
+/**
  * @brief The function registers the given frames array into the global env
  * state that holds the block_frame. It is also responsible for patching
  * corresponding block frame positions and frame indices.
@@ -332,7 +352,9 @@ Kite_Ids tkbc_indexs_range(int start, int end) {
  */
 Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
   for (size_t i = 0; i < kite_count; ++i) {
-    tkbc_dap(env->kite_array, *tkbc_init_kite());
+    Kite_State *kite_state = tkbc_init_kite();
+    tkbc_dap(env->kite_array, *kite_state);
+    free(kite_state);
     // The id starts from 0.
     env->kite_array->elements[env->kite_array->count - 1].kite_id =
         env->kite_id_counter++;
@@ -343,10 +365,11 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
   tkbc_kite_array_start_position(env->kite_array, env->window_width,
                                  env->window_height);
 
-  return tkbc_indexs_range(
+  Kite_Ids ids = tkbc_indexs_range(
       env->kite_array->elements[env->kite_array->count - kite_count].kite_id,
       env->kite_array->elements[env->kite_array->count - kite_count].kite_id +
           kite_count);
+  return ids;
 }
 
 void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
