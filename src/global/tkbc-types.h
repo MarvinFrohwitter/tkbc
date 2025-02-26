@@ -321,6 +321,8 @@ typedef struct {
   bool script_interrupt; // The indication if a script is currently going to be
                          // loaded.
   bool script_finished;  // The indication a script has finished.
+  bool script_id_append; // Indices if the tkbc__indexs_append function has
+                         // created the current Kite_Ids.
 
   int fps;              // The fps of the application.
   size_t window_width;  // The window width of the application.

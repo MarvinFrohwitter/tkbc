@@ -80,8 +80,8 @@ void tkbc__register_frames(Env *env, ...);
 
 void tkbc_register_frames_array(Env *env, Frames *frames);
 
-Kite_Ids tkbc__indexs_append(size_t _, ...);
-#define tkbc_indexs_append(...) tkbc__indexs_append(0, __VA_ARGS__, INT_MAX)
+Kite_Ids tkbc__indexs_append(Env *env, ...);
+#define tkbc_indexs_append(...) tkbc__indexs_append(env, __VA_ARGS__, INT_MAX)
 #define ID(...) tkbc_indexs_append(__VA_ARGS__)
 
 Kite_Ids tkbc_indexs_range(int start, int end);

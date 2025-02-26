@@ -59,23 +59,32 @@ Frames tkbc_deep_copy_frames(Frames *frames) {
   }
 
   for (size_t i = 0; i < frames->count; ++i) {
-    Frame frame = {0};
-    frame.index = frames->elements[i].index;
-    frame.duration = frames->elements[i].duration;
-    frame.finished = frames->elements[i].finished;
-    frame.kind = frames->elements[i].kind;
-    frame.action = frames->elements[i].action;
-
-    if (frames->elements[i].kite_id_array.count) {
-      tkbc_dapc(&frame.kite_id_array,
-                frames->elements[i].kite_id_array.elements,
-                frames->elements[i].kite_id_array.count);
-    }
-
+    Frame frame = tkbc_deep_copy_frame(&frames->elements[i]);
     tkbc_dap(&new_frames, frame);
   }
 
   return new_frames;
+}
+
+/**
+ * @brief The function can be used to copy a frame struct.
+ *
+ * @param frame The frame that should be copied.
+ * @return The copy of the original fames provided in the argument.
+ */
+Frame tkbc_deep_copy_frame(Frame *frame) {
+  Frame f = {0};
+  f.duration = frame->duration;
+  f.finished = frame->finished;
+  f.kind = frame->kind;
+  f.index = frame->index;
+  f.action = frame->action;
+  if (frame->kite_id_array.count) {
+    tkbc_dapc(&f.kite_id_array, frame->kite_id_array.elements,
+              frame->kite_id_array.count);
+  }
+
+  return f;
 }
 
 /**

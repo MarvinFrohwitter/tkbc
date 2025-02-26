@@ -8,6 +8,7 @@
 // ===========================================================================
 
 Frame *tkbc_init_frame(void);
+Frame tkbc_deep_copy_frame(Frame *frame);
 Frames tkbc_deep_copy_frames(Frames *frames);
 Block_Frame tkbc_deep_copy_block_frame(Block_Frame *block_frame);
 void tkbc_destroy_frames_internal_data(Frames *frames);

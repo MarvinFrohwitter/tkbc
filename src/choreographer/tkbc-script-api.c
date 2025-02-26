@@ -3,6 +3,7 @@
 #include "tkbc-script-api.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include "tkbc-script-handler.h"
 #include "tkbc.h"
 
 /**
@@ -211,7 +212,12 @@ void tkbc__register_frames(Env *env, ...) {
   va_start(args, env);
   Frame *frame = va_arg(args, Frame *);
   while (frame != NULL) {
-    tkbc_dap(&env->scratch_buf_frames, *frame);
+    tkbc_dap(&env->scratch_buf_frames, tkbc_deep_copy_frame(frame));
+    if (env->script_id_append) {
+      free(frame->kite_id_array.elements);
+      env->script_id_append = false;
+    }
+    free(frame);
     frame = va_arg(args, Frame *);
   }
   va_end(args);
@@ -277,11 +283,11 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
  * @param _ The param is ignored just just for variadic function implementation.
  * @return The dynamic array list of kite indices.
  */
-Kite_Ids tkbc__indexs_append(size_t _, ...) {
+Kite_Ids tkbc__indexs_append(Env *env, ...) {
   Kite_Ids ki = {0};
 
   va_list args;
-  va_start(args, _);
+  va_start(args, env);
   for (;;) {
     // NOTE:(compiler) clang 18.1.8 has a compiler bug that can not use size_t
     // or equivalent unsigned long int in variadic functions. It is related to
@@ -296,6 +302,7 @@ Kite_Ids tkbc__indexs_append(size_t _, ...) {
   }
   va_end(args);
 
+  env->script_id_append = true;
   return ki;
 }
 

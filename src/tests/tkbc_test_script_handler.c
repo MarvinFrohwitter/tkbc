@@ -41,7 +41,7 @@ Test deep_copy_frames() {
   Frame *frame = malloc(sizeof(*frame));
   memset(frame, 0, sizeof(*frame));
 
-  frame->kite_id_array = ID(1, 2);
+  frame->kite_id_array = tkbc_indexs_range(1, 3);
   frame->kind = KITE_MOVE;
   frame->action.as_move.position = (Vector2){.x = 300, .y = 400};
   cassert_dap(frames, *frame);
@@ -113,7 +113,7 @@ Test deep_copy_block_frame() {
   Frames frames = {0};
   Frame frame = {0};
 
-  frame.kite_id_array = ID(1, 2);
+  frame.kite_id_array = tkbc_indexs_range(0, 3);
   frame.kind = KITE_MOVE;
   frame.action.as_move.position = (Vector2){.x = 300, .y = 400};
   cassert_dap(&frames, frame);
