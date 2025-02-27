@@ -1,6 +1,5 @@
 #include "../src/choreographer/tkbc-script-api.h"
 #include "../src/choreographer/tkbc-team-figures-api.h"
-#include "limits.h"
 
 void rotation_checkup(Env *env, Kite_Ids ki) {
 
@@ -81,59 +80,7 @@ void rotation_checkup(Env *env, Kite_Ids ki) {
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
 }
 
-void pair(Env *env, Kite_Ids ki) {
-  Kite kite = *env->vanilla_kite;
-  float wait_time = 0.5;
-  float move_duration = 1;
-  float rotation_duration = 1;
-  int space = 100;
-
-  tkbc_script_begin();
-  COLLECTION(
-
-      KITE_MOVE(ID(0), env->window_width / 2.0 - kite.width - space,
-                env->window_height - kite.height - space, 0),
-      KITE_MOVE(ID(1), env->window_width / 2.0 + kite.width + space,
-                env->window_height - kite.height - space, 0),
-      KITE_ROTATION(ki, 0, 0),
-
-      // Just for documentation
-      KITE_QUIT(wait_time)
-
-  );
-  SET(KITE_WAIT(wait_time));
-  SET(
-
-      KITE_MOVE_ADD(ID(0), kite.width + 2 * space + kite.width / 2.0,
-                    -kite.width - space - space, move_duration),
-      KITE_ROTATION_ADD(tkbc_indexs_append(0), -270, rotation_duration)
-
-  );
-  SET(
-
-      KITE_MOVE_ADD(ID(1), -kite.width - 2 * space - kite.width / 2.0,
-                    -kite.width - space - space, move_duration),
-      KITE_ROTATION_ADD(tkbc_indexs_append(1), 270, rotation_duration)
-
-  );
-  SET(
-
-      KITE_MOVE(ID(1), env->window_width / 2.0 + kite.width + space,
-                env->window_height - kite.height - space, move_duration),
-      KITE_ROTATION_ADD(tkbc_indexs_append(1), -315, rotation_duration)
-
-  );
-  SET(
-
-      KITE_MOVE(ID(0), env->window_width / 2.0 - kite.width - space,
-                env->window_height - kite.height - space, move_duration),
-      KITE_ROTATION_ADD(tkbc_indexs_append(0), 315, rotation_duration)
-
-  );
-
-  tkbc_script_end();
-}
-
+#include "choreo.c"
 // The env of type Env is passed automatically into the scope of the
 // script_input it is not globally available.
 tkbc_script_input {
@@ -148,7 +95,7 @@ tkbc_script_input {
   // float ball_radius = (kite->width + kite->spread);
   Kite_Ids ki = tkbc_kite_array_generate(env, 2);
 
-  pair(env, ki);
+  choreo(env, ki);
 
   tkbc_script_begin();
   tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, ki,

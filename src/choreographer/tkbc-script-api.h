@@ -3,6 +3,7 @@
 
 #include "../global/tkbc-types.h"
 #include "tkbc-script-handler.h"
+#include <limits.h>
 #include <stdbool.h>
 
 // ===========================================================================

@@ -373,7 +373,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
 
   kite->width = 20.0f;
   kite->height = 0.0f;
-  kite->scale = 4.0f;
+  kite->scale = 3.7f;
   kite->angle = 0;
 
   kite->overlap *= kite->scale;
