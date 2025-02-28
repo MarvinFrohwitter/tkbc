@@ -36,7 +36,7 @@ first.o: build
 	${CC} ${INCLUDE} ${CFLAGS} -c tkbc_scripts/first.c -o build/first.o
 
 tkbc-win64: build
-	x86_64-w64-mingw32-gcc -Wall -Wextra -g -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o ./build/tkbc-win64 ./src/choreographer/*.c  -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32
+	x86_64-w64-mingw32-gcc -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o ./build/tkbc-win64 ./src/choreographer/*.c  -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32
 
 build:
 	mkdir -p build
