@@ -166,22 +166,83 @@ void change_90(Env *env) {
   );
   SET(
 
-      KITE_MOVE_ADD(ID(0), 0, 3.5 * kite.width, 1 * move_duration),
-      KITE_MOVE_ADD(ID(1), 0, -2.5 * kite.width, 1 * move_duration)
+      KITE_MOVE_ADD(ID(0), 0, 3.5 * kite.width, move_duration),
+      KITE_MOVE_ADD(ID(1), 0, -2.5 * kite.width, move_duration)
 
   );
 
   SET(
 
+      // TODO: Do the tip rotation instead, when it is working.
       // Turn in adaption
-      KITE_MOVE_ADD(ID(0), -kite.width, 0, rotation_duration),
-      KITE_MOVE_ADD(ID(1), kite.width, 0, rotation_duration),
+      // KITE_MOVE_ADD(ID(0), -kite.width, 0, rotation_duration),
+      // KITE_MOVE_ADD(ID(1), kite.width, 0, rotation_duration),
 
-      KITE_TIP_ROTATION_ADD(ID(0), 180, LEFT_TIP, rotation_duration),
-      KITE_TIP_ROTATION_ADD(ID(1), 180, LEFT_TIP, rotation_duration)
+      // KITE_TIP_ROTATION_ADD(ID(0), 180, LEFT_TIP, rotation_duration),
+      // KITE_TIP_ROTATION_ADD(ID(1), 180, LEFT_TIP, rotation_duration)
+
+      KITE_MOVE_ADD(ID(0), kite.width / 2, 0, rotation_duration),
+      KITE_MOVE_ADD(ID(1), -kite.width / 2, 0, rotation_duration),
+
+      KITE_ROTATION_ADD(ID(0), 180, rotation_duration),
+      KITE_ROTATION_ADD(ID(1), 180, rotation_duration)
+
+  );
+
+  SET(
+
+      KITE_MOVE_ADD(ID(0), 0, -3 * kite.width, move_duration),
+      KITE_MOVE_ADD(ID(1), 0, 3 * kite.width, move_duration)
 
   );
 }
+
+void rollkiss_90_break(Env *env) {
+  SET(
+
+      KITE_ROTATION_ADD(ID(0), 270, rotation_duration),
+      KITE_ROTATION_ADD(ID(1), 270, rotation_duration),
+
+      KITE_MOVE_ADD(ID(0), kite.height / 2, -0.5 * kite.width, move_duration),
+      KITE_MOVE_ADD(ID(1), -kite.height / 2, 0.5 * kite.width, move_duration)
+
+  );
+}
+
+void edges_turn_out(Env *env) {
+  SET(
+
+      KITE_MOVE_ADD(ID(0), 5 * kite.width, 0, move_duration),
+      KITE_MOVE_ADD(ID(1), -5 * kite.width, 0, move_duration)
+
+  );
+
+  SET(
+
+      // TODO: Do the tip rotation instead, when it is working.
+      // Turn in adaption
+      // KITE_MOVE_ADD(ID(0), -kite.width, 0, rotation_duration),
+      // KITE_MOVE_ADD(ID(1), kite.width, 0, rotation_duration),
+
+      // KITE_TIP_ROTATION_ADD(ID(0), 180, RIGHT_TIP, rotation_duration),
+      // KITE_TIP_ROTATION_ADD(ID(1), 180, RIGHT_TIP, rotation_duration)
+
+      KITE_MOVE_ADD(ID(0), 0, kite.width / 2, rotation_duration),
+      KITE_MOVE_ADD(ID(1), 0, -kite.width / 2, rotation_duration),
+
+      KITE_ROTATION_ADD(ID(0), -180, rotation_duration),
+      KITE_ROTATION_ADD(ID(1), -180, rotation_duration)
+
+  );
+  SET(
+
+      KITE_MOVE_ADD(ID(0), -5 * kite.width, 0, move_duration),
+      KITE_MOVE_ADD(ID(1), 5 * kite.width, 0, move_duration)
+
+  );
+}
+
+void roll_up(Env *env) {}
 
 void choreo(Env *env, Kite_Ids ki) {
   kite = *env->vanilla_kite;
@@ -189,8 +250,14 @@ void choreo(Env *env, Kite_Ids ki) {
   bicycle_start(env, ki);
   diamond_stack_figure(env);
   extreme_window_slide(env);
+
+  // edges_180(env);
+  // roll_up(env);
   edges_180(env);
+
   change_90(env);
+  rollkiss_90_break(env);
+  edges_turn_out(env);
   SET(KITE_WAIT(wait_time));
   tkbc_script_end();
 }
