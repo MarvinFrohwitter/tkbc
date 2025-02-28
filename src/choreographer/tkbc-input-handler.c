@@ -3,6 +3,7 @@
 #include "tkbc-keymaps.h"
 
 #include "tkbc.h"
+#include <math.h>
 #include <raylib.h>
 #include <raymath.h>
 
@@ -472,6 +473,20 @@ void tkbc_input_check_mouse(Kite_State *state) {
   }
 }
 
+float tkbc_calculate_angle(float angle) {
+  float diff = fmodf(angle, 45);
+
+  if (fabsf(diff) == 0) {
+    return fmodf(angle, 360) + 90;
+  }
+
+  if (fabsf(diff) <= 22.5) {
+    return fmodf(angle, 360) - diff;
+  } else {
+    return fmodf(angle, 360) + (45 - diff);
+  }
+}
+
 /**
  * @brief The function sets the new position of the kite corresponding to the
  * current mouse position. If faces the kites leading edge towards the mouse and
@@ -488,6 +503,9 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
     state->is_in_deadzone = false;
   } else {
     state->mouse_lock = false;
+  }
+  if (IsKeyPressed(tkbc_hash_to_keymap(keymaps, KMH_SNAP_KITE_ANGLE).key)) {
+    state->toggle_angle_snap = !state->toggle_angle_snap;
   }
   // KEY_ZERO
   if (IsKeyPressed(
@@ -511,7 +529,7 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
       .y = mouse_pos.y - kite->center.y,
   };
 
-  size_t dead_zone = kite->width / 2 + 10;
+  size_t dead_zone = kite->height / 2;
   if ((fabsf(mouse_pos.x - kite->center.x) < dead_zone &&
        fabsf(mouse_pos.y - kite->center.y) < dead_zone) ||
       state->mouse_lock) {
@@ -523,8 +541,22 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
   float angle = Vector2Angle(face, d);
   angle = angle * 180 / PI;
   int angle_from_face_to_orth = 90;
+  float result_angle = kite->angle;
   if (!state->is_in_deadzone || !state->mouse_lock) {
-    tkbc_kite_update_angle(kite, kite->angle - angle - angle_from_face_to_orth);
+    result_angle = kite->angle - angle - angle_from_face_to_orth;
+    tkbc_kite_update_angle(kite, result_angle);
+  }
+  if (state->toggle_angle_snap && state->mouse_lock) {
+    // result_angle = tkbc_calculate_angle(result_angle);
+    float diff = fmodf(result_angle, 45);
+    if (fabsf(diff) <= 22.5) {
+      result_angle = fmodf(result_angle, 360) - diff;
+    } else {
+      result_angle = fmodf(result_angle, 360) + (45 - diff);
+    }
+    if (fabsf(diff) != 0) {
+      tkbc_kite_update_angle(kite, result_angle);
+    }
   }
 
   // Movement corresponding to the mouse position.

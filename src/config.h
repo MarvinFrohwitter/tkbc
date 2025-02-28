@@ -204,6 +204,11 @@ static Key_Map default_keymaps[] = {
         .key = KEY_NULL,
         .hash = KMH_LOCK_KITE_ANGLE,
     },
+    {
+        .description = "Snaps the angle of the kite.",
+        .key = KEY_E,
+        .hash = KMH_SNAP_KITE_ANGLE,
+    },
 
     {
         .description =
@@ -214,7 +219,7 @@ static Key_Map default_keymaps[] = {
     {
         .description =
             "Moves the selected kites by the set speed left to the mouse.",
-        .key = KEY_A,
+        .key = KEY_D,
         .hash = KMH_MOVES_KITES_LEFT_AROUND_MOUSE,
     },
     {
@@ -226,7 +231,7 @@ static Key_Map default_keymaps[] = {
     {
         .description =
             "Moves the selected kites by the set speed right to the mouse.",
-        .key = KEY_D,
+        .key = KEY_A,
         .hash = KMH_MOVES_KITES_RIGHT_AROUND_MOUSE,
     },
 };
