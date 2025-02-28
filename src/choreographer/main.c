@@ -67,9 +67,10 @@ int main(void) {
       tkbc__script_input(env);
       for (size_t i = 0; i < env->block_frames->count; ++i) {
         // tkbc_print_script(stderr, &env->block_frames->elements[i]);
-        char buf[32];
-        sprintf(buf, "Script%zu.kite", i);
-        tkbc_write_script_kite_from_mem(&env->block_frames->elements[i], buf);
+
+        // char buf[32];
+        // sprintf(buf, "Script%zu.kite", i);
+        // tkbc_write_script_kite_from_mem(&env->block_frames->elements[i], buf);
       }
     }
 
