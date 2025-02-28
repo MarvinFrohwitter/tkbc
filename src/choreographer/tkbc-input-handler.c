@@ -482,7 +482,8 @@ void tkbc_input_check_mouse(Kite_State *state) {
  * @param state The current state of a kite that should be handled.
  */
 void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
-  if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) {
+  if (IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_LOCK_KITE_ANGLE).mod_key) ||
+      IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_LOCK_KITE_ANGLE).mod_co_key)) {
     state->mouse_lock = true;
     state->is_in_deadzone = false;
   } else {
@@ -510,7 +511,7 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
       .y = mouse_pos.y - kite->center.y,
   };
 
-  int dead_zone = kite->width / 2 + 10;
+  size_t dead_zone = kite->width / 2 + 10;
   if ((fabsf(mouse_pos.x - kite->center.x) < dead_zone &&
        fabsf(mouse_pos.y - kite->center.y) < dead_zone) ||
       state->mouse_lock) {
@@ -534,6 +535,7 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
   float t = state->fly_velocity;
   d = Vector2Normalize(d);
   face = Vector2Normalize(face);
+  Vector2 orth = {.x = face.y, .y = -face.x};
 
   // KEY_W
   if (!state->is_in_deadzone) {
@@ -545,23 +547,20 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
   } else if (state->mouse_lock) {
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) ||
         IsKeyDown(KEY_UP)) {
-      kite->center.x = tkbc_clamp(kite->center.x + t * 1, padding, window.x);
-      kite->center.y = tkbc_clamp(kite->center.y + t * 1, padding, window.y);
+      kite->center.x =
+          tkbc_clamp(kite->center.x + t * orth.x, padding, window.x);
+      kite->center.y =
+          tkbc_clamp(kite->center.y + t * orth.y, padding, window.y);
     }
-  }
-
-  // KEY_A
-  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT_AROUND_MOUSE)) ||
-      IsKeyDown(KEY_RIGHT)) {
-    kite->center.x = tkbc_clamp(kite->center.x + t * face.x, padding, window.x);
-    kite->center.y = tkbc_clamp(kite->center.y + t * face.y, padding, window.y);
   }
   if (state->mouse_lock) {
     // KEY_S
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE)) ||
         IsKeyDown(KEY_DOWN)) {
-      kite->center.x = tkbc_clamp(kite->center.x - t * 1, padding, window.x);
-      kite->center.y = tkbc_clamp(kite->center.y - t * 1, padding, window.y);
+      kite->center.x =
+          tkbc_clamp(kite->center.x - t * orth.x, padding, window.x);
+      kite->center.y =
+          tkbc_clamp(kite->center.y - t * orth.y, padding, window.y);
     }
   } else {
     // KEY_S
@@ -570,6 +569,13 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
       kite->center.x = tkbc_clamp(kite->center.x - t * d.x, padding, window.x);
       kite->center.y = tkbc_clamp(kite->center.y - t * d.y, padding, window.y);
     }
+  }
+
+  // KEY_A
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT_AROUND_MOUSE)) ||
+      IsKeyDown(KEY_RIGHT)) {
+    kite->center.x = tkbc_clamp(kite->center.x + t * face.x, padding, window.x);
+    kite->center.y = tkbc_clamp(kite->center.y + t * face.y, padding, window.y);
   }
   // KEY_D
   if (IsKeyDown(

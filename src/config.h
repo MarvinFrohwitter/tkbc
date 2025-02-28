@@ -197,28 +197,35 @@ static Key_Map default_keymaps[] = {
         .key = KEY_ZERO,
         .hash = KMH_SWITCH_MOUSE_CONTOL_MOVEMENT,
     },
+    {
+        .description = "Lock the angle of the kite.",
+        .mod_key = KEY_LEFT_CONTROL,
+        .mod_co_key = KEY_RIGHT_CONTROL,
+        .key = KEY_NULL,
+        .hash = KMH_LOCK_KITE_ANGLE,
+    },
 
     {
-        .description = "Moves the selected kites by the set "
-                       "speed towards the mouse.",
+        .description =
+            "Moves the selected kites by the set speed towards the mouse.",
         .key = KEY_W,
         .hash = KMH_MOVES_KITES_TOWARDS_MOUSE,
     },
     {
-        .description = "Moves the selected kites by the set "
-                       "speed left to the mouse.",
+        .description =
+            "Moves the selected kites by the set speed left to the mouse.",
         .key = KEY_A,
         .hash = KMH_MOVES_KITES_LEFT_AROUND_MOUSE,
     },
     {
-        .description = "Moves the selected kites by the set "
-                       "speed away from the mouse.",
+        .description =
+            "Moves the selected kites by the set speed away from the mouse.",
         .key = KEY_S,
         .hash = KMH_MOVES_KITES_AWAY_MOUSE,
     },
     {
-        .description = "Moves the selected kites by the set "
-                       "speed right to the mouse.",
+        .description =
+            "Moves the selected kites by the set speed right to the mouse.",
         .key = KEY_D,
         .hash = KMH_MOVES_KITES_RIGHT_AROUND_MOUSE,
     },

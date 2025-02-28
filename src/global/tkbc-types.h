@@ -68,6 +68,7 @@ typedef enum {
   KMH_RESUMES_SOUND,
 
   KMH_SWITCH_MOUSE_CONTOL_MOVEMENT,
+  KMH_LOCK_KITE_ANGLE,
 
   KMH_MOVES_KITES_TOWARDS_MOUSE,
   KMH_MOVES_KITES_AWAY_MOUSE,
@@ -140,8 +141,11 @@ typedef struct {
   float turn_velocity; // The base turn speed that holds the current combined
                        // value with the delta time and the variable turn_speed
                        // that is stored in the kite itself.
-  bool is_in_deadzone;
-  bool mouse_lock;
+  bool is_in_deadzone; // A space between the mouse and the kite that is not
+                       // reachable by moving forward with the kite.
+  bool mouse_lock; // It represents if the kite leading edge angle is calculated
+                   // by the mouse position or it holds the current angle,
+                   // (in  mouse control mode).
   bool mouse_control; // The indication if the kite follows the mouse position.
   bool interrupt_movement;   // The ability of the kite to move in user control.
   bool interrupt_smoothness; // The ability if the kite to turn smooth in user
