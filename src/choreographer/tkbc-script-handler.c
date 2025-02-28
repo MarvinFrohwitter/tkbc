@@ -502,7 +502,7 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
 }
 
 /**
-* @brief The function can be used to get the state of the current executed
+ * @brief The function can be used to get the state of the current executed
  * frame.
  *
  * @param env The global state of the application.
@@ -593,7 +593,9 @@ void tkbc_input_handler_script(Env *env) {
   // KEY_SPACE
   if (IsKeyPressed(
           tkbc_hash_to_key(*env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION))) {
-    env->script_finished = !env->script_finished;
+    if (env->frames) {
+      env->script_finished = !env->script_finished;
+    }
   }
   // KEY_TAB
   if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
