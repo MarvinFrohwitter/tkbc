@@ -473,20 +473,6 @@ void tkbc_input_check_mouse(Kite_State *state) {
   }
 }
 
-float tkbc_calculate_angle(float angle) {
-  float diff = fmodf(angle, 45);
-
-  if (fabsf(diff) == 0) {
-    return fmodf(angle, 360) + 90;
-  }
-
-  if (fabsf(diff) <= 22.5) {
-    return fmodf(angle, 360) - diff;
-  } else {
-    return fmodf(angle, 360) + (45 - diff);
-  }
-}
-
 /**
  * @brief The function sets the new position of the kite corresponding to the
  * current mouse position. If faces the kites leading edge towards the mouse and
@@ -541,22 +527,31 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
   float angle = Vector2Angle(face, d);
   angle = angle * 180 / PI;
   int angle_from_face_to_orth = 90;
-  float result_angle = kite->angle;
+  double result_angle = kite->angle;
   if (!state->is_in_deadzone || !state->mouse_lock) {
     result_angle = kite->angle - angle - angle_from_face_to_orth;
     tkbc_kite_update_angle(kite, result_angle);
   }
   if (state->toggle_angle_snap && state->mouse_lock) {
-    // result_angle = tkbc_calculate_angle(result_angle);
-    float diff = fmodf(result_angle, 45);
-    if (fabsf(diff) <= 22.5) {
-      result_angle = fmodf(result_angle, 360) - diff;
+    double remainder = fmod(result_angle, 45);
+    if (floor(fabs(remainder)) <= 22.5) {
+
+      if (remainder < 0) {
+        result_angle = fmod(result_angle, 360) + (45 - remainder);
+        result_angle -= 45;
+      } else {
+        result_angle = fmod(result_angle, 360) - remainder;
+      }
+
     } else {
-      result_angle = fmodf(result_angle, 360) + (45 - diff);
+      if (remainder < 0) {
+        result_angle = fmod(result_angle, 360) - remainder;
+        result_angle -= 45;
+      } else {
+        result_angle = fmod(result_angle, 360) + (45 - remainder);
+      }
     }
-    if (fabsf(diff) != 0) {
-      tkbc_kite_update_angle(kite, result_angle);
-    }
+    tkbc_kite_update_angle(kite, (float)floor(result_angle));
   }
 
   // Movement corresponding to the mouse position.
