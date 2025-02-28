@@ -206,7 +206,7 @@ static Key_Map default_keymaps[] = {
     },
     {
         .description = "Snaps the angle of the kite.",
-        .key = KEY_E,
+        .key = KEY_R,
         .hash = KMH_SNAP_KITE_ANGLE,
     },
 

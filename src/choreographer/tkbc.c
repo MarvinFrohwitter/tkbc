@@ -404,7 +404,7 @@ void tkbc_set_kite_state_defaults(Kite_State *state) {
   state->fixed = true;
   state->interrupt_movement = false;
   state->interrupt_smoothness = false;
-  state->mouse_control = false;
+  state->mouse_control = true;
 }
 
 // ===========================================================================
