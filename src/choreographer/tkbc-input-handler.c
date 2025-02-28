@@ -527,31 +527,23 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
   float angle = Vector2Angle(face, d);
   angle = angle * 180 / PI;
   int angle_from_face_to_orth = 90;
-  double result_angle = kite->angle;
+  float result_angle = kite->angle;
   if (!state->is_in_deadzone || !state->mouse_lock) {
     result_angle = kite->angle - angle - angle_from_face_to_orth;
     tkbc_kite_update_angle(kite, result_angle);
   }
   if (state->toggle_angle_snap && state->mouse_lock) {
-    double remainder = fmod(result_angle, 45);
-    if (floor(fabs(remainder)) <= 22.5) {
-
-      if (remainder < 0) {
-        result_angle = fmod(result_angle, 360) + (45 - remainder);
-        result_angle -= 45;
-      } else {
-        result_angle = fmod(result_angle, 360) - remainder;
-      }
-
+    float remainder = fmodf(result_angle, 45);
+    if (fabsf(remainder) <= 22.5) {
+      result_angle = fmodf(result_angle, 360) - remainder;
     } else {
       if (remainder < 0) {
-        result_angle = fmod(result_angle, 360) - remainder;
-        result_angle -= 45;
+        result_angle = fmodf(result_angle, 360) - remainder - 45;
       } else {
-        result_angle = fmod(result_angle, 360) + (45 - remainder);
+        result_angle = fmodf(result_angle, 360) - remainder + 45;
       }
     }
-    tkbc_kite_update_angle(kite, (float)floor(result_angle));
+    tkbc_kite_update_angle(kite, floorf(result_angle));
   }
 
   // Movement corresponding to the mouse position.
