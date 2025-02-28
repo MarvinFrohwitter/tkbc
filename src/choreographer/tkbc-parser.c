@@ -31,7 +31,8 @@ void tkbc_script_parser(Env *env) {
   bool script_begin = false;
   bool brace = false;
   Kite_Ids ki = {0};
-  Frames frames = {0};
+  Frames *frames = &env->scratch_buf_frames;
+  Frame *frame = NULL;
 
   Token t = lexer_next(lexer);
   while (t.kind != EOF_TOKEN) {
@@ -97,38 +98,37 @@ void tkbc_script_parser(Env *env) {
         }
         break;
       } else if (strncmp("MOVE", t.content, t.size) == 0) {
-        if (!tkbc_parse_move(env, lexer, KITE_MOVE, &frames, ki, brace,
-                             tmp_buffer)) {
+        if (!tkbc_parse_move(env, lexer, KITE_MOVE, ki, brace, tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_move(env, lexer, KITE_MOVE_ADD, &frames, ki, brace,
+        if (!tkbc_parse_move(env, lexer, KITE_MOVE_ADD, ki, brace,
                              tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("ROTATION", t.content, t.size) == 0) {
-        if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION, &frames, ki, brace,
+        if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION, ki, brace,
                                  tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("ROTATION_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION_ADD, &frames, ki,
-                                 brace, tmp_buffer)) {
+        if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION_ADD, ki, brace,
+                                 tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("TIP_ROTATION", t.content, t.size) == 0) {
-        if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION, &frames, ki,
-                                     brace, tmp_buffer)) {
+        if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION, ki, brace,
+                                     tmp_buffer)) {
           break;
         }
         break;
       } else if (strncmp("TIP_ROTATION_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION_ADD, &frames,
-                                     ki, brace, tmp_buffer)) {
+        if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION_ADD, ki,
+                                     brace, tmp_buffer)) {
           goto err;
         }
         break;
@@ -137,8 +137,8 @@ void tkbc_script_parser(Env *env) {
         float duration = atof(lexer_token_to_cstr(lexer, &t));
 
         if (brace) {
-          Frame *frame = tkbc_script_wait(duration);
-          tkbc_dap(&frames, *frame);
+          frame = tkbc_script_wait(duration);
+          tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
         } else {
           tkbc_register_frames(env, tkbc_script_wait(duration));
         }
@@ -147,8 +147,8 @@ void tkbc_script_parser(Env *env) {
         t = lexer_next(lexer);
         float duration = atof(lexer_token_to_cstr(lexer, &t));
         if (brace) {
-          Frame *frame = tkbc_script_frames_quit(duration);
-          tkbc_dap(&frames, *frame);
+          frame = tkbc_script_frames_quit(duration);
+          tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
         } else {
           tkbc_register_frames(env, tkbc_script_frames_quit(duration));
         }
@@ -170,7 +170,7 @@ void tkbc_script_parser(Env *env) {
         goto err;
       }
       brace = false;
-      tkbc_register_frames_array(env, &frames);
+      tkbc_register_frames_array(env, frames);
     } break;
 
     err:
@@ -192,9 +192,6 @@ void tkbc_script_parser(Env *env) {
   if (tmp_buffer.elements)
     free(tmp_buffer.elements);
   tmp_buffer.elements = NULL;
-  if (frames.elements)
-    free(frames.elements);
-  frames.elements = NULL;
   if (ki.elements)
     free(ki.elements);
   ki.elements = NULL;
@@ -277,8 +274,6 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
  * @param lexer The data to parse should be located in her.
  * @param kind The kind specifies if the adding or non adding version is
  * expected.
- * @param frames The out parameter is filled with the generated frame if the
- * parsing succeeds.
  * @param ki The already generated kite ids to compare to the possible new
  * parsed kite ids.
  * @param brace Represents if the parsing has happened inside a frame block.
@@ -289,11 +284,12 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
  * @return True if the parsing and frame construction has worked, otherwise
  * false.
  */
-bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
-                     Kite_Ids ki, bool brace, Content tmp_buffer) {
+bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki,
+                     bool brace, Content tmp_buffer) {
   bool ok = true;
   Kite_Ids kis = {0};
   float x, y, duration;
+  Frame *frame = NULL;
 
   if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
     check_return(false);
@@ -311,13 +307,13 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
 
   if (kind == KITE_MOVE_ADD) {
     if (brace) {
-      Frame *frame = tkbc_frame_generate(KITE_MOVE_ADD, kis,
-                                         &(CLITERAL(Move_Add_Action){
-                                             .position.x = x,
-                                             .position.y = y,
-                                         }),
-                                         duration);
-      tkbc_dap(frames, *frame);
+      frame = tkbc_frame_generate(KITE_MOVE_ADD, kis,
+                                  &(CLITERAL(Move_Add_Action){
+                                      .position.x = x,
+                                      .position.y = y,
+                                  }),
+                                  duration);
+      tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
     } else {
       tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, kis,
                                                     &(CLITERAL(Move_Add_Action){
@@ -328,13 +324,13 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Frames *frames,
     }
   } else if (kind == KITE_MOVE) {
     if (brace) {
-      Frame *frame = tkbc_frame_generate(KITE_MOVE, kis,
-                                         &(CLITERAL(Move_Action){
-                                             .position.x = x,
-                                             .position.y = y,
-                                         }),
-                                         duration);
-      tkbc_dap(frames, *frame);
+      frame = tkbc_frame_generate(KITE_MOVE, kis,
+                                  &(CLITERAL(Move_Action){
+                                      .position.x = x,
+                                      .position.y = y,
+                                  }),
+                                  duration);
+      tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
     } else {
       tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE, kis,
                                                     &(CLITERAL(Move_Action){
@@ -360,8 +356,6 @@ check:
  * @param lexer The data to parse should be located in her.
  * @param kind The kind specifies if the adding or non adding version is
  * expected.
- * @param frames The out parameter is filled with the generated frame if the
- * parsing succeeds.
  * @param ki The already generated kite ids to compare to the possible new
  * parsed kite ids.
  * @param brace Represents if the parsing has happened inside a frame block.
@@ -372,12 +366,12 @@ check:
  * @return True if the parsing and frame construction has worked, otherwise
  * false.
  */
-bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
-                         Frames *frames, Kite_Ids ki, bool brace,
-                         Content tmp_buffer) {
+bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki,
+                         bool brace, Content tmp_buffer) {
   bool ok = true;
   Kite_Ids kis = {0};
   float angle, duration;
+  Frame *frame = NULL;
 
   if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
     check_return(false);
@@ -392,12 +386,12 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
 
   if (kind == KITE_ROTATION_ADD) {
     if (brace) {
-      Frame *frame = tkbc_frame_generate(KITE_ROTATION_ADD, kis,
-                                         &(CLITERAL(Rotation_Add_Action){
-                                             .angle = angle,
-                                         }),
-                                         duration);
-      tkbc_dap(frames, *frame);
+      frame = tkbc_frame_generate(KITE_ROTATION_ADD, kis,
+                                  &(CLITERAL(Rotation_Add_Action){
+                                      .angle = angle,
+                                  }),
+                                  duration);
+      tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
     } else {
       tkbc_register_frames(env,
                            tkbc_frame_generate(KITE_ROTATION_ADD, kis,
@@ -408,12 +402,12 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     }
   } else if (kind == KITE_ROTATION) {
     if (brace) {
-      Frame *frame = tkbc_frame_generate(KITE_ROTATION, kis,
-                                         &(CLITERAL(Rotation_Action){
-                                             .angle = angle,
-                                         }),
-                                         duration);
-      tkbc_dap(frames, *frame);
+      frame = tkbc_frame_generate(KITE_ROTATION, kis,
+                                  &(CLITERAL(Rotation_Action){
+                                      .angle = angle,
+                                  }),
+                                  duration);
+      tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
     } else {
       tkbc_register_frames(env, tkbc_frame_generate(KITE_ROTATION, kis,
                                                     &(CLITERAL(Rotation_Action){
@@ -452,12 +446,12 @@ check:
  * false.
  */
 bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
-                             Frames *frames, Kite_Ids ki, bool brace,
-                             Content tmp_buffer) {
+                             Kite_Ids ki, bool brace, Content tmp_buffer) {
   bool ok = true;
   Kite_Ids kis = {0};
   TIP tip;
   float angle, duration;
+  Frame *frame = NULL;
 
   if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
     check_return(false);
@@ -482,13 +476,13 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
 
   if (kind == KITE_TIP_ROTATION_ADD) {
     if (brace) {
-      Frame *frame = tkbc_frame_generate(KITE_TIP_ROTATION_ADD, kis,
-                                         &(CLITERAL(Tip_Rotation_Add_Action){
-                                             .angle = angle,
-                                             .tip = tip,
-                                         }),
-                                         duration);
-      tkbc_dap(frames, *frame);
+      frame = tkbc_frame_generate(KITE_TIP_ROTATION_ADD, kis,
+                                  &(CLITERAL(Tip_Rotation_Add_Action){
+                                      .angle = angle,
+                                      .tip = tip,
+                                  }),
+                                  duration);
+      tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
     } else {
       tkbc_register_frames(
           env, tkbc_frame_generate(KITE_TIP_ROTATION_ADD, kis,
@@ -500,13 +494,13 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     }
   } else if (kind == KITE_TIP_ROTATION) {
     if (brace) {
-      Frame *frame = tkbc_frame_generate(KITE_TIP_ROTATION, kis,
-                                         &(CLITERAL(Tip_Rotation_Action){
-                                             .angle = angle,
-                                             .tip = tip,
-                                         }),
-                                         duration);
-      tkbc_dap(frames, *frame);
+      frame = tkbc_frame_generate(KITE_TIP_ROTATION, kis,
+                                  &(CLITERAL(Tip_Rotation_Action){
+                                      .angle = angle,
+                                      .tip = tip,
+                                  }),
+                                  duration);
+      tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
     } else {
       tkbc_register_frames(env,
                            tkbc_frame_generate(KITE_TIP_ROTATION, kis,
