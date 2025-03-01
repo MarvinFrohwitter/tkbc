@@ -186,8 +186,8 @@ static Key_Map default_keymaps[] = {
     },
     {
         .description = "Lock the angle of the kite.",
-        .mod_key = KEY_LEFT_CONTROL,
-        .mod_co_key = KEY_RIGHT_CONTROL,
+        .mod_key = KEY_LEFT_SHIFT,
+        .mod_co_key = KEY_RIGHT_SHIFT,
         .key = KEY_NULL,
         .hash = KMH_LOCK_KITE_ANGLE,
     },

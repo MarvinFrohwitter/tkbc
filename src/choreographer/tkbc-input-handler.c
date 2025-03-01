@@ -174,13 +174,14 @@ void tkbc_input_check_rotation_mouse(Key_Maps keymaps, Kite_State *s) {
   Key_Map keymap =
       tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE);
   // KEY_R && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
-  if (IsKeyDown(keymap.key)) {
+  if (IsKeyDown(keymap.key) || IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
     tkbc_kite_update_angle(s->kite, s->kite->angle + 1 + s->turn_velocity);
     s->mouse_bycile = true;
 
   } else if (IsKeyDown(
                  tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)
-                     .key)) {
+                     .key) ||
+             IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
     tkbc_kite_update_angle(s->kite, s->kite->angle - 1 - s->turn_velocity);
     s->mouse_bycile = true;
   }
@@ -482,6 +483,15 @@ void tkbc_input_check_speed(Key_Maps keymaps, Kite_State *state) {
         state->kite->fly_speed += 5;
       }
     }
+    if (GetMouseWheelMoveV().x < 0) {
+      if (state->kite->turn_speed <= 100) {
+        state->kite->turn_speed += 1;
+      }
+    } else {
+      if (state->kite->turn_speed > 0) {
+        state->kite->turn_speed -= 1;
+      }
+    }
   }
 
   keymap = tkbc_hash_to_keymap(keymaps, KMH_REDUCE_TURN_SPEED);
@@ -616,6 +626,16 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
       kite->center.x = tkbc_clamp(kite->center.x + t * d.x, padding, window.x);
       kite->center.y = tkbc_clamp(kite->center.y + t * d.y, padding, window.y);
     }
+
+    // The BUG was ->>>>
+    // if (state->mouse_bycile) {
+    //   if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP)) ||
+    //       IsKeyDown(KEY_UP)) {
+    //     state->kite->center.y = tkbc_clamp(
+    //         state->kite->center.y - state->fly_velocity, padding, window.y);
+    //   }
+    // }
+
   } else if (state->mouse_lock) {
     if (state->mouse_bycile) {
       if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP)) ||
@@ -657,6 +677,7 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
       kite->center.x = tkbc_clamp(kite->center.x - t * d.x, padding, window.x);
       kite->center.y = tkbc_clamp(kite->center.y - t * d.y, padding, window.y);
     }
+    // The BUG was ->>>>
   }
 
   if (state->mouse_bycile) {
