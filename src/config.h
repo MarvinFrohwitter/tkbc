@@ -47,19 +47,6 @@ static Key_Map default_keymaps[] = {
     },
 
     {
-        .description = "Rotate all selected kites at the center clockwise.",
-        .key = KEY_E,
-        .hash = KMH_ROTATE_KITES_CENTER_CLOCKWISE,
-    },
-    {
-        .description = "Rotate all selected kites at the center anticlockwise.",
-        .mod_key = KEY_LEFT_SHIFT,
-        .mod_co_key = KEY_RIGHT_SHIFT,
-        .key = KEY_Q,
-        .hash = KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE,
-    },
-
-    {
         .description = "Rotate all selected kites at the tip clockwise.",
         .selection_key1 = KEY_H,
         .selection_key2 = KEY_L,
@@ -104,26 +91,26 @@ static Key_Map default_keymaps[] = {
     {
         .description = "Moves the selected kites by the set "
                        "speed to the left.",
-        .key = KEY_H,
+        .key = KEY_A,
         .hash = KMH_MOVES_KITES_LEFT,
     },
     {
         .description = "Moves the selected kites by the set "
                        "speed to the down.",
-        .key = KEY_J,
+        .key = KEY_S,
         .hash = KMH_MOVES_KITES_DOWN,
     },
 
     {
         .description = "Moves the selected kites by the set "
                        "speed to the up.",
-        .key = KEY_K,
+        .key = KEY_W,
         .hash = KMH_MOVES_KITES_UP,
     },
     {
         .description = "Moves the selected kites by the set "
                        "speed to the right.",
-        .key = KEY_L,
+        .key = KEY_D,
         .hash = KMH_MOVES_KITES_RIGHT,
     },
 
@@ -208,6 +195,17 @@ static Key_Map default_keymaps[] = {
         .description = "Snaps the angle of the kite.",
         .key = KEY_R,
         .hash = KMH_SNAP_KITE_ANGLE,
+    },
+
+    {
+        .description = "Rotate all selected kites at the center clockwise.",
+        .key = KEY_E,
+        .hash = KMH_ROTATE_KITES_CENTER_CLOCKWISE,
+    },
+    {
+        .description = "Rotate all selected kites at the center anticlockwise.",
+        .key = KEY_Q,
+        .hash = KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE,
     },
 
     {
