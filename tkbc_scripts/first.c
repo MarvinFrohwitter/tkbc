@@ -95,6 +95,19 @@ tkbc_script_input {
   // float ball_radius = (kite->width + kite->spread);
   Kite_Ids ki = tkbc_kite_array_generate(env, 2);
 
+  kite = *env->vanilla_kite;
+  tkbc_script_begin();
+  SET(
+
+      KITE_MOVE_ADD(ID(0), -kite.width, 0, rotation_duration),
+      KITE_MOVE_ADD(ID(1), kite.width, 0, rotation_duration),
+
+      KITE_TIP_ROTATION_ADD(ID(0), 180, LEFT_TIP, rotation_duration),
+      KITE_TIP_ROTATION_ADD(ID(1), 180, LEFT_TIP, rotation_duration)
+
+  );
+  tkbc_script_end();
+
   choreo(env, ki);
 
   tkbc_script_begin();

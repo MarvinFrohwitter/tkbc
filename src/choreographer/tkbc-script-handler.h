@@ -29,7 +29,7 @@ void tkbc_scrub_frames(Env *env);
 // ========================== SCRIPT HANDLER INTERNAL ========================
 // ===========================================================================
 
-void tkbc_script_move(Kite *kite, Vector2 position, float duration);
+Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration);
 float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding);
 float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
                              bool adding);

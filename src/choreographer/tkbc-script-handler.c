@@ -225,12 +225,25 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
       assert(kite != NULL);
-      tkbc_script_move(kite, Vector2Add(kite->old_center, action->position),
-                       frame->duration);
+      Vector2 dest_position = Vector2Add(kite->old_center, action->position);
+      Vector2 d = tkbc_script_move(kite, dest_position, frame->duration);
 
-      if (Vector2Equals(kite->center,
-                        Vector2Add(kite->old_center, action->position))) {
+      if (Vector2Equals(action->position, Vector2Zero())) {
+        frame->duration -= tkbc_get_frame_time();
+        if (frame->duration <= 0) {
+          frame->finished = true;
+        }
+        continue;
+      }
+
+      int res = fabsf(Vector2Add(kite->old_center, action->position).x -
+                      kite->center.x) <= d.x &&
+                fabsf(Vector2Add(kite->old_center, action->position).y -
+                      kite->center.y) <= d.y;
+
+      if (res) {
         frame->finished = true;
+        tkbc_script_move(kite, dest_position, 0);
       }
     }
 
@@ -253,13 +266,29 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
       assert(kite != NULL);
-      tkbc_script_move(kite, action->position, frame->duration);
+      Vector2 d = tkbc_script_move(kite, action->position, frame->duration);
 
-      if (Vector2Equals(kite->center, action->position)) {
+      if (Vector2Equals(action->position, Vector2Zero())) {
+        if (frame->duration > 0) {
+          frame->duration -= tkbc_get_frame_time();
+          continue;
+        }
+        bool result = fabsf(action->position.x - kite->center.x) <= d.x &&
+                      fabsf(action->position.y - kite->center.y) <= d.y;
+        if (result) {
+          frame->finished = true;
+        }
+        continue;
+      }
+
+      int res = fabsf(action->position.x - kite->center.x) <= d.x &&
+                fabsf(action->position.y - kite->center.y) <= d.y;
+
+      if (res) {
         frame->finished = true;
+        tkbc_script_move(kite, action->position, 0);
       }
     }
-
   } break;
   case KITE_ROTATION_ADD: {
     Kite *kite = NULL;
@@ -274,9 +303,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
           break;
         }
       }
-      if (kite == NULL) {
-        assert(0 && "Unexpected data lose.");
+      if (!kite) {
+        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
+      assert(kite != NULL);
 
       float d = tkbc_script_rotate(kite, action->angle, frame->duration, true);
       if (action->angle == 0) {
@@ -287,7 +317,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         continue;
       }
 
-      assert(d != 0);
       int result = fabsf((kite->old_angle + action->angle) - kite->angle) <= d;
       if (result) {
         frame->finished = true;
@@ -309,9 +338,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
           break;
         }
       }
-      if (kite == NULL) {
-        assert(0 && "Unexpected data lose.");
+      if (!kite) {
+        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
+      assert(kite != NULL);
 
       float intermediate_angle = check_angle_zero(
           kite, frame->kind, *(Action *)action, frame->duration);
@@ -331,7 +361,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       // NOTE: Different from the ADDing version.
-      assert(d != 0);
       int result = fabsf(action->angle - kite->angle) <= d;
       if (result) {
         frame->finished = true;
@@ -353,9 +382,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
           break;
         }
       }
-      if (kite == NULL) {
-        assert(0 && "Unexpected data lose.");
+      if (!kite) {
+        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
+      assert(kite != NULL);
 
       float d = tkbc_script_rotate_tip(kite, action->tip, action->angle,
                                        frame->duration, true);
@@ -367,7 +397,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         continue;
       }
 
-      assert(d != 0);
       int result = fabsf((kite->old_angle + action->angle) - kite->angle) <= d;
       if (result) {
         frame->finished = true;
@@ -389,9 +418,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
           break;
         }
       }
-      if (kite == NULL) {
-        assert(0 && "Unexpected data lose.");
+      if (!kite) {
+        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
       }
+      assert(kite != NULL);
 
       float intermediate_angle = check_angle_zero(
           kite, frame->kind, *(Action *)action, frame->duration);
@@ -411,7 +441,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       // NOTE: Different from the ADDing version.
-      assert(d != 0);
       int result = fabsf(action->angle - kite->angle) <= d;
       if (result) {
         frame->finished = true;
@@ -519,8 +548,8 @@ bool tkbc_check_finished_frames(Env *env) {
 }
 
 /**
- * @brief The function can collect the amount of finished frames in the current
- * block frame execution.
+ * @brief The function can collect the amount of finished frames in the
+ * current block frame execution.
  *
  * @param env The global state of the application.
  * @return It returns the amount of finished frames and 0 if no frames has
@@ -538,8 +567,8 @@ size_t tkbc_check_finished_frames_count(Env *env) {
 }
 
 /**
- * @brief The function switches to the next available script. It loads the views
- * block_frame and frames in the env. And sets the kite_frame_positions.
+ * @brief The function switches to the next available script. It loads the
+ * views block_frame and frames in the env. And sets the kite_frame_positions.
  *
  * @param env The global state of the application.
  */
@@ -560,8 +589,8 @@ void tkbc_load_next_script(Env *env) {
  * corresponding kite_frame_positions of the first frame.
  *
  * @param env The global state of the application.
- * @param script_id The id of the script that should be loaded into the current
- * execution.
+ * @param script_id The id of the script that should be loaded into the
+ * current execution.
  */
 void tkbc_load_script_id(Env *env, size_t script_id) {
   for (size_t i = 0; i < env->block_frames->count; ++i) {
@@ -613,9 +642,9 @@ void tkbc_input_handler_script(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
-  // TODO: Think about kites that are move in the previous frame but not in the
-  // current one. The kites can end up in wired locations, because the state is
-  // not exactly as if the script has executed from the beginning.
+  // TODO: Think about kites that are move in the previous frame but not in
+  // the current one. The kites can end up in wired locations, because the
+  // state is not exactly as if the script has executed from the beginning.
   Kite *kite = NULL;
   for (size_t i = 0; i < env->frames->kite_frame_positions.count; ++i) {
     for (size_t k = 0; k < env->kite_array->count; ++k) {
@@ -641,8 +670,8 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
 }
 
 /**
- * @brief The function computes the frame state of the timeline and syncs up the
- * currently loaded frame. It computes mouse control of the timeline.
+ * @brief The function computes the frame state of the timeline and syncs up
+ * the currently loaded frame. It computes mouse control of the timeline.
  *
  * @param env The global state of the application.
  */
@@ -680,17 +709,21 @@ void tkbc_scrub_frames(Env *env) {
  * @param position The new position of the kite.
  * @param duration The time it should take to interpolate the kite to the new
  * position.
+ * @return The amount that the center position has moved to the final
+ * position.
  */
-void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
-
+Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration) {
   if (duration <= 0) {
+    Vector2 result = Vector2Subtract(position, kite->center);
     tkbc_kite_update_position(kite, &position);
-    return;
+    return result;
   }
 
   if (Vector2Equals(kite->center, position)) {
+    // NOTE:This might be just (0,0), because the  precision is not needed?
+    Vector2 result = Vector2Subtract(position, kite->center);
     tkbc_kite_update_position(kite, &position);
-    return;
+    return result;
   }
 
   float dt = tkbc_get_frame_time();
@@ -701,9 +734,11 @@ void tkbc_script_move(Kite *kite, Vector2 position, float duration) {
   if (Vector2Length(dnormscale) >=
       Vector2Length(Vector2Subtract(position, kite->center))) {
     tkbc_kite_update_position(kite, &position);
+    return Vector2Subtract(position, kite->center);
   } else {
     Vector2 it = Vector2Add(kite->center, dnormscale);
     tkbc_kite_update_position(kite, &it);
+    return dnormscale;
   }
 }
 
@@ -816,7 +851,8 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
 /**
  * @brief The function computes the intermediate angle that represents the
  * difference to zero from the current kite angle and respects the sign of the
- * 0 angle. The intermediate angle is returned and the action stays unmodified.
+ * 0 angle. The intermediate angle is returned and the action stays
+ * unmodified.
  *
  * @param kite The kite the intermediate angel should be calculated for.
  * @param kind The action kind.
