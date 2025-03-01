@@ -151,7 +151,38 @@ void tkbc_input_handler_kite_array(Env *env) {
 
   // To handle all of the kites currently registered in the kite array.
   for (size_t i = 0; i < env->kite_array->count; ++i) {
+
+    Color color = TKBC_UI_TEAL;
+    char buf[32] = {0};
+    sprintf(buf, "%.0f", env->kite_array->elements[i].kite->fly_speed);
+
+    DrawTextEx(GetFontDefault(), buf, (Vector2){10, 10}, 32, 10, color);
+
     tkbc_input_handler(*env->keymaps, &env->kite_array->elements[i]);
+  }
+}
+
+/**
+ * @brief The function handles the corresponding rotation invoked by the key
+ * input.
+ *
+ * @param keymaps The current set keymaps.
+ * @param s The current state of a kite that should be handled.
+ */
+void tkbc_input_check_rotation_mouse(Key_Maps keymaps, Kite_State *s) {
+  s->mouse_bycile = false;
+  Key_Map keymap =
+      tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE);
+  // KEY_R && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+  if (IsKeyDown(keymap.key)) {
+    tkbc_kite_update_angle(s->kite, s->kite->angle + 1 + s->turn_velocity);
+    s->mouse_bycile = true;
+
+  } else if (IsKeyDown(
+                 tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)
+                     .key)) {
+    tkbc_kite_update_angle(s->kite, s->kite->angle - 1 - s->turn_velocity);
+    s->mouse_bycile = true;
   }
 }
 
@@ -442,6 +473,18 @@ void tkbc_input_check_speed(Key_Maps keymaps, Kite_State *state) {
     }
   }
 
+  if (GetMouseWheelMove()) {
+    if (GetMouseWheelMoveV().y < 0) {
+      if (state->kite->fly_speed > 0) {
+        state->kite->fly_speed -= 5;
+      }
+    } else {
+      if (state->kite->fly_speed <= 100) {
+        state->kite->fly_speed += 5;
+      }
+    }
+  }
+
   keymap = tkbc_hash_to_keymap(keymaps, KMH_REDUCE_TURN_SPEED);
   // KEY_O && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
   if (IsKeyDown(keymap.key) &&
@@ -524,33 +567,44 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
     state->is_in_deadzone = false;
   }
 
+  if (state->mouse_lock) {
+    tkbc_input_check_rotation_mouse(keymaps, state);
+  }
+
   float angle = Vector2Angle(face, d);
   angle = angle * 180 / PI;
   int angle_from_face_to_orth = 90;
   float result_angle = kite->angle;
-  if (!state->is_in_deadzone || !state->mouse_lock) {
-    result_angle = kite->angle - angle - angle_from_face_to_orth;
-    tkbc_kite_update_angle(kite, result_angle);
-  }
-  if (state->toggle_angle_snap && state->mouse_lock) {
-    float remainder = fmodf(result_angle, 45);
-    if (fabsf(remainder) <= 22.5) {
-      result_angle = fmodf(result_angle, 360) - remainder;
-    } else {
-      if (remainder < 0) {
-        result_angle = fmodf(result_angle, 360) - remainder - 45;
-      } else {
-        result_angle = fmodf(result_angle, 360) - remainder + 45;
-      }
+
+  if (!state->mouse_bycile) {
+    if (!state->is_in_deadzone || !state->mouse_lock) {
+      result_angle = kite->angle - angle - angle_from_face_to_orth;
+      tkbc_kite_update_angle(kite, result_angle);
     }
-    tkbc_kite_update_angle(kite, floorf(result_angle));
+
+    if (state->toggle_angle_snap && state->mouse_lock) {
+      float remainder = fmodf(result_angle, 45);
+      if (fabsf(remainder) <= 22.5) {
+        result_angle = fmodf(result_angle, 360) - remainder;
+      } else {
+        if (remainder < 0) {
+          result_angle = fmodf(result_angle, 360) - remainder - 45;
+        } else {
+          result_angle = fmodf(result_angle, 360) - remainder + 45;
+        }
+      }
+      tkbc_kite_update_angle(kite, floorf(result_angle));
+    }
   }
 
   // Movement corresponding to the mouse position.
-  int padding = kite->width > kite->height ? kite->width / 2 : kite->height;
+  int padding = state->kite->width > state->kite->height
+                    ? state->kite->width / 2
+                    : state->kite->height;
   Vector2 window = {tkbc_get_screen_width(), tkbc_get_screen_height()};
   window.x -= padding;
   window.y -= padding;
+
   float t = state->fly_velocity;
   d = Vector2Normalize(d);
   face = Vector2Normalize(face);
@@ -564,23 +618,39 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
       kite->center.y = tkbc_clamp(kite->center.y + t * d.y, padding, window.y);
     }
   } else if (state->mouse_lock) {
-    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) ||
-        IsKeyDown(KEY_UP)) {
-      kite->center.x =
-          tkbc_clamp(kite->center.x + t * orth.x, padding, window.x);
-      kite->center.y =
-          tkbc_clamp(kite->center.y + t * orth.y, padding, window.y);
+    if (state->mouse_bycile) {
+      if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP)) ||
+          IsKeyDown(KEY_UP)) {
+        state->kite->center.y = tkbc_clamp(
+            state->kite->center.y - state->fly_velocity, padding, window.y);
+      }
+    } else {
+      if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) ||
+          IsKeyDown(KEY_UP)) {
+        kite->center.x =
+            tkbc_clamp(kite->center.x + t * orth.x, padding, window.x);
+        kite->center.y =
+            tkbc_clamp(kite->center.y + t * orth.y, padding, window.y);
+      }
     }
   }
 
   // KEY_S
   if (state->mouse_lock) {
-    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE)) ||
-        IsKeyDown(KEY_DOWN)) {
-      kite->center.x =
-          tkbc_clamp(kite->center.x - t * orth.x, padding, window.x);
-      kite->center.y =
-          tkbc_clamp(kite->center.y - t * orth.y, padding, window.y);
+    if (state->mouse_bycile) {
+      if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_DOWN)) ||
+          IsKeyDown(KEY_DOWN)) {
+        state->kite->center.y = tkbc_clamp(
+            state->kite->center.y + state->fly_velocity, padding, window.y);
+      }
+    } else {
+      if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE)) ||
+          IsKeyDown(KEY_DOWN)) {
+        kite->center.x =
+            tkbc_clamp(kite->center.x - t * orth.x, padding, window.x);
+        kite->center.y =
+            tkbc_clamp(kite->center.y - t * orth.y, padding, window.y);
+      }
     }
   } else {
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE)) ||
@@ -590,18 +660,38 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
     }
   }
 
-  // KEY_A
-  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT_AROUND_MOUSE)) ||
-      IsKeyDown(KEY_RIGHT)) {
-    kite->center.x = tkbc_clamp(kite->center.x + t * face.x, padding, window.x);
-    kite->center.y = tkbc_clamp(kite->center.y + t * face.y, padding, window.y);
-  }
-  // KEY_D
-  if (IsKeyDown(
-          tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_RIGHT_AROUND_MOUSE)) ||
-      IsKeyDown(KEY_LEFT)) {
-    kite->center.x = tkbc_clamp(kite->center.x - t * face.x, padding, window.x);
-    kite->center.y = tkbc_clamp(kite->center.y - t * face.y, padding, window.y);
+  if (!state->mouse_bycile) {
+    // KEY_D
+    if (IsKeyDown(
+            tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_RIGHT_AROUND_MOUSE)) ||
+        IsKeyDown(KEY_LEFT)) {
+      kite->center.x =
+          tkbc_clamp(kite->center.x - t * face.x, padding, window.x);
+      kite->center.y =
+          tkbc_clamp(kite->center.y - t * face.y, padding, window.y);
+    }
+    // KEY_A
+    if (IsKeyDown(
+            tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT_AROUND_MOUSE)) ||
+        IsKeyDown(KEY_RIGHT)) {
+      kite->center.x =
+          tkbc_clamp(kite->center.x + t * face.x, padding, window.x);
+      kite->center.y =
+          tkbc_clamp(kite->center.y + t * face.y, padding, window.y);
+    }
+  } else {
+    // KEY_D
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_RIGHT)) ||
+        IsKeyDown(KEY_RIGHT)) {
+      state->kite->center.x = tkbc_clamp(
+          state->kite->center.x + state->fly_velocity, padding, window.x);
+    }
+    // KEY_A
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT)) ||
+        IsKeyDown(KEY_LEFT)) {
+      state->kite->center.x = tkbc_clamp(
+          state->kite->center.x - state->fly_velocity, padding, window.x);
+    }
   }
 
   tkbc_kite_update_internal(state->kite);

@@ -157,6 +157,7 @@ typedef struct {
               // steps.
   bool iscenter; // The representation of the active center rotation variant.
 
+  bool mouse_bycile;
   bool kite_input_handler_active; // Representation of a manual user control
                                   // selection.
 } Kite_State;                     // The current parametrized state of one kite.

@@ -9,7 +9,7 @@ static Key_Map default_keymaps[] = {
 
     {
         .description = "Quits the Program.",
-        .key = KEY_Q,
+        .key = KEY_BACKSPACE,
         .hash = KMH_QUIT_PROGRAM,
     },
 
@@ -48,14 +48,14 @@ static Key_Map default_keymaps[] = {
 
     {
         .description = "Rotate all selected kites at the center clockwise.",
-        .key = KEY_R,
+        .key = KEY_E,
         .hash = KMH_ROTATE_KITES_CENTER_CLOCKWISE,
     },
     {
         .description = "Rotate all selected kites at the center anticlockwise.",
         .mod_key = KEY_LEFT_SHIFT,
         .mod_co_key = KEY_RIGHT_SHIFT,
-        .key = KEY_R,
+        .key = KEY_Q,
         .hash = KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE,
     },
 
