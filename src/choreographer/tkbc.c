@@ -400,11 +400,11 @@ void tkbc_set_kite_state_defaults(Kite_State *state) {
   state->kite_input_handler_active = false;
   state->fly_velocity = 10;
   state->turn_velocity = 10;
-  state->iscenter = false;
-  state->fixed = true;
+  state->is_center_rotation = false;
+  state->is_fixed_rotation = true;
   state->interrupt_movement = false;
   state->interrupt_smoothness = false;
-  state->mouse_control = true;
+  state->is_mouse_control = true;
 }
 
 // ===========================================================================

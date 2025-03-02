@@ -142,22 +142,25 @@ typedef struct {
   float turn_velocity; // The base turn speed that holds the current combined
                        // value with the delta time and the variable turn_speed
                        // that is stored in the kite itself.
-  bool is_in_deadzone; // A space between the mouse and the kite that is not
-                       // reachable by moving forward with the kite.
-  bool toggle_angle_snap; // Represents if the kite snaps to the nearest 45
-                          // degrees angle.
-  bool mouse_lock; // It represents if the kite leading edge angle is calculated
-                   // by the mouse position or it holds the current angle,
-                   // (in  mouse control mode).
-  bool mouse_control; // The indication if the kite follows the mouse position.
+  bool is_fixed_rotation; // The representation of the turn variant smooth or in
+                          // fixed angle steps.
+  bool is_center_rotation;   // The representation of the active center rotation
+                             // variant.
   bool interrupt_movement;   // The ability of the kite to move in user control.
   bool interrupt_smoothness; // The ability if the kite to turn smooth in user
                              // control.
-  bool fixed; // The representation of the turn variant smooth or in fixed angle
-              // steps.
-  bool iscenter; // The representation of the active center rotation variant.
+  bool is_mouse_control;     // The indication if the kite follows the mouse
+                             // position.
+  bool is_mouse_in_dead_zone; // A space between the mouse and the kite that is
+                              // not reachable by moving forward with the kite.
+  bool is_snapping_to_angle;  // Represents if the kite snaps to the nearest 45
+                              // degrees angle.
+  bool is_angle_locked;       // It represents if the kite leading edge angle is
+                        // calculated by the mouse position or it holds the
+                        // current angle, (in mouse control mode).
+  bool is_rotating; // Indicates if the kite currently rotates around
+                    // the center.
 
-  bool mouse_bycile;
   bool kite_input_handler_active; // Representation of a manual user control
                                   // selection.
 } Kite_State;                     // The current parametrized state of one kite.
