@@ -111,6 +111,15 @@ void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
     }
   }
 }
+
+/**
+ * @brief The function sets the dest_key and it's corresponding string when the
+ * given key is not equal to KEY_DELETE. For that case the keybind is deleted.
+ *
+ * @param dest_key The key to sets is value to key_value.
+ * @param dest_str The key str that holds the string representation of the key.
+ * @param key_value The value that the dest_key should be set to.
+ */
 void tkbc_set_key_or_delete(int *dest_key, const char **dest_str,
                             int key_value) {
   if (key_value == KEY_DELETE) {
