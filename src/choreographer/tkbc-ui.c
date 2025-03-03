@@ -111,6 +111,15 @@ void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
     }
   }
 }
+void tkbc_set_key_or_delete(int *dest_key, const char **dest_str,
+                            int key_value) {
+  if (key_value == KEY_DELETE) {
+    *dest_key = KEY_NULL;
+  } else {
+    *dest_key = key_value;
+  }
+  *dest_str = tkbc_key_to_str(*dest_key);
+}
 
 /**
  * @brief The function sets the new keybinding corresponding to the given
@@ -155,41 +164,28 @@ void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration,
   // NOTE: This KEY_ESCAPE disables the ability to set KEY_ESCAPE for any
   // keymap.
   if (key != KEY_ESCAPE) {
+    Key_Map *km = &env->keymaps->elements[env->keymaps_mouse_interaction_box];
     switch (env->keymaps_interaction_rec_number) {
     case BOX_MOD_KEY:
-      env->keymaps->elements[env->keymaps_mouse_interaction_box].mod_key = key;
-      env->keymaps->elements[env->keymaps_mouse_interaction_box].mod_key_str =
-          tkbc_key_to_str(key);
+      tkbc_set_key_or_delete(&km->mod_key, &km->mod_key_str, key);
       break;
     case BOX_MOD_CO_KEY:
-      env->keymaps->elements[env->keymaps_mouse_interaction_box].mod_co_key =
-          key;
-      env->keymaps->elements[env->keymaps_mouse_interaction_box]
-          .mod_co_key_str = tkbc_key_to_str(key);
+      tkbc_set_key_or_delete(&km->mod_co_key, &km->mod_co_key_str, key);
       break;
     case BOX_SELECTION_KEY1:
-      env->keymaps->elements[env->keymaps_mouse_interaction_box]
-          .selection_key1 = key;
-      env->keymaps->elements[env->keymaps_mouse_interaction_box]
-          .selection_key1_str = tkbc_key_to_str(key);
+      tkbc_set_key_or_delete(&km->selection_key1, &km->selection_key1_str, key);
       break;
     case BOX_SELECTION_KEY2:
-      env->keymaps->elements[env->keymaps_mouse_interaction_box]
-          .selection_key2 = key;
-      env->keymaps->elements[env->keymaps_mouse_interaction_box]
-          .selection_key2_str = tkbc_key_to_str(key);
+      tkbc_set_key_or_delete(&km->selection_key2, &km->selection_key2_str, key);
       break;
     case BOX_KEY:
-      env->keymaps->elements[env->keymaps_mouse_interaction_box].key = key;
-      env->keymaps->elements[env->keymaps_mouse_interaction_box].key_str =
-          tkbc_key_to_str(key);
+      tkbc_set_key_or_delete(&km->key, &km->key_str, key);
       break;
     default:
       assert(0 && "UNREACHABLE tkbc_draw_key_box()");
     }
 
-    if (env->keymaps->elements[env->keymaps_mouse_interaction_box].hash ==
-        KMH_QUIT_PROGRAM) {
+    if (km->hash == KMH_QUIT_PROGRAM) {
       SetExitKey(tkbc_hash_to_key(*env->keymaps, KMH_QUIT_PROGRAM));
     }
 

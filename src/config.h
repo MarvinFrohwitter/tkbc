@@ -9,7 +9,7 @@ static Key_Map default_keymaps[] = {
 
     {
         .description = "Quits the Program.",
-        .key = KEY_NULL,
+        .key = KEY_BACKSPACE,
         .hash = KMH_QUIT_PROGRAM,
     },
 
