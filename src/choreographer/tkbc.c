@@ -22,33 +22,40 @@
  * @return The new allocated Env.
  */
 Env *tkbc_init_env(void) {
-  Env *env = calloc(1, sizeof(*env));
+  Env *env = malloc(sizeof(*env));
   if (env == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
-  env->vanilla_kite = calloc(1, sizeof(*env->vanilla_kite));
+  memset(env, 0, sizeof(*env));
+
+  env->vanilla_kite = malloc(sizeof(*env->vanilla_kite));
   if (env->vanilla_kite == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
-  env->kite_array = calloc(1, sizeof(*env->kite_array));
+  memset(env->vanilla_kite, 0, sizeof(*env->vanilla_kite));
+
+  env->kite_array = malloc(sizeof(*env->kite_array));
   if (env->kite_array == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
+  memset(env->kite_array, 0, sizeof(*env->kite_array));
 
-  env->block_frames = calloc(1, sizeof(*env->block_frames));
+  env->block_frames = malloc(sizeof(*env->block_frames));
   if (env->block_frames == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
+  memset(env->block_frames, 0, sizeof(*env->block_frames));
 
-  env->keymaps = calloc(1, sizeof(*env->keymaps));
+  env->keymaps = malloc(sizeof(*env->keymaps));
   if (env->keymaps == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
+  memset(env->keymaps, 0, sizeof(*env->keymaps));
 
   tkbc_init_keymaps_defaults(env->keymaps);
 
@@ -124,18 +131,21 @@ Env *tkbc_init_env(void) {
  * @return state The new allocated state.
  */
 Kite_State *tkbc_init_kite(void) {
-  Kite_State *state = calloc(1, sizeof(*state));
+  Kite_State *state = malloc(sizeof(*state));
   if (state == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
+  memset(state, 0, sizeof(*state));
 
-  tkbc_set_kite_state_defaults(state);
-  state->kite = calloc(1, sizeof(*state->kite));
+  state->kite = malloc(sizeof(*state->kite));
   if (state->kite == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
+  memset(state->kite, 0, sizeof(*state->kite));
+
+  tkbc_set_kite_state_defaults(state);
   tkbc_set_kite_defaults(state->kite, true);
 
   int viewport_padding = state->kite->width > state->kite->height

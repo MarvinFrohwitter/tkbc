@@ -112,11 +112,12 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
  * @return The Clients pointer if successful, otherwise false.
  */
 Clients *tkbc_init_clients(void) {
-  Clients *clients = calloc(1, sizeof(*clients));
+  Clients *clients = malloc(sizeof(*clients));
   if (clients == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
+  memset(clients, 0, sizeof(*clients));
   return clients;
 }
 

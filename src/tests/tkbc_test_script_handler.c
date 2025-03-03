@@ -3,6 +3,8 @@
 #include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc-script-handler.h"
 #include "../global/tkbc-types.h"
+#include "../global/tkbc-utils.h"
+#include <stdlib.h>
 #include <string.h>
 
 Test init_frame() {
@@ -37,8 +39,16 @@ Test deep_copy_frames() {
   Test test = cassert_init_test("tkbc_deep_copy_frames()");
 
   Frames *frames = malloc(sizeof(*frames));
+  if (frames == NULL) {
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+    abort();
+  }
   memset(frames, 0, sizeof(*frames));
   Frame *frame = malloc(sizeof(*frame));
+  if (frame == NULL) {
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+    abort();
+  }
   memset(frame, 0, sizeof(*frame));
 
   frame->kite_id_array = tkbc_indexs_range(1, 3);

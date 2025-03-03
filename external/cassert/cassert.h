@@ -356,8 +356,8 @@ void cassert_print_tests(Tests *tests);
     cassert.file = __FILE__;                                                   \
     cassert.assert_type = type;                                                \
     cassert.value1 = malloc(sizeof(typeof((a))));                              \
-    cassert.value2 = malloc(sizeof(typeof((b))));                              \
     assert(cassert.value1 != NULL);                                            \
+    cassert.value2 = malloc(sizeof(typeof((b))));                              \
     assert(cassert.value2 != NULL);                                            \
     *(typeof((a)) *)cassert.value1 = (a);                                      \
     *(typeof((b)) *)cassert.value2 = (b);                                      \
@@ -377,8 +377,8 @@ void cassert_print_tests(Tests *tests);
     cassert.file = __FILE__;                                                   \
     cassert.assert_type = type;                                                \
     cassert.value1 = malloc(sizeof(typeof((a))));                              \
-    cassert.value2 = malloc(sizeof(typeof((b))));                              \
     assert(cassert.value1 != NULL);                                            \
+    cassert.value2 = malloc(sizeof(typeof((b))));                              \
     assert(cassert.value2 != NULL);                                            \
     *(typeof((a)) *)cassert.value1 = (a);                                      \
     *(typeof((b)) *)cassert.value2 = (b);                                      \
@@ -398,8 +398,8 @@ void cassert_print_tests(Tests *tests);
     cassert.file = __FILE__;                                                   \
     cassert.assert_type = type;                                                \
     cassert.value1 = malloc(sizeof(typeof((a))));                              \
-    cassert.value2 = malloc(sizeof(typeof((b))));                              \
     assert(cassert.value1 != NULL);                                            \
+    cassert.value2 = malloc(sizeof(typeof((b))));                              \
     assert(cassert.value2 != NULL);                                            \
     *(typeof((a)) *)cassert.value1 = (a);                                      \
     *(typeof((b)) *)cassert.value2 = (b);                                      \
@@ -1345,6 +1345,9 @@ int print_operation_and_description(Cassert cassert) {
   size_t buffer_size = len + 2 * space + 2 * dash + nullterminator;
   size_t byte_size = sizeof(char) * buffer_size;
   char *desc_buf = malloc(byte_size);
+  if (desc_buf == NULL) {
+    assert(0 && "OUT OF MEMORY");
+  }
   memset(desc_buf, 0, byte_size);
   if (len > 0) {
     snprintf(desc_buf, buffer_size, " -- %s\n", cassert.description);
@@ -1357,6 +1360,9 @@ int print_operation_and_description(Cassert cassert) {
   buffer_size = len + nullterminator;
   byte_size = sizeof(char) * buffer_size;
   char *operation_buf = malloc(byte_size);
+  if (operation_buf == NULL) {
+    assert(0 && "OUT OF MEMORY");
+  }
   memset(operation_buf, 0, byte_size);
   if (len > 0) {
     snprintf(operation_buf, buffer_size, "%s\n", cassert.operation_str);

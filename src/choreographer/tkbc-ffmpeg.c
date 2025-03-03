@@ -92,11 +92,12 @@ void tkbc_ffmpeg_handler(Env *env, const char *output_file_path) {
  */
 bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   // _WIN32
-  env->ffmpeg = calloc(1, sizeof(Process));
+  env->ffmpeg = malloc(sizeof(*env->ffmpeg));
   if (env->ffmpeg == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
+  memset(env->ffmpeg, 0, sizeof(*env->ffmpeg));
   env->recording = true;
   env->rendering = true;
 
@@ -355,11 +356,12 @@ bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
  * false.
  */
 bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
-  env->ffmpeg = calloc(1, sizeof(Process));
+  env->ffmpeg = malloc(sizeof(*env->ffmpeg));
   if (env->ffmpeg == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
+  memset(env->ffmpeg, 0, sizeof(*env->ffmpeg));
 
   env->recording = true;
   env->rendering = true;
