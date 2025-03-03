@@ -589,29 +589,25 @@ void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state) {
 
   // KEY_W
   if (!state->is_mouse_in_dead_zone) {
-    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) ||
-        IsKeyDown(KEY_UP)) {
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE))) {
       kite->center.x += state->fly_velocity * distance_to_mouse.x;
       kite->center.y += state->fly_velocity * distance_to_mouse.y;
     }
 
     // The BUG was ->>>>
     // if (state->is_rotating) {
-    //   if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP)) ||
-    //       IsKeyDown(KEY_UP)) {
-    //     state->kite->center.y -= t;
+    //   if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP))) {
+    //     kite->center.y -= state->fly_velocity;
     //   }
     // }
 
   } else if (state->is_angle_locked) {
     if (state->is_rotating) {
-      if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP)) ||
-          IsKeyDown(KEY_UP)) {
-        state->kite->center.y -= state->fly_velocity;
+      if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP))) {
+        kite->center.y -= state->fly_velocity;
       }
     } else {
-      if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) ||
-          IsKeyDown(KEY_UP)) {
+      if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE))) {
         kite->center.x += state->fly_velocity * face_orthogonal_norm.x;
         kite->center.y += state->fly_velocity * face_orthogonal_norm.y;
       }
@@ -623,18 +619,16 @@ void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state) {
     if (state->is_rotating) {
       if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_DOWN)) ||
           IsKeyDown(KEY_DOWN)) {
-        state->kite->center.y += state->fly_velocity;
+        kite->center.y += state->fly_velocity;
       }
     } else {
-      if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE)) ||
-          IsKeyDown(KEY_DOWN)) {
+      if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) {
         kite->center.x -= state->fly_velocity * face_orthogonal_norm.x;
         kite->center.y -= state->fly_velocity * face_orthogonal_norm.y;
       }
     }
   } else {
-    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE)) ||
-        IsKeyDown(KEY_DOWN)) {
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) {
       kite->center.x -= state->fly_velocity * distance_to_mouse.x;
       kite->center.y -= state->fly_velocity * distance_to_mouse.y;
     }
@@ -643,27 +637,23 @@ void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state) {
 
   if (state->is_rotating) {
     // KEY_D
-    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_RIGHT)) ||
-        IsKeyDown(KEY_RIGHT)) {
-      state->kite->center.x += state->fly_velocity;
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_RIGHT))) {
+      kite->center.x += state->fly_velocity;
     }
     // KEY_A
-    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT)) ||
-        IsKeyDown(KEY_LEFT)) {
-      state->kite->center.x -= state->fly_velocity;
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT))) {
+      kite->center.x -= state->fly_velocity;
     }
   } else {
     // KEY_D
     if (IsKeyDown(
-            tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_RIGHT_AROUND_MOUSE)) ||
-        IsKeyDown(KEY_LEFT)) {
+            tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_RIGHT_AROUND_MOUSE))) {
       kite->center.x -= state->fly_velocity * face.x;
       kite->center.y -= state->fly_velocity * face.y;
     }
     // KEY_A
     if (IsKeyDown(
-            tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT_AROUND_MOUSE)) ||
-        IsKeyDown(KEY_RIGHT)) {
+            tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT_AROUND_MOUSE))) {
       kite->center.x += state->fly_velocity * face.x;
       kite->center.y += state->fly_velocity * face.y;
     }

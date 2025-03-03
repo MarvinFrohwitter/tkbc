@@ -87,7 +87,6 @@ static Key_Map default_keymaps[] = {
         .hash = KMH_TOGGLE_FIXED,
     },
 
-    // TODO: More than one key?.
     {
         .description = "Moves the selected kites by the set "
                        "speed to the left.",
