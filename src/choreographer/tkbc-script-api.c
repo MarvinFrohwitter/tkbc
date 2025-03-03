@@ -192,6 +192,10 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
     return NULL;
   }
   tkbc_dapc(&frame->kite_id_array, kite_ids.elements, kite_ids.count);
+  if (env->script_id_append) {
+    free(kite_ids.elements);
+    env->script_id_append = false;
+  }
 
   frame->duration = duration;
   frame->kind = kind;

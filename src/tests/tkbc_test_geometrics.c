@@ -373,11 +373,11 @@ Test circle_rotation_left_below() {
 
 void tkbc_test_geometrics(Tests *tests) {
   cassert_dap(tests, center_rotation());
-  // cassert_dap(tests, tip_rotation_left());
-  // cassert_dap(tests, tip_rotation_right());
-  // cassert_dap(tests, kite_update_internal());
-  // cassert_dap(tests, kite_update_position());
-  // cassert_dap(tests, kite_update_angle());
+  cassert_dap(tests, tip_rotation_left());
+  cassert_dap(tests, tip_rotation_right());
+  cassert_dap(tests, kite_update_internal());
+  cassert_dap(tests, kite_update_position());
+  cassert_dap(tests, kite_update_angle());
 
-  // cassert_dap(tests, circle_rotation_left_below());
+  cassert_dap(tests, circle_rotation_left_below());
 }
