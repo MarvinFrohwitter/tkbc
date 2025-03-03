@@ -20,6 +20,8 @@ void tkbc_input_check_mouse(Kite_State *state);
 void tkbc_input_check_locked_angle(Kite_State *state);
 void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state);
 void tkbc_input_check_rotation_mouse_control(Key_Maps keymaps, Kite_State *s);
+void tkbc_input_check_tip_rotation_mouse_control(Key_Maps keymaps,
+                                                 Kite_State *s);
 
 void tkbc_calcluate_and_update_angle(Key_Maps keymaps, Kite_State *state);
 void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state);

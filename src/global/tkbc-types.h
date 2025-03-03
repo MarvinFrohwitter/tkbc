@@ -68,6 +68,7 @@ typedef enum {
   KMH_RESUMES_SOUND,
 
   KMH_SWITCH_MOUSE_CONTOL_MOVEMENT,
+  KMH_LOCK_KITE_TIP,
   KMH_LOCK_KITE_ANGLE,
   KMH_SNAP_KITE_ANGLE,
 
@@ -160,9 +161,11 @@ typedef struct {
   bool is_angle_locked;       // It represents if the kite leading edge angle is
                         // calculated by the mouse position or it holds the
                         // current angle, (in mouse control mode).
-  bool is_rotating; // Indicates if the kite currently rotates around
-                    // the center.
-} Kite_State; // The current parametrized state of one kite.
+  bool is_tip_locked; // It represents if the kite leading edge angle can be
+                      // freely mode with the rotation.
+  bool is_rotating;   // Indicates if the kite currently rotates around
+                      // the center.
+} Kite_State;         // The current parametrized state of one kite.
 
 typedef struct {
   Kite_State *elements; // The dynamic array collection for all generated kites.

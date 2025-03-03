@@ -191,6 +191,13 @@ static Key_Map default_keymaps[] = {
         .hash = KMH_LOCK_KITE_ANGLE,
     },
     {
+        .description = "Lock the angle for tip turn.",
+        .mod_key = KEY_LEFT_CONTROL,
+        .mod_co_key = KEY_RIGHT_CONTROL,
+        .key = KEY_NULL,
+        .hash = KMH_LOCK_KITE_TIP,
+    },
+    {
         .description = "Snaps the angle of the kite.",
         .key = KEY_R,
         .hash = KMH_SNAP_KITE_ANGLE,

@@ -22,7 +22,7 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
   }
   state->is_center_rotation = false;
   state->fly_velocity = 10;
-  state->turn_velocity = 1;
+  state->turn_velocity = 5;
 
   float dt = tkbc_get_frame_time();
   state->turn_velocity *= dt;
@@ -546,19 +546,69 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
  */
 void tkbc_input_check_rotation_mouse_control(Key_Maps keymaps, Kite_State *s) {
   s->is_rotating = false;
-  Key_Map keymap =
-      tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE);
-  // KEY_R && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
-  if (IsKeyDown(keymap.key) || IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    tkbc_kite_update_angle(s->kite, s->kite->angle + 1 + s->turn_velocity);
+  // KEY_R
+  if (IsKeyDown(
+          tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)) ||
+      IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    tkbc_kite_update_angle(s->kite, s->kite->angle + s->turn_velocity);
     s->is_rotating = true;
 
-  } else if (IsKeyDown(
-                 tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)
-                     .key) ||
+  } else if (IsKeyDown(tkbc_hash_to_key(keymaps,
+                                        KMH_ROTATE_KITES_CENTER_CLOCKWISE)) ||
              IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-    tkbc_kite_update_angle(s->kite, s->kite->angle - 1 - s->turn_velocity);
+    tkbc_kite_update_angle(s->kite, s->kite->angle - s->turn_velocity);
     s->is_rotating = true;
+  }
+}
+
+/**
+ * @brief The function handles the corresponding rotation invoked by the key
+ * input.
+ *
+ * @param keymaps The current set keymaps.
+ * @param s The current state of a kite that should be handled.
+ */
+void tkbc_input_check_tip_rotation_mouse_control(Key_Maps keymaps,
+                                                 Kite_State *s) {
+  bool is_left = IsKeyDown(tkbc_hash_to_key(
+                     keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)) ||
+                 IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+  bool is_right =
+      IsKeyDown(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) ||
+      IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
+
+  if (!is_left && !is_right) {
+    return;
+  }
+
+  // Q //
+  if (is_left) {
+    // W
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE))) {
+      tkbc_tip_rotation(s->kite, NULL, s->kite->angle + s->turn_velocity,
+                        LEFT_TIP);
+    }
+
+    // S
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) {
+      tkbc_tip_rotation(s->kite, NULL, s->kite->angle - s->turn_velocity,
+                        LEFT_TIP);
+    }
+  }
+
+  // E //
+  if (is_right) {
+    // W
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE))) {
+      tkbc_tip_rotation(s->kite, NULL, s->kite->angle - s->turn_velocity,
+                        RIGHT_TIP);
+    }
+
+    // S
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) {
+      tkbc_tip_rotation(s->kite, NULL, s->kite->angle + s->turn_velocity,
+                        RIGHT_TIP);
+    }
   }
 }
 
@@ -588,20 +638,7 @@ void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state) {
   Vector2 face_orthogonal_norm = {.x = face.y, .y = -face.x};
 
   // KEY_W
-  if (!state->is_mouse_in_dead_zone) {
-    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE))) {
-      kite->center.x += state->fly_velocity * distance_to_mouse.x;
-      kite->center.y += state->fly_velocity * distance_to_mouse.y;
-    }
-
-    // The BUG was ->>>>
-    // if (state->is_rotating) {
-    //   if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP))) {
-    //     kite->center.y -= state->fly_velocity;
-    //   }
-    // }
-
-  } else if (state->is_angle_locked) {
+  if (state->is_angle_locked) {
     if (state->is_rotating) {
       if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP))) {
         kite->center.y -= state->fly_velocity;
@@ -610,6 +647,22 @@ void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state) {
       if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE))) {
         kite->center.x += state->fly_velocity * face_orthogonal_norm.x;
         kite->center.y += state->fly_velocity * face_orthogonal_norm.y;
+      }
+    }
+  } else if (state->is_tip_locked) {
+    // The BUG ->>>>
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) &&
+        IsKeyDown(KEY_LEFT_CONTROL)) {
+      if (state->is_rotating) {
+        // kite->center.y -= state->fly_velocity;
+      }
+    }
+  } else {
+
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE))) {
+      if (!state->is_mouse_in_dead_zone) {
+        kite->center.x += state->fly_velocity * distance_to_mouse.x;
+        kite->center.y += state->fly_velocity * distance_to_mouse.y;
       }
     }
   }
@@ -627,12 +680,20 @@ void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state) {
         kite->center.y -= state->fly_velocity * face_orthogonal_norm.y;
       }
     }
+  } else if (state->is_tip_locked) {
+    // The BUG ->>>>
+    if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE)) &&
+        IsKeyDown(KEY_LEFT_CONTROL)) {
+      if (state->is_rotating) {
+        // kite->center.y += state->fly_velocity;
+      }
+    }
   } else {
+
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) {
       kite->center.x -= state->fly_velocity * distance_to_mouse.x;
       kite->center.y -= state->fly_velocity * distance_to_mouse.y;
     }
-    // The BUG was ->>>>
   }
 
   if (state->is_rotating) {
@@ -714,14 +775,25 @@ bool tkbc_check_is_mouse_in_dead_zone(Kite_State *state,
  */
 bool tkbc_check_is_angle_locked(Key_Maps keymaps, Kite_State *state) {
   state->is_angle_locked = false;
+  state->is_tip_locked = false;
   if (IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_LOCK_KITE_ANGLE).mod_key) ||
       IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_LOCK_KITE_ANGLE).mod_co_key)) {
     state->is_angle_locked = true;
   }
 
+  if (IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_LOCK_KITE_TIP).mod_key) ||
+      IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_LOCK_KITE_TIP).mod_co_key)) {
+    state->is_tip_locked = true;
+  }
+
   if (state->is_angle_locked) {
     state->is_mouse_in_dead_zone = true;
     tkbc_input_check_rotation_mouse_control(keymaps, state);
+    return true;
+  }
+  if (state->is_tip_locked) {
+    state->is_mouse_in_dead_zone = true;
+    tkbc_input_check_tip_rotation_mouse_control(keymaps, state);
     return true;
   }
   return false;
@@ -735,6 +807,7 @@ bool tkbc_check_is_angle_locked(Key_Maps keymaps, Kite_State *state) {
  * @param state The current state of a kite that should be handled.
  */
 void tkbc_calcluate_and_update_angle(Key_Maps keymaps, Kite_State *state) {
+
   Kite *kite = state->kite;
   Vector2 face = {
       .x = kite->right.v3.x - kite->left.v1.x,
@@ -749,12 +822,17 @@ void tkbc_calcluate_and_update_angle(Key_Maps keymaps, Kite_State *state) {
   face = Vector2Normalize(face);
 
   if (!state->is_rotating) {
-    if (!state->is_mouse_in_dead_zone || !state->is_angle_locked) {
+    if ((!state->is_mouse_in_dead_zone || !state->is_angle_locked) &&
+        !state->is_tip_locked) {
       float angle = Vector2Angle(face, distance_to_mouse) * 180 / PI;
       float result_angle = state->kite->angle - angle - 90;
       tkbc_kite_update_angle(state->kite, result_angle);
     }
 
+    tkbc_calculate_and_update_snapping_angle(keymaps, state);
+  }
+
+  if (state->is_tip_locked) {
     tkbc_calculate_and_update_snapping_angle(keymaps, state);
   }
 }
