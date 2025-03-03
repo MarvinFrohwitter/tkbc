@@ -602,7 +602,7 @@ void tkbc_client_input_handler_kite() {
       };
       float angle = kite_state->kite->angle;
 
-      kite_state->kite_input_handler_active = true;
+      kite_state->is_kite_input_handler_active = true;
       tkbc_input_handler(*env->keymaps, kite_state);
 
       if (Vector2Equals(pos, kite_state->kite->center)) {

@@ -397,7 +397,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
  */
 void tkbc_set_kite_state_defaults(Kite_State *state) {
 
-  state->kite_input_handler_active = false;
+  state->is_kite_input_handler_active = false;
   state->fly_velocity = 10;
   state->turn_velocity = 10;
   state->is_center_rotation = false;

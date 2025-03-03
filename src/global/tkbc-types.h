@@ -134,8 +134,10 @@ typedef struct {
 } Kite;             // The kite internal geometric design.
 
 typedef struct {
-  size_t kite_id; // The unique universal identifier for the kite.
   Kite *kite;     // The kite that holds its geometric and positioning stats.
+  size_t kite_id; // The unique universal identifier for the kite.
+  bool is_kite_input_handler_active; // Representation of a manual user control
+                                     // selection.
   float fly_velocity;  // The base fly speed that holds the current combined
                        // value with the delta time and the variable fly_speed
                        // that is stored in the kite itself.
@@ -160,10 +162,7 @@ typedef struct {
                         // current angle, (in mouse control mode).
   bool is_rotating; // Indicates if the kite currently rotates around
                     // the center.
-
-  bool kite_input_handler_active; // Representation of a manual user control
-                                  // selection.
-} Kite_State;                     // The current parametrized state of one kite.
+} Kite_State; // The current parametrized state of one kite.
 
 typedef struct {
   Kite_State *elements; // The dynamic array collection for all generated kites.

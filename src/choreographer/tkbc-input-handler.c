@@ -17,7 +17,7 @@
  * @param state The current state of a kite that should be handled.
  */
 void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
-  if (!state->kite_input_handler_active) {
+  if (!state->is_kite_input_handler_active) {
     return;
   }
   state->is_center_rotation = false;
@@ -99,8 +99,8 @@ void tkbc_input_handler_kite_array(Env *env) {
       continue;
     }
 
-    env->kite_array->elements[i - 1].kite_input_handler_active =
-        !env->kite_array->elements[i - 1].kite_input_handler_active;
+    env->kite_array->elements[i - 1].is_kite_input_handler_active =
+        !env->kite_array->elements[i - 1].is_kite_input_handler_active;
 
     if (env->frames == NULL) {
       continue;
@@ -159,31 +159,6 @@ void tkbc_input_handler_kite_array(Env *env) {
     DrawTextEx(GetFontDefault(), buf, (Vector2){10, 10}, 32, 10, color);
 
     tkbc_input_handler(*env->keymaps, &env->kite_array->elements[i]);
-  }
-}
-
-/**
- * @brief The function handles the corresponding rotation invoked by the key
- * input.
- *
- * @param keymaps The current set keymaps.
- * @param s The current state of a kite that should be handled.
- */
-void tkbc_input_check_rotation_mouse(Key_Maps keymaps, Kite_State *s) {
-  s->is_rotating = false;
-  Key_Map keymap =
-      tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE);
-  // KEY_R && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
-  if (IsKeyDown(keymap.key) || IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    tkbc_kite_update_angle(s->kite, s->kite->angle + 1 + s->turn_velocity);
-    s->is_rotating = true;
-
-  } else if (IsKeyDown(
-                 tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)
-                     .key) ||
-             IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-    tkbc_kite_update_angle(s->kite, s->kite->angle - 1 - s->turn_velocity);
-    s->is_rotating = true;
   }
 }
 
@@ -473,24 +448,24 @@ void tkbc_input_check_speed(Key_Maps keymaps, Kite_State *state) {
     }
   }
 
-  if (GetMouseWheelMove()) {
-    if (GetMouseWheelMoveV().y < 0) {
-      if (state->kite->fly_speed > 0) {
-        state->kite->fly_speed -= 5;
-      }
-    } else {
-      if (state->kite->fly_speed <= 100) {
-        state->kite->fly_speed += 5;
-      }
+  Vector2 mouse_wheel_move = GetMouseWheelMoveV();
+  if (mouse_wheel_move.y < 0) {
+    if (state->kite->fly_speed > 0) {
+      state->kite->fly_speed -= 5;
     }
-    if (GetMouseWheelMoveV().x < 0) {
-      if (state->kite->turn_speed <= 100) {
-        state->kite->turn_speed += 1;
-      }
-    } else {
-      if (state->kite->turn_speed > 0) {
-        state->kite->turn_speed -= 1;
-      }
+  } else if (mouse_wheel_move.y > 0) {
+    if (state->kite->fly_speed <= 100) {
+      state->kite->fly_speed += 5;
+    }
+  }
+
+  if (mouse_wheel_move.x < 0) {
+    if (state->kite->turn_speed <= 100) {
+      state->kite->turn_speed += 10;
+    }
+  } else if (mouse_wheel_move.x > 0) {
+    if (state->kite->turn_speed > 0) {
+      state->kite->turn_speed -= 10;
     }
   }
 
@@ -535,16 +510,6 @@ void tkbc_input_check_mouse(Kite_State *state) {
  * @param state The current state of a kite that should be handled.
  */
 void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
-  if (IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_LOCK_KITE_ANGLE).mod_key) ||
-      IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_LOCK_KITE_ANGLE).mod_co_key)) {
-    state->is_angle_locked = true;
-    state->is_mouse_in_dead_zone = false;
-  } else {
-    state->is_angle_locked = false;
-  }
-  if (IsKeyPressed(tkbc_hash_to_keymap(keymaps, KMH_SNAP_KITE_ANGLE).key)) {
-    state->is_snapping_to_angle = !state->is_snapping_to_angle;
-  }
   // KEY_ZERO
   if (IsKeyPressed(
           tkbc_hash_to_key(keymaps, KMH_SWITCH_MOUSE_CONTOL_MOVEMENT))) {
@@ -554,79 +519,87 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
     return;
   }
 
-  // Angle to face to the current mouse position.
+  Kite *kite = state->kite;
+  tkbc_check_is_mouse_in_dead_zone(state, kite->height / 2);
+  tkbc_check_is_angle_locked(keymaps, state);
+  tkbc_calcluate_and_update_angle(keymaps, state);
+  tkbc_calculate_new_kite_position(keymaps, state);
+
+  size_t window_padding = state->kite->width > state->kite->height
+                              ? state->kite->width / 2
+                              : state->kite->height;
+  Vector2 window = {
+      tkbc_get_screen_width() - window_padding,
+      tkbc_get_screen_height() - window_padding,
+  };
+  kite->center.y = tkbc_clamp(kite->center.y, window_padding, window.y);
+  kite->center.x = tkbc_clamp(kite->center.x, window_padding, window.x);
+  tkbc_kite_update_internal(state->kite);
+}
+
+/**
+ * @brief The function handles the corresponding rotation invoked by the key
+ * input.
+ *
+ * @param keymaps The current set keymaps.
+ * @param s The current state of a kite that should be handled.
+ */
+void tkbc_input_check_rotation_mouse_control(Key_Maps keymaps, Kite_State *s) {
+  s->is_rotating = false;
+  Key_Map keymap =
+      tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE);
+  // KEY_R && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+  if (IsKeyDown(keymap.key) || IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    tkbc_kite_update_angle(s->kite, s->kite->angle + 1 + s->turn_velocity);
+    s->is_rotating = true;
+
+  } else if (IsKeyDown(
+                 tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)
+                     .key) ||
+             IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+    tkbc_kite_update_angle(s->kite, s->kite->angle - 1 - s->turn_velocity);
+    s->is_rotating = true;
+  }
+}
+
+/**
+ * @brief The function computes the new position of the kite corresponding to
+ * the current mouse position and the keyboard input. If faces the kites leading
+ * edge towards the mouse and can move the kite towards, away and left and right
+ * around the mouse, with the keyboard input keys [w,a,s,d].
+ *
+ * @param keymaps The current set keymaps.
+ * @param state The current state of a kite that should be handled.
+ */
+void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state) {
+  // Movement corresponding to the mouse position.
   Kite *kite = state->kite;
   Vector2 mouse_pos = GetMousePosition();
   Vector2 face = {
       .x = kite->right.v3.x - kite->left.v1.x,
       .y = kite->right.v3.y - kite->left.v1.y,
   };
-
-  Vector2 d = {
+  Vector2 distance_to_mouse = {
       .x = mouse_pos.x - kite->center.x,
       .y = mouse_pos.y - kite->center.y,
   };
-
-  size_t dead_zone = kite->height / 2;
-  if ((fabsf(mouse_pos.x - kite->center.x) < dead_zone &&
-       fabsf(mouse_pos.y - kite->center.y) < dead_zone) ||
-      state->is_angle_locked) {
-    state->is_mouse_in_dead_zone = true;
-  } else {
-    state->is_mouse_in_dead_zone = false;
-  }
-
-  if (state->is_angle_locked) {
-    tkbc_input_check_rotation_mouse(keymaps, state);
-  }
-
-  float angle = Vector2Angle(face, d);
-  angle = angle * 180 / PI;
-  int angle_from_face_to_orth = 90;
-  float result_angle = kite->angle;
-  if (!state->is_rotating) {
-    if (!state->is_mouse_in_dead_zone || !state->is_angle_locked) {
-      result_angle = kite->angle - angle - angle_from_face_to_orth;
-      tkbc_kite_update_angle(kite, result_angle);
-    }
-
-    if (state->is_snapping_to_angle && state->is_angle_locked) {
-      float remainder = fmodf(result_angle, 45);
-      result_angle = fmodf(result_angle, 360) - remainder;
-      if (fabsf(remainder) > 22.5) {
-        result_angle += remainder < 0 ? -45 : 45;
-      }
-      tkbc_kite_update_angle(kite, result_angle);
-    }
-  }
-
-  // Movement corresponding to the mouse position.
-  int padding = state->kite->width > state->kite->height
-                    ? state->kite->width / 2
-                    : state->kite->height;
-  Vector2 window = {tkbc_get_screen_width(), tkbc_get_screen_height()};
-  window.x -= padding;
-  window.y -= padding;
-
-  float t = state->fly_velocity;
-  d = Vector2Normalize(d);
+  distance_to_mouse = Vector2Normalize(distance_to_mouse);
   face = Vector2Normalize(face);
-  Vector2 orth = {.x = face.y, .y = -face.x};
+  Vector2 face_orthogonal_norm = {.x = face.y, .y = -face.x};
 
   // KEY_W
   if (!state->is_mouse_in_dead_zone) {
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) ||
         IsKeyDown(KEY_UP)) {
-      kite->center.x = tkbc_clamp(kite->center.x + t * d.x, padding, window.x);
-      kite->center.y = tkbc_clamp(kite->center.y + t * d.y, padding, window.y);
+      kite->center.x += state->fly_velocity * distance_to_mouse.x;
+      kite->center.y += state->fly_velocity * distance_to_mouse.y;
     }
 
     // The BUG was ->>>>
-    // if (state->mouse_bycile) {
+    // if (state->is_rotating) {
     //   if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP)) ||
     //       IsKeyDown(KEY_UP)) {
-    //     state->kite->center.y = tkbc_clamp(
-    //         state->kite->center.y - state->fly_velocity, padding, window.y);
+    //     state->kite->center.y -= t;
     //   }
     // }
 
@@ -634,16 +607,13 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
     if (state->is_rotating) {
       if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP)) ||
           IsKeyDown(KEY_UP)) {
-        state->kite->center.y = tkbc_clamp(
-            state->kite->center.y - state->fly_velocity, padding, window.y);
+        state->kite->center.y -= state->fly_velocity;
       }
     } else {
       if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) ||
           IsKeyDown(KEY_UP)) {
-        kite->center.x =
-            tkbc_clamp(kite->center.x + t * orth.x, padding, window.x);
-        kite->center.y =
-            tkbc_clamp(kite->center.y + t * orth.y, padding, window.y);
+        kite->center.x += state->fly_velocity * face_orthogonal_norm.x;
+        kite->center.y += state->fly_velocity * face_orthogonal_norm.y;
       }
     }
   }
@@ -653,23 +623,20 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
     if (state->is_rotating) {
       if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_DOWN)) ||
           IsKeyDown(KEY_DOWN)) {
-        state->kite->center.y = tkbc_clamp(
-            state->kite->center.y + state->fly_velocity, padding, window.y);
+        state->kite->center.y += state->fly_velocity;
       }
     } else {
       if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE)) ||
           IsKeyDown(KEY_DOWN)) {
-        kite->center.x =
-            tkbc_clamp(kite->center.x - t * orth.x, padding, window.x);
-        kite->center.y =
-            tkbc_clamp(kite->center.y - t * orth.y, padding, window.y);
+        kite->center.x -= state->fly_velocity * face_orthogonal_norm.x;
+        kite->center.y -= state->fly_velocity * face_orthogonal_norm.y;
       }
     }
   } else {
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE)) ||
         IsKeyDown(KEY_DOWN)) {
-      kite->center.x = tkbc_clamp(kite->center.x - t * d.x, padding, window.x);
-      kite->center.y = tkbc_clamp(kite->center.y - t * d.y, padding, window.y);
+      kite->center.x -= state->fly_velocity * distance_to_mouse.x;
+      kite->center.y -= state->fly_velocity * distance_to_mouse.y;
     }
     // The BUG was ->>>>
   }
@@ -678,35 +645,126 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
     // KEY_D
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_RIGHT)) ||
         IsKeyDown(KEY_RIGHT)) {
-      state->kite->center.x = tkbc_clamp(
-          state->kite->center.x + state->fly_velocity, padding, window.x);
+      state->kite->center.x += state->fly_velocity;
     }
     // KEY_A
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT)) ||
         IsKeyDown(KEY_LEFT)) {
-      state->kite->center.x = tkbc_clamp(
-          state->kite->center.x - state->fly_velocity, padding, window.x);
+      state->kite->center.x -= state->fly_velocity;
     }
   } else {
     // KEY_D
     if (IsKeyDown(
             tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_RIGHT_AROUND_MOUSE)) ||
         IsKeyDown(KEY_LEFT)) {
-      kite->center.x =
-          tkbc_clamp(kite->center.x - t * face.x, padding, window.x);
-      kite->center.y =
-          tkbc_clamp(kite->center.y - t * face.y, padding, window.y);
+      kite->center.x -= state->fly_velocity * face.x;
+      kite->center.y -= state->fly_velocity * face.y;
     }
     // KEY_A
     if (IsKeyDown(
             tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT_AROUND_MOUSE)) ||
         IsKeyDown(KEY_RIGHT)) {
-      kite->center.x =
-          tkbc_clamp(kite->center.x + t * face.x, padding, window.x);
-      kite->center.y =
-          tkbc_clamp(kite->center.y + t * face.y, padding, window.y);
+      kite->center.x += state->fly_velocity * face.x;
+      kite->center.y += state->fly_velocity * face.y;
     }
   }
+}
 
-  tkbc_kite_update_internal(state->kite);
+/**
+ * @brief The function calculates the snapping angle in 45 degrees steps.
+ * This is only activated if the kite control is in precision mode.
+ *
+ * @param keymaps The current set keymaps.
+ * @param state The current state of a kite that should be handled.
+ */
+void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps,
+                                              Kite_State *state) {
+  if (IsKeyPressed(tkbc_hash_to_key(keymaps, KMH_SNAP_KITE_ANGLE))) {
+    state->is_snapping_to_angle = !state->is_snapping_to_angle;
+  }
+
+  if (state->is_snapping_to_angle && state->is_angle_locked) {
+    float remainder = fmodf(state->kite->angle, 45);
+    float result_angle = fmodf(state->kite->angle, 360) - remainder;
+    if (fabsf(remainder) > 22.5) {
+      result_angle += remainder < 0 ? -45 : 45;
+    }
+    tkbc_kite_update_angle(state->kite, result_angle);
+  }
+}
+
+/**
+ * @brief The function checks if the mouse is to close to the kite. To close is
+ * defined by the dead_zone_radius.
+ *
+ * @param state The current state of a kite that should be handled.
+ * @param dead_zone_radius Represents the radius where the kite can't move any
+ * closer to the mouse.
+ * @return True if the mouse is to close to the kite, otherwise false.
+ */
+bool tkbc_check_is_mouse_in_dead_zone(Kite_State *state,
+                                      size_t dead_zone_radius) {
+  Vector2 mouse_position = GetMousePosition();
+  if (fabsf(mouse_position.x - state->kite->center.x) <= dead_zone_radius &&
+      fabsf(mouse_position.y - state->kite->center.y) <= dead_zone_radius) {
+    state->is_mouse_in_dead_zone = true;
+    return true;
+  }
+  state->is_mouse_in_dead_zone = false;
+  return false;
+}
+
+/**
+ * @brief The function checks if the precision mode is activated and the current
+ * kite angle is locked in and checks for the new rotation.
+ *
+ * @param keymaps The current set keymaps.
+ * @param state The current state of a kite that should be handled.
+ * @return True if the kite angle is locked to a fixed angle, otherwise false.
+ */
+bool tkbc_check_is_angle_locked(Key_Maps keymaps, Kite_State *state) {
+  state->is_angle_locked = false;
+  if (IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_LOCK_KITE_ANGLE).mod_key) ||
+      IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_LOCK_KITE_ANGLE).mod_co_key)) {
+    state->is_angle_locked = true;
+  }
+
+  if (state->is_angle_locked) {
+    state->is_mouse_in_dead_zone = true;
+    tkbc_input_check_rotation_mouse_control(keymaps, state);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * @brief The function computes the new angle in respect to the mouse position
+ * and if snapping is activated it checks for new snapping angle.
+ *
+ * @param keymaps The current set keymaps.
+ * @param state The current state of a kite that should be handled.
+ */
+void tkbc_calcluate_and_update_angle(Key_Maps keymaps, Kite_State *state) {
+  Kite *kite = state->kite;
+  Vector2 face = {
+      .x = kite->right.v3.x - kite->left.v1.x,
+      .y = kite->right.v3.y - kite->left.v1.y,
+  };
+  Vector2 mouse_pos = GetMousePosition();
+  Vector2 distance_to_mouse = {
+      .x = mouse_pos.x - kite->center.x,
+      .y = mouse_pos.y - kite->center.y,
+  };
+  distance_to_mouse = Vector2Normalize(distance_to_mouse);
+  face = Vector2Normalize(face);
+
+  if (!state->is_rotating) {
+    if (!state->is_mouse_in_dead_zone || !state->is_angle_locked) {
+      float angle = Vector2Angle(face, distance_to_mouse) * 180 / PI;
+      float result_angle = state->kite->angle - angle - 90;
+      tkbc_kite_update_angle(state->kite, result_angle);
+    }
+
+    tkbc_calculate_and_update_snapping_angle(keymaps, state);
+  }
 }
