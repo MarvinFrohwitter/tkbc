@@ -168,6 +168,13 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
   }
 #endif // TKBC_LOGGING_WARNING
 
+  va_list args;
+  va_start(args, fmt);
+  char buf[8];
+  if (snprintf(buf, sizeof(buf), fmt, args) == 0) {
+    return 0;
+  }
+
   Content c = {0};
   if (level != NULL) {
     tkbc_dap(&c, '[');
@@ -178,8 +185,6 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
   tkbc_dapc(&c, fmt, strlen(fmt));
   tkbc_dap(&c, 0);
 
-  va_list args;
-  va_start(args, fmt);
   ret = vfprintf(stream, c.elements, args);
   va_end(args);
   free(c.elements);
