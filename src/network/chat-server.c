@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -22,7 +23,8 @@ Env *env;
       (ntohs((c).client_address.sin_port))
 
 #define SERVER_CONNETCTIONS 64
-int server_socket;
+static int server_socket;
+static int clients_visited = 0;
 
 typedef struct {
   char *elements;
@@ -42,6 +44,12 @@ typedef struct {
   size_t count;
   size_t capacity;
 } Clients;
+
+typedef struct {
+  struct pollfd *elements;
+  size_t count;
+  size_t capacity;
+} FDs;
 
 /**
  * @brief The function prints the way the program should be called.
@@ -143,6 +151,81 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   return socket_id;
 }
 
+void sock_handling(Clients *clients, FDs *fds) {
+  for (size_t idx = 0; idx < fds->count; ++idx) {
+    if (fds->elements[idx].revents == 0) {
+      continue;
+    }
+
+    if (fds->elements[idx].fd == server_socket) {
+      struct sockaddr_in client_address;
+      socklen_t address_length = sizeof(client_address);
+      int client_socket_id = accept(
+          server_socket, (struct sockaddr *)&client_address, &address_length);
+
+      if (client_socket_id == -1) {
+        if (errno != EAGAIN) {
+          tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+          assert(0 && "accept error");
+        }
+      } else {
+        // Set the socket to non-blocking
+        int flags = fcntl(server_socket, F_GETFL, 0);
+        fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
+
+        clients_visited++;
+        struct pollfd client_fd = {
+            .fd = client_socket_id,
+            .events = POLLRDNORM,
+            .revents = 0,
+        };
+        // This can cause reallocation so it is important to iterate the fds
+        // by index.
+        tkbc_dap(fds, client_fd);
+
+        Client client = {
+            .socket_id = client_socket_id,
+            .client_address = client_address,
+            .client_address_length = address_length,
+        };
+        tkbc_fprintf(stderr, "INFO", "CLIENT: " CLIENT_FMT " has connected.\n",
+                     CLIENT_ARG(client));
+        tkbc_dap(clients, client);
+      }
+    } else {
+
+      char buf[1024] = {0};
+      int recv_n = recv(fds->elements[idx].fd, buf, sizeof(buf) - 1, 0);
+      if (recv_n < 0) {
+        if (errno != EAGAIN) {
+          tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
+          return;
+        }
+      }
+      if (recv_n > 0) {
+        printf("%s", buf);
+        for (size_t id = 0; id < clients->count; ++id) {
+          if (clients->elements[id].socket_id == fds->elements[idx].fd) {
+            continue;
+          }
+          int send_n =
+              send(clients->elements[id].socket_id, buf, sizeof(buf), 0);
+          if (send_n < 0) {
+            if (errno != EAGAIN) {
+              tkbc_fprintf(stderr, "ERROR", "Send: %s\n", strerror(errno));
+            }
+          }
+          if (send_n == 0) {
+            tkbc_fprintf(stderr, "ERROR",
+                         "No byte where send to:" CLIENT_FMT "\n",
+                         CLIENT_ARG(clients->elements[id]));
+          }
+        }
+      }
+    }
+  }
+}
+
 int main(int argc, char *argv[]) {
   tkbc_fprintf(stderr, "INFO", "%s\n", "The server has started.");
 
@@ -160,63 +243,31 @@ int main(int argc, char *argv[]) {
   fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
 
   Clients clients = {0};
-  int clients_visited = 0;
+
+  FDs fds = {0};
+  struct pollfd server_fd = {
+      .fd = server_socket,
+      .events = POLLRDNORM,
+      .revents = 0,
+  };
+  tkbc_dap(&fds, server_fd);
+
   for (;;) {
     if (clients_visited >= SERVER_CONNETCTIONS) {
       break;
     }
-    struct sockaddr_in client_address;
-    socklen_t address_length = sizeof(client_address);
-    int client_socket_id = accept(
-        server_socket, (struct sockaddr *)&client_address, &address_length);
 
-    if (client_socket_id == -1) {
-      if (errno != EAGAIN) {
-        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-        assert(0 && "accept error");
-      }
-    } else {
-      // Set the socket to non-blocking
-      flags = fcntl(client_socket_id, F_GETFL, 0);
-      fcntl(client_socket_id, F_SETFL, flags | O_NONBLOCK);
-
-      clients_visited++;
-      Client client = {
-          .socket_id = client_socket_id,
-          .client_address = client_address,
-          .client_address_length = address_length,
-      };
-      tkbc_fprintf(stderr, "INFO", "CLIENT: " CLIENT_FMT " has connected.\n",
-                   CLIENT_ARG(client));
-      tkbc_dap(&clients, client);
+    int timeout = -1; // Infinite
+    // int timeout = 10;
+    int poll_err = poll(fds.elements, fds.count, timeout);
+    if (poll_err == -1) {
+      tkbc_fprintf(stderr, "ERROR", "The poll has failed:%s\n",
+                   strerror(errno));
+      break;
     }
 
-    for (size_t i = 0; i < clients.count; ++i) {
-      char buf[1024] = {0};
-      int recv_n = recv(clients.elements[i].socket_id, buf, sizeof(buf) - 1, 0);
-      if (recv_n < 0) {
-        if (errno != EAGAIN) {
-          tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
-          return false;
-        }
-      }
-      if (recv_n > 0) {
-        printf("%s", buf);
-        for (size_t id = 0; id < clients.count; ++id) {
-          int send_n =
-              send(clients.elements[id].socket_id, buf, sizeof(buf), 0);
-          if (send_n < 0) {
-            if (errno != EAGAIN) {
-              tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
-            }
-          }
-          if (send_n == 0) {
-            tkbc_fprintf(stderr, "ERROR",
-                         "No byte where send to:" CLIENT_FMT "\n",
-                         CLIENT_ARG(clients.elements[id]));
-          }
-        }
-      }
+    if (poll_err > 0) {
+      sock_handling(&clients, &fds);
     }
   }
 
@@ -227,6 +278,7 @@ int main(int argc, char *argv[]) {
   }
 
   free(clients.elements);
+  free(fds.elements);
   exit(EXIT_SUCCESS);
   return 0;
 }
