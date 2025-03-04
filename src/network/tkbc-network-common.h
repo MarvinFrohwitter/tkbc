@@ -1,28 +1,49 @@
 #ifndef TKBC_NETWORK_COMMON_H
 #define TKBC_NETWORK_COMMON_H
 
-#include "../../external/lexer/tkbc-lexer.h"
-
-#include <netinet/in.h>
-#include <raylib.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-
-#define PROTOCOL_VERSION "0.2.001"
+#define PROTOCOL_VERSION "0.2.002"
 
 #define TKBC_LOGGING
 #define TKBC_LOGGING_ERROR
 #define TKBC_LOGGING_INFO
 #define TKBC_LOGGING_WARNING
 
+#include "../../external/lexer/tkbc-lexer.h"
+
+#include <raylib.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define _WINUSER_
+#define _WINGDI_
+#define _IMM_
+#define _WINCON_
+#include <winsock2.h>
+#include <windows.h>
+
+#define SHUT_WR SD_SEND
+#define SHUT_RDWR SD_BOTH
+typedef int SOCKLEN;
+
+#else
+#include <netinet/in.h>
+typedef struct sockaddr_in SOCKADDR_IN;
+typedef struct sockaddr SOCKADDR;
+typedef socklen_t SOCKLEN;
+#endif //_WIN32
+
+
 typedef struct {
   ssize_t kite_id;
 
   size_t thread_id;
   int socket_id;
-  struct sockaddr_in client_address;
-  socklen_t client_address_length;
+  SOCKADDR_IN client_address;
+  SOCKLEN client_address_length;
 } Client;
 
 typedef struct {

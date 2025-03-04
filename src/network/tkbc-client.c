@@ -1,6 +1,9 @@
 #include "tkbc-client.h"
 #include "tkbc-network-common.h"
 
+#include <raylib.h>
+#include <raymath.h>
+
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 
@@ -15,17 +18,28 @@
 #include "../../external/lexer/tkbc-lexer.h"
 #include "../../tkbc_scripts/first.c"
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define _WINUSER_
+#define _WINGDI_
+#define _IMM_
+#define _WINCON_
+#include <windows.h>
+#include <winsock2.h>
+#else
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <sys/socket.h>
+#endif
+
 #include <ctype.h>
 #include <errno.h>
-#include <netinet/in.h>
-#include <raylib.h>
-#include <raymath.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #define WINDOW_SCALE 120
@@ -108,32 +122,79 @@ const char *tkbc_host_parsing(const char *host_check) {
  * otherwise the program crashes.
  */
 int tkbc_client_socket_creation(const char *addr, uint16_t port) {
+#ifdef _WIN32
+  WSADATA wsaData;
+  if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+    assert(0 && "ERROR: WSAStartup()");
+  } else {
+    tkbc_fprintf(stderr, "INFO", "Initialization of WSAStartup() succeed.\n");
+  }
+  int client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (client_socket == -1) {
+    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+    exit(1);
+  }
+#else
   int client_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (client_socket == -1) {
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     exit(1);
   }
+#endif
 
   int option = 1;
   int sso = setsockopt(client_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
                        sizeof(option));
   if (sso == -1) {
+#ifdef _WIN32
+    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+#else
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+#endif
   }
 
-  struct sockaddr_in server_address;
+  SOCKADDR_IN server_address;
+  memset(&server_address, 0, sizeof(server_address));
+
   server_address.sin_family = AF_INET;
   server_address.sin_port = htons(port);
   server_address.sin_addr.s_addr = inet_addr(addr);
 
-  int connection_status =
-      connect(client_socket, (struct sockaddr *)&server_address,
-              sizeof(server_address));
+  int connection_status = connect(client_socket, (SOCKADDR *)&server_address,
+                                  sizeof(server_address));
 
   if (connection_status == -1) {
+#ifdef _WIN32
+    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+    if (closesocket(client.socket_id) == -1) {
+      tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
+                   WSAGetLastError());
+    }
+    WSACleanup();
+#else
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+    if (close(client.socket_id) == -1) {
+      tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
+                   strerror(errno));
+    }
+#endif
     exit(1);
   }
+
+#ifdef _WIN32
+  // Set the socket to non-blocking
+  u_long mode = 1; // 1 to enable non-blocking socket
+  if (ioctlsocket(client_socket, FIONBIO, &mode) != 0) {
+    tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
+    closesocket(client_socket);
+    WSACleanup();
+    exit(1);
+  }
+#else
+  // Set the socket to non-blocking
+  int flags = fcntl(client_socket, F_GETFL, 0);
+  fcntl(client_socket, F_SETFL, flags | O_NONBLOCK);
+#endif
 
   tkbc_fprintf(stderr, "INFO", "Connected to Server: %s:%hd\n",
                inet_ntoa(server_address.sin_addr),
@@ -195,7 +256,8 @@ bool send_message_handler() {
   if (tkbc_send_message_queue.count) {
     // NOTE: this assumes the whole message buffer could be send in one go.
     ssize_t n = send(client.socket_id, tkbc_send_message_queue.elements,
-                     tkbc_send_message_queue.count, MSG_NOSIGNAL);
+                     tkbc_send_message_queue.count, 0);
+
     if (n == 0) {
       tkbc_fprintf(stderr, "ERROR", "No bytes where send to the server!\n");
       check_return(false);
@@ -496,7 +558,8 @@ bool tkbc_check_is_less_than_max_allowed_capacity_and_handle(Message *message) {
   tkbc_dap(message, 0);
   char *rest_ptr = strrchr(message->elements, '\n');
 
-  unsigned long d = labs(rest_ptr - (message->elements + message->count));
+  unsigned long d =
+      labs((long)(rest_ptr - (message->elements + message->count)));
 
   // The equal save one byte for the buffer null terminator that is set later.
   if (d >= sizeof(static_buffer)) {
@@ -552,7 +615,7 @@ bool message_queue_handler(Message *message) {
       }
     }
     n = recv(client.socket_id, &message->elements[message->count],
-             RECEIVE_QUEUE_SIZE, MSG_NOSIGNAL | MSG_DONTWAIT);
+             RECEIVE_QUEUE_SIZE, 0);
 
     if (n == -1) {
       break;
@@ -565,6 +628,18 @@ bool message_queue_handler(Message *message) {
     message->count += n;
   } while (n > 0);
 
+#ifdef _WIN32
+  if (n == -1) {
+    int err_errno = WSAGetLastError();
+    if (err_errno != WSAEWOULDBLOCK) {
+      tkbc_fprintf(stderr, "ERROR", "Read: %d\n", err_errno);
+      return false;
+    }
+    if (err_errno == WSAEWOULDBLOCK && message->count == 0) {
+      return true;
+    }
+  }
+#else
   if (n == -1) {
     if (errno != EAGAIN) {
       tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
@@ -574,6 +649,7 @@ bool message_queue_handler(Message *message) {
       return true;
     }
   }
+#endif // _WIN32
 
   if (!received_message_handler(message)) {
     if (n > 0) {
@@ -897,6 +973,12 @@ void tkbc_client_input_handler_script() {
  * before with code 1.
  */
 int main(int argc, char *argv[]) {
+#ifndef _WIN32
+  struct sigaction sig_action = {0};
+  sig_action.sa_handler = SIG_IGN;
+  sigaction(SIGPIPE, &sig_action, NULL);
+#endif // _WIN32
+
   client.kite_id = -1;
 
   char *program_name = tkbc_shift_args(&argc, &argv);
@@ -1001,10 +1083,20 @@ int main(int argc, char *argv[]) {
   if (n < 0) {
     tkbc_fprintf(stderr, "ERROR", "Reading failed: %s\n", strerror(errno));
   }
+
+#ifdef _WIN32
+  if (closesocket(client.socket_id) == -1) {
+
+    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
+                 WSAGetLastError());
+  }
+  WSACleanup();
+#else
   if (close(client.socket_id) == -1) {
     tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
                  strerror(errno));
   }
+#endif
 
   tkbc_sound_destroy(env->sound);
   tkbc_destroy_env(env);

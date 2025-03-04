@@ -6,14 +6,25 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
-#include <netinet/in.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define _WINUSER_
+#define _WINGDI_
+#define _IMM_
+#define _WINCON_
+#include <windows.h>
+#include <winsock2.h>
+#else
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
 
 #include "../global/tkbc-types.h"
 
@@ -24,6 +35,9 @@ int server_socket;
 
 pthread_t threads[SERVER_CONNETCTIONS];
 pthread_t execution_thread;
+
+unsigned long long out_bytes = 0;
+unsigned long long in_bytes = 0;
 
 #include "../choreographer/tkbc.h"
 
@@ -72,16 +86,36 @@ bool tkbc_server_commandline_check(int argc, const char *program_name) {
  * @return The newly creates socket id.
  */
 int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
+#ifdef _WIN32
+  // MAKEWORD(2, 2) is a version, and wsaData will be filled with initialized
+  // library information.
+
+  WSADATA wsaData;
+  if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+    assert(0 && "ERROR: WSAStartup()");
+  } else {
+    tkbc_fprintf(stderr, "INFO", "Initialization of WSAStartup() succeed.\n");
+  }
+#endif
+
   int socket_id = socket(AF_INET, SOCK_STREAM, 0);
   if (socket_id == -1) {
+#ifdef _WIN32
+    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+#else
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+#endif
     exit(1);
   }
   int option = 1;
   int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
                        sizeof(option));
   if (sso == -1) {
+#ifdef _WIN32
+    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+#else
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+#endif
   }
 
   struct sockaddr_in server_addr;
@@ -92,13 +126,23 @@ int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   int bind_status =
       bind(socket_id, (struct sockaddr *)&server_addr, sizeof(server_addr));
   if (bind_status == -1) {
+#ifdef _WIN32
+    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+    WSACleanup();
+#else
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+#endif
     exit(1);
   }
 
   int listen_status = listen(socket_id, SERVER_CONNETCTIONS);
   if (listen_status == -1) {
+#ifdef _WIN32
+    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+    WSACleanup();
+#else
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+#endif
     exit(1);
   }
   tkbc_fprintf(stderr, "INFO", "%s: %hu\n", "Listening to port", port);
@@ -170,7 +214,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
     struct sockaddr_in client_address;
-    socklen_t address_length = sizeof(client_address);
+    SOCKLEN address_length = sizeof(client_address);
     int client_socket_id = accept(
         server_socket, (struct sockaddr *)&client_address, &address_length);
     if (client_socket_id != -1) {
@@ -249,13 +293,25 @@ void signalhandler(int signal) {
   pthread_cancel(execution_thread);
 
   shutdown(server_socket, SHUT_RDWR);
+#ifdef _WIN32
+  if (closesocket(server_socket) == -1) {
+
+    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
+                 WSAGetLastError());
+  }
+  WSACleanup();
+#else
   if (close(server_socket) == -1) {
     tkbc_fprintf(stderr, "ERROR", "Main Server Socket: %s\n", strerror(errno));
   }
+#endif
+
   if (clients->elements) {
     free(clients->elements);
     clients->elements = NULL;
   }
   tkbc_destroy_env(env);
+  printf("The amount of send bytes:%llu\n", out_bytes);
+  printf("The amount of recv bytes:%llu\n", in_bytes);
   exit(EXIT_SUCCESS);
 }

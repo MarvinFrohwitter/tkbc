@@ -3,7 +3,19 @@
 
 #include "../global/tkbc-types.h"
 #include "tkbc-network-common.h"
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define _WINUSER_
+#define _WINGDI_
+#define _IMM_
+#define _WINCON_
+#include <windows.h>
+#include <winsock2.h>
+#else
 #include <arpa/inet.h>
+#endif
+
 #include <stdint.h>
 
 #define SERVER_CONNETCTIONS 64

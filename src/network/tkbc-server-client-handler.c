@@ -8,22 +8,37 @@
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-utils.h"
 
-#include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
+#include <math.h>
 #include <pthread.h>
 #include <raylib.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <time.h>
 #include <unistd.h>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define _WINUSER_
+#define _WINGDI_
+#define _IMM_
+#define _WINCON_
+#include <windows.h>
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#endif
 
 extern Env *env;
 extern Clients *clients;
 extern pthread_t threads[SERVER_CONNETCTIONS];
 extern pthread_mutex_t mutex;
+extern unsigned long long out_bytes;
+extern unsigned long long in_bytes;
 
 /**
  * @brief The function shutdown the client connection that is given by the
@@ -36,8 +51,7 @@ extern pthread_mutex_t mutex;
 void tkbc_server_shutdown_client(Client client, bool force) {
   pthread_t thread_id = client.thread_id;
   shutdown(client.socket_id, SHUT_WR);
-  for (char b[1024];
-       recv(client.socket_id, b, sizeof(b), MSG_NOSIGNAL | MSG_DONTWAIT) > 0;)
+  for (char b[1024]; recv(client.socket_id, b, sizeof(b), MSG_DONTWAIT) > 0;)
     ;
   if (close(client.socket_id) == -1) {
     tkbc_fprintf(stderr, "ERROR", "Close socket: %s\n", strerror(errno));
@@ -124,8 +138,7 @@ force: {}
  */
 bool tkbc_server_brodcast_client(Client client, const char *message) {
 
-  ssize_t send_check =
-      send(client.socket_id, message, strlen(message), MSG_NOSIGNAL);
+  ssize_t send_check = send(client.socket_id, message, strlen(message), 0);
   if (send_check == 0) {
     tkbc_fprintf(stderr, "ERROR",
                  "No bytes where send to the client:" CLIENT_FMT "\n",
@@ -141,6 +154,7 @@ bool tkbc_server_brodcast_client(Client client, const char *message) {
   } else {
     tkbc_fprintf(stderr, "INFO", "The amount %ld send to:" CLIENT_FMT "\n",
                  send_check, CLIENT_ARG(client));
+    out_bytes += send_check;
   }
   return true;
 }
@@ -994,7 +1008,23 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         pthread_mutex_unlock(&mutex);
         goto err;
       }
+
       tkbc_load_next_script(env);
+
+      // TODO: Find a better way to do it reliable.
+      // Generate kites if needed, if a script needs more kites than there are
+      // currently registered.
+      size_t max = env->kite_array->count;
+      for (size_t i = 0; i < env->block_frame->count; ++i) {
+        for (size_t j = 0; j < env->block_frame->elements[i].count; ++j) {
+          max = fmax(
+              max,
+              env->block_frame->elements[i].elements[j].kite_id_array.count);
+        }
+      }
+      size_t needed_kites = max - env->kite_array->count;
+      tkbc_kite_array_generate(env, needed_kites);
+
       pthread_mutex_unlock(&mutex);
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_NEXT\n");
@@ -1100,12 +1130,17 @@ bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id) {
 }
 
 /**
- * @brief The function manages initial handshake and incoming messages from the
- * client.
+ * @brief The function manages initial handshake and incoming messages from
+ * the client.
  *
  * @param client The client of which the connection should be handled.
  */
 void *tkbc_client_handler(void *client) {
+#ifndef _WIN32
+  struct sigaction sig_action = {0};
+  sig_action.sa_handler = SIG_IGN;
+  sigaction(SIGPIPE, &sig_action, NULL);
+#endif // _WIN32
   Client c = *(Client *)client;
 
   tkbc_message_hello(c);
@@ -1117,8 +1152,8 @@ void *tkbc_client_handler(void *client) {
 
   pthread_mutex_lock(&mutex);
   tkbc_dap(env->kite_array, *kite_state);
-  // Just free the state and not the kite inside, because the kite is a pointer
-  // that lives on and is valid in the copy to the env->kite_array.
+  // Just free the state and not the kite inside, because the kite is a
+  // pointer that lives on and is valid in the copy to the env->kite_array.
   free(kite_state);
   kite_state = NULL;
 
@@ -1140,9 +1175,9 @@ void *tkbc_client_handler(void *client) {
   pthread_mutex_unlock(&mutex);
 
   // Note: If the server is closed forcefully the memory has to be deallocated
-  // by to OS, because there is no way to access it from the main thread for all
-  // the clients, but that is fine. If the client is closed by it's own handling
-  // the memory is deallocated.
+  // by to OS, because there is no way to access it from the main thread for
+  // all the clients, but that is fine. If the client is closed by it's own
+  // handling the memory is deallocated.
   Message receive_queue = {0};
   size_t size = 1024;
   receive_queue.elements = malloc(size);
@@ -1152,7 +1187,7 @@ void *tkbc_client_handler(void *client) {
     receive_queue.count = 0;
     do {
       n = recv(c.socket_id, &receive_queue.elements[receive_queue.count], size,
-               MSG_NOSIGNAL | MSG_DONTWAIT);
+               MSG_DONTWAIT);
       if (n == -1) {
         break;
       }
@@ -1163,6 +1198,9 @@ void *tkbc_client_handler(void *client) {
             realloc(receive_queue.elements,
                     sizeof(*receive_queue.elements) * receive_queue.capacity);
       }
+      pthread_mutex_lock(&mutex);
+      in_bytes += n;
+      pthread_mutex_unlock(&mutex);
     } while (n > 0);
     if (n == -1) {
       if (errno != EAGAIN) {
@@ -1173,7 +1211,7 @@ void *tkbc_client_handler(void *client) {
     }
     if (receive_queue.count == 0) {
       n = recv(c.socket_id, &receive_queue.elements[receive_queue.count], size,
-               MSG_NOSIGNAL | MSG_PEEK);
+               MSG_PEEK);
       if (n == -1) {
         if (errno != EAGAIN) {
           tkbc_fprintf(stderr, "ERROR", "MSG_PEEK: %d\n", errno);
