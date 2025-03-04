@@ -21,6 +21,9 @@ options:
 	@echo "LIBS   = ${LIBS}"
 	@echo "CC     = ${CC}"
 
+chat-server: build
+	${CC} ${INCLUDE} ${CFLAGS} -o build/chat-server src/network/chat-server.c ${LIBS}
+
 
 server: build first.o
 	${CC} ${INCLUDE} ${CFLAGS} -o build/server src/network/tkbc-server.c src/network/tkbc-server-client-handler.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
