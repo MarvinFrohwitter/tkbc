@@ -28,6 +28,43 @@ Env *env = {0};
 Clients clients = {0};
 FDs fds = {0};
 
+struct pollfd *tkbc_get_pollfd_by_fd(int fd) {
+  for (size_t i = 0; i < fds.count; ++i) {
+    if (fds.elements[i].fd == fd) {
+      return &fds.elements[i];
+    }
+  }
+  return NULL;
+}
+
+Client *tkbc_get_client_by_fd(int fd) {
+  for (size_t i = 0; i < clients.count; ++i) {
+    if (clients.elements[i].socket_id == fd) {
+      return &clients.elements[i];
+    }
+  }
+  return NULL;
+}
+
+void tkbc_write_to_send_msg_buffer(Client *client, Message message) {
+  tkbc_dapc(&client->send_msg_buffer, message.elements, message.count);
+  tkbc_get_pollfd_by_fd(client->socket_id)->events = POLLWRNORM;
+}
+
+void tkbc_write_to_all_send_msg_buffers(Message message) {
+  for (size_t i = 0; i < clients.count; ++i) {
+    tkbc_write_to_send_msg_buffer(&clients.elements[i], message);
+  }
+}
+
+void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd) {
+  for (size_t i = 0; i < clients.count; ++i) {
+    if (clients.elements[i].socket_id != fd) {
+      tkbc_write_to_send_msg_buffer(&clients.elements[i], message);
+    }
+  }
+}
+
 bool tkbc_remove_client_by_fd(int fd) {
   for (size_t i = 0; i < clients.count; ++i) {
     if (clients.elements[i].socket_id == fd) {
@@ -83,6 +120,121 @@ void tkbc_remove_connection_retry(Client client) {
   }
 }
 
+/**
+ * @brief The function constructs the hello message. That is used to establish
+ * the handshake with the server respecting the current PROTOCOL_VERSION.
+ *
+ * @param client The client id where the message should be send to.
+ */
+void tkbc_message_hello_write_to_send_msg_buffer(Client *client) {
+  Message message = {0};
+  char buf[64] = {0};
+  char *quote = "\"";
+
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_HELLO);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+
+  tkbc_dapc(&message, quote, 1);
+  const char *m = "Hello client from server!";
+  tkbc_dapc(&message, m, strlen(m));
+
+  tkbc_dapc(&message, PROTOCOL_VERSION, strlen(PROTOCOL_VERSION));
+  tkbc_dapc(&message, quote, 1);
+  tkbc_dap(&message, ':');
+  tkbc_dapc(&message, "\r\n", 2);
+
+  tkbc_write_to_send_msg_buffer(client, message);
+
+  free(message.elements);
+  message.elements = NULL;
+}
+
+/**
+ * @brief The function constructs the message KITEADD that is send to all
+ * clients, whenever a new client has connected to the server.
+ *
+ * @param client_index The id of the client that has connected.
+ * @return True if id was found and the sending has nor raised any errors.
+ */
+bool tkbc_message_kiteadd_write_to_all_send_msg_buffers(size_t client_index) {
+  Message message = {0};
+  bool ok = true;
+  char buf[64] = {0};
+
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEADD);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  if (!tkbc_message_append_clientkite(client_index, &message)) {
+    check_return(false);
+  }
+  tkbc_dapc(&message, "\r\n", 2);
+
+  tkbc_write_to_all_send_msg_buffers(message);
+
+check:
+  free(message.elements);
+  message.elements = NULL;
+  return ok;
+}
+
+/**
+ * @brief The function constructs and send the message CLIENTKITES that contain
+ * all the data from the current registered kites.
+ *
+ * @param client The client that should get the message.
+ * @return True if the message was send successfully, otherwise false.
+ */
+bool tkbc_message_clientkites_write_to_send_msg_buffer(Client *client) {
+  Message message = {0};
+  char buf[64] = {0};
+  bool ok = true;
+
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENTKITES);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", clients.count);
+  tkbc_dapc(&message, buf, strlen(buf));
+
+  tkbc_dap(&message, ':');
+  for (size_t i = 0; i < clients.count; ++i) {
+    if (!tkbc_message_append_clientkite(clients.elements[i].kite_id,
+                                        &message)) {
+      check_return(false);
+    }
+  }
+  tkbc_dapc(&message, "\r\n", 2);
+
+  tkbc_write_to_send_msg_buffer(client, message);
+
+check:
+  free(message.elements);
+  message.elements = NULL;
+  return ok;
+}
+
+void tkbc_client_prelog(Client *client) {
+  tkbc_message_hello_write_to_send_msg_buffer(client);
+
+  Kite_State *kite_state = tkbc_init_kite();
+  kite_state->kite_id = client->kite_id;
+  float r = (float)rand() / RAND_MAX;
+  kite_state->kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
+  tkbc_dap(env->kite_array, *kite_state);
+  // Just free the state and not the kite inside, because the kite is a
+  // pointer that lives on and is valid in the copy to the env->kite_array.
+  free(kite_state);
+  kite_state = NULL;
+
+  tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
+
+  if (!tkbc_message_clientkites_write_to_send_msg_buffer(client)) {
+    tkbc_remove_connection_retry(*client);
+  }
+}
+
 void tkbc_server_accept() {
 
   struct sockaddr_in client_address;
@@ -119,25 +271,9 @@ void tkbc_server_accept() {
     tkbc_fprintf(stderr, "INFO", "CLIENT: " CLIENT_FMT " has connected.\n",
                  CLIENT_ARG(client));
     tkbc_dap(&clients, client);
-  }
-}
 
-struct pollfd *tkbc_get_pollfd_by_fd(int fd) {
-  for (size_t i = 0; i < fds.count; ++i) {
-    if (fds.elements[i].fd == fd) {
-      return &fds.elements[i];
-    }
+    tkbc_client_prelog(&clients.elements[clients.count - 1]);
   }
-  return NULL;
-}
-
-Client *tkbc_get_client_by_fd(int fd) {
-  for (size_t i = 0; i < clients.count; ++i) {
-    if (clients.elements[i].socket_id == fd) {
-      return &clients.elements[i];
-    }
-  }
-  return NULL;
 }
 
 bool tkbc_sockets_read(Client *client) {
@@ -182,24 +318,6 @@ int tkbc_socket_write(Client *client) {
     client->send_msg_buffer.i += n;
   }
   return n;
-}
-
-void tkbc_write_to_all_send_msg_buffers(Message message) {
-  for (size_t i = 0; i < clients.count; ++i) {
-    tkbc_dapc(&clients.elements[i].send_msg_buffer, message.elements,
-              message.count);
-    tkbc_get_pollfd_by_fd(clients.elements[i].socket_id)->events = POLLWRNORM;
-  }
-}
-
-void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd) {
-  for (size_t i = 0; i < clients.count; ++i) {
-    if (clients.elements[i].socket_id != fd) {
-      tkbc_dapc(&clients.elements[i].send_msg_buffer, message.elements,
-                message.count);
-      tkbc_get_pollfd_by_fd(clients.elements[i].socket_id)->events = POLLWRNORM;
-    }
-  }
 }
 
 bool tkbc_server_handle_clients(Client *client) {
@@ -437,16 +555,22 @@ int main(int argc, char *argv[]) {
     // Handle messages
     for (size_t i = 0; i < clients.count; ++i) {
       Client *client = &clients.elements[i];
-      if (client->recv_msg_buffer.count) {
-        tkbc_fprintf(stderr, "MESSAGE", "%.*s",
-                     (int)client->recv_msg_buffer.count,
-                     client->recv_msg_buffer.elements);
-      }
-      if (client->recv_msg_buffer.count) {
-        tkbc_write_to_all_send_msg_buffers_except(client->recv_msg_buffer,
-                                                  client->socket_id);
-        client->recv_msg_buffer.count = 0;
-      }
+      // if (client->recv_msg_buffer.count) {
+      //   tkbc_write_to_all_send_msg_buffers_except(client->recv_msg_buffer,
+      //                                             client->socket_id);
+      //   client->recv_msg_buffer.count = 0;
+      // }
+
+      //
+      // Messages
+      // if (!tkbc_server_received_message_handler(client->recv_msg_buffer)) {
+      //   if (client->recv_msg_buffer.count) {
+      //     tkbc_fprintf(stderr, "MESSAGE", "%.*s",
+      //                  (int)client->recv_msg_buffer.count,
+      //                  client->recv_msg_buffer.elements);
+      //   }
+      //   tkbc_server_shutdown_client(*client, false);
+      // }
     }
 
     //
