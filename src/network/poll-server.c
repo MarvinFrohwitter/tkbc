@@ -1,3 +1,4 @@
+
 #include <arpa/inet.h>
 #include <assert.h>
 #include <ctype.h>
@@ -8,15 +9,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define TKBC_LOGGING
-#define TKBC_LOGGING_ERROR
-#define TKBC_LOGGING_INFO
-#define TKBC_LOGGING_WARNING
+#include "tkbc-servers-common.h"
 
-#define TKBC_SERVER
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 Env *env;
+
 
 #define CLIENT_FMT "Socket: %d, Address: (%s:%hu)"
 #define CLIENT_ARG(c)                                                          \
@@ -41,6 +39,7 @@ typedef struct {
 } FDs;
 
 typedef struct {
+  ssize_t kite_id;
   Message send_msg_buffer;
   Message recv_msg_buffer;
   int socket_id;
@@ -210,6 +209,7 @@ void tkbc_server_accept(FDs *fds, Clients *clients) {
     tkbc_dap(fds, client_fd);
 
     Client client = {
+        .kite_id = env->kite_id_counter++,
         .socket_id = client_socket_id,
         .client_address = client_address,
         .client_address_length = address_length,

@@ -1,13 +1,7 @@
 #ifndef TKBC_NETWORK_COMMON_H
 #define TKBC_NETWORK_COMMON_H
 
-#define PROTOCOL_VERSION "0.2.002"
-
-#define TKBC_LOGGING
-#define TKBC_LOGGING_ERROR
-#define TKBC_LOGGING_INFO
-#define TKBC_LOGGING_WARNING
-
+#include "tkbc-servers-common.h"
 #include "../../external/lexer/tkbc-lexer.h"
 
 #include <raylib.h>
@@ -22,8 +16,8 @@
 #define _WINGDI_
 #define _IMM_
 #define _WINCON_
-#include <winsock2.h>
 #include <windows.h>
+#include <winsock2.h>
 
 #define SHUT_WR SD_SEND
 #define SHUT_RDWR SD_BOTH
@@ -35,7 +29,6 @@ typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 typedef socklen_t SOCKLEN;
 #endif //_WIN32
-
 
 typedef struct {
   ssize_t kite_id;
@@ -58,23 +51,6 @@ typedef struct {
   size_t capacity;
 } Message;
 
-// name : kind : data
-typedef enum {
-  MESSAGE_ZERO = 0,
-  MESSAGE_HELLO,
-  MESSAGE_KITEADD,
-  MESSAGE_CLIENT_DISCONNECT,
-  MESSAGE_CLIENTKITES,
-  MESSAGE_KITES,
-  MESSAGE_KITES_POSITIONS,
-  MESSAGE_KITEVALUE,
-  MESSAGE_SCRIPT,
-  MESSAGE_SCRIPT_BLOCK_FRAME_VALUE,
-  MESSAGE_SCRIPT_TOGGLE,
-  MESSAGE_SCRIPT_NEXT,
-  MESSAGE_SCRIPT_SCRUB,
-  MESSAGE_COUNT,
-} Message_Kind; // Messages that are supported in the current PROTOCOL_VERSION.
 
 uint16_t tkbc_port_parsing(const char *port_check);
 bool tkbc_message_append_clientkite(size_t client_id, Message *message);
