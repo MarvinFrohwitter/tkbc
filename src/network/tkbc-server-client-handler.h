@@ -21,7 +21,6 @@ bool tkbc_message_kite_value(size_t client_id);
 bool tkbc_message_clientkites(Client client);
 bool tkbc_message_clientkites_brodcast_all(Clients *cs);
 bool tkbc_message_kites_brodcast_all(Clients *cs);
-void tkbc_message_append_kite(Kite_State *kite_state, Message *message);
 int tkbc_server_remove_client(Client client, bool retry);
 void tkbc_server_shutdown_client(Client client, bool force);
 bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id);

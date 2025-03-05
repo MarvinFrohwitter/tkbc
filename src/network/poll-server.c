@@ -13,6 +13,7 @@
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 
+#include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc.h"
 
 typedef struct {
@@ -32,7 +33,7 @@ bool tkbc_remove_client_by_fd(int fd) {
     if (clients.elements[i].socket_id == fd) {
       Client client_tmp = clients.elements[i];
       free(client_tmp.send_msg_buffer.elements);
-      tkbc_fprintf(stderr, "INFO ", "Removed client:" CLIENT_FMT "\n",
+      tkbc_fprintf(stderr, "INFO", "Removed client:" CLIENT_FMT "\n",
                    CLIENT_ARG(client_tmp));
 
       clients.elements[i] = clients.elements[clients.count - 1];
@@ -183,6 +184,14 @@ int tkbc_socket_write(Client *client) {
   return n;
 }
 
+void tkbc_write_to_all_send_msg_buffers(Message message) {
+  for (size_t i = 0; i < clients.count; ++i) {
+    tkbc_dapc(&clients.elements[i].send_msg_buffer, message.elements,
+              message.count);
+    tkbc_get_pollfd_by_fd(clients.elements[i].socket_id)->events = POLLWRNORM;
+  }
+}
+
 void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd) {
   for (size_t i = 0; i < clients.count; ++i) {
     if (clients.elements[i].socket_id != fd) {
@@ -283,6 +292,96 @@ void tkbc_server_shutdown_client(Client client, bool force) {
   tkbc_remove_connection_retry(client);
 }
 
+/**
+ * @brief The function constructs and sends the message CLIENTKITES to all
+ * registered kites.
+ *
+ * @return True if the message was send successfully, otherwise false.
+ */
+bool tkbc_message_clientkites_write_to_all_send_msg_buffers(Clients *cs) {
+  Message message = {0};
+  char buf[64] = {0};
+  bool ok = true;
+
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENTKITES);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", clients.count);
+  tkbc_dapc(&message, buf, strlen(buf));
+
+  tkbc_dap(&message, ':');
+  for (size_t i = 0; i < clients.count; ++i) {
+    if (!tkbc_message_append_clientkite(clients.elements[i].kite_id,
+                                        &message)) {
+      tkbc_dap(cs, clients.elements[i]);
+      check_return(false);
+    }
+  }
+  tkbc_dapc(&message, "\r\n", 2);
+  tkbc_dap(&message, 0);
+
+  tkbc_write_to_all_send_msg_buffers(message);
+
+check:
+  free(message.elements);
+  message.elements = NULL;
+  return ok;
+}
+
+/**
+ * @brief The function is an error handler that updates all the client states
+ * and handles all error that occur while broadcasting. It also checks for
+ * client disconnects and shuts down the broken connection.
+ */
+void tkbc_unwrap_handler_message_clientkites_write_all() {
+  Clients cs = {0};
+  if (!tkbc_message_clientkites_write_to_all_send_msg_buffers(&cs)) {
+    for (size_t i = 0; i < cs.count; ++i) {
+      tkbc_server_shutdown_client(cs.elements[i], false);
+    }
+    free(cs.elements);
+    cs.elements = NULL;
+  }
+}
+
+/**
+ * @brief The function constructs all the scripts that specified in a block
+ * frame.
+ *
+ * @param script_id The id that is the current load script.
+ * @param block_frame_count The amount of scripts that are available.
+ * @param block_index The script index.
+ */
+void tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
+    size_t script_id, size_t block_frame_count, size_t block_index) {
+  Message message = {0};
+  char buf[64] = {0};
+
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_BLOCK_FRAME_VALUE);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+
+  memset(&buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", script_id);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  memset(&buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", block_frame_count);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  memset(&buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", block_index);
+  tkbc_dapc(&message, buf, strlen(buf));
+  tkbc_dap(&message, ':');
+  tkbc_dapc(&message, "\r\n", 2);
+  tkbc_write_to_all_send_msg_buffers(message);
+
+  free(message.elements);
+  message.elements = NULL;
+}
+
 int main(int argc, char *argv[]) {
 #ifndef _WIN32
   struct sigaction sig_action = {0};
@@ -352,6 +451,19 @@ int main(int argc, char *argv[]) {
 
     //
     // Base execution
+    if (env->script_counter > 0) {
+      if (!tkbc_script_finished(env) && env->block_frame != NULL) {
+        size_t bindex = env->frames->block_index;
+        tkbc_script_update_frames(env);
+
+        if (env->frames->block_index != bindex) {
+          bindex = env->frames->block_index;
+          tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
+              env->block_frame->script_id, env->block_frame->count, bindex);
+        }
+        tkbc_unwrap_handler_message_clientkites_write_all();
+      }
+    }
   }
 
   tkbc_fprintf(stderr, "INFO", "Closing...\n");

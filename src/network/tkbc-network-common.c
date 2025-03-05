@@ -13,52 +13,6 @@
 
 extern Env *env;
 
-/**
- * @brief The function constructs a message part that contains the information
- * from the given kite_state.
- *
- * @param kite_state The kite state where the information is extracted from.
- * @param message The Message struct that should contain the serialized data.
- */
-void tkbc_message_append_kite(Kite_State *kite_state, Message *message) {
-  char buf[64];
-  memset(buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", kite_state->kite_id);
-  tkbc_dapc(message, buf, strlen(buf));
-  tkbc_dap(message, ':');
-  memset(buf, 0, sizeof(buf));
-  float x = kite_state->kite->center.x;
-  float y = kite_state->kite->center.y;
-  float angle = kite_state->kite->angle;
-  snprintf(buf, sizeof(buf), "(%f,%f):%f", x, y, angle);
-  tkbc_dapc(message, buf, strlen(buf));
-
-  tkbc_dap(message, ':');
-  memset(buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%u", *(uint32_t *)&kite_state->kite->body_color);
-  tkbc_dapc(message, buf, strlen(buf));
-  tkbc_dap(message, ':');
-}
-
-/**
- * @brief The function constructs the message part of a kite
- *
- * @param client_id The id of the kite which data should be appended to the
- * message.
- * @param message The Message struct that should contain the serialized data.
- * @return True if the given kite id was found and the data is appended,
- * otherwise false.
- */
-bool tkbc_message_append_clientkite(size_t client_id, Message *message) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (client_id == env->kite_array->elements[i].kite_id) {
-      Kite_State *kite_state = &env->kite_array->elements[i];
-      tkbc_message_append_kite(kite_state, message);
-      return true;
-    }
-  }
-  return false;
-}
 
 /**
  * @brief The function extracts the values that should belong to a kite out of
