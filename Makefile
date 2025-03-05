@@ -22,7 +22,7 @@ options:
 	@echo "CC     = ${CC}"
 
 chat-server: build
-	${CC} ${INCLUDE} ${CFLAGS} -o build/chat-server src/network/chat-server.c ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -fsanitize=address -o build/chat-server src/network/chat-server.c ${LIBS}
 
 
 server: build first.o
