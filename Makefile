@@ -21,8 +21,8 @@ options:
 	@echo "LIBS   = ${LIBS}"
 	@echo "CC     = ${CC}"
 
-chat-server: build
-	${CC} ${INCLUDE} ${CFLAGS} -fsanitize=address -o build/chat-server src/network/chat-server.c ${LIBS}
+poll-server: build
+	${CC} ${INCLUDE} ${CFLAGS} -fsanitize=address -o build/poll-server src/network/poll-server.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
 
 server: build first.o

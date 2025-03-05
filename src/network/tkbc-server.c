@@ -46,109 +46,6 @@ unsigned long long in_bytes = 0;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/**
- * @brief The function prints the way the program should be called.
- *
- * @param program_name The name of the program that is currently executing.
- */
-void tkbc_server_usage(const char *program_name) {
-  tkbc_fprintf(stderr, "INFO", "Usage:\n");
-  tkbc_fprintf(stderr, "INFO", "      %s <PORT> \n", program_name);
-}
-
-/**
- * @brief The function checks if a port is given to that program.
- *
- * @param argc The commandline argument count.
- * @param program_name The name of the program that is currently executing.
- * @return True if there are enough arguments, otherwise false.
- */
-bool tkbc_server_commandline_check(int argc, const char *program_name) {
-  if (argc > 1) {
-    tkbc_fprintf(stderr, "ERROR", "To may arguments.\n");
-    tkbc_server_usage(program_name);
-    exit(1);
-  }
-  if (argc == 0) {
-    tkbc_fprintf(stderr, "ERROR", "No arguments were provided.\n");
-    tkbc_fprintf(stderr, "INFO", "The default port 8080 is used.\n");
-    return false;
-  }
-  return true;
-}
-
-/**
- * @brief The function creates a new server socket and sets up the bind and
- * listing.
- *
- * @param addr The address space that the socket should be bound to.
- * @param port The port where the server is listing for connections.
- * @return The newly creates socket id.
- */
-int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
-#ifdef _WIN32
-  // MAKEWORD(2, 2) is a version, and wsaData will be filled with initialized
-  // library information.
-
-  WSADATA wsaData;
-  if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-    assert(0 && "ERROR: WSAStartup()");
-  } else {
-    tkbc_fprintf(stderr, "INFO", "Initialization of WSAStartup() succeed.\n");
-  }
-#endif
-
-  int socket_id = socket(AF_INET, SOCK_STREAM, 0);
-  if (socket_id == -1) {
-#ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-#else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-#endif
-    exit(1);
-  }
-  int option = 1;
-  int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
-                       sizeof(option));
-  if (sso == -1) {
-#ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-#else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-#endif
-  }
-
-  struct sockaddr_in server_addr;
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(port);
-  server_addr.sin_addr.s_addr = addr;
-
-  int bind_status =
-      bind(socket_id, (struct sockaddr *)&server_addr, sizeof(server_addr));
-  if (bind_status == -1) {
-#ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-    WSACleanup();
-#else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-#endif
-    exit(1);
-  }
-
-  int listen_status = listen(socket_id, SERVER_CONNETCTIONS);
-  if (listen_status == -1) {
-#ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-    WSACleanup();
-#else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-#endif
-    exit(1);
-  }
-  tkbc_fprintf(stderr, "INFO", "%s: %hu\n", "Listening to port", port);
-
-  return socket_id;
-}
 
 /**
  * @brief The function allocates a pointer of type Client on the heap.
@@ -178,8 +75,8 @@ int main(int argc, char *argv[]) {
   signal(SIGABRT, signalhandler);
   signal(SIGINT, signalhandler);
   signal(SIGTERM, signalhandler);
-  tkbc_fprintf(stderr, "INFO", "%s\n", "The server has started.");
 
+  tkbc_fprintf(stderr, "INFO", "%s\n", "The server has started.");
   char *program_name = tkbc_shift_args(&argc, &argv);
   uint16_t port = 8080;
   if (tkbc_server_commandline_check(argc, program_name)) {

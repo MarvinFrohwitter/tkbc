@@ -1,11 +1,10 @@
-
 #include <arpa/inet.h>
 #include <assert.h>
-#include <ctype.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <poll.h>
 #include <signal.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -13,24 +12,8 @@
 
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
-Env *env;
 
-
-#define CLIENT_FMT "Socket: %d, Address: (%s:%hu)"
-#define CLIENT_ARG(c)                                                          \
-  ((c).socket_id), (inet_ntoa((c).client_address.sin_addr)),                   \
-      (ntohs((c).client_address.sin_port))
-
-#define SERVER_CONNETCTIONS 64
-static int server_socket;
-static int clients_visited = 0;
-
-typedef struct {
-  char *elements;
-  size_t count;
-  size_t capacity;
-  size_t i;
-} Message;
+#include "../choreographer/tkbc.h"
 
 typedef struct {
   struct pollfd *elements;
@@ -38,150 +21,68 @@ typedef struct {
   size_t capacity;
 } FDs;
 
-typedef struct {
-  ssize_t kite_id;
-  Message send_msg_buffer;
-  Message recv_msg_buffer;
-  int socket_id;
-  struct sockaddr_in client_address;
-  socklen_t client_address_length;
-} Client;
+static int server_socket;
+static int clients_visited = 0;
+Env *env = {0};
+Clients clients = {0};
+FDs fds = {0};
 
-typedef struct {
-  Client *elements;
-  size_t count;
-  size_t capacity;
-} Clients;
-
-/**
- * @brief The function prints the way the program should be called.
- *
- * @param program_name The name of the program that is currently executing.
- */
-void tkbc_server_usage(const char *program_name) {
-  tkbc_fprintf(stderr, "INFO", "Usage:\n");
-  tkbc_fprintf(stderr, "INFO", "      %s <PORT> \n", program_name);
-}
-
-/**
- * @brief The function checks if a port is given to that program.
- *
- * @param argc The commandline argument count.
- * @param program_name The name of the program that is currently executing.
- * @return True if there are enough arguments, otherwise false.
- */
-bool tkbc_server_commandline_check(int argc, const char *program_name) {
-  if (argc > 1) {
-    tkbc_fprintf(stderr, "ERROR", "To may arguments.\n");
-    tkbc_server_usage(program_name);
-    exit(1);
-  }
-  if (argc == 0) {
-    tkbc_fprintf(stderr, "ERROR", "No arguments were provided.\n");
-    tkbc_fprintf(stderr, "INFO", "The default port 8080 is used.\n");
-    return false;
-  }
-  return true;
-}
-
-/**
- * @brief The function checks if the given port is valid and if so returns the
- * port as a number. If the given string does not contain a valid port the
- * program will crash.
- *
- * @param port_check The character string that is potently a port.
- * @return The parsed port as a uint16_t.
- */
-uint16_t tkbc_port_parsing(const char *port_check) {
-  for (size_t i = 0; i < strlen(port_check); ++i) {
-    if (!isdigit(port_check[i])) {
-      tkbc_fprintf(stderr, "ERROR", "The given port [%s] is not valid.\n",
-                   port_check);
-      exit(1);
-    }
-  }
-  int port = atoi(port_check);
-  if (port >= 65535 || port <= 0) {
-    tkbc_fprintf(stderr, "ERROR", "The given port [%s] is not valid.\n",
-                 port_check);
-    exit(1);
-  }
-
-  return (uint16_t)port;
-}
-
-/**
- * @brief The function creates a new server socket and sets up the bind and
- * listing.
- *
- * @param addr The address space that the socket should be bound to.
- * @param port The port where the server is listing for connections.
- * @return The newly creates socket id.
- */
-int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
-  int socket_id = socket(AF_INET, SOCK_STREAM, 0);
-  if (socket_id == -1) {
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-    exit(1);
-  }
-  int option = 1;
-  int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
-                       sizeof(option));
-  if (sso == -1) {
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-  }
-
-  struct sockaddr_in server_addr;
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(port);
-  server_addr.sin_addr.s_addr = addr;
-
-  int bind_status =
-      bind(socket_id, (struct sockaddr *)&server_addr, sizeof(server_addr));
-  if (bind_status == -1) {
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-    exit(1);
-  }
-
-  int listen_status = listen(socket_id, SERVER_CONNETCTIONS);
-  if (listen_status == -1) {
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-    exit(1);
-  }
-  tkbc_fprintf(stderr, "INFO", "%s: %hu\n", "Listening to port", port);
-
-  return socket_id;
-}
-
-void tkbc_remove_fd_from_fds_by_index(FDs *fds, int idx) {
-  assert(fds != NULL);
-  typeof(fds->elements[idx]) pollfd_tmp = fds->elements[idx];
-  fds->elements[idx] = fds->elements[fds->count - 1];
-  fds->elements[fds->count - 1] = pollfd_tmp;
-  fds->count -= 1;
-}
-
-bool tkbc_remove_client_by_fd(Clients *clients, int fd) {
-  if (!clients) {
-    return false;
-  }
-  for (size_t i = 0; i < clients->count; ++i) {
-    if (clients->elements[i].socket_id == fd) {
-      Client client_tmp = clients->elements[i];
+bool tkbc_remove_client_by_fd(int fd) {
+  for (size_t i = 0; i < clients.count; ++i) {
+    if (clients.elements[i].socket_id == fd) {
+      Client client_tmp = clients.elements[i];
       free(client_tmp.send_msg_buffer.elements);
       tkbc_fprintf(stderr, "INFO ", "Removed client:" CLIENT_FMT "\n",
                    CLIENT_ARG(client_tmp));
 
-      clients->elements[i] = clients->elements[clients->count - 1];
-      clients->elements[clients->count - 1] = client_tmp;
-      clients->count -= 1;
+      clients.elements[i] = clients.elements[clients.count - 1];
+      clients.elements[clients.count - 1] = client_tmp;
+      clients.count -= 1;
       return true;
     }
   }
   return false;
 }
 
-void tkbc_server_accept(FDs *fds, Clients *clients) {
+int tkbc_remove_connection(Client client, bool retry) {
+  if (!retry) {
+    if (!tkbc_remove_kite_from_list(env->kite_array, client.kite_id)) {
+      tkbc_fprintf(stderr, "INFO",
+                   "Client:" CLIENT_FMT
+                   ":Kite could not be removed: not found.\n",
+                   CLIENT_ARG(client));
+      return 1;
+    }
+  }
+
+  if (!tkbc_remove_client_by_fd(client.socket_id)) {
+    tkbc_fprintf(stderr, "INFO",
+                 "Client:" CLIENT_FMT ": Fd could not be removed.\n",
+                 CLIENT_ARG(client));
+    return -1;
+  }
+
+  for (size_t i = 0; i < fds.count; ++i) {
+    if (fds.elements[i].fd == client.socket_id) {
+      typeof(fds.elements[i]) pollfd_tmp = fds.elements[i];
+      fds.elements[i] = fds.elements[fds.count - 1];
+      fds.elements[fds.count - 1] = pollfd_tmp;
+      fds.count -= 1;
+      break;
+    }
+  }
+
+  return 0;
+}
+
+void tkbc_remove_connection_retry(Client client) {
+  if (1 == tkbc_remove_connection(client, false)) {
+    if (0 != tkbc_remove_connection(client, true)) {
+    }
+  }
+}
+
+void tkbc_server_accept() {
 
   struct sockaddr_in client_address;
   socklen_t address_length = sizeof(client_address);
@@ -206,7 +107,7 @@ void tkbc_server_accept(FDs *fds, Clients *clients) {
     };
     // This can cause reallocation so it is important to iterate the fds by
     // index.
-    tkbc_dap(fds, client_fd);
+    tkbc_dap(&fds, client_fd);
 
     Client client = {
         .kite_id = env->kite_id_counter++,
@@ -216,23 +117,23 @@ void tkbc_server_accept(FDs *fds, Clients *clients) {
     };
     tkbc_fprintf(stderr, "INFO", "CLIENT: " CLIENT_FMT " has connected.\n",
                  CLIENT_ARG(client));
-    tkbc_dap(clients, client);
+    tkbc_dap(&clients, client);
   }
 }
 
-struct pollfd *tkbc_get_pollfd_by_fd(FDs *fds, int fd) {
-  for (size_t i = 0; i < fds->count; ++i) {
-    if (fds->elements[i].fd == fd) {
-      return &fds->elements[i];
+struct pollfd *tkbc_get_pollfd_by_fd(int fd) {
+  for (size_t i = 0; i < fds.count; ++i) {
+    if (fds.elements[i].fd == fd) {
+      return &fds.elements[i];
     }
   }
   return NULL;
 }
 
-Client *tkbc_get_client_by_fd(Clients *clients, int fd) {
-  for (size_t i = 0; i < clients->count; ++i) {
-    if (clients->elements[i].socket_id == fd) {
-      return &clients->elements[i];
+Client *tkbc_get_client_by_fd(int fd) {
+  for (size_t i = 0; i < clients.count; ++i) {
+    if (clients.elements[i].socket_id == fd) {
+      return &clients.elements[i];
     }
   }
   return NULL;
@@ -282,36 +183,35 @@ int tkbc_socket_write(Client *client) {
   return n;
 }
 
-void tkbc_write_to_all_send_msg_buffers_except(FDs *fds, Clients *clients,
-                                               int fd, Message message) {
-  for (size_t i = 0; i < clients->count; ++i) {
-    if (clients->elements[i].socket_id != fd) {
-      tkbc_dapc(&clients->elements[i].send_msg_buffer, message.elements,
+void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd) {
+  for (size_t i = 0; i < clients.count; ++i) {
+    if (clients.elements[i].socket_id != fd) {
+      tkbc_dapc(&clients.elements[i].send_msg_buffer, message.elements,
                 message.count);
-      tkbc_get_pollfd_by_fd(fds, clients->elements[i].socket_id)->events =
-          POLLWRNORM;
+      tkbc_get_pollfd_by_fd(clients.elements[i].socket_id)->events = POLLWRNORM;
     }
   }
 }
 
-bool tkbc_server_handle_clients(FDs *fds, Clients *clients, size_t idx) {
-  Client *client = tkbc_get_client_by_fd(clients, fds->elements[idx].fd);
-  switch (fds->elements[idx].events) {
+bool tkbc_server_handle_clients(Client *client) {
+  struct pollfd *pollfd = tkbc_get_pollfd_by_fd(client->socket_id);
+  switch (pollfd->events) {
+  // switch (fds.elements[idx].events) {
   case POLLRDNORM: {
     bool result = tkbc_sockets_read(client);
     // Switch to the next write state.
-    fds->elements[idx].events = POLLWRNORM;
+    pollfd->events = POLLWRNORM;
     return result;
   } break;
   case POLLWRNORM: {
     if (client->send_msg_buffer.count <= 0) {
-      fds->elements[idx].events = POLLRDNORM;
+      pollfd->events = POLLRDNORM;
       return true;
     }
 
     int result = tkbc_socket_write(client);
     if (result == 0) {
-      fds->elements[idx].events = POLLRDNORM;
+      pollfd->events = POLLRDNORM;
     } else if (result == -1) {
       return false;
     }
@@ -322,28 +222,65 @@ bool tkbc_server_handle_clients(FDs *fds, Clients *clients, size_t idx) {
   }
 }
 
-void tkbc_socket_handling(Clients *clients, FDs *fds) {
-  for (ssize_t idx = 0; idx < (ssize_t)fds->count; ++idx) {
-    if (fds->elements[idx].revents == 0) {
+void tkbc_socket_handling() {
+  for (ssize_t idx = 0; idx < (ssize_t)fds.count; ++idx) {
+    if (fds.elements[idx].revents == 0) {
       continue;
     }
 
-    if (fds->elements[idx].fd == server_socket) {
+    if (fds.elements[idx].fd == server_socket) {
       // This can cause realloc so it is important to iterate the fds by
       // index.
-      tkbc_server_accept(fds, clients);
+      tkbc_server_accept();
     } else {
-      bool result = tkbc_server_handle_clients(fds, clients, idx);
+      Client *client = tkbc_get_client_by_fd(fds.elements[idx].fd);
+      bool result = tkbc_server_handle_clients(client);
       if (!result) {
-        if (!tkbc_remove_client_by_fd(clients, fds->elements[idx].fd)) {
-          assert(0 && "Could not remove client");
-        }
-        tkbc_remove_fd_from_fds_by_index(fds, idx);
+        tkbc_remove_connection_retry(*client);
         idx--;
         continue;
       }
     }
   }
+}
+
+/**
+ * @brief The function shutdown the client connection that is given by the
+ * client argument.
+ *
+ * @param client The client connection that should be closed.
+ * @param force Represents that every action that might not shutdown the client
+ * immediately is omitted.
+ */
+void tkbc_server_shutdown_client(Client client, bool force) {
+  shutdown(client.socket_id, SHUT_WR);
+  for (char b[1024]; recv(client.socket_id, b, sizeof(b), MSG_DONTWAIT) > 0;)
+    ;
+  if (close(client.socket_id) == -1) {
+    tkbc_fprintf(stderr, "ERROR", "Close socket: %s\n", strerror(errno));
+  }
+
+  if (!force) {
+    Message message = {0};
+    char buf[64] = {0};
+    snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENT_DISCONNECT);
+    tkbc_dapc(&message, buf, strlen(buf));
+    tkbc_dap(&message, ':');
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf), "%zu", client.kite_id);
+    tkbc_dapc(&message, buf, strlen(buf));
+    tkbc_dap(&message, ':');
+    tkbc_dapc(&message, "\r\n", 2);
+    tkbc_dap(&message, 0);
+
+    tkbc_write_to_all_send_msg_buffers_except(message, client.socket_id);
+    if (message.elements) {
+      free(message.elements);
+      message.elements = NULL;
+    }
+  }
+
+  tkbc_remove_connection_retry(client);
 }
 
 int main(int argc, char *argv[]) {
@@ -367,9 +304,13 @@ int main(int argc, char *argv[]) {
   int flags = fcntl(server_socket, F_GETFL, 0);
   fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
 
-  Clients clients = {0};
+  srand(time(NULL));
+  // Get the first 0 out of the way.
+  tkbc_get_frame_time();
+  env = tkbc_init_env();
+  env->window_width = 1920;
+  env->window_height = 1080;
 
-  FDs fds = {0};
   struct pollfd server_fd = {
       .fd = server_socket,
       .events = POLLRDNORM,
@@ -391,7 +332,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (poll_err > 0) {
-      tkbc_socket_handling(&clients, &fds);
+      tkbc_socket_handling();
     }
 
     // Handle messages
@@ -403,14 +344,22 @@ int main(int argc, char *argv[]) {
                      client->recv_msg_buffer.elements);
       }
       if (client->recv_msg_buffer.count) {
-        tkbc_write_to_all_send_msg_buffers_except(
-            &fds, &clients, client->socket_id, client->recv_msg_buffer);
+        tkbc_write_to_all_send_msg_buffers_except(client->recv_msg_buffer,
+                                                  client->socket_id);
         client->recv_msg_buffer.count = 0;
       }
     }
+
+    //
+    // Base execution
   }
 
   tkbc_fprintf(stderr, "INFO", "Closing...\n");
+
+  for (size_t i = 0; i < clients.count; ++i) {
+    tkbc_server_shutdown_client(clients.elements[i], true);
+  }
+
   shutdown(server_socket, SHUT_RDWR);
   if (close(server_socket) == -1) {
     tkbc_fprintf(stderr, "ERROR", "Main Server Socket: %s\n", strerror(errno));

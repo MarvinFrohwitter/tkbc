@@ -14,32 +14,6 @@
 extern Env *env;
 
 /**
- * @brief The function checks if the given port is valid and if so returns the
- * port as a number. If the given string does not contain a valid port the
- * program will crash.
- *
- * @param port_check The character string that is potently a port.
- * @return The parsed port as a uint16_t.
- */
-uint16_t tkbc_port_parsing(const char *port_check) {
-  for (size_t i = 0; i < strlen(port_check); ++i) {
-    if (!isdigit(port_check[i])) {
-      tkbc_fprintf(stderr, "ERROR", "The given port [%s] is not valid.\n",
-                   port_check);
-      exit(1);
-    }
-  }
-  int port = atoi(port_check);
-  if (port >= 65535 || port <= 0) {
-    tkbc_fprintf(stderr, "ERROR", "The given port [%s] is not valid.\n",
-                 port_check);
-    exit(1);
-  }
-
-  return (uint16_t)port;
-}
-
-/**
  * @brief The function constructs a message part that contains the information
  * from the given kite_state.
  *
