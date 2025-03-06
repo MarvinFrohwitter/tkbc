@@ -1,3 +1,5 @@
+#define TKBC_SERVER
+
 #include "tkbc-server.h"
 #include "../choreographer/tkbc-script-api.h"
 #include "tkbc-network-common.h"
@@ -28,7 +30,6 @@
 
 #include "../global/tkbc-types.h"
 
-#define TKBC_SERVER
 Env *env = {0};
 Clients *clients = {0};
 int server_socket;

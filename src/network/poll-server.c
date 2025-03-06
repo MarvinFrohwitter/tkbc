@@ -1,3 +1,5 @@
+#define TKBC_SERVER
+
 #include <arpa/inet.h>
 #include <assert.h>
 #include <fcntl.h>

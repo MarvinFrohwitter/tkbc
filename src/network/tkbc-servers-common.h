@@ -34,8 +34,6 @@ typedef socklen_t SOCKLEN;
 #define TKBC_LOGGING_INFO
 #define TKBC_LOGGING_WARNING
 
-#define TKBC_SERVER
-
 extern Env *env;
 
 // name : kind : data
