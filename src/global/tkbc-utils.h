@@ -171,9 +171,10 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   char buf[8];
-  if (snprintf(buf, sizeof(buf), fmt, args) == 0) {
+  if (vsnprintf(buf, sizeof(buf), fmt, args) == 0) {
     return 0;
   }
+  va_end(args);
 
   Content c = {0};
   if (level != NULL) {
@@ -185,6 +186,7 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
   tkbc_dapc(&c, fmt, strlen(fmt));
   tkbc_dap(&c, 0);
 
+  va_start(args, fmt);
   ret = vfprintf(stream, c.elements, args);
   va_end(args);
   free(c.elements);
