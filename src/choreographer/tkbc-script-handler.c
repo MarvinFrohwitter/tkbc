@@ -123,16 +123,18 @@ void tkbc_destroy_frames_internal_data(Frames *frames) {
 
   tkbc_reset_frames_internal_data(frames);
 
-  if (frames->elements) {
-    free(frames->elements);
-    frames->elements = NULL;
-  }
-
   if (frames->kite_frame_positions.elements) {
     free(frames->kite_frame_positions.elements);
     frames->kite_frame_positions.elements = NULL;
+    frames->kite_frame_positions.count = 0;
+    frames->kite_frame_positions.capacity = 0;
   }
 
+  if (frames->elements) {
+    free(frames->elements);
+    frames->elements = NULL;
+    frames->capacity = 0;
+  }
   frames->count = 0;
 }
 
@@ -153,6 +155,8 @@ void tkbc_reset_frames_internal_data(Frames *frames) {
     if (frames->elements[i].kite_id_array.elements) {
       free(frames->elements[i].kite_id_array.elements);
       frames->elements[i].kite_id_array.elements = NULL;
+      frames->elements[i].kite_id_array.count = 0;
+      frames->elements[i].kite_id_array.capacity = 0;
     }
   }
 

@@ -601,12 +601,14 @@ void tkbc_message_kites_write_to_all_send_msg_buffers() {
  * @return True if every message is parsed correctly from the data, false if an
  * parsing error has occurred.
  */
-bool tkbc_received_message_handler(Message receive_message_queue) {
+bool tkbc_received_message_handler(Message *receive_message_queue) {
+  bool reset = true;
   Token token;
   bool ok = true;
-  Lexer *lexer = lexer_new(__FILE__, receive_message_queue.elements,
-                           receive_message_queue.count, 0);
-  if (receive_message_queue.count == 0) {
+  Lexer *lexer =
+      lexer_new(__FILE__, receive_message_queue->elements,
+                receive_message_queue->count, receive_message_queue->i);
+  if (receive_message_queue->count == 0) {
     check_return(true);
   }
   do {
@@ -632,6 +634,7 @@ bool tkbc_received_message_handler(Message receive_message_queue) {
       goto err;
     }
 
+    receive_message_queue->i = lexer->position - 1;
     assert(MESSAGE_COUNT == 13);
     switch (kind) {
     case MESSAGE_HELLO: {
@@ -1099,16 +1102,19 @@ bool tkbc_received_message_handler(Message receive_message_queue) {
     continue;
 
   err: {
-    tkbc_dap(&receive_message_queue, 0);
-    receive_message_queue.count -= 1;
-    char *rn = strstr(receive_message_queue.elements + lexer->position, "\r\n");
-    if (rn != NULL) {
+    tkbc_dap(receive_message_queue, 0);
+    receive_message_queue->count -= 1;
+    char *rn =
+        strstr(receive_message_queue->elements + lexer->position, "\r\n");
+    if (rn == NULL) {
+      reset = false;
+    } else {
       int jump_length = rn + 2 - &lexer->content[lexer->position];
       lexer_chop_char(lexer, jump_length);
       continue;
     }
     tkbc_fprintf(stderr, "WARNING", "receive_message_queue: %s\n",
-                 receive_message_queue.elements);
+                 receive_message_queue->elements + receive_message_queue->i);
     break;
   }
   } while (token.kind != EOF_TOKEN);
@@ -1121,6 +1127,12 @@ check:
   }
   free(lexer);
   lexer = NULL;
+
+  if (reset) {
+    receive_message_queue->count = 0;
+    receive_message_queue->i = 0;
+  }
+
   return ok;
 }
 
@@ -1192,7 +1204,7 @@ int main(int argc, char *argv[]) {
 
       //
       // Messages
-      if (!tkbc_received_message_handler(client->recv_msg_buffer)) {
+      if (!tkbc_received_message_handler(&client->recv_msg_buffer)) {
         if (client->recv_msg_buffer.count) {
           tkbc_fprintf(stderr, "MESSAGE", "%.*s",
                        (int)client->recv_msg_buffer.count,
