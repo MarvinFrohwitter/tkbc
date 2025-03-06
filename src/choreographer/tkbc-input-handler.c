@@ -734,7 +734,8 @@ void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps,
     state->is_snapping_to_angle = !state->is_snapping_to_angle;
   }
 
-  if (state->is_snapping_to_angle && state->is_angle_locked) {
+  if (state->is_snapping_to_angle &&
+      (state->is_angle_locked || state->is_tip_locked)) {
     float remainder = fmodf(state->kite->angle, 45);
     float result_angle = fmodf(state->kite->angle, 360) - remainder;
     if (fabsf(remainder) > 22.5) {
