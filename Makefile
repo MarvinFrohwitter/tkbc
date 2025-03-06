@@ -22,7 +22,7 @@ options:
 	@echo "CC     = ${CC}"
 
 poll-server: build
-	${CC} ${INCLUDE} ${CFLAGS} -fsanitize=address -o build/poll-server src/network/poll-server.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -fsanitize=address -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
 
 server: build first.o
