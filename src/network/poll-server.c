@@ -315,7 +315,7 @@ int tkbc_socket_write(Client *client) {
     }
   }
 
-  if ((size_t)n == client->send_msg_buffer.count) {
+  if ((size_t)n == client->send_msg_buffer.count - client->send_msg_buffer.i) {
     client->send_msg_buffer.count = 0;
     client->send_msg_buffer.i = 0;
   } else {
@@ -1125,8 +1125,9 @@ bool tkbc_received_message_handler(Message *receive_message_queue) {
       lexer_chop_char(lexer, jump_length);
       continue;
     }
-    tkbc_fprintf(stderr, "WARNING", "receive_message_queue: %s\n",
-                 receive_message_queue->elements + receive_message_queue->i);
+    tkbc_fprintf(stderr, "WARNING",
+                 "receive_message_queue: unhandled bytes: %zu\n",
+                 receive_message_queue->count - receive_message_queue->i);
     break;
   }
   } while (token.kind != EOF_TOKEN);
@@ -1208,12 +1209,6 @@ int main(int argc, char *argv[]) {
     // Handle messages
     for (size_t i = 0; i < clients.count; ++i) {
       Client *client = &clients.elements[i];
-      // if (client->recv_msg_buffer.count) {
-      //   tkbc_write_to_all_send_msg_buffers_except(client->recv_msg_buffer,
-      //                                             client->socket_id);
-      //   client->recv_msg_buffer.count = 0;
-      // }
-
       //
       // Messages
       if (!tkbc_received_message_handler(&client->recv_msg_buffer)) {
