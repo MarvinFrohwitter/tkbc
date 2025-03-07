@@ -399,9 +399,26 @@ bool received_message_handler(Message *message) {
         }
       }
 
+      size_t server_width = 1920;
+      size_t server_height = 1080;
+      size_t width = env->window_width;
+      size_t height = env->window_height;
+
       // Disables the input controlling if a start position reset happen.
       for (size_t i = 0; i < env->kite_array->count; ++i) {
         env->kite_array->elements[i].is_kite_input_handler_active = false;
+
+        // Readjust for the possible different window sizes. The server
+        // calculates everything with 1920x1080.
+        Kite *kite = env->kite_array->elements[i].kite;
+        kite->center.x = (kite->center.x / (float)server_width) * (float)width;
+        kite->center.y =
+            (kite->center.y / (float)server_height) * (float)height;
+        kite->old_center.x =
+            (kite->old_center.x / (float)server_width) * (float)width;
+        kite->old_center.y =
+            (kite->old_center.y / (float)server_height) * (float)height;
+        tkbc_kite_update_internal(kite);
       }
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES\n");
