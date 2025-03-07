@@ -281,8 +281,33 @@ void tkbc_server_accept() {
 }
 
 bool tkbc_sockets_read(Client *client) {
-  char buf[1024] = {0};
-  int recv_n = recv(client->socket_id, buf, sizeof(buf) - 1, 0);
+  Message *recv_buffer = &client->recv_msg_buffer;
+  size_t length = 1024;
+  if (recv_buffer->capacity < recv_buffer->count + length) {
+    if (recv_buffer->capacity == 0) {
+      recv_buffer->capacity = length;
+    }
+
+    while (recv_buffer->capacity < recv_buffer->count + length) {
+      recv_buffer->capacity += length;
+    }
+
+    recv_buffer->elements =
+        realloc(recv_buffer->elements,
+                sizeof(*recv_buffer->elements) * recv_buffer->capacity);
+
+    if (recv_buffer->elements == NULL) {
+      fprintf(stderr,
+              "The allocation for the dynamic array has failed in: %s: %d\n",
+              __FILE__, __LINE__);
+      abort();
+    }
+  }
+
+  int recv_n =
+      recv(client->socket_id,
+           client->recv_msg_buffer.elements + client->recv_msg_buffer.count,
+           length, 0);
   if (recv_n < 0) {
     if (errno != EAGAIN) {
       tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
@@ -293,9 +318,32 @@ bool tkbc_sockets_read(Client *client) {
     return false;
   }
 
-  tkbc_dapc(&client->recv_msg_buffer, buf, strlen(buf));
+  // TODO: Remove the check this case should not be a thing and there should be
+  // no need for a specific handling.
+  if (recv_buffer->capacity > 16 * 1024) {
+    assert(0 && "capacity is more that 16kb");
+  }
+
+  recv_buffer->count += recv_n;
   return true;
 }
+
+// bool tkbc_sockets_read(Client *client) {
+//   char buf[1024] = {0};
+//   int recv_n = recv(client->socket_id, buf, sizeof(buf) - 1, 0);
+//   if (recv_n < 0) {
+//     if (errno != EAGAIN) {
+//       tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
+//       return false;
+//     }
+//   }
+//   if (recv_n == 0) {
+//     return false;
+//   }
+
+//   tkbc_dapc(&client->recv_msg_buffer, buf, strlen(buf));
+//   return true;
+// }
 
 int tkbc_socket_write(Client *client) {
   size_t amount =
