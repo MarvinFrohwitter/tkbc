@@ -253,8 +253,8 @@ void tkbc_server_accept() {
     }
   } else {
     // Set the socket to non-blocking
-    int flags = fcntl(server_socket, F_GETFL, 0);
-    fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
+    int flags = fcntl(client_socket_id, F_GETFL, 0);
+    fcntl(client_socket_id, F_SETFL, flags | O_NONBLOCK);
 
     clients_visited++;
     struct pollfd client_fd = {
@@ -302,7 +302,7 @@ int tkbc_socket_write(Client *client) {
       (client->send_msg_buffer.count - client->send_msg_buffer.i) % 1024;
   ssize_t n = send(client->socket_id,
                    client->send_msg_buffer.elements + client->send_msg_buffer.i,
-                   amount, MSG_NOSIGNAL);
+                   amount, 0);
 
   if (n < 0) {
     if (errno != EAGAIN) {
