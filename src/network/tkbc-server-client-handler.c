@@ -653,11 +653,6 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES_POSITIONS\n");
     } break;
     case MESSAGE_KITES_POSITIONS_RESET: {
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        check_return(false);
-      }
-
       pthread_mutex_lock(&mutex);
       tkbc_kite_array_start_position(env->kite_array, env->window_width,
                                      env->window_height);
