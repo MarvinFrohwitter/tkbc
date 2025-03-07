@@ -585,7 +585,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 13);
+    static_assert(MESSAGE_COUNT == 14, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -651,6 +651,33 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       }
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES_POSITIONS\n");
+    } break;
+    case MESSAGE_KITES_POSITIONS_RESET: {
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        check_return(false);
+      }
+
+      pthread_mutex_lock(&mutex);
+      tkbc_kite_array_start_position(env->kite_array, env->window_width,
+                                     env->window_height);
+
+      Clients cs = {0};
+      if (!tkbc_message_kites_brodcast_all(&cs)) {
+        if (cs.count == 0) {
+          check_return(false);
+        }
+        for (size_t i = 0; i < cs.count; ++i) {
+          tkbc_server_shutdown_client(cs.elements[i], false);
+        }
+        free(cs.elements);
+        cs.elements = NULL;
+        check_return(false);
+      }
+      pthread_mutex_unlock(&mutex);
+
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s",
+                   "KITES_POSITIONS_RESET\n");
     } break;
     case MESSAGE_SCRIPT: {
       pthread_mutex_lock(&mutex);

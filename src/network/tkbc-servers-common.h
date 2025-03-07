@@ -26,7 +26,7 @@ typedef socklen_t SOCKLEN;
 #endif //_WIN32
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.2.006"
+#define PROTOCOL_VERSION "0.2.007"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -45,6 +45,7 @@ typedef enum {
   MESSAGE_CLIENTKITES,
   MESSAGE_KITES,
   MESSAGE_KITES_POSITIONS,
+  MESSAGE_KITES_POSITIONS_RESET,
   MESSAGE_KITEVALUE,
   MESSAGE_SCRIPT,
   MESSAGE_SCRIPT_BLOCK_FRAME_VALUE,

@@ -51,6 +51,7 @@ Env *env = {0};
 Client client = {0};
 #define RECEIVE_QUEUE_SIZE 1024
 Message tkbc_send_message_queue = {0};
+// static bool first_message_kite_add = true;
 
 /**
  * @brief The function prints the way the program should be called.
@@ -314,7 +315,7 @@ bool received_message_handler(Message *message) {
       goto err;
     }
 
-    assert(MESSAGE_COUNT == 13);
+    static_assert(MESSAGE_COUNT == 14, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -370,6 +371,16 @@ bool received_message_handler(Message *message) {
         client.kite_id = kite_id;
       }
 
+      static bool first_message_kite_add = true;
+      if (first_message_kite_add) {
+        for (size_t k = 0; k < env->kite_array->count; ++k) {
+          if (env->kite_array->elements[k].kite_id == kite_id) {
+            env->kite_array->elements[k].is_kite_input_handler_active = true;
+          }
+        }
+        first_message_kite_add = false;
+      }
+
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEADD\n");
     } break;
     case MESSAGE_KITES: {
@@ -386,6 +397,11 @@ bool received_message_handler(Message *message) {
         if (!tkbc_parse_single_kite_value(lexer)) {
           goto err;
         }
+      }
+
+      // Disables the input controlling if a start position reset happen.
+      for (size_t i = 0; i < env->kite_array->count; ++i) {
+        env->kite_array->elements[i].is_kite_input_handler_active = false;
       }
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES\n");
@@ -672,13 +688,21 @@ void tkbc_client_input_handler_kite() {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].kite_id == (size_t)client.kite_id) {
       Kite_State *kite_state = &env->kite_array->elements[i];
+
+      if (IsKeyPressed(KEY_ONE)) {
+        kite_state->is_kite_input_handler_active =
+            !kite_state->is_kite_input_handler_active;
+      }
+      if (!kite_state->is_kite_input_handler_active) {
+        return;
+      }
+
       Vector2 pos = {
           .x = kite_state->kite->center.x,
           .y = kite_state->kite->center.y,
       };
       float angle = kite_state->kite->angle;
 
-      kite_state->is_kite_input_handler_active = true;
       tkbc_input_handler(*env->keymaps, kite_state);
 
       if (Vector2Equals(pos, kite_state->kite->center)) {
@@ -878,6 +902,40 @@ void tkbc_client_file_handler() {
   }
 }
 
+void tkbc_message_kites_positions() {
+  char buf[64] = {0};
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITES_POSITIONS);
+  tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+  tkbc_dap(&tkbc_send_message_queue, ':');
+
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%zu", env->kite_array->count);
+  tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+
+  tkbc_dap(&tkbc_send_message_queue, ':');
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf), "%zu", env->kite_array->elements[i].kite_id);
+    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+
+    tkbc_dap(&tkbc_send_message_queue, ':');
+    memset(buf, 0, sizeof(buf));
+    float x = env->kite_array->elements[i].kite->center.x;
+    float y = env->kite_array->elements[i].kite->center.y;
+    float angle = env->kite_array->elements[i].kite->angle;
+    snprintf(buf, sizeof(buf), "(%f,%f):%f", x, y, angle);
+    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+
+    tkbc_dap(&tkbc_send_message_queue, ':');
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf), "%u",
+             *(uint32_t *)&env->kite_array->elements[i].kite->body_color);
+    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+    tkbc_dap(&tkbc_send_message_queue, ':');
+  }
+  tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+}
+
 /**
  * @brief The function warps the user key inputs for script control into
  * messages that are send to the server.
@@ -891,38 +949,10 @@ void tkbc_client_input_handler_script() {
   // KEY_ENTER
   if (IsKeyDown(
           tkbc_hash_to_key(*env->keymaps, KMH_SET_KITES_TO_START_POSITION))) {
-    tkbc_kite_array_start_position(env->kite_array, env->window_width,
-                                   env->window_height);
     char buf[64] = {0};
-    snprintf(buf, sizeof(buf), "%d", MESSAGE_KITES_POSITIONS);
+    snprintf(buf, sizeof(buf), "%d", MESSAGE_KITES_POSITIONS_RESET);
     tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
     tkbc_dap(&tkbc_send_message_queue, ':');
-
-    memset(buf, 0, sizeof(buf));
-    snprintf(buf, sizeof(buf), "%zu", env->kite_array->count);
-    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-
-    tkbc_dap(&tkbc_send_message_queue, ':');
-    for (size_t i = 0; i < env->kite_array->count; ++i) {
-      memset(buf, 0, sizeof(buf));
-      snprintf(buf, sizeof(buf), "%zu", env->kite_array->elements[i].kite_id);
-      tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-
-      tkbc_dap(&tkbc_send_message_queue, ':');
-      memset(buf, 0, sizeof(buf));
-      float x = env->kite_array->elements[i].kite->center.x;
-      float y = env->kite_array->elements[i].kite->center.y;
-      float angle = env->kite_array->elements[i].kite->angle;
-      snprintf(buf, sizeof(buf), "(%f,%f):%f", x, y, angle);
-      tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-
-      tkbc_dap(&tkbc_send_message_queue, ':');
-      memset(buf, 0, sizeof(buf));
-      snprintf(buf, sizeof(buf), "%u",
-               *(uint32_t *)&env->kite_array->elements[i].kite->body_color);
-      tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-      tkbc_dap(&tkbc_send_message_queue, ':');
-    }
     tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
   }
 

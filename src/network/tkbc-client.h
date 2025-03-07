@@ -23,4 +23,7 @@ void tkbc_client_file_handler();
 void tkbc_client_input_handler_script();
 bool tkbc_parse_single_kite_value(Lexer *lexer);
 
+// Unused for now
+void tkbc_message_kites_positions();
+
 #endif // TKBC_CLIENT_H

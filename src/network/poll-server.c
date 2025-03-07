@@ -637,7 +637,7 @@ bool tkbc_received_message_handler(Message *receive_message_queue) {
     }
 
     receive_message_queue->i = lexer->position - 1;
-    assert(MESSAGE_COUNT == 13);
+    static_assert(MESSAGE_COUNT == 14, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -692,6 +692,20 @@ bool tkbc_received_message_handler(Message *receive_message_queue) {
       }
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES_POSITIONS\n");
+    } break;
+    case MESSAGE_KITES_POSITIONS_RESET: {
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        check_return(false);
+      }
+
+      tkbc_kite_array_start_position(env->kite_array, env->window_width,
+                                     env->window_height);
+
+      tkbc_message_kites_write_to_all_send_msg_buffers();
+
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s",
+                   "KITES_POSITIONS_RESET\n");
     } break;
     case MESSAGE_SCRIPT: {
 
