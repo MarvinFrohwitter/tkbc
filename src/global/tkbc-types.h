@@ -79,6 +79,28 @@ typedef enum {
   KMH_COUNT,
 } Key_Map_Hash;
 
+typedef enum {
+  BOX_INVALID = -1,
+  BOX_MOD_KEY = 0,
+  BOX_MOD_CO_KEY = 1,
+  BOX_SELECTION_KEY1 = 2,
+  BOX_SELECTION_KEY2 = 3,
+  BOX_KEY = 4,
+} Key_Box;
+
+typedef enum {
+  LEFT_TIP = 1 << 0,
+  RIGHT_TIP = 1 << 1,
+} TIP; // The left and right tip of the leading edge.
+typedef enum {
+  LEFT,
+  RIGHT
+} DIRECTION; // The Direction where the figure starts.
+typedef enum {
+  ODD,
+  EVEN
+} ODD_EVEN; // The kite group that is split default convention up or left.
+
 typedef struct {
   char *elements;
   size_t count;
@@ -163,6 +185,8 @@ typedef struct {
                         // current angle, (in mouse control mode).
   bool is_tip_locked; // It represents if the kite leading edge angle can be
                       // freely mode with the rotation.
+  int selected_tips;   // It represents if the kite leading edge angle can be
+                      // freely mode with the rotation.
   bool is_rotating;   // Indicates if the kite currently rotates around
                       // the center.
 } Kite_State;         // The current parametrized state of one kite.
@@ -174,28 +198,6 @@ typedef struct {
                    // the number of collection elements of the array type.
 } Kite_States; // The dynamic array that can hold kites and its corresponding
                // state.
-
-typedef enum {
-  BOX_INVALID = -1,
-  BOX_MOD_KEY = 0,
-  BOX_MOD_CO_KEY = 1,
-  BOX_SELECTION_KEY1 = 2,
-  BOX_SELECTION_KEY2 = 3,
-  BOX_KEY = 4,
-} Key_Box;
-
-typedef enum {
-  LEFT_TIP,
-  RIGHT_TIP
-} TIP; // The left and right tip of the leading edge.
-typedef enum {
-  LEFT,
-  RIGHT
-} DIRECTION; // The Direction where the figure starts.
-typedef enum {
-  ODD,
-  EVEN
-} ODD_EVEN; // The kite group that is split default convention up or left.
 
 typedef struct {
   float angle;         // The rotation angle the tip turn should have.

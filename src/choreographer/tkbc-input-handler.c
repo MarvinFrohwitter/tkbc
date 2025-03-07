@@ -581,33 +581,41 @@ void tkbc_input_check_tip_rotation_mouse_control(Key_Maps keymaps,
     return;
   }
 
+  s->is_rotating = false;
+  s->selected_tips = 0;
   // Q //
   if (is_left) {
+    s->selected_tips |= LEFT_TIP;
     // W
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE))) {
       tkbc_tip_rotation(s->kite, NULL, s->kite->angle + s->turn_velocity,
                         LEFT_TIP);
+      s->is_rotating = true;
     }
 
     // S
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) {
       tkbc_tip_rotation(s->kite, NULL, s->kite->angle - s->turn_velocity,
                         LEFT_TIP);
+      s->is_rotating = true;
     }
   }
 
   // E //
   if (is_right) {
+    s->selected_tips |= RIGHT_TIP;
     // W
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE))) {
       tkbc_tip_rotation(s->kite, NULL, s->kite->angle - s->turn_velocity,
                         RIGHT_TIP);
+      s->is_rotating = true;
     }
 
     // S
     if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) {
       tkbc_tip_rotation(s->kite, NULL, s->kite->angle + s->turn_velocity,
                         RIGHT_TIP);
+      s->is_rotating = true;
     }
   }
 }
@@ -741,7 +749,33 @@ void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps,
     if (fabsf(remainder) > 22.5) {
       result_angle += remainder < 0 ? -45 : 45;
     }
-    tkbc_kite_update_angle(state->kite, result_angle);
+
+    if (state->is_angle_locked) {
+      tkbc_kite_update_angle(state->kite, result_angle);
+    }
+
+    if (state->is_tip_locked) {
+
+      if (!state->selected_tips) {
+        tkbc_kite_update_angle(state->kite, result_angle);
+      }
+
+      if (state->selected_tips & LEFT_TIP && state->selected_tips & RIGHT_TIP) {
+        // This is needed to prevent floating point precision errors.
+        // Normally both cases down below should result in this behavior anyway.
+        tkbc_kite_update_angle(state->kite, result_angle);
+      }
+      if (state->selected_tips & LEFT_TIP) {
+        tkbc_tip_rotation(state->kite, NULL, result_angle, LEFT_TIP);
+      }
+      if (state->selected_tips & RIGHT_TIP) {
+        tkbc_tip_rotation(state->kite, NULL, result_angle, RIGHT_TIP);
+      }
+
+      // Always reset, in case the tip-lock key is lifted up and therefore it
+      // can't be reset in the next iteration.
+      state->selected_tips = 0;
+    }
   }
 }
 
@@ -830,10 +864,6 @@ void tkbc_calcluate_and_update_angle(Key_Maps keymaps, Kite_State *state) {
       tkbc_kite_update_angle(state->kite, result_angle);
     }
 
-    tkbc_calculate_and_update_snapping_angle(keymaps, state);
-  }
-
-  if (state->is_tip_locked) {
     tkbc_calculate_and_update_snapping_angle(keymaps, state);
   }
 }
