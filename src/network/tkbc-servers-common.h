@@ -26,7 +26,7 @@ typedef socklen_t SOCKLEN;
 #endif //_WIN32
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.2.009"
+#define PROTOCOL_VERSION "0.2.010"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING

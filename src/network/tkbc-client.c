@@ -947,7 +947,7 @@ void tkbc_client_input_handler_script() {
 
   // Hard reset to startposition angel 0
   // KEY_ENTER
-  if (IsKeyDown(
+  if (IsKeyPressed(
           tkbc_hash_to_key(*env->keymaps, KMH_SET_KITES_TO_START_POSITION))) {
     char buf[64] = {0};
     snprintf(buf, sizeof(buf), "%d", MESSAGE_KITES_POSITIONS_RESET);
