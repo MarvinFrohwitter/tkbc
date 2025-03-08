@@ -682,19 +682,19 @@ void tkbc_message_kites_write_to_all_send_msg_buffers() {
  * receive_message_queue till the '\r\n' is dorpped. The parser continues from
  * there as recovery.
  *
- * @param receive_message_queue The messages that have been received by the
+ * @param message The messages that have been received by the
  * server.
  * @return True if every message is parsed correctly from the data, false if an
  * parsing error has occurred.
  */
-bool tkbc_received_message_handler(Message *receive_message_queue) {
+bool tkbc_received_message_handler(Message *message) {
   bool reset = true;
   Token token;
   bool ok = true;
   Lexer *lexer =
-      lexer_new(__FILE__, receive_message_queue->elements,
-                receive_message_queue->count, receive_message_queue->i);
-  if (receive_message_queue->count == 0) {
+      lexer_new(__FILE__, message->elements,
+                message->count, message->i);
+  if (message->count == 0) {
     check_return(true);
   }
   do {
@@ -720,7 +720,7 @@ bool tkbc_received_message_handler(Message *receive_message_queue) {
       goto err;
     }
 
-    receive_message_queue->i = lexer->position - 1;
+    message->i = lexer->position - 1;
     static_assert(MESSAGE_COUNT == 14, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
@@ -1198,10 +1198,10 @@ bool tkbc_received_message_handler(Message *receive_message_queue) {
     continue;
 
   err: {
-    tkbc_dap(receive_message_queue, 0);
-    receive_message_queue->count -= 1;
+    tkbc_dap(message, 0);
+    message->count -= 1;
     char *rn =
-        strstr(receive_message_queue->elements + lexer->position, "\r\n");
+        strstr(message->elements + lexer->position, "\r\n");
     if (rn == NULL) {
       reset = false;
     } else {
@@ -1211,7 +1211,7 @@ bool tkbc_received_message_handler(Message *receive_message_queue) {
     }
     tkbc_fprintf(stderr, "WARNING",
                  "receive_message_queue: unhandled bytes: %zu\n",
-                 receive_message_queue->count - receive_message_queue->i);
+                 message->count - message->i);
     break;
   }
   } while (token.kind != EOF_TOKEN);
@@ -1226,8 +1226,8 @@ check:
   lexer = NULL;
 
   if (reset) {
-    receive_message_queue->count = 0;
-    receive_message_queue->i = 0;
+    message->count = 0;
+    message->i = 0;
   }
 
   return ok;
