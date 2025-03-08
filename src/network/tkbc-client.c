@@ -49,6 +49,7 @@
 
 Env *env = {0};
 Client client = {0};
+Kite client_kite;
 #define RECEIVE_QUEUE_SIZE 1024
 Message tkbc_send_message_queue = {0};
 // static bool first_message_kite_add = true;
@@ -376,6 +377,7 @@ bool received_message_handler(Message *message) {
         for (size_t k = 0; k < env->kite_array->count; ++k) {
           if (env->kite_array->elements[k].kite_id == kite_id) {
             env->kite_array->elements[k].is_kite_input_handler_active = true;
+            client_kite = *env->kite_array->elements[k].kite;
           }
         }
         first_message_kite_add = false;
@@ -726,6 +728,11 @@ void tkbc_client_input_handler_kite() {
         if (FloatEquals(angle, kite_state->kite->angle)) {
           return;
         }
+      }
+
+      if (FloatEquals(client_kite.angle, kite_state->kite->angle) &&
+          Vector2Equals(client_kite.center, kite_state->kite->center)) {
+        return;
       }
 
       char buf[64] = {0};
