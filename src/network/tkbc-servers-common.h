@@ -1,7 +1,19 @@
 #ifndef TKBC_SERVERS_COMMON_H
 #define TKBC_SERVERS_COMMON_H
 
+//////////////////////////////////////////////////////////////////////////////
+#define PROTOCOL_VERSION "0.2.012"
+#define SERVER_CONNETCTIONS 64
+
+#define TKBC_LOGGING
+#define TKBC_LOGGING_ERROR
+#define TKBC_LOGGING_INFO
+#define TKBC_LOGGING_WARNING
+//////////////////////////////////////////////////////////////////////////////
+
 #include "../global/tkbc-utils.h"
+extern Env *env;
+
 #include <ctype.h>
 #include <string.h>
 
@@ -24,17 +36,6 @@ typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 typedef socklen_t SOCKLEN;
 #endif //_WIN32
-
-//////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.2.011"
-#define SERVER_CONNETCTIONS 64
-
-#define TKBC_LOGGING
-#define TKBC_LOGGING_ERROR
-#define TKBC_LOGGING_INFO
-#define TKBC_LOGGING_WARNING
-
-extern Env *env;
 
 // name : kind : data
 typedef enum {
@@ -70,8 +71,8 @@ typedef struct {
   Message recv_msg_buffer;
 
   int socket_id;
-  struct sockaddr_in client_address;
-  socklen_t client_address_length;
+  SOCKADDR_IN client_address;
+  SOCKLEN client_address_length;
 } Client;
 
 typedef struct {

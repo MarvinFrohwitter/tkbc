@@ -1,15 +1,26 @@
 #define TKBC_SERVER
 
-#include <arpa/inet.h>
 #include <assert.h>
-#include <fcntl.h>
 #include <math.h>
+#include <string.h>
+#include <unistd.h>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define _WINUSER_
+#define _WINGDI_
+#define _IMM_
+#define _WINCON_
+#include <windows.h>
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <poll.h>
 #include <signal.h>
-#include <string.h>
 #include <sys/socket.h>
-#include <unistd.h>
+#endif
 
 #include "tkbc-network-common.h"
 #include "tkbc-servers-common.h"
@@ -241,10 +252,10 @@ void tkbc_client_prelog(Client *client) {
 
 void tkbc_server_accept() {
 
-  struct sockaddr_in client_address;
-  socklen_t address_length = sizeof(client_address);
-  int client_socket_id = accept(
-      server_socket, (struct sockaddr *)&client_address, &address_length);
+  SOCKADDR_IN client_address;
+  SOCKLEN address_length = sizeof(client_address);
+  int client_socket_id =
+      accept(server_socket, (SOCKADDR *)&client_address, &address_length);
 
   if (client_socket_id == -1) {
     if (errno != EAGAIN) {
@@ -252,9 +263,21 @@ void tkbc_server_accept() {
       assert(0 && "accept error");
     }
   } else {
+
+#ifdef _WIN32
+    // Set the socket to non-blocking
+    u_long mode = 1; // 1 to enable non-blocking socket
+    if (ioctlsocket(client_socket_id, FIONBIO, &mode) != 0) {
+      tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
+      closesocket(client_socket_id);
+      WSACleanup();
+      exit(1);
+    }
+#else
     // Set the socket to non-blocking
     int flags = fcntl(client_socket_id, F_GETFL, 0);
     fcntl(client_socket_id, F_SETFL, flags | O_NONBLOCK);
+#endif // _WIN32
 
     clients_visited++;
     struct pollfd client_fd = {
@@ -433,11 +456,22 @@ void tkbc_socket_handling() {
  */
 void tkbc_server_shutdown_client(Client client, bool force) {
   shutdown(client.socket_id, SHUT_WR);
-  for (char b[1024]; recv(client.socket_id, b, sizeof(b), MSG_DONTWAIT) > 0;)
+  for (char b[1024]; recv(client.socket_id, b, sizeof(b), 0) > 0;)
     ;
-  if (close(client.socket_id) == -1) {
-    tkbc_fprintf(stderr, "ERROR", "Close socket: %s\n", strerror(errno));
+
+#ifdef _WIN32
+  if (closesocket(client.socket_id) == -1) {
+
+    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
+                 WSAGetLastError());
   }
+  WSACleanup();
+#else
+  if (close(client.socket_id) == -1) {
+    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
+                 strerror(errno));
+  }
+#endif // _WIN32
 
   if (!force) {
     Message message = {0};
@@ -1219,9 +1253,20 @@ int main(int argc, char *argv[]) {
   server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
   tkbc_fprintf(stderr, "INFO", "%s: %d\n", "Server socket", server_socket);
 
+#ifdef _WIN32
+  // Set the socket to non-blocking
+  u_long mode = 1; // 1 to enable non-blocking socket
+  if (ioctlsocket(server_socket, FIONBIO, &mode) != 0) {
+    tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
+    closesocket(server_socket);
+    WSACleanup();
+    exit(1);
+  }
+#else
   // Set the socket to non-blocking
   int flags = fcntl(server_socket, F_GETFL, 0);
   fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
+#endif // _WIN32
 
   srand(time(NULL));
   // Get the first 0 out of the way.
@@ -1243,12 +1288,22 @@ int main(int argc, char *argv[]) {
     }
 
     int timeout = -1; // Infinite
+
+#ifdef _WIN32
+    int poll_err = WSAPoll(fds.elements, fds.count, timeout);
+    if (poll_err == -1) {
+      tkbc_fprintf(stderr, "ERROR", "The poll has failed:%d\n",
+                   WSAGetLastError());
+      break;
+    }
+#else
     int poll_err = poll(fds.elements, fds.count, timeout);
     if (poll_err == -1) {
       tkbc_fprintf(stderr, "ERROR", "The poll has failed:%s\n",
                    strerror(errno));
       break;
     }
+#endif // _WIN32
 
     if (poll_err > 0) {
       tkbc_socket_handling();
@@ -1286,7 +1341,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  signalhandler(SIGINT);
+  signalhandler(0);
   return 0;
 }
 
@@ -1305,9 +1360,18 @@ void signalhandler(int signal) {
   }
 
   shutdown(server_socket, SHUT_RDWR);
+#ifdef _WIN32
+  if (closesocket(server_socket) == -1) {
+
+    tkbc_fprintf(stderr, "ERROR", "Main Server Socket: %d\n",
+                 WSAGetLastError());
+  }
+  WSACleanup();
+#else
   if (close(server_socket) == -1) {
     tkbc_fprintf(stderr, "ERROR", "Main Server Socket: %s\n", strerror(errno));
   }
+#endif // _WIN32
 
   for (size_t i = 0; i < clients.count; ++i) {
     free(clients.elements[i].send_msg_buffer.elements);

@@ -25,6 +25,10 @@ poll-server: build
 	# ${CC} ${INCLUDE} ${CFLAGS} -fsanitize=address -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	${CC} ${INCLUDE} ${CFLAGS} -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
+poll-server-win64: build first.o
+	x86_64-w64-mingw32-gcc -Wall -Wextra -O0 -static  -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/poll-server-win64 src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lws2_32 -lwinmm
+
+
 
 server: build first.o
 	${CC} ${INCLUDE} ${CFLAGS} -o build/server src/network/tkbc-server.c src/network/tkbc-server-client-handler.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
