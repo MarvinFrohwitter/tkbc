@@ -134,6 +134,55 @@ void tkbc_remove_connection_retry(Client client) {
     }
   }
 }
+/**
+ * @brief The function shutdown the client connection that is given by the
+ * client argument.
+ *
+ * @param client The client connection that should be closed.
+ * @param force Represents that every action that might not shutdown the client
+ * immediately is omitted.
+ */
+void tkbc_server_shutdown_client(Client client, bool force) {
+  shutdown(client.socket_id, SHUT_WR);
+  for (char b[1024]; recv(client.socket_id, b, sizeof(b), 0) > 0;)
+    ;
+
+#ifdef _WIN32
+  if (closesocket(client.socket_id) == -1) {
+
+    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
+                 WSAGetLastError());
+  }
+  WSACleanup();
+#else
+  if (close(client.socket_id) == -1) {
+    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
+                 strerror(errno));
+  }
+#endif // _WIN32
+
+  if (!force) {
+    Message message = {0};
+    char buf[64] = {0};
+    snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENT_DISCONNECT);
+    tkbc_dapc(&message, buf, strlen(buf));
+    tkbc_dap(&message, ':');
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf), "%zu", client.kite_id);
+    tkbc_dapc(&message, buf, strlen(buf));
+    tkbc_dap(&message, ':');
+    tkbc_dapc(&message, "\r\n", 2);
+    tkbc_dap(&message, 0);
+
+    tkbc_write_to_all_send_msg_buffers_except(message, client.socket_id);
+    if (message.elements) {
+      free(message.elements);
+      message.elements = NULL;
+    }
+  }
+
+  tkbc_remove_connection_retry(client);
+}
 
 /**
  * @brief The function constructs the hello message. That is used to establish
@@ -246,7 +295,7 @@ void tkbc_client_prelog(Client *client) {
   tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
 
   if (!tkbc_message_clientkites_write_to_send_msg_buffer(client)) {
-    tkbc_remove_connection_retry(*client);
+    tkbc_server_shutdown_client(*client, false);
   }
 }
 
@@ -438,62 +487,12 @@ void tkbc_socket_handling() {
       Client *client = tkbc_get_client_by_fd(fds.elements[idx].fd);
       bool result = tkbc_server_handle_clients(client);
       if (!result) {
-        tkbc_remove_connection_retry(*client);
+        tkbc_server_shutdown_client(*client, false);
         idx--;
         continue;
       }
     }
   }
-}
-
-/**
- * @brief The function shutdown the client connection that is given by the
- * client argument.
- *
- * @param client The client connection that should be closed.
- * @param force Represents that every action that might not shutdown the client
- * immediately is omitted.
- */
-void tkbc_server_shutdown_client(Client client, bool force) {
-  shutdown(client.socket_id, SHUT_WR);
-  for (char b[1024]; recv(client.socket_id, b, sizeof(b), 0) > 0;)
-    ;
-
-#ifdef _WIN32
-  if (closesocket(client.socket_id) == -1) {
-
-    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
-                 WSAGetLastError());
-  }
-  WSACleanup();
-#else
-  if (close(client.socket_id) == -1) {
-    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
-                 strerror(errno));
-  }
-#endif // _WIN32
-
-  if (!force) {
-    Message message = {0};
-    char buf[64] = {0};
-    snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENT_DISCONNECT);
-    tkbc_dapc(&message, buf, strlen(buf));
-    tkbc_dap(&message, ':');
-    memset(buf, 0, sizeof(buf));
-    snprintf(buf, sizeof(buf), "%zu", client.kite_id);
-    tkbc_dapc(&message, buf, strlen(buf));
-    tkbc_dap(&message, ':');
-    tkbc_dapc(&message, "\r\n", 2);
-    tkbc_dap(&message, 0);
-
-    tkbc_write_to_all_send_msg_buffers_except(message, client.socket_id);
-    if (message.elements) {
-      free(message.elements);
-      message.elements = NULL;
-    }
-  }
-
-  tkbc_remove_connection_retry(client);
 }
 
 /**
