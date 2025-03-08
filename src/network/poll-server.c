@@ -376,17 +376,28 @@ bool tkbc_sockets_read(Client *client) {
     }
   }
 
-  int recv_n =
-      recv(client->socket_id,
-           client->recv_msg_buffer.elements + client->recv_msg_buffer.count,
-           length, 0);
-  if (recv_n < 0) {
+  int n = recv(client->socket_id,
+               client->recv_msg_buffer.elements + client->recv_msg_buffer.count,
+               length, 0);
+
+  if (n < 0) {
+#ifdef _WIN32
+    int err_errno = WSAGetLastError();
+    if (err_errno != WSAEWOULDBLOCK) {
+      tkbc_fprintf(stderr, "ERROR", "Read: %d\n", err_errno);
+      return false;
+    }
+#else
     if (errno != EAGAIN) {
       tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
       return false;
     }
+#endif // _WIN32
   }
-  if (recv_n == 0) {
+
+  if (n == 0) {
+    tkbc_fprintf(stderr, "ERROR", "No bytes could be read:" CLIENT_FMT "\n",
+                 CLIENT_ARG(*client));
     return false;
   }
 
@@ -396,26 +407,9 @@ bool tkbc_sockets_read(Client *client) {
     assert(0 && "capacity is more that 16kb");
   }
 
-  recv_buffer->count += recv_n;
+  recv_buffer->count += n;
   return true;
 }
-
-// bool tkbc_sockets_read(Client *client) {
-//   char buf[1024] = {0};
-//   int recv_n = recv(client->socket_id, buf, sizeof(buf) - 1, 0);
-//   if (recv_n < 0) {
-//     if (errno != EAGAIN) {
-//       tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
-//       return false;
-//     }
-//   }
-//   if (recv_n == 0) {
-//     return false;
-//   }
-
-//   tkbc_dapc(&client->recv_msg_buffer, buf, strlen(buf));
-//   return true;
-// }
 
 int tkbc_socket_write(Client *client) {
   size_t amount =
@@ -425,14 +419,23 @@ int tkbc_socket_write(Client *client) {
                    amount, 0);
 
   if (n < 0) {
+#ifdef _WIN32
+    int err_errno = WSAGetLastError();
+    if (err_errno != WSAEWOULDBLOCK) {
+      tkbc_fprintf(stderr, "ERROR", "Write: %d\n", err_errno);
+      return false;
+    }
+#else
     if (errno != EAGAIN) {
-      tkbc_fprintf(stderr, "ERROR", "Send: %s\n", strerror(errno));
-      return -1;
+      tkbc_fprintf(stderr, "ERROR", "Write: %s\n", strerror(errno));
+      return false;
     }
-    if (n == 0) {
-      tkbc_fprintf(stderr, "ERROR", "No byte where send to:" CLIENT_FMT "\n",
-                   CLIENT_ARG(*client));
-    }
+#endif // _WIN32
+  }
+
+  if (n == 0) {
+    tkbc_fprintf(stderr, "ERROR", "No bytes where written to:" CLIENT_FMT "\n",
+                 CLIENT_ARG(*client));
   }
 
   if ((size_t)n == client->send_msg_buffer.count - client->send_msg_buffer.i) {
