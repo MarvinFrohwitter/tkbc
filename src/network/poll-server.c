@@ -692,8 +692,7 @@ bool tkbc_received_message_handler(Message *message) {
   Token token;
   bool ok = true;
   Lexer *lexer =
-      lexer_new(__FILE__, message->elements,
-                message->count, message->i);
+      lexer_new(__FILE__, message->elements, message->count, message->i);
   if (message->count == 0) {
     check_return(true);
   }
@@ -720,7 +719,7 @@ bool tkbc_received_message_handler(Message *message) {
       goto err;
     }
 
-    message->i = lexer->position - 1;
+    message->i = lexer->position - 2;
     static_assert(MESSAGE_COUNT == 14, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
@@ -1200,24 +1199,25 @@ bool tkbc_received_message_handler(Message *message) {
   err: {
     tkbc_dap(message, 0);
     message->count -= 1;
-    char *rn =
-        strstr(message->elements + lexer->position, "\r\n");
+    char *rn = strstr(message->elements + lexer->position, "\r\n");
     if (rn == NULL) {
       reset = false;
     } else {
       int jump_length = rn + 2 - &lexer->content[lexer->position];
       lexer_chop_char(lexer, jump_length);
+      tkbc_fprintf(stderr, "WARNING", "Message: Parsing error: %.*s\n",
+                   jump_length, message->elements + message->i);
       continue;
     }
     tkbc_fprintf(stderr, "WARNING",
-                 "receive_message_queue: unhandled bytes: %zu\n",
+                 "Message unfinished: first read bytes: %zu\n",
                  message->count - message->i);
     break;
   }
   } while (token.kind != EOF_TOKEN);
 
 check:
-  // No lexer_del() for performant reuse of the receive_message_queue.
+  // No lexer_del() for performant reuse of the message.
   if (lexer->buffer.elements) {
     free(lexer->buffer.elements);
     lexer->buffer.elements = NULL;
