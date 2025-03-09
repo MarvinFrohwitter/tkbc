@@ -13,7 +13,7 @@ CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c
 CHOREOGRAPHER_FILES = ${shell find ${CHOREOGRAPHERPATH}/ ! -name "main.c" -name "*.c"}
 CHOREOGRAPHER += ${CHOREOGRAPHER_FILES}
 
-all: options build tkbc server client poll-server
+all: options build tkbc server client tkbc-win64 poll-server poll-server-win64 client-win64
 
 options:
 	@echo tbkc build options:
