@@ -347,7 +347,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
       assert(kite != NULL);
 
-      float intermediate_angle = check_angle_zero(
+      float intermediate_angle = tkbc_check_angle_zero(
           kite, frame->kind, *(Action *)action, frame->duration);
       float d =
           tkbc_script_rotate(kite, intermediate_angle, frame->duration, false);
@@ -427,7 +427,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
       assert(kite != NULL);
 
-      float intermediate_angle = check_angle_zero(
+      float intermediate_angle = tkbc_check_angle_zero(
           kite, frame->kind, *(Action *)action, frame->duration);
       float d = tkbc_script_rotate_tip(kite, action->tip, intermediate_angle,
                                        frame->duration, false);
@@ -864,7 +864,7 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
  * @param duration The current frame duration.
  * @return The intermediate angle that represents the distance to 0.
  */
-float check_angle_zero(Kite *kite, Action_Kind kind, Action action,
+float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action,
                        float duration) {
   switch (kind) {
   case KITE_ROTATION:
@@ -919,6 +919,6 @@ float check_angle_zero(Kite *kite, Action_Kind kind, Action action,
       }
     }
   default:
-    assert(0 && "UNREACHABLE check_angle_zero()");
+    assert(0 && "UNREACHABLE tkbc_check_angle_zero()");
   }
 }
