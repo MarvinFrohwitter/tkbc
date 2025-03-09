@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.2.012"
+#define PROTOCOL_VERSION "0.2.013"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
