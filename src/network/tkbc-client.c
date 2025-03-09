@@ -286,13 +286,15 @@ check:
  * handled, otherwise false and a parsing error has occurred.
  */
 bool received_message_handler(Message *message) {
+  bool reset = true;
   Token token;
   bool ok = true;
   if (message->count == 0) {
     return ok;
   }
 
-  Lexer *lexer = lexer_new(__FILE__, message->elements, message->count, 0);
+  Lexer *lexer =
+      lexer_new(__FILE__, message->elements, message->count, message->i);
   do {
     token = lexer_next(lexer);
     if (token.kind == EOF_TOKEN) {
@@ -316,6 +318,7 @@ bool received_message_handler(Message *message) {
       goto err;
     }
 
+    message->i = lexer->position - 2;
     static_assert(MESSAGE_COUNT == 14, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
@@ -555,13 +558,19 @@ bool received_message_handler(Message *message) {
     tkbc_dap(message, 0);
     message->count -= 1;
     char *rn = strstr(message->elements + lexer->position, "\r\n");
-    if (rn != NULL) {
+    if (rn == NULL) {
+      reset = false;
+    } else {
       int jump_length = rn + 2 - &lexer->content[lexer->position];
       lexer_chop_char(lexer, jump_length);
+      tkbc_fprintf(stderr, "WARNING", "Message: Parsing error: %.*s\n",
+                   jump_length, message->elements + message->i);
       continue;
     }
-    tkbc_fprintf(stderr, "WARNING", "Message: %s\n", message->elements);
-    check_return(false);
+    tkbc_fprintf(stderr, "WARNING",
+                 "Message unfinished: first read bytes: %zu\n",
+                 message->count - message->i);
+    break;
   }
   } while (token.kind != EOF_TOKEN);
 
@@ -573,43 +582,13 @@ check:
   }
   free(lexer);
   lexer = NULL;
-  message->count = 0;
+
+  if (reset) {
+    message->count = 0;
+    message->i = 0;
+  }
+
   return ok;
-}
-
-// TODO: Remove the buffer from the static memory.
-
-static char static_buffer[16 * 1024] = {0};
-
-bool tkbc_check_is_less_than_max_allowed_capacity_and_handle(Message *message) {
-  if (message->capacity < 256 * RECEIVE_QUEUE_SIZE) {
-    return true;
-  }
-  tkbc_fprintf(stderr, "ERROR", "The size was bigger than 64KB: %zu\n",
-               message->capacity);
-
-  // Think about adding a small extra space (64bytes) in the initial allocation
-  // because this thing will trigger reallocation in every case.
-  tkbc_dap(message, 0);
-  char *rest_ptr = strrchr(message->elements, '\n');
-
-  unsigned long d =
-      labs((long)(rest_ptr - (message->elements + message->count)));
-
-  // The equal save one byte for the buffer null terminator that is set later.
-  if (d >= sizeof(static_buffer)) {
-    // This should not happen, because the max message length is less than
-    // 16Kb.
-    fprintf(stderr, "The amount of the unhandled read buffer => %lu\n", d);
-    assert(0 && "ERROR:The scratch buffer is to small!");
-  }
-
-  if (d > 0) {
-    memcpy(static_buffer, rest_ptr, d);
-    static_buffer[d] = 0;
-    message->count -= d;
-  }
-  return false;
 }
 
 /**
@@ -621,70 +600,59 @@ bool tkbc_check_is_less_than_max_allowed_capacity_and_handle(Message *message) {
  * server was successful, otherwise false.
  */
 bool message_queue_handler(Message *message) {
-  if (message->capacity >= 64 * RECEIVE_QUEUE_SIZE) {
-    message->capacity = RECEIVE_QUEUE_SIZE;
-    free(message->elements);
-    message->elements = NULL;
+  size_t length = 1024;
+  if (message->capacity < message->count + length) {
+    if (message->capacity == 0) {
+      message->capacity = length;
+    }
+
+    while (message->capacity < message->count + length) {
+      message->capacity += length;
+    }
+
     message->elements = realloc(message->elements,
                                 sizeof(*message->elements) * message->capacity);
+
+    if (message->elements == NULL) {
+      fprintf(stderr,
+              "The allocation for the dynamic array has failed in: %s: %d\n",
+              __FILE__, __LINE__);
+      abort();
+    }
   }
 
-  ssize_t n = 0;
-  message->count = 0;
-  do {
-    if (*static_buffer) {
-      tkbc_dapc(message, static_buffer, strlen(static_buffer));
-      memset(static_buffer, 0, sizeof(static_buffer));
-    }
+  int n = recv(client.socket_id, message->elements + message->count, length, 0);
 
-    if (message->count + RECEIVE_QUEUE_SIZE > message->capacity) {
-      while (message->capacity < message->count + RECEIVE_QUEUE_SIZE) {
-        message->capacity += RECEIVE_QUEUE_SIZE;
-      }
-
-      message->elements = realloc(
-          message->elements, sizeof(*message->elements) * message->capacity);
-      if (message->elements == NULL) {
-        tkbc_fprintf(stderr, "ERROR", "Realloc failed!: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-      }
-    }
-    n = recv(client.socket_id, &message->elements[message->count],
-             RECEIVE_QUEUE_SIZE, 0);
-
-    if (n == -1) {
-      break;
-    }
-
-    if (!tkbc_check_is_less_than_max_allowed_capacity_and_handle(message)) {
-      break;
-    }
-
-    message->count += n;
-  } while (n > 0);
-
+  if (n < 0) {
 #ifdef _WIN32
-  if (n == -1) {
     int err_errno = WSAGetLastError();
     if (err_errno != WSAEWOULDBLOCK) {
       tkbc_fprintf(stderr, "ERROR", "Read: %d\n", err_errno);
       return false;
-    }
-    if (err_errno == WSAEWOULDBLOCK && message->count == 0) {
+    } else {
       return true;
     }
-  }
 #else
-  if (n == -1) {
     if (errno != EAGAIN) {
       tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
       return false;
-    }
-    if (errno == EAGAIN && message->count == 0) {
+    } else {
       return true;
     }
-  }
 #endif // _WIN32
+  }
+
+  if (n == 0) {
+    return false;
+  }
+
+  // TODO: Remove the check this case should not be a thing and there should be
+  // no need for a specific handling.
+  if (message->capacity > 16 * 1024) {
+    assert(0 && "capacity is more that 16kb");
+  }
+
+  message->count += n;
 
   if (!received_message_handler(message)) {
     if (n > 0) {
