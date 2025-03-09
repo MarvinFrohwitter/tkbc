@@ -386,11 +386,15 @@ bool tkbc_sockets_read(Client *client) {
     if (err_errno != WSAEWOULDBLOCK) {
       tkbc_fprintf(stderr, "ERROR", "Read: %d\n", err_errno);
       return false;
+    } else {
+      return true;
     }
 #else
     if (errno != EAGAIN) {
       tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
       return false;
+    } else {
+      return true;
     }
 #endif // _WIN32
   }
@@ -407,6 +411,7 @@ bool tkbc_sockets_read(Client *client) {
     assert(0 && "capacity is more that 16kb");
   }
 
+  assert(n != -1);
   recv_buffer->count += n;
   return true;
 }
@@ -423,12 +428,16 @@ int tkbc_socket_write(Client *client) {
     int err_errno = WSAGetLastError();
     if (err_errno != WSAEWOULDBLOCK) {
       tkbc_fprintf(stderr, "ERROR", "Write: %d\n", err_errno);
-      return false;
+      return -1;
+    } else {
+      return 0;
     }
 #else
     if (errno != EAGAIN) {
       tkbc_fprintf(stderr, "ERROR", "Write: %s\n", strerror(errno));
-      return false;
+      return -1;
+    } else {
+      return 0;
     }
 #endif // _WIN32
   }
@@ -438,6 +447,7 @@ int tkbc_socket_write(Client *client) {
                  CLIENT_ARG(*client));
   }
 
+  assert(n != -1);
   if ((size_t)n == client->send_msg_buffer.count - client->send_msg_buffer.i) {
     client->send_msg_buffer.count = 0;
     client->send_msg_buffer.i = 0;
