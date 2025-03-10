@@ -599,34 +599,6 @@ void tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
 }
 
 /**
- * @brief The function parses the KITEVALUE message out of the current lexer
- * data.
- *
- * @param lexer The current state of the data to parse.
- * @param kite_id The id that is assigned from the parsed value.
- * @return True if the parsing had not no errors, otherwise false.
- */
-bool tkbc_parse_single_kitevalue(Lexer *lexer, size_t *kite_id) {
-  float x, y, angle;
-  Color color;
-  if (!tkbc_parse_message_kite_value(lexer, kite_id, &x, &y, &angle, &color)) {
-    return false;
-  }
-
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (*kite_id == env->kite_array->elements[i].kite_id) {
-      Kite *kite = env->kite_array->elements[i].kite;
-      kite->center.x = x;
-      kite->center.y = y;
-      kite->angle = angle;
-      kite->body_color = color;
-      tkbc_kite_update_internal(kite);
-    }
-  }
-  return true;
-}
-
-/**
  * @brief The function constructs the message KITEVALUE that contains a data
  * serialization for one specified kite.
  *
@@ -755,9 +727,19 @@ bool tkbc_received_message_handler(Message *message) {
     } break;
     case MESSAGE_KITEVALUE: {
       size_t kite_id;
-      if (!tkbc_parse_single_kitevalue(lexer, &kite_id)) {
+      float x, y, angle;
+      Color color;
+      if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
+                                         &color)) {
         goto err;
       }
+      Kite *kite = tkbc_get_kite_by_id(env, kite_id);
+      kite->center.x = x;
+      kite->center.y = y;
+      kite->angle = angle;
+      kite->body_color = color;
+      tkbc_kite_update_internal(kite);
+
       if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
               kite_id)) {
         check_return(false);
@@ -776,8 +758,7 @@ bool tkbc_received_message_handler(Message *message) {
         check_return(false);
       }
       for (size_t id = 0; id < kite_count; ++id) {
-        size_t kite_id;
-        if (!tkbc_parse_single_kitevalue(lexer, &kite_id)) {
+        if (!tkbc_parse_single_kite_value(lexer)) {
           goto err;
         }
 
@@ -1095,12 +1076,10 @@ bool tkbc_received_message_handler(Message *message) {
       if (!found) {
         size_t kite_count = possible_new_kis.count;
         for (size_t id = 0; id < possible_new_kis.count; ++id) {
-          for (size_t i = 0; i < env->kite_array->count; ++i) {
-            Kite_State *kite_state = &env->kite_array->elements[i];
-            if (possible_new_kis.elements[id] == kite_state->kite_id) {
-              kite_count--;
-              break;
-            }
+          Kite_State *kite_state =
+              tkbc_get_kite_state_by_id(env, possible_new_kis.elements[id]);
+          if (kite_state) {
+            kite_count--;
           }
         }
         tkbc_kite_array_generate(env, kite_count);

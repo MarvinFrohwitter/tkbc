@@ -31,8 +31,8 @@ Frame *tkbc_init_frame(void) {
 }
 
 /**
- * @brief The function can be used to get a direct view pointer into the
- * kite_array stored in the env by providing its id.
+ * @brief The function can be used to get a direct view pointer to the kite in
+ * the kite_array stored in the env by providing its id.
  *
  * @param env The global state of the application.
  * @param id THe id that identifies the kite.
@@ -42,6 +42,23 @@ Kite *tkbc_get_kite_by_id(Env *env, size_t id) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].kite_id == id) {
       return env->kite_array->elements[i].kite;
+    }
+  }
+  return NULL;
+}
+
+/**
+ * @brief The function can be used to get a direct view pointer to the kite
+ * state in the kite_array stored in the env by providing its id.
+ *
+ * @param env The global state of the application.
+ * @param id THe id that identifies the kite.
+ * @return A pointer to the requested kite or NULL if the kite doesn't exist.
+ */
+Kite_State *tkbc_get_kite_state_by_id(Env *env, size_t id) {
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    if (env->kite_array->elements[i].kite_id == id) {
+      return &env->kite_array->elements[i];
     }
   }
   return NULL;
@@ -459,18 +476,13 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
 
     for (size_t j = 0; j < frames->elements[i].kite_id_array.count; ++j) {
       Index kite_id = frames->elements[i].kite_id_array.elements[j];
-      Index kite_index = 0;
-      for (size_t index = 0; index < env->kite_array->count; ++index) {
-        if (kite_id == env->kite_array->elements[index].kite_id) {
-          kite_index = index;
-          break;
-        }
-      }
+      Kite *kite = tkbc_get_kite_by_id(env, kite_id);
+      assert(kite != NULL);
 
       Kite_Position kite_position = {
           .kite_id = kite_id,
-          .position = env->kite_array->elements[kite_index].kite->center,
-          .angle = env->kite_array->elements[kite_index].kite->angle,
+          .position = kite->center,
+          .angle = kite->angle,
       };
 
       bool contains = false;
@@ -609,18 +621,11 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
   // TODO: Think about kites that are move in the previous frame but not in
   // the current one. The kites can end up in wired locations, because the
   // state is not exactly as if the script has executed from the beginning.
-  Kite *kite = NULL;
+  assert(env->frames);
   for (size_t i = 0; i < env->frames->kite_frame_positions.count; ++i) {
-    for (size_t k = 0; k < env->kite_array->count; ++k) {
-      if (env->frames->kite_frame_positions.elements[i].kite_id ==
-          env->kite_array->elements[k].kite_id) {
-        kite = env->kite_array->elements[k].kite;
-        break;
-      }
-    }
-    if (kite == NULL) {
-      assert(0 && "Unexpected data lose.");
-    }
+    Id id = env->frames->kite_frame_positions.elements[i].kite_id;
+    Kite *kite = tkbc_get_kite_by_id(env, id);
+    assert(kite != NULL && "Unexpected data lose.");
 
     Vector2 position = env->frames->kite_frame_positions.elements[i].position;
     float angle = env->frames->kite_frame_positions.elements[i].angle;

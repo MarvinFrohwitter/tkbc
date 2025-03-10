@@ -94,6 +94,7 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
  */
 void tkbc_input_handler_kite_array(Env *env) {
   // To only handle 9 kites controllable by the keyboard.
+  assert(env->kite_array != NULL);
   for (size_t i = 1; i <= 9; ++i) {
     if (!IsKeyPressed(i + 48) || env->kite_array->count < i) {
       continue;
@@ -149,9 +150,9 @@ void tkbc_input_handler_kite_array(Env *env) {
     }
   }
 
+  // TODO: Remove
   // To handle all of the kites currently registered in the kite array.
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-
     Color color = TKBC_UI_TEAL;
     char buf[32] = {0};
     sprintf(buf, "%.0f", env->kite_array->elements[i].kite->fly_speed);

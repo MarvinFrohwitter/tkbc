@@ -975,12 +975,8 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       if (!found) {
         size_t kite_count = possible_new_kis.count;
         for (size_t id = 0; id < possible_new_kis.count; ++id) {
-          for (size_t i = 0; i < env->kite_array->count; ++i) {
-            Kite_State *kite_state = &env->kite_array->elements[i];
-            if (possible_new_kis.elements[id] == kite_state->kite_id) {
-              kite_count--;
-              break;
-            }
+          if (tkbc_get_kite_state_by_id(env, possible_new_kis.elements[id])) {
+            kite_count--;
           }
         }
         tkbc_kite_array_generate(env, kite_count);
@@ -1137,16 +1133,13 @@ bool tkbc_single_kitevalue(Lexer *lexer, size_t *kite_id) {
   }
 
   pthread_mutex_lock(&mutex);
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (*kite_id == env->kite_array->elements[i].kite_id) {
-      Kite *kite = env->kite_array->elements[i].kite;
-      kite->center.x = x;
-      kite->center.y = y;
-      kite->angle = angle;
-      kite->body_color = color;
-      tkbc_kite_update_internal(kite);
-    }
-  }
+
+  Kite *kite = tkbc_get_kite_by_id(env, *kite_id);
+  kite->center.x = x;
+  kite->center.y = y;
+  kite->angle = angle;
+  kite->body_color = color;
+  tkbc_kite_update_internal(kite);
   pthread_mutex_unlock(&mutex);
   return true;
 }

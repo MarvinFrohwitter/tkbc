@@ -62,42 +62,39 @@ void tkbc_script_update_frames(Env *env) {
     }
   }
 
-  if (env->frames->block_index + 1 < env->block_frame->count) {
-    if (tkbc_check_finished_frames(env)) {
+  if (!tkbc_check_finished_frames(env)) {
+    return;
+  }
 
-      // Overflow protection is just in case the finish detection fails or the
-      // manual timeline interaction triggers a state that disables the previous
-      // checks.
-      assert(env->frames->block_index + 1 < env->block_frame->count);
-      env->frames = &env->block_frame->elements[env->frames->block_index + 1];
-
-      tkbc_patch_frames_current_time(env->frames);
-
-      for (size_t i = 0; i < env->frames->kite_frame_positions.count; ++i) {
-        for (size_t k = 0; k < env->kite_array->count; ++k) {
-          if (env->frames->kite_frame_positions.elements[i].kite_id ==
-              env->kite_array->elements[k].kite_id) {
-            Kite *kite = env->kite_array->elements[k].kite;
-
-            // NOTE: The design limits the combined use of center rotations and
-            // tip rotations. Introduce separate tracking variables, if the
-            // distinct use in one frame is needed.
-
-            kite->old_angle = kite->angle;
-            kite->old_center = kite->center;
-
-            env->frames->kite_frame_positions.elements[i].angle = kite->angle;
-            env->frames->kite_frame_positions.elements[i].position =
-                kite->center;
-
-            break;
-          }
-        }
-      }
-    }
-  } else {
+  if (env->frames->block_index + 1 >= env->block_frame->count) {
     env->script_finished = true;
     tkbc_fprintf(stderr, "INFO", "The script has finished successfully.\n");
+    return;
+  }
+
+  // Overflow protection is just in case the finish detection fails or the
+  // manual timeline interaction triggers a state that disables the previous
+  // checks.
+  assert(env->frames->block_index + 1 < env->block_frame->count);
+  env->frames = &env->block_frame->elements[env->frames->block_index + 1];
+
+  tkbc_patch_frames_current_time(env->frames);
+
+  for (size_t i = 0; i < env->frames->kite_frame_positions.count; ++i) {
+    Id id = env->frames->kite_frame_positions.elements[i].kite_id;
+    Kite *kite = tkbc_get_kite_by_id(env, id);
+    if (!kite) {
+      assert(0 && "Inconsistent kite_array!");
+    }
+
+    // NOTE: The design limits the combined use of center rotations and
+    // tip rotations. Introduce separate tracking variables, if the
+    // distinct use in one frame is needed.
+    kite->old_angle = kite->angle;
+    kite->old_center = kite->center;
+
+    env->frames->kite_frame_positions.elements[i].angle = kite->angle;
+    env->frames->kite_frame_positions.elements[i].position = kite->center;
   }
 }
 
@@ -275,15 +272,9 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     }
 
     for (size_t j = 0; j < frame->kite_id_array.count; ++j) {
-      for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (frame->kite_id_array.elements[j] ==
-            env->kite_array->elements[k].kite_id) {
-          Kite *kite = env->kite_array->elements[k].kite;
-          kite->old_angle = kite->angle;
-          kite->old_center = kite->center;
-          break;
-        }
-      }
+      Kite *kite = tkbc_get_kite_by_id(env, frame->kite_id_array.elements[j]);
+      kite->old_angle = kite->angle;
+      kite->old_center = kite->center;
     }
   }
   tkbc_patch_block_frame_kite_positions(env, frames);

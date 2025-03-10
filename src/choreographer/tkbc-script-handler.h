@@ -8,6 +8,7 @@
 // ===========================================================================
 
 Frame *tkbc_init_frame(void);
+Kite_State *tkbc_get_kite_state_by_id(Env *env, size_t id);
 Kite *tkbc_get_kite_by_id(Env *env, size_t id);
 Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id);
 Frame tkbc_deep_copy_frame(Frame *frame);

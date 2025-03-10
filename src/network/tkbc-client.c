@@ -377,11 +377,10 @@ bool received_message_handler(Message *message) {
 
       static bool first_message_kite_add = true;
       if (first_message_kite_add) {
-        for (size_t k = 0; k < env->kite_array->count; ++k) {
-          if (env->kite_array->elements[k].kite_id == kite_id) {
-            env->kite_array->elements[k].is_kite_input_handler_active = true;
-            client_kite = *env->kite_array->elements[k].kite;
-          }
+        Kite_State *kite_state = tkbc_get_kite_state_by_id(env, kite_id);
+        if (kite_state) {
+          kite_state->is_kite_input_handler_active = true;
+          client_kite = *kite_state->kite;
         }
         first_message_kite_add = false;
       }
@@ -506,19 +505,14 @@ bool received_message_handler(Message *message) {
                                            &color)) {
           goto err;
         }
-        bool found = false;
-        for (size_t j = 0; j < env->kite_array->count; ++j) {
-          if (kite_id == env->kite_array->elements[j].kite_id) {
-            env->kite_array->elements[j].kite->center.x = x;
-            env->kite_array->elements[j].kite->center.y = y;
-            env->kite_array->elements[j].kite->angle = angle;
-            env->kite_array->elements[j].kite->body_color = color;
-            found = true;
-            break;
-          }
-        }
 
-        if (!found) {
+        Kite *kite = tkbc_get_kite_by_id(env, kite_id);
+        if (kite) {
+          kite->center.x = x;
+          kite->center.y = y;
+          kite->angle = angle;
+          kite->body_color = color;
+        } else {
           // If the kite_id is not registered.
           tkbc_register_kite_from_values(kite_id, x, y, angle, color);
         }
@@ -672,46 +666,44 @@ bool message_queue_handler(Message *message) {
  * send_message_queue.
  */
 void tkbc_client_input_handler_kite() {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].kite_id == (size_t)client.kite_id) {
-      Kite_State *kite_state = &env->kite_array->elements[i];
+  Kite_State *kite_state = tkbc_get_kite_state_by_id(env, client.kite_id);
+  if (!kite_state) {
+    return;
+  }
 
-      if (IsKeyPressed(KEY_ONE)) {
-        kite_state->is_kite_input_handler_active =
-            !kite_state->is_kite_input_handler_active;
-      }
-      if (!kite_state->is_kite_input_handler_active) {
-        return;
-      }
+  if (IsKeyPressed(KEY_ONE)) {
+    kite_state->is_kite_input_handler_active =
+        !kite_state->is_kite_input_handler_active;
+  }
+  if (!kite_state->is_kite_input_handler_active) {
+    return;
+  }
 
-      Vector2 pos = {
-          .x = kite_state->kite->center.x,
-          .y = kite_state->kite->center.y,
-      };
-      float angle = kite_state->kite->angle;
+  Vector2 pos = {
+      .x = kite_state->kite->center.x,
+      .y = kite_state->kite->center.y,
+  };
+  float angle = kite_state->kite->angle;
 
-      tkbc_input_handler(*env->keymaps, kite_state);
+  tkbc_input_handler(*env->keymaps, kite_state);
 
-      if (Vector2Equals(pos, kite_state->kite->center)) {
-        if (FloatEquals(angle, kite_state->kite->angle)) {
-          return;
-        }
-      }
-
-      if (FloatEquals(client_kite.angle, kite_state->kite->angle) &&
-          Vector2Equals(client_kite.center, kite_state->kite->center)) {
-        return;
-      }
-
-      char buf[64] = {0};
-      snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEVALUE);
-      tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-      tkbc_dap(&tkbc_send_message_queue, ':');
-      tkbc_message_append_clientkite(client.kite_id, &tkbc_send_message_queue);
-      tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+  if (Vector2Equals(pos, kite_state->kite->center)) {
+    if (FloatEquals(angle, kite_state->kite->angle)) {
       return;
     }
   }
+
+  if (FloatEquals(client_kite.angle, kite_state->kite->angle) &&
+      Vector2Equals(client_kite.center, kite_state->kite->center)) {
+    return;
+  }
+
+  char buf[64] = {0};
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEVALUE);
+  tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+  tkbc_dap(&tkbc_send_message_queue, ':');
+  tkbc_message_append_clientkite(client.kite_id, &tkbc_send_message_queue);
+  tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
 }
 
 /**
@@ -906,22 +898,22 @@ void tkbc_message_kites_positions() {
 
   tkbc_dap(&tkbc_send_message_queue, ':');
   for (size_t i = 0; i < env->kite_array->count; ++i) {
+    Kite_State *state = &env->kite_array->elements[i];
     memset(buf, 0, sizeof(buf));
-    snprintf(buf, sizeof(buf), "%zu", env->kite_array->elements[i].kite_id);
+    snprintf(buf, sizeof(buf), "%zu", state->kite_id);
     tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
 
     tkbc_dap(&tkbc_send_message_queue, ':');
     memset(buf, 0, sizeof(buf));
-    float x = env->kite_array->elements[i].kite->center.x;
-    float y = env->kite_array->elements[i].kite->center.y;
-    float angle = env->kite_array->elements[i].kite->angle;
+    float x = state->kite->center.x;
+    float y = state->kite->center.y;
+    float angle = state->kite->angle;
     snprintf(buf, sizeof(buf), "(%f,%f):%f", x, y, angle);
     tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
 
     tkbc_dap(&tkbc_send_message_queue, ':');
     memset(buf, 0, sizeof(buf));
-    snprintf(buf, sizeof(buf), "%u",
-             *(uint32_t *)&env->kite_array->elements[i].kite->body_color);
+    snprintf(buf, sizeof(buf), "%u", *(uint32_t *)&state->kite->body_color);
     tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
     tkbc_dap(&tkbc_send_message_queue, ':');
   }

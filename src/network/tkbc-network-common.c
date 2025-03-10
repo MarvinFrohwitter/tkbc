@@ -1,4 +1,5 @@
 #include "tkbc-network-common.h"
+#include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-utils.h"
 
@@ -12,7 +13,6 @@
 
 extern Env *env;
 
-
 /**
  * @brief The function extracts the values that should belong to a kite out of
  * the lexer data.
@@ -21,8 +21,29 @@ extern Env *env;
  * @return True if the kite values can be parsed out of the data the lexer
  * contains.
  */
-bool tkbc_parse_single_kite_value(Lexer *lexer) {
+// bool tkbc_parse_single_kite_value(Lexer *lexer) {
+//   size_t kite_id;
+//   float x, y, angle;
+//   Color color;
+//   if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
+//   &color)) {
+//     return false;
+//   }
 
+//   for (size_t i = 0; i < env->kite_array->count; ++i) {
+//     if (kite_id == env->kite_array->elements[i].kite_id) {
+//       Kite *kite = env->kite_array->elements[i].kite;
+//       kite->center.x = x;
+//       kite->center.y = y;
+//       kite->angle = angle;
+//       kite->body_color = color;
+//       tkbc_kite_update_internal(kite);
+//     }
+//   }
+//   return true;
+// }
+
+bool tkbc_parse_single_kite_value(Lexer *lexer) {
   size_t kite_id;
   float x, y, angle;
   Color color;
@@ -30,15 +51,18 @@ bool tkbc_parse_single_kite_value(Lexer *lexer) {
     return false;
   }
 
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (kite_id == env->kite_array->elements[i].kite_id) {
-      Kite *kite = env->kite_array->elements[i].kite;
-      kite->center.x = x;
-      kite->center.y = y;
-      kite->angle = angle;
-      kite->body_color = color;
-      tkbc_kite_update_internal(kite);
-    }
+  Kite *kite = tkbc_get_kite_by_id(env, kite_id);
+  // NOTE: This ignores unknown kites and just sets the values for valid ones.
+  // Unknown kites are not a parsing error so true is returned.
+  // TODO: But for the client not the server the kite missing kite should be
+  // handled because the server expects the client to have it so the client lost
+  // it or hasn't registered one jet.
+  if (kite) {
+    kite->center.x = x;
+    kite->center.y = y;
+    kite->angle = angle;
+    kite->body_color = color;
+    tkbc_kite_update_internal(kite);
   }
   return true;
 }
