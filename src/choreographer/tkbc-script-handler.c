@@ -31,6 +31,40 @@ Frame *tkbc_init_frame(void) {
 }
 
 /**
+ * @brief The function can be used to get a direct view pointer into the
+ * kite_array stored in the env by providing its id.
+ *
+ * @param env The global state of the application.
+ * @param id THe id that identifies the kite.
+ * @return A pointer to the requested kite or NULL if the kite doesn't exist.
+ */
+Kite *tkbc_get_kite_by_id(Env *env, size_t id) {
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    if (env->kite_array->elements[i].kite_id == id) {
+      return env->kite_array->elements[i].kite;
+    }
+  }
+  return NULL;
+}
+
+/**
+ * @brief The function check for the error and crashes if the kite doesn't
+ * exist it will report the error.
+ *
+ * @param env The global state of the application.
+ * @param id THe id that identifies the kite.
+ * @return A pointer to the requested kite.
+ */
+Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id) {
+  Kite *kite = tkbc_get_kite_by_id(env, id);
+  if (!kite) {
+    tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
+  }
+  assert(kite != NULL);
+  return kite;
+}
+
+/**
  * @brief The function copies every single value even the values that are just
  * represented by a pointer of the struct Frames to a new instance. Every
  * internal pointer is a new one in the created representation and points to the
@@ -175,8 +209,17 @@ void tkbc_reset_frames_internal_data(Frames *frames) {
  * intermediate values.
  */
 void tkbc_render_frame(Env *env, Frame *frame) {
+  Kite *kite = NULL;
+  Frame *env_frame = &env->frames->elements[frame->index];
+
   assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
   switch (frame->kind) {
+  case KITE_QUIT: {
+    if (tkbc_check_finished_frames_count(env) == env->frames->count - 1) {
+      frame->finished = true;
+      break;
+    }
+  } // FALLTHROUGH;
   case KITE_WAIT: {
     Wait_Action *action = &frame->action.as_wait;
     if (frame->duration <= 0) {
@@ -187,48 +230,15 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       frame->duration -= current_time - action->starttime;
       action->starttime = current_time;
     }
-
   } break;
-  case KITE_QUIT: {
 
-    if (tkbc_check_finished_frames_count(env) == env->frames->count - 1) {
-      frame->finished = true;
-      break;
-    }
-
-    Quit_Action *action = &frame->action.as_quit;
-    if (frame->duration <= 0) {
-      frame->finished = true;
-    } else {
-      double current_time = tkbc_get_time();
-      frame->duration -= current_time - action->starttime;
-      action->starttime = current_time;
-    }
-
-  } break;
   case KITE_MOVE_ADD: {
-    Kite *kite = NULL;
     Move_Add_Action *action = &frame->action.as_move_add;
-    Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
-      for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array.elements[i] ==
-            env->kite_array->elements[k].kite_id) {
-          kite = env->kite_array->elements[k].kite;
-          break;
-        }
-      }
+      Id id = env_frame->kite_id_array.elements[i];
+      kite = tkbc_get_kite_by_id_unwrap(env, id);
 
-      // Description of the calculation for the position
-      // kite.center + (action->position - (kite.center - kite->old_center))
-      // kite.center + (action->position - kite.center + kite->old_center)
-      // kite.center + action->position - kite.center + kite->old_center
-
-      if (!kite) {
-        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
-      }
-      assert(kite != NULL);
       Vector2 dest_position = Vector2Add(kite->old_center, action->position);
       Vector2 d = tkbc_script_move(kite, dest_position, frame->duration);
 
@@ -252,24 +262,14 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
 
   } break;
+
   case KITE_MOVE: {
-    Kite *kite = NULL;
     Move_Action *action = &frame->action.as_move;
-    Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
-      for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array.elements[i] ==
-            env->kite_array->elements[k].kite_id) {
-          kite = env->kite_array->elements[k].kite;
-          break;
-        }
-      }
+      Id id = env_frame->kite_id_array.elements[i];
+      kite = tkbc_get_kite_by_id_unwrap(env, id);
 
-      if (!kite) {
-        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
-      }
-      assert(kite != NULL);
       Vector2 d = tkbc_script_move(kite, action->position, frame->duration);
 
       if (Vector2Equals(action->position, Vector2Zero())) {
@@ -294,23 +294,13 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
     }
   } break;
+
   case KITE_ROTATION_ADD: {
-    Kite *kite = NULL;
     Rotation_Action *action = &frame->action.as_rotation_add;
-    Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
-      for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array.elements[i] ==
-            env->kite_array->elements[k].kite_id) {
-          kite = env->kite_array->elements[k].kite;
-          break;
-        }
-      }
-      if (!kite) {
-        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
-      }
-      assert(kite != NULL);
+      Id id = env_frame->kite_id_array.elements[i];
+      kite = tkbc_get_kite_by_id_unwrap(env, id);
 
       float d = tkbc_script_rotate(kite, action->angle, frame->duration, true);
       if (action->angle == 0) {
@@ -329,23 +319,13 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
     }
   } break;
+
   case KITE_ROTATION: {
-    Kite *kite = NULL;
     Rotation_Action *action = &frame->action.as_rotation;
-    Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
-      for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array.elements[i] ==
-            env->kite_array->elements[k].kite_id) {
-          kite = env->kite_array->elements[k].kite;
-          break;
-        }
-      }
-      if (!kite) {
-        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
-      }
-      assert(kite != NULL);
+      Id id = env_frame->kite_id_array.elements[i];
+      kite = tkbc_get_kite_by_id_unwrap(env, id);
 
       float intermediate_angle = tkbc_check_angle_zero(
           kite, frame->kind, *(Action *)action, frame->duration);
@@ -373,23 +353,13 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
     }
   } break;
+
   case KITE_TIP_ROTATION_ADD: {
-    Kite *kite = NULL;
     Tip_Rotation_Action *action = &frame->action.as_tip_rotation_add;
-    Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
-      for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array.elements[i] ==
-            env->kite_array->elements[k].kite_id) {
-          kite = env->kite_array->elements[k].kite;
-          break;
-        }
-      }
-      if (!kite) {
-        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
-      }
-      assert(kite != NULL);
+      Id id = env_frame->kite_id_array.elements[i];
+      kite = tkbc_get_kite_by_id_unwrap(env, id);
 
       float d = tkbc_script_rotate_tip(kite, action->tip, action->angle,
                                        frame->duration, true);
@@ -409,23 +379,13 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
     }
   } break;
+
   case KITE_TIP_ROTATION: {
-    Kite *kite = NULL;
     Tip_Rotation_Action *action = &frame->action.as_tip_rotation;
-    Frame *env_frame = &env->frames->elements[frame->index];
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
-      for (size_t k = 0; k < env->kite_array->count; ++k) {
-        if (env_frame->kite_id_array.elements[i] ==
-            env->kite_array->elements[k].kite_id) {
-          kite = env->kite_array->elements[k].kite;
-          break;
-        }
-      }
-      if (!kite) {
-        tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
-      }
-      assert(kite != NULL);
+      Id id = env_frame->kite_id_array.elements[i];
+      kite = tkbc_get_kite_by_id_unwrap(env, id);
 
       float intermediate_angle = tkbc_check_angle_zero(
           kite, frame->kind, *(Action *)action, frame->duration);
@@ -453,9 +413,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
     }
   } break;
+
   default:
     assert(0 && "UNREACHABLE tkbc_render_frame()");
-    break;
   }
 }
 
@@ -865,7 +825,7 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
  * @return The intermediate angle that represents the distance to 0.
  */
 float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action,
-                       float duration) {
+                            float duration) {
   switch (kind) {
   case KITE_ROTATION:
   case KITE_ROTATION_ADD:

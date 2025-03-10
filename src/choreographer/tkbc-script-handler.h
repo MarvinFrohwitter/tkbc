@@ -8,6 +8,8 @@
 // ===========================================================================
 
 Frame *tkbc_init_frame(void);
+Kite *tkbc_get_kite_by_id(Env *env, size_t id);
+Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id);
 Frame tkbc_deep_copy_frame(Frame *frame);
 Frames tkbc_deep_copy_frames(Frames *frames);
 Block_Frame tkbc_deep_copy_block_frame(Block_Frame *block_frame);
@@ -34,6 +36,6 @@ float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding);
 float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
                              bool adding);
 float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action,
-                       float duration);
+                            float duration);
 
 #endif // TKBC_SCRIPT_HANDLER_H_
