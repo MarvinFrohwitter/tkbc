@@ -1,4 +1,5 @@
 #define TKBC_SERVER
+#include "poll-server.h"
 
 #include <assert.h>
 #include <math.h>
@@ -30,12 +31,6 @@
 
 #include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc.h"
-
-typedef struct {
-  struct pollfd *elements;
-  size_t count;
-  size_t capacity;
-} FDs;
 
 static int server_socket;
 static int clients_visited = 0;
