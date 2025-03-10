@@ -7,6 +7,24 @@
 // ========================== Script Team Figures ============================
 // ===========================================================================
 
+bool tkbc_script_team_roll_up_anti_clockwise(Env *env,
+                                             Kite_Ids kite_index_array,
+                                             float radius, size_t begin_angle,
+                                             size_t end_angle,
+                                             float move_duration);
+bool tkbc_script_team_roll_up_clockwise(Env *env, Kite_Ids kite_index_array,
+                                        float radius, size_t begin_angle,
+                                        size_t end_angle, float move_duration);
+bool tkbc_script_team_roll_down_anti_clockwise(Env *env,
+                                               Kite_Ids kite_index_array,
+                                               float radius, size_t begin_angle,
+                                               size_t end_angle,
+                                               float move_duration);
+bool tkbc_script_team_roll_down_clockwise(Env *env, Kite_Ids kite_index_array,
+                                          float radius, size_t begin_angle,
+                                          size_t end_angle,
+                                          float move_duration);
+
 bool tkbc_script_team_line(Env *env, Kite_Ids kite_index_array,
                            Vector2 position, Vector2 offset, float h_padding,
                            float move_duration);

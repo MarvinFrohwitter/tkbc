@@ -10,6 +10,139 @@
 #include "raymath.h"
 #include "tkbc-script-handler.h"
 
+bool tkbc_script_team_roll_up_anti_clockwise(Env *env,
+                                             Kite_Ids kite_index_array,
+                                             float radius, size_t begin_angle,
+                                             size_t end_angle,
+                                             float move_duration) {
+  Frame *frame = NULL;
+  float duration = move_duration / 360;
+  for (size_t deg = begin_angle; deg < end_angle; ++deg) {
+    tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
+    Vector2 position = (Vector2){
+        .x = radius * cosf(PI * deg / 180),
+        .y = -radius * sinf(PI * deg / 180),
+    };
+    for (size_t i = 0; i < kite_index_array.count; ++i) {
+      {
+        frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i]), position.x,
+                              position.y, duration);
+        if (frame == NULL)
+          return false;
+        tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+      }
+      {
+        frame =
+            KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), 1, duration);
+        if (frame == NULL)
+          return false;
+        tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+      }
+    }
+    tkbc_register_frames_array(env, &env->scratch_buf_frames);
+  }
+  return true;
+}
+
+bool tkbc_script_team_roll_up_clockwise(Env *env, Kite_Ids kite_index_array,
+                                        float radius, size_t begin_angle,
+                                        size_t end_angle, float move_duration) {
+  Frame *frame = NULL;
+  float duration = move_duration / 360;
+  for (size_t deg = begin_angle; deg < end_angle; ++deg) {
+    tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
+    Vector2 position = (Vector2){
+        .x = -radius * cosf(PI * deg / 180),
+        .y = -radius * sinf(PI * deg / 180),
+    };
+    for (size_t i = 0; i < kite_index_array.count; ++i) {
+      {
+        frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i]), position.x,
+                              position.y, duration);
+        if (frame == NULL)
+          return false;
+        tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+      }
+      {
+        frame =
+            KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), -1, duration);
+        if (frame == NULL)
+          return false;
+        tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+      }
+    }
+    tkbc_register_frames_array(env, &env->scratch_buf_frames);
+  }
+  return true;
+}
+
+bool tkbc_script_team_roll_down_anti_clockwise(Env *env,
+                                               Kite_Ids kite_index_array,
+                                               float radius, size_t begin_angle,
+                                               size_t end_angle,
+                                               float move_duration) {
+  Frame *frame = NULL;
+  float duration = move_duration / 360;
+  for (size_t deg = begin_angle; deg < end_angle; ++deg) {
+    tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
+    Vector2 position = (Vector2){
+        .x = -radius * cosf(PI * deg / 180),
+        .y = radius * sinf(PI * deg / 180),
+    };
+    for (size_t i = 0; i < kite_index_array.count; ++i) {
+      {
+        frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i]), position.x,
+                              position.y, duration);
+        if (frame == NULL)
+          return false;
+        tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+      }
+      {
+        frame =
+            KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), 1, duration);
+        if (frame == NULL)
+          return false;
+        tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+      }
+    }
+    tkbc_register_frames_array(env, &env->scratch_buf_frames);
+  }
+  return true;
+}
+
+bool tkbc_script_team_roll_down_clockwise(Env *env, Kite_Ids kite_index_array,
+                                          float radius, size_t begin_angle,
+                                          size_t end_angle,
+                                          float move_duration) {
+  Frame *frame = NULL;
+  float duration = move_duration / 360;
+  for (size_t deg = begin_angle; deg < end_angle; ++deg) {
+    tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
+    Vector2 position = (Vector2){
+        .x = radius * cosf(PI * deg / 180),
+        .y = radius * sinf(PI * deg / 180),
+    };
+    for (size_t i = 0; i < kite_index_array.count; ++i) {
+      {
+        frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i]), position.x,
+                              position.y, duration);
+        if (frame == NULL)
+          return false;
+        tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+      }
+      {
+        frame =
+            KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), -1, duration);
+        if (frame == NULL)
+          return false;
+        tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+      }
+    }
+    tkbc_register_frames_array(env, &env->scratch_buf_frames);
+  }
+  return true;
+}
+
 /**
  * @brief The function can be used to move the given kites via index to a ball
  * position facing out.

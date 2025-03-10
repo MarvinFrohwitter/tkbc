@@ -99,14 +99,34 @@ tkbc_script_input {
   tkbc_script_begin();
   SET(
 
-      KITE_MOVE_ADD(ID(0), -kite.width, 0, rotation_duration),
-      KITE_MOVE_ADD(ID(1), kite.width, 0, rotation_duration),
+      KITE_MOVE_ADD(ID(0), 0, -300, rotation_duration),
+      KITE_MOVE_ADD(ID(1), 0, -300, rotation_duration),
 
-      KITE_TIP_ROTATION_ADD(ID(0), 180, LEFT_TIP, rotation_duration),
-      KITE_TIP_ROTATION_ADD(ID(1), 180, LEFT_TIP, rotation_duration)
+      KITE_ROTATION_ADD(ID(0), -90, rotation_duration),
+      KITE_ROTATION_ADD(ID(1), 90, rotation_duration)
 
   );
+
+  tkbc_register_frames(env, tkbc_script_wait(1));
+  tkbc_script_team_roll_up_anti_clockwise(env, ID(0), 1.3, 0, 180, 1);
+  tkbc_script_team_roll_down_clockwise(env, ID(0), 2, 0, 180, 1);
+
+  tkbc_script_team_roll_down_anti_clockwise(env, ID(1), 1, 0, 360, 1);
+  tkbc_script_team_roll_up_clockwise(env, ID(1), 1, 0, 360, 1);
   tkbc_script_end();
+
+  // BUG
+  // tkbc_script_begin();
+  // SET(
+
+  //     KITE_MOVE_ADD(ID(0), -kite.width, 0, rotation_duration),
+  //     KITE_MOVE_ADD(ID(1), kite.width, 0, rotation_duration),
+
+  //     KITE_TIP_ROTATION_ADD(ID(0), 180, LEFT_TIP, rotation_duration),
+  //     KITE_TIP_ROTATION_ADD(ID(1), 180, LEFT_TIP, rotation_duration)
+
+  // );
+  // tkbc_script_end();
 
   choreo(env, ki);
 
