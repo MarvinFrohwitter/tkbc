@@ -3,9 +3,6 @@
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-types.h"
 
-#define TKBC_UTILS_IMPLEMENTATION
-#include "../global/tkbc-utils.h"
-
 Test kite_update_internal() {
   Test test = cassert_init_test("tkbc_kite_update_internal()");
 

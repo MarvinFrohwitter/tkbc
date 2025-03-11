@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define TKBC_UTILS_IMPLEMENTATION
+#include "../global/tkbc-utils.h"
+
 Test init_frame() {
   Test test = cassert_init_test("tkbc_init_frame()");
 
