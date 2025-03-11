@@ -1,4 +1,5 @@
 #include "../src/choreographer/tkbc-script-api.h"
+#include "../src/choreographer/tkbc-team-figures-api.h"
 
 static Kite kite;
 static float wait_time = 0.5;
@@ -116,7 +117,7 @@ void extreme_window_slide(Env *env) {
   SET(KITE_WAIT(wait_time));
 }
 
-void edges_180(Env *env) {
+void face_in_center(Env *env) {
   SET(
 
       KITE_TIP_ROTATION_ADD(ID(0), -90, LEFT_TIP, rotation_duration),
@@ -125,8 +126,25 @@ void edges_180(Env *env) {
   );
   SET(
 
-      KITE_MOVE_ADD(ID(0), -10 * kite.width, 0, 4 * move_duration),
-      KITE_MOVE_ADD(ID(1), 10 * kite.width, 0, 4 * move_duration)
+      KITE_MOVE_ADD(ID(0), -5 * kite.width - kite.width / 2, 0,
+                    4 * move_duration),
+      KITE_MOVE_ADD(ID(1), 5 * kite.width + kite.width / 2, 0,
+                    4 * move_duration)
+
+  );
+}
+
+void roll_up(Env *env, Kite_Ids ki) {
+  tkbc_script_team_roll_split_up(env, ki, EVEN, 4, 0, 360, 2);
+}
+
+void edges_180(Env *env) {
+  SET(
+
+      KITE_MOVE_ADD(ID(0), -5 * kite.width + kite.width / 2, 0,
+                    4 * move_duration),
+      KITE_MOVE_ADD(ID(1), 5 * kite.width - kite.width / 2, 0,
+                    4 * move_duration)
 
   );
   SET(
@@ -135,38 +153,26 @@ void edges_180(Env *env) {
       KITE_TIP_ROTATION_ADD(ID(1), 180, LEFT_TIP, rotation_duration)
 
   );
-  SET(
-
-      KITE_MOVE_ADD(ID(0), 10 * kite.width, 0, 4 * move_duration),
-      KITE_MOVE_ADD(ID(1), -10 * kite.width, 0, 4 * move_duration)
-
-  );
-  SET(
-
-      KITE_TIP_ROTATION_ADD(ID(0), 180, LEFT_TIP, rotation_duration),
-      KITE_TIP_ROTATION_ADD(ID(1), -180, RIGHT_TIP, rotation_duration)
-
-  );
 }
 
 void change_90(Env *env) {
   SET(
 
-      KITE_MOVE_ADD(ID(0), -5 * kite.width - kite.width / 2, 0,
+      KITE_MOVE_ADD(ID(0), 4 * kite.width + kite.width / 2, 0,
                     4 * move_duration),
-      KITE_MOVE_ADD(ID(1), 5 * kite.width + kite.width / 2, 0,
+      KITE_MOVE_ADD(ID(1), -4 * kite.width - kite.width / 2, 0,
                     4 * move_duration)
 
   );
   SET(
 
-      KITE_TIP_ROTATION_ADD(ID(0), 90, LEFT_TIP, rotation_duration),
-      KITE_TIP_ROTATION_ADD(ID(1), 90, LEFT_TIP, rotation_duration)
+      KITE_TIP_ROTATION_ADD(ID(0), -90, RIGHT_TIP, rotation_duration),
+      KITE_TIP_ROTATION_ADD(ID(1), -90, RIGHT_TIP, rotation_duration)
 
   );
   SET(
 
-      KITE_MOVE_ADD(ID(0), 0, 3.5 * kite.width, move_duration),
+      KITE_MOVE_ADD(ID(0), 0, 2.5 * kite.width, move_duration),
       KITE_MOVE_ADD(ID(1), 0, -2.5 * kite.width, move_duration)
 
   );
@@ -181,18 +187,18 @@ void change_90(Env *env) {
       // KITE_TIP_ROTATION_ADD(ID(0), 180, LEFT_TIP, rotation_duration),
       // KITE_TIP_ROTATION_ADD(ID(1), 180, LEFT_TIP, rotation_duration)
 
-      KITE_MOVE_ADD(ID(0), kite.width / 2, 0, rotation_duration),
-      KITE_MOVE_ADD(ID(1), -kite.width / 2, 0, rotation_duration),
+      KITE_MOVE_ADD(ID(0), -kite.width / 2, 0, rotation_duration),
+      KITE_MOVE_ADD(ID(1), kite.width / 2, 0, rotation_duration),
 
-      KITE_ROTATION_ADD(ID(0), 180, rotation_duration),
-      KITE_ROTATION_ADD(ID(1), 180, rotation_duration)
+      KITE_ROTATION_ADD(ID(0), -180, rotation_duration),
+      KITE_ROTATION_ADD(ID(1), -180, rotation_duration)
 
   );
 
   SET(
 
-      KITE_MOVE_ADD(ID(0), 0, -3 * kite.width, move_duration),
-      KITE_MOVE_ADD(ID(1), 0, 3 * kite.width, move_duration)
+      KITE_MOVE_ADD(ID(0), 0, -2.5 * kite.width, move_duration),
+      KITE_MOVE_ADD(ID(1), 0, 2.5 * kite.width, move_duration)
 
   );
 }
@@ -242,8 +248,6 @@ void edges_turn_out(Env *env) {
   );
 }
 
-void roll_up(Env *env) {}
-
 void choreo(Env *env, Kite_Ids ki) {
   kite = *env->vanilla_kite;
   tkbc_script_begin();
@@ -251,8 +255,8 @@ void choreo(Env *env, Kite_Ids ki) {
   diamond_stack_figure(env);
   extreme_window_slide(env);
 
-  // edges_180(env);
-  // roll_up(env);
+  face_in_center(env);
+  roll_up(env, ki);
   edges_180(env);
 
   change_90(env);
