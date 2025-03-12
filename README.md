@@ -201,6 +201,34 @@ Note: The env pointer is automatically inserted into the scope.
 Available team calls are:
 
 ```C
+bool tkbc_script_team_roll_split_up(Env *env, Kite_Ids kite_index_array,
+                                    ODD_EVEN odd_even, float radius,
+                                    size_t begin_angle, size_t end_angle,
+                                    float move_duration);
+
+bool tkbc_script_team_roll_split_down(Env *env, Kite_Ids kite_index_array,
+                                      ODD_EVEN odd_even, float radius,
+                                      size_t begin_angle, size_t end_angle,
+                                      float move_duration);
+
+bool tkbc_script_team_roll_up_anti_clockwise(Env *env,
+                                             Kite_Ids kite_index_array,
+                                             float radius, size_t begin_angle,
+                                             size_t end_angle,
+                                             float move_duration);
+bool tkbc_script_team_roll_up_clockwise(Env *env, Kite_Ids kite_index_array,
+                                        float radius, size_t begin_angle,
+                                        size_t end_angle, float move_duration);
+bool tkbc_script_team_roll_down_anti_clockwise(Env *env,
+                                               Kite_Ids kite_index_array,
+                                               float radius, size_t begin_angle,
+                                               size_t end_angle,
+                                               float move_duration);
+bool tkbc_script_team_roll_down_clockwise(Env *env, Kite_Ids kite_index_array,
+                                          float radius, size_t begin_angle,
+                                          size_t end_angle,
+                                          float move_duration);
+
 bool tkbc_script_team_line(Env *env, Kite_Ids kite_index_array,
                            Vector2 position, Vector2 offset, float h_padding,
                            float move_duration);
@@ -356,7 +384,13 @@ The exact types of the variables can be assumed as in the C declarations above.
 They are mostly float except rows and cols, but the types could maybe change so
 the C declarations are up to date.
 
-```JS
+```Scala
+EXTERN TEAM_ROLL_SPLIT_UP KITES odd_even radius begin_angle end_angle move_duration
+EXTERN TEAM_ROLL_SPLIT_DOWN KITES odd_even radius begin_angle end_angle move_duration
+EXTERN TEAM_ROLL_UP_ANTI_CLOCKWISE KITES radius begin_angle end_angle move_duration
+EXTERN TEAM_ROLL_UP_CLOCKWISE KITES radius begin_angle end_angle move_duration
+EXTERN TEAM_ROLL_DOWN_ANTI_CLOCKWISE KITES radius begin_angle end_angle move_duration
+EXTERN TEAM_ROLL_DOWN_CLOCKWISE KITES radius begin_angle end_angle move_duration
 EXTERN TEAM_LINE KITES position.x position.y offset.x offset.y h_padding move_duration
 EXTERN TEAM_GRID KITES position.x position.y offset.x offset.y v_padding h_padding rows columns move_duration
 EXTERN TEAM_BALL KITES position.x position.y offset.x offset.y radius move_duration rotation_duration

@@ -926,6 +926,162 @@ bool tkbc_parse_team_figures(Env *env, Kite_Ids kis, Lexer *lexer,
 
     tkbc_script_team_diamond_right(env, kis, box_size, move_duration,
                                    rotation_duration);
+  } else if (strcmp("TEAM_ROLL_SPLIT_UP", function_name) == 0) {
+    ODD_EVEN odd_even;
+    float radius;
+    size_t begin_angle;
+    size_t end_angle;
+    float move_duration;
+
+    {
+      Token token = lexer_next(lexer);
+      if (token.kind != IDENTIFIER) {
+        return false;
+      }
+      if (strcmp("ODD", lexer_token_to_cstr(lexer, &token)) == 0) {
+        odd_even = ODD;
+      } else if (strcmp("EVEN", lexer_token_to_cstr(lexer, &token)) == 0) {
+        odd_even = EVEN;
+      } else {
+        return false;
+      }
+    }
+
+    if (!tkbc_parse_float(&radius, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&begin_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&end_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_roll_split_up(env, kis, odd_even, radius, begin_angle,
+                                   end_angle, move_duration);
+  } else if (strcmp("TEAM_ROLL_SPLIT_DOWN", function_name) == 0) {
+    ODD_EVEN odd_even;
+    float radius;
+    size_t begin_angle;
+    size_t end_angle;
+    float move_duration;
+
+    {
+      Token token = lexer_next(lexer);
+      if (token.kind != IDENTIFIER) {
+        return false;
+      }
+      if (strcmp("ODD", lexer_token_to_cstr(lexer, &token)) == 0) {
+        odd_even = ODD;
+      } else if (strcmp("EVEN", lexer_token_to_cstr(lexer, &token)) == 0) {
+        odd_even = EVEN;
+      } else {
+        return false;
+      }
+    }
+
+    if (!tkbc_parse_float(&radius, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&begin_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&end_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_roll_split_down(env, kis, odd_even, radius, begin_angle,
+                                     end_angle, move_duration);
+  } else if (strcmp("TEAM_ROLL_UP_ANTI_CLOCKWISE", function_name) == 0) {
+    float radius;
+    size_t begin_angle;
+    size_t end_angle;
+    float move_duration;
+
+    if (!tkbc_parse_float(&radius, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&begin_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&end_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_roll_up_anti_clockwise(env, kis, radius, begin_angle,
+                                            end_angle, move_duration);
+  } else if (strcmp("TEAM_ROLL_UP_CLOCKWISE", function_name) == 0) {
+    float radius;
+    size_t begin_angle;
+    size_t end_angle;
+    float move_duration;
+
+    if (!tkbc_parse_float(&radius, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&begin_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&end_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_roll_up_clockwise(env, kis, radius, begin_angle, end_angle,
+                                       move_duration);
+  } else if (strcmp("TEAM_ROLL_DOWN_ANTI_CLOCKWISE", function_name) == 0) {
+    float radius;
+    size_t begin_angle;
+    size_t end_angle;
+    float move_duration;
+
+    if (!tkbc_parse_float(&radius, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&begin_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&end_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_roll_down_anti_clockwise(env, kis, radius, begin_angle,
+                                              end_angle, move_duration);
+  } else if (strcmp("TEAM_ROLL_DOWN_CLOCKWISE", function_name) == 0) {
+    float radius;
+    size_t begin_angle;
+    size_t end_angle;
+    float move_duration;
+
+    if (!tkbc_parse_float(&radius, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&begin_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_size_t(&end_angle, lexer, tmp_buffer)) {
+      return false;
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+      return false;
+    }
+
+    tkbc_script_team_roll_down_clockwise(env, kis, radius, begin_angle,
+                                         end_angle, move_duration);
   }
 
   return true;
