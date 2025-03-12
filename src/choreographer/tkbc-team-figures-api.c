@@ -10,6 +10,25 @@
 #include "raymath.h"
 #include "tkbc-script-handler.h"
 
+/**
+ * @brief The function can be used to let the kites roll up if odd is given
+ * the odd kites counted from the right rolls clockwise the evens roll
+ * anticlockwise.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param odd_even The kite group that should start facing up, counted from the
+ * right.
+ * @param radius The radius of the circle.
+ * @param begin_angle The angle where the computation begin given as an absolute
+ * value in degrees.
+ * @param end_angle The angle where the computation end given as an absolute
+ * value in degrees.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_roll_split_up(Env *env, Kite_Ids kite_index_array,
                                     ODD_EVEN odd_even, float radius,
                                     size_t begin_angle, size_t end_angle,
@@ -64,6 +83,25 @@ bool tkbc_script_team_roll_split_up(Env *env, Kite_Ids kite_index_array,
   return true;
 }
 
+/**
+ * @brief The function can be used to let the kites roll down if odd is given
+ * the odd kites counted from the right rolls anticlockwise the evens roll
+ * clockwise.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param odd_even The kite group that should start facing up, counted from the
+ * right.
+ * @param radius The radius of the circle.
+ * @param begin_angle The angle where the computation begin given as an absolute
+ * value in degrees.
+ * @param end_angle The angle where the computation end given as an absolute
+ * value in degrees.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_roll_split_down(Env *env, Kite_Ids kite_index_array,
                                       ODD_EVEN odd_even, float radius,
                                       size_t begin_angle, size_t end_angle,
@@ -118,6 +156,22 @@ bool tkbc_script_team_roll_split_down(Env *env, Kite_Ids kite_index_array,
   return true;
 }
 
+/**
+ * @brief The function can be used to let the kites roll up in an
+ * anticlockwise rotation.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param radius The radius of the circle.
+ * @param begin_angle The angle where the computation begin given as an absolute
+ * value in degrees.
+ * @param end_angle The angle where the computation end given as an absolute
+ * value in degrees.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_roll_up_anti_clockwise(Env *env,
                                              Kite_Ids kite_index_array,
                                              float radius, size_t begin_angle,
@@ -152,6 +206,22 @@ bool tkbc_script_team_roll_up_anti_clockwise(Env *env,
   return true;
 }
 
+/**
+ * @brief The function can be used to let the kites roll up in an
+ * clockwise rotation.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param radius The radius of the circle.
+ * @param begin_angle The angle where the computation begin given as an absolute
+ * value in degrees.
+ * @param end_angle The angle where the computation end given as an absolute
+ * value in degrees.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_roll_up_clockwise(Env *env, Kite_Ids kite_index_array,
                                         float radius, size_t begin_angle,
                                         size_t end_angle, float move_duration) {
@@ -184,6 +254,22 @@ bool tkbc_script_team_roll_up_clockwise(Env *env, Kite_Ids kite_index_array,
   return true;
 }
 
+/**
+ * @brief The function can be used to let the kites roll down in an
+ * anticlockwise rotation.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param radius The radius of the circle.
+ * @param begin_angle The angle where the computation begin given as an absolute
+ * value in degrees.
+ * @param end_angle The angle where the computation end given as an absolute
+ * value in degrees.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_roll_down_anti_clockwise(Env *env,
                                                Kite_Ids kite_index_array,
                                                float radius, size_t begin_angle,
@@ -218,6 +304,22 @@ bool tkbc_script_team_roll_down_anti_clockwise(Env *env,
   return true;
 }
 
+/**
+ * @brief The function can be used to let the kites roll down in an
+ * clockwise rotation.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param radius The radius of the circle.
+ * @param begin_angle The angle where the computation begin given as an absolute
+ * value in degrees.
+ * @param end_angle The angle where the computation end given as an absolute
+ * value in degrees.
+ * @param move_duration The time that the repositioning of the kites should take
+ * in seconds.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
 bool tkbc_script_team_roll_down_clockwise(Env *env, Kite_Ids kite_index_array,
                                           float radius, size_t begin_angle,
                                           size_t end_angle,
