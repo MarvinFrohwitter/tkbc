@@ -578,13 +578,12 @@ void tkbc_input_check_tip_rotation_mouse_control(Key_Maps keymaps,
       IsKeyDown(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) ||
       IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
 
-  s->is_rotating = false;
-  s->selected_tips = 0;
-
   if (!is_left && !is_right) {
     return;
   }
 
+  s->is_rotating = false;
+  s->selected_tips = 0;
   // Q //
   if (is_left) {
     s->selected_tips |= LEFT_TIP;
