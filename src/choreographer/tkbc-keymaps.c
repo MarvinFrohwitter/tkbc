@@ -227,9 +227,9 @@ const char *tkbc_key_to_str(int key) {
   case KEY_X: // Key: X | x
     return "x";
   case KEY_Y: // Key: Y | y
-    return "y";
+    return "de_z";
   case KEY_Z: // Key: Z | z
-    return "z";
+    return "de_y";
   case KEY_LEFT_BRACKET: // Key: [
     return "left_bracket";
   case KEY_BACKSLASH: // Key: '\'
@@ -365,7 +365,9 @@ const char *tkbc_key_to_str(int key) {
     return "volume_up";
   case KEY_VOLUME_DOWN: // Key: Android volume down button
     return "volume_down";
+  case 161:
+    return "de_less_than";
   default:
-    assert(0 && "UNKNOWN KEY");
+    return "???";
   }
 }
