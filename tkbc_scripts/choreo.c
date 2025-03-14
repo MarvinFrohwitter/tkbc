@@ -415,6 +415,85 @@ void rollkiss_90_break_to_anti_split_position(Env *env) {
   );
 }
 
+void inverse_bicycle_change(Env *env) {
+  SET(KITE_WAIT(wait_time));
+
+  SET(
+
+      KITE_ROTATION_ADD(ID(0), -90, move_duration),
+      KITE_MOVE_ADD(ID(0), -kite.height / 2 - kite.width / 2, 0, move_duration),
+
+      KITE_ROTATION_ADD(ID(1), -90, move_duration),
+      KITE_MOVE_ADD(ID(1), kite.height / 2 + kite.width / 2,
+                    -kite.width - kite.height, move_duration)
+
+  );
+
+  SET(KITE_WAIT(wait_time));
+
+  SET(
+
+      KITE_ROTATION_ADD(ID(0), -90, move_duration),
+      KITE_MOVE_ADD(ID(0), -kite.height / 2 + kite.width / 2, 0, move_duration),
+
+      KITE_ROTATION_ADD(ID(1), -90, move_duration),
+      KITE_MOVE_ADD(ID(1), kite.height / 2 - kite.width / 2,
+                    -kite.width + kite.height, move_duration)
+
+  );
+}
+
+void forward_bicycle_out(Env *env) {
+  SET(
+
+      KITE_ROTATION_ADD(ID(0), 315, move_duration),
+      KITE_MOVE_ADD(ID(0), 0, 2 * kite.width, move_duration),
+
+      KITE_ROTATION_ADD(ID(1), 315, move_duration),
+      KITE_MOVE_ADD(ID(1), 0, -2 * kite.width, move_duration)
+
+  );
+}
+
+void corner_turn_out(Env *env, Kite_Ids ki) {
+  SET(
+
+      KITE_MOVE_ADD(ID(0), -4 * kite.width - kite.width / 2,
+                    -4 * kite.width - kite.width / 2, move_duration),
+      KITE_MOVE_ADD(ID(1), 4 * kite.width + kite.width / 2,
+                    4 * kite.width + kite.width / 2, move_duration)
+
+  );
+
+  SET(KITE_TIP_ROTATION_ADD(ki, 180, LEFT_TIP, rotation_duration));
+  SET(KITE_WAIT(wait_time));
+}
+
+void to_center_slide_in(Env *env) {
+  SET(
+
+      KITE_MOVE_ADD(ID(0), 4 * kite.width - kite.width / 2,
+                    4 * kite.width - kite.width / 2, move_duration),
+
+      KITE_MOVE_ADD(ID(1), -4 * kite.width + kite.width / 2,
+                    -4 * kite.width + kite.width / 2, move_duration)
+
+  );
+
+  SET(
+
+      KITE_MOVE_ADD(ID(0), kite.width + 2 * kite.height,
+                    -kite.width - 2 * kite.height, move_duration),
+      KITE_MOVE_ADD(ID(1), -kite.width - 2 * kite.height,
+                    kite.width + 2 * kite.height, move_duration)
+
+  );
+}
+
+void pair_change_90(Env *env, Kite_Ids ki) {
+  SET(KITE_TIP_ROTATION_ADD(ki, 90, LEFT_TIP, rotation_duration));
+}
+
 void choreo(Env *env, Kite_Ids ki) {
   kite = *env->vanilla_kite;
   env->kite_array->elements[0].kite->body_color = DARKGREEN;
@@ -440,6 +519,13 @@ void choreo(Env *env, Kite_Ids ki) {
   arc_to_diamond_out(env);
   bicycle_in(env);
   rollkiss_90_break_to_anti_split_position(env);
+
+  inverse_bicycle_change(env);
+  forward_bicycle_out(env);
+  corner_turn_out(env, ki);
+
+  to_center_slide_in(env);
+  pair_change_90(env, ki);
 
   SET(KITE_WAIT(wait_time));
   tkbc_script_end();
