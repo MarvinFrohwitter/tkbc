@@ -77,7 +77,6 @@ typedef enum {
   KMH_MOVES_KITES_LEFT_AROUND_MOUSE,
   KMH_MOVES_KITES_RIGHT_AROUND_MOUSE,
 
-
   KMH_KEY_KP_8,
   KMH_KEY_KP_9,
   KMH_KEY_KP_6,
@@ -88,6 +87,8 @@ typedef enum {
   KMH_KEY_KP_1,
 
   KMH_KEY_KP_5,
+
+  KMH_KEY_161,
 
   KMH_COUNT,
 } Key_Map_Hash;
@@ -196,13 +197,14 @@ typedef struct {
   bool is_angle_locked;       // It represents if the kite leading edge angle is
                         // calculated by the mouse position or it holds the
                         // current angle, (in mouse control mode).
-  bool is_tip_locked; // It represents if the kite leading edge angle can be
-                      // freely mode with the rotation.
-  int selected_tips;   // It represents if the kite leading edge angle can be
-                      // freely mode with the rotation.
-  bool is_rotating;   // Indicates if the kite currently rotates around
-                      // the center.
-} Kite_State;         // The current parametrized state of one kite.
+  bool is_tip_locked;    // It represents if the kite leading edge angle can be
+                         // freely mode with the rotation.
+  int selected_tips;     // It represents if the kite leading edge angle can be
+                         // freely mode with the rotation.
+  bool is_rotating;      // Indicates if the kite currently rotates around
+                         // the center.
+  bool is_kite_reversed; // indicates if the kite faces away from the mouse.
+} Kite_State;            // The current parametrized state of one kite.
 
 typedef struct {
   Kite_State *elements; // The dynamic array collection for all generated kites.

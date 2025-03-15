@@ -532,6 +532,10 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
           tkbc_hash_to_key(keymaps, KMH_SWITCH_MOUSE_CONTOL_MOVEMENT))) {
     state->is_mouse_control = !state->is_mouse_control;
   }
+  if (IsKeyPressed(tkbc_hash_to_key(keymaps, KMH_KEY_161))) {
+    state->is_kite_reversed = !state->is_kite_reversed;
+  }
+
   if (!state->is_mouse_control) {
     return;
   }
@@ -878,7 +882,12 @@ void tkbc_calcluate_and_update_angle(Key_Maps keymaps, Kite_State *state) {
         !state->is_tip_locked) {
       float angle = Vector2Angle(face, distance_to_mouse) * 180 / PI;
       float result_angle = state->kite->angle - angle - 90;
-      tkbc_kite_update_angle(state->kite, result_angle);
+
+      if (state->is_kite_reversed) {
+        tkbc_kite_update_angle(state->kite, result_angle + 180);
+      } else {
+        tkbc_kite_update_angle(state->kite, result_angle);
+      }
     }
 
     tkbc_calculate_and_update_snapping_angle(keymaps, state);

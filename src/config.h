@@ -285,4 +285,9 @@ static Key_Map default_keymaps[] = {
         .key = KEY_KP_5,
         .hash = KMH_KEY_KP_5,
     },
+    {
+        .description = "Toggle reverse mouse follow",
+        .key = 161,
+        .hash = KMH_KEY_161,
+    },
 };
