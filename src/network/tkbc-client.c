@@ -1010,9 +1010,12 @@ int main(int argc, char *argv[]) {
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
   SetTraceLogLevel(LOG_NONE);
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT |
+                 FLAG_WINDOW_MINIMIZED | FLAG_WINDOW_MAXIMIZED);
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
-  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+  SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
   SetTargetFPS(TARGET_FPS);
+
   env = tkbc_init_env();
   if (tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps")) {
     tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");

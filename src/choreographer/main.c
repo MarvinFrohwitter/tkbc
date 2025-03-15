@@ -32,9 +32,10 @@
 int main(void) {
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT |
+                 FLAG_WINDOW_MINIMIZED | FLAG_WINDOW_MAXIMIZED);
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
-  // SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
-  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+  SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
   SetTargetFPS(TARGET_FPS);
 
   Env *env = tkbc_init_env();
