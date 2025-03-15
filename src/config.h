@@ -238,4 +238,51 @@ static Key_Map default_keymaps[] = {
         .key = KEY_A,
         .hash = KMH_MOVES_KITES_RIGHT_AROUND_MOUSE,
     },
+
+    // NUMBERS
+    {
+        .description = "Set kite to angle top in precision mode",
+        .key = KEY_KP_8,
+        .hash = KMH_KEY_KP_8,
+    },
+    {
+        .description = "Set kite to angle top right in precision mode",
+        .key = KEY_KP_9,
+        .hash = KMH_KEY_KP_9,
+    },
+    {
+        .description = "Set kite to angle right in precision mode",
+        .key = KEY_KP_6,
+        .hash = KMH_KEY_KP_6,
+    },
+    {
+        .description = "Set kite to angle bottom right in precision mode",
+        .key = KEY_KP_3,
+        .hash = KMH_KEY_KP_3,
+    },
+    {
+        .description = "Set kite to angle bottom in precision mode",
+        .key = KEY_KP_2,
+        .hash = KMH_KEY_KP_2,
+    },
+    {
+        .description = "Set kite to angle bottom left in precision mode",
+        .key = KEY_KP_7,
+        .hash = KMH_KEY_KP_7,
+    },
+    {
+        .description = "Set kite to angle left in precision mode",
+        .key = KEY_KP_4,
+        .hash = KMH_KEY_KP_4,
+    },
+    {
+        .description = "Set kite to angle top left in precision mode",
+        .key = KEY_KP_1,
+        .hash = KMH_KEY_KP_1,
+    },
+    {
+        .description = "EASTER EGG!",
+        .key = KEY_KP_5,
+        .hash = KMH_KEY_KP_5,
+    },
 };

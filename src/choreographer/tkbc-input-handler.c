@@ -30,9 +30,25 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
   state->fly_velocity *= dt;
   state->fly_velocity *= state->kite->fly_speed;
 
-  // KEY_X
-  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_ANGLE_ZERO)))
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_KEY_KP_8)))
     tkbc_kite_update_angle(state->kite, 0);
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_KEY_KP_9)))
+    tkbc_kite_update_angle(state->kite, -45);
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_KEY_KP_6)))
+    tkbc_kite_update_angle(state->kite, -90);
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_KEY_KP_3)))
+    tkbc_kite_update_angle(state->kite, -135);
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_KEY_KP_2)))
+    tkbc_kite_update_angle(state->kite, 180);
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_KEY_KP_7)))
+    tkbc_kite_update_angle(state->kite, 45);
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_KEY_KP_4)))
+    tkbc_kite_update_angle(state->kite, 90);
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_KEY_KP_1)))
+    tkbc_kite_update_angle(state->kite, 135);
+
+  if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_KEY_KP_5)))
+    tkbc_kite_update_angle(state->kite, 42);
 
   // KEY_R && KEY_T
   if (IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
