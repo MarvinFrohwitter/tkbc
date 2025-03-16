@@ -10,6 +10,9 @@
  * then 0 for the corresponding option interaction.
  */
 int tkbc_check_popup_interaction(Popup *popup) {
+  if (!popup->active) {
+    return 0;
+  }
   if (CheckCollisionPointRec(GetMousePosition(), popup->cross)) {
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
       return -1;
