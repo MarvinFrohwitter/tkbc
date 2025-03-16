@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 
-bool tkbc_parse_single_kite_value(Lexer *lexer);
+int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id);
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
                                    float *y, float *angle, Color *color);
 

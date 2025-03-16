@@ -18,18 +18,26 @@ extern Env *env;
  * the lexer data.
  *
  * @param lexer The current state and data of the string to parse.
+ * @param id -1 if the parsed kite values should be updated, if the values
+ * should not be updated pass the kite_id.
  * @return True if the kite values can be parsed out of the data the lexer
- * contains.
+ * contains and is updated, if the kite values are parsed not updated -1 is
+ * returned and false is returned if the parsing has failed and no updates were
+ * made.
  */
-bool tkbc_parse_single_kite_value(Lexer *lexer) {
-  size_t kite_id;
+int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
+  size_t id;
   float x, y, angle;
   Color color;
-  if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle, &color)) {
-    return false;
+  if (!tkbc_parse_message_kite_value(lexer, &id, &x, &y, &angle, &color)) {
+    return 0;
   }
 
-  Kite *kite = tkbc_get_kite_by_id(env, kite_id);
+  if (kite_id == id) {
+    return -1;
+  }
+
+  Kite *kite = tkbc_get_kite_by_id(env, id);
   // NOTE: This ignores unknown kites and just sets the values for valid ones.
   // Unknown kites are not a parsing error so true is returned.
   // TODO: But for the client not the server the kite missing kite should be
@@ -42,7 +50,7 @@ bool tkbc_parse_single_kite_value(Lexer *lexer) {
     kite->body_color = color;
     tkbc_kite_update_internal(kite);
   }
-  return true;
+  return 1;
 }
 
 /**

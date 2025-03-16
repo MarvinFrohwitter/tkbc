@@ -399,7 +399,7 @@ bool received_message_handler(Message *message) {
         check_return(false);
       }
       for (size_t i = 0; i < kite_count; ++i) {
-        if (!tkbc_parse_single_kite_value(lexer)) {
+        if (!tkbc_parse_single_kite_value(lexer, -1)) {
           goto err;
         }
       }
@@ -429,7 +429,9 @@ bool received_message_handler(Message *message) {
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES\n");
     } break;
     case MESSAGE_KITEVALUE: {
-      if (!tkbc_parse_single_kite_value(lexer)) {
+
+      assert(client.kite_id != -1);
+      if (!tkbc_parse_single_kite_value(lexer, client.kite_id)) {
         goto err;
       }
 

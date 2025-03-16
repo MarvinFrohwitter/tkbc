@@ -358,9 +358,10 @@ bool tkbc_sockets_read(Client *client) {
   size_t length = 1024;
 
   if (recv_buffer->count == 0 && recv_buffer->capacity > MAX_BUFFER_CAPACITY) {
-    tkbc_fprintf(stderr, "INFO", "realloced recv_buffer: old capacity: %zu",
+    tkbc_fprintf(stderr, "INFO", "realloced recv_buffer: old capacity: %zu\n",
                  recv_buffer->capacity);
     free(recv_buffer->elements);
+    recv_buffer->elements = NULL;
     recv_buffer->capacity = 0;
   }
 
@@ -463,6 +464,7 @@ int tkbc_socket_write(Client *client) {
     tkbc_fprintf(stderr, "INFO", "realloced send_msg_buffer: old capacity: %zu",
                  client->send_msg_buffer.capacity);
     free(client->send_msg_buffer.elements);
+    client->send_msg_buffer.elements = NULL;
     client->send_msg_buffer.capacity = 0;
   }
   return n;
@@ -769,7 +771,7 @@ bool tkbc_received_message_handler(Client *client) {
         check_return(false);
       }
       for (size_t id = 0; id < kite_count; ++id) {
-        if (!tkbc_parse_single_kite_value(lexer)) {
+        if (!tkbc_parse_single_kite_value(lexer, -1)) {
           goto err;
         }
 

@@ -20,7 +20,6 @@ bool tkbc_message_append_script(size_t script_id, Message *send_message_queue);
 bool tkbc_message_script();
 void tkbc_client_file_handler();
 void tkbc_client_input_handler_script();
-bool tkbc_parse_single_kite_value(Lexer *lexer);
 
 // Unused for now
 void tkbc_message_kites_positions();
