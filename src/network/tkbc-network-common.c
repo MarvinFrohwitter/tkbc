@@ -21,28 +21,6 @@ extern Env *env;
  * @return True if the kite values can be parsed out of the data the lexer
  * contains.
  */
-// bool tkbc_parse_single_kite_value(Lexer *lexer) {
-//   size_t kite_id;
-//   float x, y, angle;
-//   Color color;
-//   if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-//   &color)) {
-//     return false;
-//   }
-
-//   for (size_t i = 0; i < env->kite_array->count; ++i) {
-//     if (kite_id == env->kite_array->elements[i].kite_id) {
-//       Kite *kite = env->kite_array->elements[i].kite;
-//       kite->center.x = x;
-//       kite->center.y = y;
-//       kite->angle = angle;
-//       kite->body_color = color;
-//       tkbc_kite_update_internal(kite);
-//     }
-//   }
-//   return true;
-// }
-
 bool tkbc_parse_single_kite_value(Lexer *lexer) {
   size_t kite_id;
   float x, y, angle;

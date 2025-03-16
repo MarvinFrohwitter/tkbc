@@ -32,6 +32,7 @@
 #include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc.h"
 
+#define MAX_BUFFER_CAPACITY 128 * 1024
 static int server_socket;
 static int clients_visited = 0;
 Env *env = {0};
@@ -80,6 +81,7 @@ bool tkbc_remove_client_by_fd(int fd) {
     if (clients.elements[i].socket_id == fd) {
       Client client_tmp = clients.elements[i];
       free(client_tmp.send_msg_buffer.elements);
+      free(client_tmp.recv_msg_buffer.elements);
       tkbc_fprintf(stderr, "INFO", "Removed client:" CLIENT_FMT "\n",
                    CLIENT_ARG(client_tmp));
 
@@ -126,9 +128,13 @@ int tkbc_remove_connection(Client client, bool retry) {
 void tkbc_remove_connection_retry(Client client) {
   if (1 == tkbc_remove_connection(client, false)) {
     if (0 != tkbc_remove_connection(client, true)) {
+      tkbc_fprintf(stderr, "ERROR",
+                   "Could not remove Client from list:" CLIENT_FMT "\n",
+                   CLIENT_ARG(client));
     }
   }
 }
+
 /**
  * @brief The function shutdown the client connection that is given by the
  * client argument.
@@ -350,6 +356,14 @@ void tkbc_server_accept() {
 bool tkbc_sockets_read(Client *client) {
   Message *recv_buffer = &client->recv_msg_buffer;
   size_t length = 1024;
+
+  if (recv_buffer->count == 0 && recv_buffer->capacity > MAX_BUFFER_CAPACITY) {
+    tkbc_fprintf(stderr, "INFO", "realloced recv_buffer: old capacity: %zu",
+                 recv_buffer->capacity);
+    free(recv_buffer->elements);
+    recv_buffer->capacity = 0;
+  }
+
   if (recv_buffer->capacity < recv_buffer->count + length) {
     if (recv_buffer->capacity == 0) {
       recv_buffer->capacity = length;
@@ -400,12 +414,6 @@ bool tkbc_sockets_read(Client *client) {
     return false;
   }
 
-  // TODO: Remove the check this case should not be a thing and there should be
-  // no need for a specific handling.
-  if (recv_buffer->capacity > 16 * 1024) {
-    assert(0 && "capacity is more that 16kb");
-  }
-
   assert(n != -1);
   recv_buffer->count += n;
   return true;
@@ -448,6 +456,14 @@ int tkbc_socket_write(Client *client) {
     client->send_msg_buffer.i = 0;
   } else {
     client->send_msg_buffer.i += n;
+  }
+
+  if (client->send_msg_buffer.count == 0 &&
+      client->send_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
+    tkbc_fprintf(stderr, "INFO", "realloced send_msg_buffer: old capacity: %zu",
+                 client->send_msg_buffer.capacity);
+    free(client->send_msg_buffer.elements);
+    client->send_msg_buffer.capacity = 0;
   }
   return n;
 }
@@ -659,15 +675,15 @@ void tkbc_message_kites_write_to_all_send_msg_buffers() {
  * receive_message_queue till the '\r\n' is dorpped. The parser continues from
  * there as recovery.
  *
- * @param message The messages that have been received by the
- * server.
+ * @param client The client, that holds the received message to parse.
  * @return True if every message is parsed correctly from the data, false if an
  * parsing error has occurred.
  */
-bool tkbc_received_message_handler(Message *message) {
+bool tkbc_received_message_handler(Client *client) {
   bool reset = true;
   Token token;
   bool ok = true;
+  Message *message = &client->recv_msg_buffer;
   Lexer *lexer =
       lexer_new(__FILE__, message->elements, message->count, message->i);
   if (message->count == 0) {
@@ -697,7 +713,7 @@ bool tkbc_received_message_handler(Message *message) {
     }
 
     message->i = lexer->position - 2;
-    static_assert(MESSAGE_COUNT == 14, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    static_assert(MESSAGE_COUNT == 16, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -1107,7 +1123,31 @@ bool tkbc_received_message_handler(Message *message) {
         goto err;
       }
 
+      client->script_amount--;
+      if (client->script_amount == 0) {
+        char buf[64] = {0};
+        snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_PARSED);
+        tkbc_dapc(&client->send_msg_buffer, buf, strlen(buf));
+        tkbc_dap(&client->send_msg_buffer, ':');
+        tkbc_dapc(&client->send_msg_buffer, "\r\n", 2);
+      }
+
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT\n");
+    } break;
+    case MESSAGE_SCRIPT_AMOUNT: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        goto err;
+      }
+
+      client->script_amount = atoi(lexer_token_to_cstr(lexer, &token));
+
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        goto err;
+      }
+
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_AMOUNT\n");
     } break;
     case MESSAGE_SCRIPT_TOGGLE: {
       env->script_finished = !env->script_finished;
@@ -1300,7 +1340,7 @@ int main(int argc, char *argv[]) {
       Client *client = &clients.elements[i];
       //
       // Messages
-      if (!tkbc_received_message_handler(&client->recv_msg_buffer)) {
+      if (!tkbc_received_message_handler(client)) {
         if (client->recv_msg_buffer.count) {
           tkbc_fprintf(stderr, "MESSAGE", "%.*s",
                        (int)client->recv_msg_buffer.count,
@@ -1359,10 +1399,6 @@ void signalhandler(int signal) {
   }
 #endif // _WIN32
 
-  for (size_t i = 0; i < clients.count; ++i) {
-    free(clients.elements[i].send_msg_buffer.elements);
-    free(clients.elements[i].recv_msg_buffer.elements);
-  }
   free(clients.elements);
   free(fds.elements);
   exit(EXIT_SUCCESS);

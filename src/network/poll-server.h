@@ -34,6 +34,6 @@ void tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
 bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
     size_t client_id);
 void tkbc_message_kites_write_to_all_send_msg_buffers();
-bool tkbc_received_message_handler(Message *message);
+bool tkbc_received_message_handler(Client *client);
 void signalhandler(int signal);
 #endif // TKBC_POLL_SERVER_H

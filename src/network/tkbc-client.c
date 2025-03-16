@@ -53,6 +53,7 @@ Kite client_kite;
 #define RECEIVE_QUEUE_SIZE 1024
 Message tkbc_send_message_queue = {0};
 // static bool first_message_kite_add = true;
+Popup loading = {0};
 
 /**
  * @brief The function prints the way the program should be called.
@@ -319,7 +320,7 @@ bool received_message_handler(Message *message) {
     }
 
     message->i = lexer->position - 2;
-    static_assert(MESSAGE_COUNT == 14, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    static_assert(MESSAGE_COUNT == 16, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -369,14 +370,14 @@ bool received_message_handler(Message *message) {
       }
 
       tkbc_register_kite_from_values(kite_id, x, y, angle, color);
-      // This assumes the server sends the first KITEADD to the client, that
-      // contains his own kite;
-      if (client.kite_id == -1) {
-        client.kite_id = kite_id;
-      }
 
       static bool first_message_kite_add = true;
       if (first_message_kite_add) {
+        // This assumes the server sends the first KITEADD to the client, that
+        // contains his own kite;
+        if (client.kite_id == -1) {
+          client.kite_id = kite_id;
+        }
         Kite_State *kite_state = tkbc_get_kite_state_by_id(env, kite_id);
         if (kite_state) {
           kite_state->is_kite_input_handler_active = true;
@@ -520,6 +521,11 @@ bool received_message_handler(Message *message) {
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "CLIENTKITES\n");
     } break;
+    case MESSAGE_SCRIPT_PARSED: {
+      loading.active = false;
+
+      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_PARSED\n");
+    } break;
     case MESSAGE_CLIENT_DISCONNECT: {
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
@@ -642,7 +648,7 @@ bool message_queue_handler(Message *message) {
 
   // TODO: Remove the check this case should not be a thing and there should be
   // no need for a specific handling.
-  if (message->capacity > 16 * 1024) {
+  if (message->capacity > 32 * 1024) {
     assert(0 && "capacity is more that 16kb");
   }
 
@@ -832,6 +838,18 @@ bool tkbc_message_script() {
   Message message = {0};
   bool ok = true;
   size_t counter = 0;
+
+  char buf[64] = {0};
+  snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_AMOUNT);
+  tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+  tkbc_dap(&tkbc_send_message_queue, ':');
+
+  snprintf(buf, sizeof(buf), "%zu", env->block_frames->count);
+  tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
+  tkbc_dap(&tkbc_send_message_queue, ':');
+  tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+  message.count = 0;
+
   for (size_t i = env->send_scripts; i < env->block_frames->count; ++i) {
     if (!tkbc_message_append_script(env->block_frames->elements[i].script_id,
                                     &message)) {
@@ -881,7 +899,8 @@ check:
  */
 void tkbc_client_file_handler() {
   tkbc_file_handler(env);
-  if (env->block_frames->count > 0) {
+  if (env->block_frames->count > 0 &&
+      env->block_frames->count - env->send_scripts > 0) {
     tkbc_message_script();
   }
 }
@@ -1030,10 +1049,12 @@ int main(int argc, char *argv[]) {
   Message tkbc_receive_queue = {0};
 
   Popup disconnect = {0};
+  loading = tkbc_popup_message("LOADING");
+
   bool sending = true;
   while (!WindowShouldClose()) {
     if (!message_queue_handler(&tkbc_receive_queue)) {
-      break;
+      disconnect.active = true;
     }
 
     BeginDrawing();
@@ -1045,20 +1066,34 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    int interaction_disconnect = tkbc_check_popup_interaction(&disconnect);
-    if (interaction_disconnect == 1) {
+    int interaction = tkbc_check_popup_interaction(&loading);
+    if (interaction == 1) {
       break;
-    } else if (interaction_disconnect == -1) {
-      disconnect.active = false;
     }
 
-    tkbc_update_kites_for_resize_window(env);
-    tkbc_draw_kite_array(env->kite_array);
-    tkbc_draw_ui(env);
+    interaction = tkbc_check_popup_interaction(&disconnect);
+    if (interaction == 1) {
+      break;
+    } else if (interaction == -1) {
+      disconnect.active = false;
+      loading.active = false;
+    }
+
+    if (client.kite_id != -1) {
+      tkbc_update_kites_for_resize_window(env);
+      tkbc_draw_kite_array(env->kite_array);
+      tkbc_draw_ui(env);
+    } else {
+      tkbc_popup_resize_disconnect(&loading);
+      tkbc_draw_popup(&loading);
+    }
     tkbc_popup_resize_disconnect(&disconnect);
     tkbc_draw_popup(&disconnect);
     EndDrawing();
     if (disconnect.active) {
+      continue;
+    }
+    if (client.kite_id == -1) {
       continue;
     }
 

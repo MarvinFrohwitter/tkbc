@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.2.015"
+#define PROTOCOL_VERSION "0.2.016"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -49,6 +49,8 @@ typedef enum {
   MESSAGE_KITES_POSITIONS_RESET,
   MESSAGE_KITEVALUE,
   MESSAGE_SCRIPT,
+  MESSAGE_SCRIPT_AMOUNT,
+  MESSAGE_SCRIPT_PARSED,
   MESSAGE_SCRIPT_BLOCK_FRAME_VALUE,
   MESSAGE_SCRIPT_TOGGLE,
   MESSAGE_SCRIPT_NEXT,
@@ -73,6 +75,8 @@ typedef struct {
   int socket_id;
   SOCKADDR_IN client_address;
   SOCKLEN client_address_length;
+
+  size_t script_amount;
 } Client;
 
 typedef struct {
