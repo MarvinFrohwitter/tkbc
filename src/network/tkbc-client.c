@@ -602,6 +602,15 @@ check:
  * server was successful, otherwise false.
  */
 bool message_queue_handler(Message *message) {
+
+  if (message->count == 0 && message->capacity > 32 * 1024) {
+    tkbc_fprintf(stderr, "INFO", "realloced message: old capacity: %zu",
+                 message->capacity);
+    free(message->elements);
+    message->elements = NULL;
+    message->capacity = 0;
+  }
+
   size_t length = 1024;
   if (message->capacity < message->count + length) {
     if (message->capacity == 0) {
@@ -646,12 +655,6 @@ bool message_queue_handler(Message *message) {
 
   if (n == 0) {
     return false;
-  }
-
-  // TODO: Remove the check this case should not be a thing and there should be
-  // no need for a specific handling.
-  if (message->capacity > 32 * 1024) {
-    assert(0 && "capacity is more that 16kb");
   }
 
   message->count += n;
