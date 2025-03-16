@@ -27,7 +27,7 @@ typedef struct {
 } Popup; // The structure that contains all the information to display a pop-up.
 
 int tkbc_check_popup_interaction(Popup *popup);
-void tkbc_popup_resize_disconnect(Popup *popup);
+void tkbc_popup_resize(Popup *popup);
 bool tkbc_draw_popup(Popup *popup);
 Popup tkbc_popup_message(const char *message);
 

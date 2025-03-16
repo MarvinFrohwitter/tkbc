@@ -1089,10 +1089,10 @@ int main(int argc, char *argv[]) {
       tkbc_draw_kite_array(env->kite_array);
       tkbc_draw_ui(env);
     } else {
-      tkbc_popup_resize_disconnect(&loading);
+      tkbc_popup_resize(&loading);
       tkbc_draw_popup(&loading);
     }
-    tkbc_popup_resize_disconnect(&disconnect);
+    tkbc_popup_resize(&disconnect);
     tkbc_draw_popup(&disconnect);
     EndDrawing();
     if (disconnect.active) {
