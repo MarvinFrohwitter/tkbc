@@ -100,7 +100,7 @@ bool tkbc_draw_popup(Popup *popup) {
 
   // NOTE: The actual text displayment is not always the measured width, so it
   // is reduce manual by factor.
-  const float factor = 8;
+  const float factor = 4.8;
   const float shift_factor = factor * (popup->option1.width - opt1_text_size.x);
 
   opt1_text_size = MeasureTextEx(defaul_font, popup->option1_text,
@@ -150,7 +150,7 @@ Popup tkbc_popup_message(const char *message) {
   const int text_width = MeasureText(message, font_size);
 
   Popup frame = {
-      .active = true,
+      .active = false,
       .base_color = TKBC_UI_LIGHTGRAY,
       .cross_color = TKBC_UI_RED,
       .option1_color = TKBC_UI_TEAL,

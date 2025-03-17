@@ -1053,30 +1053,28 @@ int main(int argc, char *argv[]) {
 
   Message tkbc_receive_queue = {0};
 
-  Popup disconnect = {0};
-  loading = tkbc_popup_message("LOADING");
+  Popup disconnect = tkbc_popup_message("The server has disconnected!");
+  loading = tkbc_popup_message("Waiting for server.");
+  loading.active = true;
 
-  bool sending = true;
+  bool sending_receiving = true;
   while (!WindowShouldClose()) {
-    if (!message_queue_handler(&tkbc_receive_queue)) {
-      disconnect.active = true;
+
+    if (sending_receiving) {
+      if (!message_queue_handler(&tkbc_receive_queue)) {
+        disconnect.active = true;
+      }
+      sending_receiving = send_message_handler();
     }
 
     BeginDrawing();
     ClearBackground(TKBC_UI_SKYBLUE);
-    if (sending) {
-      sending = send_message_handler();
-      if (!sending) {
-        disconnect = tkbc_popup_message("The server has disconnected!");
-      }
-    }
 
-    int interaction = tkbc_check_popup_interaction(&loading);
-    if (interaction == 1) {
+    if (tkbc_check_popup_interaction(&loading)) {
       break;
     }
 
-    interaction = tkbc_check_popup_interaction(&disconnect);
+    int interaction = tkbc_check_popup_interaction(&disconnect);
     if (interaction == 1) {
       break;
     } else if (interaction == -1) {
@@ -1084,21 +1082,25 @@ int main(int argc, char *argv[]) {
       loading.active = false;
     }
 
-    if (client.kite_id != -1) {
+    if (loading.active) {
+      tkbc_popup_resize(&loading);
+      tkbc_draw_popup(&loading);
+    } else {
       tkbc_update_kites_for_resize_window(env);
       tkbc_draw_kite_array(env->kite_array);
       tkbc_draw_ui(env);
-    } else {
-      tkbc_popup_resize(&loading);
-      tkbc_draw_popup(&loading);
     }
-    tkbc_popup_resize(&disconnect);
-    tkbc_draw_popup(&disconnect);
-    EndDrawing();
+
     if (disconnect.active) {
-      continue;
+      sending_receiving = false;
+      // Clearing for offline continuation.
+      tkbc_send_message_queue.count = 0;
+      tkbc_popup_resize(&disconnect);
+      tkbc_draw_popup(&disconnect);
     }
-    if (client.kite_id == -1) {
+
+    EndDrawing();
+    if (disconnect.active || loading.active || client.kite_id == -1) {
       continue;
     }
 
@@ -1110,10 +1112,6 @@ int main(int argc, char *argv[]) {
       // The end of the current frame has to be executed so ffmpeg gets the full
       // executed fame.
       tkbc_ffmpeg_handler(env, "output.mp4");
-    }
-    if (!sending) {
-      // Clearing for offline continuation.
-      tkbc_send_message_queue.count = 0;
     }
   };
   CloseWindow();
