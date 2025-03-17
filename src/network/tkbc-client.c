@@ -226,6 +226,7 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
   kite_state->kite->body_color = color;
   tkbc_kite_update_internal(kite_state->kite);
   tkbc_dap(env->kite_array, *kite_state);
+  free(kite_state);
 }
 
 /**

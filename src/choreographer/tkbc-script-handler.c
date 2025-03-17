@@ -76,6 +76,7 @@ Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id) {
   Kite *kite = tkbc_get_kite_by_id(env, id);
   if (!kite) {
     tkbc_fprintf(stderr, "ERROR", "The kite index array is invalid.\n");
+    tkbc_fprintf(stderr, "ERROR", "The id: %zu was not found.\n", id);
   }
   assert(kite != NULL);
   return kite;
