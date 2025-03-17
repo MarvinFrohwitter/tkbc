@@ -347,6 +347,11 @@ typedef struct {
                          // the peer partner starts; with 1.
   size_t server_script_block_index; // Represents of the block index the server
                                     // is currently executing.
+  size_t
+      server_script_frames_in_script_count; // Representation of the amount of
+                                            // frames in the current script.
+  size_t server_script_id; // Representation of the current script the server
+                           // executes.
 
   bool script_setup;     // The indication if the initial setup run is executed.
   bool script_interrupt; // The indication if a script is currently going to be

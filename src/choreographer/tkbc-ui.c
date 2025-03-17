@@ -23,7 +23,7 @@ void tkbc_draw_ui(Env *env) {
     // A script is currently executing.
 #ifdef TKBC_CLIENT
     tkbc_ui_timeline(env, env->server_script_block_index,
-                     env->block_frame->count);
+                     env->server_script_frames_in_script_count);
 
 #else
     tkbc_ui_timeline(env, env->frames->block_index, env->block_frame->count);
@@ -61,10 +61,6 @@ void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
   if (env->script_setup) {
     return;
   }
-  // if (env->script_finished) {
-  //   return;
-  // }
-
   Vector2 mouse_pos = GetMousePosition();
   env->timeline_hoverover =
       CheckCollisionPointRec(mouse_pos, env->timeline_base);

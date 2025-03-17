@@ -442,17 +442,7 @@ bool received_message_handler(Message *message) {
       if (token.kind != NUMBER) {
         goto err;
       }
-      size_t script_id = atoi(lexer_token_to_cstr(lexer, &token));
-      bool contains = false;
-      for (size_t id = 0; id < env->block_frames->count; ++id) {
-        if (env->block_frames->elements[id].script_id == script_id) {
-          contains = true;
-          break;
-        }
-      }
-      if (!contains) {
-        goto err;
-      }
+      env->server_script_id = atoi(lexer_token_to_cstr(lexer, &token));
 
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
@@ -462,7 +452,9 @@ bool received_message_handler(Message *message) {
       if (token.kind != NUMBER) {
         goto err;
       }
-      size_t frames_in_script_count = atoi(lexer_token_to_cstr(lexer, &token));
+
+      env->server_script_frames_in_script_count =
+          atoi(lexer_token_to_cstr(lexer, &token));
 
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
@@ -472,19 +464,12 @@ bool received_message_handler(Message *message) {
       if (token.kind != NUMBER) {
         goto err;
       }
+
       env->server_script_block_index = atoi(lexer_token_to_cstr(lexer, &token));
 
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         goto err;
-      }
-
-      if (!env->block_frame) {
-        tkbc_load_next_script(env);
-        assert(frames_in_script_count == env->block_frame->count);
-      }
-      if (env->block_frame->script_id != script_id) {
-        tkbc_load_script_id(env, script_id);
       }
 
       tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s",
@@ -552,7 +537,7 @@ bool received_message_handler(Message *message) {
     } break;
     default:
       tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind);
-      exit(1);
+      goto err;
     }
     continue;
 
