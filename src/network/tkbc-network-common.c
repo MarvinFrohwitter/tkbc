@@ -33,8 +33,10 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
     return 0;
   }
 
-  if (kite_id == id) {
-    return -1;
+  if (kite_id >= 0) {
+    if ((size_t)kite_id == id) {
+      return -1;
+    }
   }
 
   Kite *kite = tkbc_get_kite_by_id(env, id);
