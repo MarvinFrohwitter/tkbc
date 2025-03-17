@@ -434,14 +434,14 @@ int tkbc_socket_write(Client *client) {
       tkbc_fprintf(stderr, "ERROR", "Write: %d\n", err_errno);
       return -1;
     } else {
-      return 0;
+      return -11;
     }
 #else
     if (errno != EAGAIN) {
       tkbc_fprintf(stderr, "ERROR", "Write: %s\n", strerror(errno));
       return -1;
     } else {
-      return 0;
+      return -11;
     }
 #endif // _WIN32
   }
@@ -487,9 +487,10 @@ bool tkbc_server_handle_clients(Client *client) {
     }
 
     int result = tkbc_socket_write(client);
-    if (result == 0) {
+    if (result <= 0) {
       pollfd->events = POLLRDNORM;
-    } else if (result == -1) {
+    }
+    if (result == -1) {
       return false;
     }
     return true;
