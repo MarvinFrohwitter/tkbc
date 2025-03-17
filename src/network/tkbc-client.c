@@ -688,10 +688,13 @@ void tkbc_client_input_handler_kite() {
     }
   }
 
-  if (FloatEquals(client_kite.angle, kite_state->kite->angle) &&
-      Vector2Equals(client_kite.center, kite_state->kite->center)) {
+  if (tkbc_float_equals_epsilon(client_kite.angle, kite_state->kite->angle,
+                                0.01) &&
+      tkbc_vector2_equals_epsilon(client_kite.center, kite_state->kite->center,
+                                  0.01)) {
     return;
   }
+  client_kite = *kite_state->kite;
 
   char buf[64] = {0};
   snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEVALUE);
