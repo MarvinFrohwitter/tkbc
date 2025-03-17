@@ -168,3 +168,37 @@ check:
   }
   return ok;
 }
+
+/**
+ * @brief The function tries to find \r\n in the message starting form the given
+ * position without allocation in message the same way strstr does it.
+ *
+ * @param message The message structure the should hold the data.
+ * @param position The position from where the search should start.
+ * @return The pointer of the position where the needle starts or NULL.
+ */
+char *tkbc_find_rn_in_message_from_position(Message *message,
+                                            unsigned long long position) {
+
+  if (!message || !message->elements || position >= message->count) {
+    return NULL;
+  }
+  if (message->count < 2) {
+    return NULL;
+  }
+
+  char message_last = message->elements[message->count - 1];
+  message->elements[message->count - 1] = '\0';
+  char *ptr = strstr(message->elements + position, "\r\n");
+  message->elements[message->count - 1] = message_last;
+  if (ptr == NULL) {
+    if (message->elements[message->count - 2] == '\r' &&
+        message->elements[message->count - 1] == '\n') {
+      return &message->elements[message->count - 2];
+    }
+
+    return NULL;
+  }
+
+  return ptr;
+}

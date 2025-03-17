@@ -557,9 +557,7 @@ bool received_message_handler(Message *message) {
     continue;
 
   err: {
-    tkbc_dap(message, 0);
-    message->count -= 1;
-    char *rn = strstr(message->elements + lexer->position, "\r\n");
+    char *rn = tkbc_find_rn_in_message_from_position(message, lexer->position);
     if (rn == NULL) {
       reset = false;
     } else {
