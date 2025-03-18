@@ -26,7 +26,12 @@
 #define _WINCON_
 #include <windows.h>
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #else
+
+#include <netdb.h>
+#include <sys/types.h>
+
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -89,42 +94,15 @@ bool tkbc_client_commandline_check(int argc, const char *program_name) {
 }
 
 /**
- * @brief The function checks if the given string is a valid host address.
- *
- * @param host_check The possible string that can contain the host.
- * @return The given host if the parsing was flawless, otherwise the program
- * crashes.
- */
-const char *tkbc_host_parsing(const char *host_check) {
-
-  const char *host = "127.0.0.1";
-  if (strcmp(host_check, "localhost") == 0) {
-    return host;
-  }
-
-  for (size_t i = 0; i < strlen(host_check); ++i) {
-    if (!isdigit(host_check[i]) && host_check[i] != '.') {
-      tkbc_fprintf(stderr, "ERROR", "The given host [%s] is not supported.\n",
-                   host_check);
-      exit(1);
-    }
-  }
-
-  // TODO: Check for DNS-resolution.
-  host = host_check;
-  return host;
-}
-
-/**
  * @brief This function can be used to create a new client socket and connect it
  * to the server.
  *
- * @param addr The address of the server the client should connect to.
+ * @param host The address of the server the client should connect to.
  * @param port The port where the server is available.
  * @return The client socket if the creation and connection has succeeded,
  * otherwise the program crashes.
  */
-int tkbc_client_socket_creation(const char *addr, uint16_t port) {
+int tkbc_client_socket_creation(const char *host, const char *port) {
 #ifdef _WIN32
   WSADATA wsaData;
   if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -132,60 +110,88 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
   } else {
     tkbc_fprintf(stderr, "INFO", "Initialization of WSAStartup() succeed.\n");
   }
-  int client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (client_socket == -1) {
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-    exit(1);
-  }
-#else
-  int client_socket = socket(AF_INET, SOCK_STREAM, 0);
-  if (client_socket == -1) {
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-    exit(1);
-  }
 #endif
 
-  int option = 1;
-  int sso = setsockopt(client_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
-                       sizeof(option));
-  if (sso == -1) {
+  struct addrinfo hints, *servinfo, *rp;
+  memset(&hints, 0, sizeof hints);
+  hints.ai_family = AF_UNSPEC;     // Use IPv4 or IPv6
+  hints.ai_socktype = SOCK_STREAM; // TCP
+
+  // Get address info
+  int gai = getaddrinfo(host, port, &hints, &servinfo);
+  if (gai != 0) {
+    tkbc_fprintf(stderr, "ERROR", "getaddrinfo: %s\n", gai_strerror(gai));
 #ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-#else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-#endif
-  }
-
-  SOCKADDR_IN server_address;
-  memset(&server_address, 0, sizeof(server_address));
-
-  server_address.sin_family = AF_INET;
-  server_address.sin_port = htons(port);
-  server_address.sin_addr.s_addr = inet_addr(addr);
-
-  int connection_status = connect(client_socket, (SOCKADDR *)&server_address,
-                                  sizeof(server_address));
-
-  if (connection_status == -1) {
-#ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-    if (closesocket(client.socket_id) == -1) {
-      tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
-                   WSAGetLastError());
-    }
     WSACleanup();
-#else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-    if (close(client.socket_id) == -1) {
-      tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
-                   strerror(errno));
-    }
 #endif
     exit(1);
   }
 
+  //
+  // Loop through all results and connect to the first we can
+  int client_socket;
+  for (rp = servinfo; rp != NULL; rp = rp->ai_next) {
+    client_socket = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (client_socket == -1) {
 #ifdef _WIN32
+      tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+#else
+      tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+#endif
+      continue;
+    }
+
+    //
+    // Set SO_REUSEADDR
+    int option = 1;
+    int sso = setsockopt(client_socket, SOL_SOCKET, SO_REUSEADDR,
+                         (char *)&option, sizeof(option));
+    if (sso == -1) {
+#ifdef _WIN32
+      tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+#else
+      tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+#endif
+    }
+
+    //
+    // Connecting to the possible address.
+    int connection_status = connect(client_socket, rp->ai_addr, rp->ai_addrlen);
+    if (connection_status == -1) {
+#ifdef _WIN32
+      tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+      if (closesocket(client.socket_id) == -1) {
+        tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
+                     WSAGetLastError());
+      }
+#else
+      tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+      if (close(client.socket_id) == -1) {
+        tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
+                     strerror(errno));
+      }
+#endif
+      continue;
+    }
+
+    break; // Successfully connected
+  }
+
+  // ==============================================================
+  if (rp == NULL) {
+    tkbc_fprintf(stderr, "ERROR", "Failed to connect to %s:%s\n", host, port);
+#ifdef _WIN32
+    WSACleanup();
+#endif
+    exit(1);
+  }
+  // ==============================================================
+
+  freeaddrinfo(servinfo); // Free the linked list
+
+  //
   // Set the socket to non-blocking
+#ifdef _WIN32
   u_long mode = 1; // 1 to enable non-blocking socket
   if (ioctlsocket(client_socket, FIONBIO, &mode) != 0) {
     tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
@@ -194,15 +200,11 @@ int tkbc_client_socket_creation(const char *addr, uint16_t port) {
     exit(1);
   }
 #else
-  // Set the socket to non-blocking
   int flags = fcntl(client_socket, F_GETFL, 0);
   fcntl(client_socket, F_SETFL, flags | O_NONBLOCK);
 #endif
 
-  tkbc_fprintf(stderr, "INFO", "Connected to Server: %s:%hd\n",
-               inet_ntoa(server_address.sin_addr),
-               ntohs(server_address.sin_port));
-
+  tkbc_fprintf(stderr, "INFO", "Connected to server: %s:%s\n", host, port);
   return client_socket;
 }
 
@@ -1006,14 +1008,11 @@ int main(int argc, char *argv[]) {
   client.kite_id = -1;
 
   char *program_name = tkbc_shift_args(&argc, &argv);
-  uint16_t port = 8080;
+  const char *port = "8080";
   const char *host = "127.0.0.1";
   if (tkbc_client_commandline_check(argc, program_name)) {
-    const char *host_check = tkbc_shift_args(&argc, &argv);
-    host = tkbc_host_parsing(host_check);
-
-    char *port_check = tkbc_shift_args(&argc, &argv);
-    port = tkbc_port_parsing(port_check);
+    host = tkbc_shift_args(&argc, &argv);
+    port = tkbc_shift_args(&argc, &argv);
   }
 
   client.socket_id = tkbc_client_socket_creation(host, port);
