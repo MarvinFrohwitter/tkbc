@@ -606,7 +606,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         check_return(false);
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "HELLO\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
     case MESSAGE_KITEVALUE: {
       size_t kite_id;
@@ -617,7 +617,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         check_return(false);
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEVALUE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEVALUE\n");
     } break;
     case MESSAGE_KITES_POSITIONS: {
       token = lexer_next(lexer);
@@ -650,7 +650,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         }
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES_POSITIONS\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS\n");
     } break;
     case MESSAGE_KITES_POSITIONS_RESET: {
       pthread_mutex_lock(&mutex);
@@ -671,8 +671,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
       }
       pthread_mutex_unlock(&mutex);
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s",
-                   "KITES_POSITIONS_RESET\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS_RESET\n");
     } break;
     case MESSAGE_SCRIPT: {
       pthread_mutex_lock(&mutex);
@@ -1010,14 +1009,14 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         goto err;
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT\n");
     } break;
     case MESSAGE_SCRIPT_TOGGLE: {
       pthread_mutex_lock(&mutex);
       env->script_finished = !env->script_finished;
       pthread_mutex_unlock(&mutex);
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_TOGGLE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_TOGGLE\n");
     } break;
     case MESSAGE_SCRIPT_NEXT: {
       pthread_mutex_lock(&mutex);
@@ -1045,7 +1044,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
 
       pthread_mutex_unlock(&mutex);
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_NEXT\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_NEXT\n");
     } break;
     case MESSAGE_SCRIPT_SCRUB: {
 
@@ -1083,7 +1082,7 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
                                              env->block_frame->count,
                                              env->frames->block_index);
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_SCRUB\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_SCRUB\n");
     } break;
     default:
       tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind);

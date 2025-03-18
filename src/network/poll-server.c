@@ -737,7 +737,7 @@ bool tkbc_received_message_handler(Client *client) {
         check_return(false);
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "HELLO\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
     case MESSAGE_KITEVALUE: {
       size_t kite_id;
@@ -759,7 +759,7 @@ bool tkbc_received_message_handler(Client *client) {
         check_return(false);
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEVALUE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEVALUE\n");
     } break;
     case MESSAGE_KITES_POSITIONS: {
       token = lexer_next(lexer);
@@ -779,7 +779,7 @@ bool tkbc_received_message_handler(Client *client) {
         tkbc_message_kites_write_to_all_send_msg_buffers();
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES_POSITIONS\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS\n");
     } break;
     case MESSAGE_KITES_POSITIONS_RESET: {
       // All parsing is already done above.
@@ -788,8 +788,7 @@ bool tkbc_received_message_handler(Client *client) {
 
       tkbc_message_kites_write_to_all_send_msg_buffers();
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s",
-                   "KITES_POSITIONS_RESET\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS_RESET\n");
     } break;
     case MESSAGE_SCRIPT: {
 
@@ -1135,7 +1134,7 @@ bool tkbc_received_message_handler(Client *client) {
         tkbc_dapc(&client->send_msg_buffer, "\r\n", 2);
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT\n");
     } break;
     case MESSAGE_SCRIPT_AMOUNT: {
       token = lexer_next(lexer);
@@ -1150,12 +1149,12 @@ bool tkbc_received_message_handler(Client *client) {
         goto err;
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_AMOUNT\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_AMOUNT\n");
     } break;
     case MESSAGE_SCRIPT_TOGGLE: {
       env->script_finished = !env->script_finished;
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_TOGGLE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_TOGGLE\n");
     } break;
     case MESSAGE_SCRIPT_NEXT: {
 
@@ -1179,7 +1178,7 @@ bool tkbc_received_message_handler(Client *client) {
       size_t needed_kites = max - env->kite_array->count;
       tkbc_kite_array_generate(env, needed_kites);
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_NEXT\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_NEXT\n");
     } break;
     case MESSAGE_SCRIPT_SCRUB: {
 
@@ -1215,7 +1214,7 @@ bool tkbc_received_message_handler(Client *client) {
           env->block_frame->script_id, env->block_frame->count,
           env->frames->block_index);
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_SCRUB\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_SCRUB\n");
     } break;
     default:
       tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind);

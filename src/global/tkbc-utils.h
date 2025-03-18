@@ -168,6 +168,11 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
     return ret;
   }
 #endif // TKBC_LOGGING_WARNING
+#ifndef TKBC_LOGGING_MESSAGEHANDLER
+  if (strncmp(level, "MESSAGEHANDLER", 14) == 0) {
+    return ret;
+  }
+#endif // TKBC_LOGGING_MESSAGEHANDLER
 
   va_list args;
   va_start(args, fmt);

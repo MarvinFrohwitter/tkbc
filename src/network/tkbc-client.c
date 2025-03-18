@@ -359,7 +359,7 @@ bool received_message_handler(Message *message) {
         tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "HELLO\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
     case MESSAGE_KITEADD: {
       size_t kite_id;
@@ -387,7 +387,7 @@ bool received_message_handler(Message *message) {
         first_message_kite_add = false;
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEADD\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEADD\n");
     } break;
     case MESSAGE_KITES: {
       token = lexer_next(lexer);
@@ -427,7 +427,7 @@ bool received_message_handler(Message *message) {
         tkbc_kite_update_internal(kite);
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITES\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES\n");
     } break;
     case MESSAGE_KITEVALUE: {
 
@@ -436,7 +436,7 @@ bool received_message_handler(Message *message) {
         goto err;
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "KITEVALUE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEVALUE\n");
     } break;
     case MESSAGE_SCRIPT_BLOCK_FRAME_VALUE: {
       token = lexer_next(lexer);
@@ -473,8 +473,7 @@ bool received_message_handler(Message *message) {
         goto err;
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s",
-                   "SCRIPT_BLOCK_FRAME_VALUE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_BLOCK_FRAME_VALUE\n");
     } break;
     case MESSAGE_CLIENTKITES: {
       token = lexer_next(lexer);
@@ -507,12 +506,12 @@ bool received_message_handler(Message *message) {
         }
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "CLIENTKITES\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "CLIENTKITES\n");
     } break;
     case MESSAGE_SCRIPT_PARSED: {
       loading.active = false;
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "SCRIPT_PARSED\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_PARSED\n");
     } break;
     case MESSAGE_CLIENT_DISCONNECT: {
       token = lexer_next(lexer);
@@ -534,7 +533,7 @@ bool received_message_handler(Message *message) {
         /* check_return(false); */
       }
 
-      tkbc_fprintf(stderr, "INFO", "[MESSAGEHANDLER] %s", "CLIENT_DISCONNET\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "CLIENT_DISCONNET\n");
     } break;
     default:
       tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind);

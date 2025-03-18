@@ -9,6 +9,7 @@
 #define TKBC_LOGGING_ERROR
 #define TKBC_LOGGING_INFO
 #define TKBC_LOGGING_WARNING
+#define TKBC_LOGGING_MESSAGEHANDLER
 //////////////////////////////////////////////////////////////////////////////
 
 #include "../global/tkbc-utils.h"
