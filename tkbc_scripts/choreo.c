@@ -429,8 +429,6 @@ void inverse_bicycle_change(Env *env) {
 
   );
 
-  SET(KITE_WAIT(wait_time));
-
   SET(
 
       KITE_ROTATION_ADD(ID(0), -90, move_duration),
@@ -482,16 +480,20 @@ void to_center_slide_in(Env *env) {
 
   SET(
 
-      KITE_MOVE_ADD(ID(0), kite.width + 2 * kite.height,
-                    -kite.width - 2 * kite.height, move_duration),
-      KITE_MOVE_ADD(ID(1), -kite.width - 2 * kite.height,
-                    kite.width + 2 * kite.height, move_duration)
+      KITE_MOVE_ADD(ID(0), kite.width + kite.width / 2 + kite.height / 2,
+                    -kite.width - kite.width / 2 - kite.height / 2,
+                    move_duration),
+      KITE_MOVE_ADD(ID(1), -kite.width - kite.width / 2 - kite.height / 2,
+                    kite.width + kite.width / 2 + kite.height / 2,
+                    move_duration)
 
   );
 }
 
 void pair_change_90(Env *env, Kite_Ids ki) {
-  SET(KITE_TIP_ROTATION_ADD(ki, 90, LEFT_TIP, rotation_duration));
+  tkbc_script_team_roll_two_diffrent_angle(env, ID(0, 1), 1.3, 405, 585, 225,
+                                           405, rotation_duration,
+                                           rotation_duration);
 }
 
 void choreo(Env *env, Kite_Ids ki) {

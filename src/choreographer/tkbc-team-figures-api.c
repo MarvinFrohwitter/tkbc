@@ -11,6 +11,87 @@
 #include "tkbc-script-handler.h"
 
 /**
+ * @brief The function can be used to let the kites roll up but at a different
+ * starting position.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param radius The radius of the circle to fly.
+ * @param begin_angle_1 The angle where the computation begin given as an
+ * absolute value.
+ * @param end_angle_1 The angle where the computation end given as an absolute
+ * value.
+ * @param begin_angle_2 The angle where the computation begin given as an
+ * absolute value.
+ * @param end_angle_2 The angle where the computation end given as an absolute
+ * value.
+ * @param move_duration_1 The time that the repositioning of the kites should
+ * take.
+ * @param move_duration_2 The time that the repositioning of the kites should
+ * take.
+ * @return True if the internal frame actions could be created with no errors,
+ * otherwise false.
+ */
+bool tkbc_script_team_roll_two_diffrent_angle(
+    Env *env, Kite_Ids kite_index_array, float radius, size_t begin_angle_1,
+    size_t end_angle_1, size_t begin_angle_2, size_t end_angle_2,
+    float move_duration_1, float move_duration_2) {
+  assert(kite_index_array.count == 2);
+
+  Frame *frame = NULL;
+  const float duration_1 = move_duration_1 / (end_angle_1 - begin_angle_1);
+  const float duration_2 = move_duration_2 / (end_angle_2 - begin_angle_2);
+  Vector2 position;
+
+  assert((end_angle_1 - begin_angle_1) == (end_angle_2 - begin_angle_2));
+  for (size_t deg = 0; deg < (end_angle_1 - begin_angle_1); ++deg) {
+    tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
+    position = (Vector2){
+        .x = radius * cosf(PI * (deg + begin_angle_1) / 180),
+        .y = -radius * sinf(PI * (deg + begin_angle_1) / 180),
+    };
+
+    {
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[0]), position.x,
+                            position.y, duration_1);
+      if (frame == NULL)
+        return false;
+      tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+    }
+    {
+      frame =
+          KITE_ROTATION_ADD(ID(kite_index_array.elements[0]), 1, duration_1);
+      if (frame == NULL)
+        return false;
+      tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+    }
+
+    position = (Vector2){
+        .x = radius * cosf(PI * (deg + begin_angle_2) / 180),
+        .y = -radius * sinf(PI * (deg + begin_angle_2) / 180),
+    };
+
+    {
+      frame = KITE_MOVE_ADD(ID(kite_index_array.elements[1]), position.x,
+                            position.y, duration_2);
+      if (frame == NULL)
+        return false;
+      tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+    }
+    {
+      frame =
+          KITE_ROTATION_ADD(ID(kite_index_array.elements[1]), 1, duration_2);
+      if (frame == NULL)
+        return false;
+      tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
+    }
+    tkbc_register_frames_array(env, &env->scratch_buf_frames);
+  }
+
+  return true;
+}
+
+/**
  * @brief The function can be used to let the kites roll up if odd is given
  * the odd kites counted from the right rolls clockwise the evens roll
  * anticlockwise.

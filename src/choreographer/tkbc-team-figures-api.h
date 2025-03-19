@@ -7,6 +7,11 @@
 // ========================== Script Team Figures ============================
 // ===========================================================================
 
+bool tkbc_script_team_roll_two_diffrent_angle(
+    Env *env, Kite_Ids kite_index_array, float radius, size_t begin_angle_1,
+    size_t end_angle_1, size_t begin_angle_2, size_t end_angle_2,
+    float move_duration_1, float move_duration_2);
+
 bool tkbc_script_team_roll_split_up(Env *env, Kite_Ids kite_index_array,
                                     ODD_EVEN odd_even, float radius,
                                     size_t begin_angle, size_t end_angle,
