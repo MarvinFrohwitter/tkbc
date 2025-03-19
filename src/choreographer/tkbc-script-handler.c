@@ -363,7 +363,8 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       // NOTE: Different from the ADDing version.
-      int result = fabsf(action->angle - kite->angle) <= d;
+      int result = fabsf(fabsf(fmodf(action->angle, 360)) -
+                         fabsf(fmodf(kite->angle, 360))) <= d;
       if (result) {
         frame->finished = true;
         // Enable for setting the correct angle precision.
@@ -423,7 +424,8 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       }
 
       // NOTE: Different from the ADDing version.
-      int result = fabsf(action->angle - kite->angle) <= d;
+      int result = fabsf(fabsf(fmodf(action->angle, 360)) -
+                         fabsf(fmodf(kite->angle, 360))) <= d;
       if (result) {
         frame->finished = true;
         // Enable for setting the correct angle precision.
