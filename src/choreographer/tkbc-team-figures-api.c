@@ -34,7 +34,7 @@ bool tkbc_script_team_roll_split_up(Env *env, Kite_Ids kite_index_array,
                                     size_t begin_angle, size_t end_angle,
                                     float move_duration) {
   Frame *frame = NULL;
-  float duration = move_duration / 360;
+  float duration = move_duration / (end_angle - begin_angle);
   for (size_t deg = begin_angle; deg < end_angle; ++deg) {
     tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
     for (size_t i = 0; i < kite_index_array.count; ++i) {
@@ -107,7 +107,7 @@ bool tkbc_script_team_roll_split_down(Env *env, Kite_Ids kite_index_array,
                                       size_t begin_angle, size_t end_angle,
                                       float move_duration) {
   Frame *frame = NULL;
-  float duration = move_duration / 360;
+  float duration = move_duration / (end_angle - begin_angle);
   for (size_t deg = begin_angle; deg < end_angle; ++deg) {
     tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
     for (size_t i = 0; i < kite_index_array.count; ++i) {
@@ -178,7 +178,7 @@ bool tkbc_script_team_roll_up_anti_clockwise(Env *env,
                                              size_t end_angle,
                                              float move_duration) {
   Frame *frame = NULL;
-  float duration = move_duration / 360;
+  float duration = move_duration / (end_angle - begin_angle);
   for (size_t deg = begin_angle; deg < end_angle; ++deg) {
     tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
     Vector2 position = (Vector2){
@@ -226,7 +226,7 @@ bool tkbc_script_team_roll_up_clockwise(Env *env, Kite_Ids kite_index_array,
                                         float radius, size_t begin_angle,
                                         size_t end_angle, float move_duration) {
   Frame *frame = NULL;
-  float duration = move_duration / 360;
+  float duration = move_duration / (end_angle - begin_angle);
   for (size_t deg = begin_angle; deg < end_angle; ++deg) {
     tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
     Vector2 position = (Vector2){
@@ -276,7 +276,7 @@ bool tkbc_script_team_roll_down_anti_clockwise(Env *env,
                                                size_t end_angle,
                                                float move_duration) {
   Frame *frame = NULL;
-  float duration = move_duration / 360;
+  float duration = move_duration / (end_angle - begin_angle);
   for (size_t deg = begin_angle; deg < end_angle; ++deg) {
     tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
     Vector2 position = (Vector2){
@@ -325,7 +325,7 @@ bool tkbc_script_team_roll_down_clockwise(Env *env, Kite_Ids kite_index_array,
                                           size_t end_angle,
                                           float move_duration) {
   Frame *frame = NULL;
-  float duration = move_duration / 360;
+  float duration = move_duration / (end_angle - begin_angle);
   for (size_t deg = begin_angle; deg < end_angle; ++deg) {
     tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
     Vector2 position = (Vector2){
