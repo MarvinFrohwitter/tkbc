@@ -429,60 +429,52 @@ END
 
 ## Mappings
 
-**`:Key:` `:Function Description:`**
-
-`KEY_F1` Change key mappings.
-
-`KEY_Q` Quits the Program.
-
-`KEY_B` Take a Screenshot.
-
-`KEY_V` Start recording the screen.
-
-`SHIFT + KEY_V` End recording the screen.
-
-`KEY_ENTER` Set all kites in start position face up (angle = 0).
-
-`KEY_1|...|KEY_9` Toggles the selection of a kite.
-
-`KEY_X` Rotate all selected kites face up (angle = 0).
-
-`KEY_R` Rotate all selected kites at the center clockwise.
-
-`SHIFT + KEY_R` Rotate all selected kites at the center anticlockwise.
-
-`[KEY_H | KEY_L] + KEY_T` Rotate all selected kites at the Tip clockwise.
-
-`[KEY_H | KEY_L] + SHIFT + KEY_T` Rotate all selected kites at the Tip anticlockwise.
-
-`KEY_F` Switches between a fixed and a smooth rotation (toggle).
-
-`KEY_LEFT | KEY_H` Moves the selected kites by the set speed to the left.
-
-`KEY_DOWN | KEY_J` Moves the selected kites by the set speed to the down.
-
-`KEY_UP | KEY_K` Moves the selected kites by the set speed to the up.
-
-`KEY_RIGHT | KEY_L` Moves the selected kites by the set speed to the right.
-
-`KEY_P` Increase the fly speed.
-
-`SHIFT + KEY_P` Reduce the fly speed.
-
-`KEY_O` Increase the turn speed.
-
-`SHIFT + KEY_O` Reduce the turn speed.
-
-`KEY_SPACE` Toggles the interruption that controls the execution of a script.
-
-`KEY_TAB` Switches to the next loaded script.
-
-`KEY_N` Plays the currently loaded sound.
-
-`SHIFT + KEY_N` Stops the current sound track.
-
-`KEY_M` Pauses the current sound track.
-
-`SHIFT + KEY_M` Resumes the currently loaded sound track.
+| **`Key`**                          | **`Function Description`**                                        |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| `KEY_1 KEY_9`                      | Toggles the selection of a kite.                                  |
+| `KEY_ESCAPE`                       | Change key mappings.                                              |
+| `KEY_BACKSPACE`                    | Quits the Program.                                                |
+| `KEY_B`                            | Take a Screenshot.                                                |
+| `KEY_V`                            | Begin recording the screen.                                       |
+| `SHIFT + KEY_V`                    | End recording the screen.                                         |
+| `KEY_ENTER`                        | Set all kites in start position angle 0.                          |
+| `KEY_X`                            | Rotate all selected kites angle 0.                                |
+| `[KEY_H \| KEY_L] + KEY_T`         | Rotate all selected kites at the tip clockwise.                   |
+| `[KEY_H \| KEY_L] + SHIFT + KEY_T` | Rotate all selected kites at the tip anticlockwise.               |
+| `KEY_F`                            | Switches between a fixed and a smooth rotation (toggle).          |
+| `KEY_A`                            | Moves the selected kites by the set speed to the left.            |
+| `KEY_S`                            | Moves the selected kites by the set speed to the down.            |
+| `KEY_W`                            | Moves the selected kites by the set speed to the up.              |
+| `KEY_D`                            | Moves the selected kites by the set speed to the right.           |
+| `KEY_P`                            | Increase the fly speed.                                           |
+| `SHIFT + KEY_P`                    | Reduce the fly speed.                                             |
+| `KEY_O`                            | Increase the turn speed.                                          |
+| `SHIFT + KEY_O`                    | Reduce the turn speed.                                            |
+| `KEY_SPACE`                        | Toggles the interruption that controls the execution of a script. |
+| `KEY_TAB`                          | Switches to the next loaded script.                               |
+| `KEY_N`                            | Plays the currently loaded sound.                                 |
+| `SHIFT + KEY_N`                    | Stops the current sound track.                                    |
+| `KEY_M`                            | Pauses the current sound track.                                   |
+| `SHIFT + KEY_M`                    | Resumes the currently loaded sound track.                         |
+| `KEY_ZERO`                         | Switch to mouse control movement.                                 |
+| `SHIFT`                            | Lock the angle of the kite.                                       |
+| `CONTROL`                          | Lock the angle for tip turn.                                      |
+| `KEY_R`                            | Snaps the angle of the kite.                                      |
+| `KEY_E`                            | Rotate all selected kites at the center clockwise.                |
+| `KEY_Q`                            | Rotate all selected kites at the center anticlockwise.            |
+| `KEY_W`                            | Moves the selected kites by the set speed towards the mouse.      |
+| `KEY_D`                            | Moves the selected kites by the set speed left to the mouse.      |
+| `KEY_S`                            | Moves the selected kites by the set speed away from the mouse.    |
+| `KEY_A`                            | Moves the selected kites by the set speed right to the mouse.     |
+| `KEY_KP_8`                         | Set kite to angle top in precision mode                           |
+| `KEY_KP_9`                         | Set kite to angle top right in precision mode                     |
+| `KEY_KP_6`                         | Set kite to angle right in precision mode                         |
+| `KEY_KP_3`                         | Set kite to angle bottom right in precision mode                  |
+| `KEY_KP_2`                         | Set kite to angle bottom in precision mode                        |
+| `KEY_KP_7`                         | Set kite to angle bottom left in precision mode                   |
+| `KEY_KP_4`                         | Set kite to angle left in precision mode                          |
+| `KEY_KP_1`                         | Set kite to angle top left in precision mode                      |
+| `KEY_KP_5`                         | EASTER EGG!                                                       |
+| `KEY_LESS_THAN`                    | Toggle reverse mouse follow                                       |
 
 ---
