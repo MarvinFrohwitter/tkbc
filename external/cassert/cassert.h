@@ -531,10 +531,10 @@ static inline bool double_equals(double x, double y) {
   } while (0)
 
 #define cassert_char_number_eq(c, number)                                      \
-  cassert_type_compare(CHAR_NUMBER_EQ, c, +48 ==, number);
+  cassert_type_compare(CHAR_NUMBER_EQ, c, ==, number);
 
 #define cassert_char_number_neq(c, number)                                     \
-  cassert_type_compare(CHAR_NUMBER_NEQ, c, +48 !=, number);
+  cassert_type_compare(CHAR_NUMBER_NEQ, c, !=, number);
 
 enum { _float, _double, _int64 };
 #define cassert_string_int64_eq(string, number)                                \
@@ -1424,10 +1424,10 @@ int cassert_print_internal(FILE *stream, Cassert cassert, int len_assert_type) {
   case FLOAT_NEQ:
     cassert_print_fmtf("%f", "%f", *(float *)cassert.value1,
                        *(float *)cassert.value2);
-  case INT_EQ:
-  case INT_NEQ:
-    cassert_print_fmtf("%d", "%d", (int64_t *)cassert.value1,
-                       (int64_t *)cassert.value2);
+  case DOUBLE_EQ:
+  case DOUBLE_NEQ:
+    cassert_print_fmtf("%lf", "%lf", *(double *)cassert.value1,
+                       *(double *)cassert.value2);
   case STRING_INT64_EQ:
   case STRING_INT64_NEQ:
     cassert_print_fmtf("%s", "%ld", (char *)cassert.value1,
@@ -1444,6 +1444,173 @@ int cassert_print_internal(FILE *stream, Cassert cassert, int len_assert_type) {
   case PTR_NEQ:
     cassert_print_fmtf("%p", "%p", (uintptr_t *)cassert.value1,
                        (uintptr_t *)cassert.value2);
+  case CHAR_NUMBER_EQ:
+  case CHAR_NUMBER_NEQ:
+    cassert_print_fmtf("%c", "%ld", (char *)cassert.value1,
+                       (int64_t *)cassert.value2);
+
+  case CHAR_MAX_EQ:
+  case CHAR_MIN_EQ:
+  case CHAR_MAX_NEQ:
+  case CHAR_MIN_NEQ:
+  case CHAR_EQ:
+  case CHAR_NEQ:
+    cassert_print_fmtf("%c", "%c", (char *)cassert.value1,
+                       (char *)cassert.value2);
+  case SHORT_MAX_EQ:
+  case SHORT_MIN_EQ:
+  case SHORT_MAX_NEQ:
+  case SHORT_MIN_NEQ:
+  case SHORT_EQ:
+  case SHORT_NEQ:
+    cassert_print_fmtf("%hd", "%hd", (short *)cassert.value1,
+                       (short *)cassert.value2);
+  case INT_MAX_EQ:
+  case INT_MIN_EQ:
+  case INT_MAX_NEQ:
+  case INT_MIN_NEQ:
+  case INT_EQ:
+  case INT_NEQ:
+    cassert_print_fmtf("%d", "%d", (int *)cassert.value1,
+                       (int *)cassert.value2);
+  case LONG_MAX_EQ:
+  case LONG_MIN_EQ:
+  case LONG_MAX_NEQ:
+  case LONG_MIN_NEQ:
+  case LONG_EQ:
+  case LONG_NEQ:
+    cassert_print_fmtf("%ld", "%ld", (long int *)cassert.value1,
+                       (long int *)cassert.value2);
+  case LONG_LONG_MAX_EQ:
+  case LONG_LONG_MIN_EQ:
+  case LONG_LONG_MAX_NEQ:
+  case LONG_LONG_MIN_NEQ:
+  case LONG_LONG_EQ:
+  case LONG_LONG_NEQ:
+    cassert_print_fmtf("%lld", "%lld", (long long int *)cassert.value1,
+                       (long long int *)cassert.value2);
+
+  case UCHAR_MAX_EQ:
+  case UCHAR_MIN_EQ:
+  case UCHAR_MAX_NEQ:
+  case UCHAR_MIN_NEQ:
+  case UCHAR_EQ:
+  case UCHAR_NEQ:
+    cassert_print_fmtf("%c", "%c", (char *)cassert.value1,
+                       (char *)cassert.value2);
+  case USHORT_MAX_EQ:
+  case USHORT_MIN_EQ:
+  case USHORT_MAX_NEQ:
+  case USHORT_MIN_NEQ:
+  case USHORT_EQ:
+  case USHORT_NEQ:
+    cassert_print_fmtf("%hu", "%hu", (short *)cassert.value1,
+                       (short *)cassert.value2);
+  case UINT_MAX_EQ:
+  case UINT_MIN_EQ:
+  case UINT_MAX_NEQ:
+  case UINT_MIN_NEQ:
+  case UINT_EQ:
+  case UINT_NEQ:
+    cassert_print_fmtf("%u", "%u", (int *)cassert.value1,
+                       (int *)cassert.value2);
+  case ULONG_MAX_EQ:
+  case ULONG_MIN_EQ:
+  case ULONG_MAX_NEQ:
+  case ULONG_MIN_NEQ:
+  case ULONG_EQ:
+  case ULONG_NEQ:
+    cassert_print_fmtf("%lu", "%lu", (long int *)cassert.value1,
+                       (long int *)cassert.value2);
+  case ULONG_LONG_MAX_EQ:
+  case ULONG_LONG_MIN_EQ:
+  case ULONG_LONG_MAX_NEQ:
+  case ULONG_LONG_MIN_NEQ:
+  case ULONG_LONG_EQ:
+  case ULONG_LONG_NEQ:
+    cassert_print_fmtf("%llu", "%llu", (long long int *)cassert.value1,
+                       (long long int *)cassert.value2);
+
+  case SSIZE_T_EQ:
+  case SSIZE_T_NEQ:
+    cassert_print_fmtf("%zd", "%zd", (ssize_t *)cassert.value1,
+                       (ssize_t *)cassert.value2);
+
+  case SIZE_T_MAX_EQ:
+  case SIZE_T_MIN_EQ:
+  case SIZE_T_MAX_NEQ:
+  case SIZE_T_MIN_NEQ:
+  case SIZE_T_EQ:
+  case SIZE_T_NEQ:
+    cassert_print_fmtf("%zu", "%zu", (size_t *)cassert.value1,
+                       (size_t *)cassert.value2);
+
+  case INT8_T_MAX_EQ:
+  case INT8_T_MIN_EQ:
+  case INT8_T_MAX_NEQ:
+  case INT8_T_MIN_NEQ:
+  case INT8_T_EQ:
+  case INT8_T_NEQ:
+    cassert_print_fmtf("%hhd", "%hhd", (int8_t *)cassert.value1,
+                       (int8_t *)cassert.value2);
+  case INT16_T_MAX_EQ:
+  case INT16_T_MIN_EQ:
+  case INT16_T_MAX_NEQ:
+  case INT16_T_MIN_NEQ:
+  case INT16_T_EQ:
+  case INT16_T_NEQ:
+    cassert_print_fmtf("%hd", "%hd", (int16_t *)cassert.value1,
+                       (int16_t *)cassert.value2);
+  case INT32_T_MAX_EQ:
+  case INT32_T_MIN_EQ:
+  case INT32_T_MAX_NEQ:
+  case INT32_T_MIN_NEQ:
+  case INT32_T_EQ:
+  case INT32_T_NEQ:
+    cassert_print_fmtf("%d", "%d", (int32_t *)cassert.value1,
+                       (int32_t *)cassert.value2);
+  case INT64_T_MAX_EQ:
+  case INT64_T_MIN_EQ:
+  case INT64_T_MAX_NEQ:
+  case INT64_T_MIN_NEQ:
+  case INT64_T_EQ:
+  case INT64_T_NEQ:
+    cassert_print_fmtf("%ld", "%ld", (int64_t *)cassert.value1,
+                       (int64_t *)cassert.value2);
+
+  case UINT8_T_MAX_EQ:
+  case UINT8_T_MIN_EQ:
+  case UINT8_T_MAX_NEQ:
+  case UINT8_T_MIN_NEQ:
+  case UINT8_T_EQ:
+  case UINT8_T_NEQ:
+    cassert_print_fmtf("%hhu", "%hhu", (uint8_t *)cassert.value1,
+                       (uint8_t *)cassert.value2);
+  case UINT16_T_MAX_EQ:
+  case UINT16_T_MIN_EQ:
+  case UINT16_T_MAX_NEQ:
+  case UINT16_T_MIN_NEQ:
+  case UINT16_T_EQ:
+  case UINT16_T_NEQ:
+    cassert_print_fmtf("%hu", "%hu", (uint16_t *)cassert.value1,
+                       (uint16_t *)cassert.value2);
+  case UINT32_T_MAX_EQ:
+  case UINT32_T_MIN_EQ:
+  case UINT32_T_MAX_NEQ:
+  case UINT32_T_MIN_NEQ:
+  case UINT32_T_EQ:
+  case UINT32_T_NEQ:
+    cassert_print_fmtf("%u", "%u", (uint32_t *)cassert.value1,
+                       (uint32_t *)cassert.value2);
+  case UINT64_T_MAX_EQ:
+  case UINT64_T_MIN_EQ:
+  case UINT64_T_MAX_NEQ:
+  case UINT64_T_MIN_NEQ:
+  case UINT64_T_EQ:
+  case UINT64_T_NEQ:
+    cassert_print_fmtf("%lu", "%lu", (uint64_t *)cassert.value1,
+                       (uint64_t *)cassert.value2);
+
   case UNKNOWN_EQ:
   default:
     return cassert_fprintf(stream, booltostr(!cassert.failed), "%s ->" LOC_FMT,
