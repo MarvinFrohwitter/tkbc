@@ -491,9 +491,8 @@ void to_center_slide_in(Env *env) {
 }
 
 void pair_change_90(Env *env, Kite_Ids ki) {
-  tkbc_script_team_roll_two_diffrent_angle(env, ID(0, 1), 1.3, 405, 585, 225,
-                                           405, rotation_duration,
-                                           rotation_duration);
+  tkbc_script_team_roll_two_diffrent_angle(
+      env, ki, 1.3, 405, 585, 225, 405, rotation_duration, rotation_duration);
 }
 
 void choreo(Env *env, Kite_Ids ki) {

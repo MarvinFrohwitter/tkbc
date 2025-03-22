@@ -95,6 +95,47 @@
   } while (0)
 
 /**
+ * @brief The macro pushes the given elements after processing it through the
+ * format string to the end of the dynamic array.
+ *
+ * @param dynamic_array The given array by a pointer.
+ * @param fmt The format string that is passed to the printf function.
+ */
+#define tkbc_dapf(dynamic_array, fmt, ...)                                     \
+  do {                                                                         \
+    int n = snprintf(NULL, 0, fmt, ##__VA_ARGS__);                             \
+    if (n == -1) {                                                             \
+      assert(0 && "snprintf failed!");                                         \
+    }                                                                          \
+    n += 1;                                                                    \
+    if ((dynamic_array)->capacity < (dynamic_array)->count + n) {              \
+      if ((dynamic_array)->capacity == 0) {                                    \
+        (dynamic_array)->capacity = DAP_CAP;                                   \
+      }                                                                        \
+      while ((dynamic_array)->capacity < (dynamic_array)->count + n) {         \
+        (dynamic_array)->capacity = (dynamic_array)->capacity * 2;             \
+      }                                                                        \
+      (dynamic_array)->elements = realloc((dynamic_array)->elements,           \
+                                          sizeof(*(dynamic_array)->elements) * \
+                                              (dynamic_array)->capacity);      \
+      if ((dynamic_array)->elements == NULL) {                                 \
+        fprintf(                                                               \
+            stderr,                                                            \
+            "The allocation for the dynamic array has failed in: %s: %d\n",    \
+            __FILE__, __LINE__);                                               \
+        abort();                                                               \
+      }                                                                        \
+    }                                                                          \
+                                                                               \
+    int err = snprintf((dynamic_array)->elements + (dynamic_array)->count, n,  \
+                       fmt, ##__VA_ARGS__);                                    \
+    if (err == -1) {                                                           \
+      assert(0 && "snprintf failed!");                                         \
+    }                                                                          \
+    (dynamic_array)->count += err;                                             \
+  } while (0);
+
+/**
  * The macro can be used to do additional calls at the end of the function. For
  * example freeing some memory.
  * @param return_code The return code that the outer function should return.
