@@ -345,20 +345,10 @@ bool received_message_handler(Message *message) {
       }
 
       {
-        char buf[64] = {0};
-        snprintf(buf, sizeof(buf), "%d", MESSAGE_HELLO);
-        tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-        tkbc_dap(&tkbc_send_message_queue, ':');
-
-        tkbc_dapc(&tkbc_send_message_queue, "\"", 1);
-        const char *m = "Hello server from client!";
-        tkbc_dapc(&tkbc_send_message_queue, m, strlen(m));
-
-        tkbc_dapc(&tkbc_send_message_queue, PROTOCOL_VERSION,
-                  strlen(PROTOCOL_VERSION));
-        tkbc_dapc(&tkbc_send_message_queue, "\"", 1);
-        tkbc_dap(&tkbc_send_message_queue, ':');
-        tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+        const char quote = '\"';
+        tkbc_dapf(&tkbc_send_message_queue,
+                  "%d:%c%s" PROTOCOL_VERSION "%c:\r\n", MESSAGE_HELLO, quote,
+                  "Hello server from client!", quote);
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
@@ -697,12 +687,9 @@ void tkbc_client_input_handler_kite() {
   }
   client_kite = *kite_state->kite;
 
-  char buf[64] = {0};
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEVALUE);
-  tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-  tkbc_dap(&tkbc_send_message_queue, ':');
+  tkbc_dapf(&tkbc_send_message_queue, "%d:", MESSAGE_KITEVALUE);
   tkbc_message_append_clientkite(client.kite_id, &tkbc_send_message_queue);
-  tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+  tkbc_dapf(&tkbc_send_message_queue, "\r\n");
 }
 
 /**
@@ -716,106 +703,68 @@ void tkbc_client_input_handler_kite() {
  * false.
  */
 bool tkbc_message_append_script(size_t script_id, Message *message) {
-  char buf[64] = {0};
   for (size_t i = 0; i < env->block_frames->count; ++i) {
-    if (env->block_frames->elements[i].script_id == script_id) {
-      tkbc_ptoa(buf, sizeof(buf), &script_id, TYPE_SIZE_T);
-      tkbc_dapc(message, buf, strlen(buf));
-      tkbc_dap(message, ':');
-
-      Block_Frame *block_frame = &env->block_frames->elements[i];
-      tkbc_ptoa(buf, sizeof(buf), &block_frame->count, TYPE_SIZE_T);
-      tkbc_dapc(message, buf, strlen(buf));
-      tkbc_dap(message, ':');
-      for (size_t j = 0; j < block_frame->count; ++j) {
-        tkbc_ptoa(buf, sizeof(buf), &block_frame->elements[j].block_index,
-                  TYPE_SIZE_T);
-        tkbc_dapc(message, buf, strlen(buf));
-        tkbc_dap(message, ':');
-
-        Frames *frames = &block_frame->elements[j];
-        tkbc_ptoa(buf, sizeof(buf), &frames->count, TYPE_SIZE_T);
-        tkbc_dapc(message, buf, strlen(buf));
-        tkbc_dap(message, ':');
-        for (size_t k = 0; k < frames->count; ++k) {
-          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].index, TYPE_SIZE_T);
-          tkbc_dapc(message, buf, strlen(buf));
-          tkbc_dap(message, ':');
-          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].finished, TYPE_INT);
-          tkbc_dapc(message, buf, strlen(buf));
-          tkbc_dap(message, ':');
-          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].kind, TYPE_INT);
-          tkbc_dapc(message, buf, strlen(buf));
-          tkbc_dap(message, ':');
-
-          assert(ACTION_KIND_COUNT == 9 &&
-                 "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
-          switch (frames->elements[k].kind) {
-          case KITE_QUIT:
-          case KITE_WAIT: {
-            Wait_Action action = frames->elements[k].action.as_wait;
-            tkbc_ptoa(buf, sizeof(buf), &action.starttime, TYPE_DOUBLE);
-            tkbc_dapc(message, buf, strlen(buf));
-          } break;
-
-          case KITE_MOVE:
-          case KITE_MOVE_ADD: {
-            Move_Action action = frames->elements[k].action.as_move;
-            tkbc_ptoa(buf, sizeof(buf), &action.position.x, TYPE_FLOAT);
-            tkbc_dapc(message, buf, strlen(buf));
-            tkbc_dap(message, ':');
-            tkbc_ptoa(buf, sizeof(buf), &action.position.y, TYPE_FLOAT);
-            tkbc_dapc(message, buf, strlen(buf));
-          } break;
-
-          case KITE_ROTATION:
-          case KITE_ROTATION_ADD: {
-            Rotation_Action action = frames->elements[k].action.as_rotation;
-            tkbc_ptoa(buf, sizeof(buf), &action.angle, TYPE_FLOAT);
-            tkbc_dapc(message, buf, strlen(buf));
-          } break;
-
-          case KITE_TIP_ROTATION:
-          case KITE_TIP_ROTATION_ADD: {
-            Tip_Rotation_Action action =
-                frames->elements[k].action.as_tip_rotation;
-            tkbc_ptoa(buf, sizeof(buf), &action.tip, TYPE_INT);
-            tkbc_dapc(message, buf, strlen(buf));
-            tkbc_dap(message, ':');
-            tkbc_ptoa(buf, sizeof(buf), &action.angle, TYPE_FLOAT);
-            tkbc_dapc(message, buf, strlen(buf));
-          } break;
-
-          default:
-            assert(0 && "UNREACHABLE tkbc_message_append_script()");
-          }
-
-          tkbc_dap(message, ':');
-          tkbc_ptoa(buf, sizeof(buf), &frames->elements[k].duration,
-                    TYPE_FLOAT);
-          tkbc_dapc(message, buf, strlen(buf));
-
-          Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
-          if (kite_ids->count) {
-            tkbc_dap(message, ':');
-            tkbc_ptoa(buf, sizeof(buf), &kite_ids->count, TYPE_SIZE_T);
-            tkbc_dapc(message, buf, strlen(buf));
-            tkbc_dap(message, ':');
-            tkbc_dap(message, '(');
-            for (size_t id = 0; id < kite_ids->count; ++id) {
-              tkbc_ptoa(buf, sizeof(buf), &kite_ids->elements[id], TYPE_SIZE_T);
-              tkbc_dapc(message, buf, strlen(buf));
-              tkbc_dap(message, ',');
-            }
-            message->count--;
-            tkbc_dap(message, ')');
-          }
-
-          tkbc_dap(message, ':');
-        }
-      }
-      return true;
+    if (env->block_frames->elements[i].script_id != script_id) {
+      continue;
     }
+    tkbc_dapf(message, "%zu:", script_id);
+
+    Block_Frame *block_frame = &env->block_frames->elements[i];
+    tkbc_dapf(message, "%zu:", block_frame->count);
+    for (size_t j = 0; j < block_frame->count; ++j) {
+      Frames *frames = &block_frame->elements[j];
+      tkbc_dapf(message, "%zu:", frames->block_index);
+      tkbc_dapf(message, "%zu:", frames->count);
+
+      for (size_t k = 0; k < frames->count; ++k) {
+        tkbc_dapf(message, "%zu:", frames->elements[k].index);
+        tkbc_dapf(message, "%d:", frames->elements[k].finished);
+        tkbc_dapf(message, "%d:", frames->elements[k].kind);
+
+        assert(ACTION_KIND_COUNT == 9 &&
+               "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
+        switch (frames->elements[k].kind) {
+        case KITE_QUIT:
+        case KITE_WAIT: {
+          Wait_Action action = frames->elements[k].action.as_wait;
+          tkbc_dapf(message, "%lf", action.starttime);
+        } break;
+        case KITE_MOVE:
+        case KITE_MOVE_ADD: {
+          Move_Action action = frames->elements[k].action.as_move;
+          tkbc_dapf(message, "%f:%f", action.position.x, action.position.y);
+        } break;
+        case KITE_ROTATION:
+        case KITE_ROTATION_ADD: {
+          Rotation_Action action = frames->elements[k].action.as_rotation;
+          tkbc_dapf(message, "%f", action.angle);
+        } break;
+        case KITE_TIP_ROTATION:
+        case KITE_TIP_ROTATION_ADD: {
+          Tip_Rotation_Action action =
+              frames->elements[k].action.as_tip_rotation;
+          tkbc_dapf(message, "%d:%f", action.tip, action.angle);
+        } break;
+        default:
+          assert(0 && "UNREACHABLE tkbc_message_append_script()");
+        }
+
+        tkbc_dapf(message, ":%f", frames->elements[k].duration);
+
+        Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
+        if (kite_ids->count) {
+          tkbc_dapf(message, ":%zu:(", kite_ids->count);
+          for (size_t id = 0; id < kite_ids->count; ++id) {
+            tkbc_dapf(message, "%zu,", kite_ids->elements[id]);
+          }
+          message->count--;
+          tkbc_dapf(message, ")");
+        }
+
+        tkbc_dapf(message, ":");
+      }
+    }
+    return true;
   }
   return false;
 }
@@ -828,21 +777,12 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
  * @return True if the message script could be constructed, otherwise false.
  */
 bool tkbc_message_script() {
-  Message message = {0};
   bool ok = true;
+  tkbc_dapf(&tkbc_send_message_queue, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT,
+            env->block_frames->count);
+
+  Message message = {0};
   size_t counter = 0;
-
-  char buf[64] = {0};
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_AMOUNT);
-  tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-  tkbc_dap(&tkbc_send_message_queue, ':');
-
-  snprintf(buf, sizeof(buf), "%zu", env->block_frames->count);
-  tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-  tkbc_dap(&tkbc_send_message_queue, ':');
-  tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
-  message.count = 0;
-
   for (size_t i = env->send_scripts; i < env->block_frames->count; ++i) {
     if (!tkbc_message_append_script(env->block_frames->elements[i].script_id,
                                     &message)) {
@@ -851,33 +791,14 @@ bool tkbc_message_script() {
       check_return(false);
     }
 
-    char buf[64] = {0};
-    snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT);
-    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-    tkbc_dap(&tkbc_send_message_queue, ':');
+    tkbc_dapf(&tkbc_send_message_queue, "%d:", MESSAGE_SCRIPT);
     tkbc_dapc(&tkbc_send_message_queue, message.elements, message.count);
-    tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+    tkbc_dapf(&tkbc_send_message_queue, "\r\n");
     message.count = 0;
     counter++;
-
-    // TODO: @Cleanup
-    if (i == 0) {
-      FILE *file = fopen("SCIPT_1_PROTOCOL_VERSION_" PROTOCOL_VERSION, "wb");
-      for (size_t k = 0; k < tkbc_send_message_queue.count; ++k) {
-        fprintf(file, "%c", tkbc_send_message_queue.elements[k]);
-      }
-      fclose(file);
-    }
   }
 check:
   env->send_scripts += counter;
-  // env->block_frames->count -= counter;
-  // if (!ok) {
-  //   memmove(env->block_frames->elements,
-  //   &env->block_frames->elements[counter],
-  //           sizeof(*env->block_frames->elements) *
-  //           env->block_frames->count);
-  // }
   if (message.elements) {
     free(message.elements);
     message.elements = NULL;
@@ -899,37 +820,21 @@ void tkbc_client_file_handler() {
 }
 
 void tkbc_message_kites_positions() {
-  char buf[64] = {0};
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITES_POSITIONS);
-  tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-  tkbc_dap(&tkbc_send_message_queue, ':');
+  tkbc_dapf(&tkbc_send_message_queue, "%d:%zu:", MESSAGE_KITES_POSITIONS,
+            env->kite_array->count);
 
-  memset(buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", env->kite_array->count);
-  tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-
-  tkbc_dap(&tkbc_send_message_queue, ':');
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     Kite_State *state = &env->kite_array->elements[i];
-    memset(buf, 0, sizeof(buf));
-    snprintf(buf, sizeof(buf), "%zu", state->kite_id);
-    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
 
-    tkbc_dap(&tkbc_send_message_queue, ':');
-    memset(buf, 0, sizeof(buf));
+    size_t kite_id = state->kite_id;
     float x = state->kite->center.x;
     float y = state->kite->center.y;
     float angle = state->kite->angle;
-    snprintf(buf, sizeof(buf), "(%f,%f):%f", x, y, angle);
-    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-
-    tkbc_dap(&tkbc_send_message_queue, ':');
-    memset(buf, 0, sizeof(buf));
-    snprintf(buf, sizeof(buf), "%u", *(uint32_t *)&state->kite->body_color);
-    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-    tkbc_dap(&tkbc_send_message_queue, ':');
+    uint32_t color = *(uint32_t *)&state->kite->body_color;
+    tkbc_dapf(&tkbc_send_message_queue, "%zu:(%f,%f):%f:%u:", kite_id, x, y,
+              angle, color);
   }
-  tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+  tkbc_dapf(&tkbc_send_message_queue, "\r\n");
 }
 
 /**
@@ -945,30 +850,19 @@ void tkbc_client_input_handler_script() {
   // KEY_ENTER
   if (IsKeyPressed(
           tkbc_hash_to_key(*env->keymaps, KMH_SET_KITES_TO_START_POSITION))) {
-    char buf[64] = {0};
-    snprintf(buf, sizeof(buf), "%d", MESSAGE_KITES_POSITIONS_RESET);
-    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-    tkbc_dap(&tkbc_send_message_queue, ':');
-    tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+    tkbc_dapf(&tkbc_send_message_queue, "%d:\r\n",
+              MESSAGE_KITES_POSITIONS_RESET);
   }
 
   // KEY_SPACE
   if (IsKeyPressed(
           tkbc_hash_to_key(*env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION))) {
-    char buf[64] = {0};
-    snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_TOGGLE);
-    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-    tkbc_dap(&tkbc_send_message_queue, ':');
-    tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+    tkbc_dapf(&tkbc_send_message_queue, "%d:\r\n", MESSAGE_SCRIPT_TOGGLE);
   }
 
   // KEY_TAB
   if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
-    char buf[64] = {0};
-    snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_NEXT);
-    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-    tkbc_dap(&tkbc_send_message_queue, ':');
-    tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+    tkbc_dapf(&tkbc_send_message_queue, "%d:\r\n", MESSAGE_SCRIPT_NEXT);
   }
 
   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
@@ -977,13 +871,8 @@ void tkbc_client_input_handler_script() {
     float c = mouse_x - slider;
     bool drag_left = c <= 0;
 
-    char buf[64] = {0};
-    snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_SCRUB);
-    tkbc_dapc(&tkbc_send_message_queue, buf, strlen(buf));
-    tkbc_dap(&tkbc_send_message_queue, ':');
-    tkbc_dap(&tkbc_send_message_queue, drag_left);
-    tkbc_dap(&tkbc_send_message_queue, ':');
-    tkbc_dapc(&tkbc_send_message_queue, "\r\n", 2);
+    tkbc_dapf(&tkbc_send_message_queue, "%d:%d:\r\n", MESSAGE_SCRIPT_SCRUB,
+              drag_left);
   }
 }
 
