@@ -164,18 +164,10 @@ void tkbc_server_shutdown_client(Client client, bool force) {
 
   if (!force) {
     Message message = {0};
-    char buf[64] = {0};
-    snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENT_DISCONNECT);
-    tkbc_dapc(&message, buf, strlen(buf));
-    tkbc_dap(&message, ':');
-    memset(buf, 0, sizeof(buf));
-    snprintf(buf, sizeof(buf), "%zu", client.kite_id);
-    tkbc_dapc(&message, buf, strlen(buf));
-    tkbc_dap(&message, ':');
-    tkbc_dapc(&message, "\r\n", 2);
-    tkbc_dap(&message, 0);
-
+    tkbc_dapf(&message, "%d:%zu:\r\n", MESSAGE_CLIENT_DISCONNECT,
+              client.kite_id);
     tkbc_write_to_all_send_msg_buffers_except(message, client.socket_id);
+
     if (message.elements) {
       free(message.elements);
       message.elements = NULL;
@@ -193,22 +185,9 @@ void tkbc_server_shutdown_client(Client client, bool force) {
  */
 void tkbc_message_hello_write_to_send_msg_buffer(Client *client) {
   Message message = {0};
-  char buf[64] = {0};
-  char *quote = "\"";
-
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_HELLO);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
-
-  tkbc_dapc(&message, quote, 1);
-  const char *m = "Hello client from server!";
-  tkbc_dapc(&message, m, strlen(m));
-
-  tkbc_dapc(&message, PROTOCOL_VERSION, strlen(PROTOCOL_VERSION));
-  tkbc_dapc(&message, quote, 1);
-  tkbc_dap(&message, ':');
-  tkbc_dapc(&message, "\r\n", 2);
-
+  const char quote = '\"';
+  tkbc_dapf(&message, "%d:%c%s" PROTOCOL_VERSION "%c:\r\n", MESSAGE_HELLO,
+            quote, "Hello client from server!", quote);
   tkbc_write_to_send_msg_buffer(client, message);
 
   free(message.elements);
@@ -225,16 +204,11 @@ void tkbc_message_hello_write_to_send_msg_buffer(Client *client) {
 bool tkbc_message_kiteadd_write_to_all_send_msg_buffers(size_t client_index) {
   Message message = {0};
   bool ok = true;
-  char buf[64] = {0};
-
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEADD);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
+  tkbc_dapf(&message, "%d:", MESSAGE_KITEADD);
   if (!tkbc_message_append_clientkite(client_index, &message)) {
     check_return(false);
   }
-  tkbc_dapc(&message, "\r\n", 2);
-
+  tkbc_dapf(&message, "\r\n");
   tkbc_write_to_all_send_msg_buffers(message);
 
 check:
@@ -252,26 +226,16 @@ check:
  */
 bool tkbc_message_clientkites_write_to_send_msg_buffer(Client *client) {
   Message message = {0};
-  char buf[64] = {0};
   bool ok = true;
 
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENTKITES);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
-
-  memset(buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", clients.count);
-  tkbc_dapc(&message, buf, strlen(buf));
-
-  tkbc_dap(&message, ':');
+  tkbc_dapf(&message, "%d:%zu:", MESSAGE_CLIENTKITES, clients.count);
   for (size_t i = 0; i < clients.count; ++i) {
     if (!tkbc_message_append_clientkite(clients.elements[i].kite_id,
                                         &message)) {
       check_return(false);
     }
   }
-  tkbc_dapc(&message, "\r\n", 2);
-
+  tkbc_dapf(&message, "\r\n");
   tkbc_write_to_send_msg_buffer(client, message);
 
 check:
@@ -530,18 +494,9 @@ void tkbc_socket_handling() {
  */
 bool tkbc_message_clientkites_write_to_all_send_msg_buffers(Clients *cs) {
   Message message = {0};
-  char buf[64] = {0};
   bool ok = true;
 
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_CLIENTKITES);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
-
-  memset(buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", clients.count);
-  tkbc_dapc(&message, buf, strlen(buf));
-
-  tkbc_dap(&message, ':');
+  tkbc_dapf(&message, "%d:%zu:", MESSAGE_CLIENTKITES, clients.count);
   for (size_t i = 0; i < clients.count; ++i) {
     if (!tkbc_message_append_clientkite(clients.elements[i].kite_id,
                                         &message)) {
@@ -549,9 +504,7 @@ bool tkbc_message_clientkites_write_to_all_send_msg_buffers(Clients *cs) {
       check_return(false);
     }
   }
-  tkbc_dapc(&message, "\r\n", 2);
-  tkbc_dap(&message, 0);
-
+  tkbc_dapf(&message, "\r\n");
   tkbc_write_to_all_send_msg_buffers(message);
 
 check:
@@ -586,26 +539,11 @@ void tkbc_unwrap_handler_message_clientkites_write_all() {
  */
 void tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
     size_t script_id, size_t block_frame_count, size_t block_index) {
+
   Message message = {0};
-  char buf[64] = {0};
+  tkbc_dapf(&message, "%d:%zu:%zu:%zu:\r\n", MESSAGE_SCRIPT_BLOCK_FRAME_VALUE,
+            script_id, block_frame_count, block_index);
 
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_BLOCK_FRAME_VALUE);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
-
-  memset(&buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", script_id);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
-  memset(&buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", block_frame_count);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
-  memset(&buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", block_index);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
-  tkbc_dapc(&message, "\r\n", 2);
   tkbc_write_to_all_send_msg_buffers(message);
 
   free(message.elements);
@@ -625,16 +563,11 @@ bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
     size_t client_id) {
   Message message = {0};
   bool ok = true;
-  char buf[64] = {0};
-
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITEVALUE);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
+  tkbc_dapf(&message, "%d:", MESSAGE_KITEVALUE);
   if (!tkbc_message_append_clientkite(client_id, &message)) {
     check_return(false);
   }
-  tkbc_dapc(&message, "\r\n", 2);
-
+  tkbc_dapf(&message, "\r\n");
   tkbc_write_to_all_send_msg_buffers_except(message, client_id);
 
 check:
@@ -651,24 +584,16 @@ check:
  */
 void tkbc_message_kites_write_to_all_send_msg_buffers() {
   Message message = {0};
-  char buf[64] = {0};
 
-  snprintf(buf, sizeof(buf), "%d", MESSAGE_KITES);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
-  memset(buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", env->kite_array->count);
-  tkbc_dapc(&message, buf, strlen(buf));
-  tkbc_dap(&message, ':');
-
+  tkbc_dapf(&message, "%d:%zu:", MESSAGE_KITES, env->kite_array->count);
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     Kite_State *kite_state = &env->kite_array->elements[i];
     tkbc_message_append_kite(kite_state, &message);
   }
-  tkbc_dapc(&message, "\r\n", 2);
-
+  tkbc_dapf(&message, "\r\n");
   tkbc_write_to_all_send_msg_buffers(message);
 
+  free(message.elements);
   message.elements = NULL;
 }
 
@@ -1127,11 +1052,7 @@ bool tkbc_received_message_handler(Client *client) {
 
       client->script_amount--;
       if (client->script_amount == 0) {
-        char buf[64] = {0};
-        snprintf(buf, sizeof(buf), "%d", MESSAGE_SCRIPT_PARSED);
-        tkbc_dapc(&client->send_msg_buffer, buf, strlen(buf));
-        tkbc_dap(&client->send_msg_buffer, ':');
-        tkbc_dapc(&client->send_msg_buffer, "\r\n", 2);
+        tkbc_dapf(&client->send_msg_buffer, "%d:\r\n", MESSAGE_SCRIPT_PARSED);
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT\n");

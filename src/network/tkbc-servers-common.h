@@ -231,23 +231,12 @@ static inline int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
  */
 static inline void tkbc_message_append_kite(Kite_State *kite_state,
                                             Message *message) {
-  char buf[64];
-  memset(buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%zu", kite_state->kite_id);
-  tkbc_dapc(message, buf, strlen(buf));
-  tkbc_dap(message, ':');
-  memset(buf, 0, sizeof(buf));
+  size_t kite_id = kite_state->kite_id;
   float x = kite_state->kite->center.x;
   float y = kite_state->kite->center.y;
   float angle = kite_state->kite->angle;
-  snprintf(buf, sizeof(buf), "(%f,%f):%f", x, y, angle);
-  tkbc_dapc(message, buf, strlen(buf));
-
-  tkbc_dap(message, ':');
-  memset(buf, 0, sizeof(buf));
-  snprintf(buf, sizeof(buf), "%u", *(uint32_t *)&kite_state->kite->body_color);
-  tkbc_dapc(message, buf, strlen(buf));
-  tkbc_dap(message, ':');
+  uint32_t color = *(uint32_t *)&kite_state->kite->body_color;
+  tkbc_dapf(message, "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
 }
 
 /**
