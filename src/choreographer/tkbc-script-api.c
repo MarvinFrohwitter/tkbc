@@ -346,6 +346,9 @@ Kite_Ids tkbc_indexs_range(int start, int end) {
  * @return The kite indies that are appended to the kite array.
  */
 Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
+  if (kite_count <= 0) {
+    return (Kite_Ids){0};
+  }
   for (size_t i = 0; i < kite_count; ++i) {
     Kite_State *kite_state = tkbc_init_kite();
     tkbc_dap(env->kite_array, *kite_state);

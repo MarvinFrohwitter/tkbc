@@ -2,7 +2,6 @@
 #include "poll-server.h"
 
 #include <assert.h>
-#include <math.h>
 #include <string.h>
 #include <unistd.h>
 
