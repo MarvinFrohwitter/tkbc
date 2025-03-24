@@ -83,6 +83,23 @@ Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id) {
 }
 
 /**
+ * @brief The function can be used to check if the given id is located in the
+ * kite_ids.
+ *
+ * @param kite_ids The ids array that potentially contains the id.
+ * @param id The id to find.
+ * @return True if the id was found, otherwise false.
+ */
+bool tkbc_contains_id(Kite_Ids kite_ids, size_t id) {
+  for (size_t i = 0; i < kite_ids.count; ++i) {
+    if (kite_ids.elements[i] == id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * @brief The function copies every single value even the values that are just
  * represented by a pointer of the struct Frames to a new instance. Every
  * internal pointer is a new one in the created representation and points to the
