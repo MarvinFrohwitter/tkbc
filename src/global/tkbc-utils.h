@@ -167,6 +167,7 @@ float tkbc_clamp(float z, float a, float b);
 bool tkbc_float_equals_epsilon(float x, float y, float epsilon);
 bool tkbc_vector2_equals_epsilon(Vector2 p, Vector2 q, float epsilon);
 bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2);
+bool tkbc_max(int x, int y);
 
 #endif // TKBC_UTILS_H_
 
@@ -513,4 +514,13 @@ bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2) {
   return r1.x == r2.x && r1.y == r2.y && r1.width == r2.width &&
          r1.height == r2.height;
 }
+
+/**
+ * @brief The function finds the maximum of two integers.
+ *
+ * @param x The fist integer.
+ * @param y The second integer.
+ * @return The bigger one of those.
+ */
+bool tkbc_max(int x, int y) { return x > y ? x : y; }
 #endif // TKBC_UTILS_IMPLEMENTATION
