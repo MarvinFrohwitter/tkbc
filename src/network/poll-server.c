@@ -1083,20 +1083,28 @@ bool tkbc_received_message_handler(Client *client) {
       }
 
       tkbc_load_next_script(env);
+      env->server_script_kite_max_count = 0;
 
       // TODO: Find a better way to do it reliable.
       // Generate kites if needed, if a script needs more kites than there are
       // currently registered.
-      size_t max = env->kite_array->count;
       for (size_t i = 0; i < env->block_frame->count; ++i) {
         for (size_t j = 0; j < env->block_frame->elements[i].count; ++j) {
-          max = fmax(
-              max,
-              env->block_frame->elements[i].elements[j].kite_id_array.count);
+          Kite_Ids *kite_id_array =
+              &env->block_frame->elements[i].elements[j].kite_id_array;
+
+          size_t frame_max_kites = kite_id_array->count;
+          env->server_script_kite_max_count =
+              tkbc_max(frame_max_kites, env->server_script_kite_max_count);
+
         }
       }
-      size_t needed_kites = max - env->kite_array->count;
-      tkbc_kite_array_generate(env, needed_kites);
+
+      if (env->server_script_kite_max_count > env->kite_array->count) {
+        size_t needed_kites =
+            env->server_script_kite_max_count - env->kite_array->count;
+        tkbc_kite_array_generate(env, needed_kites);
+      }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_NEXT\n");
     } break;

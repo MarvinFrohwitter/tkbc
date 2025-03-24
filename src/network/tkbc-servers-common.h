@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.2.020"
+#define PROTOCOL_VERSION "0.2.021"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -56,6 +56,7 @@ typedef enum {
   MESSAGE_SCRIPT_TOGGLE,
   MESSAGE_SCRIPT_NEXT,
   MESSAGE_SCRIPT_SCRUB,
+  MESSAGE_SCRIPT_FINISHED,
   MESSAGE_COUNT,
 } Message_Kind; // Messages that are supported in the current PROTOCOL_VERSION.
 

@@ -323,7 +323,7 @@ bool received_message_handler(Message *message) {
     }
 
     message->i = lexer->position - 2;
-    static_assert(MESSAGE_COUNT == 16, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    static_assert(MESSAGE_COUNT == 17, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -504,6 +504,13 @@ bool received_message_handler(Message *message) {
       loading.active = false;
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_PARSED\n");
+    } break;
+    case MESSAGE_SCRIPT_FINISHED: {
+      env->script_finished = true;
+      env->server_script_id = 0;
+      env->server_script_kite_max_count = 0;
+
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_FINISHED\n");
     } break;
     case MESSAGE_CLIENT_DISCONNECT: {
       token = lexer_next(lexer);

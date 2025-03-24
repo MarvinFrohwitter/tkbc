@@ -352,6 +352,8 @@ typedef struct {
                                             // frames in the current script.
   size_t server_script_id; // Representation of the current script the server
                            // executes.
+  size_t server_script_kite_max_count; // Represents the maximum kites that are
+                                       // part of a complete script.
 
   bool script_setup;     // The indication if the initial setup run is executed.
   bool script_interrupt; // The indication if a script is currently going to be
