@@ -172,6 +172,7 @@ typedef struct {
 
 typedef struct {
   Kite *kite;     // The kite that holds its geometric and positioning stats.
+  bool is_active; // If the kite should be drawn.
   size_t kite_id; // The unique universal identifier for the kite.
   bool is_kite_input_handler_active; // Representation of a manual user control
                                      // selection.

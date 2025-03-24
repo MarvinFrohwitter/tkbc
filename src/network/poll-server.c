@@ -29,6 +29,7 @@
 #include "../global/tkbc-utils.h"
 
 #include "../choreographer/tkbc-script-api.h"
+#include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
 
 #define MAX_BUFFER_CAPACITY 128 * 1024
@@ -42,6 +43,15 @@ struct pollfd *tkbc_get_pollfd_by_fd(int fd) {
   for (size_t i = 0; i < fds.count; ++i) {
     if (fds.elements[i].fd == fd) {
       return &fds.elements[i];
+    }
+  }
+  return NULL;
+}
+
+Client *tkbc_get_client_by_kite_id(int kite_id) {
+  for (size_t i = 0; i < clients.count; ++i) {
+    if (clients.elements[i].kite_id == kite_id) {
+      return &clients.elements[i];
     }
   }
   return NULL;
@@ -216,31 +226,42 @@ check:
   return ok;
 }
 
+void tkbc_message_clientkites(Message *message) {
+  size_t active_count = 0;
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    if (env->kite_array->elements[i].is_active) {
+      active_count++;
+    }
+  }
+
+  tkbc_dapf(message, "%d:%zu:", MESSAGE_CLIENTKITES, active_count);
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    Kite_State *kite_state = &env->kite_array->elements[i];
+    if (!kite_state->is_active) {
+      continue;
+    }
+
+    if (!tkbc_message_append_clientkite(kite_state->kite_id, message)) {
+      Client *client = tkbc_get_client_by_kite_id(kite_state->kite_id);
+      tkbc_server_shutdown_client(*client, false);
+    }
+  }
+  tkbc_dapf(message, "\r\n");
+}
+
 /**
  * @brief The function constructs and send the message CLIENTKITES that contain
  * all the data from the current registered kites.
  *
  * @param client The client that should get the message.
- * @return True if the message was send successfully, otherwise false.
  */
-bool tkbc_message_clientkites_write_to_send_msg_buffer(Client *client) {
+void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client) {
   Message message = {0};
-  bool ok = true;
-
-  tkbc_dapf(&message, "%d:%zu:", MESSAGE_CLIENTKITES, clients.count);
-  for (size_t i = 0; i < clients.count; ++i) {
-    if (!tkbc_message_append_clientkite(clients.elements[i].kite_id,
-                                        &message)) {
-      check_return(false);
-    }
-  }
-  tkbc_dapf(&message, "\r\n");
+  tkbc_message_clientkites(&message);
   tkbc_write_to_send_msg_buffer(client, message);
 
-check:
   free(message.elements);
   message.elements = NULL;
-  return ok;
 }
 
 void tkbc_client_prelog(Client *client) {
@@ -250,6 +271,9 @@ void tkbc_client_prelog(Client *client) {
   kite_state->kite_id = client->kite_id;
   float r = (float)rand() / RAND_MAX;
   kite_state->kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
+  if (!tkbc_script_finished(env)) {
+    kite_state->is_active = false;
+  }
   tkbc_dap(env->kite_array, *kite_state);
   // Just free the state and not the kite inside, because the kite is a
   // pointer that lives on and is valid in the copy to the env->kite_array.
@@ -258,9 +282,7 @@ void tkbc_client_prelog(Client *client) {
 
   tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
 
-  if (!tkbc_message_clientkites_write_to_send_msg_buffer(client)) {
-    tkbc_server_shutdown_client(*client, false);
-  }
+  tkbc_message_clientkites_write_to_send_msg_buffer(client);
 }
 
 void tkbc_server_accept() {
@@ -488,44 +510,14 @@ void tkbc_socket_handling() {
 /**
  * @brief The function constructs and sends the message CLIENTKITES to all
  * registered kites.
- *
- * @return True if the message was send successfully, otherwise false.
  */
-bool tkbc_message_clientkites_write_to_all_send_msg_buffers(Clients *cs) {
+void tkbc_message_clientkites_write_to_all_send_msg_buffers() {
   Message message = {0};
-  bool ok = true;
-
-  tkbc_dapf(&message, "%d:%zu:", MESSAGE_CLIENTKITES, clients.count);
-  for (size_t i = 0; i < clients.count; ++i) {
-    if (!tkbc_message_append_clientkite(clients.elements[i].kite_id,
-                                        &message)) {
-      tkbc_dap(cs, clients.elements[i]);
-      check_return(false);
-    }
-  }
-  tkbc_dapf(&message, "\r\n");
+  tkbc_message_clientkites(&message);
   tkbc_write_to_all_send_msg_buffers(message);
 
-check:
   free(message.elements);
   message.elements = NULL;
-  return ok;
-}
-
-/**
- * @brief The function is an error handler that updates all the client states
- * and handles all error that occur while broadcasting. It also checks for
- * client disconnects and shuts down the broken connection.
- */
-void tkbc_unwrap_handler_message_clientkites_write_all() {
-  Clients cs = {0};
-  if (!tkbc_message_clientkites_write_to_all_send_msg_buffers(&cs)) {
-    for (size_t i = 0; i < cs.count; ++i) {
-      tkbc_server_shutdown_client(cs.elements[i], false);
-    }
-    free(cs.elements);
-    cs.elements = NULL;
-  }
 }
 
 /**
@@ -587,7 +579,9 @@ void tkbc_message_kites_write_to_all_send_msg_buffers() {
   tkbc_dapf(&message, "%d:%zu:", MESSAGE_KITES, env->kite_array->count);
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     Kite_State *kite_state = &env->kite_array->elements[i];
-    tkbc_message_append_kite(kite_state, &message);
+    if (kite_state->is_active) {
+      tkbc_message_append_kite(kite_state, &message);
+    }
   }
   tkbc_dapf(&message, "\r\n");
   tkbc_write_to_all_send_msg_buffers(message);
@@ -640,7 +634,7 @@ bool tkbc_received_message_handler(Client *client) {
     }
 
     message->i = lexer->position - 2;
-    static_assert(MESSAGE_COUNT == 16, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    static_assert(MESSAGE_COUNT == 17, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -1019,7 +1013,12 @@ bool tkbc_received_message_handler(Client *client) {
             kite_count--;
           }
         }
+
+        size_t prev_count = env->kite_array->count;
         tkbc_kite_array_generate(env, kite_count);
+        for (size_t i = prev_count; i < env->kite_array->count; ++i) {
+          env->kite_array->elements[i].is_active = false;
+        }
 
         // Set the first kite frame positions
         for (size_t i = 0; i < scb_block_frame->count; ++i) {
@@ -1072,6 +1071,8 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_AMOUNT\n");
     } break;
     case MESSAGE_SCRIPT_TOGGLE: {
+      // TODO:Think about toggling the  script kites and normal client kites
+      // back and forth.
       env->script_finished = !env->script_finished;
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_TOGGLE\n");
@@ -1088,6 +1089,8 @@ bool tkbc_received_message_handler(Client *client) {
       // TODO: Find a better way to do it reliable.
       // Generate kites if needed, if a script needs more kites than there are
       // currently registered.
+
+      Kite_Ids ids = {0};
       for (size_t i = 0; i < env->block_frame->count; ++i) {
         for (size_t j = 0; j < env->block_frame->elements[i].count; ++j) {
           Kite_Ids *kite_id_array =
@@ -1097,8 +1100,25 @@ bool tkbc_received_message_handler(Client *client) {
           env->server_script_kite_max_count =
               tkbc_max(frame_max_kites, env->server_script_kite_max_count);
 
+          for (size_t k = 0; k < kite_id_array->count; ++k) {
+            Id id = kite_id_array->elements[k];
+            if (!tkbc_contains_id(ids, id)) {
+              tkbc_dap(&ids, id);
+            }
+          }
         }
       }
+
+      for (size_t i = 0; i < env->kite_array->count; ++i) {
+        env->kite_array->elements[i].is_active = false;
+        for (size_t j = 0; j < ids.count; ++j) {
+          if (ids.elements[j] == env->kite_array->elements[i].kite_id) {
+            env->kite_array->elements[i].is_active = true;
+            break;
+          }
+        }
+      }
+      free(ids.elements);
 
       if (env->server_script_kite_max_count > env->kite_array->count) {
         size_t needed_kites =
@@ -1116,6 +1136,7 @@ bool tkbc_received_message_handler(Client *client) {
       }
       bool drag_left = atoi(lexer_token_to_cstr(lexer, &token));
 
+      // TODO: Ensure a script is loaded. And the kite_ids are correctly mapped.
       {
         if (env->block_frame->count <= 0) {
           goto err;
@@ -1130,6 +1151,7 @@ bool tkbc_received_message_handler(Client *client) {
         if (index >= 0 && index < (int)env->block_frame->count) {
           env->frames = &env->block_frame->elements[index];
         }
+        // TODO: map the kite_ids before setting this.
         tkbc_set_kite_positions_from_kite_frames_positions(env);
       }
 
@@ -1282,6 +1304,9 @@ int main(int argc, char *argv[]) {
     if (env->script_counter > 0) {
       if (!tkbc_script_finished(env) && env->block_frame != NULL) {
         size_t bindex = env->frames->block_index;
+        // TODO: Map script ids to current registered ids.
+        // TODO: Make the default client kite.ids higher numbers starting around
+        // 1000 or so.
         tkbc_script_update_frames(env);
 
         if (env->frames->block_index != bindex) {
@@ -1289,7 +1314,20 @@ int main(int argc, char *argv[]) {
           tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
               env->block_frame->script_id, env->block_frame->count, bindex);
         }
-        tkbc_unwrap_handler_message_clientkites_write_all();
+
+        tkbc_message_clientkites_write_to_all_send_msg_buffers();
+
+        if (tkbc_script_finished(env)) {
+          Message message = {0};
+          tkbc_dapf(&message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
+          tkbc_write_to_all_send_msg_buffers(message);
+          free(message.elements);
+          message.elements = NULL;
+          for (size_t i = 0; i < env->kite_array->count; ++i) {
+            Kite_State *kite_state = &env->kite_array->elements[i];
+            kite_state->is_active = !kite_state->is_active;
+          }
+        }
       }
     }
   }

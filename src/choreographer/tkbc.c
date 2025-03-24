@@ -407,6 +407,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
  */
 void tkbc_set_kite_state_defaults(Kite_State *state) {
 
+  state->is_active = true;
   state->is_kite_input_handler_active = false;
   state->fly_velocity = 10;
   state->turn_velocity = 10;
@@ -663,7 +664,9 @@ void tkbc_draw_kite(Kite *kite) {
  */
 void tkbc_draw_kite_array(Kite_States *kite_states) {
   for (size_t i = 0; i < kite_states->count; ++i) {
-    tkbc_draw_kite(kite_states->elements[i].kite);
+    if (kite_states->elements[i].is_active) {
+      tkbc_draw_kite(kite_states->elements[i].kite);
+    }
   }
 }
 

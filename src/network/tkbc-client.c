@@ -39,7 +39,6 @@
 #include <sys/socket.h>
 #endif
 
-#include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -464,6 +463,7 @@ bool received_message_handler(Message *message) {
       if (token.kind != PUNCT_COLON) {
         goto err;
       }
+      env->script_finished = true;
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_BLOCK_FRAME_VALUE\n");
     } break;
@@ -477,6 +477,11 @@ bool received_message_handler(Message *message) {
       if (token.kind != PUNCT_COLON) {
         goto err;
       }
+
+      for (size_t i = 0; i < env->kite_array->count; ++i) {
+        env->kite_array->elements[i].is_active = false;
+      }
+
       for (size_t i = 0; i < amount; ++i) {
         size_t kite_id;
         float x, y, angle;
@@ -486,15 +491,17 @@ bool received_message_handler(Message *message) {
           goto err;
         }
 
-        Kite *kite = tkbc_get_kite_by_id(env, kite_id);
-        if (kite) {
-          kite->center.x = x;
-          kite->center.y = y;
-          kite->angle = angle;
-          kite->body_color = color;
-        } else {
+        Kite_State *kite_state = tkbc_get_kite_state_by_id(env, kite_id);
+        if (kite_state == NULL) {
           // If the kite_id is not registered.
           tkbc_register_kite_from_values(kite_id, x, y, angle, color);
+          // NOTE: The kite_state defaults ensure. is_active = true;
+        } else {
+          kite_state->kite->center.x = x;
+          kite_state->kite->center.y = y;
+          kite_state->kite->angle = angle;
+          kite_state->kite->body_color = color;
+          kite_state->is_active = true;
         }
       }
 
@@ -819,10 +826,24 @@ check:
  * extension other files are ignored.
  */
 void tkbc_client_file_handler() {
+  size_t prev_kite_array_count = env->kite_array->count;
+
   tkbc_file_handler(env);
   if (env->block_frames->count > 0 &&
       env->block_frames->count - env->send_scripts > 0) {
+
     tkbc_message_script();
+  }
+
+  if (prev_kite_array_count != env->kite_array->count) {
+    // Remove kites that are just generated for sending a script.
+    assert(env->kite_array->count > prev_kite_array_count);
+    for (size_t i = prev_kite_array_count; i < env->kite_array->count; ++i) {
+      free(env->kite_array->elements[i].kite);
+      env->kite_array->elements[i].kite = NULL;
+    }
+
+    env->kite_array->count = prev_kite_array_count;
   }
 }
 
@@ -928,9 +949,17 @@ int main(int argc, char *argv[]) {
   SetExitKey(tkbc_hash_to_key(*env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
 
-  size_t count = env->kite_array->count;
+  size_t prev_kite_array_count = env->kite_array->count;
   sending_script_handler();
-  env->kite_array->count = count;
+  if (prev_kite_array_count != env->kite_array->count) {
+    // Remove kites that are just generated for sending a script.
+    assert(env->kite_array->count > prev_kite_array_count);
+    for (size_t i = prev_kite_array_count; i < env->kite_array->count; ++i) {
+      free(env->kite_array->elements[i].kite);
+      env->kite_array->elements[i].kite = NULL;
+    }
+    env->kite_array->count = prev_kite_array_count;
+  }
 
   Message tkbc_receive_queue = {0};
 
