@@ -480,9 +480,74 @@ void tkbc_patch_frames_current_time(Frames *frames) {
 }
 
 /**
- * @brief The function can be used to backpatch current kite positions in the
- * frames array to be used later in the redrawing and calculation of a script
- * frame after the script has executed successfully.
+ * @brief The function sets the kite_ids in a given script to new values
+ * provided in the kite_ids array passed into the function.
+ *
+ * @param env The global state of the application.
+ * @param script The script where the kite ids should be remapped to new values.
+ * @param kite_ids The ids array that contain the new values.
+ */
+void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Block_Frame *script,
+                                                  Kite_Ids kite_ids) {
+  assert(env);
+  assert(script);
+  assert(script->count > 0);
+  assert(kite_ids.count > 0);
+
+  Kite_Ids current_kite_ids = {0};
+  for (size_t i = 0; i < script->count; ++i) {
+    // The kite_frame_positions are faste to search for instead of checking
+    // every single frame, to find out what kite ids are part of the script.
+    for (size_t j = 0; j < script->elements[i].kite_frame_positions.count;
+         ++j) {
+      Id id = script->elements[i].kite_frame_positions.elements[j].kite_id;
+      if (!tkbc_contains_id(current_kite_ids, id)) {
+        tkbc_dap(&current_kite_ids, id);
+      }
+    }
+  }
+
+  assert(current_kite_ids.count == kite_ids.count);
+
+  for (size_t i = 0; i < script->count; ++i) {
+    assert(script->elements);
+    Frames *frames = &script->elements[i];
+
+    for (size_t new_id = 0; new_id < current_kite_ids.count; ++new_id) {
+
+      assert(frames->elements);
+      for (size_t j = 0; j < frames->count; ++j) {
+        Kite_Ids *ids = &frames->elements[j].kite_id_array;
+        assert(ids->elements);
+        for (size_t k = 0; k < ids->count; ++k) {
+          Id *id = &ids->elements[k];
+
+          if (current_kite_ids.elements[new_id] == *id) {
+            *id = kite_ids.elements[new_id];
+            break;
+          }
+        }
+      }
+
+      assert(frames->kite_frame_positions.elements);
+      for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
+        Id *id = &frames->kite_frame_positions.elements[j].kite_id;
+
+        if (current_kite_ids.elements[new_id] == *id) {
+          *id = kite_ids.elements[new_id];
+          break;
+        }
+      }
+    }
+  }
+
+  free(current_kite_ids.elements);
+}
+
+/**
+ * @brief The function can be used to backpatch current kite positions in
+ * the frames array to be used later in the redrawing and calculation of a
+ * script frame after the script has executed successfully.
  *
  * @param env The global state of the application.
  * @param frames The frames where the kite positions should be updated to the
