@@ -978,7 +978,10 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
             kite_count--;
           }
         }
-        tkbc_kite_array_generate(env, kite_count);
+        {
+          Kite_Ids ids = tkbc_kite_array_generate(env, kite_count);
+          free(ids.elements);
+        }
         if (possible_new_kis.elements) {
           free(possible_new_kis.elements);
           possible_new_kis.elements = NULL;
@@ -1040,8 +1043,10 @@ bool tkbc_server_received_message_handler(Message receive_message_queue) {
         }
       }
       size_t needed_kites = max - env->kite_array->count;
-      tkbc_kite_array_generate(env, needed_kites);
-
+      {
+        Kite_Ids ids = tkbc_kite_array_generate(env, needed_kites);
+        free(ids.elements);
+      }
       pthread_mutex_unlock(&mutex);
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_NEXT\n");

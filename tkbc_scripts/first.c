@@ -1,5 +1,6 @@
 #include "../src/choreographer/tkbc-script-api.h"
 #include "../src/choreographer/tkbc-team-figures-api.h"
+#include <stdlib.h>
 
 void rotation_checkup(Env *env, Kite_Ids ki) {
 
@@ -291,4 +292,6 @@ tkbc_script_input {
   tkbc_register_frames(env, tkbc_script_wait(1));
 
   tkbc_script_end();
+
+  free(ki.elements);
 }

@@ -1015,10 +1015,13 @@ bool tkbc_received_message_handler(Client *client) {
         }
 
         size_t prev_count = env->kite_array->count;
-        tkbc_kite_array_generate(env, kite_count);
+        Kite_Ids kite_ids = tkbc_kite_array_generate(env, kite_count);
         for (size_t i = prev_count; i < env->kite_array->count; ++i) {
           env->kite_array->elements[i].is_active = false;
         }
+
+        free(kite_ids.elements);
+        kite_ids.elements = NULL;
 
         // Set the first kite frame positions
         for (size_t i = 0; i < scb_block_frame->count; ++i) {
@@ -1123,7 +1126,8 @@ bool tkbc_received_message_handler(Client *client) {
       if (env->server_script_kite_max_count > env->kite_array->count) {
         size_t needed_kites =
             env->server_script_kite_max_count - env->kite_array->count;
-        tkbc_kite_array_generate(env, needed_kites);
+        Kite_Ids kite_ids = tkbc_kite_array_generate(env, needed_kites);
+        free(kite_ids.elements);
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_NEXT\n");

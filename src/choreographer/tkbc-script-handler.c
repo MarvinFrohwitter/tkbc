@@ -509,9 +509,9 @@ void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
       for (size_t k = 0; k < frames->kite_frame_positions.count; ++k) {
         if (frames->kite_frame_positions.elements[k].kite_id == kite_id) {
           contains = true;
-          // NOTE: Patching angle in case the kite_position was
-          // already added by just a move action, but later the corresponding
-          // angle action is handled.
+          // NOTE: Patching angle in case the kite_position was already added by
+          // just a move action, but later the corresponding angle action is
+          // handled.
           frames->kite_frame_positions.elements[k].position =
               kite_position.position;
           frames->kite_frame_positions.elements[k].angle = kite_position.angle;
@@ -563,9 +563,9 @@ size_t tkbc_check_finished_frames_count(Env *env) {
 }
 
 /**
- * @brief The function switches to the next available script. It loads the
- * views block_frame and frames in the env. And sets the kite_frame_positions.
- *
+ * @brief The function switches to the next available script. It loads the views
+ * block_frame and frames in the env. And sets the kite_frame_positions.
+
  * @param env The global state of the application.
  */
 void tkbc_load_next_script(Env *env) {
@@ -698,8 +698,7 @@ void tkbc_scrub_frames(Env *env) {
  * @param position The new position of the kite.
  * @param duration The time it should take to interpolate the kite to the new
  * position.
- * @return The amount that the center position has moved to the final
- * position.
+ * @return The amount that the center position has moved to the final position.
  */
 Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration) {
   if (duration <= 0) {
@@ -839,9 +838,8 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
 
 /**
  * @brief The function computes the intermediate angle that represents the
- * difference to zero from the current kite angle and respects the sign of the
- * 0 angle. The intermediate angle is returned and the action stays
- * unmodified.
+ * difference to zero from the current kite angle and respects the sign of the 0
+ * angle. The intermediate angle is returned and the action stays unmodified.
  *
  * @param kite The kite the intermediate angel should be calculated for.
  * @param kind The action kind.
