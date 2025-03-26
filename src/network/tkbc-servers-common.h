@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.2.022"
+#define PROTOCOL_VERSION "0.2.023"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -68,8 +68,6 @@ typedef struct {
 } Message;
 
 typedef struct {
-  size_t thread_id; // Not used for poll the polling implementation.
-
   ssize_t kite_id;
   Message send_msg_buffer;
   Message recv_msg_buffer;

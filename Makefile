@@ -13,7 +13,7 @@ CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c
 CHOREOGRAPHER_FILES = ${shell find ${CHOREOGRAPHERPATH}/ ! -name "main.c" -name "*.c"}
 CHOREOGRAPHER += ${CHOREOGRAPHER_FILES}
 
-all: options build tkbc server client tkbc-win64 poll-server poll-server-win64 client-win64
+all: options build tkbc client tkbc-win64 poll-server poll-server-win64 client-win64
 
 options:
 	@echo tbkc build options:
@@ -22,16 +22,10 @@ options:
 	@echo "CC     = ${CC}"
 
 poll-server: build
-	# ${CC} ${INCLUDE} ${CFLAGS} -fsanitize=address -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	${CC} ${INCLUDE} ${CFLAGS} -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
 poll-server-win64: build first.o
 	x86_64-w64-mingw32-gcc -Wall -Wextra -O0 -static  -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/poll-server-win64 src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lws2_32 -lwinmm
-
-
-
-server: build first.o
-	${CC} ${INCLUDE} ${CFLAGS} -o build/server src/network/tkbc-server.c src/network/tkbc-server-client-handler.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
 client: build first.o
 	${CC} ${INCLUDE} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${CHOREOGRAPHER_FILES} ${LIBS}
@@ -49,10 +43,6 @@ tkbc-win64: build
 
 client-win64: build first.o
 	x86_64-w64-mingw32-gcc -Wall -Wextra -O0 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/client-win64 src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32 -lws2_32
-
-server-win64: build first.o
-	x86_64-w64-mingw32-gcc -Wall -Wextra -O0 -static  -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/server src/network/tkbc-server.c src/network/tkbc-server-client-handler.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lws2_32
-
 
 build:
 	mkdir -p build
@@ -72,4 +62,4 @@ test-short: options
 	${CC} ${INCLUDE} ${CFLAGS} -DSHORT_LOG -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	./build/tests
 
-.PHONY: all clean options tkbc tkbc.o build server client test
+.PHONY: all clean options tkbc tkbc.o build client test

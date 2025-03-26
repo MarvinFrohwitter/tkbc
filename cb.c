@@ -121,21 +121,6 @@ void choreographer(Cmd *cmd, bool link_dynamic) {
     exit(EXIT_FAILURE);
 }
 
-void server(Cmd *cmd, bool link_dynamic) {
-  // Server
-  cb_cmd_push(cmd, CC);
-  include(cmd);
-  cflags(cmd);
-  cb_cmd_push(cmd, "-o", "build/server");
-  cb_cmd_push(cmd, "src/network/tkbc-server.c");
-  cb_cmd_push(cmd, "src/network/tkbc-server-client-handler.c");
-  cb_cmd_push(cmd, "src/network/tkbc-network-common.c");
-  choreographer_files(cmd);
-  linker(cmd, link_dynamic);
-  if (!cb_run_sync(cmd))
-    exit(EXIT_FAILURE);
-}
-
 void client(Cmd *cmd, bool link_dynamic) {
   // Client
   cb_cmd_push(cmd, CC);
