@@ -1005,21 +1005,8 @@ bool tkbc_received_message_handler(Client *client) {
         }
       }
       if (!found) {
-        // TODO: Don't figure out what kites ids already exists or how many, the
-        // is_active will take care of that dynamic switching problem, just
-        // generate the amount and than later remap the kite_ids.
         size_t kite_count = possible_new_kis.count;
-        for (size_t id = 0; id < possible_new_kis.count; ++id) {
-          Kite_State *kite_state =
-              tkbc_get_kite_state_by_id(env, possible_new_kis.elements[id]);
-          if (kite_state) {
-            kite_count--;
-          }
-        }
-
         size_t prev_count = env->kite_array->count;
-        // TODO: Hangle re allocation inside this function by freeing the
-        // elements of the returned thing, everywhere.
         Kite_Ids kite_ids = tkbc_kite_array_generate(env, kite_count);
         for (size_t i = prev_count; i < env->kite_array->count; ++i) {
           env->kite_array->elements[i].is_active = false;
@@ -1100,6 +1087,8 @@ bool tkbc_received_message_handler(Client *client) {
       // Generate kites if needed, if a script needs more kites than there are
       // currently registered.
 
+      //
+      // Activate the kites that belong to the script.
       Kite_Ids ids = {0};
       for (size_t i = 0; i < env->block_frame->count; ++i) {
         for (size_t j = 0; j < env->block_frame->elements[i].count; ++j) {
@@ -1130,9 +1119,10 @@ bool tkbc_received_message_handler(Client *client) {
       }
       free(ids.elements);
 
-      // TODO: Don't figure out what kites ids already exists or how many, the
-      // is_active will take care of that dynamic switching problem, just
-      // generate the amount and than later remap the kite_ids.
+      // TODO: Find out if the assert actual triggers in any situation.
+      // Otherwise delete the code below if also dies not handle the id
+      // remapping.
+      assert(env->server_script_kite_max_count <= env->kite_array->count);
       if (env->server_script_kite_max_count > env->kite_array->count) {
         size_t needed_kites =
             env->server_script_kite_max_count - env->kite_array->count;

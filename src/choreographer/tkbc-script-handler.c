@@ -496,8 +496,18 @@ void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Block_Frame *script,
 
   Kite_Ids current_kite_ids = {0};
   for (size_t i = 0; i < script->count; ++i) {
-    // The kite_frame_positions are faste to search for instead of checking
-    // every single frame, to find out what kite ids are part of the script.
+
+    for (size_t j = 0; j < script->elements[i].count; ++j) {
+      Frame *frame = &script->elements[i].elements[j];
+      for (size_t k = 0; k < frame->kite_id_array.count; ++k) {
+        Kite_Ids ids = frame->kite_id_array;
+        Id id = ids.elements[k];
+        if (!tkbc_contains_id(current_kite_ids, id)) {
+          tkbc_dap(&current_kite_ids, id);
+        }
+      }
+    }
+
     for (size_t j = 0; j < script->elements[i].kite_frame_positions.count;
          ++j) {
       Id id = script->elements[i].kite_frame_positions.elements[j].kite_id;
@@ -517,6 +527,10 @@ void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Block_Frame *script,
 
       assert(frames->elements);
       for (size_t j = 0; j < frames->count; ++j) {
+        if (frames->elements[j].kind == KITE_WAIT ||
+            frames->elements[j].kind == KITE_QUIT) {
+          continue;
+        }
         Kite_Ids *ids = &frames->elements[j].kite_id_array;
         assert(ids->elements);
         for (size_t k = 0; k < ids->count; ++k) {
@@ -529,7 +543,6 @@ void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Block_Frame *script,
         }
       }
 
-      assert(frames->kite_frame_positions.elements);
       for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
         Id *id = &frames->kite_frame_positions.elements[j].kite_id;
 
