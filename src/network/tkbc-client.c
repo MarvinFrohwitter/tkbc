@@ -847,6 +847,10 @@ void tkbc_client_file_handler() {
   }
 }
 
+/**
+ * @brief The function constructs a message KITES_POSITIONS and append it to the
+ * send_message_queue.
+ */
 void tkbc_message_kites_positions() {
   tkbc_dapf(&tkbc_send_message_queue, "%d:%zu:", MESSAGE_KITES_POSITIONS,
             env->kite_array->count);
