@@ -561,7 +561,6 @@ int tkbc_socket_write(Client *client) {
   return n;
 }
 
-bool tkbc_server_handle_clients(Client *client) {
 /**
  * @brief The function encapsulates the reading and writing communication of the
  * given client.
@@ -570,22 +569,22 @@ bool tkbc_server_handle_clients(Client *client) {
  * @return True if the handling (reading or writing data) of the clients has
  * succeeded, otherwise false.
  */
+bool tkbc_server_handle_client(Client *client) {
   struct pollfd *pollfd = tkbc_get_pollfd_by_fd(client->socket_id);
+  int result;
   switch (pollfd->events) {
-  // switch (fds.elements[idx].events) {
-  case POLLRDNORM: {
-    bool result = tkbc_sockets_read(client);
+  case POLLRDNORM:
+    result = tkbc_sockets_read(client);
     // Switch to the next write state.
     pollfd->events = POLLWRNORM;
     return result;
-  } break;
-  case POLLWRNORM: {
+  case POLLWRNORM:
     if (client->send_msg_buffer.count <= 0) {
       pollfd->events = POLLRDNORM;
       return true;
     }
 
-    int result = tkbc_socket_write(client);
+    result = tkbc_socket_write(client);
     if (result <= 0) {
       pollfd->events = POLLRDNORM;
     }
@@ -593,7 +592,6 @@ bool tkbc_server_handle_clients(Client *client) {
       return false;
     }
     return true;
-  } break;
   default:
     assert(0 && "UNKNOWN EVENT");
   }
@@ -615,7 +613,7 @@ void tkbc_socket_handling() {
       tkbc_server_accept();
     } else {
       Client *client = tkbc_get_client_by_fd(fds.elements[idx].fd);
-      bool result = tkbc_server_handle_clients(client);
+      bool result = tkbc_server_handle_client(client);
       if (!result) {
         tkbc_server_shutdown_client(*client, false);
         idx--;

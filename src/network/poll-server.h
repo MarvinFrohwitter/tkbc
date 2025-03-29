@@ -25,7 +25,7 @@ void tkbc_client_prelog(Client *client);
 void tkbc_server_accept();
 bool tkbc_sockets_read(Client *client);
 int tkbc_socket_write(Client *client);
-bool tkbc_server_handle_clients(Client *client);
+bool tkbc_server_handle_client(Client *client);
 void tkbc_socket_handling();
 
 void tkbc_message_clientkites(Message *message);
