@@ -39,6 +39,15 @@ Env *env = {0};
 Clients clients = {0};
 FDs fds = {0};
 
+/**
+ * @brief  The function can be used to get the pollfd structure that corresponds
+ * to the given file descriptor.
+ *
+ * @param fd The file descriptor for that the corresponding pollfd structure is
+ * returned.
+ * @return The found pollfd structure or NULL if the fd is not a valid
+ * registered one.
+ */
 struct pollfd *tkbc_get_pollfd_by_fd(int fd) {
   for (size_t i = 0; i < fds.count; ++i) {
     if (fds.elements[i].fd == fd) {
@@ -48,6 +57,13 @@ struct pollfd *tkbc_get_pollfd_by_fd(int fd) {
   return NULL;
 }
 
+/**
+ * @brief The function can be used to get the Client structure that corresponds
+ * to the given kite_id.
+ *
+ * @param kite_id The id that represents a kite.
+ * @return The found Client if it is available, otherwise NULL.
+ */
 Client *tkbc_get_client_by_kite_id(int kite_id) {
   for (size_t i = 0; i < clients.count; ++i) {
     if (clients.elements[i].kite_id == kite_id) {
@@ -57,6 +73,13 @@ Client *tkbc_get_client_by_kite_id(int kite_id) {
   return NULL;
 }
 
+/**
+ * @brief The function can be used to get the Client structure that corresponds
+ * to the given file descriptor.
+ *
+ * @param fd The file descriptor that is stored for the client.
+ * @return The found Client if it is available, otherwise NULL.
+ */
 Client *tkbc_get_client_by_fd(int fd) {
   for (size_t i = 0; i < clients.count; ++i) {
     if (clients.elements[i].socket_id == fd) {
@@ -66,17 +89,38 @@ Client *tkbc_get_client_by_fd(int fd) {
   return NULL;
 }
 
+/**
+ * @brief The function appends the given message to the client send messages
+ * buffer that later is send in a batch to the client.
+ *
+ * @param client The client where the message should be send to.
+ * @param message The message that should be send to the given client.
+ */
 void tkbc_write_to_send_msg_buffer(Client *client, Message message) {
   tkbc_dapc(&client->send_msg_buffer, message.elements, message.count);
   tkbc_get_pollfd_by_fd(client->socket_id)->events = POLLWRNORM;
 }
 
+/**
+ * @brief The function appends the given message to all the registered clients
+ * send messages buffers that later are send in a batch to the clients.
+ *
+ * @param message The message that should be send to the given clients.
+ */
 void tkbc_write_to_all_send_msg_buffers(Message message) {
   for (size_t i = 0; i < clients.count; ++i) {
     tkbc_write_to_send_msg_buffer(&clients.elements[i], message);
   }
 }
 
+/**
+ * @brief The function appends the given message to all the registered clients
+ * send message buffers except the one given by the fd.
+ *
+ * @param message The message that should be send to the clients except the one
+ * specified with the fd..
+ * @param fd The file descriptor where the message should not be send to.
+ */
 void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd) {
   for (size_t i = 0; i < clients.count; ++i) {
     if (clients.elements[i].socket_id != fd) {
@@ -85,6 +129,15 @@ void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd) {
   }
 }
 
+/**
+ * @brief The function can be used to remove a client specified by the fd from
+ * the server clients list.
+ *
+ * @param fd The file descriptor of the client that should be removed from the
+ * server.
+ * @return True if the client was found and removed, otherwise the client was
+ * not found and false is returned
+ */
 bool tkbc_remove_client_by_fd(int fd) {
   for (size_t i = 0; i < clients.count; ++i) {
     if (clients.elements[i].socket_id == fd) {
@@ -103,6 +156,20 @@ bool tkbc_remove_client_by_fd(int fd) {
   return false;
 }
 
+/**
+ * @brief The function can be used to remove a client specified by the fd from
+ * the server clients list and it also tries to remove the corresponding kite.
+ *
+ * @param client The client that should be disconnected from the server.
+ * @param retry The boolean indicator if the client should retry to disconnect
+ * the client from the server.
+ * @return 0 If the client kite has been removed from the list and the server
+ * hat disconnected the client socket connection. 1 if the client kite count not
+ * be removed, in this case the function can be recalled with the retry option
+ * on that will then try to remove the network connection. -1 is returned if tue
+ * removal of the network connection hat failed in that case the kite was
+ * removed if no retry is on, if retry is on the kite list will be changed.
+ */
 int tkbc_remove_connection(Client client, bool retry) {
   if (!retry) {
     if (!tkbc_remove_kite_from_list(env->kite_array, client.kite_id)) {
@@ -134,6 +201,14 @@ int tkbc_remove_connection(Client client, bool retry) {
   return 0;
 }
 
+/**
+ * @brief The function is a wrapper around tkbc_remove_connection() that
+ * automatically retries the disconnection for the client if first attempted
+ * failed. For more information check the documentation for
+ * tkbc_remove_connection().
+ *
+ * @param client The client that should be removed from the server.
+ */
 void tkbc_remove_connection_retry(Client client) {
   if (1 == tkbc_remove_connection(client, false)) {
     if (0 != tkbc_remove_connection(client, true)) {
@@ -226,6 +301,12 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function constructs the message CLIENTKITES.
+ *
+ * @param message The message buffer where the constructed message should be
+ * appended to.
+ */
 void tkbc_message_clientkites(Message *message) {
   size_t active_count = 0;
   for (size_t i = 0; i < env->kite_array->count; ++i) {
@@ -264,6 +345,13 @@ void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client) {
   message.elements = NULL;
 }
 
+/**
+ * @brief The function combines the fist initial construction of the kite for a
+ * new client and sends the fist hello message and sends the positions for all
+ * the rest of the registered kites.
+ *
+ * @param client The new client that should get a kite associated with.
+ */
 void tkbc_client_prelog(Client *client) {
   tkbc_message_hello_write_to_send_msg_buffer(client);
 
@@ -285,6 +373,9 @@ void tkbc_client_prelog(Client *client) {
   tkbc_message_clientkites_write_to_send_msg_buffer(client);
 }
 
+/**
+ * @brief The function handles the accept call of new clients.
+ */
 void tkbc_server_accept() {
 
   SOCKADDR_IN client_address;
@@ -338,6 +429,12 @@ void tkbc_server_accept() {
   }
 }
 
+/**
+ * @brief The function tries to read messages from the socket connection.
+ *
+ * @param client The client where the data should be read from.
+ * @return True if data was read, otherwise false.
+ */
 bool tkbc_sockets_read(Client *client) {
   Message *recv_buffer = &client->recv_msg_buffer;
   size_t length = 1024;
@@ -405,6 +502,15 @@ bool tkbc_sockets_read(Client *client) {
   return true;
 }
 
+/**
+ * @brief The function manages sending the internal message stored in the
+ * send_msg_buffer from the client to the client.
+ *
+ * @param client The client where the message stored in the send_msg_buffer in
+ * the client structure should be send to.
+ * @return The amount send to the client socket, 0 if not data was send, -1 if
+ * an error occurred or -11 if the error was EAGAIN.
+ */
 int tkbc_socket_write(Client *client) {
   size_t amount =
       (client->send_msg_buffer.count - client->send_msg_buffer.i) % 1024;
@@ -456,6 +562,14 @@ int tkbc_socket_write(Client *client) {
 }
 
 bool tkbc_server_handle_clients(Client *client) {
+/**
+ * @brief The function encapsulates the reading and writing communication of the
+ * given client.
+ *
+ * @param client The client where the message stored in the send_msg_buffer in
+ * @return True if the handling (reading or writing data) of the clients has
+ * succeeded, otherwise false.
+ */
   struct pollfd *pollfd = tkbc_get_pollfd_by_fd(client->socket_id);
   switch (pollfd->events) {
   // switch (fds.elements[idx].events) {
@@ -485,6 +599,10 @@ bool tkbc_server_handle_clients(Client *client) {
   }
 }
 
+/**
+ * @brief The function handles new incoming connections and checks for the data
+ * on the sockets after an updates was detected.
+ */
 void tkbc_socket_handling() {
   for (ssize_t idx = 0; idx < (ssize_t)fds.count; ++idx) {
     if (fds.elements[idx].revents == 0) {
@@ -1211,6 +1329,15 @@ check:
   return ok;
 }
 
+/**
+ * @brief The entry point sets up the event loop checks for socket connections
+ * and computes different positions up on the messages.
+ *
+ * @param argc The commandline argument count.
+ * @param argv The arguments form the commandline.
+ * @return The exit code of program that is always 0 or the execution is kill
+ * before with code 1.
+ */
 int main(int argc, char *argv[]) {
 #ifndef _WIN32
   struct sigaction sig_action = {0};
