@@ -7,6 +7,17 @@
 
 #include "../config.h"
 
+/**
+ * @brief The function parses the given file and inserts the parsed content into
+ * the given keymaps. It can be used to load saved keymaps into the current
+ * memory state.
+ *
+ * @param keymaps The keymaps that should be updates according to the file
+ * content.
+ * @param filename The file that should be parsed.
+ * @return 0 if the file parsing has succeeded and the keympas has be updated,
+ * -1 if the file reading has failed, 1 if the file content parsing has failed.
+ */
 int tkbc_load_keymaps_from_file(Key_Maps *keymaps, const char *filename) {
   Content content = {0};
   int ok = tkbc_read_file(filename, &content);
@@ -65,6 +76,14 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function serializes the given keymaps into the given filename.
+ *
+ * @param keymaps The keymaps that should be saved to file.
+ * @param filename The file where the keymaps should be serializes to.
+ * @return True if the saving has succeeded, false if the file opening has
+ * failed.
+ */
 bool tkbc_save_keymaps_to_file(Key_Maps keymaps, const char *filename) {
   FILE *file = fopen(filename, "wb");
   if (file == NULL) {
@@ -83,6 +102,12 @@ bool tkbc_save_keymaps_to_file(Key_Maps keymaps, const char *filename) {
   return true;
 }
 
+/**
+ * @brief The function can be used to set the initial default keymaps.
+ *
+ * @param keymaps The keymaps where the internal default storage should be
+ * assigned to.
+ */
 void tkbc_init_keymaps_defaults(Key_Maps *keymaps) {
   for (size_t i = 0; i < ARRAY_LENGTH(default_keymaps); ++i) {
     tkbc_dap(keymaps, default_keymaps[i]);
@@ -90,6 +115,13 @@ void tkbc_init_keymaps_defaults(Key_Maps *keymaps) {
   tkbc_setup_keymaps_strs(keymaps);
 }
 
+/**
+ * @brief The function that can be used to set or reset the given keymaps to the
+ * default values.
+ *
+ * @param keymaps The keymaps pointer where the values should be restored to the
+ * default ones.
+ */
 void tkbc_set_keymaps_defaults(Key_Maps *keymaps) {
   size_t default_keymaps_count = ARRAY_LENGTH(default_keymaps);
   assert(keymaps->count == default_keymaps_count);
@@ -107,6 +139,12 @@ void tkbc_set_keymaps_defaults(Key_Maps *keymaps) {
   tkbc_setup_keymaps_strs(keymaps);
 }
 
+/**
+ * @brief The function sets the corresponding string representations to
+ * according to the current keymap values.
+ *
+ * @param keymaps The keymaps pointer where string values should be updated.
+ */
 void tkbc_setup_keymaps_strs(Key_Maps *keymaps) {
   for (size_t i = 0; i < keymaps->count; ++i) {
     keymaps->elements[i].mod_key_str =
@@ -121,6 +159,14 @@ void tkbc_setup_keymaps_strs(Key_Maps *keymaps) {
   }
 }
 
+/**
+ * @brief The function returns the integer representation of the key that
+ * corresponds to the provided hash value.
+ *
+ * @param keymaps The keymaps where the key value is stored.
+ * @param hash The hash value that represents the key.
+ * @return The to the hash value corresponding key or 0 if the key is not found.
+ */
 int tkbc_hash_to_key(Key_Maps keymaps, int hash) {
   for (size_t i = 0; i < keymaps.count; ++i) {
     if (hash == keymaps.elements[i].hash) {
@@ -130,6 +176,16 @@ int tkbc_hash_to_key(Key_Maps keymaps, int hash) {
   return 0;
 }
 
+/**
+ * @brief The function can be used to get the complete keymap structure given
+ * the corresponding hash value out of the provided keymaps.
+ *
+ * @param keymaps The keymaps where the key value is stored.
+ * @param hash The hash value that represents the key.
+ * @return The keymap structure that stores the related key codes for the given
+ * hash. If the keymap is not found via the hash a zeroed out structure is
+ * returned. Easily detectable by comparing the provided hash with zero.
+ */
 Key_Map tkbc_hash_to_keymap(Key_Maps keymaps, int hash) {
   for (size_t i = 0; i < keymaps.count; ++i) {
     if (hash == keymaps.elements[i].hash) {
@@ -139,6 +195,16 @@ Key_Map tkbc_hash_to_keymap(Key_Maps keymaps, int hash) {
   return (Key_Map){0};
 }
 
+/**
+ * @brief The function can be used to get the string representation for a given
+ * key.
+ *
+ * @param key The integer representation of a key.
+ * @return The string representation if the key if known or memory is allocated
+ * to proved a string representation of the given number. This memory should be
+ * freed by the caller, because the case is so unusual that it should not force
+ * the caller to provide a buffer for every call of this function.
+ */
 const char *tkbc_key_to_str(int key) {
   switch (key) {
   case KEY_NULL: // Key: NULL, used for no key pressed
@@ -367,7 +433,7 @@ const char *tkbc_key_to_str(int key) {
     return "volume_down";
   case 161: // GLFW_KEY_WORLD_1
     return "de_less_than";
-  case 162:// GLFW_KEY_WORLD_2
+  case 162: // GLFW_KEY_WORLD_2
     return "de_less_than";
   default: {
     // This leaks memory.

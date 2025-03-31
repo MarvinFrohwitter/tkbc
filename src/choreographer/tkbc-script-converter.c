@@ -7,7 +7,13 @@
 #include <stdio.h>
 #include <string.h>
 
-bool tkbc_print_kites(FILE *file, Kite_Ids ids) {
+/**
+ * @brief The function prints the serialized form of the kite ids.
+ *
+ * @param file The file where to print the kites.
+ * @param ids The kite ids that should be serialized.
+ */
+void tkbc_print_kites(FILE *file, Kite_Ids ids) {
   if (ids.count > 0) {
     fprintf(file, "(%zu", ids.elements[0]);
     for (size_t id = 1; id < ids.count; ++id) {
@@ -17,13 +23,20 @@ bool tkbc_print_kites(FILE *file, Kite_Ids ids) {
     fprintf(file, "(");
   }
   fprintf(file, ")");
-
-  return true;
 }
 
-bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
-                                     const char *filename) {
-  bool ok = true;
+/**
+ * @brief The function serializes the provided script in memory form to a .kite
+ * file.
+ *
+ * @param block_frame A memory representation of a script.
+ * @param filename The file name where the script should be saved to.
+ * @return 0 If the saving and serialization of the file has succeeded. -1 if
+ * the file opening has failed and 1 if the fseek operation has failed.
+ */
+int tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
+                                    const char *filename) {
+  int ok = 0;
   size_t max_kites = 0;
   FILE *file = fopen(filename, "wb");
   if (file == NULL) {
@@ -61,9 +74,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_MOVE: {
         Move_Action action = f->action.as_move;
         fprintf(file, "MOVE ");
-        if (!tkbc_print_kites(file, f->kite_id_array)) {
-          check_return(false);
-        }
+        tkbc_print_kites(file, f->kite_id_array);
         fprintf(file, " %f %f", action.position.x, action.position.y);
 
       } break;
@@ -71,9 +82,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_MOVE_ADD: {
         Move_Add_Action action = f->action.as_move_add;
         fprintf(file, "MOVE_ADD ");
-        if (!tkbc_print_kites(file, f->kite_id_array)) {
-          check_return(false);
-        }
+        tkbc_print_kites(file, f->kite_id_array);
         fprintf(file, " %f %f", action.position.x, action.position.y);
 
       } break;
@@ -81,9 +90,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_ROTATION: {
         Rotation_Action action = f->action.as_rotation;
         fprintf(file, "ROTATION ");
-        if (!tkbc_print_kites(file, f->kite_id_array)) {
-          check_return(false);
-        }
+        tkbc_print_kites(file, f->kite_id_array);
         fprintf(file, " %f", action.angle);
 
       } break;
@@ -91,9 +98,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_ROTATION_ADD: {
         Rotation_Add_Action action = f->action.as_rotation_add;
         fprintf(file, "ROTATION_ADD ");
-        if (!tkbc_print_kites(file, f->kite_id_array)) {
-          check_return(false);
-        }
+        tkbc_print_kites(file, f->kite_id_array);
         fprintf(file, " %f", action.angle);
 
       } break;
@@ -101,9 +106,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_TIP_ROTATION: {
         Tip_Rotation_Action action = f->action.as_tip_rotation;
         fprintf(file, "TIP_ROTATION ");
-        if (!tkbc_print_kites(file, f->kite_id_array)) {
-          check_return(false);
-        }
+        tkbc_print_kites(file, f->kite_id_array);
         fprintf(file, " %f %s", action.angle,
                 action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
@@ -112,9 +115,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       case KITE_TIP_ROTATION_ADD: {
         Tip_Rotation_Add_Action action = f->action.as_tip_rotation_add;
         fprintf(file, "TIP_ROTATION_ADD ");
-        if (!tkbc_print_kites(file, f->kite_id_array)) {
-          check_return(false);
-        }
+        tkbc_print_kites(file, f->kite_id_array);
         fprintf(file, " %f %s", action.angle,
                 action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
@@ -135,7 +136,7 @@ bool tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
 
   if (fseek(file, 0, SEEK_SET) < 0) {
     fprintf(stderr, "ERROR: %s\n", strerror(errno));
-    check_return(false);
+    check_return(1);
   }
   fprintf(file, "KITES %zu\n", max_kites);
 
