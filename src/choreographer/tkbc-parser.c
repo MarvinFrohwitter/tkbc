@@ -520,6 +520,14 @@ check:
   return ok;
 }
 
+/**
+ * @brief The macro parses the possible additional plus and minus sign in front
+ * of an< number that is returned by the lexer.
+ *
+ * @param lexer The parsing state of the .kite script.
+ * @param tmp_buffer The dynamic array buffer where the parsed tokens should be
+ * appended to.
+ */
 #define tkbc_parse_number_prolog(lexer, tmp_buffer)                            \
   do {                                                                         \
     Token token = lexer_next(lexer);                                           \
@@ -550,18 +558,61 @@ check:
     tkbc_dap(&tmp_buffer, 0);                                                  \
   } while (0)
 
+/**
+ * @brief The function tries to parse a floating point number out of the current
+ * lexer state and assign it to the number parameter.
+ *
+ * @param number A pointer to the variable that should hold the parsed value
+ * after the function has succeeded.
+ * @param lexer The parsing state of the .kite script.
+ * @param tmp_buffer The dynamic array buffer where the parsed tokens should
+ * temporarily be appended to.
+ * @return True if the parsing of a floating point number has succeeded,
+ * otherwise a parsing error has occurred and false is returned and the number
+ * value stays untouched.
+ */
 bool tkbc_parse_float(float *number, Lexer *lexer, Content tmp_buffer) {
   tkbc_parse_number_prolog(lexer, tmp_buffer);
   *number = atof(tmp_buffer.elements);
   return true;
 }
 
+/**
+ * @brief The function tries to parse a number that can be represented by the
+ * size_t type out of the current lexer state and assign it to the number
+ * parameter.
+ *
+ * @param number A pointer to the variable that should hold the parsed value
+ * after the function has succeeded.
+ * @param lexer The parsing state of the .kite script.
+ * @param tmp_buffer The dynamic array buffer where the parsed tokens should
+ * temporarily be appended to.
+ * @return True if the parsing of a size_t number has succeeded,
+ * otherwise a parsing error has occurred and false is returned and the number
+ * value stays untouched.
+ */
 bool tkbc_parse_size_t(size_t *number, Lexer *lexer, Content tmp_buffer) {
   tkbc_parse_number_prolog(lexer, tmp_buffer);
   *number = (size_t)atol(tmp_buffer.elements);
   return true;
 }
 
+/**
+ * @brief The function parses the expected function, provided by the
+ * function_name, out of the lexer state and if the parsing was a success the
+ * function is also called and sets up the corresponding team figure in the
+ * current env script buffer.
+ *
+ * @param env The global state of the application.
+ * @param kis The kite indies that are part of the expected team figure.
+ * @param lexer The parsing state of the .kite script.
+ * @param function_name The name of the possible team function.
+ * @param tmp_buffer The dynamic array buffer where the parsed tokens should
+ * temporarily be appended to.
+ * @return True if the parsing of the function that corresponds to the given
+ * function_name has been parsed out with no errors, false if a parsing error
+ * has occurred.
+ */
 bool tkbc_parse_team_figures(Env *env, Kite_Ids kis, Lexer *lexer,
                              const char *function_name, Content tmp_buffer) {
 
