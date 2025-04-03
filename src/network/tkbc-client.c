@@ -946,6 +946,7 @@ int main(int argc, char *argv[]) {
   SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
   SetTargetFPS(TARGET_FPS);
 
+  srand(time(NULL));
   env = tkbc_init_env();
   if (tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps")) {
     tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
