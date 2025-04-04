@@ -540,6 +540,9 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
     return;
   }
 
+  // Reset to the defaults for state values that are set in each iteration.
+  // NOTE: This is especially important to ensure combinations of functionality
+  // is not blocked or gets in a unexpected state.
   state->is_angle_locked = false;
   state->is_tip_locked = false;
   state->is_rotating = false;
