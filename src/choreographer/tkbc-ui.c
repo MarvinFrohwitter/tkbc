@@ -61,6 +61,18 @@ void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
   if (env->script_setup) {
     return;
   }
+
+  float margin = 10;
+  env->timeline_base.width = env->window_width / 2.0f;
+  env->timeline_base.height = env->window_height / 42.0f;
+  env->timeline_base.x = env->timeline_base.width / 2.0f;
+  env->timeline_base.y =
+      env->window_height - env->timeline_base.height - margin;
+
+  env->timeline_front.height = env->timeline_base.height;
+  env->timeline_front.x = env->timeline_base.x;
+  env->timeline_front.y = env->timeline_base.y;
+
   Vector2 mouse_pos = GetMousePosition();
   env->timeline_hoverover =
       CheckCollisionPointRec(mouse_pos, env->timeline_base);
