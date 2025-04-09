@@ -254,7 +254,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       frame->finished = true;
       break;
     }
-  } // FALLTHROUGH;
+  } /* FALLTHROUGH */
   case KITE_WAIT: {
     Wait_Action *action = &frame->action.as_wait;
     if (frame->duration <= 0) {
