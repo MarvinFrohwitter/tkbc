@@ -276,7 +276,10 @@ typedef struct {
   size_t count;    // The amount of elements in the array.
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
-} Kite_Ids;        // A dynamic array that can hold kite_ids.
+
+  bool script_id_append; // Checks if the ids are heap allocated by the
+                         // tkbc__indexs_append() method.
+} Kite_Ids;              // A dynamic array that can hold kite_ids.
 
 typedef struct {
   Kite_Ids kite_id_array; // The collection of kite_ids that should be
@@ -360,8 +363,6 @@ typedef struct {
   bool script_interrupt; // The indication if a script is currently going to be
                          // loaded.
   bool script_finished;  // The indication a script has finished.
-  bool script_id_append; // Indices if the tkbc__indexs_append function has
-                         // created the current Kite_Ids.
 
   int fps;              // The fps of the application.
   size_t window_width;  // The window width of the application.

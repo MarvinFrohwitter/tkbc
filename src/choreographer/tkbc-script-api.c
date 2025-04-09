@@ -189,9 +189,10 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
     return NULL;
   }
   tkbc_dapc(&frame->kite_id_array, kite_ids.elements, kite_ids.count);
-  if (env->script_id_append) {
+  if (kite_ids.script_id_append) {
     free(kite_ids.elements);
-    env->script_id_append = false;
+    kite_ids.elements = NULL;
+    kite_ids.script_id_append = false;
   }
 
   frame->duration = duration;
@@ -214,9 +215,9 @@ void tkbc__register_frames(Env *env, ...) {
   Frame *frame = va_arg(args, Frame *);
   while (frame != NULL) {
     tkbc_dap(&env->scratch_buf_frames, tkbc_deep_copy_frame(frame));
-    if (env->script_id_append) {
+    if (frame->kite_id_array.script_id_append) {
       free(frame->kite_id_array.elements);
-      env->script_id_append = false;
+      frame->kite_id_array.script_id_append = false;
     }
     free(frame);
     frame = va_arg(args, Frame *);
@@ -236,10 +237,10 @@ void tkbc__register_frames(Env *env, ...) {
 void tkbc_sript_team_scratch_buf_frames_append_and_free(Env *env,
                                                         Frame *frame) {
   tkbc_dap(&env->scratch_buf_frames, tkbc_deep_copy_frame(frame));
-  if (env->script_id_append) {
+  if (frame->kite_id_array.script_id_append) {
     free(frame->kite_id_array.elements);
     frame->kite_id_array.elements = NULL;
-    env->script_id_append = false;
+    frame->kite_id_array.script_id_append = false;
   }
   free(frame);
   frame = NULL;
@@ -317,7 +318,7 @@ Kite_Ids tkbc__indexs_append(Env *env, ...) {
   }
   va_end(args);
 
-  env->script_id_append = true;
+  ki.script_id_append = true;
   return ki;
 }
 
