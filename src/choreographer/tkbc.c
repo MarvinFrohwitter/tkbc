@@ -27,6 +27,8 @@ Env *tkbc_init_env(void) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
+  // This is very important to zero init the complete struct.
+  // Most of the computation relies on zero initialization.
   memset(env, 0, sizeof(*env));
 
   env->vanilla_kite = malloc(sizeof(*env->vanilla_kite));
@@ -64,63 +66,11 @@ Env *tkbc_init_env(void) {
   env->script_setup = true;
   env->window_width = tkbc_get_screen_width();
   env->window_height = tkbc_get_screen_height();
-  env->script_interrupt = false;
   env->script_finished = true;
-  env->script_counter = 0;
-  env->recording = false;
-  env->rendering = false;
   env->fps = TARGET_FPS;
-  env->sound_file_name = NULL;
-  env->script_file_name = NULL;
-
-  env->keymaps_base =
-      (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
 
   env->box_height = 80;
-  // -1 for the left out box at the bottom
-  env->screen_items = (env->window_height / env->box_height) - 1;
-  env->scrollbar_width = env->keymaps_base.width * 0.025;
-
-  env->keymaps_scrollbar = (Rectangle){
-      .x = env->keymaps_base.x + env->keymaps_base.width - env->scrollbar_width,
-      .y = 0,
-      .width = env->scrollbar_width,
-      .height = env->box_height * env->screen_items,
-  };
-
-  env->keymaps_inner_scrollbar = (Rectangle){
-      .x = env->keymaps_base.x + env->keymaps_base.width -
-           env->keymaps_scrollbar.width,
-      .y = 0,
-      .width = env->keymaps_scrollbar.width,
-      .height = env->keymaps_scrollbar.height /
-                (float)(env->keymaps->count - env->screen_items + 1),
-  };
-
-  float margin = 10;
-  env->timeline_base.width = env->window_width / 2.0f;
-  env->timeline_base.height = env->window_height / 42.0f;
-  env->timeline_base.x = env->window_width / 4.0f;
-  env->timeline_base.y =
-      env->window_height - env->timeline_base.height - margin;
-
-  env->timeline_front.width = 0;
-  env->timeline_front.height = env->timeline_base.height;
-  env->timeline_front.x = env->window_width / 4.0f;
-  env->timeline_front.y =
-      env->window_height - env->timeline_base.height - margin;
-
-  env->timeline_segment_width = 0;
-  env->timeline_segments_width = 0;
-  env->timeline_segments = 0;
-  env->timeline_hoverover = false;
-  env->timeline_interaction = false;
-
-  env->keymaps_interaction = false;
-  env->keymaps_mouse_interaction = false;
-  env->keymaps_mouse_interaction_box = 0;
   env->keymaps_interaction_rec_number = -1;
-
   return env;
 }
 

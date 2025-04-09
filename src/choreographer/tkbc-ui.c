@@ -274,6 +274,7 @@ void tkbc_ui_keymaps(Env *env) {
 
   //
   // The scroll_bar handle
+  // -1 for the left out box at the bottom
   env->screen_items = (env->window_height / env->box_height) - 1;
   env->scrollbar_width = env->keymaps_base.width * 0.025;
 
@@ -289,21 +290,40 @@ void tkbc_ui_keymaps(Env *env) {
                                    env->keymaps_base.width -
                                    env->keymaps_scrollbar.width;
   env->keymaps_inner_scrollbar.width = env->keymaps_scrollbar.width;
+
+  size_t minimum_handle_height = (size_t)env->keymaps_scrollbar.height >> 2;
   env->keymaps_inner_scrollbar.height =
+      minimum_handle_height +
       env->keymaps_scrollbar.height /
-      (float)(env->keymaps->count - env->screen_items + 1);
+          (float)(env->keymaps->count - env->screen_items + 1);
 
-  float old_inner_sclolbar_y = env->keymaps_inner_scrollbar.y;
-  float new_inner_sclolbar_y =
-      (env->keymaps_inner_scrollbar.height) * env->keymaps_top_interaction_box;
-  //
-  // To lerp between the things it has to be move out side to be static
-  env->keymaps_inner_scrollbar.y =
-      old_inner_sclolbar_y +
-      (new_inner_sclolbar_y - old_inner_sclolbar_y) * tkbc_get_frame_time();
+  {
+    // Enable the lerping for extra smooth scrolling.
+    // float before = env->keymaps_inner_scrollbar.y;
 
-  // Enable to remove LERP.
-  env->keymaps_inner_scrollbar.y = new_inner_sclolbar_y;
+    env->keymaps_inner_scrollbar.y =
+        (env->keymaps_scrollbar.height - env->keymaps_inner_scrollbar.height) /
+        (env->keymaps->count - env->screen_items) *
+        env->keymaps_top_interaction_box;
+
+    // float after = env->keymaps_inner_scrollbar.y;
+
+    // env->keymaps_inner_scrollbar.y =
+    //     before + (after - before) * tkbc_get_frame_time();
+  }
+
+  // This is just needed for window resizing problems. When the list of items is
+  // scrolled to the bottom in a small window and then the window gets resized
+  // to a lager one, the scrollbar should not be outside of the base scroll
+  // container. The list it self may float to the top but that is not a bug in
+  // it self list can handle a scrolloff. Below the list there is nothing to
+  // display so it just empty space there is no need to recallculate the
+  // position of the items for the lager window. -- M.Frohwitter 07.04.2025
+  if (env->keymaps_inner_scrollbar.y >
+      env->keymaps_scrollbar.height - env->keymaps_inner_scrollbar.height) {
+    env->keymaps_inner_scrollbar.y =
+        env->keymaps_scrollbar.height - env->keymaps_inner_scrollbar.height;
+  }
 
   DrawRectangleRec(env->keymaps_inner_scrollbar, TKBC_UI_DARKPURPLE_ALPHA);
 
