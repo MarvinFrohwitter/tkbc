@@ -1495,5 +1495,7 @@ void signalhandler(int signal) {
 
   free(clients.elements);
   free(fds.elements);
+
+  tkbc_destroy_env(env);
   exit(EXIT_SUCCESS);
 }
