@@ -512,8 +512,10 @@ bool tkbc_sockets_read(Client *client) {
  * an error occurred or -11 if the error was EAGAIN.
  */
 int tkbc_socket_write(Client *client) {
-  size_t amount =
-      (client->send_msg_buffer.count - client->send_msg_buffer.i) % 1024;
+  size_t length = 1024;
+  size_t diff = (client->send_msg_buffer.count - client->send_msg_buffer.i);
+  size_t amount = diff < length ? diff : length;
+
   ssize_t n = send(client->socket_id,
                    client->send_msg_buffer.elements + client->send_msg_buffer.i,
                    amount, 0);
