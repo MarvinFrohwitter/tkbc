@@ -88,9 +88,10 @@
           abort();                                                             \
         }                                                                      \
       }                                                                        \
-      memcpy((dynamic_array)->elements + (dynamic_array)->count, new_elements, \
-             sizeof(*(dynamic_array)->elements) * new_elements_count);         \
-      (dynamic_array)->count = (dynamic_array)->count + new_elements_count;    \
+      memcpy((dynamic_array)->elements + (dynamic_array)->count,               \
+             (new_elements),                                                   \
+             sizeof(*(dynamic_array)->elements) * (new_elements_count));       \
+      (dynamic_array)->count = (dynamic_array)->count + (new_elements_count);  \
     }                                                                          \
   } while (0)
 
@@ -128,7 +129,7 @@
     }                                                                          \
                                                                                \
     int err = snprintf((dynamic_array)->elements + (dynamic_array)->count, n,  \
-                       fmt, ##__VA_ARGS__);                                    \
+                       (fmt), ##__VA_ARGS__);                                  \
     if (err == -1) {                                                           \
       assert(0 && "snprintf failed!");                                         \
     }                                                                          \
