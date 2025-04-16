@@ -8,6 +8,8 @@ Test kite_update_internal() {
 
   Kite_State *kite_state = tkbc_init_kite();
   Kite kite = *kite_state->kite;
+  free(kite_state->kite);
+  free(kite_state);
 
   Vector2 position = {200, 100};
   float angle = 90;
@@ -62,6 +64,8 @@ Test kite_update_position() {
 
   Kite_State *kite_state = tkbc_init_kite();
   Kite kite = *kite_state->kite;
+  free(kite_state->kite);
+  free(kite_state);
 
   Vector2 position = {200, 100};
 
@@ -112,6 +116,8 @@ Test kite_update_angle() {
 
   Kite_State *kite_state = tkbc_init_kite();
   Kite kite = *kite_state->kite;
+  free(kite_state->kite);
+  free(kite_state);
   float angle = 90;
   kite.center = (Vector2){0, 0};
 
