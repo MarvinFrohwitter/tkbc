@@ -58,8 +58,6 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position,
                           float center_deg_rotation);
 void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
                        TIP tip);
-void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
-                          float radius, TIP tip, bool below);
 
 // ========================== KITE DISPLAY ===================================
 

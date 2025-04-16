@@ -71,7 +71,6 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
     tkbc_input_check_mouse(state);
     tkbc_input_check_rotation(keymaps, state);
     tkbc_input_check_tip_turn(keymaps, state);
-    tkbc_input_check_circle(keymaps, state);
   }
 
   if (!state->is_center_rotation) {
@@ -299,97 +298,6 @@ void tkbc_input_check_tip_turn(Key_Maps keymaps, Kite_State *s) {
     if (!s->interrupt_smoothness) {
       s->interrupt_movement = true;
       tkbc_tip_rotation(s->kite, NULL, s->kite->angle - 45, RIGHT_TIP);
-    }
-    s->interrupt_smoothness = true;
-  }
-}
-
-/**
- * @brief [TODO:description] currently not working!
- *
- * @param keymaps The current set keymaps.
- * @param s The current state of a kite that should be handled.
- */
-void tkbc_input_check_circle(Key_Maps keymaps, Kite_State *s) {
-  // KEY_C
-  if (!IsKeyPressed(
-          tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CIRCLE_CLOCKWISE)
-              .key)) {
-    return;
-  }
-
-  Key_Map keymap =
-      tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CIRCLE_ANTICLOCKWISE);
-  // KEY_C
-  if (IsKeyPressed(keymap.key) &&
-      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
-
-    // state->interrupt_movement = true;
-    // KEY_H
-    if (IsKeyDown(keymap.selection_key1) || IsKeyDown(KEY_LEFT)) {
-      if (!s->is_fixed_rotation) {
-        tkbc_circle_rotation(s->kite, NULL,
-                             s->kite->angle - 1 - s->turn_velocity, -1,
-                             LEFT_TIP, false);
-        return;
-      }
-      if (!s->interrupt_smoothness) {
-        s->interrupt_movement = true;
-        tkbc_circle_rotation(s->kite, NULL, s->kite->angle - 45, -1, LEFT_TIP,
-                             false);
-      }
-      s->interrupt_smoothness = true;
-    }
-
-    // KEY_L
-    if (IsKeyDown(keymap.selection_key2) || IsKeyDown(KEY_RIGHT)) {
-
-      if (!s->is_fixed_rotation) {
-        tkbc_circle_rotation(s->kite, NULL,
-                             s->kite->angle + 1 + s->turn_velocity, -1,
-                             RIGHT_TIP, false);
-        return;
-      }
-      if (!s->interrupt_smoothness) {
-        s->interrupt_movement = true;
-        tkbc_circle_rotation(s->kite, NULL, s->kite->angle + 45, -1, RIGHT_TIP,
-                             false);
-      }
-      s->interrupt_smoothness = true;
-    }
-    return;
-  }
-
-  // state->interrupt_movement = true;
-  // KEY_H
-  if (IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CIRCLE_CLOCKWISE)
-                    .selection_key1) ||
-      IsKeyDown(KEY_LEFT)) {
-    if (!s->is_fixed_rotation) {
-      tkbc_circle_rotation(s->kite, NULL, s->kite->angle + 1 + s->turn_velocity,
-                           -1, LEFT_TIP, true);
-      return;
-    }
-    if (!s->interrupt_smoothness) {
-      s->interrupt_movement = true;
-      tkbc_circle_rotation(s->kite, NULL, s->kite->angle + 45, -1, LEFT_TIP,
-                           true);
-    }
-    s->interrupt_smoothness = true;
-  }
-  // KEY_L
-  if (IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CIRCLE_CLOCKWISE)
-                    .selection_key1) ||
-      IsKeyDown(KEY_RIGHT)) {
-    if (!s->is_fixed_rotation) {
-      tkbc_circle_rotation(s->kite, NULL, s->kite->angle - 1 - s->turn_velocity,
-                           -1, RIGHT_TIP, true);
-      return;
-    }
-    if (!s->interrupt_smoothness) {
-      s->interrupt_movement = true;
-      tkbc_circle_rotation(s->kite, NULL, s->kite->angle - 45, -1, RIGHT_TIP,
-                           true);
     }
     s->interrupt_smoothness = true;
   }

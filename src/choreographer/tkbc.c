@@ -531,62 +531,6 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
   tkbc_center_rotation(kite, &pos, tip_deg_rotation);
 }
 
-/**
- * @brief The function computes the rotation as a ball below and above the
- * leading edge.
- *
- * @param kite The kite for which the calculation will happen.
- * @param position The new position for the kite at the center of the leading
- * edge or NULL for internal center position of the kite structure.
- * @param deg_rotation The kite rotation in degrees.
- * @param radius The radius of the circle center to the leading edge center.
- * @param tip The tip that will be chosen to calculate the beginning of the
- * circle.
- * @param below The area where the rotation will happen.
- */
-void tkbc_circle_rotation(Kite *kite, Vector2 *position, float deg_rotation,
-                          float radius, TIP tip, bool below) {
-
-  if (radius == -1) {
-    radius = kite->height;
-  }
-  if (position != NULL) {
-    tkbc_kite_update_position(kite, position);
-  }
-
-  if (RIGHT_TIP == tip && below) {
-    deg_rotation = -deg_rotation;
-  }
-  if (LEFT_TIP == tip && !below) {
-    deg_rotation = -deg_rotation;
-  }
-  float phi = (PI * (deg_rotation) / 180);
-
-  Vector2 leading_edge = {
-      .x = kite->right.v3.x - kite->left.v1.x,
-      .y = kite->right.v3.y - kite->left.v1.y,
-  };
-  Vector2 orthogonal = {
-      .x = leading_edge.y,
-      .y = -leading_edge.x,
-  };
-  Vector2 inter = Vector2Scale(Vector2Normalize(orthogonal), radius);
-
-  Vector2 circle_center;
-  if (below) {
-    circle_center = Vector2Add(kite->center, inter);
-  } else {
-    circle_center = Vector2Subtract(kite->center, inter);
-  }
-
-  Vector2 pos = circle_center;
-  pos.x += radius * cosf(phi);
-  pos.y -= radius * sinf(phi);
-
-  // Just compute a center rotation instead at the new shifted position.
-  tkbc_center_rotation(kite, &pos, deg_rotation);
-}
-
 // ===========================================================================
 // ========================== KITE DISPLAY ===================================
 // ===========================================================================

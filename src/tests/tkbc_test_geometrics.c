@@ -314,60 +314,6 @@ Test tip_rotation_right() {
   return test;
 }
 
-Test circle_rotation_left_below() {
-  Test test = cassert_init_test("tkbc_circle_rotation(RIGHT)");
-
-  Kite_State *kite_state = tkbc_init_kite();
-  Kite kite = *kite_state->kite;
-
-  Vector2 position = {200, 100};
-  float angle = 90;
-  float radius = 100;
-
-  tkbc_circle_rotation(&kite, &position, angle, radius, LEFT_TIP, true);
-
-  // The approx factor is just for angle 90 and approximates the real
-  // calculation good enough, with eps 0.01, that the sin computation can be
-  // avoided.
-  float approx = 2 / 3.0;
-
-  cassert_float_eq(kite.center.x, position.x - radius);
-  cassert_float_eq(kite.center.y, position.y + radius);
-  cassert_float_eq(kite.angle, angle);
-
-  cassert_float_eq(kite.old_center.x, 0);
-  cassert_float_eq(kite.old_center.y, 0);
-  cassert_float_eq(kite.old_angle, 0);
-
-  cassert_float_eq(kite.left.v1.x, position.x - radius);
-  cassert_float_eq(kite.left.v1.y, position.y + radius + kite.width / 2);
-
-  cassert_float_eq_epsilon(kite.left.v2.x, position.x - radius + kite.height);
-  cassert_float_eq_epsilon(kite.left.v2.y,
-                           position.y + radius + kite.inner_space * approx);
-
-  cassert_float_eq(kite.left.v3.x, position.y + radius);
-  cassert_float_eq(kite.left.v3.y, position.y + radius - kite.overlap);
-
-  cassert_float_eq(kite.right.v1.x, position.y + radius);
-  cassert_float_eq(kite.right.v1.y, position.y + radius + kite.overlap);
-
-  cassert_float_eq_epsilon(kite.right.v2.x, position.x - radius + kite.height);
-  cassert_float_eq_epsilon(kite.right.v2.y,
-                           position.y + radius - kite.inner_space * approx);
-
-  cassert_float_eq(kite.right.v3.x, position.y + radius);
-  cassert_float_eq(kite.right.v3.y, position.y + radius - kite.width / 2);
-
-  cassert_float_eq(kite.rec.width, kite.width);
-  cassert_float_eq(kite.rec.height, 3 * PI * kite.spread);
-  cassert_float_eq(kite.rec.x, position.x - radius);
-  cassert_float_eq(kite.rec.y, position.y + radius + kite.width / 2);
-
-  tkbc_destroy_kite(kite_state);
-  return test;
-}
-
 void tkbc_test_geometrics(Tests *tests) {
   cassert_dap(tests, center_rotation());
   cassert_dap(tests, tip_rotation_left());
@@ -375,6 +321,4 @@ void tkbc_test_geometrics(Tests *tests) {
   cassert_dap(tests, kite_update_internal());
   cassert_dap(tests, kite_update_position());
   cassert_dap(tests, kite_update_angle());
-
-  cassert_dap(tests, circle_rotation_left_below());
 }
