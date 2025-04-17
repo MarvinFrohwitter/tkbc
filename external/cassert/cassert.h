@@ -484,11 +484,11 @@ static inline bool double_equals(double x, double y) {
                                          epsilon)
 
 #define cassert_type_double_compare(type, a, compare, b)                       \
-  cassert_type_compare_function_ex_param(type, ((float)(a)), ((float)(b)),     \
+  cassert_type_compare_function_ex_param(type, ((double)(a)), ((double)(b)),   \
                                          cassert_compare_epsilon, compare, 0)
 
 #define cassert_type_double_compare_epsilon(type, a, compare, b, epsilon)      \
-  cassert_type_compare_function_ex_param(type, ((float)(a)), ((float)(b)),     \
+  cassert_type_compare_function_ex_param(type, ((double)(a)), ((double)(b)),   \
                                          cassert_compare_epsilon, compare,     \
                                          epsilon)
 
