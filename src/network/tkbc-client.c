@@ -73,7 +73,7 @@ void tkbc_client_usage(const char *program_name) {
  * @brief The function checks if host and port is given to that program
  * execution.
  *
- * @param argc The commandline argument count.
+ * @param argc The command line argument count.
  * @param program_name The name of the program that is currently executing.
  * @return True if there are enough arguments, otherwise false.
  */
