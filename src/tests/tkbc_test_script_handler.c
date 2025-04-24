@@ -304,6 +304,111 @@ Test deep_copy_block_frame() {
   return test;
 }
 
+Test destroy_frames_internal_data() {
+  Test test = cassert_init_test("tkbc_destroy_frames_internal_data()");
+  Frames frames = {0};
+  Frame frame = {0};
+
+  frame.kite_id_array = tkbc_indexs_range(0, 3);
+  frame.kind = KITE_MOVE;
+  frame.action.as_move.position = (Vector2){.x = 300, .y = 400};
+  cassert_dap(&frames, frame);
+
+  cassert_dap(
+      &frames.kite_frame_positions,
+      ((Kite_Position){
+          .kite_id = 1, .position.x = 100, .position.y = 200, .angle = 90}));
+  cassert_dap(
+      &frames.kite_frame_positions,
+      ((Kite_Position){
+          .kite_id = 2, .position.x = 150, .position.y = 250, .angle = 180}));
+
+  cassert_ptr_neq(frames.elements, NULL);
+  cassert_size_t_neq(frames.count, 0);
+  cassert_size_t_neq(frames.capacity, 0);
+  cassert_ptr_neq(frames.kite_frame_positions.elements, NULL);
+  cassert_size_t_neq(frames.kite_frame_positions.count, 0);
+  cassert_size_t_neq(frames.kite_frame_positions.capacity, 0);
+
+  Kite_Ids *ids = &frames.elements->kite_id_array;
+
+  cassert_ptr_neq(frames.elements->kite_id_array.elements, NULL);
+  cassert_size_t_neq(frames.elements->kite_id_array.count, 0);
+  cassert_size_t_neq(frames.elements->kite_id_array.capacity, 0);
+
+  tkbc_destroy_frames_internal_data(&frames);
+
+  {
+    // This data is not guaranteed to be the expected values. Use after free.
+    // cassert_ptr_eq(ids->elements, NULL);
+
+    cassert_ptr_neq(ids, NULL);
+    // cassert_size_t_neq(ids->count, 3);
+    // cassert_size_t_eq(ids->capacity, 0);
+  }
+
+  cassert_ptr_eq(frames.elements, NULL);
+  cassert_size_t_eq(frames.count, 0);
+  cassert_size_t_eq(frames.capacity, 0);
+
+  cassert_ptr_eq(frames.kite_frame_positions.elements, NULL);
+  cassert_size_t_eq(frames.kite_frame_positions.count, 0);
+  cassert_size_t_eq(frames.kite_frame_positions.capacity, 0);
+
+  return test;
+}
+
+Test reset_frames_internal_data() {
+  Test test = cassert_init_test("tkbc_reset_frames_internal_data()");
+  Frames frames = {0};
+  Frame frame = {0};
+
+  frame.kite_id_array = tkbc_indexs_range(0, 3);
+  frame.kind = KITE_MOVE;
+  frame.action.as_move.position = (Vector2){.x = 300, .y = 400};
+  cassert_dap(&frames, frame);
+
+  cassert_dap(
+      &frames.kite_frame_positions,
+      ((Kite_Position){
+          .kite_id = 1, .position.x = 100, .position.y = 200, .angle = 90}));
+  cassert_dap(
+      &frames.kite_frame_positions,
+      ((Kite_Position){
+          .kite_id = 2, .position.x = 150, .position.y = 250, .angle = 180}));
+
+  cassert_ptr_neq(frames.elements, NULL);
+  cassert_size_t_neq(frames.count, 0);
+  cassert_size_t_neq(frames.capacity, 0);
+  cassert_ptr_neq(frames.kite_frame_positions.elements, NULL);
+  cassert_size_t_neq(frames.kite_frame_positions.count, 0);
+  cassert_size_t_neq(frames.kite_frame_positions.capacity, 0);
+
+  Kite_Ids *ids = &frames.elements->kite_id_array;
+
+  cassert_ptr_neq(frames.elements->kite_id_array.elements, NULL);
+  cassert_size_t_neq(frames.elements->kite_id_array.count, 0);
+  cassert_size_t_neq(frames.elements->kite_id_array.capacity, 0);
+
+  tkbc_reset_frames_internal_data(&frames);
+
+  cassert_ptr_neq(ids, NULL);
+  cassert_ptr_eq(ids->elements, NULL);
+  cassert_size_t_neq(ids->count, 3);
+  cassert_size_t_eq(ids->capacity, 0);
+
+  cassert_ptr_neq(frames.elements, NULL);
+  cassert_size_t_eq(frames.count, 0);
+  cassert_size_t_neq(frames.capacity, 0);
+
+  cassert_ptr_neq(frames.kite_frame_positions.elements, NULL);
+  cassert_size_t_eq(frames.kite_frame_positions.count, 0);
+  cassert_size_t_neq(frames.kite_frame_positions.capacity, 0);
+
+  tkbc_destroy_frames_internal_data(&frames);
+  return test;
+}
+
 void tkbc_test_script_handler(Tests *tests) {
   cassert_dap(tests, init_frame());
   cassert_dap(tests, get_kite_by_id());
@@ -312,4 +417,6 @@ void tkbc_test_script_handler(Tests *tests) {
   cassert_dap(tests, deep_copy_frame());
   cassert_dap(tests, deep_copy_frames());
   cassert_dap(tests, deep_copy_block_frame());
+  cassert_dap(tests, destroy_frames_internal_data());
+  cassert_dap(tests, reset_frames_internal_data());
 }
