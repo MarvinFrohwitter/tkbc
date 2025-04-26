@@ -15,7 +15,6 @@
 void tkbc__script_begin(Env *env) {
   env->script_interrupt = true;
   env->script_setup = true;
-  env->script_counter++;
   tkbc_register_frames(env, tkbc_script_wait(0));
 }
 
@@ -35,7 +34,7 @@ void tkbc__script_end(Env *env) {
   env->script_setup = false;
 
   assert(env->scratch_buf_block_frame.count > 0);
-  env->scratch_buf_block_frame.script_id = env->script_counter;
+  env->scratch_buf_block_frame.script_id = env->block_frames->count + 1;
   tkbc_dap(env->block_frames,
            tkbc_deep_copy_block_frame(&env->scratch_buf_block_frame));
 

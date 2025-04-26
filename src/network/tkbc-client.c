@@ -874,7 +874,7 @@ void tkbc_message_kites_positions() {
  * messages that are send to the server.
  */
 void tkbc_client_input_handler_script() {
-  if (env->script_counter <= 0) {
+  if (env->block_frames->count <= 0) {
     return;
   }
 

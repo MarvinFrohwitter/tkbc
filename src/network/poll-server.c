@@ -1146,7 +1146,6 @@ bool tkbc_received_message_handler(Client *client) {
         for (size_t i = 0; i < scb_block_frame->count; ++i) {
           tkbc_destroy_frames_internal_data(&scb_block_frame->elements[i]);
         }
-        env->script_counter = env->block_frames->count;
       }
       scb_block_frame->count = 0;
 
@@ -1193,10 +1192,6 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_TOGGLE\n");
     } break;
     case MESSAGE_SCRIPT_NEXT: {
-
-      if (env->script_counter > env->block_frames->count) {
-        goto err;
-      }
 
       tkbc_load_next_script(env);
       env->server_script_kite_max_count = 0;
@@ -1432,32 +1427,34 @@ int main(int argc, char *argv[]) {
 
     //
     // Base execution
-    if (env->script_counter > 0) {
-      if (!tkbc_script_finished(env) && env->block_frame != NULL) {
-        size_t bindex = env->frames->block_index;
-        // TODO: Map script ids to current registered ids.
-        // TODO: Make the default client kite.ids higher numbers starting around
-        // 1000 or so.
-        tkbc_script_update_frames(env);
+    if (env->block_frames->count <= 0) {
+      continue;
+    }
 
-        if (env->frames->block_index != bindex) {
-          bindex = env->frames->block_index;
-          tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
-              env->block_frame->script_id, env->block_frame->count, bindex);
-        }
+    if (!tkbc_script_finished(env) && env->block_frame != NULL) {
+      size_t bindex = env->frames->block_index;
+      // TODO: Map script ids to current registered ids.
+      // TODO: Make the default client kite.ids higher numbers starting around
+      // 1000 or so.
+      tkbc_script_update_frames(env);
 
-        tkbc_message_clientkites_write_to_all_send_msg_buffers();
+      if (env->frames->block_index != bindex) {
+        bindex = env->frames->block_index;
+        tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
+            env->block_frame->script_id, env->block_frame->count, bindex);
+      }
 
-        if (tkbc_script_finished(env)) {
-          Message message = {0};
-          tkbc_dapf(&message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
-          tkbc_write_to_all_send_msg_buffers(message);
-          free(message.elements);
-          message.elements = NULL;
-          for (size_t i = 0; i < env->kite_array->count; ++i) {
-            Kite_State *kite_state = &env->kite_array->elements[i];
-            kite_state->is_active = !kite_state->is_active;
-          }
+      tkbc_message_clientkites_write_to_all_send_msg_buffers();
+
+      if (tkbc_script_finished(env)) {
+        Message message = {0};
+        tkbc_dapf(&message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
+        tkbc_write_to_all_send_msg_buffers(message);
+        free(message.elements);
+        message.elements = NULL;
+        for (size_t i = 0; i < env->kite_array->count; ++i) {
+          Kite_State *kite_state = &env->kite_array->elements[i];
+          kite_state->is_active = !kite_state->is_active;
         }
       }
     }

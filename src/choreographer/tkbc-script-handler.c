@@ -647,9 +647,10 @@ size_t tkbc_check_finished_frames_count(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_load_next_script(Env *env) {
-  if (env->script_counter == 0) {
+  if (env->block_frames->count <= 0) {
     return;
   }
+
   // Switch to next script.
   // NOTE: The first iteration has no loaded value jet so 0 is default.
   size_t id = env->block_frame == NULL ? 0 : env->block_frame->script_id;
@@ -702,7 +703,6 @@ void tkbc_input_handler_script(Env *env) {
   }
   // KEY_TAB
   if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
-    assert(env->script_counter <= env->block_frames->count);
     tkbc_load_next_script(env);
   }
 
