@@ -71,6 +71,16 @@ Env *tkbc_init_env(void) {
 
   env->box_height = 80;
   env->keymaps_interaction_rec_number = -1;
+
+  env->color_picker_input_text = calloc(10, sizeof(char));
+  if (env->color_picker_input_text == NULL) {
+    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+    return NULL;
+  }
+
+  env->last_selected_color = GetColor(0x008080FF);
+  env->color_picker_input_text[0] = '#';
+
   return env;
 }
 
@@ -124,14 +134,9 @@ void tkbc_destroy_env(Env *env) {
     env->keymaps = NULL;
   }
 
-  if (env->sound_file_name != NULL) {
-    free(env->sound_file_name);
-    env->sound_file_name = NULL;
-  }
-  if (env->script_file_name != NULL) {
-    free(env->script_file_name);
-    env->script_file_name = NULL;
-  }
+  free(env->color_picker_input_text);
+  free(env->sound_file_name);
+  free(env->script_file_name);
   free(env->vanilla_kite);
   env->vanilla_kite = NULL;
   tkbc_destroy_kite_array(env->kite_array);

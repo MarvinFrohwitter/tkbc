@@ -406,6 +406,17 @@ typedef struct {
                                  // timeline.
   size_t timeline_segments; // The amount of frames that the timeline displays.
 
+  Rectangle
+      color_picker_base; // The base bounding box of the color selection menu.
+  char *color_picker_input_text; // The base bounding box of the color
+                                 // selection menu.
+  bool color_picker_interaction; // The status if the color picker is currently
+                                 // in use.
+  bool color_picker_input_mouse_interaction; // Checks if the input box is
+                                             // clicked.
+  Color last_selected_color; // The color that is displayed in the box below the
+                             // input.
+
 } Env; // The global state of the application.
 
 #endif // TKBC_TYPES_H_

@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../global/tkbc-types.h"
@@ -31,6 +33,7 @@ void tkbc_draw_ui(Env *env) {
   }
 
   tkbc_ui_keymaps(env);
+  tkbc_ui_color_picker(env);
 
   if (!env->rendering) {
     Color color = TKBC_UI_TEAL;
@@ -42,6 +45,130 @@ void tkbc_draw_ui(Env *env) {
     char buf[16] = {0};
     sprintf(buf, "%2i FPS", fps);
     DrawText(buf, env->window_width / 2, 10, 20, color);
+  }
+}
+
+bool is_key_valid_part_of_hex_number(int key) {
+  return (key >= KEY_ZERO && key <= KEY_NINE) || (key >= KEY_A && key <= KEY_F);
+}
+
+void tkbc_ui_color_picker(Env *env) {
+  if (env->script_setup) {
+    return;
+  }
+
+  // KEY_ESCAPE
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
+    env->color_picker_interaction = !env->color_picker_interaction;
+  }
+  if (!env->color_picker_interaction) {
+    return;
+  }
+
+  float color_picker_width = env->window_width * 0.2;
+  env->color_picker_base =
+      (Rectangle){env->window_width - color_picker_width, 0, color_picker_width,
+                  env->window_height};
+  DrawRectangleRec(env->color_picker_base, TKBC_UI_GRAY_ALPHA);
+
+  int padding = 10;
+  int font_size = 22;
+  const char *description = "Enter a hex color code.";
+  Vector2 text_size =
+      MeasureTextEx(GetFontDefault(), description, font_size, 0);
+  float description_height = text_size.y + padding;
+
+  Rectangle input_box;
+  input_box.height = env->box_height * 0.5;
+  input_box.width = env->color_picker_base.width * 0.8;
+  input_box.x = env->color_picker_base.x + env->color_picker_base.width / 2 -
+                input_box.width / 2;
+  input_box.y = padding + description_height;
+
+  DrawText(description, input_box.x, env->color_picker_base.y + padding,
+           font_size, TKBC_UI_BLACK);
+  DrawRectangleRec(input_box, WHITE);
+
+  size_t char_amount = strlen(env->color_picker_input_text);
+
+  int key = GetKeyPressed();
+  Vector2 mouse = GetMousePosition();
+  if (CheckCollisionPointRec(mouse, input_box) &&
+      IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    env->color_picker_input_mouse_interaction = true;
+  }
+
+  if (key == KEY_ENTER ||
+      key == tkbc_hash_to_key(*env->keymaps, KMH_CHANGE_KEY_MAPPINGS)) {
+    env->color_picker_input_mouse_interaction = false;
+    goto key_skip;
+  }
+
+  if (!env->color_picker_input_mouse_interaction) {
+    goto key_skip;
+  }
+
+  if (key == KEY_BACKSPACE) {
+    if (char_amount > 1) {
+      env->color_picker_input_text[char_amount - 1] = '\0';
+    }
+  } else if (is_key_valid_part_of_hex_number(key)) {
+    if (char_amount > 8) {
+      goto key_skip;
+    }
+    env->color_picker_input_text[char_amount] = key;
+  }
+
+key_skip:
+  text_size = MeasureTextEx(GetFontDefault(), env->color_picker_input_text,
+                            font_size, 0);
+  DrawText(env->color_picker_input_text, input_box.x + padding,
+           input_box.y + input_box.height / 2 - text_size.y / 2, font_size,
+           TKBC_UI_GRAY);
+
+  if (env->color_picker_input_text[1] == '\0') {
+    const char *shadow_text = "  008080FF";
+    text_size = MeasureTextEx(GetFontDefault(), shadow_text, font_size, 0);
+    DrawText(shadow_text, input_box.x + padding,
+             input_box.y + input_box.height / 2 - text_size.y / 2, font_size,
+             TKBC_UI_LIGHTGRAY);
+    // Rest so the cursor does not add the text_size, when the shadow text is
+    // displayed.
+    text_size.x = 0;
+    text_size.y = 0;
+  }
+
+  Rectangle cursor = input_box;
+  cursor.width = 2;
+  cursor.height = input_box.height * 0.9;
+  cursor.y = input_box.y + input_box.height / 2 - cursor.height / 2;
+  float font_correction_factor = 1;
+  cursor.x = input_box.x + (padding >> 1) + (padding << 1) +
+             font_correction_factor * text_size.x;
+  DrawRectangleRec(cursor, TKBC_UI_BLACK);
+
+  if (strlen(env->color_picker_input_text) == 8 + 1) {
+    env->last_selected_color =
+        GetColor(strtol(env->color_picker_input_text + 1, NULL, 16));
+  }
+
+  Rectangle color_box;
+  color_box.height = env->box_height;
+  color_box.width = input_box.width;
+  color_box.x = input_box.x;
+  color_box.y = padding + input_box.y + input_box.height;
+  // This is for allowing correct displayment of the alpha.
+  DrawRectangleRec(color_box, (Color){0xff, 0xff, 0xff, 0xff});
+  DrawRectangleRec(color_box, env->last_selected_color);
+
+  if (CheckCollisionPointRec(mouse, color_box) &&
+      IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    for (size_t i = 0; i < env->kite_array->count; ++i) {
+      if (env->kite_array->elements[i].is_kite_input_handler_active) {
+        env->kite_array->elements[i].kite->body_color =
+            env->last_selected_color;
+      }
+    }
   }
 }
 
@@ -121,11 +248,13 @@ void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
 }
 
 /**
- * @brief The function sets the dest_key and it's corresponding string when the
- * given key is not equal to KEY_DELETE. For that case the keybind is deleted.
+ * @brief The function sets the dest_key and it's corresponding string when
+ * the given key is not equal to KEY_DELETE. For that case the keybind is
+ * deleted.
  *
  * @param dest_key The key to sets is value to key_value.
- * @param dest_str The key str that holds the string representation of the key.
+ * @param dest_str The key str that holds the string representation of the
+ * key.
  * @param key_value The value that the dest_key should be set to.
  */
 void tkbc_set_key_or_delete(int *dest_key, const char **dest_str,
@@ -140,8 +269,8 @@ void tkbc_set_key_or_delete(int *dest_key, const char **dest_str,
 
 /**
  * @brief The function sets the new keybinding corresponding to the given
- * rectangle. The handling of the drawing of the text and the box color is also
- * dynamically changed.
+ * rectangle. The handling of the drawing of the text and the box color is
+ * also dynamically changed.
  *
  * @param env The global state of the application.
  * @param rectangle The rectangle of the key box that should be handled.
@@ -246,10 +375,10 @@ key_change_skip: {}
 }
 
 /**
- * @brief The function displays the keymaps settings and handles the interaction
- * with it. That includes loading and saving them to a file as well as setting
- * all the new defined keybinds from the user or even resetting them to the
- * defaults.
+ * @brief The function displays the keymaps settings and handles the
+ * interaction with it. That includes loading and saving them to a file as
+ * well as setting all the new defined keybinds from the user or even
+ * resetting them to the defaults.
  *
  * @param env The global state of the application.
  */
@@ -312,13 +441,14 @@ void tkbc_ui_keymaps(Env *env) {
     //     before + (after - before) * tkbc_get_frame_time();
   }
 
-  // This is just needed for window resizing problems. When the list of items is
-  // scrolled to the bottom in a small window and then the window gets resized
-  // to a lager one, the scrollbar should not be outside of the base scroll
-  // container. The list it self may float to the top but that is not a bug in
-  // it self list can handle a scrolloff. Below the list there is nothing to
-  // display so it just empty space there is no need to recallculate the
-  // position of the items for the lager window. -- M.Frohwitter 07.04.2025
+  // This is just needed for window resizing problems. When the list of items
+  // is scrolled to the bottom in a small window and then the window gets
+  // resized to a lager one, the scrollbar should not be outside of the base
+  // scroll container. The list it self may float to the top but that is not a
+  // bug in it self list can handle a scrolloff. Below the list there is
+  // nothing to display so it just empty space there is no need to
+  // recallculate the position of the items for the lager window. --
+  // M.Frohwitter 07.04.2025
   if (env->keymaps_inner_scrollbar.y >
       env->keymaps_scrollbar.height - env->keymaps_inner_scrollbar.height) {
     env->keymaps_inner_scrollbar.y =
