@@ -69,7 +69,7 @@ void tkbc_ui_color_picker(Env *env) {
   env->color_picker_base =
       (Rectangle){env->window_width - color_picker_width, 0, color_picker_width,
                   env->window_height};
-  DrawRectangleRec(env->color_picker_base, TKBC_UI_GRAY_ALPHA);
+  // DrawRectangleRec(env->color_picker_base, TKBC_UI_GRAY_ALPHA);
 
   int padding = 10;
   int font_size = 22;
@@ -87,7 +87,7 @@ void tkbc_ui_color_picker(Env *env) {
 
   DrawText(description, input_box.x, env->color_picker_base.y + padding,
            font_size, TKBC_UI_BLACK);
-  DrawRectangleRec(input_box, WHITE);
+  DrawRectangleRounded(input_box, 50, 20, WHITE);
 
   size_t char_amount = strlen(env->color_picker_input_text);
 
@@ -158,16 +158,54 @@ key_skip:
   color_box.x = input_box.x;
   color_box.y = padding + input_box.y + input_box.height;
   // This is for allowing correct displayment of the alpha.
-  DrawRectangleRec(color_box, (Color){0xff, 0xff, 0xff, 0xff});
-  DrawRectangleRec(color_box, env->last_selected_color);
+  DrawRectangleRounded(color_box, 2, 20, WHITE);
+  DrawRectangleRounded(color_box, 2, 20, env->last_selected_color);
+  DrawRectangleRoundedLinesEx(color_box, 2, 20, 1, BLACK);
 
   if (CheckCollisionPointRec(mouse, color_box) &&
       IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-    for (size_t i = 0; i < env->kite_array->count; ++i) {
-      if (env->kite_array->elements[i].is_kite_input_handler_active) {
-        env->kite_array->elements[i].kite->body_color =
-            env->last_selected_color;
+    tkbc_set_color_for_selected_kites(env, env->last_selected_color);
+  }
+
+  float color_circle_radius = color_box.height / 2;
+  float left_circle_center =
+      env->color_picker_base.x + color_circle_radius + padding;
+
+  Vector2 color_circle = {
+      .x = left_circle_center,
+      .y = color_box.y + color_box.height + padding,
+  };
+
+  Color colors[] = {
+      LIGHTGRAY, GRAY,  DARKGRAY,  YELLOW,  GOLD,   ORANGE,
+      PINK,      RED,   MAROON,    GREEN,   LIME,   DARKGREEN,
+      SKYBLUE,   BLUE,  DARKBLUE,  PURPLE,  VIOLET, DARKPURPLE,
+      BEIGE,     BROWN, DARKBROWN, MAGENTA, TEAL,
+  };
+
+  for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
+    if (i % 4 == 0) {
+      color_circle.x = left_circle_center;
+      color_circle.y += 2 * color_circle_radius + padding;
+    } else {
+      color_circle.x += 2 * color_circle_radius + padding;
+    }
+    DrawCircleV(color_circle, color_circle_radius, colors[i]);
+    DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
+
+    if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
+      env->last_selected_color = colors[i];
+      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        tkbc_set_color_for_selected_kites(env, env->last_selected_color);
       }
+    }
+  }
+}
+
+void tkbc_set_color_for_selected_kites(Env *env, Color color) {
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    if (env->kite_array->elements[i].is_kite_input_handler_active) {
+      env->kite_array->elements[i].kite->body_color = color;
     }
   }
 }

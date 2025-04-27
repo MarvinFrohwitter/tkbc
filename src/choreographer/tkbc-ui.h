@@ -11,6 +11,7 @@ void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration,
                        size_t cur_major_box);
 void tkbc_ui_keymaps(Env *env);
 
-void tkbc_ui_color_picker(Env*env);
+void tkbc_ui_color_picker(Env *env);
+void tkbc_set_color_for_selected_kites(Env *env, Color color);
 
 #endif // TKBC_UI_H
