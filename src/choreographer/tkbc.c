@@ -78,6 +78,11 @@ Env *tkbc_init_env(void) {
     return NULL;
   }
 
+  env->max_favorite_colors = 4;
+  for (size_t i = 0; i < env->max_favorite_colors; i++) {
+    tkbc_dap(&env->favorite_colors, BLANK);
+  }
+
   env->last_selected_color = GetColor(0x008080FF);
   env->color_picker_input_text[0] = '#';
 
@@ -135,6 +140,7 @@ void tkbc_destroy_env(Env *env) {
   }
 
   free(env->color_picker_input_text);
+  free(env->favorite_colors.elements);
   free(env->sound_file_name);
   free(env->script_file_name);
   free(env->vanilla_kite);

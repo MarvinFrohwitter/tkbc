@@ -332,6 +332,13 @@ typedef struct {
 typedef struct Process Process;
 
 typedef struct {
+  Color *elements; // The dynamic array collection for Colors.
+  size_t count;    // The amount of elements in the array.
+  size_t capacity; // The complete allocated space for the array represented as
+                   // the number of collection elements of the array type.
+} Colors;          // A dynamic array collection that holds the type Color.
+
+typedef struct {
   Kite *vanilla_kite;      // A representation of all the default kite values.
   Kite_States *kite_array; // The kites that are generated for the current
                            // session of the application.
@@ -344,8 +351,8 @@ typedef struct {
 
   char *script_file_name; // The name of the script file '.kite'.
 
-  size_t send_scripts;   // Represents the amount of scripts that where send to
-                         // the peer partner starts; with 1.
+  size_t send_scripts; // Represents the amount of scripts that where send to
+                       // the peer partner starts; with 1.
   size_t server_script_block_index; // Represents of the block index the server
                                     // is currently executing.
   size_t
@@ -416,6 +423,10 @@ typedef struct {
                                              // clicked.
   Color last_selected_color; // The color that is displayed in the box below the
                              // input.
+  size_t max_favorite_colors;
+  size_t current_favorite_colors_index;
+  Colors favorite_colors; // The current storage that holds the data for the
+                          // color_picker favorite color circles.
 
 } Env; // The global state of the application.
 

@@ -165,6 +165,10 @@ key_skip:
   if (CheckCollisionPointRec(mouse, color_box) &&
       IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
     tkbc_set_color_for_selected_kites(env, env->last_selected_color);
+
+    env->favorite_colors.elements[env->current_favorite_colors_index++ %
+                                  env->favorite_colors.count] =
+        env->last_selected_color;
   }
 
   float color_circle_radius = color_box.height / 2;
@@ -176,6 +180,23 @@ key_skip:
       .y = color_box.y + color_box.height + padding,
   };
 
+  // Handle favorite colors circles.
+  color_circle.y += 2 * color_circle_radius + padding;
+  for (size_t i = 0; i < env->favorite_colors.count; i++) {
+    if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius) &&
+        IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+      env->last_selected_color = env->favorite_colors.elements[i];
+    }
+
+    DrawCircleV(color_circle, color_circle_radius,
+                env->favorite_colors.elements[i]);
+    DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
+    color_circle.x += 2 * color_circle_radius + padding;
+  }
+  color_circle.x = left_circle_center;
+  color_circle.y += 2 * color_circle_radius + padding;
+
+  // Handle default colors circles.
   Color colors[] = {
       LIGHTGRAY, GRAY,  DARKGRAY,  YELLOW,  GOLD,   ORANGE,
       PINK,      RED,   MAROON,    GREEN,   LIME,   DARKGREEN,
