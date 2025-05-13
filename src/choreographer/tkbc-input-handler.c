@@ -52,7 +52,10 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
 
   // KEY_R && KEY_T
   if (IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
-      IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE))) {
+      IsKeyUp(
+          tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)) &&
+      IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE)) &&
+      IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_TIP_ANTICLOCKWISE))) {
     state->interrupt_smoothness = false;
   }
   if (state->interrupt_smoothness) {
@@ -88,7 +91,10 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
     state->is_center_rotation = false;
     // KEY_R
     if (IsKeyUp(tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)
-                    .key)) {
+                    .key) &&
+        IsKeyUp(
+            tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)
+                .key)) {
       state->interrupt_movement = false;
     }
   }
