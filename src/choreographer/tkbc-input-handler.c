@@ -171,14 +171,17 @@ void tkbc_input_handler_kite_array(Env *env) {
     }
   }
 
-  // TODO: Remove
   // To handle all of the kites currently registered in the kite array.
+  bool speed_is_displayed = false;
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    Color color = TKBC_UI_TEAL;
-    char buf[32] = {0};
-    sprintf(buf, "%.0f", env->kite_array->elements[i].kite->fly_speed);
-
-    DrawTextEx(GetFontDefault(), buf, (Vector2){10, 10}, 32, 10, color);
+    // TODO: Remove
+    if (!speed_is_displayed && env->kite_array->elements[i].is_kite_input_handler_active) {
+      Color color = TKBC_UI_TEAL;
+      char buf[32] = {0};
+      sprintf(buf, "%.0f", env->kite_array->elements[i].kite->fly_speed);
+      DrawTextEx(GetFontDefault(), buf, (Vector2){10, 10}, 32, 10, color);
+      speed_is_displayed = true;
+    }
 
     tkbc_input_handler(*env->keymaps, &env->kite_array->elements[i]);
   }
