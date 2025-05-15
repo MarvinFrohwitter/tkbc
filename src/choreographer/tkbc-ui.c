@@ -34,6 +34,7 @@ void tkbc_draw_ui(Env *env) {
 
   tkbc_ui_keymaps(env);
   tkbc_ui_color_picker(env);
+  tkbc_display_kite_information(env);
 
   if (!env->rendering) {
     Color color = TKBC_UI_TEAL;
@@ -46,6 +47,23 @@ void tkbc_draw_ui(Env *env) {
     sprintf(buf, "%2i FPS", fps);
     DrawText(buf, env->window_width / 2, 10, 20, color);
   }
+}
+
+void tkbc_display_kite_information(Env *env) {
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    if (env->kite_array->elements[i].is_kite_input_handler_active) {
+      tkbc_display_kite_information_speeds(&env->kite_array->elements[i]);
+      return;
+    }
+  }
+}
+
+void tkbc_display_kite_information_speeds(Kite_State *kite_state) {
+  char buf[64] = {0};
+  sprintf(buf, "Turn Speed: %.0f \t Fly Speed: %.0f",
+          kite_state->kite->turn_speed, kite_state->kite->fly_speed);
+  Vector2 pos = {10, 10};
+  DrawText(buf, pos.x, pos.y, 20, TKBC_UI_TEAL);
 }
 
 bool is_key_valid_part_of_hex_number(int key) {
