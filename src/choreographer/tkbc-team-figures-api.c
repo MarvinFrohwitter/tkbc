@@ -565,8 +565,6 @@ bool tkbc_script_team_mountain(Env *env, Kite_Ids kite_index_array,
   }
 
   tkbc_register_frames_array(env, &env->scratch_buf_frames);
-  // TODO: Think about freeing the kite_frame_positions -> but there are used
-  // again in the patch block frame thing so it should not be a thing.
   return true;
 }
 
@@ -922,7 +920,6 @@ void tkbc_script_team_box(Env *env, Kite_Ids kite_index_array,
                           DIRECTION direction, float angle, float box_size,
                           float move_duration, float rotation_duration) {
 
-  // TODO: Think about the starting point.
   if (direction == RIGHT) {
     angle = -angle;
   }
