@@ -34,7 +34,9 @@ void tkbc_draw_ui(Env *env) {
 
   tkbc_ui_keymaps(env);
   tkbc_ui_color_picker(env);
-  tkbc_display_kite_information(env);
+  if (!env->keymaps_interaction) {
+    tkbc_display_kite_information(env);
+  }
 
   if (!env->rendering) {
     Color color = TKBC_UI_TEAL;
