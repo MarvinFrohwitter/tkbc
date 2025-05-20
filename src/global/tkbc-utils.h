@@ -219,8 +219,7 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
 
   va_list args;
   va_start(args, fmt);
-  char buf[8];
-  if (vsnprintf(buf, sizeof(buf), fmt, args) == 0) {
+  if (vsnprintf(NULL, 0, fmt, args) == 0) {
     return 0;
   }
   va_end(args);
