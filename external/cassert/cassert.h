@@ -333,7 +333,8 @@ void cassert_array_free_case_value_mem(Test *test);
 void cassert_free_test(Test *test);
 void cassert_free_tests(Tests *tests);
 
-int cassert_min(int a, int b);
+int cassert_min(size_t a, size_t b);
+int cassert_max(size_t a, size_t b);
 const char *cassert_str_assert_type(Assert_Type assert_type);
 bool cassert_set_last_cassert_description(Test *test, const char *description);
 int print_operation_and_description(Cassert cassert);
@@ -505,7 +506,7 @@ static inline bool double_equals(double x, double y) {
     assert(cassert.value2 != NULL);                                            \
     cassert.comparison = CASSERT_EQ;                                           \
     cassert.operation_str = #a " " CASSERT_EQ " " #b;                          \
-    cassert.result = strncmp(a, b, cassert_min(strlen(a), strlen(b)));         \
+    cassert.result = strncmp(a, b, cassert_max(strlen(a), strlen(b)));         \
     if (cassert.result != 0) {                                                 \
       cassert.failed = true;                                                   \
     }                                                                          \
@@ -524,7 +525,7 @@ static inline bool double_equals(double x, double y) {
     assert(cassert.value2 != NULL);                                            \
     cassert.comparison = CASSERT_NEQ;                                          \
     cassert.operation_str = #a " " CASSERT_NEQ " " #b;                         \
-    cassert.result = !strncmp(a, b, cassert_min(strlen(a), strlen(b)));        \
+    cassert.result = !strncmp(a, b, cassert_max(strlen(a), strlen(b)));        \
     if (cassert.result != 0) {                                                 \
       cassert.failed = true;                                                   \
     }                                                                          \
@@ -593,7 +594,7 @@ enum { _float, _double, _int64 };
     cassert.operation_str = #string " " CASSERT_EQ " " #number;                \
     cassert.result =                                                           \
         strncmp(string, number_string,                                         \
-                cassert_min(strlen(string), strlen(number_string)));           \
+                cassert_max(strlen(string), strlen(number_string)));           \
     if (cassert.result != 0) {                                                 \
       cassert.failed = true;                                                   \
     }                                                                          \
@@ -641,7 +642,7 @@ enum { _float, _double, _int64 };
     cassert.operation_str = #string " " CASSERT_NEQ " " #number;               \
     cassert.result =                                                           \
         !strncmp(string, number_string,                                        \
-                 cassert_min(strlen(string), strlen(number_string)));          \
+                 cassert_max(strlen(string), strlen(number_string)));          \
     if (cassert.result != 0) {                                                 \
       cassert.failed = true;                                                   \
     }                                                                          \
@@ -996,7 +997,8 @@ enum { _float, _double, _int64 };
 #include <stdio.h>
 #include <string.h>
 
-int cassert_min(int a, int b) { return a < b ? a : b; }
+int cassert_min(size_t a, size_t b) { return a < b ? a : b; }
+int cassert_max(size_t a, size_t b) { return a > b ? a : b; }
 
 const char *cassert_str_assert_type(Assert_Type assert_type) {
   static_assert(ASSERT_TYPE_COUNT == 137, "assert types count has changed");
