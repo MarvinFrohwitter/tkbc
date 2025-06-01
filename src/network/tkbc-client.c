@@ -304,6 +304,9 @@ bool received_message_handler(Message *message) {
       break;
     }
     if (token.kind == INVALID) {
+      break;
+    }
+    if (token.kind == NULL_TERMINATOR) {
       // This is '\0' same as EOF in this case.
       break;
     }

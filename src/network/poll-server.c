@@ -734,6 +734,9 @@ bool tkbc_received_message_handler(Client *client) {
       break;
     }
     if (token.kind == INVALID) {
+      break;
+    }
+    if (token.kind == NULL_TERMINATOR) {
       // This is '\0' same as EOF in this case.
       break;
     }
