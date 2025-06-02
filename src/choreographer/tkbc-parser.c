@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define LEXER_IMPLEMENTAION
+#define LEXER_IMPLEMENTATION
 #define EXLEX_IMPLEMENTATION
 #define LEX_LOGERROR
 #include "../../external/lexer/tkbc-lexer.h"
@@ -20,13 +20,13 @@
  */
 void tkbc_script_parser(Env *env) {
   Content tmp_buffer = {0};
-  Content content = {0};
-  int err = tkbc_read_file(env->script_file_name, &content);
+  Content script_file_content = {0};
+  int err = tkbc_read_file(env->script_file_name, &script_file_content);
   if (err) {
     return;
   }
-  Lexer *lexer =
-      lexer_new(env->script_file_name, content.elements, content.count, 0);
+  Lexer *l = lexer_new(env->script_file_name, script_file_content.elements,
+                       script_file_content.count, 0);
 
   bool script_begin = false;
   bool brace = false;
@@ -34,8 +34,7 @@ void tkbc_script_parser(Env *env) {
   Frames *frames = &env->scratch_buf_frames;
   Frame *frame = NULL;
 
-  Token t = lexer_next(lexer);
-  while (t.kind != EOF_TOKEN) {
+  for (Token t = lexer_next(l); t.kind != EOF_TOKEN; t = lexer_next(l)) {
     switch (t.kind) {
     case PREPROCESSING:
     case COMMENT:
@@ -43,19 +42,18 @@ void tkbc_script_parser(Env *env) {
     case IDENTIFIER: {
       if (strncmp("EXTERN", t.content, t.size) == 0) {
         bool ok = true;
-        t = lexer_next(lexer);
+        t = lexer_next(l);
         if (t.kind != IDENTIFIER) {
           break;
         }
 
-        char *function_name = strdup(lexer_token_to_cstr(lexer, &t));
+        char *function_name = strdup(lexer_token_to_cstr(l, &t));
         assert(function_name != NULL);
         Kite_Ids kis = {0};
-        if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
+        if (!tkbc_parse_kis_after_generation(env, l, &kis, ki)) {
           check_return(false);
         }
-        if (!tkbc_parse_team_figures(env, kis, lexer, function_name,
-                                     tmp_buffer)) {
+        if (!tkbc_parse_team_figures(env, kis, l, function_name, tmp_buffer)) {
           check_return(false);
         }
 
@@ -83,9 +81,9 @@ void tkbc_script_parser(Env *env) {
           break;
         }
 
-        t = lexer_next(lexer);
+        t = lexer_next(l);
         if (t.kind == NUMBER) {
-          size_t kite_number = atoi(lexer_token_to_cstr(lexer, &t));
+          size_t kite_number = atoi(lexer_token_to_cstr(l, &t));
           if (env->kite_array->count >= kite_number) {
             ki = tkbc_indexs_generate(kite_number);
             for (size_t i = 0; i < ki.count; ++i) {
@@ -98,43 +96,42 @@ void tkbc_script_parser(Env *env) {
         }
         break;
       } else if (strncmp("MOVE", t.content, t.size) == 0) {
-        if (!tkbc_parse_move(env, lexer, KITE_MOVE, ki, brace, tmp_buffer)) {
+        if (!tkbc_parse_move(env, l, KITE_MOVE, ki, brace, tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_move(env, lexer, KITE_MOVE_ADD, ki, brace,
-                             tmp_buffer)) {
+        if (!tkbc_parse_move(env, l, KITE_MOVE_ADD, ki, brace, tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("ROTATION", t.content, t.size) == 0) {
-        if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION, ki, brace,
+        if (!tkbc_parse_rotation(env, l, KITE_ROTATION, ki, brace,
                                  tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("ROTATION_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_rotation(env, lexer, KITE_ROTATION_ADD, ki, brace,
+        if (!tkbc_parse_rotation(env, l, KITE_ROTATION_ADD, ki, brace,
                                  tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("TIP_ROTATION", t.content, t.size) == 0) {
-        if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION, ki, brace,
+        if (!tkbc_parse_tip_rotation(env, l, KITE_TIP_ROTATION, ki, brace,
                                      tmp_buffer)) {
           break;
         }
         break;
       } else if (strncmp("TIP_ROTATION_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_tip_rotation(env, lexer, KITE_TIP_ROTATION_ADD, ki,
-                                     brace, tmp_buffer)) {
+        if (!tkbc_parse_tip_rotation(env, l, KITE_TIP_ROTATION_ADD, ki, brace,
+                                     tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("WAIT", t.content, t.size) == 0) {
-        t = lexer_next(lexer);
-        float duration = atof(lexer_token_to_cstr(lexer, &t));
+        t = lexer_next(l);
+        float duration = atof(lexer_token_to_cstr(l, &t));
 
         if (brace) {
           frame = tkbc_script_wait(duration);
@@ -144,8 +141,8 @@ void tkbc_script_parser(Env *env) {
         }
         break;
       } else if (strncmp("QUIT", t.content, t.size) == 0) {
-        t = lexer_next(lexer);
-        float duration = atof(lexer_token_to_cstr(lexer, &t));
+        t = lexer_next(l);
+        float duration = atof(lexer_token_to_cstr(l, &t));
         if (brace) {
           frame = tkbc_script_frames_quit(duration);
           tkbc_sript_team_scratch_buf_frames_append_and_free(env, frame);
@@ -175,12 +172,11 @@ void tkbc_script_parser(Env *env) {
 
     err:
     case ERROR:
+    case INVALID:
     default:
       tkbc_fprintf(stderr, "ERROR", "Invalid token: %s\n",
-                   lexer_token_to_cstr(lexer, &t));
+                   lexer_token_to_cstr(l, &t));
     }
-
-    t = lexer_next(lexer);
   }
 
   if (script_begin) {
@@ -188,7 +184,7 @@ void tkbc_script_parser(Env *env) {
     tkbc__script_end(env);
   }
 
-  lexer_del(lexer);
+  lexer_del(l);
   if (tmp_buffer.elements)
     free(tmp_buffer.elements);
   tmp_buffer.elements = NULL;
