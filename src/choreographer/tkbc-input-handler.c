@@ -357,54 +357,40 @@ void tkbc_input_check_movement(Key_Maps keymaps, Kite_State *state) {
  * @param state The current state of a kite that should be handled.
  */
 void tkbc_input_check_speed(Key_Maps keymaps, Kite_State *state) {
+  int max = 100;
+  int min = 0;
 
   Key_Map keymap = tkbc_hash_to_keymap(keymaps, KMH_REDUCE_FLY_SPEED);
   // KEY_P && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
   if (IsKeyDown(keymap.key) &&
       (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
-    if (state->kite->fly_speed > 0) {
-      state->kite->fly_speed -= 1;
-    }
+    state->kite->fly_speed = tkbc_clamp(state->kite->fly_speed - 1, min, max);
     // KEY_P
   } else if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_INCREASE_FLY_SPEED))) {
-    if (state->kite->fly_speed <= 100) {
-      state->kite->fly_speed += 1;
-    }
+    state->kite->fly_speed = tkbc_clamp(state->kite->fly_speed + 1, min, max);
   }
 
   Vector2 mouse_wheel_move = GetMouseWheelMoveV();
   if (mouse_wheel_move.y < 0) {
-    if (state->kite->fly_speed > 0) {
-      state->kite->fly_speed -= 5;
-    }
+    state->kite->fly_speed = tkbc_clamp(state->kite->fly_speed - 5, min, max);
   } else if (mouse_wheel_move.y > 0) {
-    if (state->kite->fly_speed <= 100) {
-      state->kite->fly_speed += 5;
-    }
+    state->kite->fly_speed = tkbc_clamp(state->kite->fly_speed + 5, min, max);
   }
 
   if (mouse_wheel_move.x < 0) {
-    if (state->kite->turn_speed <= 100) {
-      state->kite->turn_speed += 10;
-    }
+    state->kite->turn_speed = tkbc_clamp(state->kite->turn_speed + 5, min, max);
   } else if (mouse_wheel_move.x > 0) {
-    if (state->kite->turn_speed > 0) {
-      state->kite->turn_speed -= 10;
-    }
+    state->kite->turn_speed = tkbc_clamp(state->kite->turn_speed - 5, min, max);
   }
 
   keymap = tkbc_hash_to_keymap(keymaps, KMH_REDUCE_TURN_SPEED);
   // KEY_O && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
   if (IsKeyDown(keymap.key) &&
       (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
-    if (state->kite->turn_speed > 0) {
-      state->kite->turn_speed -= 1;
-    }
+    state->kite->turn_speed = tkbc_clamp(state->kite->turn_speed - 1, min, max);
     // KEY_O
   } else if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_INCREASE_TURN_SPEED))) {
-    if (state->kite->turn_speed <= 100) {
-      state->kite->turn_speed += 1;
-    }
+    state->kite->turn_speed = tkbc_clamp(state->kite->turn_speed + 1, min, max);
   }
 }
 
