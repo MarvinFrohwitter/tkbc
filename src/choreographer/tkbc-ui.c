@@ -32,12 +32,6 @@ void tkbc_draw_ui(Env *env) {
 #endif // TKBC_CLIENT
   }
 
-  tkbc_ui_keymaps(env);
-  tkbc_ui_color_picker(env);
-  if (!env->keymaps_interaction) {
-    tkbc_display_kite_information(env);
-  }
-
   if (!env->rendering) {
     Color color = TKBC_UI_TEAL;
     int fps = GetFPS();
@@ -49,8 +43,133 @@ void tkbc_draw_ui(Env *env) {
     sprintf(buf, "%2i FPS", fps);
     DrawText(buf, env->window_width / 2, 10, 20, color);
   }
+
+  tkbc_ui_script_menu(env);
+
+  if (!env->script_menu_interaction) {
+    tkbc_ui_keymaps(env);
+    tkbc_ui_color_picker(env);
+  }
+
+  if (!env->keymaps_interaction && !env->script_menu_interaction) {
+    tkbc_display_kite_information(env);
+  }
 }
 
+void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
+                    size_t items_count, size_t *top_interaction_box) {
+  //
+  // The scroll_bar handle
+  // -1 for the left out box at the bottom
+  env->screen_items = (env->window_height / env->box_height) - 1;
+
+  scrollbar->base.width = outer_container.width * 0.025;
+  scrollbar->base.height = env->box_height * env->screen_items;
+
+  scrollbar->base.x =
+      outer_container.x + outer_container.width - scrollbar->base.width;
+
+  DrawRectangleRounded(scrollbar->base, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
+
+  //
+  // The inner scroll_bar handle
+  scrollbar->inner_scrollbar.x =
+      outer_container.x + outer_container.width - scrollbar->base.width;
+  scrollbar->inner_scrollbar.width = scrollbar->base.width;
+
+  size_t minimum_handle_height = (size_t)scrollbar->base.height >> 2;
+  scrollbar->inner_scrollbar.height =
+      minimum_handle_height +
+      scrollbar->base.height / (float)(items_count - env->screen_items + 1);
+
+  {
+    // Enable the lerping for extra smooth scrolling.
+    // float before = scrollbar->inner_scrollbar.y;
+
+    scrollbar->inner_scrollbar.y =
+        (scrollbar->base.height - scrollbar->inner_scrollbar.height) /
+        (items_count - env->screen_items) * *top_interaction_box;
+
+    // float after = scrollbar->inner_scrollbar.y;
+
+    // scrollbar->inner_scrollbar.y =
+    //     before + (after - before) * tkbc_get_frame_time();
+  }
+
+  if (items_count <= env->screen_items) {
+    scrollbar->inner_scrollbar = scrollbar->base;
+    DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10,
+                         TKBC_UI_DARKPURPLE_ALPHA);
+    return;
+  }
+
+  // This is just needed for window resizing problems. When the list of items
+  // is scrolled to the bottom in a small window and then the window gets
+  // resized to a lager one, the scrollbar should not be outside of the base
+  // scroll container. The list it self may float to the top but that is not a
+  // bug in it self list can handle a scrolloff. Below the list there is
+  // nothing to display so it just empty space there is no need to
+  // recallculate the position of the items for the lager window. --
+  // M.Frohwitter 07.04.2025
+  if (scrollbar->inner_scrollbar.y >
+      scrollbar->base.height - scrollbar->inner_scrollbar.height) {
+    scrollbar->inner_scrollbar.y =
+        scrollbar->base.height - scrollbar->inner_scrollbar.height;
+  }
+
+  DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10,
+                       TKBC_UI_DARKPURPLE_ALPHA);
+
+  if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
+    scrollbar->interaction = false;
+  }
+  if (CheckCollisionPointRec(GetMousePosition(), scrollbar->inner_scrollbar) &&
+      IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    scrollbar->interaction = true;
+  }
+
+  if (CheckCollisionPointRec(GetMousePosition(), scrollbar->base) &&
+      IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    scrollbar->interaction = true;
+  }
+
+  if (scrollbar->interaction) {
+    Vector2 mouse_pos = GetMousePosition();
+    float offset_height = scrollbar->inner_scrollbar.height / 2;
+    float sb_center_y = scrollbar->inner_scrollbar.y + offset_height;
+
+    if (mouse_pos.y - offset_height > sb_center_y) {
+
+      if (*top_interaction_box < items_count - env->screen_items) {
+        *top_interaction_box += 1;
+      }
+
+    } else if (mouse_pos.y + offset_height < sb_center_y) {
+      if (*top_interaction_box > 0) {
+        *top_interaction_box -= 1;
+      }
+    }
+  }
+
+  if (GetMouseWheelMove()) {
+    if (GetMouseWheelMoveV().y < 0) {
+      if (*top_interaction_box < items_count - env->screen_items) {
+        *top_interaction_box += 1;
+      }
+    } else {
+      if (*top_interaction_box > 0) {
+        *top_interaction_box -= 1;
+      }
+    }
+  }
+}
+
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ */
 void tkbc_display_kite_information(Env *env) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].is_kite_input_handler_active) {
@@ -243,6 +362,12 @@ key_skip:
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param color [TODO:parameter]
+ */
 void tkbc_set_color_for_selected_kites(Env *env, Color color) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].is_kite_input_handler_active) {
@@ -480,115 +605,15 @@ void tkbc_ui_keymaps(Env *env) {
       (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
   // DrawRectangleRec(env->keymaps_base, TKBC_UI_GRAY_ALPHA);
 
-  //
-  // The scroll_bar handle
-  // -1 for the left out box at the bottom
-  env->screen_items = (env->window_height / env->box_height) - 1;
-  env->scrollbar_width = env->keymaps_base.width * 0.025;
-
-  env->keymaps_scrollbar.x =
-      env->keymaps_base.x + env->keymaps_base.width - env->scrollbar_width;
-  env->keymaps_scrollbar.width = env->scrollbar_width;
-  env->keymaps_scrollbar.height = env->box_height * env->screen_items;
-  DrawRectangleRounded(env->keymaps_scrollbar, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
-
-  //
-  // The inner scroll_bar handle
-  env->keymaps_inner_scrollbar.x = env->keymaps_base.x +
-                                   env->keymaps_base.width -
-                                   env->keymaps_scrollbar.width;
-  env->keymaps_inner_scrollbar.width = env->keymaps_scrollbar.width;
-
-  size_t minimum_handle_height = (size_t)env->keymaps_scrollbar.height >> 2;
-  env->keymaps_inner_scrollbar.height =
-      minimum_handle_height +
-      env->keymaps_scrollbar.height /
-          (float)(env->keymaps->count - env->screen_items + 1);
-
-  {
-    // Enable the lerping for extra smooth scrolling.
-    // float before = env->keymaps_inner_scrollbar.y;
-
-    env->keymaps_inner_scrollbar.y =
-        (env->keymaps_scrollbar.height - env->keymaps_inner_scrollbar.height) /
-        (env->keymaps->count - env->screen_items) *
-        env->keymaps_top_interaction_box;
-
-    // float after = env->keymaps_inner_scrollbar.y;
-
-    // env->keymaps_inner_scrollbar.y =
-    //     before + (after - before) * tkbc_get_frame_time();
-  }
-
-  // This is just needed for window resizing problems. When the list of items
-  // is scrolled to the bottom in a small window and then the window gets
-  // resized to a lager one, the scrollbar should not be outside of the base
-  // scroll container. The list it self may float to the top but that is not a
-  // bug in it self list can handle a scrolloff. Below the list there is
-  // nothing to display so it just empty space there is no need to
-  // recallculate the position of the items for the lager window. --
-  // M.Frohwitter 07.04.2025
-  if (env->keymaps_inner_scrollbar.y >
-      env->keymaps_scrollbar.height - env->keymaps_inner_scrollbar.height) {
-    env->keymaps_inner_scrollbar.y =
-        env->keymaps_scrollbar.height - env->keymaps_inner_scrollbar.height;
-  }
-
-  DrawRectangleRounded(env->keymaps_inner_scrollbar, 1, 10,
-                       TKBC_UI_DARKPURPLE_ALPHA);
-
-  if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
-    env->keymaps_scollbar_interaction = false;
-  }
-  if (CheckCollisionPointRec(GetMousePosition(),
-                             env->keymaps_inner_scrollbar) &&
-      IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    env->keymaps_scollbar_interaction = true;
-  }
-
-  if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_scrollbar) &&
-      IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-    env->keymaps_scollbar_interaction = true;
-  }
-
-  if (env->keymaps_scollbar_interaction) {
-    Vector2 mouse_pos = GetMousePosition();
-    float offset_height = env->keymaps_inner_scrollbar.height / 2;
-    float sb_center_y = env->keymaps_inner_scrollbar.y + offset_height;
-
-    if (mouse_pos.y - offset_height > sb_center_y) {
-
-      if (env->keymaps_top_interaction_box <
-          env->keymaps->count - env->screen_items) {
-        env->keymaps_top_interaction_box += 1;
-      }
-
-    } else if (mouse_pos.y + offset_height < sb_center_y) {
-      if (env->keymaps_top_interaction_box > 0) {
-        env->keymaps_top_interaction_box -= 1;
-      }
-    }
-  }
-
-  if (GetMouseWheelMove()) {
-    if (GetMouseWheelMoveV().y < 0) {
-      if (env->keymaps_top_interaction_box <
-          env->keymaps->count - env->screen_items) {
-        env->keymaps_top_interaction_box += 1;
-      }
-    } else {
-      if (env->keymaps_top_interaction_box > 0) {
-        env->keymaps_top_interaction_box -= 1;
-      }
-    }
-  }
+  tkbc_scrollbar(env, &env->keymaps_scrollbar, env->keymaps_base,
+                 env->keymaps->count, &env->keymaps_top_interaction_box);
 
   // TODO: Think about UI scaling.
   //
   // The displayment key bind boxes.
   int padding = 10;
   env->keymaps_base.height = env->box_height;
-  env->keymaps_base.width -= env->keymaps_scrollbar.width;
+  env->keymaps_base.width -= env->keymaps_scrollbar.base.width;
   Vector2 text_size;
   for (size_t box = env->keymaps_top_interaction_box;
        box < env->screen_items + env->keymaps_top_interaction_box &&

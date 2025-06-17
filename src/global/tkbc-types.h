@@ -339,6 +339,13 @@ typedef struct {
 } Colors;          // A dynamic array collection that holds the type Color.
 
 typedef struct {
+  Rectangle base;            // The base of the scrollbar..
+  Rectangle inner_scrollbar; // The indicator inside the scrollbar.
+  bool interaction;          // Checks if the scrollbar is currently
+                             // moved.
+} Scrollbar;
+
+typedef struct {
   Kite *vanilla_kite;      // A representation of all the default kite values.
   Kite_States *kite_array; // The kites that are generated for the current
                            // session of the application.
@@ -385,23 +392,17 @@ typedef struct {
   bool rendering;        // The state of the rendering ffmpeg process
 
   // -------UI-------
+  Scrollbar keymaps_scrollbar;
   bool keymaps_interaction; // The status if the keymaps are currently edited.
   bool keymaps_mouse_interaction;         // Checks if a keymap was clicked.
   Key_Box keymaps_interaction_rec_number; // Represents the box number by kind.
 
-  float scrollbar_width; // The width of the scrollbar for the keymap settings.
   size_t box_height; // The height of one box that contains a keymap description
   size_t screen_items; // The amount of keymaps that can currently be displayed.
   size_t keymaps_mouse_interaction_box; // The id of the box the is clicked.
   size_t keymaps_top_interaction_box; // The id the current first displayed box.
-  Rectangle keymaps_base;      // The base bounding box of the keymaps settings.
-  Rectangle keymaps_scrollbar; // The base of the scrollbar for the keymaps.
-  Rectangle
-      keymaps_inner_scrollbar; // The indicator inside the keymaps scrollbar.
-                               // and its keybinding selection box.
-  Key_Maps *keymaps;           // The current keymaps
-  bool keymaps_scollbar_interaction; // Checks if the scrollbar is currently
-                                     // moved.
+  Rectangle keymaps_base; // The base bounding box of the keymaps settings.
+  Key_Maps *keymaps;      // The current keymaps
 
   bool timeline_hoverover;      // The status if the mouse is currently of the
                                 // timeline.
@@ -427,6 +428,15 @@ typedef struct {
   size_t current_favorite_colors_index;
   Colors favorite_colors; // The current storage that holds the data for the
                           // color_picker favorite color circles.
+
+  bool script_menu_interaction; // The status if the menu that displays all the
+                                // available scripts is currently displays.
+  Rectangle script_menu_base;
+  Scrollbar script_menu_scrollbar;
+  size_t script_menu_mouse_interaction_box; // The id of the box it is clicked.
+  size_t script_menu_top_interaction_box; // The id the current first displayed
+                                          // box.
+  bool script_menu_mouse_interaction;
 
 } Env; // The global state of the application.
 

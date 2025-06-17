@@ -6,6 +6,9 @@ void tkbc_draw_ui(Env *env);
 void tkbc_display_kite_information_speeds(Kite_State *kite_state);
 void tkbc_display_kite_information(Env *env);
 
+void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
+                    size_t items_count, size_t *top_interaction_box);
+bool tkbc_ui_script_menu(Env *env);
 void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count);
 
 void tkbc_set_key_or_delete(int *dest_key, const char **dest_str,
