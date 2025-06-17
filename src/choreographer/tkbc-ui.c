@@ -164,6 +164,136 @@ void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
   }
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_ui_script_menu(Env *env) {
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
+    env->script_menu_interaction = false;
+    return true;
+  }
+
+  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
+    env->script_menu_interaction = !env->script_menu_interaction;
+    env->script_menu_mouse_interaction = false;
+  }
+
+  if (!env->script_menu_interaction) {
+    return false;
+  }
+
+  env->script_menu_base =
+      (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
+
+  size_t scripts_count = env->block_frames->count;
+  float padding = 10;
+  Rectangle script_box = {
+      .x = env->script_menu_base.x + padding,
+      .y = env->script_menu_base.y + padding / 2,
+      .width = env->script_menu_base.width -
+               env->script_menu_scrollbar.base.width - 2 * padding,
+      .height = env->box_height - padding,
+  };
+  Rectangle outer_script_box = {
+      .x = env->script_menu_base.x,
+      .y = env->script_menu_base.y,
+      .width =
+          env->script_menu_base.width - env->script_menu_scrollbar.base.width,
+      .height = env->box_height,
+  };
+
+  tkbc_scrollbar(env, &env->script_menu_scrollbar, env->script_menu_base,
+                 scripts_count, &env->script_menu_top_interaction_box);
+
+  int font_size = 22;
+  Vector2 text_size;
+  char buf[64] = {0};
+  for (size_t box = env->script_menu_top_interaction_box;
+       box < env->screen_items + env->script_menu_top_interaction_box &&
+       box < scripts_count;
+       ++box) {
+
+    if (CheckCollisionPointRec(GetMousePosition(), outer_script_box) &&
+        !env->script_menu_mouse_interaction) {
+      DrawRectangleRec(outer_script_box, TKBC_UI_TEAL_ALPHA);
+    }
+    if (env->script_menu_mouse_interaction &&
+        box == env->script_menu_mouse_interaction_box) {
+      DrawRectangleRec(outer_script_box, TKBC_UI_TEAL_ALPHA);
+    }
+
+    DrawRectangleRounded(script_box, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
+
+    if (CheckCollisionPointRec(GetMousePosition(), script_box)) {
+      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        env->script_menu_mouse_interaction = true;
+        env->script_menu_mouse_interaction_box = box;
+      }
+
+      if (!env->script_menu_mouse_interaction) {
+        DrawRectangleRounded(script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+      }
+    }
+
+    if (env->script_menu_mouse_interaction &&
+        box == env->script_menu_mouse_interaction_box) {
+      DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+    }
+
+    snprintf(buf, sizeof(buf), "Script: %zu", box + 1);
+    char *i_name = buf;
+    text_size = MeasureTextEx(GetFontDefault(), i_name, font_size, 0);
+
+    DrawText(i_name, script_box.x + script_box.width / 2 - text_size.x,
+             script_box.y + script_box.height / 2 - text_size.y, font_size,
+             TKBC_UI_BLACK);
+
+    memset(buf, 0, sizeof(buf));
+
+    script_box.y += script_box.height + padding;
+    outer_script_box.y += env->box_height;
+  }
+
+  /* ------------------------- Confirm key --------------------------------- */
+
+  size_t interaction_buttons_count = 3;
+  outer_script_box.width =
+      (outer_script_box.width - (padding * interaction_buttons_count)) /
+      interaction_buttons_count;
+  outer_script_box.height = env->box_height * 0.5;
+
+  outer_script_box.x += padding + (interaction_buttons_count - 1) *
+                                      (padding + outer_script_box.width);
+
+  outer_script_box.y =
+      env->box_height * env->screen_items + env->box_height / 2.f;
+
+  if (CheckCollisionPointRec(GetMousePosition(), outer_script_box)) {
+    DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+  } else {
+    DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
+  }
+  if (!env->script_menu_mouse_interaction) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+        CheckCollisionPointRec(GetMousePosition(), outer_script_box)) {
+      DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+
+      // TODO: Swap to selected script.
+    }
+  }
+  const char *confirm = "CONFIRM";
+  text_size = MeasureTextEx(GetFontDefault(), confirm, font_size, 0);
+  DrawText(
+      confirm,
+      outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5,
+      outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5,
+      font_size, TKBC_UI_BLACK);
+
+  return false;
+}
 
 /**
  * @brief [TODO:description]
