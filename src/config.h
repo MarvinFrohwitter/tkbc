@@ -146,7 +146,7 @@ static Key_Map default_keymaps[] = {
         .hash = KMH_TOGGLE_SCRIPT_EXECUTION,
     },
     {
-        .description = "Switches to the next loaded script.",
+        .description = "Switches to the next loaded script (menu).",
         .key = KEY_TAB,
         .hash = KMH_SWITCHES_NEXT_SCRIPT,
     },

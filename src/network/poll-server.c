@@ -1195,8 +1195,19 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_TOGGLE\n");
     } break;
     case MESSAGE_SCRIPT_NEXT: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        goto err;
+      }
 
-      tkbc_load_next_script(env);
+      int script_id = atoi(lexer_token_to_cstr(lexer, &token));
+
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        goto err;
+      }
+
+      tkbc_load_script_id(env, script_id);
       env->server_script_kite_max_count = 0;
 
       // TODO: Find a better way to do it reliable.

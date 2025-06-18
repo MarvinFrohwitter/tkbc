@@ -896,8 +896,11 @@ void tkbc_client_input_handler_script() {
   }
 
   // KEY_TAB
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
-    tkbc_dapf(&tkbc_send_message_queue, "%d:\r\n", MESSAGE_SCRIPT_NEXT);
+  if (env->new_script_selected) {
+    // Script ids start from 1 so +1 is needed.
+    tkbc_dapf(&tkbc_send_message_queue, "%d:%zu:\r\n", MESSAGE_SCRIPT_NEXT,
+              env->script_menu_mouse_interaction_box + 1);
+    env->new_script_selected = false;
   }
 
   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {

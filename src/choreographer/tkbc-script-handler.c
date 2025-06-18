@@ -701,10 +701,6 @@ void tkbc_input_handler_script(Env *env) {
       env->script_finished = !env->script_finished;
     }
   }
-  // KEY_TAB
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
-    tkbc_load_next_script(env);
-  }
 
   tkbc_scrub_frames(env);
 }

@@ -7,6 +7,7 @@
 #include "../global/tkbc-utils.h"
 #include "raylib.h"
 #include "tkbc-keymaps.h"
+#include "tkbc-script-handler.h"
 #include "tkbc-ui.h"
 #include "tkbc.h"
 
@@ -21,7 +22,8 @@ void tkbc_draw_ui(Env *env) {
   env->window_height = tkbc_get_screen_height();
   env->window_width = tkbc_get_screen_width();
 
-  if (env->frames) {
+  if (env->frames &&
+      !(env->script_menu_interaction || env->keymaps_interaction)) {
     // A script is currently executing.
 #ifdef TKBC_CLIENT
     tkbc_ui_timeline(env, env->server_script_block_index,
@@ -276,12 +278,15 @@ bool tkbc_ui_script_menu(Env *env) {
   } else {
     DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
   }
-  if (!env->script_menu_mouse_interaction) {
+
+  if (env->script_menu_mouse_interaction) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
         CheckCollisionPointRec(GetMousePosition(), outer_script_box)) {
       DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
-
-      // TODO: Swap to selected script.
+      // Script ids start from 1 so +1 is needed.
+      tkbc_load_script_id(env, env->script_menu_mouse_interaction_box + 1);
+      env->script_menu_interaction = false;
+      env->new_script_selected = true;
     }
   }
   const char *confirm = "CONFIRM";
