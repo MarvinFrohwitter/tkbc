@@ -154,6 +154,7 @@ void tkbc_destroy_env(Env *env) {
       tkbc_destroy_frames_internal_data(
           &env->block_frames->elements[j].elements[i]);
     }
+    env->block_frame->name = NULL;
   }
 
   free(env->block_frames->elements);
@@ -165,6 +166,7 @@ void tkbc_destroy_env(Env *env) {
     tkbc_destroy_frames_internal_data(
         &env->scratch_buf_block_frame.elements[i]);
   }
+  env->scratch_buf_block_frame.name = NULL;
 
   tkbc_destroy_frames_internal_data(&env->scratch_buf_frames);
   free(env);

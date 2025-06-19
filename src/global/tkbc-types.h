@@ -317,6 +317,7 @@ typedef struct {
   size_t capacity;  // The complete allocated space for the array represented as
                     // the number of collection elements of the array type.
   Id script_id;     // The number of the loaded script starting from 1.
+  const char *name; // The name of the script.
 } Block_Frame; // A dynamic array collection that combined multiple frames to a
                // single kite draw representation.
 

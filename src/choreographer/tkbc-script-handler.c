@@ -171,6 +171,7 @@ Block_Frame tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
     return new_block_frame;
   }
   new_block_frame.script_id = block_frame->script_id;
+  new_block_frame.name = block_frame->name;
 
   for (size_t i = 0; i < block_frame->count; ++i) {
     tkbc_dap(&new_block_frame,

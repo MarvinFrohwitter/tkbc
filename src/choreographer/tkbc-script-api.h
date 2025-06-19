@@ -13,10 +13,20 @@
 void tkbc__script_input(Env *env);
 void tkbc__script_begin(Env *env);
 void tkbc__script_end(Env *env);
+void tkbc_set_script_name(Block_Frame *block_frame, const char *name);
 
 #define tkbc_script_input void tkbc__script_input(Env *env)
 
-#define tkbc_script_begin() tkbc__script_begin(env)
+#define tkbc_script_begin(...)                                                 \
+  do {                                                                         \
+    tkbc__script_begin(env);                                                   \
+    const char *tmp = "" __VA_ARGS__;                                          \
+    if (!*tmp) {                                                               \
+      tmp = NULL;                                                              \
+    }                                                                          \
+    tkbc_set_script_name(&env->scratch_buf_block_frame, tmp);                 \
+  } while (0)
+
 #define tkbc_script_end() tkbc__script_end(env)
 
 void tkbc_script_update_frames(Env *env);

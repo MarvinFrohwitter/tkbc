@@ -97,7 +97,7 @@ tkbc_script_input {
   Kite_Ids ki = tkbc_kite_array_generate(env, 2);
 
   kite = *env->vanilla_kite;
-  tkbc_script_begin();
+  tkbc_script_begin("split roll demonstration");
   SET(
 
       KITE_MOVE_ADD(ID(0), -100, -300, rotation_duration),

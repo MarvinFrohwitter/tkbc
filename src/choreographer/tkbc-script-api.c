@@ -19,6 +19,16 @@ void tkbc__script_begin(Env *env) {
 }
 
 /**
+ * @brief The function sets the provided name as a name for the given script.
+ *
+ * @param block_frame The script where the name should be assigned.
+ * @param name The new name for the script.
+ */
+void tkbc_set_script_name(Block_Frame *block_frame, const char *name) {
+  block_frame->name = name;
+}
+
+/**
  * @brief The function is mandatory to wrap every manual script at the end.
  *
  * @param env The global state of the application.
@@ -42,6 +52,7 @@ void tkbc__script_end(Env *env) {
     tkbc_destroy_frames_internal_data(
         &env->scratch_buf_block_frame.elements[i]);
   }
+  env->scratch_buf_block_frame.name = NULL;
   env->scratch_buf_block_frame.count = 0;
 }
 
@@ -136,12 +147,12 @@ Frame *tkbc__script_wait(Env *env, float duration) {
 
 /**
  * @brief The function is wrapped by a macro! The function that quits all the
- * current registered frames after the duration. It can be inserted as a normal
- * frame into a block that should be quit after a some duration time.
+ * current registered frames after the duration. It can be inserted as a
+ * normal frame into a block that should be quit after a some duration time.
  *
  * @param duration The time in seconds after all the frames will quit.
- * @return The frame that is constructed to represent the force quit frame-block
- * frame.
+ * @return The frame that is constructed to represent the force quit
+ * frame-block frame.
  */
 Frame *tkbc__script_frames_quit(Env *env, float duration) {
   if (!env->script_setup) {
@@ -251,7 +262,8 @@ void tkbc_sript_team_scratch_buf_frames_append_and_free(Env *env,
  * corresponding block frame positions and frame indices.
  *
  * @param env The global state of the application.
- * @param frames The collect frames that should be registered as a block_frame.
+ * @param frames The collect frames that should be registered as a
+ * block_frame.
  */
 void tkbc_register_frames_array(Env *env, Frames *frames) {
   assert(frames != NULL);
@@ -295,7 +307,8 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
  * @brief The function is wrapped by a macro! The function can be used to
  * combine the given numbers of kite indices.
  *
- * @param _ The param is ignored just just for variadic function implementation.
+ * @param _ The param is ignored just just for variadic function
+ * implementation.
  * @return The dynamic array list of kite indices.
  */
 Kite_Ids tkbc__indexs_append(Env *env, ...) {

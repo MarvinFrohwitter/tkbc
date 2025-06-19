@@ -499,7 +499,7 @@ void choreo(Env *env, Kite_Ids ki) {
   kite = *env->vanilla_kite;
   env->kite_array->elements[0].kite->body_color = DARKGREEN;
   env->kite_array->elements[1].kite->body_color = BLUE;
-  tkbc_script_begin();
+  tkbc_script_begin("My Immortal");
   bicycle_start(env, ki);
   diamond_stack_figure(env);
   extreme_window_slide(env);

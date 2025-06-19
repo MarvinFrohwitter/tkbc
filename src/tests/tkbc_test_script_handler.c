@@ -293,6 +293,8 @@ Test deep_copy_block_frame() {
   for (size_t i = 0; i < new_block_frame.count; ++i) {
     tkbc_destroy_frames_internal_data(&new_block_frame.elements[i]);
   }
+  block_frame.name = NULL;
+  new_block_frame.name = NULL;
 
   free(block_frame.elements);
   free(new_block_frame.elements);

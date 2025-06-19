@@ -1149,6 +1149,7 @@ bool tkbc_received_message_handler(Client *client) {
         for (size_t i = 0; i < scb_block_frame->count; ++i) {
           tkbc_destroy_frames_internal_data(&scb_block_frame->elements[i]);
         }
+        scb_block_frame->name = NULL;
       }
       scb_block_frame->count = 0;
 
