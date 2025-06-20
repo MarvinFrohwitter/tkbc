@@ -58,6 +58,20 @@ void tkbc_draw_ui(Env *env) {
   }
 }
 
+/**
+ * @brief The function is responsible for managing and displaying a given
+ * scrollbar. The bar will automatically scaled and moved according to the given
+ * items_count and its currently first displayed item.
+ *
+ * @param env The global state of the application.
+ * @param scrollbar The scrollbar that contains the interaction information and
+ * it's geometry.
+ * @param outer_container The rectangle where the scrollbar should be placed in.
+ * @param items_count The maximum items that should be represented by the
+ * scrollbar position.
+ * @param top_interaction_box The first item that is displayed currently on the
+ * screen, that must not necessary be the first item of the item_count.
+ */
 void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
                     size_t items_count, size_t *top_interaction_box) {
   //
@@ -167,10 +181,11 @@ void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
 }
 
 /**
- * @brief [TODO:description]
+ * @brief This function is responsible for displaying all in memory loaded
+ * scripts as a list. The user can then choose a script that should be executed.
  *
- * @param env [TODO:parameter]
- * @return [TODO:return]
+ * @param env The global state of the application.
+ * @return True if menu was force closed, otherwise false.
  */
 bool tkbc_ui_script_menu(Env *env) {
   if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
@@ -308,9 +323,10 @@ bool tkbc_ui_script_menu(Env *env) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function is a way of getting information of the first selected
+ * kite on the screen. This contains things like fly_speed and turn_speed.
  *
- * @param env [TODO:parameter]
+ * @param env The global state of the application.
  */
 void tkbc_display_kite_information(Env *env) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
@@ -321,6 +337,13 @@ void tkbc_display_kite_information(Env *env) {
   }
 }
 
+/**
+ * @brief The function is responsible for managing the displayment of the
+ * fly_speed and turn_speed of the given kite.
+ *
+ * @param kite_state The kite for which the current speed values should be
+ * displayed on the screen.
+ */
 void tkbc_display_kite_information_speeds(Kite_State *kite_state) {
   char buf[64] = {0};
   sprintf(buf, "Turn Speed: %.0f \t Fly Speed: %.0f",
@@ -329,10 +352,24 @@ void tkbc_display_kite_information_speeds(Kite_State *kite_state) {
   DrawText(buf, pos.x, pos.y, 20, TKBC_UI_TEAL);
 }
 
+/**
+ * @brief The function determines if the given key can be represented as a hex
+ * digit.
+ *
+ * @param key The value of the key pressed on the keyboard.
+ * @return True if the given key would pass the isxdigit() function, otherwise
+ * false.
+ */
 bool is_key_valid_part_of_hex_number(int key) {
   return (key >= KEY_ZERO && key <= KEY_NINE) || (key >= KEY_A && key <= KEY_F);
 }
 
+/**
+ * @brief The function manages and displays the color picker where the user can
+ * select new colors for the currently selected kites.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_ui_color_picker(Env *env) {
   if (env->script_setup) {
     return;
@@ -505,10 +542,11 @@ key_skip:
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function can be used to change the color of all currently selected
+ * kites to the new specified one.
  *
- * @param env [TODO:parameter]
- * @param color [TODO:parameter]
+ * @param env The global state of the application.
+ * @param color The new color that should be assigned.
  */
 void tkbc_set_color_for_selected_kites(Env *env, Color color) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
@@ -518,9 +556,6 @@ void tkbc_set_color_for_selected_kites(Env *env, Color color) {
   }
 }
 
-/**
- * @param env The global state of the application.
- */
 /**
  * @brief The function provides the timeline UI slider to change the current
  * displayed frame of a script.
