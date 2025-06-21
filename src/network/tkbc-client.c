@@ -724,19 +724,20 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
     if (env->block_frames->elements[i].script_id != script_id) {
       continue;
     }
-    tkbc_dapf(message, "%zu:", script_id);
+    tkbc_dapf(&tkbc_send_message_queue, "%zu:", script_id);
 
     Block_Frame *block_frame = &env->block_frames->elements[i];
-    tkbc_dapf(message, "%zu:", block_frame->count);
+    tkbc_dapf(&tkbc_send_message_queue, "%zu:", block_frame->count);
     for (size_t j = 0; j < block_frame->count; ++j) {
       Frames *frames = &block_frame->elements[j];
-      tkbc_dapf(message, "%zu:", frames->block_index);
-      tkbc_dapf(message, "%zu:", frames->count);
+      tkbc_dapf(&tkbc_send_message_queue, "%zu:", frames->block_index);
+      tkbc_dapf(&tkbc_send_message_queue, "%zu:", frames->count);
 
       for (size_t k = 0; k < frames->count; ++k) {
-        tkbc_dapf(message, "%zu:", frames->elements[k].index);
-        tkbc_dapf(message, "%d:", frames->elements[k].finished);
-        tkbc_dapf(message, "%d:", frames->elements[k].kind);
+        tkbc_dapf(&tkbc_send_message_queue, "%zu:", frames->elements[k].index);
+        tkbc_dapf(&tkbc_send_message_queue,
+                  "%d:", frames->elements[k].finished);
+        tkbc_dapf(&tkbc_send_message_queue, "%d:", frames->elements[k].kind);
 
         assert(ACTION_KIND_COUNT == 9 &&
                "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
@@ -744,41 +745,44 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
         case KITE_QUIT:
         case KITE_WAIT: {
           Wait_Action action = frames->elements[k].action.as_wait;
-          tkbc_dapf(message, "%lf", action.starttime);
+          tkbc_dapf(&tkbc_send_message_queue, "%lf", action.starttime);
         } break;
         case KITE_MOVE:
         case KITE_MOVE_ADD: {
           Move_Action action = frames->elements[k].action.as_move;
-          tkbc_dapf(message, "%f:%f", action.position.x, action.position.y);
+          tkbc_dapf(&tkbc_send_message_queue, "%f:%f", action.position.x,
+                    action.position.y);
         } break;
         case KITE_ROTATION:
         case KITE_ROTATION_ADD: {
           Rotation_Action action = frames->elements[k].action.as_rotation;
-          tkbc_dapf(message, "%f", action.angle);
+          tkbc_dapf(&tkbc_send_message_queue, "%f", action.angle);
         } break;
         case KITE_TIP_ROTATION:
         case KITE_TIP_ROTATION_ADD: {
           Tip_Rotation_Action action =
               frames->elements[k].action.as_tip_rotation;
-          tkbc_dapf(message, "%d:%f", action.tip, action.angle);
+          tkbc_dapf(&tkbc_send_message_queue, "%d:%f", action.tip,
+                    action.angle);
         } break;
         default:
           assert(0 && "UNREACHABLE tkbc_message_append_script()");
         }
 
-        tkbc_dapf(message, ":%f", frames->elements[k].duration);
+        tkbc_dapf(&tkbc_send_message_queue, ":%f",
+                  frames->elements[k].duration);
 
         Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
         if (kite_ids->count) {
-          tkbc_dapf(message, ":%zu:(", kite_ids->count);
+          tkbc_dapf(&tkbc_send_message_queue, ":%zu:(", kite_ids->count);
           for (size_t id = 0; id < kite_ids->count; ++id) {
-            tkbc_dapf(message, "%zu,", kite_ids->elements[id]);
+            tkbc_dapf(&tkbc_send_message_queue, "%zu,", kite_ids->elements[id]);
           }
-          message->count--;
-          tkbc_dapf(message, ")");
+          tkbc_send_message_queue.count--;
+          tkbc_dapf(&tkbc_send_message_queue, ")");
         }
 
-        tkbc_dapf(message, ":");
+        tkbc_dapf(&tkbc_send_message_queue, ":");
       }
     }
     return true;
@@ -801,14 +805,18 @@ bool tkbc_message_script() {
   Message message = {0};
   size_t counter = 0;
   for (size_t i = env->send_scripts; i < env->block_frames->count; ++i) {
+    char buf[8];
+    int size = snprintf(buf, sizeof(buf), "%d:", MESSAGE_SCRIPT);
+    tkbc_dapf(&tkbc_send_message_queue, "%s", buf);
+
     if (!tkbc_message_append_script(env->block_frames->elements[i].script_id,
                                     &message)) {
       tkbc_fprintf(stderr, "ERROR",
                    "The script could not be appended to the message.\n");
+      tkbc_send_message_queue.count -= size;
       check_return(false);
     }
 
-    tkbc_dapf(&tkbc_send_message_queue, "%d:", MESSAGE_SCRIPT);
     tkbc_dapc(&tkbc_send_message_queue, message.elements, message.count);
     tkbc_dapf(&tkbc_send_message_queue, "\r\n");
     message.count = 0;
