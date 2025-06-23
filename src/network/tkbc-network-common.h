@@ -2,6 +2,7 @@
 #define TKBC_NETWORK_COMMON_H
 
 #include "../../external/lexer/tkbc-lexer.h"
+#include "../../external/space/space.h"
 #include "tkbc-servers-common.h"
 
 #include <raylib.h>
@@ -10,7 +11,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-
+void tkbc_reset_space_and_null_message(Space *space, Message *message);
 int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id);
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
                                    float *y, float *angle, Color *color);

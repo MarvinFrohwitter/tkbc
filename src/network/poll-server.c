@@ -28,6 +28,9 @@
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 
+#define SPACE_IMPLEMENTATION
+#include "../../external/space/space.h"
+
 #include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
@@ -38,6 +41,8 @@ static int clients_visited = 0;
 Env *env = {0};
 Clients clients = {0};
 FDs fds = {0};
+Space t_space = {0};
+Message t_message = {0}; // The elements ptr is allocated inside of the t_space.
 
 /**
  * @brief  The function can be used to get the pollfd structure that corresponds
@@ -97,7 +102,8 @@ Client *tkbc_get_client_by_fd(int fd) {
  * @param message The message that should be send to the given client.
  */
 void tkbc_write_to_send_msg_buffer(Client *client, Message message) {
-  tkbc_dapc(&client->send_msg_buffer, message.elements, message.count);
+  space_dapc(&client->msg_space, &client->send_msg_buffer, message.elements,
+             message.count);
   tkbc_get_pollfd_by_fd(client->socket_id)->events = POLLWRNORM;
 }
 
@@ -142,8 +148,11 @@ bool tkbc_remove_client_by_fd(int fd) {
   for (size_t i = 0; i < clients.count; ++i) {
     if (clients.elements[i].socket_id == fd) {
       Client client_tmp = clients.elements[i];
-      free(client_tmp.send_msg_buffer.elements);
-      free(client_tmp.recv_msg_buffer.elements);
+      space_free_space(&client_tmp.msg_space);
+
+      client_tmp.recv_msg_buffer.elements = NULL;
+      client_tmp.send_msg_buffer.elements = NULL;
+
       tkbc_fprintf(stderr, "INFO", "Removed client:" CLIENT_FMT "\n",
                    CLIENT_ARG(client_tmp));
 
@@ -247,15 +256,10 @@ void tkbc_server_shutdown_client(Client client, bool force) {
 #endif // _WIN32
 
   if (!force) {
-    Message message = {0};
-    tkbc_dapf(&message, "%d:%zu:\r\n", MESSAGE_CLIENT_DISCONNECT,
-              client.kite_id);
-    tkbc_write_to_all_send_msg_buffers_except(message, client.socket_id);
-
-    if (message.elements) {
-      free(message.elements);
-      message.elements = NULL;
-    }
+    space_dapf(&t_space, &t_message, "%d:%zu:\r\n", MESSAGE_CLIENT_DISCONNECT,
+               client.kite_id);
+    tkbc_write_to_all_send_msg_buffers_except(t_message, client.socket_id);
+    tkbc_reset_space_and_null_message(&t_space, &t_message);
   }
 
   tkbc_remove_connection_retry(client);
@@ -268,14 +272,11 @@ void tkbc_server_shutdown_client(Client client, bool force) {
  * @param client The client id where the message should be send to.
  */
 void tkbc_message_hello_write_to_send_msg_buffer(Client *client) {
-  Message message = {0};
   const char quote = '\"';
-  tkbc_dapf(&message, "%d:%c%s" PROTOCOL_VERSION "%c:\r\n", MESSAGE_HELLO,
-            quote, "Hello client from server!", quote);
-  tkbc_write_to_send_msg_buffer(client, message);
-
-  free(message.elements);
-  message.elements = NULL;
+  space_dapf(&t_space, &t_message, "%d:%c%s" PROTOCOL_VERSION "%c:\r\n",
+             MESSAGE_HELLO, quote, "Hello client from server!", quote);
+  tkbc_write_to_send_msg_buffer(client, t_message);
+  tkbc_reset_space_and_null_message(&t_space, &t_message);
 }
 
 /**
@@ -286,18 +287,16 @@ void tkbc_message_hello_write_to_send_msg_buffer(Client *client) {
  * @return True if id was found and the sending has nor raised any errors.
  */
 bool tkbc_message_kiteadd_write_to_all_send_msg_buffers(size_t client_index) {
-  Message message = {0};
   bool ok = true;
-  tkbc_dapf(&message, "%d:", MESSAGE_KITEADD);
-  if (!tkbc_message_append_clientkite(client_index, &message)) {
+  space_dapf(&t_space, &t_message, "%d:", MESSAGE_KITEADD);
+  if (!tkbc_message_append_clientkite(client_index, &t_message, &t_space)) {
     check_return(false);
   }
-  tkbc_dapf(&message, "\r\n");
-  tkbc_write_to_all_send_msg_buffers(message);
+  space_dapf(&t_space, &t_message, "\r\n");
+  tkbc_write_to_all_send_msg_buffers(t_message);
 
 check:
-  free(message.elements);
-  message.elements = NULL;
+  tkbc_reset_space_and_null_message(&t_space, &t_message);
   return ok;
 }
 
@@ -307,7 +306,7 @@ check:
  * @param message The message buffer where the constructed message should be
  * appended to.
  */
-void tkbc_message_clientkites(Message *message) {
+void tkbc_message_clientkites(Message *t_message) {
   size_t active_count = 0;
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].is_active) {
@@ -315,19 +314,20 @@ void tkbc_message_clientkites(Message *message) {
     }
   }
 
-  tkbc_dapf(message, "%d:%zu:", MESSAGE_CLIENTKITES, active_count);
+  space_dapf(&t_space, t_message, "%d:%zu:", MESSAGE_CLIENTKITES, active_count);
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     Kite_State *kite_state = &env->kite_array->elements[i];
     if (!kite_state->is_active) {
       continue;
     }
 
-    if (!tkbc_message_append_clientkite(kite_state->kite_id, message)) {
+    if (!tkbc_message_append_clientkite(kite_state->kite_id, t_message,
+                                        &t_space)) {
       Client *client = tkbc_get_client_by_kite_id(kite_state->kite_id);
       tkbc_server_shutdown_client(*client, false);
     }
   }
-  tkbc_dapf(message, "\r\n");
+  space_dapf(&t_space, t_message, "\r\n");
 }
 
 /**
@@ -337,12 +337,10 @@ void tkbc_message_clientkites(Message *message) {
  * @param client The client that should get the message.
  */
 void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client) {
-  Message message = {0};
-  tkbc_message_clientkites(&message);
-  tkbc_write_to_send_msg_buffer(client, message);
+  tkbc_message_clientkites(&t_message);
+  tkbc_write_to_send_msg_buffer(client, t_message);
 
-  free(message.elements);
-  message.elements = NULL;
+  tkbc_reset_space_and_null_message(&t_space, &t_message);
 }
 
 /**
@@ -442,12 +440,19 @@ bool tkbc_sockets_read(Client *client) {
   if (recv_buffer->count == 0 && recv_buffer->capacity > MAX_BUFFER_CAPACITY) {
     tkbc_fprintf(stderr, "INFO", "realloced recv_buffer: old capacity: %zu\n",
                  recv_buffer->capacity);
-    free(recv_buffer->elements);
+
+    // free(recv_buffer->elements);
+
+    Planet *planet =
+        space__find_planet_from_ptr(&client->msg_space, recv_buffer->elements);
+    space_free_planet(&client->msg_space, planet);
+
     recv_buffer->elements = NULL;
     recv_buffer->capacity = 0;
   }
 
   if (recv_buffer->capacity < recv_buffer->count + length) {
+    size_t old_capacity = recv_buffer->capacity;
     if (recv_buffer->capacity == 0) {
       recv_buffer->capacity = length;
     }
@@ -457,8 +462,9 @@ bool tkbc_sockets_read(Client *client) {
     }
 
     recv_buffer->elements =
-        realloc(recv_buffer->elements,
-                sizeof(*recv_buffer->elements) * recv_buffer->capacity);
+        space_realloc(&client->msg_space, recv_buffer->elements,
+                      sizeof(*recv_buffer->elements) * old_capacity,
+                      sizeof(*recv_buffer->elements) * recv_buffer->capacity);
 
     if (recv_buffer->elements == NULL) {
       fprintf(stderr,
@@ -556,7 +562,13 @@ int tkbc_socket_write(Client *client) {
       client->send_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
     tkbc_fprintf(stderr, "INFO", "realloced send_msg_buffer: old capacity: %zu",
                  client->send_msg_buffer.capacity);
-    free(client->send_msg_buffer.elements);
+
+    // free(client->send_msg_buffer.elements);
+
+    Planet *planet = space__find_planet_from_ptr(
+        &client->msg_space, client->send_msg_buffer.elements);
+    space_free_planet(&client->msg_space, planet);
+
     client->send_msg_buffer.elements = NULL;
     client->send_msg_buffer.capacity = 0;
   }
@@ -630,12 +642,10 @@ void tkbc_socket_handling() {
  * registered kites.
  */
 void tkbc_message_clientkites_write_to_all_send_msg_buffers() {
-  Message message = {0};
-  tkbc_message_clientkites(&message);
-  tkbc_write_to_all_send_msg_buffers(message);
+  tkbc_message_clientkites(&t_message);
+  tkbc_write_to_all_send_msg_buffers(t_message);
 
-  free(message.elements);
-  message.elements = NULL;
+  tkbc_reset_space_and_null_message(&t_space, &t_message);
 }
 
 /**
@@ -649,14 +659,12 @@ void tkbc_message_clientkites_write_to_all_send_msg_buffers() {
 void tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
     size_t script_id, size_t block_frame_count, size_t block_index) {
 
-  Message message = {0};
-  tkbc_dapf(&message, "%d:%zu:%zu:%zu:\r\n", MESSAGE_SCRIPT_BLOCK_FRAME_VALUE,
-            script_id, block_frame_count, block_index);
+  space_dapf(&t_space, &t_message, "%d:%zu:%zu:%zu:\r\n",
+             MESSAGE_SCRIPT_BLOCK_FRAME_VALUE, script_id, block_frame_count,
+             block_index);
 
-  tkbc_write_to_all_send_msg_buffers(message);
-
-  free(message.elements);
-  message.elements = NULL;
+  tkbc_write_to_all_send_msg_buffers(t_message);
+  tkbc_reset_space_and_null_message(&t_space, &t_message);
 }
 
 /**
@@ -670,18 +678,16 @@ void tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
  */
 bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
     size_t client_id) {
-  Message message = {0};
   bool ok = true;
-  tkbc_dapf(&message, "%d:", MESSAGE_KITEVALUE);
-  if (!tkbc_message_append_clientkite(client_id, &message)) {
+  space_dapf(&t_space, &t_message, "%d:", MESSAGE_KITEVALUE);
+  if (!tkbc_message_append_clientkite(client_id, &t_message, &t_space)) {
     check_return(false);
   }
-  tkbc_dapf(&message, "\r\n");
-  tkbc_write_to_all_send_msg_buffers_except(message, client_id);
+  space_dapf(&t_space, &t_message, "\r\n");
+  tkbc_write_to_all_send_msg_buffers_except(t_message, client_id);
 
 check:
-  free(message.elements);
-  message.elements = NULL;
+  tkbc_reset_space_and_null_message(&t_space, &t_message);
   return ok;
 }
 
@@ -692,20 +698,18 @@ check:
  * @return True if the message was send successfully, otherwise false.
  */
 void tkbc_message_kites_write_to_all_send_msg_buffers() {
-  Message message = {0};
-
-  tkbc_dapf(&message, "%d:%zu:", MESSAGE_KITES, env->kite_array->count);
+  space_dapf(&t_space, &t_message, "%d:%zu:", MESSAGE_KITES,
+             env->kite_array->count);
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     Kite_State *kite_state = &env->kite_array->elements[i];
     if (kite_state->is_active) {
-      tkbc_message_append_kite(kite_state, &message);
+      tkbc_message_append_kite(kite_state, &t_message, &t_space);
     }
   }
-  tkbc_dapf(&message, "\r\n");
-  tkbc_write_to_all_send_msg_buffers(message);
+  space_dapf(&t_space, &t_message, "\r\n");
+  tkbc_write_to_all_send_msg_buffers(t_message);
 
-  free(message.elements);
-  message.elements = NULL;
+  tkbc_reset_space_and_null_message(&t_space, &t_message);
 }
 
 /**
@@ -1144,6 +1148,16 @@ bool tkbc_received_message_handler(Client *client) {
                                                 &scb_block_frame->elements[i]);
         }
 
+        //
+        //
+        // TODO: @Cleanup @Memory Holding all the scripts in memory is to much
+        // even an dos attac could happen, by providing a larga amount of
+        // scripts that doesn't fit into memory.
+        //
+        // Think about storing them on disk and loading them on demand or
+        // reducing the memory storage size of a script.
+        //
+        // Marvin Frohwitter 22.06.2025
         tkbc_dap(env->block_frames,
                  tkbc_deep_copy_block_frame(scb_block_frame));
         for (size_t i = 0; i < scb_block_frame->count; ++i) {
@@ -1168,7 +1182,8 @@ bool tkbc_received_message_handler(Client *client) {
 
       client->script_amount--;
       if (client->script_amount == 0) {
-        tkbc_dapf(&client->send_msg_buffer, "%d:\r\n", MESSAGE_SCRIPT_PARSED);
+        space_dapf(&client->msg_space, &client->send_msg_buffer, "%d:\r\n",
+                   MESSAGE_SCRIPT_PARSED);
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT\n");
@@ -1462,11 +1477,10 @@ int main(int argc, char *argv[]) {
       tkbc_message_clientkites_write_to_all_send_msg_buffers();
 
       if (tkbc_script_finished(env)) {
-        Message message = {0};
-        tkbc_dapf(&message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
-        tkbc_write_to_all_send_msg_buffers(message);
-        free(message.elements);
-        message.elements = NULL;
+        space_dapf(&t_space, &t_message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
+        tkbc_write_to_all_send_msg_buffers(t_message);
+        tkbc_reset_space_and_null_message(&t_space, &t_message);
+
         for (size_t i = 0; i < env->kite_array->count; ++i) {
           Kite_State *kite_state = &env->kite_array->elements[i];
           kite_state->is_active = !kite_state->is_active;
@@ -1509,6 +1523,7 @@ void signalhandler(int signal) {
 
   free(clients.elements);
   free(fds.elements);
+  space_free_space(&t_space);
 
   tkbc_destroy_env(env);
   exit(EXIT_SUCCESS);

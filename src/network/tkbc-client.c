@@ -4,6 +4,9 @@
 #include <raylib.h>
 #include <raymath.h>
 
+#define SPACE_IMPLEMENTATION
+#include "../../external/space/space.h"
+
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 
@@ -55,7 +58,6 @@ Env *env = {0};
 Client client = {0};
 Kite client_kite;
 #define RECEIVE_QUEUE_SIZE 1024
-Message tkbc_send_message_queue = {0};
 // static bool first_message_kite_add = true;
 Popup loading = {0};
 
@@ -258,25 +260,25 @@ void sending_script_handler() {
  */
 bool send_message_handler() {
   bool ok = true;
-  if (tkbc_send_message_queue.count) {
+  if (client.send_msg_buffer.count) {
     // NOTE: this assumes the whole message buffer could be send in one go.
-    ssize_t n = send(client.socket_id, tkbc_send_message_queue.elements,
-                     tkbc_send_message_queue.count, 0);
+    ssize_t n = send(client.socket_id, client.send_msg_buffer.elements,
+                     client.send_msg_buffer.count, 0);
 
     if (n == 0) {
       tkbc_fprintf(stderr, "ERROR", "No bytes where send to the server!\n");
       check_return(false);
     }
     if (n == -1) {
-      tkbc_dap(&tkbc_send_message_queue, 0);
+      space_dap(&client.msg_space, &client.send_msg_buffer, 0);
       tkbc_fprintf(stderr, "ERROR", "Could not broadcast message: %s\n",
-                   tkbc_send_message_queue.elements);
+                   client.send_msg_buffer.elements);
       tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
       check_return(false);
     }
   }
 check:
-  tkbc_send_message_queue.count = 0;
+  client.send_msg_buffer.count = 0;
   return ok;
 }
 
@@ -348,9 +350,9 @@ bool received_message_handler(Message *message) {
 
       {
         const char quote = '\"';
-        tkbc_dapf(&tkbc_send_message_queue,
-                  "%d:%c%s" PROTOCOL_VERSION "%c:\r\n", MESSAGE_HELLO, quote,
-                  "Hello server from client!", quote);
+        space_dapf(&client.msg_space, &client.send_msg_buffer,
+                   "%d:%c%s" PROTOCOL_VERSION "%c:\r\n", MESSAGE_HELLO, quote,
+                   "Hello server from client!", quote);
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
@@ -704,9 +706,11 @@ void tkbc_client_input_handler_kite() {
   }
   client_kite = *kite_state->kite;
 
-  tkbc_dapf(&tkbc_send_message_queue, "%d:", MESSAGE_KITEVALUE);
-  tkbc_message_append_clientkite(client.kite_id, &tkbc_send_message_queue);
-  tkbc_dapf(&tkbc_send_message_queue, "\r\n");
+  space_dapf(&client.msg_space, &client.send_msg_buffer,
+             "%d:", MESSAGE_KITEVALUE);
+  tkbc_message_append_clientkite(client.kite_id, &client.send_msg_buffer,
+                                 &client.msg_space);
+  space_dapf(&client.msg_space, &client.send_msg_buffer, "\r\n");
 }
 
 /**
@@ -714,30 +718,34 @@ void tkbc_client_input_handler_kite() {
  * block_frames to the given message structure.
  *
  * @param script_id The script number the should be appended.
- * @param message The message structure the should hold the data after the
- * computation.
  * @return True if the script was found and is correctly appended, otherwise
  * false.
  */
-bool tkbc_message_append_script(size_t script_id, Message *message) {
+bool tkbc_message_append_script(size_t script_id) {
+
   for (size_t i = 0; i < env->block_frames->count; ++i) {
     if (env->block_frames->elements[i].script_id != script_id) {
       continue;
     }
-    tkbc_dapf(&tkbc_send_message_queue, "%zu:", script_id);
+    space_dapf(&client.msg_space, &client.send_msg_buffer, "%zu:", script_id);
 
     Block_Frame *block_frame = &env->block_frames->elements[i];
-    tkbc_dapf(&tkbc_send_message_queue, "%zu:", block_frame->count);
+    space_dapf(&client.msg_space, &client.send_msg_buffer,
+               "%zu:", block_frame->count);
     for (size_t j = 0; j < block_frame->count; ++j) {
       Frames *frames = &block_frame->elements[j];
-      tkbc_dapf(&tkbc_send_message_queue, "%zu:", frames->block_index);
-      tkbc_dapf(&tkbc_send_message_queue, "%zu:", frames->count);
+      space_dapf(&client.msg_space, &client.send_msg_buffer,
+                 "%zu:", frames->block_index);
+      space_dapf(&client.msg_space, &client.send_msg_buffer,
+                 "%zu:", frames->count);
 
       for (size_t k = 0; k < frames->count; ++k) {
-        tkbc_dapf(&tkbc_send_message_queue, "%zu:", frames->elements[k].index);
-        tkbc_dapf(&tkbc_send_message_queue,
-                  "%d:", frames->elements[k].finished);
-        tkbc_dapf(&tkbc_send_message_queue, "%d:", frames->elements[k].kind);
+        space_dapf(&client.msg_space, &client.send_msg_buffer,
+                   "%zu:", frames->elements[k].index);
+        space_dapf(&client.msg_space, &client.send_msg_buffer,
+                   "%d:", frames->elements[k].finished);
+        space_dapf(&client.msg_space, &client.send_msg_buffer,
+                   "%d:", frames->elements[k].kind);
 
         assert(ACTION_KIND_COUNT == 9 &&
                "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
@@ -745,44 +753,48 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
         case KITE_QUIT:
         case KITE_WAIT: {
           Wait_Action action = frames->elements[k].action.as_wait;
-          tkbc_dapf(&tkbc_send_message_queue, "%lf", action.starttime);
+          space_dapf(&client.msg_space, &client.send_msg_buffer, "%lf",
+                     action.starttime);
         } break;
         case KITE_MOVE:
         case KITE_MOVE_ADD: {
           Move_Action action = frames->elements[k].action.as_move;
-          tkbc_dapf(&tkbc_send_message_queue, "%f:%f", action.position.x,
-                    action.position.y);
+          space_dapf(&client.msg_space, &client.send_msg_buffer, "%f:%f",
+                     action.position.x, action.position.y);
         } break;
         case KITE_ROTATION:
         case KITE_ROTATION_ADD: {
           Rotation_Action action = frames->elements[k].action.as_rotation;
-          tkbc_dapf(&tkbc_send_message_queue, "%f", action.angle);
+          space_dapf(&client.msg_space, &client.send_msg_buffer, "%f",
+                     action.angle);
         } break;
         case KITE_TIP_ROTATION:
         case KITE_TIP_ROTATION_ADD: {
           Tip_Rotation_Action action =
               frames->elements[k].action.as_tip_rotation;
-          tkbc_dapf(&tkbc_send_message_queue, "%d:%f", action.tip,
-                    action.angle);
+          space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:%f",
+                     action.tip, action.angle);
         } break;
         default:
           assert(0 && "UNREACHABLE tkbc_message_append_script()");
         }
 
-        tkbc_dapf(&tkbc_send_message_queue, ":%f",
-                  frames->elements[k].duration);
+        space_dapf(&client.msg_space, &client.send_msg_buffer, ":%f",
+                   frames->elements[k].duration);
 
         Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
         if (kite_ids->count) {
-          tkbc_dapf(&tkbc_send_message_queue, ":%zu:(", kite_ids->count);
+          space_dapf(&client.msg_space, &client.send_msg_buffer, ":%zu:(",
+                     kite_ids->count);
           for (size_t id = 0; id < kite_ids->count; ++id) {
-            tkbc_dapf(&tkbc_send_message_queue, "%zu,", kite_ids->elements[id]);
+            space_dapf(&client.msg_space, &client.send_msg_buffer, "%zu,",
+                       kite_ids->elements[id]);
           }
-          tkbc_send_message_queue.count--;
-          tkbc_dapf(&tkbc_send_message_queue, ")");
+          client.send_msg_buffer.count--;
+          space_dapf(&client.msg_space, &client.send_msg_buffer, ")");
         }
 
-        tkbc_dapf(&tkbc_send_message_queue, ":");
+        space_dapf(&client.msg_space, &client.send_msg_buffer, ":");
       }
     }
     return true;
@@ -799,35 +811,27 @@ bool tkbc_message_append_script(size_t script_id, Message *message) {
  */
 bool tkbc_message_script() {
   bool ok = true;
-  tkbc_dapf(&tkbc_send_message_queue, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT,
-            env->block_frames->count);
+  space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:%zu:\r\n",
+             MESSAGE_SCRIPT_AMOUNT, env->block_frames->count);
 
-  Message message = {0};
   size_t counter = 0;
   for (size_t i = env->send_scripts; i < env->block_frames->count; ++i) {
     char buf[8];
     int size = snprintf(buf, sizeof(buf), "%d:", MESSAGE_SCRIPT);
-    tkbc_dapf(&tkbc_send_message_queue, "%s", buf);
+    space_dapf(&client.msg_space, &client.send_msg_buffer, "%s", buf);
 
-    if (!tkbc_message_append_script(env->block_frames->elements[i].script_id,
-                                    &message)) {
+    if (!tkbc_message_append_script(env->block_frames->elements[i].script_id)) {
       tkbc_fprintf(stderr, "ERROR",
                    "The script could not be appended to the message.\n");
-      tkbc_send_message_queue.count -= size;
+      client.send_msg_buffer.count -= size;
       check_return(false);
     }
 
-    tkbc_dapc(&tkbc_send_message_queue, message.elements, message.count);
-    tkbc_dapf(&tkbc_send_message_queue, "\r\n");
-    message.count = 0;
+    space_dapf(&client.msg_space, &client.send_msg_buffer, "\r\n");
     counter++;
   }
 check:
   env->send_scripts += counter;
-  if (message.elements) {
-    free(message.elements);
-    message.elements = NULL;
-  }
   return ok;
 }
 
@@ -863,8 +867,8 @@ void tkbc_client_file_handler() {
  * send_message_queue.
  */
 void tkbc_message_kites_positions() {
-  tkbc_dapf(&tkbc_send_message_queue, "%d:%zu:", MESSAGE_KITES_POSITIONS,
-            env->kite_array->count);
+  space_dapf(&client.msg_space, &client.send_msg_buffer,
+             "%d:%zu:", MESSAGE_KITES_POSITIONS, env->kite_array->count);
 
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     Kite_State *state = &env->kite_array->elements[i];
@@ -874,10 +878,10 @@ void tkbc_message_kites_positions() {
     float y = state->kite->center.y;
     float angle = state->kite->angle;
     uint32_t color = *(uint32_t *)&state->kite->body_color;
-    tkbc_dapf(&tkbc_send_message_queue, "%zu:(%f,%f):%f:%u:", kite_id, x, y,
-              angle, color);
+    space_dapf(&client.msg_space, &client.send_msg_buffer,
+               "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
   }
-  tkbc_dapf(&tkbc_send_message_queue, "\r\n");
+  space_dapf(&client.msg_space, &client.send_msg_buffer, "\r\n");
 }
 
 /**
@@ -893,21 +897,22 @@ void tkbc_client_input_handler_script() {
   // KEY_ENTER
   if (IsKeyPressed(
           tkbc_hash_to_key(*env->keymaps, KMH_SET_KITES_TO_START_POSITION))) {
-    tkbc_dapf(&tkbc_send_message_queue, "%d:\r\n",
-              MESSAGE_KITES_POSITIONS_RESET);
+    space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:\r\n",
+               MESSAGE_KITES_POSITIONS_RESET);
   }
 
   // KEY_SPACE
   if (IsKeyPressed(
           tkbc_hash_to_key(*env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION))) {
-    tkbc_dapf(&tkbc_send_message_queue, "%d:\r\n", MESSAGE_SCRIPT_TOGGLE);
+    space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:\r\n",
+               MESSAGE_SCRIPT_TOGGLE);
   }
 
   // KEY_TAB
   if (env->new_script_selected) {
     // Script ids start from 1 so +1 is needed.
-    tkbc_dapf(&tkbc_send_message_queue, "%d:%zu:\r\n", MESSAGE_SCRIPT_NEXT,
-              env->script_menu_mouse_interaction_box + 1);
+    space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:%zu:\r\n",
+               MESSAGE_SCRIPT_NEXT, env->script_menu_mouse_interaction_box + 1);
     env->new_script_selected = false;
   }
 
@@ -917,8 +922,8 @@ void tkbc_client_input_handler_script() {
     float c = mouse_x - slider;
     bool drag_left = c <= 0;
 
-    tkbc_dapf(&tkbc_send_message_queue, "%d:%d:\r\n", MESSAGE_SCRIPT_SCRUB,
-              drag_left);
+    space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:%d:\r\n",
+               MESSAGE_SCRIPT_SCRUB, drag_left);
   }
 }
 
@@ -980,8 +985,6 @@ int main(int argc, char *argv[]) {
     env->kite_array->count = prev_kite_array_count;
   }
 
-  Message tkbc_receive_queue = {0};
-
   Popup disconnect = tkbc_popup_message("The server has disconnected!");
   loading = tkbc_popup_message("Waiting for server.");
   loading.active = true;
@@ -990,7 +993,7 @@ int main(int argc, char *argv[]) {
   while (!WindowShouldClose()) {
 
     if (sending_receiving) {
-      if (!message_queue_handler(&tkbc_receive_queue)) {
+      if (!message_queue_handler(&client.recv_msg_buffer)) {
         disconnect.active = true;
       }
       sending_receiving = send_message_handler();
@@ -1023,7 +1026,7 @@ int main(int argc, char *argv[]) {
     if (disconnect.active) {
       sending_receiving = false;
       // Clearing for offline continuation.
-      tkbc_send_message_queue.count = 0;
+      client.send_msg_buffer.count = 0;
       tkbc_popup_resize(&disconnect);
       tkbc_draw_popup(&disconnect);
     }
@@ -1045,14 +1048,9 @@ int main(int argc, char *argv[]) {
   };
   CloseWindow();
 
-  if (tkbc_receive_queue.elements) {
-    free(tkbc_receive_queue.elements);
-    tkbc_receive_queue.elements = NULL;
-  }
-  if (tkbc_send_message_queue.elements) {
-    free(tkbc_send_message_queue.elements);
-    tkbc_send_message_queue.elements = NULL;
-  }
+  client.recv_msg_buffer.elements = NULL;
+  client.send_msg_buffer.elements = NULL;
+  space_free_space(&client.msg_space);
 
   shutdown(client.socket_id, SHUT_WR);
   char buf[1024] = {0};

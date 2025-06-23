@@ -14,6 +14,20 @@
 extern Env *env;
 
 /**
+ * @brief The function resets the space and sets the elements ptr from the
+ * message to NULL.
+ *
+ * @param space The arena style allocator.
+ * @param message The dynamic arena of a message.
+ */
+void tkbc_reset_space_and_null_message(Space *space, Message *message) {
+  message->elements = NULL;
+  message->count = 0;
+  message->capacity = 0;
+  space_reset_space(space);
+}
+
+/**
  * @brief The function extracts the values that should belong to a kite out of
  * the lexer data.
  *

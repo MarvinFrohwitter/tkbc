@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.3.002"
+#define PROTOCOL_VERSION "0.3.003"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -12,6 +12,7 @@
 #define TKBC_LOGGING_MESSAGEHANDLER
 //////////////////////////////////////////////////////////////////////////////
 
+#include "../../external/space/space.h"
 #include "../global/tkbc-utils.h"
 extern Env *env;
 
@@ -71,6 +72,7 @@ typedef struct {
   ssize_t kite_id;
   Message send_msg_buffer;
   Message recv_msg_buffer;
+  Space msg_space;
 
   int socket_id;
   SOCKADDR_IN client_address;
@@ -229,13 +231,13 @@ static inline int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
  * @param message The Message struct that should contain the serialized data.
  */
 static inline void tkbc_message_append_kite(Kite_State *kite_state,
-                                            Message *message) {
+                                            Message *message, Space *space) {
   size_t kite_id = kite_state->kite_id;
   float x = kite_state->kite->center.x;
   float y = kite_state->kite->center.y;
   float angle = kite_state->kite->angle;
   uint32_t color = *(uint32_t *)&kite_state->kite->body_color;
-  tkbc_dapf(message, "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
+  space_dapf(space, message, "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
 }
 
 /**
@@ -248,11 +250,12 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
  * otherwise false.
  */
 static inline bool tkbc_message_append_clientkite(size_t client_id,
-                                                  Message *message) {
+                                                  Message *message,
+                                                  Space *space) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (client_id == env->kite_array->elements[i].kite_id) {
       Kite_State *kite_state = &env->kite_array->elements[i];
-      tkbc_message_append_kite(kite_state, message);
+      tkbc_message_append_kite(kite_state, message, space);
       return true;
     }
   }
