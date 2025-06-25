@@ -90,6 +90,13 @@ void tkbc_script_update_frames(Env *env) {
 
   tkbc_patch_frames_current_time(env->frames);
 
+  //
+  // TODO: Add is_scrubed to every script so that the positions don't have to
+  // be computed again after visiting the script once. Maybe just scrub left can
+  // be implemented.
+  // Keep in mind if the scripts will be stored to the disk, that feature is not
+  // yet implemented, it has to recompute the positions in case the storing does
+  // not include the positions. Marvin Frohwitter 25.06.2025
   for (size_t i = 0; i < env->frames->kite_frame_positions.count; ++i) {
     Id id = env->frames->kite_frame_positions.elements[i].kite_id;
     Kite *kite = tkbc_get_kite_by_id(env, id);

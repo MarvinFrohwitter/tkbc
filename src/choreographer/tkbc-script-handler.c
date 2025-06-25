@@ -758,6 +758,9 @@ void tkbc_scrub_frames(Env *env) {
 
     if (index >= 0 && index < (int)env->block_frame->count) {
       env->frames = &env->block_frame->elements[index];
+      for (size_t i = 0; i < env->frames->count; ++i) {
+        env->frames->elements[i].finished = false;
+      }
     }
     tkbc_set_kite_positions_from_kite_frames_positions(env);
   }
