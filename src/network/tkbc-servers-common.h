@@ -236,7 +236,10 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
   float x = kite_state->kite->center.x;
   float y = kite_state->kite->center.y;
   float angle = kite_state->kite->angle;
-  uint32_t color = *(uint32_t *)&kite_state->kite->body_color;
+  uint32_t color = ((uint32_t)kite_state->kite->body_color.r << 24) |
+                   ((uint32_t)kite_state->kite->body_color.g << 16) |
+                   ((uint32_t)kite_state->kite->body_color.b << 8) |
+                   (uint32_t)kite_state->kite->body_color.a;
   space_dapf(space, message, "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
 }
 

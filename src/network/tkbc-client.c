@@ -877,7 +877,11 @@ void tkbc_message_kites_positions() {
     float x = state->kite->center.x;
     float y = state->kite->center.y;
     float angle = state->kite->angle;
-    uint32_t color = *(uint32_t *)&state->kite->body_color;
+    uint32_t color = ((uint32_t)state->kite->body_color.r << 24) |
+                     ((uint32_t)state->kite->body_color.g << 16) |
+                     ((uint32_t)state->kite->body_color.b << 8) |
+                     (uint32_t)state->kite->body_color.a;
+
     space_dapf(&client.msg_space, &client.send_msg_buffer,
                "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
   }
