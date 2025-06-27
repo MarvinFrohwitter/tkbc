@@ -154,7 +154,7 @@ void tkbc_destroy_env(Env *env) {
       tkbc_destroy_frames_internal_data(
           &env->block_frames->elements[j].elements[i]);
     }
-    env->block_frame->name = NULL;
+    env->block_frames->elements[j].name = NULL;
   }
 
   free(env->block_frames->elements);
