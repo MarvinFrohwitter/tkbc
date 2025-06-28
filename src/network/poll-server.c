@@ -435,7 +435,7 @@ void tkbc_server_accept() {
  */
 bool tkbc_sockets_read(Client *client) {
   Message *recv_buffer = &client->recv_msg_buffer;
-  size_t length = 1024;
+  size_t length = 1024*32;
 
   if (recv_buffer->count == 0 && recv_buffer->capacity > MAX_BUFFER_CAPACITY) {
     tkbc_fprintf(stderr, "INFO", "realloced recv_buffer: old capacity: %zu\n",
