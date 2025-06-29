@@ -24,7 +24,7 @@ void tkbc_set_script_name(Block_Frame *block_frame, const char *name);
     if (!*tmp) {                                                               \
       tmp = NULL;                                                              \
     }                                                                          \
-    tkbc_set_script_name(&env->scratch_buf_block_frame, tmp);                 \
+    tkbc_set_script_name(&env->scratch_buf_block_frame, tmp);                  \
   } while (0)
 
 #define tkbc_script_end() tkbc__script_end(env)
@@ -92,8 +92,8 @@ void tkbc__register_frames(Env *env, ...);
 void tkbc_register_frames_array(Env *env, Frames *frames);
 void tkbc_sript_team_scratch_buf_frames_append_and_free(Env *env, Frame *frame);
 
-Kite_Ids tkbc__indexs_append(Env *env, ...);
-#define tkbc_indexs_append(...) tkbc__indexs_append(env, __VA_ARGS__, INT_MAX)
+Kite_Ids tkbc__indexs_append(int _, ...);
+#define tkbc_indexs_append(...) tkbc__indexs_append(0, __VA_ARGS__, UINT_MAX)
 #define ID(...) tkbc_indexs_append(__VA_ARGS__)
 
 Kite_Ids tkbc_indexs_range(int start, int end);

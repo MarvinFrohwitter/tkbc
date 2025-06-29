@@ -318,24 +318,25 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
  * implementation.
  * @return The dynamic array list of kite indices.
  */
-Kite_Ids tkbc__indexs_append(Env *env, ...) {
+Kite_Ids tkbc__indexs_append(int _, ...) {
   Kite_Ids ki = {0};
 
   va_list args;
-  va_start(args, env);
+  va_start(args, _);
   for (;;) {
     // NOTE:(compiler) clang 18.1.8 has a compiler bug that can not use size_t
     // or equivalent unsigned long int in variadic functions. It is related to
     // compiler caching. So the option is to just use unsigned int instead.
     // unsigned int index = va_arg(args, unsigned int);
     Index index = va_arg(args, size_t);
-    if (INT_MAX != index) {
+    if (UINT_MAX != index) {
       tkbc_dap(&ki, index);
     } else {
       break;
     }
   }
   va_end(args);
+  (void)_;
 
   ki.script_id_append = true;
   return ki;
