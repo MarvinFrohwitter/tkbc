@@ -173,7 +173,7 @@ void tkbc_input_handler_kite_array(Env *env) {
 
   // To handle all of the kites currently registered in the kite array.
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    tkbc_input_handler(*env->keymaps, &env->kite_array->elements[i]);
+    tkbc_input_handler(env->keymaps, &env->kite_array->elements[i]);
   }
 }
 

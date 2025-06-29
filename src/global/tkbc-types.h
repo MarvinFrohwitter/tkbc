@@ -406,7 +406,7 @@ typedef struct {
   size_t keymaps_mouse_interaction_box; // The id of the box the is clicked.
   size_t keymaps_top_interaction_box; // The id the current first displayed box.
   Rectangle keymaps_base; // The base bounding box of the keymaps settings.
-  Key_Maps *keymaps;      // The current keymaps
+  Key_Maps keymaps;       // The current keymaps
 
   bool timeline_hoverover;      // The status if the mouse is currently of the
                                 // timeline.

@@ -690,7 +690,7 @@ void tkbc_client_input_handler_kite() {
   };
   float angle = kite_state->kite->angle;
 
-  tkbc_input_handler(*env->keymaps, kite_state);
+  tkbc_input_handler(env->keymaps, kite_state);
 
   if (Vector2Equals(pos, kite_state->kite->center)) {
     if (FloatEquals(angle, kite_state->kite->angle)) {
@@ -900,14 +900,14 @@ void tkbc_client_input_handler_script() {
   // Hard reset to startposition angel 0
   // KEY_ENTER
   if (IsKeyPressed(
-          tkbc_hash_to_key(*env->keymaps, KMH_SET_KITES_TO_START_POSITION))) {
+          tkbc_hash_to_key(env->keymaps, KMH_SET_KITES_TO_START_POSITION))) {
     space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:\r\n",
                MESSAGE_KITES_POSITIONS_RESET);
   }
 
   // KEY_SPACE
   if (IsKeyPressed(
-          tkbc_hash_to_key(*env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION))) {
+          tkbc_hash_to_key(env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION))) {
     space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:\r\n",
                MESSAGE_SCRIPT_TOGGLE);
   }
@@ -971,10 +971,10 @@ int main(int argc, char *argv[]) {
 
   srand(time(NULL));
   env = tkbc_init_env();
-  if (tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps")) {
+  if (tkbc_load_keymaps_from_file(&env->keymaps, ".tkbc-keymaps")) {
     tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
   }
-  SetExitKey(tkbc_hash_to_key(*env->keymaps, KMH_QUIT_PROGRAM));
+  SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
 
   size_t prev_kite_array_count = env->kite_array->count;

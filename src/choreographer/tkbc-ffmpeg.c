@@ -46,19 +46,19 @@ struct Process {
  */
 void tkbc_ffmpeg_handler(Env *env, const char *output_file_path) {
   // KEY_B
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_TAKE_SCREENSHOT))) {
+  if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_TAKE_SCREENSHOT))) {
     TakeScreenshot("1.png");
   }
   // The handler has to be carefully checked because the same key is used
   // multiple times and that can cause problems, with reinitializing the
   // ffmpeg child process where the old one is still running.
-  Key_Map keymap = tkbc_hash_to_keymap(*env->keymaps, KMH_END_RECORDING);
+  Key_Map keymap = tkbc_hash_to_keymap(env->keymaps, KMH_END_RECORDING);
   // KEY_V && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
   if (IsKeyPressed(keymap.key) &&
       (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
     tkbc_ffmpeg_end(env, false);
   } else if (IsKeyPressed(
-                 tkbc_hash_to_key(*env->keymaps, KMH_BEGIN_RECORDING))) {
+                 tkbc_hash_to_key(env->keymaps, KMH_BEGIN_RECORDING))) {
     if (!env->rendering) {
       if (!tkbc_ffmpeg_create_proc(env, output_file_path)) {
         env->recording = false;

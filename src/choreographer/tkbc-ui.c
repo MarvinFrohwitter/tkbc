@@ -188,12 +188,12 @@ void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
  * @return True if menu was force closed, otherwise false.
  */
 bool tkbc_ui_script_menu(Env *env) {
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
+  if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
     env->script_menu_interaction = false;
     return true;
   }
 
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
+  if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
     env->script_menu_interaction = !env->script_menu_interaction;
     env->script_menu_mouse_interaction = false;
   }
@@ -376,7 +376,7 @@ void tkbc_ui_color_picker(Env *env) {
   }
 
   // KEY_ESCAPE
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
+  if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
     env->color_picker_interaction = !env->color_picker_interaction;
   }
   if (!env->color_picker_interaction) {
@@ -417,7 +417,7 @@ void tkbc_ui_color_picker(Env *env) {
   }
 
   if (key == KEY_ENTER ||
-      key == tkbc_hash_to_key(*env->keymaps, KMH_CHANGE_KEY_MAPPINGS)) {
+      key == tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS)) {
     env->color_picker_input_mouse_interaction = false;
     goto key_skip;
   }
@@ -691,7 +691,7 @@ void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration,
   // NOTE: This KEY_ESCAPE disables the ability to set KEY_ESCAPE for any
   // keymap.
   if (key != KEY_ESCAPE) {
-    Key_Map *km = &env->keymaps->elements[env->keymaps_mouse_interaction_box];
+    Key_Map *km = &env->keymaps.elements[env->keymaps_mouse_interaction_box];
     switch (env->keymaps_interaction_rec_number) {
     case BOX_MOD_KEY:
       tkbc_set_key_or_delete(&km->mod_key, &km->mod_key_str, key);
@@ -713,7 +713,7 @@ void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration,
     }
 
     if (km->hash == KMH_QUIT_PROGRAM) {
-      SetExitKey(tkbc_hash_to_key(*env->keymaps, KMH_QUIT_PROGRAM));
+      SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
     }
 
     env->keymaps_mouse_interaction = false;
@@ -727,19 +727,19 @@ key_change_skip: {}
   const char *str;
   switch (iteration) {
   case BOX_MOD_KEY:
-    str = env->keymaps->elements[cur_major_box].mod_key_str;
+    str = env->keymaps.elements[cur_major_box].mod_key_str;
     break;
   case BOX_MOD_CO_KEY:
-    str = env->keymaps->elements[cur_major_box].mod_co_key_str;
+    str = env->keymaps.elements[cur_major_box].mod_co_key_str;
     break;
   case BOX_SELECTION_KEY1:
-    str = env->keymaps->elements[cur_major_box].selection_key1_str;
+    str = env->keymaps.elements[cur_major_box].selection_key1_str;
     break;
   case BOX_SELECTION_KEY2:
-    str = env->keymaps->elements[cur_major_box].selection_key2_str;
+    str = env->keymaps.elements[cur_major_box].selection_key2_str;
     break;
   case BOX_KEY:
-    str = env->keymaps->elements[cur_major_box].key_str;
+    str = env->keymaps.elements[cur_major_box].key_str;
     break;
   default:
     assert(0 && "UNREACHABLE tkbc_draw_key_box()");
@@ -767,11 +767,11 @@ void tkbc_ui_keymaps(Env *env) {
   // This will ensure that the settings can always be left regardless to which
   // keybinding is set. For opening and closing.
   if (IsKeyPressed(KEY_ESCAPE) &&
-      tkbc_hash_to_key(*env->keymaps, KMH_CHANGE_KEY_MAPPINGS) != KEY_ESCAPE) {
+      tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS) != KEY_ESCAPE) {
     env->keymaps_interaction = false;
   }
   // KEY_ESCAPE
-  if (IsKeyPressed(tkbc_hash_to_key(*env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
+  if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
     env->keymaps_interaction = !env->keymaps_interaction;
     env->keymaps_mouse_interaction = false;
   }
@@ -783,7 +783,7 @@ void tkbc_ui_keymaps(Env *env) {
   // DrawRectangleRec(env->keymaps_base, TKBC_UI_GRAY_ALPHA);
 
   tkbc_scrollbar(env, &env->keymaps_scrollbar, env->keymaps_base,
-                 env->keymaps->count, &env->keymaps_top_interaction_box);
+                 env->keymaps.count, &env->keymaps_top_interaction_box);
 
   // TODO: Think about UI scaling.
   //
@@ -794,7 +794,7 @@ void tkbc_ui_keymaps(Env *env) {
   Vector2 text_size;
   for (size_t box = env->keymaps_top_interaction_box;
        box < env->screen_items + env->keymaps_top_interaction_box &&
-       box < env->keymaps->count;
+       box < env->keymaps.count;
        ++box) {
 
     size_t key_box_count = 5;
@@ -820,12 +820,12 @@ void tkbc_ui_keymaps(Env *env) {
     do {
       text_size =
           MeasureTextEx(GetFontDefault(),
-                        env->keymaps->elements[box].description, font_size, 0);
+                        env->keymaps.elements[box].description, font_size, 0);
       font_size -= 1;
     } while (text_size.x + 2 * padding > env->keymaps_base.width &&
              text_size.y + 2 * padding > env->box_height / 2.0);
 
-    DrawText(env->keymaps->elements[box].description,
+    DrawText(env->keymaps.elements[box].description,
              env->keymaps_base.x + padding, env->keymaps_base.y + padding,
              font_size, TKBC_UI_BLACK);
 
@@ -864,9 +864,9 @@ void tkbc_ui_keymaps(Env *env) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
         CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
       DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      tkbc_load_keymaps_from_file(env->keymaps, ".tkbc-keymaps");
-      tkbc_setup_keymaps_strs(env->keymaps);
-      SetExitKey(tkbc_hash_to_key(*env->keymaps, KMH_QUIT_PROGRAM));
+      tkbc_load_keymaps_from_file(&env->keymaps, ".tkbc-keymaps");
+      tkbc_setup_keymaps_strs(&env->keymaps);
+      SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
     }
   }
   const char *load = "LOAD";
@@ -887,8 +887,8 @@ void tkbc_ui_keymaps(Env *env) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
         CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
       DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      tkbc_set_keymaps_defaults(env->keymaps);
-      SetExitKey(tkbc_hash_to_key(*env->keymaps, KMH_QUIT_PROGRAM));
+      tkbc_set_keymaps_defaults(&env->keymaps);
+      SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
     }
   }
   const char *reset = "RESET";
@@ -909,7 +909,7 @@ void tkbc_ui_keymaps(Env *env) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
         CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
       DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      tkbc_save_keymaps_to_file(*env->keymaps, ".tkbc-keymaps");
+      tkbc_save_keymaps_to_file(env->keymaps, ".tkbc-keymaps");
     }
   }
   const char *save = "SAVE";

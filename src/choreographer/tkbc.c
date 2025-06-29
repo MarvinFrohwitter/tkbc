@@ -52,14 +52,7 @@ Env *tkbc_init_env(void) {
   }
   memset(env->block_frames, 0, sizeof(*env->block_frames));
 
-  env->keymaps = malloc(sizeof(*env->keymaps));
-  if (env->keymaps == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
-  memset(env->keymaps, 0, sizeof(*env->keymaps));
-
-  tkbc_init_keymaps_defaults(env->keymaps);
+  tkbc_init_keymaps_defaults(&env->keymaps);
 
   tkbc_set_kite_defaults(env->vanilla_kite, true);
   env->kite_id_counter = 0;
@@ -130,19 +123,19 @@ Kite_State *tkbc_init_kite(void) {
  */
 void tkbc_destroy_env(Env *env) {
 
-  if (env->keymaps->elements != NULL) {
-    free(env->keymaps->elements);
-    env->keymaps->elements = NULL;
-  }
-  if (env->keymaps != NULL) {
-    free(env->keymaps);
-    env->keymaps = NULL;
+  if (env->keymaps.elements) {
+    free(env->keymaps.elements);
+    env->keymaps.elements = NULL;
   }
 
   free(env->color_picker_input_text);
+  env->color_picker_input_text = NULL;
   free(env->favorite_colors.elements);
+  env->favorite_colors.elements = NULL;
   free(env->sound_file_name);
+  env->sound_file_name = NULL;
   free(env->script_file_name);
+  env->script_file_name = NULL;
   free(env->vanilla_kite);
   env->vanilla_kite = NULL;
   tkbc_destroy_kite_array(env->kite_array);
