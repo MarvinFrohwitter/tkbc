@@ -89,7 +89,7 @@ void kite_script(Cmd *cmd) {
   cb_cmd_push(cmd, CC);
   include(cmd);
   cflags(cmd);
-  cb_cmd_push(cmd, "-o", "build/first.o", "-c", "tkbc_scripts/first.c");
+  cb_cmd_push(cmd, "-o", "build/first.o", "-c", "./tkbc_scripts/first.c");
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
 }
@@ -153,7 +153,6 @@ int main(int argc, char *argv[]) {
 
   kite_script(&cmd);
   choreographer(&cmd, linkoption);
-  server(&cmd, linkoption);
   client(&cmd, linkoption);
 
   return 0;

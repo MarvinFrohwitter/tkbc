@@ -518,7 +518,7 @@ check:
 
 /**
  * @brief The macro parses the possible additional plus and minus sign in front
- * of an< number that is returned by the lexer.
+ * of a number that is returned by the lexer.
  *
  * @param lexer The parsing state of the .kite script.
  * @param tmp_buffer The dynamic array buffer where the parsed tokens should be
