@@ -22,6 +22,9 @@
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
+#define LOADIMAGE
+
+Image ce_nextgen_image;
 
 /**
  * @brief The main function that handles the event loop.
@@ -46,21 +49,15 @@ int main(void) {
   tkbc_init_sound(40);
 
 #ifdef LOADIMAGE
-  Image background_image =
-      LoadImage("/home/marvin/Entwicklung/c/tkbc/assets/background.png");
-  Texture2D background_texture = LoadTextureFromImage(background_image);
+  ce_nextgen_image = LoadImage("/home/marvin/CE_NextGen.png");
+  if (!IsImageValid(ce_nextgen_image)) {
+      tkbc_fprintf(stderr, "ERROR", "Could not load kite image.");
+  }
 #endif /* ifdef LOADIMAGE */
 
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(SKYBLUE);
-
-#ifdef LOADIMAGE
-    float scale_width = (float)env->window_width / background_texture.width;
-    float scale_height = (float)env->window_height / background_texture.height;
-    float scale = fmaxf(scale_width, scale_height);
-    DrawTextureEx(background_texture, (Vector2){0, 0}, 0, scale, TKBC_UI_WHITE);
-#endif /* ifdef LOADIMAGE */
 
     if (env->script_setup) {
       // For detection if the begin and end is called correctly.

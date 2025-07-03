@@ -137,6 +137,7 @@ typedef struct {
 } Kite_Position;    // The combined position and rotation angle.
 
 typedef struct {
+  Texture2D ce_nextgen_texture;
   float old_angle; // The rotation angle before the frame interpolation has
                    // stated.
   Vector2
