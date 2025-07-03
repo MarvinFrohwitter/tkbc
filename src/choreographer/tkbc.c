@@ -550,35 +550,26 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
  * @param kite The kite that is going to be drawn.
  */
 void tkbc_draw_kite(Kite *kite) {
-  // Vector2 origin = {0};
-
-  // Draw a color-filled triangle (vertex in counter-clockwise order!)
-  // DrawTriangle(kite->left.v1, kite->left.v2, kite->left.v3,
-  // kite->body_color); DrawTriangle(kite->right.v1, kite->right.v2,
-  // kite->right.v3,
-  //              kite->body_color);
-  // DrawRectanglePro(kite->rec, origin, -kite->angle, kite->top_color);
-
-  float scale = 0.5;
-  float manual_offset_that_compensates_for_not_alligned_texture = 15;
-  float ratio = kite->width / kite->ce_nextgen_texture.width;
-  Vector2 position = {
-      kite->center.x - (ratio * kite->ce_nextgen_texture.width) / 2.0f -
-          manual_offset_that_compensates_for_not_alligned_texture,
-      kite->center.y,
-
-  };
-
+  /* texture kite */
+  float scale = kite->width / kite->ce_nextgen_texture.width;
+  float len_to_center = (scale * kite->ce_nextgen_texture.width) / 2.0f;
+  len_to_center = floorf(len_to_center);
   float phi = (PI * (kite->angle) / 180);
+  Vector2 position = kite->center;
+  position.x -= len_to_center * cosf(phi);
+  position.y += len_to_center * sinf(phi);
+  DrawTextureEx(kite->ce_nextgen_texture, position, -kite->angle, scale, WHITE);
 
-  // position.x += kite->width * cosf(phi);
-  // position.y += kite->height * sinf(phi);
+  /* color kite */
+  Vector2 origin = {0};
+  // Draw a color-filled triangle (vertex in counter-clockwise order!)
+  DrawTriangle(kite->left.v1, kite->left.v2, kite->left.v3, kite->body_color);
+  DrawTriangle(kite->right.v1, kite->right.v2, kite->right.v3,
+               kite->body_color);
 
-  DrawTextureEx(kite->ce_nextgen_texture, position, fmodf(kite->angle, 360),
-                scale, TKBC_UI_WHITE);
-
-  DrawCircleV(position, 10, RED);
-  DrawCircleV(kite->center, 10, GREEN);
+  if (!ColorIsEqual(kite->body_color, BLANK)) {
+    DrawRectanglePro(kite->rec, origin, -kite->angle, kite->top_color);
+  }
 }
 
 /**
