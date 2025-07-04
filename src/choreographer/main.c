@@ -7,6 +7,10 @@
 #include "../global/tkbc-utils.h"
 #undef TKBC_UTILS_IMPLEMENTAION
 
+#define SPACE_IMPLEMENTATION
+#include "../../external/space/space.h"
+
+#include "tkbc-asset-handler.h"
 #include "tkbc-ffmpeg.h"
 #include "tkbc-input-handler.h"
 #include "tkbc-keymaps.h"
@@ -24,7 +28,8 @@
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 #define LOADIMAGE
 
-Image ce_nextgen_image;
+Space kite_images_space = {0};
+Kite_Images kite_images = {0};
 
 /**
  * @brief The main function that handles the event loop.
@@ -49,10 +54,7 @@ int main(void) {
   tkbc_init_sound(40);
 
 #ifdef LOADIMAGE
-  ce_nextgen_image = LoadImage("/home/marvin/CE_NextGen.png");
-  if (!IsImageValid(ce_nextgen_image)) {
-      tkbc_fprintf(stderr, "ERROR", "Could not load kite image.");
-  }
+  tkbc_load_kite_images();
 #endif /* ifdef LOADIMAGE */
 
   while (!WindowShouldClose()) {
@@ -97,6 +99,8 @@ int main(void) {
 
   tkbc_sound_destroy(env->sound);
   tkbc_destroy_env(env);
+
+  space_free_space(&kite_images_space);
   CloseWindow();
   return 0;
 }

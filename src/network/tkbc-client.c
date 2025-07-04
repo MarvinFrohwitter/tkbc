@@ -10,6 +10,7 @@
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 
+#include "../choreographer/tkbc-asset-handler.h"
 #include "../choreographer/tkbc-ffmpeg.h"
 #include "../choreographer/tkbc-input-handler.h"
 #include "../choreographer/tkbc-keymaps.h"
@@ -53,6 +54,7 @@
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 #define TKBC_CLIENT
+#define LOADIMAGE
 
 Env *env = {0};
 Client client = {0};
@@ -60,6 +62,9 @@ Kite client_kite;
 #define RECEIVE_QUEUE_SIZE 1024
 // static bool first_message_kite_add = true;
 Popup loading = {0};
+
+Space kite_images_space = {0};
+Kite_Images kite_images = {0};
 
 /**
  * @brief The function prints the way the program should be called.
@@ -977,6 +982,10 @@ int main(int argc, char *argv[]) {
   SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
 
+#ifdef LOADIMAGE
+  tkbc_load_kite_images();
+#endif /* ifdef LOADIMAGE */
+
   size_t prev_kite_array_count = env->kite_array->count;
   sending_script_handler();
   if (prev_kite_array_count != env->kite_array->count) {
@@ -1086,6 +1095,8 @@ int main(int argc, char *argv[]) {
 
   tkbc_sound_destroy(env->sound);
   tkbc_destroy_env(env);
+
+  space_free_space(&kite_images_space);
   tkbc_fprintf(stderr, "INFO", "EXITED SUCCESSFULLY.\n");
   return 0;
 }

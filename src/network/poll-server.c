@@ -1,4 +1,4 @@
-#define TKBC_SERVER
+#define TKBC_SERVER 1
 #include "poll-server.h"
 
 #include <assert.h>
@@ -43,6 +43,8 @@ Clients clients = {0};
 FDs fds = {0};
 Space t_space = {0};
 Message t_message = {0}; // The elements ptr is allocated inside of the t_space.
+
+Kite_Images kite_images; // Just for the definition do not use.
 
 /**
  * @brief  The function can be used to get the pollfd structure that corresponds
@@ -435,7 +437,7 @@ void tkbc_server_accept() {
  */
 bool tkbc_sockets_read(Client *client) {
   Message *recv_buffer = &client->recv_msg_buffer;
-  size_t length = 1024*32;
+  size_t length = 1024 * 32;
 
   if (recv_buffer->count == 0 && recv_buffer->capacity > MAX_BUFFER_CAPACITY) {
     tkbc_fprintf(stderr, "INFO", "realloced recv_buffer: old capacity: %zu\n",

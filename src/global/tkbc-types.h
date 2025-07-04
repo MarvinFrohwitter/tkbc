@@ -10,6 +10,17 @@
 // ===========================================================================
 
 typedef struct {
+  Image normal;
+  Image flipped;
+} Kite_Image;
+
+typedef struct {
+  Kite_Image *elements;
+  size_t count;
+  size_t capacity;
+} Kite_Images;
+
+typedef struct {
   const char *description;
   const char *mod_key_str;
   const char *mod_co_key_str;
@@ -137,7 +148,8 @@ typedef struct {
 } Kite_Position;    // The combined position and rotation angle.
 
 typedef struct {
-  Texture2D ce_nextgen_texture;
+  Texture2D kite_texture_normal;
+  Texture2D kite_texture_flipped;
   float old_angle; // The rotation angle before the frame interpolation has
                    // stated.
   Vector2

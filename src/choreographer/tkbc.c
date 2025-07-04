@@ -16,7 +16,7 @@
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
 
-extern Image ce_nextgen_image;
+extern Kite_Images kite_images;
 
 /**
  * @brief The function initializes a new Env.
@@ -115,7 +115,16 @@ Kite_State *tkbc_init_kite(void) {
   Vector2 start_pos = {.y = tkbc_get_screen_height() - 2 * viewport_padding,
                        .x = state->kite->center.x};
   tkbc_kite_update_position(state->kite, &start_pos);
-  state->kite->ce_nextgen_texture = LoadTextureFromImage(ce_nextgen_image);
+
+#ifndef TKBC_SERVER
+  if (kite_images.count) {
+    state->kite->kite_texture_normal =
+        LoadTextureFromImage(kite_images.elements[0].normal);
+    state->kite->kite_texture_flipped =
+        LoadTextureFromImage(kite_images.elements[0].flipped);
+  }
+#endif // TKBC_SERVER
+
   return state;
 }
 
@@ -547,28 +556,44 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
 /**
  * @brief The function draws all the components of the given kite.
  *
- * @param kite The kite that is going to be drawn.
+ * @param kite_state The kite_state that contains the kite that is going to be
+ * drawn.
  */
-void tkbc_draw_kite(Kite *kite) {
+void tkbc_draw_kite(Kite_State *state) {
+  assert(state);
+  assert(state->kite);
+  assert(state->kite->kite_texture_normal.width ==
+         state->kite->kite_texture_flipped.width);
+  assert(state->kite->kite_texture_normal.height ==
+         state->kite->kite_texture_flipped.height);
+
   /* texture kite */
-  float scale = kite->width / kite->ce_nextgen_texture.width;
-  float len_to_center = (scale * kite->ce_nextgen_texture.width) / 2.0f;
+  float scale = state->kite->width / state->kite->kite_texture_normal.width;
+  float len_to_center = (scale * state->kite->kite_texture_normal.width) / 2.0f;
   len_to_center = floorf(len_to_center);
-  float phi = (PI * (kite->angle) / 180);
-  Vector2 position = kite->center;
+  float phi = (PI * (state->kite->angle) / 180);
+  Vector2 position = state->kite->center;
   position.x -= len_to_center * cosf(phi);
   position.y += len_to_center * sinf(phi);
-  DrawTextureEx(kite->ce_nextgen_texture, position, -kite->angle, scale, WHITE);
+  if (state->is_kite_reversed) {
+    DrawTextureEx(state->kite->kite_texture_flipped, position,
+                  -state->kite->angle, scale, WHITE);
+  } else {
+    DrawTextureEx(state->kite->kite_texture_normal, position,
+                  -state->kite->angle, scale, WHITE);
+  }
 
   /* color kite */
   Vector2 origin = {0};
   // Draw a color-filled triangle (vertex in counter-clockwise order!)
-  DrawTriangle(kite->left.v1, kite->left.v2, kite->left.v3, kite->body_color);
-  DrawTriangle(kite->right.v1, kite->right.v2, kite->right.v3,
-               kite->body_color);
+  DrawTriangle(state->kite->left.v1, state->kite->left.v2, state->kite->left.v3,
+               state->kite->body_color);
+  DrawTriangle(state->kite->right.v1, state->kite->right.v2,
+               state->kite->right.v3, state->kite->body_color);
 
-  if (!ColorIsEqual(kite->body_color, BLANK)) {
-    DrawRectanglePro(kite->rec, origin, -kite->angle, kite->top_color);
+  if (!ColorIsEqual(state->kite->body_color, BLANK)) {
+    DrawRectanglePro(state->kite->rec, origin, -state->kite->angle,
+                     state->kite->top_color);
   }
 }
 
@@ -581,7 +606,7 @@ void tkbc_draw_kite(Kite *kite) {
 void tkbc_draw_kite_array(Kite_States *kite_states) {
   for (size_t i = 0; i < kite_states->count; ++i) {
     if (kite_states->elements[i].is_active) {
-      tkbc_draw_kite(kite_states->elements[i].kite);
+      tkbc_draw_kite(&kite_states->elements[i]);
     }
   }
 }
