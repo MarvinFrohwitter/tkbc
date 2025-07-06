@@ -21,6 +21,8 @@ options:
 	@echo "LIBS   = ${LIBS}"
 	@echo "CC     = ${CC}"
 
+server: poll-server
+
 poll-server: build
 	${CC} ${INCLUDE} ${CFLAGS} -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	cp -v build/poll-server build/server
@@ -63,4 +65,4 @@ test-short: options
 	${CC} ${INCLUDE} ${CFLAGS} -DSHORT_LOG -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	./build/tests
 
-.PHONY: all clean options tkbc tkbc.o build client test
+.PHONY: all clean options tkbc tkbc.o build client test server poll-server
