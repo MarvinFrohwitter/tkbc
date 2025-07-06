@@ -5,6 +5,8 @@
 #define CASSERT_IMPLEMENTATION
 #include "../../external/cassert/cassert.h"
 
+Kite_Images kite_images;
+
 int main() {
   cassert_tests {
     tkbc_test_geometrics(&tests);
