@@ -70,5 +70,6 @@ void tkbc_update_kites_for_resize_window(Env *env);
 void tkbc_draw_ui(Env *env);
 void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count);
 Color tkbc_get_random_color();
+bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture);
 
 #endif // TKBC_H_

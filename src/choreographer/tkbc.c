@@ -16,7 +16,7 @@
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
 
-extern Kite_Images kite_images;
+extern Kite_Textures kite_textures;
 
 /**
  * @brief The function initializes a new Env.
@@ -117,12 +117,7 @@ Kite_State *tkbc_init_kite(void) {
   tkbc_kite_update_position(state->kite, &start_pos);
 
 #ifndef TKBC_SERVER
-  if (kite_images.count) {
-    state->kite->kite_texture_normal =
-        LoadTextureFromImage(kite_images.elements[0].normal);
-    state->kite->kite_texture_flipped =
-        LoadTextureFromImage(kite_images.elements[0].flipped);
-  }
+  tkbc_set_kite_texture(state->kite, &kite_textures.elements[0]);
 #endif // TKBC_SERVER
 
   return state;
@@ -567,31 +562,32 @@ void tkbc_draw_kite(Kite_State *state) {
   assert(state->kite->kite_texture_normal.height ==
          state->kite->kite_texture_flipped.height);
 
-  /* texture kite */
-  float scale = state->kite->width / state->kite->kite_texture_normal.width;
-  float len_to_center = (scale * state->kite->kite_texture_normal.width) / 2.0f;
-  len_to_center = floorf(len_to_center);
-  float phi = (PI * (state->kite->angle) / 180);
-  Vector2 position = state->kite->center;
-  position.x -= len_to_center * cosf(phi);
-  position.y += len_to_center * sinf(phi);
-  if (state->is_kite_reversed) {
-    DrawTextureEx(state->kite->kite_texture_flipped, position,
-                  -state->kite->angle, scale, WHITE);
+  if (ColorIsEqual(state->kite->body_color, BLANK)) {
+    /* texture kite */
+    float scale = state->kite->width / state->kite->kite_texture_normal.width;
+    float len_to_center =
+        (scale * state->kite->kite_texture_normal.width) / 2.0f;
+    len_to_center = floorf(len_to_center);
+    float phi = (PI * (state->kite->angle) / 180);
+    Vector2 position = state->kite->center;
+    position.x -= len_to_center * cosf(phi);
+    position.y += len_to_center * sinf(phi);
+    if (state->is_kite_reversed) {
+      DrawTextureEx(state->kite->kite_texture_flipped, position,
+                    -state->kite->angle, scale, WHITE);
+    } else {
+      DrawTextureEx(state->kite->kite_texture_normal, position,
+                    -state->kite->angle, scale, WHITE);
+    }
   } else {
-    DrawTextureEx(state->kite->kite_texture_normal, position,
-                  -state->kite->angle, scale, WHITE);
-  }
+    /* color kite */
+    Vector2 origin = {0};
+    // Draw a color-filled triangle (vertex in counter-clockwise order!)
+    DrawTriangle(state->kite->left.v1, state->kite->left.v2,
+                 state->kite->left.v3, state->kite->body_color);
+    DrawTriangle(state->kite->right.v1, state->kite->right.v2,
+                 state->kite->right.v3, state->kite->body_color);
 
-  /* color kite */
-  Vector2 origin = {0};
-  // Draw a color-filled triangle (vertex in counter-clockwise order!)
-  DrawTriangle(state->kite->left.v1, state->kite->left.v2, state->kite->left.v3,
-               state->kite->body_color);
-  DrawTriangle(state->kite->right.v1, state->kite->right.v2,
-               state->kite->right.v3, state->kite->body_color);
-
-  if (!ColorIsEqual(state->kite->body_color, BLANK)) {
     DrawRectanglePro(state->kite->rec, origin, -state->kite->angle,
                      state->kite->top_color);
   }
@@ -662,4 +658,25 @@ Color tkbc_get_random_color() {
   };
 
   return colors[rand() % ARRAY_LENGTH(colors)];
+}
+
+/**
+ * @brief The function assignees the given textures for normal and flipped
+ * version to the given kite..
+ *
+ * @param kite The kite where the texture should be switched out.
+ * @param kite_texture The new textures that should be assigned to the specified
+ * kite.
+ * @return True if the loaded textures are valid, otherwise false.
+ */
+bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture) {
+  if (kite_textures.count == 0) {
+    return false;
+  }
+
+  kite->kite_texture_normal = kite_texture->normal;
+  kite->kite_texture_flipped = kite_texture->flipped;
+
+  return IsTextureValid(kite->kite_texture_normal) &&
+         IsTextureValid(kite->kite_texture_flipped);
 }

@@ -15,6 +15,17 @@ typedef struct {
 } Kite_Image;
 
 typedef struct {
+  Texture2D normal;
+  Texture2D flipped;
+} Kite_Texture;
+
+typedef struct {
+  Kite_Texture *elements;
+  size_t count;
+  size_t capacity;
+} Kite_Textures;
+
+typedef struct {
   Kite_Image *elements;
   size_t count;
   size_t capacity;
@@ -439,6 +450,8 @@ typedef struct {
                                  // in use.
   bool color_picker_input_mouse_interaction; // Checks if the input box is
                                              // clicked.
+  bool color_picker_display_designs; // If the color pallet or the designs are
+                                     // displayed.
   Color last_selected_color; // The color that is displayed in the box below the
                              // input.
   size_t max_favorite_colors;

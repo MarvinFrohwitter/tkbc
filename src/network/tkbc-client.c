@@ -6,9 +6,11 @@
 
 #define SPACE_IMPLEMENTATION
 #include "../../external/space/space.h"
+#undef SPACE_IMPLEMENTATION
 
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
+#undef TKBC_UTILS_IMPLEMENTATION
 
 #include "../choreographer/tkbc-asset-handler.h"
 #include "../choreographer/tkbc-ffmpeg.h"
@@ -65,6 +67,8 @@ Popup loading = {0};
 
 Space kite_images_space = {0};
 Kite_Images kite_images = {0};
+Space kite_textures_space = {0};
+Kite_Textures kite_textures = {0};
 
 /**
  * @brief The function prints the way the program should be called.
@@ -983,7 +987,7 @@ int main(int argc, char *argv[]) {
   tkbc_init_sound(40);
 
 #ifdef LOADIMAGE
-  tkbc_load_kite_images();
+  tkbc_load_kite_images_and_textures();
 #endif /* ifdef LOADIMAGE */
 
   size_t prev_kite_array_count = env->kite_array->count;
@@ -1097,6 +1101,7 @@ int main(int argc, char *argv[]) {
   tkbc_destroy_env(env);
 
   space_free_space(&kite_images_space);
+  space_free_space(&kite_textures_space);
   tkbc_fprintf(stderr, "INFO", "EXITED SUCCESSFULLY.\n");
   return 0;
 }

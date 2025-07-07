@@ -5,10 +5,11 @@
 
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
-#undef TKBC_UTILS_IMPLEMENTAION
+#undef TKBC_UTILS_IMPLEMENTATION
 
 #define SPACE_IMPLEMENTATION
 #include "../../external/space/space.h"
+#undef SPACE_IMPLEMENTATION
 
 #include "tkbc-asset-handler.h"
 #include "tkbc-ffmpeg.h"
@@ -30,6 +31,8 @@
 
 Space kite_images_space = {0};
 Kite_Images kite_images = {0};
+Space kite_textures_space = {0};
+Kite_Textures kite_textures = {0};
 
 /**
  * @brief The main function that handles the event loop.
@@ -54,7 +57,7 @@ int main(void) {
   tkbc_init_sound(40);
 
 #ifdef LOADIMAGE
-  tkbc_load_kite_images();
+  tkbc_load_kite_images_and_textures();
 #endif /* ifdef LOADIMAGE */
 
   while (!WindowShouldClose()) {
@@ -101,6 +104,7 @@ int main(void) {
   tkbc_destroy_env(env);
 
   space_free_space(&kite_images_space);
+  space_free_space(&kite_textures_space);
   CloseWindow();
   return 0;
 }

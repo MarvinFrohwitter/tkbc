@@ -6,6 +6,7 @@
 #include "../../external/cassert/cassert.h"
 
 Kite_Images kite_images;
+Kite_Textures kite_textures;
 
 int main() {
   cassert_tests {

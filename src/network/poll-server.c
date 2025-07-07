@@ -27,9 +27,11 @@
 
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
+#undef TKBC_UTILS_IMPLEMENTATION
 
 #define SPACE_IMPLEMENTATION
 #include "../../external/space/space.h"
+#undef SPACE_IMPLEMENTATION
 
 #include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc-script-handler.h"
@@ -44,7 +46,8 @@ FDs fds = {0};
 Space t_space = {0};
 Message t_message = {0}; // The elements ptr is allocated inside of the t_space.
 
-Kite_Images kite_images; // Just for the definition do not use.
+Kite_Images kite_images;     // Just for the definition do not use.
+Kite_Textures kite_textures; // Just for the definition do not use.
 
 /**
  * @brief  The function can be used to get the pollfd structure that corresponds

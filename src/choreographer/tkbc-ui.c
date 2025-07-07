@@ -11,6 +11,8 @@
 #include "tkbc-ui.h"
 #include "tkbc.h"
 
+extern Kite_Textures kite_textures;
+
 /**
  * @brief The function wraps all the UI-elements to a single draw handler that
  * computes the position and size of the UI-components.
@@ -511,10 +513,77 @@ key_skip:
     DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
     color_circle.x += 2 * color_circle_radius + padding;
   }
+
+  ////////////////////////////////////////////////////////////////////
+
+  Rectangle forward = {
+      .x = left_circle_center - color_circle_radius,
+      .y = color_circle.y + color_circle_radius + padding +
+           color_circle_radius * 0.5,
+      .width = 4 * color_circle_radius,
+      .height = color_circle_radius,
+  };
+
+  if (CheckCollisionPointRec(mouse, forward)) {
+    DrawRectangleRounded(forward, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+  } else {
+    DrawRectangleRounded(forward, 1, 10, TKBC_UI_TEAL_ALPHA);
+  }
+
+  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+      CheckCollisionPointRec(mouse, forward)) {
+    DrawRectangleRounded(forward, 1, 10, TKBC_UI_PURPLE_ALPHA);
+    env->color_picker_display_designs = !env->color_picker_display_designs;
+  }
+
+  const char *designs = NULL;
+  if (env->color_picker_display_designs) {
+    designs = "COLORS";
+  } else {
+    designs = "DESIGNS";
+  }
+  text_size = MeasureTextEx(GetFontDefault(), designs, font_size, 0);
+  DrawText(designs, forward.x + forward.width * 0.5 - text_size.x * 0.5,
+           forward.y + forward.height * 0.5 - text_size.y * 0.5, font_size,
+           TKBC_UI_BLACK);
+
+  if (env->color_picker_display_designs) {
+    forward.y += forward.height + padding + color_circle_radius * 0.5;
+    Vector2 display_position = {
+        .x = forward.x,
+        .y = forward.y,
+    };
+
+    for (size_t i = 0; i < kite_textures.count; ++i) {
+      Texture2D t = kite_textures.elements[i].normal;
+      float scale = env->color_picker_base.width * 0.5 / t.width;
+      DrawTextureEx(t, display_position, 0, scale, WHITE);
+
+      Rectangle collision_rectangle = {
+          .x = display_position.x,
+          .y = display_position.y,
+          .width = t.width,
+          .height = t.height,
+      };
+
+      if (CheckCollisionPointRec(mouse, collision_rectangle)) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+          tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i]);
+          tkbc_set_color_for_selected_kites(env, BLANK);
+        }
+      }
+
+      display_position.y +=
+          2 * kite_textures.elements[i].normal.height + padding;
+    }
+
+    return;
+  }
+
+  // Handle default colors circles.
   color_circle.x = left_circle_center;
   color_circle.y += 2 * color_circle_radius + padding;
 
-  // Handle default colors circles.
   Color colors[] = {
       LIGHTGRAY, GRAY,  DARKGRAY,  YELLOW,  GOLD,   ORANGE,
       PINK,      RED,   MAROON,    GREEN,   LIME,   DARKGREEN,
@@ -552,6 +621,22 @@ void tkbc_set_color_for_selected_kites(Env *env, Color color) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].is_kite_input_handler_active) {
       env->kite_array->elements[i].kite->body_color = color;
+    }
+  }
+}
+
+/**
+ * @brief The function assignees the given texture pair, containing normal and
+ * flipped versions, to the currently selected kites.
+ *
+ * @param env The global state of the application.
+ * @param kite_texture The new pair of textures that should be assigned to all
+ * the selected kites.
+ */
+void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture) {
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    if (env->kite_array->elements[i].is_kite_input_handler_active) {
+      tkbc_set_kite_texture(env->kite_array->elements[i].kite, kite_texture);
     }
   }
 }
