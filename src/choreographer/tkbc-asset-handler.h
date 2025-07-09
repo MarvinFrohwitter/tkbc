@@ -1,11 +1,11 @@
 #ifndef TKBC_ASSET_HANDLER_H_
 #define TKBC_ASSET_HANDLER_H_
 
+#include "../../external/space/space.h"
+#include "../global/tkbc-types.h"
+#include "../global/tkbc-utils.h"
 #include "raylib.h"
 #include <stdio.h>
-#include "../global/tkbc-types.h"
-#include "../../external/space/space.h"
-#include "../global/tkbc-utils.h"
 
 extern Space kite_images_space;
 extern Kite_Images kite_images;
@@ -74,6 +74,20 @@ static inline void tkbc_load_kite_images_and_textures(void) {
       tkbc_fprintf(stderr, "ERROR",
                    "Could not load flipped kite texture: %zu.\n", i);
     }
+  }
+}
+
+static inline void tkbc_assets_destroy() {
+  for (size_t i = 0; i < kite_textures.count; ++i) {
+    UnloadTexture(kite_textures.elements[i].normal);
+    UnloadTexture(kite_textures.elements[i].flipped);
+  }
+
+  // NOTE: Unloading the "normal images" is not needed, because the data is
+  // stored constant in static memory the copy of the data is the first actual
+  // heap allocation that results in the flipped versions.
+  for (size_t i = 0; i < kite_images.count; ++i) {
+    UnloadImage(kite_images.elements[i].flipped); // This is needed because?
   }
 }
 
