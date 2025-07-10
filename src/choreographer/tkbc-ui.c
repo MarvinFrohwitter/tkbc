@@ -568,7 +568,8 @@ key_skip:
 
       if (CheckCollisionPointRec(mouse, collision_rectangle)) {
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-          tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i]);
+          tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],
+                                              i);
           tkbc_set_color_for_selected_kites(env, BLANK);
         }
       }
@@ -633,10 +634,12 @@ void tkbc_set_color_for_selected_kites(Env *env, Color color) {
  * @param kite_texture The new pair of textures that should be assigned to all
  * the selected kites.
  */
-void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture) {
+void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
+                                         size_t texture_id) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].is_kite_input_handler_active) {
       tkbc_set_kite_texture(env->kite_array->elements[i].kite, kite_texture);
+      env->kite_array->elements[i].kite->texture_id = texture_id;
     }
   }
 }

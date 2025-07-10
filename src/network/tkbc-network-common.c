@@ -12,6 +12,7 @@
 #include <string.h>
 
 extern Env *env;
+extern Kite_Textures kite_textures;
 
 /**
  * @brief The function resets the space and sets the elements ptr from the
@@ -40,10 +41,12 @@ void tkbc_reset_space_and_null_message(Space *space, Message *message) {
  * made.
  */
 int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
-  size_t id;
+  size_t id, texture_id;
   float x, y, angle;
   Color color;
-  if (!tkbc_parse_message_kite_value(lexer, &id, &x, &y, &angle, &color)) {
+  bool is_reversed;
+  if (!tkbc_parse_message_kite_value(lexer, &id, &x, &y, &angle, &color,
+                                     &texture_id, &is_reversed)) {
     return 0;
   }
 
@@ -53,18 +56,23 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
     }
   }
 
-  Kite *kite = tkbc_get_kite_by_id(env, id);
+  Kite_State *state = tkbc_get_kite_state_by_id(env, id);
   // NOTE: This ignores unknown kites and just sets the values for valid ones.
   // Unknown kites are not a parsing error so true is returned.
   // TODO: But for the client not the server the kite missing kite should be
   // handled because the server expects the client to have it so the client lost
   // it or hasn't registered one jet.
-  if (kite) {
-    kite->center.x = x;
-    kite->center.y = y;
-    kite->angle = angle;
-    kite->body_color = color;
-    tkbc_kite_update_internal(kite);
+  if (state) {
+    state->kite->center.x = x;
+    state->kite->center.y = y;
+    state->kite->angle = angle;
+    state->kite->body_color = color;
+    state->is_kite_reversed = is_reversed;
+    state->kite->texture_id = texture_id;
+
+    assert(kite_textures.count > texture_id);
+    tkbc_set_kite_texture(state->kite, &kite_textures.elements[texture_id]);
+    tkbc_kite_update_internal(state->kite);
   }
   return 1;
 }
@@ -79,11 +87,14 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
  * @param y The y position the corresponding parsed value is assigned to.
  * @param angle The angle the corresponding parsed value is assigned to.
  * @param color The color the corresponding parsed value is assigned to.
+ * @param texture_id The id that represents the texture in the global
+ * kite_textures.
  * @return True if all values have been parsed correctly and are assigned,
  * otherwise false.
  */
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
-                                   float *y, float *angle, Color *color) {
+                                   float *y, float *angle, Color *color,
+                                   size_t *texture_id, bool *is_reversed) {
   Content buffer = {0};
   Token token;
   bool ok = true;
@@ -179,6 +190,29 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
   if (token.kind != PUNCT_COLON) {
     check_return(false);
   }
+
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER) {
+    check_return(false);
+  }
+  *texture_id = atoi(lexer_token_to_cstr(lexer, &token));
+
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    check_return(false);
+  }
+
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER) {
+    check_return(false);
+  }
+  *is_reversed = !!atoi(lexer_token_to_cstr(lexer, &token));
+
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    check_return(false);
+  }
+
 check:
   if (buffer.elements) {
     free(buffer.elements);

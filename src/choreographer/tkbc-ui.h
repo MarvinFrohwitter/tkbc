@@ -19,6 +19,7 @@ void tkbc_ui_keymaps(Env *env);
 
 void tkbc_ui_color_picker(Env *env);
 void tkbc_set_color_for_selected_kites(Env *env, Color color);
-void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture);
+void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
+                                         size_t texture_id);
 
 #endif // TKBC_UI_H

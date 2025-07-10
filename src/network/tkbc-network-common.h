@@ -14,7 +14,8 @@
 void tkbc_reset_space_and_null_message(Space *space, Message *message);
 int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id);
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
-                                   float *y, float *angle, Color *color);
+                                   float *y, float *angle, Color *color,
+                                   size_t *texture_id, bool *is_reversed);
 char *tkbc_find_rn_in_message_from_position(Message *message,
                                             unsigned long long position);
 

@@ -229,13 +229,20 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
  * @param color The new body color of the kite.
  */
 void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
-                                    float angle, Color color) {
+                                    float angle, Color color, size_t texture_id,
+                                    bool is_reversed) {
   Kite_State *kite_state = tkbc_init_kite();
   kite_state->kite_id = kite_id;
   kite_state->kite->center.x = x;
   kite_state->kite->center.y = y;
   kite_state->kite->angle = angle;
   kite_state->kite->body_color = color;
+  kite_state->is_kite_reversed = is_reversed;
+  kite_state->kite->texture_id = texture_id;
+
+  assert(kite_textures.count > texture_id);
+  tkbc_set_kite_texture(kite_state->kite, &kite_textures.elements[texture_id]);
+
   tkbc_kite_update_internal(kite_state->kite);
   tkbc_dap(env->kite_array, *kite_state);
   free(kite_state);
@@ -367,15 +374,17 @@ bool received_message_handler(Message *message) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
     case MESSAGE_KITEADD: {
-      size_t kite_id;
+      size_t kite_id, texture_id;
       float x, y, angle;
       Color color;
+      bool is_reversed;
       if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                         &color)) {
+                                         &color, &texture_id, &is_reversed)) {
         goto err;
       }
 
-      tkbc_register_kite_from_values(kite_id, x, y, angle, color);
+      tkbc_register_kite_from_values(kite_id, x, y, angle, color, texture_id,
+                                     is_reversed);
 
       static bool first_message_kite_add = true;
       if (first_message_kite_add) {
@@ -497,24 +506,31 @@ bool received_message_handler(Message *message) {
       }
 
       for (size_t i = 0; i < amount; ++i) {
-        size_t kite_id;
+        size_t kite_id, texture_id;
         float x, y, angle;
         Color color;
+        bool is_reversed;
         if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                           &color)) {
+                                           &color, &texture_id, &is_reversed)) {
           goto err;
         }
 
         Kite_State *kite_state = tkbc_get_kite_state_by_id(env, kite_id);
         if (kite_state == NULL) {
           // If the kite_id is not registered.
-          tkbc_register_kite_from_values(kite_id, x, y, angle, color);
+          tkbc_register_kite_from_values(kite_id, x, y, angle, color,
+                                         texture_id, is_reversed);
           // NOTE: The kite_state defaults ensure. is_active = true;
         } else {
           kite_state->kite->center.x = x;
           kite_state->kite->center.y = y;
           kite_state->kite->angle = angle;
           kite_state->kite->body_color = color;
+          kite_state->kite->texture_id = texture_id;
+          kite_state->is_kite_reversed = is_reversed;
+          assert(kite_textures.count > texture_id);
+          tkbc_set_kite_texture(kite_state->kite,
+                                &kite_textures.elements[texture_id]);
           kite_state->is_active = true;
         }
       }
@@ -880,19 +896,9 @@ void tkbc_message_kites_positions() {
              "%d:%zu:", MESSAGE_KITES_POSITIONS, env->kite_array->count);
 
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    Kite_State *state = &env->kite_array->elements[i];
-
-    size_t kite_id = state->kite_id;
-    float x = state->kite->center.x;
-    float y = state->kite->center.y;
-    float angle = state->kite->angle;
-    uint32_t color = ((uint32_t)state->kite->body_color.r << 24) |
-                     ((uint32_t)state->kite->body_color.g << 16) |
-                     ((uint32_t)state->kite->body_color.b << 8) |
-                     (uint32_t)state->kite->body_color.a;
-
-    space_dapf(&client.msg_space, &client.send_msg_buffer,
-               "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
+    Kite_State *kite_state = &env->kite_array->elements[i];
+    tkbc_message_append_kite(kite_state, &client.send_msg_buffer,
+                             &client.msg_space);
   }
   space_dapf(&client.msg_space, &client.send_msg_buffer, "\r\n");
 }

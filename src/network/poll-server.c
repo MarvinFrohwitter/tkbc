@@ -788,19 +788,28 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
     case MESSAGE_KITEVALUE: {
-      size_t kite_id;
+      size_t kite_id, texture_id;
       float x, y, angle;
       Color color;
+      bool is_reversed;
       if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                         &color)) {
+                                         &color, &texture_id, &is_reversed)) {
         goto err;
       }
-      Kite *kite = tkbc_get_kite_by_id(env, kite_id);
-      kite->center.x = x;
-      kite->center.y = y;
-      kite->angle = angle;
-      kite->body_color = color;
-      tkbc_kite_update_internal(kite);
+
+      Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
+      // Consider disconnecting the client if the client is not found by its
+      // kite id. Instead of crashing the complete server.
+      // With a correct client implementation the state should always be
+      // available. No memory corruption on the server side implied.
+      assert(state);
+      state->kite->center.x = x;
+      state->kite->center.y = y;
+      state->kite->angle = angle;
+      state->kite->body_color = color;
+      state->is_kite_reversed = is_reversed;
+      state->kite->texture_id = texture_id;
+      tkbc_kite_update_internal(state->kite);
 
       if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
               kite_id)) {
