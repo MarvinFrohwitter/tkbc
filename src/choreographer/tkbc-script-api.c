@@ -254,11 +254,15 @@ void tkbc__register_frames(Env *env, ...) {
 void tkbc_sript_team_scratch_buf_frames_append_and_free(Env *env,
                                                         Frame *frame) {
   tkbc_dap(&env->scratch_buf_frames, tkbc_deep_copy_frame(frame));
-  if (frame->kite_id_array.script_id_append) {
-    free(frame->kite_id_array.elements);
-    frame->kite_id_array.elements = NULL;
-    frame->kite_id_array.script_id_append = false;
-  }
+  // NOTE: This function expects to get a frame created by the
+  // tkbc__frame_generate() function that handles the allocation of the id
+  // regarding frame->kite_id_array.script_id_append so this should not be
+  // handled in this function. All given kite_ids in the frame should be freed.
+
+  free(frame->kite_id_array.elements);
+  frame->kite_id_array.elements = NULL;
+  frame->kite_id_array.script_id_append = false;
+
   free(frame);
   frame = NULL;
 }

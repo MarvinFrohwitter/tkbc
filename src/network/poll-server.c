@@ -565,7 +565,8 @@ int tkbc_socket_write(Client *client) {
 
   if (client->send_msg_buffer.count == 0 &&
       client->send_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
-    tkbc_fprintf(stderr, "INFO", "realloced send_msg_buffer: old capacity: %zu",
+    tkbc_fprintf(stderr, "INFO",
+                 "realloced send_msg_buffer: old capacity: %zu\n",
                  client->send_msg_buffer.capacity);
 
     // free(client->send_msg_buffer.elements);
