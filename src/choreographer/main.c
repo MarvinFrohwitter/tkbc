@@ -40,7 +40,6 @@ Kite_Textures kite_textures = {0};
  * @return int Returns 0 if no errors occur.
  */
 int main(void) {
-
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
   SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT |
                  FLAG_WINDOW_MINIMIZED | FLAG_WINDOW_MAXIMIZED);

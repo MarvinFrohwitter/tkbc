@@ -231,21 +231,20 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
 void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
                                     float angle, Color color, size_t texture_id,
                                     bool is_reversed) {
-  Kite_State *kite_state = tkbc_init_kite();
-  kite_state->kite_id = kite_id;
-  kite_state->kite->center.x = x;
-  kite_state->kite->center.y = y;
-  kite_state->kite->angle = angle;
-  kite_state->kite->body_color = color;
-  kite_state->is_kite_reversed = is_reversed;
-  kite_state->kite->texture_id = texture_id;
+  Kite_State kite_state = tkbc_init_kite();
+  kite_state.kite_id = kite_id;
+  kite_state.kite->center.x = x;
+  kite_state.kite->center.y = y;
+  kite_state.kite->angle = angle;
+  kite_state.kite->body_color = color;
+  kite_state.is_kite_reversed = is_reversed;
+  kite_state.kite->texture_id = texture_id;
 
   assert(kite_textures.count > texture_id);
-  tkbc_set_kite_texture(kite_state->kite, &kite_textures.elements[texture_id]);
+  tkbc_set_kite_texture(kite_state.kite, &kite_textures.elements[texture_id]);
 
-  tkbc_kite_update_internal(kite_state->kite);
-  tkbc_dap(env->kite_array, *kite_state);
-  free(kite_state);
+  tkbc_kite_update_internal(kite_state.kite);
+  tkbc_dap(env->kite_array, kite_state);
 }
 
 /**

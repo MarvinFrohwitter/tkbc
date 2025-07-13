@@ -90,34 +90,28 @@ Env *tkbc_init_env(void) {
  *
  * @return state The new allocated state.
  */
-Kite_State *tkbc_init_kite(void) {
-  Kite_State *state = malloc(sizeof(*state));
-  if (state == NULL) {
+Kite_State tkbc_init_kite(void) {
+  Kite_State state = {0};
+  state.kite = malloc(sizeof(*state.kite));
+  if (state.kite == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
+    abort();
   }
-  memset(state, 0, sizeof(*state));
+  memset(state.kite, 0, sizeof(*state.kite));
 
-  state->kite = malloc(sizeof(*state->kite));
-  if (state->kite == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
-  memset(state->kite, 0, sizeof(*state->kite));
+  tkbc_set_kite_state_defaults(&state);
+  tkbc_set_kite_defaults(state.kite, true);
 
-  tkbc_set_kite_state_defaults(state);
-  tkbc_set_kite_defaults(state->kite, true);
-
-  int viewport_padding = state->kite->width > state->kite->height
-                             ? state->kite->width / 2
-                             : state->kite->height;
+  int viewport_padding = state.kite->width > state.kite->height
+                             ? state.kite->width / 2
+                             : state.kite->height;
 
   Vector2 start_pos = {.y = tkbc_get_screen_height() - 2 * viewport_padding,
-                       .x = state->kite->center.x};
-  tkbc_kite_update_position(state->kite, &start_pos);
+                       .x = state.kite->center.x};
+  tkbc_kite_update_position(state.kite, &start_pos);
 
 #ifndef TKBC_SERVER
-  tkbc_set_kite_texture(state->kite, &kite_textures.elements[0]);
+  tkbc_set_kite_texture(state.kite, &kite_textures.elements[0]);
 #endif // TKBC_SERVER
 
   return state;
@@ -181,7 +175,6 @@ void tkbc_destroy_env(Env *env) {
 void tkbc_destroy_kite(Kite_State *state) {
   free(state->kite);
   state->kite = NULL;
-  free(state);
   state = NULL;
 }
 

@@ -375,9 +375,7 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
     return (Kite_Ids){0};
   }
   for (size_t i = 0; i < kite_count; ++i) {
-    Kite_State *kite_state = tkbc_init_kite();
-    tkbc_dap(env->kite_array, *kite_state);
-    free(kite_state);
+    tkbc_dap(env->kite_array, tkbc_init_kite());
     // The id starts from 0.
     env->kite_array->elements[env->kite_array->count - 1].kite_id =
         env->kite_id_counter++;

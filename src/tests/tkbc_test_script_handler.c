@@ -42,33 +42,30 @@ Test init_frame() {
 Test get_kite_by_id() {
   Test test = cassert_init_test("tkbc_get_kite_by_id()");
   Env *env = tkbc_init_env();
-  Kite_State *kite_state0 = tkbc_init_kite();
-  kite_state0->kite_id = 0;
-  Kite_State *kite_state1 = tkbc_init_kite();
-  kite_state1->kite_id = 1;
-  Kite_State *kite_state2 = tkbc_init_kite();
-  kite_state2->kite_id = 2;
-  tkbc_dap(env->kite_array, *kite_state0);
-  tkbc_dap(env->kite_array, *kite_state1);
-  tkbc_dap(env->kite_array, *kite_state2);
+  Kite_State kite_state0 = tkbc_init_kite();
+  kite_state0.kite_id = 0;
+  Kite_State kite_state1 = tkbc_init_kite();
+  kite_state1.kite_id = 1;
+  Kite_State kite_state2 = tkbc_init_kite();
+  kite_state2.kite_id = 2;
+  tkbc_dap(env->kite_array, kite_state0);
+  tkbc_dap(env->kite_array, kite_state1);
+  tkbc_dap(env->kite_array, kite_state2);
   cassert_size_t_eq(env->kite_array->count, 3);
 
   Kite *kite = tkbc_get_kite_by_id(env, 0);
-  cassert_ptr_eq(kite_state0->kite, kite);
+  cassert_ptr_eq(kite_state0.kite, kite);
 
-  kite = tkbc_get_kite_by_id(env, kite_state0->kite_id);
-  cassert_ptr_eq(kite_state0->kite, kite);
-  kite = tkbc_get_kite_by_id(env, kite_state1->kite_id);
-  cassert_ptr_eq(kite_state1->kite, kite);
-  kite = tkbc_get_kite_by_id(env, kite_state2->kite_id);
-  cassert_ptr_eq(kite_state2->kite, kite);
+  kite = tkbc_get_kite_by_id(env, kite_state0.kite_id);
+  cassert_ptr_eq(kite_state0.kite, kite);
+  kite = tkbc_get_kite_by_id(env, kite_state1.kite_id);
+  cassert_ptr_eq(kite_state1.kite, kite);
+  kite = tkbc_get_kite_by_id(env, kite_state2.kite_id);
+  cassert_ptr_eq(kite_state2.kite, kite);
 
-  kite = tkbc_get_kite_by_id(env, kite_state0->kite_id + 100);
+  kite = tkbc_get_kite_by_id(env, kite_state0.kite_id + 100);
   cassert_ptr_eq(NULL, kite);
 
-  free(kite_state0);
-  free(kite_state1);
-  free(kite_state2);
   tkbc_destroy_env(env);
   return test;
 }
@@ -76,43 +73,40 @@ Test get_kite_by_id() {
 Test get_kite_state_by_id() {
   Test test = cassert_init_test("tkbc_get_kite_state_by_id()");
   Env *env = tkbc_init_env();
-  Kite_State *kite_state0 = tkbc_init_kite();
-  kite_state0->kite_id = 0;
-  Kite_State *kite_state1 = tkbc_init_kite();
-  kite_state1->kite_id = 1;
-  Kite_State *kite_state2 = tkbc_init_kite();
-  kite_state2->kite_id = 2;
-  tkbc_dap(env->kite_array, *kite_state0);
-  tkbc_dap(env->kite_array, *kite_state1);
-  tkbc_dap(env->kite_array, *kite_state2);
+  Kite_State kite_state0 = tkbc_init_kite();
+  kite_state0.kite_id = 0;
+  Kite_State kite_state1 = tkbc_init_kite();
+  kite_state1.kite_id = 1;
+  Kite_State kite_state2 = tkbc_init_kite();
+  kite_state2.kite_id = 2;
+  tkbc_dap(env->kite_array, kite_state0);
+  tkbc_dap(env->kite_array, kite_state1);
+  tkbc_dap(env->kite_array, kite_state2);
   cassert_size_t_eq(env->kite_array->count, 3);
 
   Kite_State *ret_kite_state = tkbc_get_kite_state_by_id(env, 0);
-  cassert_ptr_neq(kite_state0, ret_kite_state);
-  cassert_ptr_eq(kite_state0->kite, ret_kite_state->kite);
-  cassert_size_t_eq(kite_state0->kite_id, ret_kite_state->kite_id);
+  cassert_ptr_neq(&kite_state0, ret_kite_state);
+  cassert_ptr_eq(kite_state0.kite, ret_kite_state->kite);
+  cassert_size_t_eq(kite_state0.kite_id, ret_kite_state->kite_id);
 
-  ret_kite_state = tkbc_get_kite_state_by_id(env, kite_state0->kite_id);
-  cassert_ptr_neq(kite_state0, ret_kite_state);
-  cassert_ptr_eq(kite_state0->kite, ret_kite_state->kite);
-  cassert_size_t_eq(kite_state0->kite_id, ret_kite_state->kite_id);
+  ret_kite_state = tkbc_get_kite_state_by_id(env, kite_state0.kite_id);
+  cassert_ptr_neq(&kite_state0, ret_kite_state);
+  cassert_ptr_eq(kite_state0.kite, ret_kite_state->kite);
+  cassert_size_t_eq(kite_state0.kite_id, ret_kite_state->kite_id);
 
-  ret_kite_state = tkbc_get_kite_state_by_id(env, kite_state1->kite_id);
-  cassert_ptr_neq(kite_state1, ret_kite_state);
-  cassert_ptr_eq(kite_state1->kite, ret_kite_state->kite);
-  cassert_size_t_eq(kite_state1->kite_id, ret_kite_state->kite_id);
+  ret_kite_state = tkbc_get_kite_state_by_id(env, kite_state1.kite_id);
+  cassert_ptr_neq(&kite_state1, ret_kite_state);
+  cassert_ptr_eq(kite_state1.kite, ret_kite_state->kite);
+  cassert_size_t_eq(kite_state1.kite_id, ret_kite_state->kite_id);
 
-  ret_kite_state = tkbc_get_kite_state_by_id(env, kite_state2->kite_id);
-  cassert_ptr_neq(kite_state2, ret_kite_state);
-  cassert_ptr_eq(kite_state2->kite, ret_kite_state->kite);
-  cassert_size_t_eq(kite_state2->kite_id, ret_kite_state->kite_id);
+  ret_kite_state = tkbc_get_kite_state_by_id(env, kite_state2.kite_id);
+  cassert_ptr_neq(&kite_state2, ret_kite_state);
+  cassert_ptr_eq(kite_state2.kite, ret_kite_state->kite);
+  cassert_size_t_eq(kite_state2.kite_id, ret_kite_state->kite_id);
 
-  ret_kite_state = tkbc_get_kite_state_by_id(env, kite_state0->kite_id + 100);
+  ret_kite_state = tkbc_get_kite_state_by_id(env, kite_state0.kite_id + 100);
   cassert_ptr_eq(NULL, ret_kite_state);
 
-  free(kite_state0);
-  free(kite_state1);
-  free(kite_state2);
   tkbc_destroy_env(env);
   return test;
 }

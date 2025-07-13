@@ -37,7 +37,7 @@ static const int TARGET_FPS = 120;
 // ===========================================================================
 
 Env *tkbc_init_env(void);
-Kite_State *tkbc_init_kite(void);
+Kite_State tkbc_init_kite(void);
 void tkbc_destroy_env(Env *env);
 void tkbc_destroy_kite(Kite_State *state);
 void tkbc_destroy_kite_array(Kite_States *kite_states);

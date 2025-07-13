@@ -201,16 +201,18 @@ typedef struct {
 
 typedef struct {
   Kite *kite;     // The kite that holds its geometric and positioning stats.
-  bool is_active; // If the kite should be drawn.
   size_t kite_id; // The unique universal identifier for the kite.
-  bool is_kite_input_handler_active; // Representation of a manual user control
-                                     // selection.
   float fly_velocity;  // The base fly speed that holds the current combined
                        // value with the delta time and the variable fly_speed
                        // that is stored in the kite itself.
   float turn_velocity; // The base turn speed that holds the current combined
                        // value with the delta time and the variable turn_speed
                        // that is stored in the kite itself.
+  int selected_tips;   // It represents if the kite leading edge angle can be
+                       // freely mode with the rotation.
+  bool is_active;      // If the kite should be drawn.
+  bool is_kite_input_handler_active; // Representation of a manual user control
+                                     // selection.
   bool is_fixed_rotation; // The representation of the turn variant smooth or in
                           // fixed angle steps.
   bool is_center_rotation;   // The representation of the active center rotation
@@ -228,8 +230,6 @@ typedef struct {
                         // calculated by the mouse position or it holds the
                         // current angle, (in mouse control mode).
   bool is_tip_locked;    // It represents if the kite leading edge angle can be
-                         // freely mode with the rotation.
-  int selected_tips;     // It represents if the kite leading edge angle can be
                          // freely mode with the rotation.
   bool is_rotating;      // Indicates if the kite currently rotates around
                          // the center.

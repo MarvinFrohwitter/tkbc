@@ -358,18 +358,14 @@ void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client) {
 void tkbc_client_prelog(Client *client) {
   tkbc_message_hello_write_to_send_msg_buffer(client);
 
-  Kite_State *kite_state = tkbc_init_kite();
-  kite_state->kite_id = client->kite_id;
+  Kite_State kite_state = tkbc_init_kite();
+  kite_state.kite_id = client->kite_id;
   float r = (float)rand() / RAND_MAX;
-  kite_state->kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
+  kite_state.kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
   if (!tkbc_script_finished(env)) {
-    kite_state->is_active = false;
+    kite_state.is_active = false;
   }
-  tkbc_dap(env->kite_array, *kite_state);
-  // Just free the state and not the kite inside, because the kite is a
-  // pointer that lives on and is valid in the copy to the env->kite_array.
-  free(kite_state);
-  kite_state = NULL;
+  tkbc_dap(env->kite_array, kite_state);
 
   tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
 

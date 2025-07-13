@@ -6,10 +6,9 @@
 Test kite_update_internal() {
   Test test = cassert_init_test("tkbc_kite_update_internal()");
 
-  Kite_State *kite_state = tkbc_init_kite();
-  Kite kite = *kite_state->kite;
-  free(kite_state->kite);
-  free(kite_state);
+  Kite_State kite_state = tkbc_init_kite();
+  Kite kite = *kite_state.kite;
+  free(kite_state.kite);
 
   Vector2 position = {200, 100};
   float angle = 90;
@@ -62,10 +61,9 @@ Test kite_update_internal() {
 Test kite_update_position() {
   Test test = cassert_init_test("tkbc_kite_update_position()");
 
-  Kite_State *kite_state = tkbc_init_kite();
-  Kite kite = *kite_state->kite;
-  free(kite_state->kite);
-  free(kite_state);
+  Kite_State kite_state = tkbc_init_kite();
+  Kite kite = *kite_state.kite;
+  free(kite_state.kite);
 
   Vector2 position = {200, 100};
 
@@ -114,10 +112,9 @@ Test kite_update_position() {
 Test kite_update_angle() {
   Test test = cassert_init_test("tkbc_kite_update_angle()");
 
-  Kite_State *kite_state = tkbc_init_kite();
-  Kite kite = *kite_state->kite;
-  free(kite_state->kite);
-  free(kite_state);
+  Kite_State kite_state = tkbc_init_kite();
+  Kite kite = *kite_state.kite;
+  free(kite_state.kite);
   float angle = 90;
   kite.center = (Vector2){0, 0};
 
@@ -164,8 +161,8 @@ Test kite_update_angle() {
 Test center_rotation() {
   Test test = cassert_init_test("tkbc_center_rotation()");
 
-  Kite_State *kite_state = tkbc_init_kite();
-  Kite kite = *kite_state->kite;
+  Kite_State kite_state = tkbc_init_kite();
+  Kite kite = *kite_state.kite;
 
   Vector2 position = {200, 100};
   float angle = 90;
@@ -208,15 +205,15 @@ Test center_rotation() {
   cassert_float_eq(kite.rec.x, position.x);
   cassert_float_eq(kite.rec.y, position.y + kite.width / 2);
 
-  tkbc_destroy_kite(kite_state);
+  tkbc_destroy_kite(&kite_state);
   return test;
 }
 
 Test tip_rotation_left() {
   Test test = cassert_init_test("tkbc_tip_rotation(LEFT)");
 
-  Kite_State *kite_state = tkbc_init_kite();
-  Kite kite = *kite_state->kite;
+  Kite_State kite_state = tkbc_init_kite();
+  Kite kite = *kite_state.kite;
 
   Vector2 position = {200, 100};
   float angle = 90;
@@ -262,15 +259,15 @@ Test tip_rotation_left() {
   cassert_float_eq(kite.rec.x, position.x - kite.width / 2);
   cassert_float_eq(kite.rec.y, position.y);
 
-  tkbc_destroy_kite(kite_state);
+  tkbc_destroy_kite(&kite_state);
   return test;
 }
 
 Test tip_rotation_right() {
   Test test = cassert_init_test("tkbc_tip_rotation(RIGHT)");
 
-  Kite_State *kite_state = tkbc_init_kite();
-  Kite kite = *kite_state->kite;
+  Kite_State kite_state = tkbc_init_kite();
+  Kite kite = *kite_state.kite;
 
   Vector2 position = {200, 100};
   float angle = 90;
@@ -316,7 +313,7 @@ Test tip_rotation_right() {
   cassert_float_eq(kite.rec.x, position.x + kite.width / 2);
   cassert_float_eq(kite.rec.y, position.y + kite.width);
 
-  tkbc_destroy_kite(kite_state);
+  tkbc_destroy_kite(&kite_state);
   return test;
 }
 
