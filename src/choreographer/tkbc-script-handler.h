@@ -14,15 +14,15 @@ Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id);
 bool tkbc_contains_id(Kite_Ids kite_ids, size_t id);
 Frame tkbc_deep_copy_frame(Frame *frame);
 Frames tkbc_deep_copy_frames(Frames *frames);
-Block_Frame tkbc_deep_copy_block_frame(Block_Frame *block_frame);
+Script tkbc_deep_copy_script(Script *script);
 void tkbc_destroy_frames_internal_data(Frames *frames);
 void tkbc_reset_frames_internal_data(Frames *frames);
 void tkbc_render_frame(Env *env, Frame *frame);
 
 void tkbc_patch_frames_current_time(Frames *frames);
-void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Block_Frame *script,
+void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Script *script,
                                                   Kite_Ids kite_ids);
-void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames);
+void tkbc_patch_script_kite_positions(Env *env, Frames *frames);
 bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
 void tkbc_load_next_script(Env *env);

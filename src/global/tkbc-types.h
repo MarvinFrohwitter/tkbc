@@ -334,30 +334,28 @@ typedef struct {
   size_t count;    // The amount of elements in the array.
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
-  Index block_index; // The index in the block_frame array after registration.
+  Index block_index; // The index in the script array after registration.
   Kite_Positions kite_frame_positions; // The start position of the kite in the
                                        // current frame.
 } Frames; // A dynamic array collection that holds the type frame.
 
 typedef struct {
   Frames *elements; // The dynamic array collection for all combined frames as a
-                    // block frame.
+                    // script.
   size_t count;     // The amount of elements in the array.
   size_t capacity;  // The complete allocated space for the array represented as
                     // the number of collection elements of the array type.
   Id script_id;     // The number of the loaded script starting from 1.
   const char *name; // The name of the script.
-} Block_Frame; // A dynamic array collection that combined multiple frames to a
-               // single kite draw representation.
+} Script; // A dynamic array collection that combined multiple frames to a
+          // single kite draw representation.
 
 typedef struct {
-  Block_Frame
-      *elements; // The dynamic array collection for all combined frame blocks.
-  size_t count;  // The amount of elements in the array.
-  size_t capacity; // The complete allocated space for the array represented as
-                   // the number of collection elements of the array type.
-} Block_Frames;    // A dynamic array collection that combined multiple frame
-                   // blocks.
+  Script *elements; // The dynamic array collection for all combined scripts.
+  size_t count;     // The amount of elements in the array.
+  size_t capacity;  // The complete allocated space for the array represented as
+                    // the number of collection elements of the array type.
+} Scripts; // A dynamic array collection that combined multiple scripts.
 
 typedef struct Process Process;
 
@@ -381,10 +379,10 @@ typedef struct {
                            // session of the application.
   size_t kite_id_counter;  // The identifier counter for the kite.
 
-  Frames *frames;             // A view of the current active drawable frames.
-  Block_Frame *block_frame;   // A view of all the frames that should be
-                              // executed in a script.
-  Block_Frames *block_frames; // The collection of all the parsed scripts.
+  Frames *frames;   // A view of the current active drawable frames.
+  Script *script;   // A view of all the frames that should be
+                    // executed in a script.
+  Scripts *scripts; // The collection of all the parsed scripts.
 
   char *script_file_name; // The name of the script file '.kite'.
 
@@ -413,8 +411,8 @@ typedef struct {
   size_t window_height; // The window height of the application.
 
   Frames scratch_buf_frames; // A buffer that can be used to construct frames.
-  Block_Frame scratch_buf_block_frame; // A buffer that can be used to
-                                       // construct a block_frame.
+  Script scratch_buf_script; // A buffer that can be used to
+                             // construct a script.
 
   // -------FFMPEG-------
   Sound sound;           // The current loaded sound.

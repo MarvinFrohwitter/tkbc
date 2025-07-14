@@ -655,15 +655,16 @@ void tkbc_message_clientkites_write_to_all_send_msg_buffers() {
  * frame.
  *
  * @param script_id The id that is the current load script.
- * @param block_frame_count The amount of scripts that are available.
- * @param block_index The script index.
+ * @param script_count The amount of scripts that are available.
+ * @param frames_index The current index of the collection of individual frames
+ * in a script.
  */
-void tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
-    size_t script_id, size_t block_frame_count, size_t block_index) {
+void tkbc_message_srcipt_scripts_value_write_to_all_send_msg_buffers(
+    size_t script_id, size_t script_count, size_t frames_index) {
 
   space_dapf(&t_space, &t_message, "%d:%zu:%zu:%zu:\r\n",
-             MESSAGE_SCRIPT_BLOCK_FRAME_VALUE, script_id, block_frame_count,
-             block_index);
+             MESSAGE_SCRIPT_BLOCK_FRAME_VALUE, script_id, script_count,
+             frames_index);
 
   tkbc_write_to_all_send_msg_buffers(t_message);
   tkbc_reset_space_and_null_message(&t_space, &t_message);
@@ -848,7 +849,7 @@ bool tkbc_received_message_handler(Client *client) {
 
       Content tmp_buffer = {0};
       bool script_parse_fail = false;
-      Block_Frame *scb_block_frame = &env->scratch_buf_block_frame;
+      Script *scb_script = &env->scratch_buf_script;
       Frames *scb_frames = &env->scratch_buf_frames;
       Kite_Ids possible_new_kis = {0};
 
@@ -857,7 +858,7 @@ bool tkbc_received_message_handler(Client *client) {
         script_parse_fail = true;
         goto script_err;
       }
-      scb_block_frame->script_id = atoi(lexer_token_to_cstr(lexer, &token));
+      scb_script->script_id = atoi(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         script_parse_fail = true;
@@ -868,14 +869,14 @@ bool tkbc_received_message_handler(Client *client) {
         script_parse_fail = true;
         goto script_err;
       }
-      size_t block_frame_count = atoi(lexer_token_to_cstr(lexer, &token));
+      size_t script_count = atoi(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         script_parse_fail = true;
         goto script_err;
       }
 
-      for (size_t i = 0; i < block_frame_count; ++i) {
+      for (size_t i = 0; i < script_count; ++i) {
         token = lexer_next(lexer);
         if (token.kind != NUMBER) {
           script_parse_fail = true;
@@ -1129,14 +1130,13 @@ bool tkbc_received_message_handler(Client *client) {
           tkbc_dap(scb_frames, frame);
         }
 
-        tkbc_dap(scb_block_frame, tkbc_deep_copy_frames(scb_frames));
+        tkbc_dap(scb_script, tkbc_deep_copy_frames(scb_frames));
         tkbc_reset_frames_internal_data(scb_frames);
       }
 
       bool found = false;
-      for (size_t i = 0; i < env->block_frames->count; ++i) {
-        if (env->block_frames->elements[i].script_id ==
-            scb_block_frame->script_id) {
+      for (size_t i = 0; i < env->scripts->count; ++i) {
+        if (env->scripts->elements[i].script_id == scb_script->script_id) {
           found = true;
         }
       }
@@ -1148,15 +1148,13 @@ bool tkbc_received_message_handler(Client *client) {
           env->kite_array->elements[i].is_active = false;
         }
 
-        tkbc_remap_script_kite_id_arrays_to_kite_ids(env, scb_block_frame,
-                                                     kite_ids);
+        tkbc_remap_script_kite_id_arrays_to_kite_ids(env, scb_script, kite_ids);
         free(kite_ids.elements);
         kite_ids.elements = NULL;
 
         // Set the first kite frame positions
-        for (size_t i = 0; i < scb_block_frame->count; ++i) {
-          tkbc_patch_block_frame_kite_positions(env,
-                                                &scb_block_frame->elements[i]);
+        for (size_t i = 0; i < scb_script->count; ++i) {
+          tkbc_patch_script_kite_positions(env, &scb_script->elements[i]);
         }
 
         //
@@ -1169,14 +1167,13 @@ bool tkbc_received_message_handler(Client *client) {
         // reducing the memory storage size of a script.
         //
         // Marvin Frohwitter 22.06.2025
-        tkbc_dap(env->block_frames,
-                 tkbc_deep_copy_block_frame(scb_block_frame));
-        for (size_t i = 0; i < scb_block_frame->count; ++i) {
-          tkbc_destroy_frames_internal_data(&scb_block_frame->elements[i]);
+        tkbc_dap(env->scripts, tkbc_deep_copy_script(scb_script));
+        for (size_t i = 0; i < scb_script->count; ++i) {
+          tkbc_destroy_frames_internal_data(&scb_script->elements[i]);
         }
-        scb_block_frame->name = NULL;
+        scb_script->name = NULL;
       }
-      scb_block_frame->count = 0;
+      scb_script->count = 0;
 
     script_err:
       if (possible_new_kis.elements) {
@@ -1244,10 +1241,10 @@ bool tkbc_received_message_handler(Client *client) {
       //
       // Activate the kites that belong to the script.
       Kite_Ids ids = {0};
-      for (size_t i = 0; i < env->block_frame->count; ++i) {
-        for (size_t j = 0; j < env->block_frame->elements[i].count; ++j) {
+      for (size_t i = 0; i < env->script->count; ++i) {
+        for (size_t j = 0; j < env->script->elements[i].count; ++j) {
           Kite_Ids *kite_id_array =
-              &env->block_frame->elements[i].elements[j].kite_id_array;
+              &env->script->elements[i].elements[j].kite_id_array;
 
           size_t frame_max_kites = kite_id_array->count;
           env->server_script_kite_max_count =
@@ -1296,7 +1293,7 @@ bool tkbc_received_message_handler(Client *client) {
 
       // TODO: Ensure a script is loaded. And the kite_ids are correctly mapped.
       {
-        if (env->block_frame->count <= 0) {
+        if (env->script->count <= 0) {
           goto err;
         }
 
@@ -1306,8 +1303,8 @@ bool tkbc_received_message_handler(Client *client) {
         int index = drag_left ? env->frames->block_index - 1
                               : env->frames->block_index + 1;
 
-        if (index >= 0 && index < (int)env->block_frame->count) {
-          env->frames = &env->block_frame->elements[index];
+        if (index >= 0 && index < (int)env->script->count) {
+          env->frames = &env->script->elements[index];
         }
         // TODO: map the kite_ids before setting this.
         tkbc_set_kite_positions_from_kite_frames_positions(env);
@@ -1318,9 +1315,8 @@ bool tkbc_received_message_handler(Client *client) {
         goto err;
       }
 
-      tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
-          env->block_frame->script_id, env->block_frame->count,
-          env->frames->block_index);
+      tkbc_message_srcipt_scripts_value_write_to_all_send_msg_buffers(
+          env->script->script_id, env->script->count, env->frames->block_index);
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_SCRUB\n");
     } break;
@@ -1468,11 +1464,11 @@ int main(int argc, char *argv[]) {
 
     //
     // Base execution
-    if (env->block_frames->count <= 0) {
+    if (env->scripts->count <= 0) {
       continue;
     }
 
-    if (!tkbc_script_finished(env) && env->block_frame != NULL) {
+    if (!tkbc_script_finished(env) && env->script != NULL) {
       size_t bindex = env->frames->block_index;
       // TODO: Map script ids to current registered ids.
       // TODO: Make the default client kite.ids higher numbers starting around
@@ -1481,8 +1477,8 @@ int main(int argc, char *argv[]) {
 
       if (env->frames->block_index != bindex) {
         bindex = env->frames->block_index;
-        tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
-            env->block_frame->script_id, env->block_frame->count, bindex);
+        tkbc_message_srcipt_scripts_value_write_to_all_send_msg_buffers(
+            env->script->script_id, env->script->count, bindex);
       }
 
       tkbc_message_clientkites_write_to_all_send_msg_buffers();

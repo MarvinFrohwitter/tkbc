@@ -30,8 +30,8 @@ void tkbc_socket_handling();
 
 void tkbc_message_clientkites(Message *message);
 void tkbc_message_clientkites_write_to_all_send_msg_buffers();
-void tkbc_message_srcipt_block_frames_value_write_to_all_send_msg_buffers(
-    size_t script_id, size_t block_frame_count, size_t block_index);
+void tkbc_message_srcipt_scripts_value_write_to_all_send_msg_buffers(
+    size_t script_id, size_t script_count, size_t frames_index);
 bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
     size_t client_id);
 void tkbc_message_kites_write_to_all_send_msg_buffers();

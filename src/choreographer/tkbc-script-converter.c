@@ -29,13 +29,12 @@ void tkbc_print_kites(FILE *file, Kite_Ids ids) {
  * @brief The function serializes the provided script in memory form to a .kite
  * file.
  *
- * @param block_frame A memory representation of a script.
+ * @param script A memory representation of a script.
  * @param filename The file name where the script should be saved to.
  * @return 0 If the saving and serialization of the file has succeeded. -1 if
  * the file opening has failed and 1 if the fseek operation has failed.
  */
-int tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
-                                    const char *filename) {
+int tkbc_write_script_kite_from_mem(Script *script, const char *filename) {
   int ok = 0;
   size_t max_kites = 0;
   FILE *file = fopen(filename, "wb");
@@ -49,15 +48,14 @@ int tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
   // Padding for Maximum number that can be inserted later for KITES.
   fprintf(file, "\n\n\n\n\n\n\n\n\n");
   fprintf(file, "BEGIN\n");
-  for (size_t frames = 0; frames < block_frame->count; ++frames) {
+  for (size_t frames = 0; frames < script->count; ++frames) {
 
-    if (block_frame->elements[frames].count > 1) {
+    if (script->elements[frames].count > 1) {
       fprintf(file, "{\n");
     }
 
-    for (size_t frame = 0; frame < block_frame->elements[frames].count;
-         ++frame) {
-      Frame *f = &block_frame->elements[frames].elements[frame];
+    for (size_t frame = 0; frame < script->elements[frames].count; ++frame) {
+      Frame *f = &script->elements[frames].elements[frame];
       if (f->kite_id_array.count) {
         max_kites = fmaxf(max_kites, f->kite_id_array.count);
       }
@@ -128,7 +126,7 @@ int tkbc_write_script_kite_from_mem(Block_Frame *block_frame,
       fprintf(file, " %f\n", f->duration);
     }
 
-    if (block_frame->elements[frames].count > 1) {
+    if (script->elements[frames].count > 1) {
       fprintf(file, "}\n");
     }
   }

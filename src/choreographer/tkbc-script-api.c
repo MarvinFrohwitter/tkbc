@@ -21,11 +21,11 @@ void tkbc__script_begin(Env *env) {
 /**
  * @brief The function sets the provided name as a name for the given script.
  *
- * @param block_frame The script where the name should be assigned.
+ * @param script The script where the name should be assigned.
  * @param name The new name for the script.
  */
-void tkbc_set_script_name(Block_Frame *block_frame, const char *name) {
-  block_frame->name = name;
+void tkbc_set_script_name(Script *script, const char *name) {
+  script->name = name;
 }
 
 /**
@@ -43,22 +43,20 @@ void tkbc__script_end(Env *env) {
   }
   env->script_setup = false;
 
-  assert(env->scratch_buf_block_frame.count > 0);
-  env->scratch_buf_block_frame.script_id = env->block_frames->count + 1;
-  tkbc_dap(env->block_frames,
-           tkbc_deep_copy_block_frame(&env->scratch_buf_block_frame));
+  assert(env->scratch_buf_script.count > 0);
+  env->scratch_buf_script.script_id = env->scripts->count + 1;
+  tkbc_dap(env->scripts, tkbc_deep_copy_script(&env->scratch_buf_script));
 
-  for (size_t i = 0; i < env->scratch_buf_block_frame.count; ++i) {
-    tkbc_destroy_frames_internal_data(
-        &env->scratch_buf_block_frame.elements[i]);
+  for (size_t i = 0; i < env->scratch_buf_script.count; ++i) {
+    tkbc_destroy_frames_internal_data(&env->scratch_buf_script.elements[i]);
   }
-  env->scratch_buf_block_frame.name = NULL;
-  env->scratch_buf_block_frame.count = 0;
+  env->scratch_buf_script.name = NULL;
+  env->scratch_buf_script.count = 0;
 }
 
 /**
- * @brief The function can be used to update the block_frame calculation. It
- * switches the internal script buffer to the next block_frame. For the script
+ * @brief The function can be used to update the script calculation. It
+ * switches the internal script buffer to the next script. For the script
  * execution it is mandatory to call this function.
  *
  * @param env The global state of the application.
@@ -76,7 +74,7 @@ void tkbc_script_update_frames(Env *env) {
     return;
   }
 
-  if (env->frames->block_index + 1 >= env->block_frame->count) {
+  if (env->frames->block_index + 1 >= env->script->count) {
     env->script_finished = true;
     tkbc_fprintf(stderr, "INFO", "The script has finished successfully.\n");
     return;
@@ -85,8 +83,8 @@ void tkbc_script_update_frames(Env *env) {
   // Overflow protection is just in case the finish detection fails or the
   // manual timeline interaction triggers a state that disables the previous
   // checks.
-  assert(env->frames->block_index + 1 < env->block_frame->count);
-  env->frames = &env->block_frame->elements[env->frames->block_index + 1];
+  assert(env->frames->block_index + 1 < env->script->count);
+  env->frames = &env->script->elements[env->frames->block_index + 1];
 
   tkbc_patch_frames_current_time(env->frames);
 
@@ -128,7 +126,7 @@ bool tkbc_script_finished(Env *env) { return env->script_finished; }
 
 /**
  * @brief The function is wrapped by a macro! The call creates an action frame
- * that blocks the block_frame execution by the specified time.
+ * that blocks the script execution by the specified time.
  *
  * @param env The global state of the application.
  * @param duration The time a frame should block/expand.
@@ -269,12 +267,12 @@ void tkbc_sript_team_scratch_buf_frames_append_and_free(Env *env,
 
 /**
  * @brief The function registers the given frames array into the global env
- * state that holds the block_frame. It is also responsible for patching
+ * state that holds the script. It is also responsible for patching
  * corresponding block frame positions and frame indices.
  *
  * @param env The global state of the application.
  * @param frames The collect frames that should be registered as a
- * block_frame.
+ * script.
  */
 void tkbc_register_frames_array(Env *env, Frames *frames) {
   assert(frames != NULL);
@@ -300,14 +298,14 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
       kite->old_center = kite->center;
     }
   }
-  tkbc_patch_block_frame_kite_positions(env, frames);
+  tkbc_patch_script_kite_positions(env, frames);
   Frames copy_frames = tkbc_deep_copy_frames(frames);
-  tkbc_dap(&env->scratch_buf_block_frame, copy_frames);
+  tkbc_dap(&env->scratch_buf_script, copy_frames);
   tkbc_reset_frames_internal_data(frames);
 
-  assert((int)env->scratch_buf_block_frame.count - 1 >= 0);
-  env->scratch_buf_block_frame.elements[env->scratch_buf_block_frame.count - 1]
-      .block_index = env->scratch_buf_block_frame.count - 1;
+  assert((int)env->scratch_buf_script.count - 1 >= 0);
+  env->scratch_buf_script.elements[env->scratch_buf_script.count - 1]
+      .block_index = env->scratch_buf_script.count - 1;
 
   if (!isscratch) {
     tkbc_destroy_frames_internal_data(frames);
@@ -393,31 +391,29 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
   return ids;
 }
 
-void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
-  fprintf(stream, "Script: %zu\n", block_frame->script_id);
-  for (size_t block = 0; block < block_frame->count; ++block) {
+void tkbc_print_script(FILE *stream, Script *script) {
+  fprintf(stream, "Script: %zu\n", script->script_id);
+  for (size_t block = 0; block < script->count; ++block) {
     fprintf(stream, "  Block-Index: %zu\n",
-            block_frame->elements[block].block_index);
+            script->elements[block].block_index);
 
     fprintf(stream, "    Kite-Frames:\n");
-    for (size_t frame = 0; frame < block_frame->elements[block].count;
-         ++frame) {
+    for (size_t frame = 0; frame < script->elements[block].count; ++frame) {
       fprintf(stream, "      {\n");
       fprintf(stream, "      Index:%zu\n",
-              block_frame->elements[block].elements[frame].index);
+              script->elements[block].elements[frame].index);
 
-      if (block_frame->elements[block].elements[frame].kite_id_array.count) {
-        fprintf(stream, "      Kite-Ids: [%zu",
-                block_frame->elements[block]
-                    .elements[frame]
-                    .kite_id_array.elements[0]);
+      if (script->elements[block].elements[frame].kite_id_array.count) {
+        fprintf(
+            stream, "      Kite-Ids: [%zu",
+            script->elements[block].elements[frame].kite_id_array.elements[0]);
 
         for (size_t index = 1;
              index <
-             block_frame->elements[block].elements[frame].kite_id_array.count;
+             script->elements[block].elements[frame].kite_id_array.count;
              ++index) {
           fprintf(stream, ", %zu",
-                  block_frame->elements[block]
+                  script->elements[block]
                       .elements[frame]
                       .kite_id_array.elements[index]);
         }
@@ -427,31 +423,31 @@ void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
       fprintf(stream, "]\n");
 
       fprintf(stream, "      Duration:%fs\n",
-              block_frame->elements[block].elements[frame].duration);
+              script->elements[block].elements[frame].duration);
       fprintf(stream, "      Finished:%s\n",
-              block_frame->elements[block].elements[frame].finished ? "TRUE"
-                                                                    : "FALSE");
-      int kind = block_frame->elements[block].elements[frame].kind;
+              script->elements[block].elements[frame].finished ? "TRUE"
+                                                               : "FALSE");
+      int kind = script->elements[block].elements[frame].kind;
       switch (kind) {
 
       case KITE_QUIT: {
         fprintf(stream, "      Action-Kind: KITE_QUIT\n");
         Quit_Action action =
-            block_frame->elements[block].elements[frame].action.as_quit;
+            script->elements[block].elements[frame].action.as_quit;
         fprintf(stream, "        Time:%fs)\n", (float)action.starttime);
       } break;
 
       case KITE_WAIT: {
         fprintf(stream, "      Action-Kind: KITE_WAIT\n");
         Wait_Action action =
-            block_frame->elements[block].elements[frame].action.as_wait;
+            script->elements[block].elements[frame].action.as_wait;
         fprintf(stream, "        Time:%fs)\n", (float)action.starttime);
       } break;
 
       case KITE_MOVE: {
         fprintf(stream, "      Action-Kind: Kite_Move\n");
         Move_Action action =
-            block_frame->elements[block].elements[frame].action.as_move;
+            script->elements[block].elements[frame].action.as_move;
         fprintf(stream, "        Position:(%f,%f)\n", action.position.y,
                 action.position.y);
       } break;
@@ -459,7 +455,7 @@ void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
       case KITE_MOVE_ADD: {
         fprintf(stream, "      Action-Kind: KITE_MOVE_ADD\n");
         Move_Add_Action action =
-            block_frame->elements[block].elements[frame].action.as_move_add;
+            script->elements[block].elements[frame].action.as_move_add;
         fprintf(stream, "        Position:(%f,%f)\n", action.position.y,
                 action.position.y);
       } break;
@@ -467,21 +463,21 @@ void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
       case KITE_ROTATION: {
         fprintf(stream, "      Action-Kind: KITE_ROTATION\n");
         Rotation_Action action =
-            block_frame->elements[block].elements[frame].action.as_rotation;
+            script->elements[block].elements[frame].action.as_rotation;
         fprintf(stream, "        Angle:%f\n", action.angle);
       } break;
 
       case KITE_ROTATION_ADD: {
         fprintf(stream, "      Action-Kind: KITE_ROTATION_ADD\n");
         Rotation_Add_Action action =
-            block_frame->elements[block].elements[frame].action.as_rotation_add;
+            script->elements[block].elements[frame].action.as_rotation_add;
         fprintf(stream, "        Angle:%f\n", action.angle);
       } break;
 
       case KITE_TIP_ROTATION: {
         fprintf(stream, "      Action-Kind: KITE_TIP_ROTATION\n");
         Tip_Rotation_Action action =
-            block_frame->elements[block].elements[frame].action.as_tip_rotation;
+            script->elements[block].elements[frame].action.as_tip_rotation;
         fprintf(stream, "        Angle:%f\n", action.angle);
         fprintf(stream, "        Tip:%s\n",
                 action.tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
@@ -489,9 +485,8 @@ void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
 
       case KITE_TIP_ROTATION_ADD: {
         fprintf(stream, "      Action-Kind: KITE_TIP_ROTATION_ADD\n");
-        Tip_Rotation_Add_Action action = block_frame->elements[block]
-                                             .elements[frame]
-                                             .action.as_tip_rotation_add;
+        Tip_Rotation_Add_Action action =
+            script->elements[block].elements[frame].action.as_tip_rotation_add;
         fprintf(stream, "        Angle:%f\n", action.angle);
         fprintf(stream, "        Tip:%s\n",
                 action.tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
@@ -509,12 +504,12 @@ void tkbc_print_script(FILE *stream, Block_Frame *block_frame) {
     fprintf(stream, "    {\n");
     for (size_t kite_frame_poition = 0;
          kite_frame_poition <
-         block_frame->elements[block].kite_frame_positions.count;
+         script->elements[block].kite_frame_positions.count;
          ++kite_frame_poition) {
 
       fprintf(stream, "      {\n");
       Kite_Position *kp =
-          &block_frame->elements[block]
+          &script->elements[block]
                .kite_frame_positions.elements[kite_frame_poition];
       fprintf(stream, "      Kite:%zu\n", kp->kite_id);
       fprintf(stream, "      Angle:%f\n", kp->angle);

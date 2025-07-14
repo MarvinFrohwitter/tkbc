@@ -256,11 +256,11 @@ void sending_script_handler() {
     // For detection if the begin and end is called correctly.
     env->script_setup = false;
     tkbc__script_input(env);
-    for (size_t i = 0; i < env->block_frames->count; ++i) {
-      // tkbc_print_script(stderr, &env->block_frames->elements[i]);
+    for (size_t i = 0; i < env->scripts->count; ++i) {
+      // tkbc_print_script(stderr, &env->scripts->elements[i]);
       // char buf[32];
       // sprintf(buf, "Script%zu.kite", i);
-      // tkbc_write_script_kite_from_mem(&env->block_frames->elements[i], buf);
+      // tkbc_write_script_kite_from_mem(&env->scripts->elements[i], buf);
     }
     tkbc_message_script();
   }
@@ -487,7 +487,7 @@ bool received_message_handler(Message *message) {
       }
       env->script_finished = true;
 
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_BLOCK_FRAME_VALUE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_script_VALUE\n");
     } break;
     case MESSAGE_CLIENTKITES: {
       token = lexer_next(lexer);
@@ -739,7 +739,7 @@ void tkbc_client_input_handler_kite() {
 
 /**
  * @brief The function appends the script found from the given script_id in the
- * block_frames to the given message structure.
+ * scripts to the given message structure.
  *
  * @param script_id The script number the should be appended.
  * @return True if the script was found and is correctly appended, otherwise
@@ -747,17 +747,17 @@ void tkbc_client_input_handler_kite() {
  */
 bool tkbc_message_append_script(size_t script_id) {
 
-  for (size_t i = 0; i < env->block_frames->count; ++i) {
-    if (env->block_frames->elements[i].script_id != script_id) {
+  for (size_t i = 0; i < env->scripts->count; ++i) {
+    if (env->scripts->elements[i].script_id != script_id) {
       continue;
     }
     space_dapf(&client.msg_space, &client.send_msg_buffer, "%zu:", script_id);
 
-    Block_Frame *block_frame = &env->block_frames->elements[i];
+    Script *script = &env->scripts->elements[i];
     space_dapf(&client.msg_space, &client.send_msg_buffer,
-               "%zu:", block_frame->count);
-    for (size_t j = 0; j < block_frame->count; ++j) {
-      Frames *frames = &block_frame->elements[j];
+               "%zu:", script->count);
+    for (size_t j = 0; j < script->count; ++j) {
+      Frames *frames = &script->elements[j];
       space_dapf(&client.msg_space, &client.send_msg_buffer,
                  "%zu:", frames->block_index);
       space_dapf(&client.msg_space, &client.send_msg_buffer,
@@ -836,15 +836,15 @@ bool tkbc_message_append_script(size_t script_id) {
 bool tkbc_message_script() {
   bool ok = true;
   space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:%zu:\r\n",
-             MESSAGE_SCRIPT_AMOUNT, env->block_frames->count);
+             MESSAGE_SCRIPT_AMOUNT, env->scripts->count);
 
   size_t counter = 0;
-  for (size_t i = env->send_scripts; i < env->block_frames->count; ++i) {
+  for (size_t i = env->send_scripts; i < env->scripts->count; ++i) {
     char buf[8];
     int size = snprintf(buf, sizeof(buf), "%d:", MESSAGE_SCRIPT);
     space_dapf(&client.msg_space, &client.send_msg_buffer, "%s", buf);
 
-    if (!tkbc_message_append_script(env->block_frames->elements[i].script_id)) {
+    if (!tkbc_message_append_script(env->scripts->elements[i].script_id)) {
       tkbc_fprintf(stderr, "ERROR",
                    "The script could not be appended to the message.\n");
       client.send_msg_buffer.count -= size;
@@ -868,8 +868,7 @@ void tkbc_client_file_handler() {
   size_t prev_kite_array_count = env->kite_array->count;
 
   tkbc_file_handler(env);
-  if (env->block_frames->count > 0 &&
-      env->block_frames->count - env->send_scripts > 0) {
+  if (env->scripts->count > 0 && env->scripts->count - env->send_scripts > 0) {
 
     tkbc_message_script();
   }
@@ -907,7 +906,7 @@ void tkbc_message_kites_positions() {
  * messages that are send to the server.
  */
 void tkbc_client_input_handler_script() {
-  if (env->block_frames->count <= 0) {
+  if (env->scripts->count <= 0) {
     return;
   }
 

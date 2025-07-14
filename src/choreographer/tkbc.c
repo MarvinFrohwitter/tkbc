@@ -47,12 +47,12 @@ Env *tkbc_init_env(void) {
   }
   memset(env->kite_array, 0, sizeof(*env->kite_array));
 
-  env->block_frames = malloc(sizeof(*env->block_frames));
-  if (env->block_frames == NULL) {
+  env->scripts = malloc(sizeof(*env->scripts));
+  if (env->scripts == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
   }
-  memset(env->block_frames, 0, sizeof(*env->block_frames));
+  memset(env->scripts, 0, sizeof(*env->scripts));
 
   tkbc_init_keymaps_defaults(&env->keymaps);
 
@@ -141,26 +141,24 @@ void tkbc_destroy_env(Env *env) {
   env->vanilla_kite = NULL;
   tkbc_destroy_kite_array(env->kite_array);
 
-  for (size_t j = 0; j < env->block_frames->count; ++j) {
-    // The frames are just a mapped in version of block_frame no need to handle
+  for (size_t j = 0; j < env->scripts->count; ++j) {
+    // The frames are just a mapped in version of script no need to handle
     // them separately.
-    for (size_t i = 0; i < env->block_frames->elements[j].count; ++i) {
-      tkbc_destroy_frames_internal_data(
-          &env->block_frames->elements[j].elements[i]);
+    for (size_t i = 0; i < env->scripts->elements[j].count; ++i) {
+      tkbc_destroy_frames_internal_data(&env->scripts->elements[j].elements[i]);
     }
-    env->block_frames->elements[j].name = NULL;
+    env->scripts->elements[j].name = NULL;
   }
 
-  free(env->block_frames->elements);
-  env->block_frames->elements = NULL;
-  free(env->block_frames);
-  env->block_frames = NULL;
+  free(env->scripts->elements);
+  env->scripts->elements = NULL;
+  free(env->scripts);
+  env->scripts = NULL;
 
-  for (size_t i = 0; i < env->scratch_buf_block_frame.count; ++i) {
-    tkbc_destroy_frames_internal_data(
-        &env->scratch_buf_block_frame.elements[i]);
+  for (size_t i = 0; i < env->scratch_buf_script.count; ++i) {
+    tkbc_destroy_frames_internal_data(&env->scratch_buf_script.elements[i]);
   }
-  env->scratch_buf_block_frame.name = NULL;
+  env->scratch_buf_script.name = NULL;
 
   tkbc_destroy_frames_internal_data(&env->scratch_buf_frames);
   free(env);

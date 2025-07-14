@@ -158,26 +158,25 @@ Frame tkbc_deep_copy_frame(Frame *frame) {
 
 /**
  * @brief The function copies every single value even the values that are just
- * represented by a pointer of the struct Block_Frame to a new instance. It can
- * be used to move a creation of a temporary struct of type Block_Frame to a
+ * represented by a pointer of the struct script to a new instance. It can
+ * be used to move a creation of a temporary struct of type script to a
  * permanently stored one.
  *
- * @param block_frame The pointer that holds the values that should be copied.
- * @return The value ready copy of the block_frame.
+ * @param script The pointer that holds the values that should be copied.
+ * @return The value ready copy of the script.
  */
-Block_Frame tkbc_deep_copy_block_frame(Block_Frame *block_frame) {
-  Block_Frame new_block_frame = {0};
-  if (!block_frame) {
-    return new_block_frame;
+Script tkbc_deep_copy_script(Script *script) {
+  Script new_script = {0};
+  if (!script) {
+    return new_script;
   }
-  new_block_frame.script_id = block_frame->script_id;
-  new_block_frame.name = block_frame->name;
+  new_script.script_id = script->script_id;
+  new_script.name = script->name;
 
-  for (size_t i = 0; i < block_frame->count; ++i) {
-    tkbc_dap(&new_block_frame,
-             tkbc_deep_copy_frames(&block_frame->elements[i]));
+  for (size_t i = 0; i < script->count; ++i) {
+    tkbc_dap(&new_script, tkbc_deep_copy_frames(&script->elements[i]));
   }
-  return new_block_frame;
+  return new_script;
 }
 
 /**
@@ -488,7 +487,7 @@ void tkbc_patch_frames_current_time(Frames *frames) {
  * @param script The script where the kite ids should be remapped to new values.
  * @param kite_ids The ids array that contain the new values.
  */
-void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Block_Frame *script,
+void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Script *script,
                                                   Kite_Ids kite_ids) {
   assert(env);
   assert(script);
@@ -567,7 +566,7 @@ void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Block_Frame *script,
  * @param frames The frames where the kite positions should be updated to the
  * current kite values.
  */
-void tkbc_patch_block_frame_kite_positions(Env *env, Frames *frames) {
+void tkbc_patch_script_kite_positions(Env *env, Frames *frames) {
   for (size_t i = 0; i < frames->count; ++i) {
     if (!frames->elements[i].kite_id_array.count) {
       continue;
@@ -643,20 +642,20 @@ size_t tkbc_check_finished_frames_count(Env *env) {
 
 /**
  * @brief The function switches to the next available script. It loads the views
- * block_frame and frames in the env. And sets the kite_frame_positions.
+ * script and frames in the env. And sets the kite_frame_positions.
 
  * @param env The global state of the application.
  */
 void tkbc_load_next_script(Env *env) {
-  if (env->block_frames->count <= 0) {
+  if (env->scripts->count <= 0) {
     return;
   }
 
   // Switch to next script.
   // NOTE: The first iteration has no loaded value jet so 0 is default.
-  size_t id = env->block_frame == NULL ? 0 : env->block_frame->script_id;
-  size_t script_index = id % env->block_frames->count;
-  size_t script_id = env->block_frames->elements[script_index].script_id;
+  size_t id = env->script == NULL ? 0 : env->script->script_id;
+  size_t script_index = id % env->scripts->count;
+  size_t script_id = env->scripts->elements[script_index].script_id;
   tkbc_load_script_id(env, script_id);
 }
 
@@ -669,14 +668,14 @@ void tkbc_load_next_script(Env *env) {
  * current execution.
  */
 void tkbc_load_script_id(Env *env, size_t script_id) {
-  for (size_t i = 0; i < env->block_frames->count; ++i) {
-    if (env->block_frames->elements[i].script_id == script_id) {
-      env->block_frame = &env->block_frames->elements[i];
+  for (size_t i = 0; i < env->scripts->count; ++i) {
+    if (env->scripts->elements[i].script_id == script_id) {
+      env->script = &env->scripts->elements[i];
       break;
     }
   }
 
-  env->frames = &env->block_frame->elements[0];
+  env->frames = &env->script->elements[0];
   tkbc_set_kite_positions_from_kite_frames_positions(env);
   env->script_finished = false;
 }
@@ -740,7 +739,7 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_scrub_frames(Env *env) {
-  if (env->block_frame == NULL) {
+  if (env->script == NULL) {
     return;
   }
 
@@ -752,12 +751,12 @@ void tkbc_scrub_frames(Env *env) {
 
     env->script_finished = true;
 
-    // The block indexes are assumed in order and at the corresponding index.
+    // The indexes are assumed in order and at the corresponding index.
     int index =
         drag_left ? env->frames->block_index - 1 : env->frames->block_index + 1;
 
-    if (index >= 0 && index < (int)env->block_frame->count) {
-      env->frames = &env->block_frame->elements[index];
+    if (index >= 0 && index < (int)env->script->count) {
+      env->frames = &env->script->elements[index];
       for (size_t i = 0; i < env->frames->count; ++i) {
         env->frames->elements[i].finished = false;
       }

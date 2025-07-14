@@ -250,9 +250,9 @@ Test deep_copy_frames() {
   return test;
 }
 
-Test deep_copy_block_frame() {
-  Test test = cassert_init_test("deep_copy_block_frame()");
-  Block_Frame block_frame = {0};
+Test deep_copy_script() {
+  Test test = cassert_init_test("deep_copy_script()");
+  Script script = {0};
   Frames frames = {0};
   Frame frame = {0};
 
@@ -270,32 +270,32 @@ Test deep_copy_block_frame() {
       ((Kite_Position){
           .kite_id = 2, .position.x = 150, .position.y = 250, .angle = 180}));
 
-  cassert_dap(&block_frame, frames);
+  cassert_dap(&script, frames);
 
-  Block_Frame new_block_frame = tkbc_deep_copy_block_frame(&block_frame);
-  cassert_ptr_neq(&block_frame, &new_block_frame);
-  cassert_int_eq(block_frame.count, new_block_frame.count);
-  cassert_int_eq(block_frame.capacity, new_block_frame.capacity);
-  cassert_int_eq(block_frame.script_id, new_block_frame.script_id);
-  cassert_ptr_neq(&block_frame.elements, &new_block_frame.elements);
+  script new_script = tkbc_deep_copy_script(&script);
+  cassert_ptr_neq(&script, &new_script);
+  cassert_int_eq(script.count, new_script.count);
+  cassert_int_eq(script.capacity, new_script.capacity);
+  cassert_int_eq(script.script_id, new_script.script_id);
+  cassert_ptr_neq(&script.elements, &new_script.elements);
 
-  cassert_ptr_neq(block_frame.elements, new_block_frame.elements);
+  cassert_ptr_neq(script.elements, new_script.elements);
 
-  for (size_t i = 0; i < block_frame.count; ++i) {
-    tkbc_destroy_frames_internal_data(&block_frame.elements[i]);
+  for (size_t i = 0; i < script.count; ++i) {
+    tkbc_destroy_frames_internal_data(&script.elements[i]);
   }
-  for (size_t i = 0; i < new_block_frame.count; ++i) {
-    tkbc_destroy_frames_internal_data(&new_block_frame.elements[i]);
+  for (size_t i = 0; i < new_script.count; ++i) {
+    tkbc_destroy_frames_internal_data(&new_script.elements[i]);
   }
-  block_frame.name = NULL;
-  new_block_frame.name = NULL;
+  script.name = NULL;
+  new_script.name = NULL;
 
-  free(block_frame.elements);
-  free(new_block_frame.elements);
-  block_frame.elements = NULL;
-  new_block_frame.elements = NULL;
-  cassert_ptr_eq(block_frame.elements, NULL);
-  cassert_ptr_eq(new_block_frame.elements, NULL);
+  free(script.elements);
+  free(new_script.elements);
+  script.elements = NULL;
+  new_script.elements = NULL;
+  cassert_ptr_eq(script.elements, NULL);
+  cassert_ptr_eq(new_script.elements, NULL);
 
   return test;
 }
@@ -412,7 +412,7 @@ void tkbc_test_script_handler(Tests *tests) {
   cassert_dap(tests, contains_id());
   cassert_dap(tests, deep_copy_frame());
   cassert_dap(tests, deep_copy_frames());
-  cassert_dap(tests, deep_copy_block_frame());
+  cassert_dap(tests, deep_copy_script());
   cassert_dap(tests, destroy_frames_internal_data());
   cassert_dap(tests, reset_frames_internal_data());
 }

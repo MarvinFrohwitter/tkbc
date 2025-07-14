@@ -32,7 +32,7 @@ void tkbc_draw_ui(Env *env) {
                      env->server_script_frames_in_script_count);
 
 #else
-    tkbc_ui_timeline(env, env->frames->block_index, env->block_frame->count);
+    tkbc_ui_timeline(env, env->frames->block_index, env->script->count);
 #endif // TKBC_CLIENT
   }
 
@@ -207,7 +207,7 @@ bool tkbc_ui_script_menu(Env *env) {
   env->script_menu_base =
       (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
 
-  size_t scripts_count = env->block_frames->count;
+  size_t scripts_count = env->scripts->count;
   float padding = 10;
   Rectangle script_box = {
       .x = env->script_menu_base.x + padding,
@@ -262,8 +262,8 @@ bool tkbc_ui_script_menu(Env *env) {
       DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
     }
 
-    if (env->block_frames->elements[box].name) {
-      const char *name = env->block_frames->elements[box].name;
+    if (env->scripts->elements[box].name) {
+      const char *name = env->scripts->elements[box].name;
       text_size = MeasureTextEx(GetFontDefault(), name, 12, 10);
 
       DrawText(name, script_box.x + script_box.width / 2 - text_size.x / 2,

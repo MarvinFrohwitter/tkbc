@@ -13,7 +13,7 @@
 void tkbc__script_input(Env *env);
 void tkbc__script_begin(Env *env);
 void tkbc__script_end(Env *env);
-void tkbc_set_script_name(Block_Frame *block_frame, const char *name);
+void tkbc_set_script_name(Script *script, const char *name);
 
 #define tkbc_script_input void tkbc__script_input(Env *env)
 
@@ -24,7 +24,7 @@ void tkbc_set_script_name(Block_Frame *block_frame, const char *name);
     if (!*tmp) {                                                               \
       tmp = NULL;                                                              \
     }                                                                          \
-    tkbc_set_script_name(&env->scratch_buf_block_frame, tmp);                  \
+    tkbc_set_script_name(&env->scratch_buf_script, tmp);                       \
   } while (0)
 
 #define tkbc_script_end() tkbc__script_end(env)
@@ -99,6 +99,6 @@ Kite_Ids tkbc__indexs_append(int _, ...);
 Kite_Ids tkbc_indexs_range(int start, int end);
 #define tkbc_indexs_generate(count) tkbc_indexs_range(0, count)
 Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count);
-void tkbc_print_script(FILE *stream, Block_Frame *block_frame);
+void tkbc_print_script(FILE *stream, Script *script);
 
 #endif // TKBC_SCRIPT_API_H_
