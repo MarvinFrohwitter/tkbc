@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.3.008"
+#define PROTOCOL_VERSION "0.3.009"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -53,9 +53,7 @@ typedef enum {
   MESSAGE_SCRIPT,
   MESSAGE_SCRIPT_AMOUNT,
   MESSAGE_SCRIPT_PARSED,
-
-  MESSAGE_SCRIPT_BLOCK_FRAME_VALUE,
-
+  MESSAGE_SCRIPT_META_DATA,
   MESSAGE_SCRIPT_TOGGLE,
   MESSAGE_SCRIPT_NEXT,
   MESSAGE_SCRIPT_SCRUB,

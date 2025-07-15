@@ -451,7 +451,7 @@ bool received_message_handler(Message *message) {
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEVALUE\n");
     } break;
-    case MESSAGE_SCRIPT_BLOCK_FRAME_VALUE: {
+    case MESSAGE_SCRIPT_META_DATA: {
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
         goto err;
@@ -828,7 +828,7 @@ bool tkbc_message_append_script(size_t script_id) {
 
 /**
  * @brief The function can be used to construct the message script out of the
- * currently registered block frames. The result is directly written to the
+ * currently registered scripts. The result is directly written to the
  * send_message_queue ready to be send to the server.
  *
  * @return True if the message script could be constructed, otherwise false.

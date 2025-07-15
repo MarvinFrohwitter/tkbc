@@ -663,7 +663,7 @@ void tkbc_message_srcipt_scripts_value_write_to_all_send_msg_buffers(
     size_t script_id, size_t script_count, size_t frames_index) {
 
   space_dapf(&t_space, &t_message, "%d:%zu:%zu:%zu:\r\n",
-             MESSAGE_SCRIPT_BLOCK_FRAME_VALUE, script_id, script_count,
+             MESSAGE_SCRIPT_META_DATA, script_id, script_count,
              frames_index);
 
   tkbc_write_to_all_send_msg_buffers(t_message);
