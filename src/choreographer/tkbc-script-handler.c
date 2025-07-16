@@ -115,7 +115,7 @@ Frames tkbc_deep_copy_frames(Frames *frames) {
   if (frames == NULL) {
     return new_frames;
   }
-  new_frames.block_index = frames->block_index;
+  new_frames.frames_index = frames->frames_index;
 
   if (frames->kite_frame_positions.count) {
     tkbc_dapc(&new_frames.kite_frame_positions,
@@ -753,7 +753,7 @@ void tkbc_scrub_frames(Env *env) {
 
     // The indexes are assumed in order and at the corresponding index.
     int index =
-        drag_left ? env->frames->block_index - 1 : env->frames->block_index + 1;
+        drag_left ? env->frames->frames_index - 1 : env->frames->frames_index + 1;
 
     if (index >= 0 && index < (int)env->script->count) {
       env->frames = &env->script->elements[index];

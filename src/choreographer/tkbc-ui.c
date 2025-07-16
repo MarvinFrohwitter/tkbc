@@ -28,11 +28,11 @@ void tkbc_draw_ui(Env *env) {
       !(env->script_menu_interaction || env->keymaps_interaction)) {
     // A script is currently executing.
 #ifdef TKBC_CLIENT
-    tkbc_ui_timeline(env, env->server_script_block_index,
+    tkbc_ui_timeline(env, env->server_script_frames_index,
                      env->server_script_frames_in_script_count);
 
 #else
-    tkbc_ui_timeline(env, env->frames->block_index, env->script->count);
+    tkbc_ui_timeline(env, env->frames->frames_index, env->script->count);
 #endif // TKBC_CLIENT
   }
 
@@ -650,10 +650,10 @@ void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
  *
  *
  * @param env The global state of the application.
- * @param block_index The current frames block_index.
- * @param block_index_count The maximum frames that registered.
+ * @param frames_index The current frames frames_index.
+ * @param frames_index_count The maximum frames that registered.
  */
-void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
+void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count) {
   if (env->script_setup) {
     return;
   }
@@ -681,18 +681,18 @@ void tkbc_ui_timeline(Env *env, size_t block_index, size_t block_index_count) {
     env->timeline_interaction = true;
   }
 
-  env->timeline_segments = block_index + 1;
+  env->timeline_segments = frames_index + 1;
 
-  assert(block_index_count != 0);
-  assert(env->timeline_segments <= block_index_count);
+  assert(frames_index_count != 0);
+  assert(env->timeline_segments <= frames_index_count);
 
-  env->timeline_segment_width = env->timeline_base.width / block_index_count;
+  env->timeline_segment_width = env->timeline_base.width / frames_index_count;
 
   env->timeline_segments_width =
       env->timeline_segment_width * env->timeline_segments;
 
   if ((mouse_pos.x >= env->timeline_base.x + env->timeline_base.width) ||
-      (env->timeline_segments >= block_index_count)) {
+      (env->timeline_segments >= frames_index_count)) {
     // Just for save UI drawing if the mouse is outside the right bounding box
     // of the timeline, the alignment should always be filled completely.
     env->timeline_front.width = env->timeline_base.width;

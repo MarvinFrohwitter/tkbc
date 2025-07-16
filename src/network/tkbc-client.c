@@ -479,7 +479,7 @@ bool received_message_handler(Message *message) {
         goto err;
       }
 
-      env->server_script_block_index = atoi(lexer_token_to_cstr(lexer, &token));
+      env->server_script_frames_index = atoi(lexer_token_to_cstr(lexer, &token));
 
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
@@ -759,7 +759,7 @@ bool tkbc_message_append_script(size_t script_id) {
     for (size_t j = 0; j < script->count; ++j) {
       Frames *frames = &script->elements[j];
       space_dapf(&client.msg_space, &client.send_msg_buffer,
-                 "%zu:", frames->block_index);
+                 "%zu:", frames->frames_index);
       space_dapf(&client.msg_space, &client.send_msg_buffer,
                  "%zu:", frames->count);
 

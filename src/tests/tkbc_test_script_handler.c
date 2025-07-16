@@ -202,7 +202,7 @@ Test deep_copy_frames() {
   cassert_ptr_neq(frames, &new_frames);
   cassert_int_eq(frames->count, new_frames.count);
   cassert_int_eq(frames->capacity, new_frames.capacity);
-  cassert_int_eq(frames->block_index, new_frames.block_index);
+  cassert_int_eq(frames->frames_index, new_frames.frames_index);
   cassert_ptr_neq(&frames->kite_frame_positions,
                   &new_frames.kite_frame_positions);
 

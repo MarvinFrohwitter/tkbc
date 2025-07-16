@@ -882,7 +882,7 @@ bool tkbc_received_message_handler(Client *client) {
           script_parse_fail = true;
           goto script_err;
         }
-        scb_frames->block_index = atoi(lexer_token_to_cstr(lexer, &token));
+        scb_frames->frames_index = atoi(lexer_token_to_cstr(lexer, &token));
         token = lexer_next(lexer);
         if (token.kind != PUNCT_COLON) {
           script_parse_fail = true;
@@ -1300,8 +1300,8 @@ bool tkbc_received_message_handler(Client *client) {
         env->script_finished = true;
         // The block indexes are assumed in order and at the corresponding
         // index.
-        int index = drag_left ? env->frames->block_index - 1
-                              : env->frames->block_index + 1;
+        int index = drag_left ? env->frames->frames_index - 1
+                              : env->frames->frames_index + 1;
 
         if (index >= 0 && index < (int)env->script->count) {
           env->frames = &env->script->elements[index];
@@ -1316,7 +1316,7 @@ bool tkbc_received_message_handler(Client *client) {
       }
 
       tkbc_message_srcipt_scripts_value_write_to_all_send_msg_buffers(
-          env->script->script_id, env->script->count, env->frames->block_index);
+          env->script->script_id, env->script->count, env->frames->frames_index);
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_SCRUB\n");
     } break;
@@ -1469,14 +1469,14 @@ int main(int argc, char *argv[]) {
     }
 
     if (!tkbc_script_finished(env) && env->script != NULL) {
-      size_t bindex = env->frames->block_index;
+      size_t bindex = env->frames->frames_index;
       // TODO: Map script ids to current registered ids.
       // TODO: Make the default client kite.ids higher numbers starting around
       // 1000 or so.
       tkbc_script_update_frames(env);
 
-      if (env->frames->block_index != bindex) {
-        bindex = env->frames->block_index;
+      if (env->frames->frames_index != bindex) {
+        bindex = env->frames->frames_index;
         tkbc_message_srcipt_scripts_value_write_to_all_send_msg_buffers(
             env->script->script_id, env->script->count, bindex);
       }

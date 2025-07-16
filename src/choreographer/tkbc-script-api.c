@@ -74,7 +74,7 @@ void tkbc_script_update_frames(Env *env) {
     return;
   }
 
-  if (env->frames->block_index + 1 >= env->script->count) {
+  if (env->frames->frames_index + 1 >= env->script->count) {
     env->script_finished = true;
     tkbc_fprintf(stderr, "INFO", "The script has finished successfully.\n");
     return;
@@ -83,8 +83,8 @@ void tkbc_script_update_frames(Env *env) {
   // Overflow protection is just in case the finish detection fails or the
   // manual timeline interaction triggers a state that disables the previous
   // checks.
-  assert(env->frames->block_index + 1 < env->script->count);
-  env->frames = &env->script->elements[env->frames->block_index + 1];
+  assert(env->frames->frames_index + 1 < env->script->count);
+  env->frames = &env->script->elements[env->frames->frames_index + 1];
 
   tkbc_patch_frames_current_time(env->frames);
 
@@ -305,7 +305,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
 
   assert((int)env->scratch_buf_script.count - 1 >= 0);
   env->scratch_buf_script.elements[env->scratch_buf_script.count - 1]
-      .block_index = env->scratch_buf_script.count - 1;
+      .frames_index = env->scratch_buf_script.count - 1;
 
   if (!isscratch) {
     tkbc_destroy_frames_internal_data(frames);
@@ -395,7 +395,7 @@ void tkbc_print_script(FILE *stream, Script *script) {
   fprintf(stream, "Script: %zu\n", script->script_id);
   for (size_t block = 0; block < script->count; ++block) {
     fprintf(stream, "  Block-Index: %zu\n",
-            script->elements[block].block_index);
+            script->elements[block].frames_index);
 
     fprintf(stream, "    Kite-Frames:\n");
     for (size_t frame = 0; frame < script->elements[block].count; ++frame) {

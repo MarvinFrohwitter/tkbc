@@ -334,7 +334,7 @@ typedef struct {
   size_t count;    // The amount of elements in the array.
   size_t capacity; // The complete allocated space for the array represented as
                    // the number of collection elements of the array type.
-  Index block_index; // The index in the script array after registration.
+  Index frames_index; // The index in the script array after registration.
   Kite_Positions kite_frame_positions; // The start position of the kite in the
                                        // current frame.
 } Frames; // A dynamic array collection that holds the type frame.
@@ -388,8 +388,8 @@ typedef struct {
 
   size_t send_scripts; // Represents the amount of scripts that where send to
                        // the peer partner starts; with 1.
-  size_t server_script_block_index; // Represents of the block index the server
-                                    // is currently executing.
+  size_t server_script_frames_index; // Represents of the index of the frames
+                                     // the server is currently executing.
   size_t
       server_script_frames_in_script_count; // Representation of the amount of
                                             // frames in the current script.
