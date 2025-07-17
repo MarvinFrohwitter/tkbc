@@ -467,7 +467,7 @@ bool received_message_handler(Message *message) {
         goto err;
       }
 
-      env->server_script_frames_in_script_count =
+      env->server_script_frames_count =
           atoi(lexer_token_to_cstr(lexer, &token));
 
       token = lexer_next(lexer);
@@ -479,7 +479,8 @@ bool received_message_handler(Message *message) {
         goto err;
       }
 
-      env->server_script_frames_index = atoi(lexer_token_to_cstr(lexer, &token));
+      env->server_script_frames_index =
+          atoi(lexer_token_to_cstr(lexer, &token));
 
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {

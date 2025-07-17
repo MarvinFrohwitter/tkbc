@@ -390,9 +390,8 @@ typedef struct {
                        // the peer partner starts; with 1.
   size_t server_script_frames_index; // Represents of the index of the frames
                                      // the server is currently executing.
-  size_t
-      server_script_frames_in_script_count; // Representation of the amount of
-                                            // frames in the current script.
+  size_t server_script_frames_count; // Representation of the amount of
+                                     // frames in the current script.
   size_t server_script_id; // Representation of the current script the server
                            // executes.
   size_t server_script_kite_max_count; // Represents the maximum kites that are

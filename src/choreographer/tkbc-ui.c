@@ -29,7 +29,7 @@ void tkbc_draw_ui(Env *env) {
     // A script is currently executing.
 #ifdef TKBC_CLIENT
     tkbc_ui_timeline(env, env->server_script_frames_index,
-                     env->server_script_frames_in_script_count);
+                     env->server_script_frames_count);
 
 #else
     tkbc_ui_timeline(env, env->frames->frames_index, env->script->count);
@@ -653,7 +653,8 @@ void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
  * @param frames_index The current frames frames_index.
  * @param frames_index_count The maximum frames that registered.
  */
-void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count) {
+void tkbc_ui_timeline(Env *env, size_t frames_index,
+                      size_t frames_index_count) {
   if (env->script_setup) {
     return;
   }
