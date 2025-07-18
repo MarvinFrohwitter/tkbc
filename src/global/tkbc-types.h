@@ -463,12 +463,14 @@ typedef struct {
 
   bool script_menu_interaction; // The status if the menu that displays all the
                                 // available scripts is currently displays.
-  Rectangle script_menu_base;
-  Scrollbar script_menu_scrollbar;
+  Rectangle
+      script_menu_base; // The bounding box of the complete script menu portion.
+  Scrollbar script_menu_scrollbar; // The side scrollbar of the script menu.
   size_t script_menu_mouse_interaction_box; // The id of the box it is clicked.
   size_t script_menu_top_interaction_box; // The id the current first displayed
                                           // box.
-  bool script_menu_mouse_interaction;
+  bool script_menu_mouse_interaction; // Indicates if a box of the script menu
+                                      // is activated.
 
 } Env; // The global state of the application.
 
