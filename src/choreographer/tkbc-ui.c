@@ -12,6 +12,9 @@
 #include "tkbc.h"
 
 extern Kite_Textures kite_textures;
+#define HEX_COLOR_LENGTH 8
+#define STR2(literal) #literal
+#define STR(macro_literal) STR2(macro_literal)
 
 /**
  * @brief The function wraps all the UI-elements to a single draw handler that
@@ -366,6 +369,11 @@ bool is_key_valid_part_of_hex_number(int key) {
   return (key >= KEY_ZERO && key <= KEY_NINE) || (key >= KEY_A && key <= KEY_F);
 }
 
+void tkbc_set_input_text_to_color(char **text, Color color) {
+  snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X",
+           ColorToInt(color));
+}
+
 /**
  * @brief The function manages and displays the color picker where the user can
  * select new colors for the currently selected kites.
@@ -433,7 +441,7 @@ void tkbc_ui_color_picker(Env *env) {
       env->color_picker_input_text[char_amount - 1] = '\0';
     }
   } else if (is_key_valid_part_of_hex_number(key)) {
-    if (char_amount > 8) {
+    if (char_amount > HEX_COLOR_LENGTH) {
       goto key_skip;
     }
     env->color_picker_input_text[char_amount] = key;
@@ -467,7 +475,7 @@ key_skip:
              font_correction_factor * text_size.x;
   DrawRectangleRec(cursor, TKBC_UI_BLACK);
 
-  if (strlen(env->color_picker_input_text) == 8 + 1) {
+  if (strlen(env->color_picker_input_text) == HEX_COLOR_LENGTH + 1) {
     env->last_selected_color =
         GetColor(strtol(env->color_picker_input_text + 1, NULL, 16));
   }
@@ -489,6 +497,8 @@ key_skip:
     env->favorite_colors.elements[env->current_favorite_colors_index++ %
                                   env->favorite_colors.count] =
         env->last_selected_color;
+    tkbc_set_input_text_to_color(&env->color_picker_input_text,
+                                 env->last_selected_color);
   }
 
   float color_circle_radius = color_box.height / 2;
@@ -506,6 +516,9 @@ key_skip:
     if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius) &&
         IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       env->last_selected_color = env->favorite_colors.elements[i];
+      tkbc_set_input_text_to_color(&env->color_picker_input_text,
+                                   env->last_selected_color);
+      tkbc_set_color_for_selected_kites(env, env->last_selected_color);
     }
 
     DrawCircleV(color_circle, color_circle_radius,
@@ -604,6 +617,8 @@ key_skip:
 
     if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
       env->last_selected_color = colors[i];
+      tkbc_set_input_text_to_color(&env->color_picker_input_text,
+                                   env->last_selected_color);
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         tkbc_set_color_for_selected_kites(env, env->last_selected_color);
       }
