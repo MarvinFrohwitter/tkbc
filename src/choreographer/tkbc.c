@@ -575,6 +575,12 @@ void tkbc_draw_kite(Kite_State *state) {
     Vector2 origin = {0};
     // Draw a color-filled triangle (vertex in counter-clockwise order!)
     DrawTriangle(state->kite->left.v1, state->kite->left.v2,
+                 state->kite->left.v3, WHITE);
+    DrawTriangle(state->kite->right.v1, state->kite->right.v2,
+                 state->kite->right.v3, WHITE);
+    DrawRectanglePro(state->kite->rec, origin, -state->kite->angle, WHITE);
+
+    DrawTriangle(state->kite->left.v1, state->kite->left.v2,
                  state->kite->left.v3, state->kite->body_color);
     DrawTriangle(state->kite->right.v1, state->kite->right.v2,
                  state->kite->right.v3, state->kite->body_color);

@@ -521,6 +521,7 @@ key_skip:
       tkbc_set_color_for_selected_kites(env, env->last_selected_color);
     }
 
+    DrawCircleV(color_circle, color_circle_radius, WHITE);
     DrawCircleV(color_circle, color_circle_radius,
                 env->favorite_colors.elements[i]);
     DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
@@ -612,6 +613,7 @@ key_skip:
     } else {
       color_circle.x += 2 * color_circle_radius + padding;
     }
+    DrawCircleV(color_circle, color_circle_radius, WHITE);
     DrawCircleV(color_circle, color_circle_radius, colors[i]);
     DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
 
