@@ -139,15 +139,15 @@ tkbc_register_frames(env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
 tkbc_register_frames(env, tkbc_frame_generate(KITE_ROTATION, ki,
                                &((Rotation_Action){.angle = 0}), duration));
 
-  tkbc_register_frames(env, tkbc_frame_generate(KITE_TIP_ROTATION_ADD, ki,
-                                           &((Tip_Rotation_Add_Action){
-                                               .angle = 90, .tip = LEFT_TIP}),
-                                           duration));
+tkbc_register_frames(env, tkbc_frame_generate(KITE_TIP_ROTATION_ADD, ki,
+                                         &((Tip_Rotation_Add_Action){
+                                             .angle = 90, .tip = LEFT_TIP}),
+                                         duration));
 
-  tkbc_register_frames(env, tkbc_frame_generate(KITE_TIP_ROTATION, ki,
-                                           &((Tip_Rotation_Action){
-                                               .angle = 90, .tip = RIGHT_TIP}),
-                                           duration));
+tkbc_register_frames(env, tkbc_frame_generate(KITE_TIP_ROTATION, ki,
+                                         &((Tip_Rotation_Action){
+                                             .angle = 90, .tip = RIGHT_TIP}),
+                                         duration));
 ```
 
 Every primitive action an be nested to achieve not only linear time motion

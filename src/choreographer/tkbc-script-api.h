@@ -5,6 +5,7 @@
 #include "tkbc-script-handler.h"
 #include <limits.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 // ===========================================================================
 // ========================== SCRIPT API =====================================

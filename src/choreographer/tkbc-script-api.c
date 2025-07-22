@@ -5,6 +5,7 @@
 #include "../global/tkbc-utils.h"
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
+#include <stdio.h>
 
 /**
  * @brief The function is mandatory to wrap every manual script at the

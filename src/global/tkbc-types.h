@@ -2,8 +2,7 @@
 #define TKBC_TYPES_H_
 
 #include "raylib.h"
-#include <stdio.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 // ===========================================================================
 // ========================== TKBC KITE TYPES ================================
