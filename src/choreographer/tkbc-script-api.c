@@ -209,6 +209,7 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
     free(kite_ids.elements);
     kite_ids.elements = NULL;
     kite_ids.script_id_append = false;
+    frame->kite_id_array.script_id_append = true;
   }
 
   frame->duration = duration;
