@@ -1,6 +1,7 @@
 // ========================== SCRIPT API =====================================
 
 #include "tkbc-script-api.h"
+#include "../../external/space/space.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 #include "tkbc-script-handler.h"
@@ -206,12 +207,11 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
   }
   tkbc_dapc(&frame->kite_id_array, kite_ids.elements, kite_ids.count);
   if (kite_ids.script_id_append) {
-    free(kite_ids.elements);
+    space_reset_space(&env->id_space);
     kite_ids.elements = NULL;
     kite_ids.script_id_append = false;
     frame->kite_id_array.script_id_append = true;
   }
-
   frame->duration = duration;
   frame->kind = kind;
   frame->action = raw_action;
@@ -322,11 +322,11 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
  * implementation.
  * @return The dynamic array list of kite indices.
  */
-Kite_Ids tkbc__indexs_append(int _, ...) {
+Kite_Ids tkbc__indexs_append(Space *space, ...) {
   Kite_Ids ki = {0};
 
   va_list args;
-  va_start(args, _);
+  va_start(args, space);
   for (;;) {
     // NOTE:(compiler) clang 18.1.8 has a compiler bug that can not use size_t
     // or equivalent unsigned long int in variadic functions. It is related to
@@ -334,13 +334,12 @@ Kite_Ids tkbc__indexs_append(int _, ...) {
     // unsigned int index = va_arg(args, unsigned int);
     Index index = va_arg(args, size_t);
     if (UINT_MAX != index) {
-      tkbc_dap(&ki, index);
+      space_dap(space, &ki, index);
     } else {
       break;
     }
   }
   va_end(args);
-  (void)_;
 
   ki.script_id_append = true;
   return ki;

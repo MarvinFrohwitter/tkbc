@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include <stddef.h>
+#include "../../external/space/space.h"
 
 // ===========================================================================
 // ========================== TKBC KITE TYPES ================================
@@ -408,6 +409,7 @@ typedef struct {
   size_t window_width;  // The window width of the application.
   size_t window_height; // The window height of the application.
 
+  Space id_space;
   Frames scratch_buf_frames; // A buffer that can be used to construct frames.
   Script scratch_buf_script; // A buffer that can be used to
                              // construct a script.

@@ -141,6 +141,8 @@ void tkbc_destroy_env(Env *env) {
   env->vanilla_kite = NULL;
   tkbc_destroy_kite_array(env->kite_array);
 
+  space_free_space(&env->id_space);
+
   for (size_t j = 0; j < env->scripts->count; ++j) {
     // The frames are just a mapped in version of script no need to handle
     // them separately.
