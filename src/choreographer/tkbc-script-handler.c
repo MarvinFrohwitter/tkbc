@@ -681,6 +681,21 @@ void tkbc_load_script_id(Env *env, size_t script_id) {
 }
 
 /**
+ * @brief The function unloads the view of the currently executing script but
+ * not from the memory.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_unload_script(Env *env) {
+  env->server_script_id = 0;
+  env->server_script_frames_count = 0;
+  env->server_script_frames_index = 0;
+  env->script_finished = true;
+  env->frames = NULL;
+  env->script = NULL;
+}
+
+/**
  * @brief The function checks for the user input that is related to a script
  * execution. It can control the timeline and stop and start the execution.
  *
@@ -752,8 +767,8 @@ void tkbc_scrub_frames(Env *env) {
     env->script_finished = true;
 
     // The indexes are assumed in order and at the corresponding index.
-    int index =
-        drag_left ? env->frames->frames_index - 1 : env->frames->frames_index + 1;
+    int index = drag_left ? env->frames->frames_index - 1
+                          : env->frames->frames_index + 1;
 
     if (index >= 0 && index < (int)env->script->count) {
       env->frames = &env->script->elements[index];

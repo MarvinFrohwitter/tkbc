@@ -1,9 +1,9 @@
 #ifndef TKBC_TYPES_H_
 #define TKBC_TYPES_H_
 
+#include "../../external/space/space.h"
 #include "raylib.h"
 #include <stddef.h>
-#include "../../external/space/space.h"
 
 // ===========================================================================
 // ========================== TKBC KITE TYPES ================================
@@ -345,7 +345,7 @@ typedef struct {
   size_t count;     // The amount of elements in the array.
   size_t capacity;  // The complete allocated space for the array represented as
                     // the number of collection elements of the array type.
-  Id script_id;     // The number of the loaded script starting from 1.
+  Id script_id; // The number of the loaded script starting from 1, 0 no script.
   const char *name; // The name of the script.
 } Script; // A dynamic array collection that combined multiple frames to a
           // single kite draw representation.
@@ -467,7 +467,7 @@ typedef struct {
   Rectangle
       script_menu_base; // The bounding box of the complete script menu portion.
   Scrollbar script_menu_scrollbar; // The side scrollbar of the script menu.
-  size_t script_menu_mouse_interaction_box; // The id of the box it is clicked.
+  ssize_t script_menu_mouse_interaction_box; // The id of the box it is clicked.
   size_t script_menu_top_interaction_box; // The id the current first displayed
                                           // box.
   bool script_menu_mouse_interaction; // Indicates if a box of the script menu

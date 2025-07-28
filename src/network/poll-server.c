@@ -659,12 +659,11 @@ void tkbc_message_clientkites_write_to_all_send_msg_buffers() {
  * @param frames_index The current index of the collection of individual frames
  * in a script.
  */
-void tkbc_message_srcipt_scripts_value_write_to_all_send_msg_buffers(
+void tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
     size_t script_id, size_t script_count, size_t frames_index) {
 
   space_dapf(&t_space, &t_message, "%d:%zu:%zu:%zu:\r\n",
-             MESSAGE_SCRIPT_META_DATA, script_id, script_count,
-             frames_index);
+             MESSAGE_SCRIPT_META_DATA, script_id, script_count, frames_index);
 
   tkbc_write_to_all_send_msg_buffers(t_message);
   tkbc_reset_space_and_null_message(&t_space, &t_message);
@@ -1231,6 +1230,11 @@ bool tkbc_received_message_handler(Client *client) {
         goto err;
       }
 
+      if (script_id == 0) {
+        tkbc_unload_script(env);
+        tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(0, 0, 0);
+        goto no_script;
+      }
       tkbc_load_script_id(env, script_id);
       env->server_script_kite_max_count = 0;
 
@@ -1281,6 +1285,7 @@ bool tkbc_received_message_handler(Client *client) {
         free(kite_ids.elements);
       }
 
+    no_script:
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_NEXT\n");
     } break;
     case MESSAGE_SCRIPT_SCRUB: {
@@ -1315,8 +1320,9 @@ bool tkbc_received_message_handler(Client *client) {
         goto err;
       }
 
-      tkbc_message_srcipt_scripts_value_write_to_all_send_msg_buffers(
-          env->script->script_id, env->script->count, env->frames->frames_index);
+      tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
+          env->script->script_id, env->script->count,
+          env->frames->frames_index);
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_SCRUB\n");
     } break;
@@ -1477,7 +1483,7 @@ int main(int argc, char *argv[]) {
 
       if (env->frames->frames_index != bindex) {
         bindex = env->frames->frames_index;
-        tkbc_message_srcipt_scripts_value_write_to_all_send_msg_buffers(
+        tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
             env->script->script_id, env->script->count, bindex);
       }
 

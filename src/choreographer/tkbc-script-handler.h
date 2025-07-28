@@ -27,6 +27,7 @@ bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
 void tkbc_load_next_script(Env *env);
 void tkbc_load_script_id(Env *env, size_t script_id);
+void tkbc_unload_script(Env *env);
 void tkbc_input_handler_script(Env *env);
 void tkbc_set_kite_positions_from_kite_frames_positions(Env *env);
 void tkbc_scrub_frames(Env *env);

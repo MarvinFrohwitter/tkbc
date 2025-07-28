@@ -233,23 +233,24 @@ bool tkbc_ui_script_menu(Env *env) {
   int font_size = 22;
   Vector2 text_size;
   char i_name[64] = {0};
+  Vector2 mouse = GetMousePosition();
   for (size_t box = env->script_menu_top_interaction_box;
        box < env->screen_items + env->script_menu_top_interaction_box &&
        box < scripts_count;
        ++box) {
 
-    if (CheckCollisionPointRec(GetMousePosition(), outer_script_box) &&
+    if (CheckCollisionPointRec(mouse, outer_script_box) &&
         !env->script_menu_mouse_interaction) {
       DrawRectangleRec(outer_script_box, TKBC_UI_TEAL_ALPHA);
     }
     if (env->script_menu_mouse_interaction &&
-        box == env->script_menu_mouse_interaction_box) {
+        (ssize_t)box == env->script_menu_mouse_interaction_box) {
       DrawRectangleRec(outer_script_box, TKBC_UI_TEAL_ALPHA);
     }
 
     DrawRectangleRounded(script_box, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
 
-    if (CheckCollisionPointRec(GetMousePosition(), script_box)) {
+    if (CheckCollisionPointRec(mouse, script_box)) {
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         env->script_menu_mouse_interaction = true;
         env->script_menu_mouse_interaction_box = box;
@@ -261,7 +262,7 @@ bool tkbc_ui_script_menu(Env *env) {
     }
 
     if (env->script_menu_mouse_interaction &&
-        box == env->script_menu_mouse_interaction_box) {
+        (ssize_t)box == env->script_menu_mouse_interaction_box) {
       DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
     }
 
@@ -286,21 +287,49 @@ bool tkbc_ui_script_menu(Env *env) {
     outer_script_box.y += env->box_height;
   }
 
-  /* ------------------------- Confirm key --------------------------------- */
+  /* ------------------------- Buttons ------------------------------------- */
 
   size_t interaction_buttons_count = 3;
   outer_script_box.width =
       (outer_script_box.width - (padding * interaction_buttons_count)) /
       interaction_buttons_count;
   outer_script_box.height = env->box_height * 0.5;
-
-  outer_script_box.x += padding + (interaction_buttons_count - 1) *
-                                      (padding + outer_script_box.width);
-
   outer_script_box.y =
       env->box_height * env->screen_items + env->box_height / 2.f;
 
-  if (CheckCollisionPointRec(GetMousePosition(), outer_script_box)) {
+  /* ------------------------- Reset key ----------------------------------- */
+  outer_script_box.x += padding + (interaction_buttons_count - 3) *
+                                      (padding + outer_script_box.width);
+
+  if (CheckCollisionPointRec(mouse, outer_script_box)) {
+    DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+  } else {
+    DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
+  }
+
+  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+      CheckCollisionPointRec(mouse, outer_script_box)) {
+    DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+
+    tkbc_unload_script(env);
+    env->script_menu_mouse_interaction_box = -1;
+    env->script_menu_interaction = false;
+    env->new_script_selected = true;
+  }
+
+  const char *no_script = "NO SCRIPT";
+  text_size = MeasureTextEx(GetFontDefault(), no_script, font_size, 0);
+  DrawText(
+      no_script,
+      outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5,
+      outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5,
+      font_size, TKBC_UI_BLACK);
+
+  /* ------------------------- Confirm key --------------------------------- */
+  outer_script_box.x += padding + (interaction_buttons_count - 1) *
+                                      (padding + outer_script_box.width);
+
+  if (CheckCollisionPointRec(mouse, outer_script_box)) {
     DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
   } else {
     DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
@@ -308,7 +337,7 @@ bool tkbc_ui_script_menu(Env *env) {
 
   if (env->script_menu_mouse_interaction) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-        CheckCollisionPointRec(GetMousePosition(), outer_script_box)) {
+        CheckCollisionPointRec(mouse, outer_script_box)) {
       DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
       // Script ids start from 1 so +1 is needed.
       tkbc_load_script_id(env, env->script_menu_mouse_interaction_box + 1);
@@ -673,6 +702,9 @@ void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
 void tkbc_ui_timeline(Env *env, size_t frames_index,
                       size_t frames_index_count) {
   if (env->script_setup) {
+    return;
+  }
+  if (frames_index_count == 0) {
     return;
   }
 
