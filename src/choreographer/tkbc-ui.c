@@ -883,10 +883,16 @@ key_change_skip: {}
     assert(0 && "UNREACHABLE tkbc_draw_key_box()");
   }
 
-  // TODO: Made the text scale
   if (strcmp(str, tkbc_key_to_str(KEY_NULL)) == 0) {
     str = "---";
   }
+
+  do {
+    text_size = MeasureTextEx(GetFontDefault(), str, font_size, 0);
+    font_size -= 1;
+  } while (text_size.x > rectangle.width / 2.0 &&
+           text_size.y > rectangle.height / 2.0);
+
   text_size = MeasureTextEx(GetFontDefault(), str, font_size, 0);
   DrawText(str, rectangle.x + rectangle.width * 0.5 - text_size.x * 0.5,
            rectangle.y + rectangle.height * 0.5 - text_size.y * 0.5, font_size,
