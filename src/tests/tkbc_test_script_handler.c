@@ -10,6 +10,11 @@
 
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
+#undef TKBC_UTILS_IMPLEMENTATION
+
+#define SPACE_IMPLEMENTATION
+#include "../../external/space/space.h"
+#undef SPACE_IMPLEMENTATION
 
 Test init_frame() {
   Test test = cassert_init_test("tkbc_init_frame()");
@@ -272,7 +277,7 @@ Test deep_copy_script() {
 
   cassert_dap(&script, frames);
 
-  script new_script = tkbc_deep_copy_script(&script);
+  Script new_script = tkbc_deep_copy_script(&script);
   cassert_ptr_neq(&script, &new_script);
   cassert_int_eq(script.count, new_script.count);
   cassert_int_eq(script.capacity, new_script.capacity);
