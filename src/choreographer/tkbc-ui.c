@@ -326,8 +326,8 @@ bool tkbc_ui_script_menu(Env *env) {
       font_size, TKBC_UI_BLACK);
 
   /* ------------------------- Confirm key --------------------------------- */
-  outer_script_box.x += padding + (interaction_buttons_count - 1) *
-                                      (padding + outer_script_box.width);
+  outer_script_box.x +=
+      (interaction_buttons_count - 1) * (padding + outer_script_box.width);
 
   if (CheckCollisionPointRec(mouse, outer_script_box)) {
     DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
