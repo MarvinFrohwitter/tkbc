@@ -1059,10 +1059,11 @@ int main(int argc, char *argv[]) {
     }
 
     tkbc_client_file_handler();
-    if (!env->keymaps_interaction) {
+    if (!env->keymaps_interaction && !env->script_menu_interaction) {
       tkbc_input_sound_handler(env);
       tkbc_client_input_handler_kite();
       tkbc_client_input_handler_script();
+
       // The end of the current frame has to be executed so ffmpeg gets the full
       // executed fame.
       tkbc_ffmpeg_handler(env, "output.mp4");

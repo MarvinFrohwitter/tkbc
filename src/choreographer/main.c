@@ -88,17 +88,16 @@ int main(void) {
     tkbc_update_kites_for_resize_window(env);
     tkbc_draw_kite_array(env->kite_array);
     tkbc_draw_ui(env);
+    EndDrawing();
 
     tkbc_file_handler(env);
-    if (!env->keymaps_interaction) {
+    if (!env->keymaps_interaction && !env->script_menu_interaction) {
       tkbc_input_sound_handler(env);
       tkbc_input_handler_kite_array(env);
       tkbc_input_handler_script(env);
-    }
-    EndDrawing();
-    // The end of the current frame has to be executed so ffmpeg gets the full
-    // executed fame.
-    if (!env->keymaps_interaction) {
+
+      // The end of the current frame has to be executed so ffmpeg gets the full
+      // executed fame.
       tkbc_ffmpeg_handler(env, "output.mp4");
     }
   };
