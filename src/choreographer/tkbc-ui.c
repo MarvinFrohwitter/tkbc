@@ -268,7 +268,7 @@ bool tkbc_ui_script_menu(Env *env) {
 
     if (env->scripts->elements[box].name) {
       const char *name = env->scripts->elements[box].name;
-      text_size = MeasureTextEx(GetFontDefault(), name, 12, 10);
+      text_size = MeasureTextEx(GetFontDefault(), name, font_size, 0);
 
       DrawText(name, script_box.x + script_box.width / 2 - text_size.x / 2,
                script_box.y + script_box.height / 2 - text_size.y / 2,
