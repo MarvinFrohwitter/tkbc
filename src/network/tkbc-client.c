@@ -560,14 +560,7 @@ bool received_message_handler(Message *message) {
         check_return(false);
       }
 
-      if (!tkbc_remove_kite_from_list(env->kite_array, kite_id)) {
-        // TODO Should this be a client crash? If some other client kite was
-        // not registered and is now not found, this should not trigger that
-        // every client, that has nothing to do with this miss behavior of the
-        // server, crashes.
-        // The kite is not known by the client anyway.
-        /* check_return(false); */
-      }
+      tkbc_remove_kite_from_list(env->kite_array, kite_id);
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "CLIENT_DISCONNET\n");
     } break;
