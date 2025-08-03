@@ -398,6 +398,13 @@ bool is_key_valid_part_of_hex_number(int key) {
   return (key >= KEY_ZERO && key <= KEY_NINE) || (key >= KEY_A && key <= KEY_F);
 }
 
+/**
+ * @brief The function writes the textual representation of the color into the
+ * given text.
+ *
+ * @param text The pointer where the string result should be stored.
+ * @param color The structured value that should be represented as a string.
+ */
 void tkbc_set_input_text_to_color(char **text, Color color) {
   snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X",
            ColorToInt(color));
@@ -929,9 +936,7 @@ void tkbc_ui_keymaps(Env *env) {
   tkbc_scrollbar(env, &env->keymaps_scrollbar, env->keymaps_base,
                  env->keymaps.count, &env->keymaps_top_interaction_box);
 
-  // TODO: Think about UI scaling.
-  //
-  // The displayment key bind boxes.
+  // The display key bind boxes.
   int padding = 10;
   env->keymaps_base.height = env->box_height;
   env->keymaps_base.width -= env->keymaps_scrollbar.base.width;
@@ -988,7 +993,7 @@ void tkbc_ui_keymaps(Env *env) {
   }
 
   //
-  // Displayment of the load and save buttons.
+  // Display of the load, reset and save buttons.
   size_t interaction_buttons_count = 3;
   env->keymaps_base.width =
       (env->keymaps_base.width - (padding * (interaction_buttons_count * 1))) /
