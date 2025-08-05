@@ -37,6 +37,7 @@
 #include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
 
+#define CLIENT_BASE_ID 10e6
 #define MAX_BUFFER_CAPACITY 128 * 1024
 static int server_socket;
 static int clients_visited = 0;
@@ -415,7 +416,7 @@ void tkbc_server_accept() {
     tkbc_dap(&fds, client_fd);
 
     Client client = {
-        .kite_id = env->kite_id_counter++,
+        .kite_id = CLIENT_BASE_ID + env->kite_id_counter++,
         .socket_id = client_socket_id,
         .client_address = client_address,
         .client_address_length = address_length,
@@ -1211,7 +1212,7 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_AMOUNT\n");
     } break;
     case MESSAGE_SCRIPT_TOGGLE: {
-      // TODO:Think about toggling the  script kites and normal client kites
+      // TODO:Think about toggling the script kites and normal client kites
       // back and forth.
       env->script_finished = !env->script_finished;
 
@@ -1246,6 +1247,9 @@ bool tkbc_received_message_handler(Client *client) {
       // Activate the kites that belong to the script.
       Kite_Ids ids = {0};
       for (size_t i = 0; i < env->script->count; ++i) {
+
+        // TODO: Just filter for the kites that are in the parsed script_id.
+
         for (size_t j = 0; j < env->script->elements[i].count; ++j) {
           Kite_Ids *kite_id_array =
               &env->script->elements[i].elements[j].kite_id_array;
@@ -1476,9 +1480,6 @@ int main(int argc, char *argv[]) {
 
     if (!tkbc_script_finished(env) && env->script != NULL) {
       size_t bindex = env->frames->frames_index;
-      // TODO: Map script ids to current registered ids.
-      // TODO: Make the default client kite.ids higher numbers starting around
-      // 1000 or so.
       tkbc_script_update_frames(env);
 
       if (env->frames->frames_index != bindex) {

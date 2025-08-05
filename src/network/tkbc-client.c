@@ -255,15 +255,15 @@ void sending_script_handler() {
     env->script_setup = false;
     tkbc__script_input(env);
     for (size_t i = 0; i < env->scripts->count; ++i) {
-        // tkbc_print_script(stderr, &env->scripts->elements[i]);
+      // tkbc_print_script(stderr, &env->scripts->elements[i]);
 
-        // char buf[32];
-        // if (env->scripts->elements[i].name) {
-        //   sprintf(buf, "%s.kite", env->scripts->elements[i].name);
-        // } else {
-        //   sprintf(buf, "Script%zu.kite", i);
-        // }
-        // tkbc_write_script_kite_from_mem(&env->scripts->elements[i], buf);
+      // char buf[32];
+      // if (env->scripts->elements[i].name) {
+      //   sprintf(buf, "%s.kite", env->scripts->elements[i].name);
+      // } else {
+      //   sprintf(buf, "Script%zu.kite", i);
+      // }
+      // tkbc_write_script_kite_from_mem(&env->scripts->elements[i], buf);
     }
     tkbc_message_script();
   }
@@ -395,6 +395,7 @@ bool received_message_handler(Message *message) {
         if (client.kite_id == -1) {
           client.kite_id = kite_id;
         }
+
         Kite_State *kite_state = tkbc_get_kite_state_by_id(env, kite_id);
         if (kite_state) {
           kite_state->is_kite_input_handler_active = true;
