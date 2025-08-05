@@ -250,23 +250,17 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
  * compiled into the client and pushes them into the send_message_queue.
  */
 void sending_script_handler() {
-  if (env->script_setup) {
-    // For detection if the begin and end is called correctly.
-    env->script_setup = false;
-    tkbc__script_input(env);
-    for (size_t i = 0; i < env->scripts->count; ++i) {
-      // tkbc_print_script(stderr, &env->scripts->elements[i]);
-
-      // char buf[32];
-      // if (env->scripts->elements[i].name) {
-      //   sprintf(buf, "%s.kite", env->scripts->elements[i].name);
-      // } else {
-      //   sprintf(buf, "Script%zu.kite", i);
-      // }
-      // tkbc_write_script_kite_from_mem(&env->scripts->elements[i], buf);
-    }
-    tkbc_message_script();
+  if (!env->script_setup) {
+    return;
   }
+  // For detection if the begin and end is called correctly.
+  env->script_setup = false;
+  tkbc__script_input(env);
+
+#ifndef RELEASE
+  tkbc_debug_print_and_export_all_scripts(NULL, env);
+#endif // RELEASE
+  tkbc_message_script();
 }
 
 /**

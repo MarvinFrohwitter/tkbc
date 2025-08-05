@@ -4,6 +4,7 @@
 #include "../../external/space/space.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include "tkbc-script-converter.h"
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
 #include <stdio.h>
@@ -392,7 +393,19 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
   return ids;
 }
 
+/**
+ * @brief The function prints the given script that has to be in memory to the
+ * specified output in a debug format.
+ *
+ * @param stream The stream where the output of the debug print will end up, if
+ * NULL is provided the print will be omitted.
+ * @param script The pointer to the script that should be printed.
+ */
 void tkbc_print_script(FILE *stream, Script *script) {
+  if (!stream) {
+    return;
+  }
+
   fprintf(stream, "Script: %zu\n", script->script_id);
   for (size_t block = 0; block < script->count; ++block) {
     fprintf(stream, "  Block-Index: %zu\n",
@@ -519,5 +532,43 @@ void tkbc_print_script(FILE *stream, Script *script) {
       fprintf(stream, "      }\n");
     }
     fprintf(stream, "    }\n");
+  }
+}
+
+/**
+ * @brief The function prints all scripts that are in memory to the specified
+ * output in a  debug format.
+ *
+ * @param stream The stream where the output of the debug print will end up, if
+ * NULL is provided the print will be omitted.
+ * @param env The global state of the application.
+ */
+void tkbc_print_all_scripts(FILE *stream, Env *env) {
+  if (!stream) {
+    return;
+  }
+  for (size_t i = 0; i < env->scripts->count; ++i) {
+    tkbc_print_script(stream, &env->scripts->elements[i]);
+  }
+}
+
+/**
+ * @brief The function prints all scripts that are in memory to the specified
+ * output in a  debug format. In a second step the scripts are going to be
+ * exported and saved in .kite file with the corresponding script name, that is
+ * specified at the script declaration time or it will get a custom generated
+ * name with an id, if no name was specified.
+ *
+ * @param stream The stream where the output of the debug print will end up, if
+ * NULL is provided the print will be omitted.
+ * @param env The global state of the application.
+ */
+void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env) {
+  for (size_t i = 0; i < env->scripts->count; ++i) {
+    if (stream) {
+      tkbc_print_script(stream, &env->scripts->elements[i]);
+    }
+    int ret = tkbc_export_all_scripts_to_dot_kite_file_from_mem(env);
+    assert(ret == 0 && "ERROR: Not all the scripts are correctly exported.");
   }
 }

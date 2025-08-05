@@ -102,5 +102,6 @@ Kite_Ids tkbc_indexs_range(int start, int end);
 #define tkbc_indexs_generate(count) tkbc_indexs_range(0, count)
 Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count);
 void tkbc_print_script(FILE *stream, Script *script);
+void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env);
 
 #endif // TKBC_SCRIPT_API_H_

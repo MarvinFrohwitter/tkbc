@@ -34,7 +34,8 @@ void tkbc_print_kites(FILE *file, Kite_Ids ids) {
  * @return 0 If the saving and serialization of the file has succeeded. -1 if
  * the file opening has failed and 1 if the fseek operation has failed.
  */
-int tkbc_write_script_kite_from_mem(Script *script, const char *filename) {
+int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
+                                                 const char *filename) {
   int ok = 0;
   size_t max_kites = 0;
   FILE *file = fopen(filename, "wb");
@@ -141,4 +142,40 @@ int tkbc_write_script_kite_from_mem(Script *script, const char *filename) {
 check:
   fclose(file);
   return ok;
+}
+
+/**
+ * @brief The function serializes all the scripts from memory to a .kite file
+ * with the corresponding script name, that is specified at the script
+ * declaration time or it will get a custom generated name with an id, if no
+ * name was specified.
+ *
+ * @param env The global state of the application.
+ * @return 0 If the saving and serialization of all the files has succeeded. If
+ * an error occurred the negative "-script_id" of the first failing script is
+ * returned, if the file opening has failed and the positive "scirpt_id" will be
+ * returned, if the fseek operation has failed and
+ * -- the first initial KITES count in the script could not be set correctly. --
+ */
+int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env) {
+  int err = 0;
+  size_t id = 1;
+  for (size_t i = 0; i < env->scripts->count; ++i) {
+    char buf[32];
+    if (env->scripts->elements[i].name) {
+      sprintf(buf, "%s.kite", env->scripts->elements[i].name);
+    } else {
+      sprintf(buf, "Script%zu.kite", i);
+    }
+
+    err = tkbc_export_script_to_dot_kite_file_from_mem(
+        &env->scripts->elements[i], buf);
+
+    if (err) {
+      id = env->scripts->elements[i].script_id;
+      break;
+    }
+  }
+
+  return err * id;
 }

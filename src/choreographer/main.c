@@ -16,7 +16,6 @@
 #include "tkbc-input-handler.h"
 #include "tkbc-keymaps.h"
 #include "tkbc-script-api.h"
-#include "tkbc-script-converter.h"
 #include "tkbc-sound-handler.h"
 #include "tkbc.h"
 
@@ -68,17 +67,10 @@ int main(void) {
       // For detection if the begin and end is called correctly.
       env->script_setup = false;
       tkbc__script_input(env);
-      for (size_t i = 0; i < env->scripts->count; ++i) {
-        // tkbc_print_script(stderr, &env->scripts->elements[i]);
 
-        char buf[32];
-        if (env->scripts->elements[i].name) {
-          sprintf(buf, "%s.kite", env->scripts->elements[i].name);
-        } else {
-          sprintf(buf, "Script%zu.kite", i);
-        }
-        tkbc_write_script_kite_from_mem(&env->scripts->elements[i], buf);
-      }
+#ifndef RELEASE
+      tkbc_debug_print_and_export_all_scripts(NULL, env);
+#endif // RELEASE
     }
 
     if (!tkbc_script_finished(env)) {
