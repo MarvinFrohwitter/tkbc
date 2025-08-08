@@ -10,6 +10,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "../choreographer/tkbc.h"
 #include "tkbc-types.h"
 
 // ===========================================================================
@@ -160,6 +161,10 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...);
 char *tkbc_ptoa(char *buffer, size_t buffer_size, void *number, Types type);
 char *tkbc_shift_args(int *argc, char ***argv);
 int tkbc_read_file(const char *filename, Content *content);
+int tkbc_write_file(const char *filename, const void *buffer, size_t size);
+int tkbc_append_file(const char *filename, const void *buffer, size_t size);
+int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
+                         const char *mode);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 int tkbc_get_screen_height();
 int tkbc_get_screen_width();
@@ -331,6 +336,72 @@ int tkbc_read_file(const char *filename, Content *content) {
     ok = -1;
   }
   return ok;
+}
+
+/**
+ * @brief The function writes the given content buffer to disk. For errors
+ * the specific error is already logged into stderr.
+ *
+ * @param filename The file path where the content should be written too.
+ * @param buffer The buffer that contains the content that should be written to
+ * the filename.
+ * @param size The size of the buffer in bytes.
+ * @param mode The mode the file should open with.
+ * @return 0 if no errors occurred, otherwise -1.
+ */
+int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
+                         const char *mode) {
+  int ok = 0;
+  FILE *file = fopen(filename, mode);
+  if (file == NULL) {
+    fprintf(stderr, "ERROR: %s:%d:%s\n", __FILE__, __LINE__, strerror(errno));
+    ok = -1;
+    return ok;
+  }
+
+  size_t err = fwrite(buffer, 1, size, file);
+  if (err != size) {
+    ok = -1;
+    if (feof(file) != 0) {
+      fprintf(stderr, "ERROR:%s:%d:EOF\n", __FILE__, __LINE__);
+    } else if (ferror(file) != 0) {
+      fprintf(stderr, "ERROR:%s:%d:%s\n", __FILE__, __LINE__, strerror(errno));
+    }
+  }
+
+  if (fclose(file) == EOF) {
+    fprintf(stderr, "ERROR:%s:%d:%s", __FILE__, __LINE__, strerror(errno));
+    ok = -1;
+  }
+  return ok;
+}
+
+/**
+ * @brief The function writes the given content buffer to disk. For errors
+ * the specific error is already logged into stderr.
+ *
+ * @param filename The file path where the content should be written too.
+ * @param buffer The buffer that contains the content that should be written to
+ * the filename.
+ * @param size The size of the buffer in bytes.
+ * @return 0 if no errors occurred, otherwise -1.
+ */
+int tkbc_write_file(const char *filename, const void *buffer, size_t size) {
+  return tkbc_write_file_mode(filename, buffer, size, "wb");
+}
+
+/**
+ * @brief The function appends the given content buffer to disk. For errors
+ * the specific error is already logged into stderr.
+ *
+ * @param filename The file path where the content should be written too.
+ * @param buffer The buffer that contains the content that should be written to
+ * the filename.
+ * @param size The size of the buffer in bytes.
+ * @return 0 if no errors occurred, otherwise -1.
+ */
+int tkbc_append_file(const char *filename, const void *buffer, size_t size) {
+  return tkbc_write_file_mode(filename, buffer, size, "a");
 }
 
 /**

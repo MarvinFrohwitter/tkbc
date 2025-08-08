@@ -1,8 +1,8 @@
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include "tkbc-script-handler.h"
 #include <assert.h>
 #include <errno.h>
-#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,16 +13,16 @@
  * @param file The file where to print the kites.
  * @param ids The kite ids that should be serialized.
  */
-void tkbc_print_kites(FILE *file, Kite_Ids ids) {
+void tkbc_print_kites(Content *buffer, Kite_Ids ids) {
   if (ids.count > 0) {
-    fprintf(file, "(%zu", ids.elements[0]);
+    tkbc_dapf(buffer, "(%zu", ids.elements[0]);
     for (size_t id = 1; id < ids.count; ++id) {
-      fprintf(file, " %zu", ids.elements[id]);
+      tkbc_dapf(buffer, " %zu", ids.elements[id]);
     }
   } else {
-    fprintf(file, "(");
+    tkbc_dapf(buffer, "(");
   }
-  fprintf(file, ")");
+  tkbc_dapf(buffer, ")");
 }
 
 /**
@@ -31,92 +31,90 @@ void tkbc_print_kites(FILE *file, Kite_Ids ids) {
  *
  * @param script A memory representation of a script.
  * @param filename The file name where the script should be saved to.
- * @return 0 If the saving and serialization of the file has succeeded. -1 if
- * the file opening has failed and 1 if the fseek operation has failed.
+ * @return 0 If the saving and serialization of the file has succeeded. 1 if
+ * writing of the header failed and -1 if the writing of the main program has
+ * failed.
  */
 int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
                                                  const char *filename) {
   int ok = 0;
-  size_t max_kites = 0;
-  FILE *file = fopen(filename, "wb");
-  if (file == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
-                 strerror(errno));
-    return -1;
-  }
+  Kite_Ids ids = {0};
+  Content out = {0};
 
-  fprintf(file, "KITES  \n");
-  // Padding for Maximum number that can be inserted later for KITES.
-  fprintf(file, "\n\n\n\n\n\n\n\n\n");
-  fprintf(file, "BEGIN\n");
+  tkbc_dapf(&out, "BEGIN\n");
   for (size_t frames = 0; frames < script->count; ++frames) {
 
     if (script->elements[frames].count > 1) {
-      fprintf(file, "{\n");
+      tkbc_dapf(&out, "{\n");
     }
 
     for (size_t frame = 0; frame < script->elements[frames].count; ++frame) {
       Frame *f = &script->elements[frames].elements[frame];
-      if (f->kite_id_array.count) {
-        max_kites = fmaxf(max_kites, f->kite_id_array.count);
+
+      // TODO: Use hash function for this.
+      for (size_t i = 0; i < f->kite_id_array.count; ++i) {
+        Id id = f->kite_id_array.elements[i];
+        if (!tkbc_contains_id(ids, id)) {
+          tkbc_dap(&ids, id);
+        }
       }
 
       switch (f->kind) {
       case KITE_QUIT: {
-        fprintf(file, "QUIT");
+        tkbc_dapf(&out, "QUIT");
       } break;
 
       case KITE_WAIT: {
-        fprintf(file, "WAIT");
+        tkbc_dapf(&out, "WAIT");
       } break;
 
       case KITE_MOVE: {
         Move_Action action = f->action.as_move;
-        fprintf(file, "MOVE ");
-        tkbc_print_kites(file, f->kite_id_array);
-        fprintf(file, " %f %f", action.position.x, action.position.y);
+        tkbc_dapf(&out, "MOVE ");
+        tkbc_print_kites(&out, f->kite_id_array);
+        tkbc_dapf(&out, " %f %f", action.position.x, action.position.y);
 
       } break;
 
       case KITE_MOVE_ADD: {
         Move_Add_Action action = f->action.as_move_add;
-        fprintf(file, "MOVE_ADD ");
-        tkbc_print_kites(file, f->kite_id_array);
-        fprintf(file, " %f %f", action.position.x, action.position.y);
+        tkbc_dapf(&out, "MOVE_ADD ");
+        tkbc_print_kites(&out, f->kite_id_array);
+        tkbc_dapf(&out, " %f %f", action.position.x, action.position.y);
 
       } break;
 
       case KITE_ROTATION: {
         Rotation_Action action = f->action.as_rotation;
-        fprintf(file, "ROTATION ");
-        tkbc_print_kites(file, f->kite_id_array);
-        fprintf(file, " %f", action.angle);
+        tkbc_dapf(&out, "ROTATION ");
+        tkbc_print_kites(&out, f->kite_id_array);
+        tkbc_dapf(&out, " %f", action.angle);
 
       } break;
 
       case KITE_ROTATION_ADD: {
         Rotation_Add_Action action = f->action.as_rotation_add;
-        fprintf(file, "ROTATION_ADD ");
-        tkbc_print_kites(file, f->kite_id_array);
-        fprintf(file, " %f", action.angle);
+        tkbc_dapf(&out, "ROTATION_ADD ");
+        tkbc_print_kites(&out, f->kite_id_array);
+        tkbc_dapf(&out, " %f", action.angle);
 
       } break;
 
       case KITE_TIP_ROTATION: {
         Tip_Rotation_Action action = f->action.as_tip_rotation;
-        fprintf(file, "TIP_ROTATION ");
-        tkbc_print_kites(file, f->kite_id_array);
-        fprintf(file, " %f %s", action.angle,
-                action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
+        tkbc_dapf(&out, "TIP_ROTATION ");
+        tkbc_print_kites(&out, f->kite_id_array);
+        tkbc_dapf(&out, " %f %s", action.angle,
+                  action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
       } break;
 
       case KITE_TIP_ROTATION_ADD: {
         Tip_Rotation_Add_Action action = f->action.as_tip_rotation_add;
-        fprintf(file, "TIP_ROTATION_ADD ");
-        tkbc_print_kites(file, f->kite_id_array);
-        fprintf(file, " %f %s", action.angle,
-                action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
+        tkbc_dapf(&out, "TIP_ROTATION_ADD ");
+        tkbc_print_kites(&out, f->kite_id_array);
+        tkbc_dapf(&out, " %f %s", action.angle,
+                  action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
       } break;
 
@@ -124,23 +122,27 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
         assert(0 && "UNREACHABLE tkbc_script_kite_from_mem");
       }
 
-      fprintf(file, " %f\n", f->duration);
+      tkbc_dapf(&out, " %f\n", f->duration);
     }
 
     if (script->elements[frames].count > 1) {
-      fprintf(file, "}\n");
+      tkbc_dapf(&out, "}\n");
     }
   }
-  fprintf(file, "END\n");
+  tkbc_dapf(&out, "END\n");
 
-  if (fseek(file, 0, SEEK_SET) < 0) {
-    fprintf(stderr, "ERROR: %s\n", strerror(errno));
-    check_return(1);
+  char buf[32];
+  snprintf(buf, sizeof(buf), "KITES %zu\n", ids.count);
+  int err = tkbc_write_file(filename, buf, strlen(buf));
+  if (err) {
+    check_return(-err);
   }
-  fprintf(file, "KITES %zu\n", max_kites);
+  err = tkbc_append_file(filename, out.elements, out.count);
+  check_return(err);
 
 check:
-  fclose(file);
+  free(out.elements);
+  free(ids.elements);
   return ok;
 }
 
@@ -152,10 +154,10 @@ check:
  *
  * @param env The global state of the application.
  * @return 0 If the saving and serialization of all the files has succeeded. If
- * an error occurred the negative "-script_id" of the first failing script is
- * returned, if the file opening has failed and the positive "scirpt_id" will be
- * returned, if the fseek operation has failed and
- * -- the first initial KITES count in the script could not be set correctly. --
+ * an error occurred the positive "script_id" of the first failing script is
+ * returned, if writing the header of that script has failed and the negative
+ * "-scirpt_id" will be returned, if writing the main program has failed.
+ * The first initial KITES count in the script is considered to be the header.
  */
 int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env) {
   int err = 0;
