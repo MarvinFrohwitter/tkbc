@@ -47,7 +47,7 @@ bool space_init_capacity(Space *space, size_t size_in_bytes);
 size_t space__find_planet_id_from_ptr(Space *space, void *ptr);
 Planet *space__find_planet_from_ptr(Space *space, void *ptr);
 bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
-                            size_t new_size, size_t *planet_id, void *new_ptr);
+                            size_t new_size, size_t *planet_id);
 
 #define DAP_CAP 64
 #define space_dap(space, dynamic_array, element)                               \
@@ -265,6 +265,7 @@ void *space_malloc_planetid(Space *space, size_t size_in_bytes,
 
     void *place = &((uintptr_t *)p->elements)[p->count];
     p->count += size_in_bytes;
+    *planet_id = p->id;
     return place;
   }
 
@@ -303,13 +304,11 @@ void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
     return NULL;
   }
 
-  char *new_ptr = NULL;
-  if (try_to_expand_in_place(space, ptr, old_size, new_size, planet_id,
-                             new_ptr)) {
+  if (try_to_expand_in_place(space, ptr, old_size, new_size, planet_id)) {
     return ptr;
   }
 
-  new_ptr = space_malloc_planetid(space, new_size, planet_id);
+  char *new_ptr = space_malloc_planetid(space, new_size, planet_id);
   memcpy(new_ptr, ptr, old_size);
   return new_ptr;
 }
@@ -379,28 +378,17 @@ Planet *space__find_planet_from_ptr(Space *space, void *ptr) {
 }
 
 bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
-                            size_t new_size, size_t *planet_id, void *new_ptr) {
+                            size_t new_size, size_t *planet_id) {
 
-  new_ptr = NULL;
   Planet *p = space__find_planet_from_ptr(space, ptr);
-  if (p) {
-    if (p->count + new_size > p->capacity) {
-      planet_id = NULL;
-      return false;
-    }
-    if (p->count != old_size) {
-      planet_id = NULL;
-      return false;
-    }
-
-    p->count = new_size;
-    new_ptr = p->elements;
-    *planet_id = p->id;
-    return true;
+  if (!p || (p->count != old_size) || (p->count + new_size > p->capacity)) {
+    planet_id = NULL;
+    return false;
   }
 
-  planet_id = NULL;
-  return false;
+  p->count = new_size;
+  *planet_id = p->id;
+  return true;
 }
 
 #endif // SPACE_IMPLEMENTATION
