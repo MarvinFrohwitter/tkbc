@@ -29,6 +29,7 @@
 #define EPSILON 0.001f
 #endif // EPSILON
 static const int TARGET_FPS = 120;
+static const double TARGET_DT = 1 / (double)TARGET_FPS;
 
 // ===========================================================================
 // ===========================================================================

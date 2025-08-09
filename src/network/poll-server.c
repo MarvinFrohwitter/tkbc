@@ -1417,8 +1417,6 @@ int main(int argc, char *argv[]) {
 #endif // _WIN32
 
   srand(time(NULL));
-  // Get the first 0 out of the way.
-  tkbc_get_frame_time();
   env = tkbc_init_env();
   env->window_width = 1920;
   env->window_height = 1080;
@@ -1431,6 +1429,13 @@ int main(int argc, char *argv[]) {
   tkbc_dap(&fds, server_fd);
 
   for (;;) {
+    //
+    // TODO: Set the TARGET_DT to 0.
+    //
+    // The client has to collect the positions before displaying them, if the
+    // server is to fast.
+    //
+    tkbc_make_frame_time(TARGET_DT);
     if (clients_visited >= SERVER_CONNETCTIONS) {
       break;
     }

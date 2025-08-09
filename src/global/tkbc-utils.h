@@ -169,6 +169,7 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 int tkbc_get_screen_height();
 int tkbc_get_screen_width();
 double tkbc_get_time();
+void tkbc_make_frame_time(double target_dt);
 float tkbc_get_frame_time();
 float tkbc_clamp(float z, float a, float b);
 bool tkbc_float_equals_epsilon(float x, float y, float epsilon);
@@ -486,10 +487,44 @@ double tkbc_get_time() {
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     exit(0);
   }
-  return (double)((uint64_t)ts.tv_sec * (uint64_t)1e9 + (uint64_t)ts.tv_nsec);
+  return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
 #else
   return GetTime();
 #endif // PROTOCOL_VERSION
+}
+
+static double tkbc_dt = 0;
+/**
+ * @brief The function sets the global tkbc_dt that represents a delta time
+ * between the execution calls of this function. By setting the target_dt to 0
+ * it can be used to profile the execution time between two calls of this
+ * function. It also can be used to generate a delta time for fps related event
+ * loop calls. By setting the target_dt to 1/TARGET_FPS, where TARGET_FPS
+ * represents the upper limit if the event loop iteration per second.
+ *
+ * @param target_dt The delta time in seconds that should be reached before
+ * continuing the execution.
+ */
+void tkbc_make_frame_time(double target_dt) {
+  static double tkbc_last_frame_time = 0;
+
+  double current_time = tkbc_get_time();
+  tkbc_dt = (current_time - tkbc_last_frame_time);
+
+  if (target_dt && tkbc_dt < target_dt) {
+    double remaining = target_dt - tkbc_dt;
+
+    const struct timespec rqtp = {
+        .tv_sec = (long int)remaining,
+        .tv_nsec = (remaining - (double)(long int)remaining) * 1e9,
+    };
+
+    nanosleep(&rqtp, NULL);
+    current_time = tkbc_get_time();
+    tkbc_dt = (current_time - tkbc_last_frame_time);
+  }
+
+  tkbc_last_frame_time = current_time;
 }
 
 /**
@@ -500,22 +535,7 @@ double tkbc_get_time() {
  */
 float tkbc_get_frame_time() {
 #ifdef TKBC_SERVER
-  static double tkbc_last_frame_time = 0;
-  struct timespec ts;
-  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-    exit(0);
-  }
-  double current_time =
-      (uint64_t)ts.tv_sec * (uint64_t)1e9 + (uint64_t)ts.tv_nsec;
-
-  double dt = (current_time - tkbc_last_frame_time) * 1e-9;
-  if (tkbc_last_frame_time == 0) {
-    tkbc_last_frame_time = current_time;
-    return 0;
-  }
-  tkbc_last_frame_time = current_time;
-  return (float)dt;
+  return (float)tkbc_dt;
 #else
   return GetFrameTime();
 #endif // PROTOCOL_VERSION
