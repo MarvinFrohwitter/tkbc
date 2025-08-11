@@ -1,3 +1,7 @@
+#define WINDOW_SCALE 120
+#define SCREEN_WIDTH 16 * WINDOW_SCALE
+#define SCREEN_HEIGHT 9 * WINDOW_SCALE
+
 #include "tkbc-client.h"
 #include "tkbc-network-common.h"
 
@@ -18,6 +22,7 @@
 #include "../choreographer/tkbc-keymaps.h"
 #include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc-sound-handler.h"
+#include "../choreographer/tkbc-ui.h"
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-popup.h"
 
@@ -45,18 +50,13 @@
 #include <sys/socket.h>
 #endif
 
+#include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#define WINDOW_SCALE 120
-#define SCREEN_WIDTH 16 * WINDOW_SCALE
-#define SCREEN_HEIGHT 9 * WINDOW_SCALE
-#define TKBC_CLIENT
-#define LOADIMAGE
 
 Env *env = {0};
 Client client = {0};
@@ -486,7 +486,7 @@ bool received_message_handler(Message *message) {
       }
       env->script_finished = true;
 
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_script_VALUE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_META_DATA\n");
     } break;
     case MESSAGE_CLIENTKITES: {
       token = lexer_next(lexer);
@@ -982,9 +982,7 @@ int main(int argc, char *argv[]) {
   SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
 
-#ifdef LOADIMAGE
   tkbc_load_kite_images_and_textures();
-#endif /* ifdef LOADIMAGE */
 
   size_t prev_kite_array_count = env->kite_array->count;
   sending_script_handler();
@@ -1004,7 +1002,6 @@ int main(int argc, char *argv[]) {
 
   bool sending_receiving = true;
   while (!WindowShouldClose()) {
-
     if (sending_receiving) {
       if (!message_queue_handler(&client.recv_msg_buffer)) {
         disconnect.active = true;

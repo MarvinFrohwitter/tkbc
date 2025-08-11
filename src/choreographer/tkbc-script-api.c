@@ -37,7 +37,6 @@ void tkbc_set_script_name(Script *script, const char *name) {
  * @param env The global state of the application.
  */
 void tkbc__script_end(Env *env) {
-  tkbc_register_frames(env, tkbc_script_wait(0));
   env->script_interrupt = false;
 
   // To ensure the script begin is called.

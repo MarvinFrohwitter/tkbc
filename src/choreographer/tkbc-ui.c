@@ -23,20 +23,30 @@ extern Kite_Textures kite_textures;
  * @param env The global state of the application.
  */
 void tkbc_draw_ui(Env *env) {
-
   env->window_height = tkbc_get_screen_height();
   env->window_width = tkbc_get_screen_width();
 
-  if (env->frames &&
+  // TODO: The script bar is not displayed if another client triggered a script.
+  if ((env->frames || env->server_script_id) &&
       !(env->script_menu_interaction || env->keymaps_interaction)) {
     // A script is currently executing.
-#ifdef TKBC_CLIENT
-    tkbc_ui_timeline(env, env->server_script_frames_index,
-                     env->server_script_frames_count);
 
-#else
-    tkbc_ui_timeline(env, env->frames->frames_index, env->script->count);
-#endif // TKBC_CLIENT
+    if (env->server_script_id) {
+      //
+      // NOTE: This realise on the fact that server_script_id will just be set
+      // on a client and not a no server related client.
+      //
+      // This is in a .c file so a preprocessor macro would just work if it is
+      // passed to the compiler directly. In this case a dependency on a custom
+      // macro form a client reduces the freedom of the client choosing it.
+      //
+      // Marvin Frohwitter 10.08.2025
+
+      tkbc_ui_timeline(env, env->server_script_frames_index,
+                       env->server_script_frames_count);
+    } else {
+      tkbc_ui_timeline(env, env->frames->frames_index, env->script->count);
+    }
   }
 
   if (!env->rendering) {

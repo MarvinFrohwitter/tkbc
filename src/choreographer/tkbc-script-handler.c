@@ -996,4 +996,6 @@ float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action,
   default:
     assert(0 && "UNREACHABLE tkbc_check_angle_zero()");
   }
+
+  return 0;
 }

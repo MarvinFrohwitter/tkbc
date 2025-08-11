@@ -110,9 +110,10 @@ Kite_State tkbc_init_kite(void) {
                        .x = state.kite->center.x};
   tkbc_kite_update_position(state.kite, &start_pos);
 
-#ifndef TKBC_SERVER
-  tkbc_set_kite_texture(state.kite, &kite_textures.elements[0]);
-#endif // TKBC_SERVER
+  // NOTE: For the server this should be ignored, thus no textures were loaded.
+  if (kite_textures.count) {
+    tkbc_set_kite_texture(state.kite, &kite_textures.elements[0]);
+  }
 
   return state;
 }
@@ -669,7 +670,7 @@ Color tkbc_get_random_color() {
  * @return True if the loaded textures are valid, otherwise false.
  */
 bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture) {
-  if (kite_textures.count == 0) {
+  if (!kite_texture) {
     return false;
   }
 

@@ -1,4 +1,4 @@
-#define TKBC_SERVER 1
+#define TKBC_SERVER
 #include "poll-server.h"
 
 #include <assert.h>
@@ -110,6 +110,7 @@ Client *tkbc_get_client_by_fd(int fd) {
 void tkbc_write_to_send_msg_buffer(Client *client, Message message) {
   space_dapc(&client->msg_space, &client->send_msg_buffer, message.elements,
              message.count);
+
   tkbc_get_pollfd_by_fd(client->socket_id)->events = POLLWRNORM;
 }
 
@@ -602,9 +603,8 @@ bool tkbc_server_handle_client(Client *client) {
     }
 
     result = tkbc_socket_write(client);
-    if (result <= 0) {
-      pollfd->events = POLLRDNORM;
-    }
+    pollfd->events = POLLRDNORM;
+
     if (result == -1) {
       return false;
     }
@@ -1441,25 +1441,31 @@ int main(int argc, char *argv[]) {
     }
 
     int timeout = -1; // Infinite
-
-#ifdef _WIN32
-    int poll_err = WSAPoll(fds.elements, fds.count, timeout);
+    int poll_err = tkbc_poll(timeout);
     if (poll_err == -1) {
-      tkbc_fprintf(stderr, "ERROR", "The poll has failed:%d\n",
-                   WSAGetLastError());
       break;
     }
-#else
-    int poll_err = poll(fds.elements, fds.count, timeout);
-    if (poll_err == -1) {
-      tkbc_fprintf(stderr, "ERROR", "The poll has failed:%s\n",
-                   strerror(errno));
-      break;
-    }
-#endif // _WIN32
 
     if (poll_err > 0) {
       tkbc_socket_handling();
+
+      //
+      // The second call of socket handling is related to the fact that the base
+      // execution can set a POLLWRNORM for clients so a send call has to be
+      // called and then poll can wait for reading events.
+      {
+        timeout = 0; // immediately return
+        int poll_err = tkbc_poll(timeout);
+        if (poll_err == -1) {
+          break;
+        } else if (poll_err == 0) {
+          continue;
+        }
+      }
+
+      if (!tkbc_script_finished(env) && poll_err > 0) {
+        tkbc_socket_handling();
+      }
     }
 
     // Handle messages
@@ -1477,39 +1483,69 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    //
-    // Base execution
-    if (env->scripts->count <= 0) {
-      continue;
-    }
-
-    if (!tkbc_script_finished(env) && env->script != NULL) {
-      size_t bindex = env->frames->frames_index;
-      tkbc_script_update_frames(env);
-
-      if (env->frames->frames_index != bindex) {
-        bindex = env->frames->frames_index;
-        tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
-            env->script->script_id, env->script->count, bindex);
-      }
-
-      tkbc_message_clientkites_write_to_all_send_msg_buffers();
-
-      if (tkbc_script_finished(env)) {
-        space_dapf(&t_space, &t_message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
-        tkbc_write_to_all_send_msg_buffers(t_message);
-        tkbc_reset_space_and_null_message(&t_space, &t_message);
-
-        for (size_t i = 0; i < env->kite_array->count; ++i) {
-          Kite_State *kite_state = &env->kite_array->elements[i];
-          kite_state->is_active = !kite_state->is_active;
-        }
-      }
-    }
+    tkbc_base_execution();
   }
 
   signalhandler(0);
   return 0;
+}
+
+int tkbc_poll(int timeout) {
+
+#ifdef _WIN32
+  int poll_err = WSAPoll(fds.elements, fds.count, timeout);
+  if (poll_err == -1) {
+    tkbc_fprintf(stderr, "ERROR", "The poll has failed:%d\n",
+                 WSAGetLastError());
+  }
+#else
+  int poll_err = poll(fds.elements, fds.count, timeout);
+  if (poll_err == -1) {
+    tkbc_fprintf(stderr, "ERROR", "The poll has failed:%s\n", strerror(errno));
+  }
+#endif // _WIN32
+
+  return poll_err;
+}
+
+/**
+ * @brief The function encapsulates the script handling and possible other base
+ * execution of the server.
+ *
+ * @return True if the base execution and script handling succeeded, otherwise
+ * false.
+ */
+bool tkbc_base_execution() {
+  if (env->scripts->count <= 0) {
+    return false;
+  }
+
+  if (!tkbc_script_finished(env) && env->script != NULL) {
+    size_t bindex = env->frames->frames_index;
+    tkbc_script_update_frames(env);
+
+    if (env->frames->frames_index != bindex) {
+      bindex = env->frames->frames_index;
+      tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
+          env->script->script_id, env->script->count, bindex);
+    }
+
+    tkbc_message_clientkites_write_to_all_send_msg_buffers();
+
+    if (tkbc_script_finished(env)) {
+      space_dapf(&t_space, &t_message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
+      tkbc_write_to_all_send_msg_buffers(t_message);
+      tkbc_reset_space_and_null_message(&t_space, &t_message);
+
+      for (size_t i = 0; i < env->kite_array->count; ++i) {
+        Kite_State *kite_state = &env->kite_array->elements[i];
+        kite_state->is_active = !kite_state->is_active;
+      }
+    }
+    return true;
+  }
+
+  return false;
 }
 
 /**

@@ -28,8 +28,8 @@
 #ifndef EPSILON
 #define EPSILON 0.001f
 #endif // EPSILON
-static const int TARGET_FPS = 120;
-static const double TARGET_DT = 1 / (double)TARGET_FPS;
+#define TARGET_FPS 120
+#define TARGET_DT (1 / (double)TARGET_FPS)
 
 // ===========================================================================
 // ===========================================================================
@@ -66,11 +66,7 @@ void tkbc_draw_kite(Kite_State *state);
 void tkbc_draw_kite_array(Kite_States *kite_states);
 void tkbc_update_kites_for_resize_window(Env *env);
 
-// ========================== UI DECLARATIONS ==============================
-
-void tkbc_draw_ui(Env *env);
-void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count);
-Color tkbc_get_random_color();
 bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture);
+Color tkbc_get_random_color();
 
 #endif // TKBC_H_

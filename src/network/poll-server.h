@@ -27,6 +27,9 @@ bool tkbc_sockets_read(Client *client);
 int tkbc_socket_write(Client *client);
 bool tkbc_server_handle_client(Client *client);
 void tkbc_socket_handling();
+int tkbc_poll(int timeout);
+
+bool tkbc_base_execution();
 
 void tkbc_message_clientkites(Message *message);
 void tkbc_message_clientkites_write_to_all_send_msg_buffers();

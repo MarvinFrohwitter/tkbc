@@ -3,6 +3,10 @@
 #define TKBC_LOGGING_INFO
 #define TKBC_LOGGING_WARNING
 
+#define WINDOW_SCALE 120
+#define SCREEN_WIDTH 16 * WINDOW_SCALE
+#define SCREEN_HEIGHT 9 * WINDOW_SCALE
+
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 #undef TKBC_UTILS_IMPLEMENTATION
@@ -17,17 +21,13 @@
 #include "tkbc-keymaps.h"
 #include "tkbc-script-api.h"
 #include "tkbc-sound-handler.h"
+#include "tkbc-ui.h"
 #include "tkbc.h"
 
 #include "raylib.h"
 #include <stdbool.h>
 
 #include "../../tkbc_scripts/first.c"
-
-#define WINDOW_SCALE 120
-#define SCREEN_WIDTH 16 * WINDOW_SCALE
-#define SCREEN_HEIGHT 9 * WINDOW_SCALE
-#define LOADIMAGE
 
 Space kite_images_space = {0};
 Kite_Images kite_images = {0};
@@ -55,9 +55,7 @@ int main(void) {
   SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
 
-#ifdef LOADIMAGE
   tkbc_load_kite_images_and_textures();
-#endif /* ifdef LOADIMAGE */
 
   while (!WindowShouldClose()) {
     BeginDrawing();
