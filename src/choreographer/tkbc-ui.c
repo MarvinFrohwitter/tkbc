@@ -735,7 +735,17 @@ void tkbc_ui_timeline(Env *env, size_t frames_index,
   }
 
   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    env->timeline_interaction = true;
+    // @Speed This should not be handled like this.
+    bool is_at_least_one_acitv = false;
+    for (size_t i = 0; i < env->kite_array->count; ++i) {
+      if (env->kite_array->elements[i].is_kite_input_handler_active) {
+        is_at_least_one_acitv = true;
+        break;
+      }
+    }
+    if (!is_at_least_one_acitv) {
+      env->timeline_interaction = true;
+    }
   }
 
   env->timeline_segments = frames_index + 1;
