@@ -1057,7 +1057,6 @@ int main(int argc, char *argv[]) {
       tkbc_ffmpeg_handler(env, "output.mp4");
     }
   };
-  CloseWindow();
 
   client.recv_msg_buffer.elements = NULL;
   client.send_msg_buffer.elements = NULL;
@@ -1097,6 +1096,7 @@ int main(int argc, char *argv[]) {
   tkbc_assets_destroy();
   space_free_space(&kite_images_space);
   space_free_space(&kite_textures_space);
+  CloseWindow();
   tkbc_fprintf(stderr, "INFO", "EXITED SUCCESSFULLY.\n");
   return 0;
 }
