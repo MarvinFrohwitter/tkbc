@@ -279,9 +279,9 @@ typedef union { // The collection of all the possible actions that can be used
   Rotation_Action as_rotation;
   Move_Action as_move;
 
-  Tip_Rotation_Action as_tip_rotation_add;
-  Rotation_Action as_rotation_add;
-  Move_Action as_move_add;
+  Tip_Rotation_Add_Action as_tip_rotation_add;
+  Rotation_Add_Action as_rotation_add;
+  Move_Add_Action as_move_add;
 
   Wait_Action as_wait;
   Quit_Action as_quit;
