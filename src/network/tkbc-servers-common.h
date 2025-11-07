@@ -39,27 +39,7 @@ typedef struct sockaddr SOCKADDR;
 typedef socklen_t SOCKLEN;
 #endif //_WIN32
 
-// name : kind : data
-typedef enum {
-  MESSAGE_ZERO = 0,
-  MESSAGE_HELLO,
-  MESSAGE_KITEADD,
-  MESSAGE_CLIENT_DISCONNECT,
-  MESSAGE_CLIENTKITES,
-  MESSAGE_KITES,
-  MESSAGE_KITES_POSITIONS,
-  MESSAGE_KITES_POSITIONS_RESET,
-  MESSAGE_KITEVALUE,
-  MESSAGE_SCRIPT,
-  MESSAGE_SCRIPT_AMOUNT,
-  MESSAGE_SCRIPT_PARSED,
-  MESSAGE_SCRIPT_META_DATA,
-  MESSAGE_SCRIPT_TOGGLE,
-  MESSAGE_SCRIPT_NEXT,
-  MESSAGE_SCRIPT_SCRUB,
-  MESSAGE_SCRIPT_FINISHED,
-  MESSAGE_COUNT,
-} Message_Kind; // Messages that are supported in the current PROTOCOL_VERSION.
+#include "tkbc-interface.h"
 
 typedef struct {
   char *elements;
