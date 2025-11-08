@@ -49,8 +49,13 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
   state->is_kite_reversed = is_reversed;
   state->kite->texture_id = texture_id;
 
-  assert(kite_textures.count > texture_id);
-  tkbc_set_kite_texture(state->kite, &kite_textures.elements[texture_id]);
+  // This is needed because in the server this step
+  // is meaningless. The server don't have to load assets to
+  // administrate them the ids of the assets should be enough.
+  if (kite_textures.count) {
+    assert(kite_textures.count > texture_id);
+    tkbc_set_kite_texture(state->kite, &kite_textures.elements[texture_id]);
+  }
 
   tkbc_kite_update_internal(state->kite);
 }

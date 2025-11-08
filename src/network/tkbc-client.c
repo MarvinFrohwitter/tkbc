@@ -232,6 +232,7 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
   Kite_State state = tkbc_init_kite();
   tkbc_assign_values_to_kitestate(&state, x, y, angle, color, is_reversed,
                                   texture_id);
+  state.kite_id = kite_id;
   tkbc_dap(env->kite_array, state);
 }
 
