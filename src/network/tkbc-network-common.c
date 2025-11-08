@@ -22,9 +22,7 @@ extern Kite_Textures kite_textures;
  * @param message The dynamic arena of a message.
  */
 void tkbc_reset_space_and_null_message(Space *space, Message *message) {
-  message->elements = NULL;
-  message->count = 0;
-  message->capacity = 0;
+  memset(message, 0, sizeof(*message));
   space_reset_space(space);
 }
 
@@ -89,8 +87,8 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
   // NOTE: This ignores unknown kites and just sets the values for valid ones.
   // Unknown kites are not a parsing error so true is returned.
   // TODO: But for the client not the server the kite missing kite should be
-  // handled because the server expects the client to have it so the client lost
-  // it or hasn't registered one jet.
+  // handled because the server expects the client to have it so the client
+  // lost it or hasn't registered one jet.
   if (state) {
     tkbc_assign_values_to_kitestate(state, x, y, angle, color, is_reversed,
                                     texture_id);

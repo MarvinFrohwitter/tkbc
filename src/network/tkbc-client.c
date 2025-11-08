@@ -374,8 +374,8 @@ bool received_message_handler(Message *message) {
 
       static bool first_message_kite_add = true;
       if (first_message_kite_add) {
-        // This assumes the server sends the first KITEADD to the client, that
-        // contains his own kite;
+        // This assumes the server sends the first SINGLE_KITE_ADD to the
+        // client, that contains his own kite;
         if (client.kite_id == -1) {
           client.kite_id = kite_id;
         }
@@ -388,7 +388,7 @@ bool received_message_handler(Message *message) {
         first_message_kite_add = false;
       }
 
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEADD\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_ADD\n");
     } break;
     case MESSAGE_SINGLE_KITE_UPDATE: {
 
@@ -397,7 +397,7 @@ bool received_message_handler(Message *message) {
         goto err;
       }
 
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEVALUE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
     } break;
     case MESSAGE_KITES: {
       token = lexer_next(lexer);
@@ -683,8 +683,8 @@ bool message_queue_handler(Message *message) {
 }
 
 /**
- * @brief The function constructs a message KITEVALUE out of the kite that is
- * associated with this current client. The result is written to the
+ * @brief The function constructs a message SINGLE_KITE_UPDATE out of the kite
+ * that is associated with this current client. The result is written to the
  * send_message_queue.
  */
 void tkbc_client_input_handler_kite() {

@@ -287,7 +287,7 @@ void tkbc_message_hello_write_to_send_msg_buffer(Client *client) {
 }
 
 /**
- * @brief The function constructs the message KITEADD that is send to all
+ * @brief The function constructs the message SINGLE_KITE_ADD that is send to all
  * clients, whenever a new client has connected to the server.
  *
  * @param client_index The id of the client that has connected.
@@ -671,8 +671,8 @@ void tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
 }
 
 /**
- * @brief The function constructs the message KITEVALUE that contains a data
- * serialization for one specified kite.
+ * @brief The function constructs the message SINGLE_KITE_UPDATE that contains a
+ * data serialization for one specified kite.
  *
  * @param client_id The client id that corresponds to the data that should be
  * appended.
@@ -808,7 +808,7 @@ bool tkbc_received_message_handler(Client *client) {
         check_return(false);
       }
 
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEVALUE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
     } break;
     case MESSAGE_KITES_POSITIONS: {
       token = lexer_next(lexer);
