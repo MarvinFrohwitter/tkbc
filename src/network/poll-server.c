@@ -682,7 +682,7 @@ void tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
 bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
     size_t client_id) {
   bool ok = true;
-  space_dapf(&t_space, &t_message, "%d:", MESSAGE_KITEVALUE);
+  space_dapf(&t_space, &t_message, "%d:", MESSAGE_UPDATE_SINGLE_KITE);
   if (!tkbc_message_append_clientkite(client_id, &t_message, &t_space)) {
     check_return(false);
   }
@@ -785,7 +785,7 @@ bool tkbc_received_message_handler(Client *client) {
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
-    case MESSAGE_KITEVALUE: {
+    case MESSAGE_UPDATE_SINGLE_KITE: {
       size_t kite_id, texture_id;
       float x, y, angle;
       Color color;

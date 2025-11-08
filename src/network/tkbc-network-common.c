@@ -78,7 +78,7 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
 }
 
 /**
- * @brief The function parses all values out of a single MESSAGE_KITEVALUE that
+ * @brief The function parses all values out of a single MESSAGE_UPDATE_SINGLE_KITE that
  * should be located in the lexer data.
  *
  * @param lexer The current state and data of the string to parse.
