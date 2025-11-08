@@ -800,14 +800,8 @@ bool tkbc_received_message_handler(Client *client) {
       // kite id. Instead of crashing the complete server.
       // With a correct client implementation the state should always be
       // available. No memory corruption on the server side implied.
-      assert(state);
-      state->kite->center.x = x;
-      state->kite->center.y = y;
-      state->kite->angle = angle;
-      state->kite->body_color = color;
-      state->is_kite_reversed = is_reversed;
-      state->kite->texture_id = texture_id;
-      tkbc_kite_update_internal(state->kite);
+      tkbc_assign_values_to_kitestate(state, x, y, angle, color, is_reversed,
+                                      texture_id);
 
       if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
               kite_id)) {

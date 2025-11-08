@@ -29,6 +29,35 @@ void tkbc_reset_space_and_null_message(Space *space, Message *message) {
 }
 
 /**
+ * @brief The function assigns the given values to the passed state.
+ *
+ * @param state The kite_state that should be updated.
+ * @param x The new x value of the kite center.
+ * @param y The new y value of the kite center.
+ * @param angle The new angle of the kite.
+ * @param color The new color of the kite.
+ * @param is_reversed If the kite should fly reverse by default.
+ * @param texture_id The id of the texture that should be used to display the
+ * kite.
+ */
+void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
+                                     float angle, Color color, bool is_reversed,
+                                     size_t texture_id) {
+  assert(state);
+  state->kite->center.x = x;
+  state->kite->center.y = y;
+  state->kite->angle = angle;
+  state->kite->body_color = color;
+  state->is_kite_reversed = is_reversed;
+  state->kite->texture_id = texture_id;
+
+  assert(kite_textures.count > texture_id);
+  tkbc_set_kite_texture(state->kite, &kite_textures.elements[texture_id]);
+
+  tkbc_kite_update_internal(state->kite);
+}
+
+/**
  * @brief The function extracts the values that should belong to a kite out of
  * the lexer data.
  *
@@ -63,23 +92,15 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
   // handled because the server expects the client to have it so the client lost
   // it or hasn't registered one jet.
   if (state) {
-    state->kite->center.x = x;
-    state->kite->center.y = y;
-    state->kite->angle = angle;
-    state->kite->body_color = color;
-    state->is_kite_reversed = is_reversed;
-    state->kite->texture_id = texture_id;
-
-    assert(kite_textures.count > texture_id);
-    tkbc_set_kite_texture(state->kite, &kite_textures.elements[texture_id]);
-    tkbc_kite_update_internal(state->kite);
+    tkbc_assign_values_to_kitestate(state, x, y, angle, color, is_reversed,
+                                    texture_id);
   }
   return 1;
 }
 
 /**
- * @brief The function parses all values out of a single MESSAGE_SINGLE_KITE_UPDATE that
- * should be located in the lexer data.
+ * @brief The function parses all values out of a single
+ * MESSAGE_SINGLE_KITE_UPDATE that should be located in the lexer data.
  *
  * @param lexer The current state and data of the string to parse.
  * @param kite_id The id the corresponding parsed value is assigned to.

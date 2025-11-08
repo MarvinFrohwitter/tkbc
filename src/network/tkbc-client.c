@@ -229,20 +229,10 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
 void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
                                     float angle, Color color, size_t texture_id,
                                     bool is_reversed) {
-  Kite_State kite_state = tkbc_init_kite();
-  kite_state.kite_id = kite_id;
-  kite_state.kite->center.x = x;
-  kite_state.kite->center.y = y;
-  kite_state.kite->angle = angle;
-  kite_state.kite->body_color = color;
-  kite_state.is_kite_reversed = is_reversed;
-  kite_state.kite->texture_id = texture_id;
-
-  assert(kite_textures.count > texture_id);
-  tkbc_set_kite_texture(kite_state.kite, &kite_textures.elements[texture_id]);
-
-  tkbc_kite_update_internal(kite_state.kite);
-  tkbc_dap(env->kite_array, kite_state);
+  Kite_State state = tkbc_init_kite();
+  tkbc_assign_values_to_kitestate(&state, x, y, angle, color, is_reversed,
+                                  texture_id);
+  tkbc_dap(env->kite_array, state);
 }
 
 /**
@@ -531,23 +521,16 @@ bool received_message_handler(Message *message) {
         //
         // TODO: FIXME
 
-        Kite_State *kite_state = tkbc_get_kite_state_by_id(env, kite_id);
-        if (kite_state == NULL) {
+        Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
+        if (state == NULL) {
           // If the kite_id is not registered.
           tkbc_register_kite_from_values(kite_id, x, y, angle, color,
                                          texture_id, is_reversed);
           // NOTE: The kite_state defaults ensure. is_active = true;
         } else {
-          kite_state->kite->center.x = x;
-          kite_state->kite->center.y = y;
-          kite_state->kite->angle = angle;
-          kite_state->kite->body_color = color;
-          kite_state->kite->texture_id = texture_id;
-          kite_state->is_kite_reversed = is_reversed;
-          assert(kite_textures.count > texture_id);
-          tkbc_set_kite_texture(kite_state->kite,
-                                &kite_textures.elements[texture_id]);
-          kite_state->is_active = true;
+          tkbc_assign_values_to_kitestate(state, x, y, angle, color,
+                                          is_reversed, texture_id);
+          state->is_active = true;
         }
       }
 
