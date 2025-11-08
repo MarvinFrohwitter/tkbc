@@ -390,6 +390,15 @@ bool received_message_handler(Message *message) {
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEADD\n");
     } break;
+    case MESSAGE_SINGLE_KITE_UPDATE: {
+
+      assert(client.kite_id != -1);
+      if (!tkbc_parse_single_kite_value(lexer, client.kite_id)) {
+        goto err;
+      }
+
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEVALUE\n");
+    } break;
     case MESSAGE_KITES: {
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
@@ -429,15 +438,6 @@ bool received_message_handler(Message *message) {
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES\n");
-    } break;
-    case MESSAGE_SINGLE_KITE_UPDATE: {
-
-      assert(client.kite_id != -1);
-      if (!tkbc_parse_single_kite_value(lexer, client.kite_id)) {
-        goto err;
-      }
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITEVALUE\n");
     } break;
     case MESSAGE_SCRIPT_META_DATA: {
       token = lexer_next(lexer);
