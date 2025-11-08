@@ -357,7 +357,7 @@ void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client) {
  *
  * @param client The new client that should get a kite associated with.
  */
-void tkbc_client_prelog(Client *client) {
+void tkbc_client_prolog(Client *client) {
   tkbc_message_hello_write_to_send_msg_buffer(client);
 
   Kite_State kite_state = tkbc_init_kite();
@@ -426,7 +426,7 @@ void tkbc_server_accept() {
                  CLIENT_ARG(client));
     tkbc_dap(&clients, client);
 
-    tkbc_client_prelog(&clients.elements[clients.count - 1]);
+    tkbc_client_prolog(&clients.elements[clients.count - 1]);
   }
 }
 

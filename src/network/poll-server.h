@@ -21,7 +21,7 @@ void tkbc_server_shutdown_client(Client client, bool force);
 void tkbc_message_hello_write_to_send_msg_buffer(Client *client);
 bool tkbc_message_kiteadd_write_to_all_send_msg_buffers(size_t client_index);
 void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client);
-void tkbc_client_prelog(Client *client);
+void tkbc_client_prolog(Client *client);
 void tkbc_server_accept();
 bool tkbc_sockets_read(Client *client);
 int tkbc_socket_write(Client *client);
