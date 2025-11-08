@@ -369,7 +369,7 @@ bool received_message_handler(Message *message) {
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
-    case MESSAGE_KITEADD: {
+    case MESSAGE_SINGLE_KITE_ADD: {
       size_t kite_id, texture_id;
       float x, y, angle;
       Color color;
@@ -440,7 +440,7 @@ bool received_message_handler(Message *message) {
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES\n");
     } break;
-    case MESSAGE_UPDATE_SINGLE_KITE: {
+    case MESSAGE_SINGLE_KITE_UPDATE: {
 
       assert(client.kite_id != -1);
       if (!tkbc_parse_single_kite_value(lexer, client.kite_id)) {
@@ -741,7 +741,7 @@ void tkbc_client_input_handler_kite() {
   client_kite = *kite_state->kite;
 
   space_dapf(&client.msg_space, &client.send_msg_buffer,
-             "%d:", MESSAGE_UPDATE_SINGLE_KITE);
+             "%d:", MESSAGE_SINGLE_KITE_UPDATE);
   tkbc_message_append_clientkite(client.kite_id, &client.send_msg_buffer,
                                  &client.msg_space);
   space_dapf(&client.msg_space, &client.send_msg_buffer, "\r\n");

@@ -3,9 +3,9 @@ typedef enum {
   MESSAGE_ZERO = 0,
   MESSAGE_HELLO,
 
-  MESSAGE_KITEADD, // When a kite is added because a new client has connected to
-                   // the server
-  MESSAGE_UPDATE_SINGLE_KITE, // Update from the client to the server -> the
+  MESSAGE_SINGLE_KITE_ADD,    // When a kite is added because a new client has
+                              // connected to the server
+  MESSAGE_SINGLE_KITE_UPDATE, // Update from the client to the server -> the
                               // server broadcasts the information except to the
                               // client where it's coming from.
 
@@ -44,10 +44,10 @@ typedef enum {
 
 /**
  *
- * MESSAGE_KITEADD:
+ * MESSAGE_SINGLE_KITE_ADD:
  *
  *****
- * MESSAGE_KITEADD:kite_id:(x,y):angle:color:texture_id:is_reversed:\r\n
+ * MESSAGE_SINGLE_KITE_ADD:kite_id:(x,y):angle:color:texture_id:is_reversed:\r\n
  *****
  */
 
@@ -101,10 +101,10 @@ typedef enum {
 
 /**
  *
- * MESSAGE_UPDATE_SINGLE_KITE: Duplicate?
+ * MESSAGE_SINGLE_KITE_UPDATE: Duplicate?
  *
  *****
- * MESSAGE_UPDATE_SINGLE_KITE:kite_id:(x,y):angle:color:texture_id:is_reversed:\r\n
+ * MESSAGE_SINGLE_KITE_UPDATE:kite_id:(x,y):angle:color:texture_id:is_reversed:\r\n
  *****
  */
 
