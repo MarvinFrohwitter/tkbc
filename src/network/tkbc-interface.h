@@ -47,7 +47,7 @@ typedef enum {
  * MESSAGE_SINGLE_KITE_ADD:
  *
  *****
- * MESSAGE_SINGLE_KITE_ADD:kite_id:(x,y):angle:color:texture_id:is_reversed:\r\n
+ * MESSAGE_SINGLE_KITE_ADD:kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:\r\n
  *****
  */
 
@@ -67,7 +67,7 @@ typedef enum {
  * client about all kites and when a acript is running.
  *
  *****
- * MESSAGE_CLIENTKITES:active_count:[kite_id:(x,y):angle:color:texture_id:is_reversed:]^*\r\n
+ * MESSAGE_CLIENTKITES:active_count:[kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:]^*\r\n
  *****
  */
 
@@ -76,7 +76,7 @@ typedef enum {
  * MESSAGE_KITES: From server to client
  *
  *****
- * MESSAGE_KITES:active_count:[kite_id:(x,y):angle:color:texture_id:is_reversed:]^*\r\n
+ * MESSAGE_KITES:active_count:[kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:]^*\r\n
  *****
  */
 ///////////////////
@@ -86,7 +86,7 @@ typedef enum {
  * MESSAGE_KITES_POSITIONS: UNUSED
  *
  *****
- * MESSAGE_KITES_POSITIONS:kite_array->count:[kite_id:(x,y):angle:color:texture_id:is_reversed:]^*\r\n
+ * MESSAGE_KITES_POSITIONS:kite_array->count:[kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:]^*\r\n
  *****
  */
 
@@ -104,7 +104,7 @@ typedef enum {
  * MESSAGE_SINGLE_KITE_UPDATE: Duplicate?
  *
  *****
- * MESSAGE_SINGLE_KITE_UPDATE:kite_id:(x,y):angle:color:texture_id:is_reversed:\r\n
+ * MESSAGE_SINGLE_KITE_UPDATE:kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:\r\n
  *****
  */
 

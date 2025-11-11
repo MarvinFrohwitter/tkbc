@@ -287,8 +287,8 @@ void tkbc_message_hello_write_to_send_msg_buffer(Client *client) {
 }
 
 /**
- * @brief The function constructs the message SINGLE_KITE_ADD that is send to all
- * clients, whenever a new client has connected to the server.
+ * @brief The function constructs the message SINGLE_KITE_ADD that is send to
+ * all clients, whenever a new client has connected to the server.
  *
  * @param client_index The id of the client that has connected.
  * @return True if id was found and the sending has nor raised any errors.
@@ -789,9 +789,10 @@ bool tkbc_received_message_handler(Client *client) {
       size_t kite_id, texture_id;
       float x, y, angle;
       Color color;
-      bool is_reversed;
+      bool is_reversed, is_active;
       if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                         &color, &texture_id, &is_reversed)) {
+                                         &color, &texture_id, &is_reversed,
+                                         &is_active)) {
         goto err;
       }
 
@@ -800,8 +801,8 @@ bool tkbc_received_message_handler(Client *client) {
       // kite id. Instead of crashing the complete server.
       // With a correct client implementation the state should always be
       // available. No memory corruption on the server side implied.
-      tkbc_assign_values_to_kitestate(state, x, y, angle, color, is_reversed,
-                                      texture_id);
+      tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id,
+                                      is_reversed, is_active);
 
       if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
               kite_id)) {

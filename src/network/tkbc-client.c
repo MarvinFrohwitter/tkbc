@@ -225,13 +225,18 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
  * @param y The new positional y value of the center of the kite.
  * @param angle The new rotation angle of the kite.
  * @param color The new body color of the kite.
+ * @param texture_id The id of the texture that should be used to display the
+ * kite.
+ * @param is_reversed If the kite should fly reverse by default.
+ * @param is_active If the kite should be displayed on the screen.
  */
 void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
                                     float angle, Color color, size_t texture_id,
-                                    bool is_reversed) {
+                                    bool is_reversed, bool is_active) {
   Kite_State state = tkbc_init_kite();
-  tkbc_assign_values_to_kitestate(&state, x, y, angle, color, is_reversed,
-                                  texture_id);
+  tkbc_assign_values_to_kitestate(&state, x, y, angle, color, texture_id,
+                                  is_reversed, is_active);
+
   state.kite_id = kite_id;
   tkbc_dap(env->kite_array, state);
 }
@@ -364,14 +369,15 @@ bool received_message_handler(Message *message) {
       size_t kite_id, texture_id;
       float x, y, angle;
       Color color;
-      bool is_reversed;
+      bool is_reversed, is_active;
       if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                         &color, &texture_id, &is_reversed)) {
+                                         &color, &texture_id, &is_reversed,
+                                         &is_active)) {
         goto err;
       }
 
       tkbc_register_kite_from_values(kite_id, x, y, angle, color, texture_id,
-                                     is_reversed);
+                                     is_reversed, is_active);
 
       static bool first_message_kite_add = true;
       if (first_message_kite_add) {
@@ -498,9 +504,10 @@ bool received_message_handler(Message *message) {
         size_t kite_id, texture_id;
         float x, y, angle;
         Color color;
-        bool is_reversed;
+        bool is_reversed, is_active;
         if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                           &color, &texture_id, &is_reversed)) {
+                                           &color, &texture_id, &is_reversed,
+                                           &is_active)) {
           goto err;
         }
 
@@ -526,11 +533,11 @@ bool received_message_handler(Message *message) {
         if (state == NULL) {
           // If the kite_id is not registered.
           tkbc_register_kite_from_values(kite_id, x, y, angle, color,
-                                         texture_id, is_reversed);
+                                         texture_id, is_reversed, is_active);
           // NOTE: The kite_state defaults ensure. is_active = true;
         } else {
-          tkbc_assign_values_to_kitestate(state, x, y, angle, color,
-                                          is_reversed, texture_id);
+          tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id,
+                                          is_reversed, is_active);
           state->is_active = true;
         }
       }

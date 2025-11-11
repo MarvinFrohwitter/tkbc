@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.3.014"
+#define PROTOCOL_VERSION "0.3.015"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -222,8 +222,10 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
                    (uint32_t)kite_state->kite->body_color.a;
   size_t texture_id = kite_state->kite->texture_id;
   bool is_reversed = kite_state->is_kite_reversed;
-  space_dapf(space, message, "%zu:(%f,%f):%f:%u:%zu:%zu:", kite_id, x, y, angle,
-             color, texture_id, (size_t)is_reversed);
+  bool is_active = kite_state->is_active;
+
+  space_dapf(space, message, "%zu:(%f,%f):%f:%u:%zu:%zu:%zu:", kite_id, x, y,
+             angle, color, texture_id, (size_t)is_reversed, (size_t)is_active);
 }
 
 /**

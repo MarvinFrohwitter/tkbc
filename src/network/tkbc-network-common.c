@@ -34,20 +34,23 @@ void tkbc_reset_space_and_null_message(Space *space, Message *message) {
  * @param y The new y value of the kite center.
  * @param angle The new angle of the kite.
  * @param color The new color of the kite.
- * @param is_reversed If the kite should fly reverse by default.
  * @param texture_id The id of the texture that should be used to display the
  * kite.
+ * @param is_reversed If the kite should fly reverse by default.
+ * @param is_active If the kite should be displayed on the screen.
  */
 void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
-                                     float angle, Color color, bool is_reversed,
-                                     size_t texture_id) {
+                                     float angle, Color color,
+                                     size_t texture_id, bool is_reversed,
+                                     bool is_active) {
   assert(state);
   state->kite->center.x = x;
   state->kite->center.y = y;
   state->kite->angle = angle;
   state->kite->body_color = color;
-  state->is_kite_reversed = is_reversed;
   state->kite->texture_id = texture_id;
+  state->is_kite_reversed = is_reversed;
+  state->is_active = is_active;
 
   // This is needed because in the server this step
   // is meaningless. The server don't have to load assets to
@@ -76,9 +79,9 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
   size_t id, texture_id;
   float x, y, angle;
   Color color;
-  bool is_reversed;
+  bool is_reversed, is_active;
   if (!tkbc_parse_message_kite_value(lexer, &id, &x, &y, &angle, &color,
-                                     &texture_id, &is_reversed)) {
+                                     &texture_id, &is_reversed, &is_active)) {
     return 0;
   }
 
@@ -95,8 +98,8 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
   // handled because the server expects the client to have it so the client
   // lost it or hasn't registered one jet.
   if (state) {
-    tkbc_assign_values_to_kitestate(state, x, y, angle, color, is_reversed,
-                                    texture_id);
+    tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id,
+                                    is_reversed, is_active);
   }
   return 1;
 }
@@ -113,12 +116,15 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
  * @param color The color the corresponding parsed value is assigned to.
  * @param texture_id The id that represents the texture in the global
  * kite_textures.
+ * @param is_reversed If the kite should fly reverse by default.
+ * @param is_active If the kite should be displayed on the screen.
  * @return True if all values have been parsed correctly and are assigned,
  * otherwise false.
  */
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
                                    float *y, float *angle, Color *color,
-                                   size_t *texture_id, bool *is_reversed) {
+                                   size_t *texture_id, bool *is_reversed,
+                                   bool *is_active) {
   Content buffer = {0};
   Token token;
   bool ok = true;
@@ -231,6 +237,17 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
     check_return(false);
   }
   *is_reversed = !!atoi(lexer_token_to_cstr(lexer, &token));
+
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    check_return(false);
+  }
+
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER) {
+    check_return(false);
+  }
+  *is_active = !!atoi(lexer_token_to_cstr(lexer, &token));
 
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
