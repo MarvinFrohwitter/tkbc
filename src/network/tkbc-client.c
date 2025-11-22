@@ -680,9 +680,12 @@ bool message_queue_handler(Message *message) {
 
   if (!received_message_handler(message)) {
     if (n > 0) {
-      assert(message->count < INT_MAX);
       tkbc_fprintf(stderr, "WARNING", "---------------------------------\n");
-      fprintf(stderr, "%.*s", (int)message->count, message->elements);
+      if (message->count < INT_MAX) {
+        fprintf(stderr, "%.*s", (int)message->count, message->elements);
+      } else {
+        fprintf(stderr, "Discarded message is to large to display!\n");
+      }
       tkbc_fprintf(stderr, "WARNING", "---------------------------------\n");
     }
     return false;

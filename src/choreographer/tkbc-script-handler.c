@@ -767,14 +767,18 @@ void tkbc_scrub_frames(Env *env) {
     env->script_finished = true;
 
     // The indexes are assumed in order and at the corresponding index.
-    int index = drag_left ? env->frames->frames_index - 1
-                          : env->frames->frames_index + 1;
-
-    if (index >= 0 && index < (int)env->script->count) {
-      env->frames = &env->script->elements[index];
-      for (size_t i = 0; i < env->frames->count; ++i) {
-        env->frames->elements[i].finished = false;
+    // This is needed to avoid a down cast of size_t to long or int that can
+    // hold ever value of size_t.
+    if (drag_left) {
+      if (env->frames->frames_index > 0) {
+        env->frames = &env->script->elements[env->frames->frames_index - 1];
       }
+    } else {
+      env->frames = &env->script->elements[env->frames->frames_index + 1];
+    }
+
+    for (size_t i = 0; i < env->frames->count; ++i) {
+      env->frames->elements[i].finished = false;
     }
     tkbc_set_kite_positions_from_kite_frames_positions(env);
   }

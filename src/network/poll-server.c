@@ -1304,12 +1304,16 @@ bool tkbc_received_message_handler(Client *client) {
         env->script_finished = true;
         // The block indexes are assumed in order and at the corresponding
         // index.
-        int index = drag_left ? env->frames->frames_index - 1
-                              : env->frames->frames_index + 1;
-
-        if (index >= 0 && index < (int)env->script->count) {
-          env->frames = &env->script->elements[index];
+        // This is needed to avoid a down cast of size_t to long or int that can
+        // hold ever value of size_t.
+        if (drag_left) {
+          if (env->frames->frames_index > 0) {
+            env->frames = &env->script->elements[env->frames->frames_index - 1];
+          }
+        } else {
+          env->frames = &env->script->elements[env->frames->frames_index + 1];
         }
+
         // TODO: map the kite_ids before setting this.
         tkbc_set_kite_positions_from_kite_frames_positions(env);
       }
@@ -1469,7 +1473,8 @@ int main(int argc, char *argv[]) {
       //
       // Messages
       if (!tkbc_received_message_handler(client)) {
-        if (client->recv_msg_buffer.count) {
+        if (client->recv_msg_buffer.count &&
+            client->recv_msg_buffer.count < INT_MAX) {
           tkbc_fprintf(stderr, "MESSAGE", "%.*s",
                        (int)client->recv_msg_buffer.count,
                        client->recv_msg_buffer.elements);
