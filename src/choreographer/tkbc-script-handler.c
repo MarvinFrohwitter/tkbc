@@ -151,6 +151,11 @@ Frame tkbc_deep_copy_frame(Frame *frame) {
   if (frame->kite_id_array.count) {
     tkbc_dapc(&f.kite_id_array, frame->kite_id_array.elements,
               frame->kite_id_array.count);
+
+    // TODO: Test for reduced memory.
+    //
+    // This is new since 19.11.2025 Marvin Frohwitter
+    f.kite_id_array.script_id_append = frame->kite_id_array.script_id_append;
   }
 
   return f;
