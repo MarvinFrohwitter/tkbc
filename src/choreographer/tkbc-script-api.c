@@ -8,6 +8,7 @@
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
 #include <stdio.h>
+#include <string.h>
 
 /**
  * @brief The function is mandatory to wrap every manual script at the
@@ -47,11 +48,10 @@ void tkbc__script_end(Env *env) {
 
   assert(env->scratch_buf_script.count > 0);
   env->scratch_buf_script.script_id = env->scripts->count + 1;
-  tkbc_dap(env->scripts, tkbc_deep_copy_script(&env->scratch_buf_script));
-
-  for (size_t i = 0; i < env->scratch_buf_script.count; ++i) {
-    tkbc_destroy_frames_internal_data(&env->scratch_buf_script.elements[i]);
-  }
+  space_dap(
+      &env->scripts_space, env->scripts,
+      tkbc_deep_copy_script(&env->scripts_space, &env->scratch_buf_script));
+  space_reset_space(&env->script_creation_space);
   env->scratch_buf_script.name = NULL;
   env->scratch_buf_script.count = 0;
 }
@@ -142,7 +142,7 @@ Frame *tkbc__script_wait(Env *env, float duration) {
   Wait_Action action;
   action.starttime = tkbc_get_time();
 
-  Frame *frame = tkbc_init_frame();
+  Frame *frame = tkbc_init_frame(&env->script_creation_space);
   if (!frame) {
     return NULL;
   }
@@ -169,7 +169,7 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
   Quit_Action action;
   action.starttime = tkbc_get_time();
 
-  Frame *frame = tkbc_init_frame();
+  Frame *frame = tkbc_init_frame(&env->script_creation_space);
   if (!frame) {
     return NULL;
   }
@@ -201,16 +201,18 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
     return NULL;
   }
 
-  Frame *frame = tkbc_init_frame();
+  Frame *frame = tkbc_init_frame(&env->script_creation_space);
   if (!frame) {
     return NULL;
   }
-  tkbc_dapc(&frame->kite_id_array, kite_ids.elements, kite_ids.count);
+  space_dapc(&env->script_creation_space, &frame->kite_id_array,
+             kite_ids.elements, kite_ids.count);
   if (kite_ids.script_id_append) {
-    space_reset_space(&env->id_space);
-    kite_ids.elements = NULL;
-    kite_ids.script_id_append = false;
+    // TODO: nocheckin
+    // kite_ids.elements = NULL;
+    // kite_ids.script_id_append = false;
     frame->kite_id_array.script_id_append = true;
+    space_reset_space(&env->id_space);
   }
   frame->duration = duration;
   frame->kind = kind;
@@ -220,7 +222,8 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
 
 /**
  * @brief The function can be used to collect all given frames into one frame
- * list and register them as a new frame block.
+ * list and register them as a new frame block. The provided memory is freed
+ * while internal use.
  *
  * @param env The environment that holds the current state of the application.
  */
@@ -231,12 +234,26 @@ void tkbc__register_frames(Env *env, ...) {
   va_start(args, env);
   Frame *frame = va_arg(args, Frame *);
   while (frame != NULL) {
-    tkbc_dap(&env->scratch_buf_frames, tkbc_deep_copy_frame(frame));
+    space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+              tkbc_deep_copy_frame(&env->script_creation_space, frame));
+
     if (frame->kite_id_array.script_id_append) {
-      free(frame->kite_id_array.elements);
       frame->kite_id_array.script_id_append = false;
+      space_reset_space(&env->id_space);
     }
-    free(frame);
+    // This allows the user to create a frame ptr manually and pass it and not
+    // use the provided script API that uses the space buffer..
+    // TODO:
+    // TODO:
+    // TODO:
+    // TODO:
+    // TODO: This is needed check this out
+    // TODO:
+    // TODO:
+    // TODO:
+    if (!space__find_planet_from_ptr(&env->script_creation_space, frame)) {
+      // free(frame);
+    }
     frame = va_arg(args, Frame *);
   }
   va_end(args);
@@ -251,20 +268,21 @@ void tkbc__register_frames(Env *env, ...) {
  * @param env The global state of the application.
  * @param frame The frames the should be appended to the scratch_buf_frames.
  */
+// TODO: rename tkbc_sript_team_scratch_buf_frames_append_and_reset()
 void tkbc_sript_team_scratch_buf_frames_append_and_free(Env *env,
                                                         Frame *frame) {
-  tkbc_dap(&env->scratch_buf_frames, tkbc_deep_copy_frame(frame));
+  space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+            tkbc_deep_copy_frame(&env->script_creation_space, frame));
+
   // NOTE: This function expects to get a frame created by the
   // tkbc__frame_generate() function that handles the allocation of the id
   // regarding frame->kite_id_array.script_id_append so this should not be
   // handled in this function. All given kite_ids in the frame should be freed.
 
-  free(frame->kite_id_array.elements);
-  frame->kite_id_array.elements = NULL;
+  // TODO: nocheckin
+  // frame->kite_id_array.elements = NULL;
   frame->kite_id_array.script_id_append = false;
-
-  free(frame);
-  frame = NULL;
+  // frame = NULL;
 }
 
 /**
@@ -301,8 +319,9 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     }
   }
   tkbc_patch_script_kite_positions(env, frames);
-  Frames copy_frames = tkbc_deep_copy_frames(frames);
-  tkbc_dap(&env->scratch_buf_script, copy_frames);
+  Frames copy_frames =
+      tkbc_deep_copy_frames(&env->script_creation_space, frames);
+  space_dap(&env->script_creation_space, &env->scratch_buf_script, copy_frames);
   tkbc_reset_frames_internal_data(frames);
 
   assert((int)env->scratch_buf_script.count - 1 >= 0);

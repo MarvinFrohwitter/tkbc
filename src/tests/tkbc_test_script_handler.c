@@ -31,7 +31,8 @@ Test init_frame() {
   void *frame_before = frame;
   cassert_ptr_eq(frame, frame_before);
 
-  frame = tkbc_init_frame();
+  Space space = {0};
+  frame = tkbc_init_frame(&space);
   if (!frame) {
     free(frame);
     return test;
@@ -147,12 +148,13 @@ Test contains_id() {
 
 Test deep_copy_frame() {
   Test test = cassert_init_test("tkbc_deep_copy_frame()");
-  Frame *frame = tkbc_init_frame();
+  Space space = {0};
+  Frame *frame = tkbc_init_frame(&space);
   frame->kind = KITE_WAIT;
   frame->action.as_wait.starttime = 123.456789f;
   Kite_Ids kite_ids = tkbc_indexs_range(0, 8);
   tkbc_dapc(&frame->kite_id_array, kite_ids.elements, kite_ids.count);
-  Frame frame_copy = tkbc_deep_copy_frame(frame);
+  Frame frame_copy = tkbc_deep_copy_frame(&space, frame);
   cassert_size_t_eq(frame->kite_id_array.count, 8);
 
   cassert_ptr_neq(frame, &frame_copy);
@@ -202,7 +204,8 @@ Test deep_copy_frames() {
       ((Kite_Position){
           .kite_id = 2, .position.x = 150, .position.y = 250, .angle = 180}));
 
-  Frames new_frames = tkbc_deep_copy_frames(frames);
+  Space space = {0};
+  Frames new_frames = tkbc_deep_copy_frames(&space, frames);
 
   cassert_ptr_neq(frames, &new_frames);
   cassert_int_eq(frames->count, new_frames.count);
@@ -277,7 +280,8 @@ Test deep_copy_script() {
 
   cassert_dap(&script, frames);
 
-  Script new_script = tkbc_deep_copy_script(&script);
+  Space space = {0};
+  Script new_script = tkbc_deep_copy_script(&space, &script);
   cassert_ptr_neq(&script, &new_script);
   cassert_int_eq(script.count, new_script.count);
   cassert_int_eq(script.capacity, new_script.capacity);

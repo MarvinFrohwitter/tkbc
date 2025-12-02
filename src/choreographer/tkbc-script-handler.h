@@ -7,14 +7,14 @@
 // ========================== Script Handler =================================
 // ===========================================================================
 
-Frame *tkbc_init_frame(void);
+Frame *tkbc_init_frame(Space *space);
 Kite_State *tkbc_get_kite_state_by_id(Env *env, size_t id);
 Kite *tkbc_get_kite_by_id(Env *env, size_t id);
 Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id);
 bool tkbc_contains_id(Kite_Ids kite_ids, size_t id);
-Frame tkbc_deep_copy_frame(Frame *frame);
-Frames tkbc_deep_copy_frames(Frames *frames);
-Script tkbc_deep_copy_script(Script *script);
+Frame tkbc_deep_copy_frame(Space *space, Frame *frame);
+Frames tkbc_deep_copy_frames(Space *space, Frames *frames);
+Script tkbc_deep_copy_script(Space *space, Script *script);
 void tkbc_destroy_frames_internal_data(Frames *frames);
 void tkbc_reset_frames_internal_data(Frames *frames);
 void tkbc_render_frame(Env *env, Frame *frame);

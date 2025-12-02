@@ -18,10 +18,11 @@
  * @brief The function can be used to get a new allocated zero initialized
  * frame.
  *
+ * @param space The space where the allocation should happen.
  * @return A new on the heap allocated frame region is given back.
  */
-Frame *tkbc_init_frame(void) {
-  Frame *frame = malloc(sizeof(*frame));
+Frame *tkbc_init_frame(Space *space) {
+  Frame *frame = space_malloc(space, sizeof(*frame));
   if (frame == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
     return NULL;
@@ -107,10 +108,11 @@ bool tkbc_contains_id(Kite_Ids kite_ids, size_t id) {
  * be used to move a creation of a temporary struct of type Frames to a
  * permanently stored one.
  *
+ * @param space The space where the internal allocation should happen.
  * @param frames The pointer that holds the values that should be copied.
  * @return The value ready copy of the frames.
  */
-Frames tkbc_deep_copy_frames(Frames *frames) {
+Frames tkbc_deep_copy_frames(Space *space, Frames *frames) {
   Frames new_frames = {0};
   if (frames == NULL) {
     return new_frames;
@@ -118,9 +120,9 @@ Frames tkbc_deep_copy_frames(Frames *frames) {
   new_frames.frames_index = frames->frames_index;
 
   if (frames->kite_frame_positions.count) {
-    tkbc_dapc(&new_frames.kite_frame_positions,
-              frames->kite_frame_positions.elements,
-              frames->kite_frame_positions.count);
+    space_dapc(space, &new_frames.kite_frame_positions,
+               frames->kite_frame_positions.elements,
+               frames->kite_frame_positions.count);
   }
 
   if (frames->elements == NULL) {
@@ -128,8 +130,8 @@ Frames tkbc_deep_copy_frames(Frames *frames) {
   }
 
   for (size_t i = 0; i < frames->count; ++i) {
-    Frame frame = tkbc_deep_copy_frame(&frames->elements[i]);
-    tkbc_dap(&new_frames, frame);
+    Frame frame = tkbc_deep_copy_frame(space, &frames->elements[i]);
+    space_dap(space, &new_frames, frame);
   }
 
   return new_frames;
@@ -138,10 +140,11 @@ Frames tkbc_deep_copy_frames(Frames *frames) {
 /**
  * @brief The function can be used to copy a frame struct.
  *
+ * @param space The space where the internal allocation should happen.
  * @param frame The frame that should be copied.
  * @return The copy of the original fames provided in the argument.
  */
-Frame tkbc_deep_copy_frame(Frame *frame) {
+Frame tkbc_deep_copy_frame(Space *space, Frame *frame) {
   Frame f = {0};
   f.duration = frame->duration;
   f.finished = frame->finished;
@@ -149,8 +152,8 @@ Frame tkbc_deep_copy_frame(Frame *frame) {
   f.index = frame->index;
   f.action = frame->action;
   if (frame->kite_id_array.count) {
-    tkbc_dapc(&f.kite_id_array, frame->kite_id_array.elements,
-              frame->kite_id_array.count);
+    space_dapc(space, &f.kite_id_array, frame->kite_id_array.elements,
+               frame->kite_id_array.count);
 
     // TODO: Test for reduced memory.
     //
@@ -167,10 +170,11 @@ Frame tkbc_deep_copy_frame(Frame *frame) {
  * be used to move a creation of a temporary struct of type script to a
  * permanently stored one.
  *
+ * @param space The space where the internal allocation should happen.
  * @param script The pointer that holds the values that should be copied.
  * @return The value ready copy of the script.
  */
-Script tkbc_deep_copy_script(Script *script) {
+Script tkbc_deep_copy_script(Space *space, Script *script) {
   Script new_script = {0};
   if (!script) {
     return new_script;
@@ -179,7 +183,8 @@ Script tkbc_deep_copy_script(Script *script) {
   new_script.name = script->name;
 
   for (size_t i = 0; i < script->count; ++i) {
-    tkbc_dap(&new_script, tkbc_deep_copy_frames(&script->elements[i]));
+    space_dap(space, &new_script,
+              tkbc_deep_copy_frames(space, &script->elements[i]));
   }
   return new_script;
 }
@@ -227,8 +232,7 @@ void tkbc_reset_frames_internal_data(Frames *frames) {
 
   for (size_t i = 0; i < frames->count; ++i) {
     if (frames->elements[i].kite_id_array.elements) {
-      free(frames->elements[i].kite_id_array.elements);
-      frames->elements[i].kite_id_array.elements = NULL;
+      // frames->elements[i].kite_id_array.elements = NULL;
       frames->elements[i].kite_id_array.count = 0;
       frames->elements[i].kite_id_array.capacity = 0;
     }
@@ -603,7 +607,8 @@ void tkbc_patch_script_kite_positions(Env *env, Frames *frames) {
       }
 
       if (!contains) {
-        tkbc_dap(&frames->kite_frame_positions, kite_position);
+        space_dap(&env->script_creation_space, &frames->kite_frame_positions,
+                  kite_position);
       }
     }
   }

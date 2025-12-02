@@ -844,6 +844,7 @@ bool tkbc_received_message_handler(Client *client) {
 
       Content tmp_buffer = {0};
       bool script_parse_fail = false;
+      Space *scb_space = &env->script_creation_space;
       Script *scb_script = &env->scratch_buf_script;
       Frames *scb_frames = &env->scratch_buf_frames;
       Kite_Ids possible_new_kis = {0};
@@ -1122,10 +1123,11 @@ bool tkbc_received_message_handler(Client *client) {
             script_parse_fail = true;
             goto script_err;
           }
-          tkbc_dap(scb_frames, frame);
+          space_dap(scb_space, scb_frames, frame);
         }
 
-        tkbc_dap(scb_script, tkbc_deep_copy_frames(scb_frames));
+        space_dap(scb_space, scb_script,
+                  tkbc_deep_copy_frames(scb_space, scb_frames));
         tkbc_reset_frames_internal_data(scb_frames);
       }
 
@@ -1145,7 +1147,8 @@ bool tkbc_received_message_handler(Client *client) {
 
         tkbc_remap_script_kite_id_arrays_to_kite_ids(env, scb_script, kite_ids);
         free(kite_ids.elements);
-        kite_ids.elements = NULL;
+        // TODO: temp @nocheckin use maybe a space allocation in here
+        // kite_ids.elements = NULL;
 
         // Set the first kite frame positions
         for (size_t i = 0; i < scb_script->count; ++i) {
@@ -1162,18 +1165,17 @@ bool tkbc_received_message_handler(Client *client) {
         // reducing the memory storage size of a script.
         //
         // Marvin Frohwitter 22.06.2025
-        tkbc_dap(env->scripts, tkbc_deep_copy_script(scb_script));
-        for (size_t i = 0; i < scb_script->count; ++i) {
-          tkbc_destroy_frames_internal_data(&scb_script->elements[i]);
-        }
-        scb_script->name = NULL;
+        space_dap(&env->scripts_space, env->scripts,
+                  tkbc_deep_copy_script(&env->scripts_space, scb_script));
+        space_reset_space(&env->script_creation_space);
       }
       scb_script->count = 0;
 
     script_err:
       if (possible_new_kis.elements) {
         free(possible_new_kis.elements);
-        possible_new_kis.elements = NULL;
+        // TODO: temp @nocheckin use maybe a space allocation in here
+        // possible_new_kis.elements = NULL;
       }
       if (tmp_buffer.elements) {
         free(tmp_buffer.elements);

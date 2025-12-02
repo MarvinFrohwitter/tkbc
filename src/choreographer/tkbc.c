@@ -143,14 +143,17 @@ void tkbc_destroy_env(Env *env) {
   tkbc_destroy_kite_array(env->kite_array);
 
   space_free_space(&env->id_space);
+  space_free_space(&env->script_creation_space);
+  env->scratch_buf_script.name = NULL;
 
   for (size_t j = 0; j < env->scripts->count; ++j) {
     // The frames are just a mapped in version of script no need to handle
     // them separately.
     for (size_t i = 0; i < env->scripts->elements[j].count; ++i) {
       tkbc_destroy_frames_internal_data(&env->scripts->elements[j].elements[i]);
+
+      env->scripts->elements[j].name = NULL;
     }
-    env->scripts->elements[j].name = NULL;
   }
 
   free(env->scripts->elements);
@@ -158,12 +161,6 @@ void tkbc_destroy_env(Env *env) {
   free(env->scripts);
   env->scripts = NULL;
 
-  for (size_t i = 0; i < env->scratch_buf_script.count; ++i) {
-    tkbc_destroy_frames_internal_data(&env->scratch_buf_script.elements[i]);
-  }
-  env->scratch_buf_script.name = NULL;
-
-  tkbc_destroy_frames_internal_data(&env->scratch_buf_frames);
   free(env);
   env = NULL;
 }

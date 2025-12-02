@@ -11,7 +11,7 @@ void bicycle_start(Env *env, Kite_Ids ki) {
 
   int bottom_padding = kite.height;
 
-  COLLECTION(
+  SET(
 
       KITE_MOVE(ID(0), env->window_width / 2.0 - kite.width,
                 env->window_height - kite.height - bottom_padding, 0),
