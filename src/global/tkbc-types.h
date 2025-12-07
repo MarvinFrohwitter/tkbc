@@ -379,6 +379,7 @@ typedef struct {
                            // session of the application.
   size_t kite_id_counter;  // The identifier counter for the kite.
 
+  // TODO: These views can be invalidated by pushing into scripts (realloc).
   Frames *frames;      // A view of the current active drawable frames.
   Script *script;      // A view of all the frames that should be
                        // executed in a script.
