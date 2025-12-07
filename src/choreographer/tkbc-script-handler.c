@@ -676,18 +676,27 @@ void tkbc_load_next_script(Env *env) {
  * @param env The global state of the application.
  * @param script_id The id of the script that should be loaded into the
  * current execution.
+ * @return True if the script could be loaded successfully, otherwise false.
  */
-void tkbc_load_script_id(Env *env, size_t script_id) {
+bool tkbc_load_script_id(Env *env, size_t script_id) {
+  bool found = false;
   for (size_t i = 0; i < env->scripts->count; ++i) {
     if (env->scripts->elements[i].script_id == script_id) {
       env->script = &env->scripts->elements[i];
+      found = true;
       break;
     }
+  }
+
+  if (!found) {
+    return false;
   }
 
   env->frames = &env->script->elements[0];
   tkbc_set_kite_positions_from_kite_frames_positions(env);
   env->script_finished = false;
+
+  return true;
 }
 
 /**
@@ -703,6 +712,49 @@ void tkbc_unload_script(Env *env) {
   env->script_finished = true;
   env->frames = NULL;
   env->script = NULL;
+}
+
+/**
+ * @brief This function adds a script to the global array located in the env. It
+ * is needed to achieve stability for the raw frames and script pointers in the
+ * env, they can be invalidated when the scripts array reallocates.
+ *
+ * @param env The global state of the application.
+ * @param script The script to add.
+ */
+void tkbc_add_script(Env *env, Script script) {
+  Index frames_index = 0;
+  Id script_id = 0;
+  bool is_frames = false;
+  bool is_script = false;
+
+  if (env->frames) {
+    is_frames = true;
+    frames_index = env->frames->frames_index;
+  }
+
+  if (env->script) {
+    is_script = true;
+    script_id = env->script->script_id;
+  }
+
+  space_dap(&env->scripts_space, env->scripts, script);
+
+  if (is_script) {
+    if (!tkbc_load_script_id(env, script_id)) {
+      return;
+    }
+  }
+
+  if (is_frames) {
+    // The env->script pointer is now valid again, so we can use it.
+    for (size_t i = 0; i < env->script->count; ++i) {
+      if (env->script->elements[i].frames_index == frames_index) {
+        env->frames = &env->script->elements[i];
+        break;
+      }
+    }
+  }
 }
 
 /**

@@ -350,6 +350,7 @@ bool tkbc_ui_script_menu(Env *env) {
         CheckCollisionPointRec(mouse, outer_script_box)) {
       DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
       // Script ids start from 1 so +1 is needed.
+      // TODO: Display an error somehow if we can't load the selected script.
       tkbc_load_script_id(env, env->script_menu_mouse_interaction_box + 1);
       env->script_menu_interaction = false;
       env->new_script_selected = true;

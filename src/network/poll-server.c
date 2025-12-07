@@ -1165,8 +1165,9 @@ bool tkbc_received_message_handler(Client *client) {
         // reducing the memory storage size of a script.
         //
         // Marvin Frohwitter 22.06.2025
-        space_dap(&env->scripts_space, env->scripts,
-                  tkbc_deep_copy_script(&env->scripts_space, scb_script));
+        tkbc_add_script(env,
+                        tkbc_deep_copy_script(&env->scripts_space, scb_script));
+
         space_reset_space(&env->script_creation_space);
       }
       scb_script->count = 0;
@@ -1233,6 +1234,7 @@ bool tkbc_received_message_handler(Client *client) {
         tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(0, 0, 0);
         goto no_script;
       }
+      // TODO: Report possible failures of loading back to the client.
       tkbc_load_script_id(env, script_id);
       env->server_script_kite_max_count = 0;
 
