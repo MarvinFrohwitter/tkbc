@@ -278,7 +278,7 @@ void *space_malloc_planetid(Space *space, size_t size_in_bytes,
     assert(p->elements &&
            "ERROR:SPACE: Memory inside a space was freed or set to NULL"
            "by an external call outside the space api!");
-    void *place = &((uintptr_t *)p->elements)[p->count];
+    void *place = &((char *)p->elements)[p->count];
     p->count += size_in_bytes;
     *planet_id = p->id;
     return place;
@@ -372,7 +372,7 @@ size_t space__find_planet_id_from_ptr(Space *space, void *ptr) {
   }
 
   for (Planet *p = space->sun; p; p = p->next) {
-    if ((uintptr_t *)p->elements + p->capacity - (uintptr_t *)ptr >= 0) {
+    if ((char *)p->elements + p->capacity - (char *)ptr >= 0) {
       return p->id;
     }
   }
@@ -395,7 +395,7 @@ Planet *space__find_planet_from_ptr(Space *space, void *ptr) {
   }
 
   for (Planet *p = space->sun; p; p = p->next) {
-    if ((uintptr_t *)p->elements + p->capacity - (uintptr_t *)ptr >= 0) {
+    if ((char *)p->elements + p->capacity - (char *)ptr >= 0) {
       return p;
     }
   }
