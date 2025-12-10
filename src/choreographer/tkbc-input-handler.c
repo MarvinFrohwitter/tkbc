@@ -166,9 +166,9 @@ void tkbc_input_handler_kite_array(Env *env) {
       frame->kite_id_array.count = 0;
       tkbc_dapc(&frame->kite_id_array, new_kite_index_array.elements,
                 new_kite_index_array.count);
+      // TODO: use maybe a space allocation in here
       free(new_kite_index_array.elements);
-      // TODO: temp @nocheckin use maybe a space allocation in here
-      // new_kite_index_array.elements = NULL;
+      new_kite_index_array.elements = NULL;
     }
   }
 

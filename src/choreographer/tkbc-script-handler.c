@@ -232,7 +232,6 @@ void tkbc_reset_frames_internal_data(Frames *frames) {
 
   for (size_t i = 0; i < frames->count; ++i) {
     if (frames->elements[i].kite_id_array.elements) {
-      // frames->elements[i].kite_id_array.elements = NULL;
       frames->elements[i].kite_id_array.count = 0;
       frames->elements[i].kite_id_array.capacity = 0;
     }

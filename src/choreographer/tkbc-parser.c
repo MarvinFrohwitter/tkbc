@@ -62,8 +62,8 @@ void tkbc_script_parser(Env *env) {
         function_name = NULL;
         if (kis.elements) {
           free(kis.elements);
-          // TODO: temp @nocheckin use maybe a space allocation in here
-          //  kis.elements = NULL;
+          // TODO: use maybe a space allocation in here
+           kis.elements = NULL;
         }
         if (!ok) {
           goto err;
@@ -192,8 +192,8 @@ void tkbc_script_parser(Env *env) {
   if (ki.elements)
     free(ki.elements);
 
-  // TODO: temp @nocheckin use maybe a space allocation in here
-  // ki.elements = NULL;
+  // TODO: use maybe a space allocation in here
+  ki.elements = NULL;
 }
 
 /**
@@ -342,8 +342,8 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki,
 check:
   if (kis.elements) {
     free(kis.elements);
-    // TODO: temp @nocheckin use maybe a space allocation in here
-    // kis.elements = NULL;
+    // TODO: use maybe a space allocation in here
+    kis.elements = NULL;
   }
   return ok;
 }
@@ -420,8 +420,8 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki,
 check:
   if (kis.elements) {
     free(kis.elements);
-    // TODO: temp @nocheckin use maybe a space allocation in here
-    // kis.elements = NULL;
+    // TODO: use maybe a space allocation in here
+    kis.elements = NULL;
   }
   return ok;
 }
@@ -516,8 +516,8 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
 check:
   if (kis.elements) {
     free(kis.elements);
-    // TODO: temp @nocheckin use maybe a space allocation in here
-    // kis.elements = NULL;
+    // TODO: use maybe a space allocation in here
+    kis.elements = NULL;
   }
   return ok;
 }

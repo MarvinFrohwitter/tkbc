@@ -1147,8 +1147,7 @@ bool tkbc_received_message_handler(Client *client) {
 
         tkbc_remap_script_kite_id_arrays_to_kite_ids(env, scb_script, kite_ids);
         free(kite_ids.elements);
-        // TODO: temp @nocheckin use maybe a space allocation in here
-        // kite_ids.elements = NULL;
+        kite_ids.elements = NULL;
 
         // Set the first kite frame positions
         for (size_t i = 0; i < scb_script->count; ++i) {
@@ -1175,8 +1174,7 @@ bool tkbc_received_message_handler(Client *client) {
     script_err:
       if (possible_new_kis.elements) {
         free(possible_new_kis.elements);
-        // TODO: temp @nocheckin use maybe a space allocation in here
-        // possible_new_kis.elements = NULL;
+        possible_new_kis.elements = NULL;
       }
       if (tmp_buffer.elements) {
         free(tmp_buffer.elements);
