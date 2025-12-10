@@ -258,11 +258,23 @@ void *space_malloc_planetid(Space *space, size_t size_in_bytes,
 
   Planet *p = space->sun;
   Planet *prev = space->sun;
-  for (; p; prev = p, p = p->next) {
+  while (p) {
     if (p->count + size_in_bytes > p->capacity) {
+      prev = p;
+      p = p->next;
       continue;
     }
 
+    // TODO: Think about handling this by deleting the planet chunk in between.
+    // We can't get the original pointer at this point anyway.
+    // Recovery is outside the traditional behavior of this lib, which is
+    // freeing the complete space at once and be sure that every allocated
+    // memory is freed.
+    //
+    // We can't distinguish between an actual free call or destroying our
+    // reference by setting it to NULL.
+    //
+    // Marvin Frohwitter 01.12.2025
     assert(p->elements &&
            "ERROR:SPACE: Memory inside a space was freed or set to NULL"
            "by an external call outside the space api!");
@@ -313,7 +325,10 @@ void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
 
   char *new_ptr = space_malloc_planetid(space, new_size, planet_id);
   if (new_ptr) {
-    memcpy(new_ptr, ptr, old_size);
+    if (ptr) { // This is to ensure memcpy() does not copy from NULL, this is
+               // undefended behavior and a memory corruption.
+      memcpy(new_ptr, ptr, old_size);
+    }
   }
   return new_ptr;
 }
@@ -346,6 +361,9 @@ size_t space__find_planet_id_from_ptr(Space *space, void *ptr) {
   if (!ptr || !space) {
     return -1;
   }
+  if (!space->planet_count) {
+    return -1;
+  }
   if (!space->sun || !space->sun->elements) {
     return -1;
   }
@@ -364,6 +382,9 @@ size_t space__find_planet_id_from_ptr(Space *space, void *ptr) {
 
 Planet *space__find_planet_from_ptr(Space *space, void *ptr) {
   if (!ptr || !space) {
+    return NULL;
+  }
+  if (!space->planet_count) {
     return NULL;
   }
   if (!space->sun || !space->sun->elements) {
@@ -386,7 +407,8 @@ bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
                             size_t new_size, size_t *planet_id) {
 
   Planet *p = space__find_planet_from_ptr(space, ptr);
-  if (!p || (p->count != old_size) || (p->count + new_size > p->capacity)) {
+  if (!p || (p->count != old_size) || (p->capacity - old_size != p->count) ||
+      (p->count + new_size > p->capacity)) {
     planet_id = NULL;
     return false;
   }
