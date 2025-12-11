@@ -52,7 +52,6 @@ void tkbc__script_end(Env *env) {
   tkbc_add_script(env, tkbc_deep_copy_script(&env->scripts_space,
                                              &env->scratch_buf_script));
 
-  space_reset_space(&env->script_creation_space);
   env->scratch_buf_script.name = NULL;
   env->scratch_buf_script.count = 0;
 }

@@ -769,6 +769,7 @@ void tkbc_add_script(Env *env, Script script) {
   }
 
   space_dap(&env->scripts_space, &env->scripts, script);
+  space_reset_space(&env->script_creation_space);
 
   if (is_script) {
     if (!tkbc_load_script_id(env, script_id)) {

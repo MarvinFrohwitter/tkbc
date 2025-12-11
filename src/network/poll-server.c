@@ -1168,7 +1168,6 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_add_script(env,
                       tkbc_deep_copy_script(&env->scripts_space, scb_script));
 
-      space_reset_space(&env->script_creation_space);
       // For continues parsing this does not happen in an error case.
       scb_script->count = 0;
 
