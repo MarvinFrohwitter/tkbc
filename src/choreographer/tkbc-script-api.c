@@ -304,7 +304,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
       kite->old_center = kite->center;
     }
   }
-  tkbc_patch_script_kite_positions(env, frames);
+  tkbc_patch_frames_kite_positions(env, frames);
   Frames copy_frames =
       tkbc_deep_copy_frames(&env->script_creation_space, frames);
   space_dap(&env->script_creation_space, &env->scratch_buf_script, copy_frames);

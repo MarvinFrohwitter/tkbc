@@ -1152,9 +1152,10 @@ bool tkbc_received_message_handler(Client *client) {
       free(kite_ids.elements);
       kite_ids.elements = NULL;
 
+
       // Set the first kite frame positions
       for (size_t i = 0; i < scb_script->count; ++i) {
-        tkbc_patch_script_kite_positions(env, &scb_script->elements[i]);
+        tkbc_patch_frames_kite_positions(env, &scb_script->elements[i]);
       }
 
       //

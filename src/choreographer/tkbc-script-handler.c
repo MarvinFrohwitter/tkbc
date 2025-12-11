@@ -591,7 +591,7 @@ void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Script *script,
  * @param frames The frames where the kite positions should be updated to the
  * current kite values.
  */
-void tkbc_patch_script_kite_positions(Env *env, Frames *frames) {
+void tkbc_patch_frames_kite_positions(Env *env, Frames *frames) {
   for (size_t i = 0; i < frames->count; ++i) {
     if (!frames->elements[i].kite_id_array.count) {
       continue;
