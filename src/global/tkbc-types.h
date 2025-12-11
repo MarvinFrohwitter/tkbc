@@ -384,7 +384,7 @@ typedef struct {
   Frames *frames;      // A view of the current active drawable frames.
   Script *script;      // A view of all the frames that should be
                        // executed in a script.
-  Scripts *scripts;    // The collection of all the parsed scripts.
+  Scripts scripts;     // The collection of all the parsed scripts.
   Space scripts_space; //
 
   char *script_file_name; // The name of the script file '.kite'.

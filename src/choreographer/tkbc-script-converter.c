@@ -162,19 +162,19 @@ check:
 int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env) {
   int err = 0;
   size_t id = 1;
-  for (size_t i = 0; i < env->scripts->count; ++i) {
+  for (size_t i = 0; i < env->scripts.count; ++i) {
     char buf[32];
-    if (env->scripts->elements[i].name) {
-      sprintf(buf, "%s.kite", env->scripts->elements[i].name);
+    if (env->scripts.elements[i].name) {
+      sprintf(buf, "%s.kite", env->scripts.elements[i].name);
     } else {
       sprintf(buf, "Script%zu.kite", i);
     }
 
     err = tkbc_export_script_to_dot_kite_file_from_mem(
-        &env->scripts->elements[i], buf);
+        &env->scripts.elements[i], buf);
 
     if (err) {
-      id = env->scripts->elements[i].script_id;
+      id = env->scripts.elements[i].script_id;
       break;
     }
   }

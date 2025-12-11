@@ -47,7 +47,7 @@ void tkbc__script_end(Env *env) {
   env->script_setup = false;
 
   assert(env->scratch_buf_script.count > 0);
-  env->scratch_buf_script.script_id = env->scripts->count + 1;
+  env->scratch_buf_script.script_id = env->scripts.count + 1;
 
   tkbc_add_script(env, tkbc_deep_copy_script(&env->scripts_space,
                                              &env->scratch_buf_script));
@@ -551,8 +551,8 @@ void tkbc_print_all_scripts(FILE *stream, Env *env) {
   if (!stream) {
     return;
   }
-  for (size_t i = 0; i < env->scripts->count; ++i) {
-    tkbc_print_script(stream, &env->scripts->elements[i]);
+  for (size_t i = 0; i < env->scripts.count; ++i) {
+    tkbc_print_script(stream, &env->scripts.elements[i]);
   }
 }
 
@@ -568,9 +568,9 @@ void tkbc_print_all_scripts(FILE *stream, Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env) {
-  for (size_t i = 0; i < env->scripts->count; ++i) {
+  for (size_t i = 0; i < env->scripts.count; ++i) {
     if (stream) {
-      tkbc_print_script(stream, &env->scripts->elements[i]);
+      tkbc_print_script(stream, &env->scripts.elements[i]);
     }
     int ret = tkbc_export_all_scripts_to_dot_kite_file_from_mem(env);
     assert(ret == 0 && "ERROR: Not all the scripts are correctly exported.");

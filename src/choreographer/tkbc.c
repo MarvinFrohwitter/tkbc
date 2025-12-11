@@ -47,13 +47,6 @@ Env *tkbc_init_env(void) {
   }
   memset(env->kite_array, 0, sizeof(*env->kite_array));
 
-  env->scripts = malloc(sizeof(*env->scripts));
-  if (env->scripts == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
-  memset(env->scripts, 0, sizeof(*env->scripts));
-
   tkbc_init_keymaps_defaults(&env->keymaps);
 
   tkbc_set_kite_defaults(env->vanilla_kite, true);
@@ -147,8 +140,6 @@ void tkbc_destroy_env(Env *env) {
   space_free_space(&env->scripts_space);
   env->scratch_buf_script.name = NULL;
 
-  free(env->scripts);
-  env->scripts = NULL;
   free(env);
   env = NULL;
 }

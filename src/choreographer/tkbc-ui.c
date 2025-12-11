@@ -220,7 +220,7 @@ bool tkbc_ui_script_menu(Env *env) {
   env->script_menu_base =
       (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
 
-  size_t scripts_count = env->scripts->count;
+  size_t scripts_count = env->scripts.count;
   float padding = 10;
   Rectangle script_box = {
       .x = env->script_menu_base.x + padding,
@@ -276,8 +276,8 @@ bool tkbc_ui_script_menu(Env *env) {
       DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
     }
 
-    if (env->scripts->elements[box].name) {
-      const char *name = env->scripts->elements[box].name;
+    if (env->scripts.elements[box].name) {
+      const char *name = env->scripts.elements[box].name;
       text_size = MeasureTextEx(GetFontDefault(), name, font_size, 0);
 
       DrawText(name, script_box.x + script_box.width / 2 - text_size.x / 2,

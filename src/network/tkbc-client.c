@@ -751,13 +751,13 @@ void tkbc_client_input_handler_kite() {
  */
 bool tkbc_message_append_script(size_t script_id) {
 
-  for (size_t i = 0; i < env->scripts->count; ++i) {
-    if (env->scripts->elements[i].script_id != script_id) {
+  for (size_t i = 0; i < env->scripts.count; ++i) {
+    if (env->scripts.elements[i].script_id != script_id) {
       continue;
     }
     space_dapf(&client.msg_space, &client.send_msg_buffer, "%zu:", script_id);
 
-    Script *script = &env->scripts->elements[i];
+    Script *script = &env->scripts.elements[i];
     space_dapf(&client.msg_space, &client.send_msg_buffer,
                "%zu:", script->count);
     for (size_t j = 0; j < script->count; ++j) {
@@ -840,15 +840,15 @@ bool tkbc_message_append_script(size_t script_id) {
 bool tkbc_message_script() {
   bool ok = true;
   space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:%zu:\r\n",
-             MESSAGE_SCRIPT_AMOUNT, env->scripts->count);
+             MESSAGE_SCRIPT_AMOUNT, env->scripts.count);
 
   size_t counter = 0;
-  for (size_t i = env->send_scripts; i < env->scripts->count; ++i) {
+  for (size_t i = env->send_scripts; i < env->scripts.count; ++i) {
     char buf[8];
     int size = snprintf(buf, sizeof(buf), "%d:", MESSAGE_SCRIPT);
     space_dapf(&client.msg_space, &client.send_msg_buffer, "%s", buf);
 
-    if (!tkbc_message_append_script(env->scripts->elements[i].script_id)) {
+    if (!tkbc_message_append_script(env->scripts.elements[i].script_id)) {
       tkbc_fprintf(stderr, "ERROR",
                    "The script could not be appended to the message.\n");
       client.send_msg_buffer.count -= size;
@@ -872,7 +872,7 @@ void tkbc_client_file_handler() {
   size_t prev_kite_array_count = env->kite_array->count;
 
   tkbc_file_handler(env);
-  if (env->scripts->count > 0 && env->scripts->count - env->send_scripts > 0) {
+  if (env->scripts.count > 0 && env->scripts.count - env->send_scripts > 0) {
 
     tkbc_message_script();
   }
@@ -910,7 +910,7 @@ void tkbc_message_kites_positions() {
  * messages that are send to the server.
  */
 void tkbc_client_input_handler_script() {
-  if (env->scripts->count <= 0) {
+  if (env->scripts.count <= 0) {
     return;
   }
 

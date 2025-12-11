@@ -855,6 +855,14 @@ bool tkbc_received_message_handler(Client *client) {
         goto script_err;
       }
       scb_script->script_id = atoi(lexer_token_to_cstr(lexer, &token));
+      //
+      // This just fast forward a script that is already known and it reduces
+      // the parsing afford.
+      if (tkbc_scripts_contains_id(env->scripts, scb_script->script_id)) {
+        script_parse_fail = true;
+        goto script_err;
+      }
+
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         script_parse_fail = true;
@@ -1131,44 +1139,39 @@ bool tkbc_received_message_handler(Client *client) {
         tkbc_reset_frames_internal_data(scb_frames);
       }
 
-      bool found = false;
-      for (size_t i = 0; i < env->scripts->count; ++i) {
-        if (env->scripts->elements[i].script_id == scb_script->script_id) {
-          found = true;
-        }
+      // Post parsing
+      size_t kite_count = possible_new_kis.count;
+      size_t prev_count = env->kite_array->count;
+      Kite_Ids kite_ids = tkbc_kite_array_generate(env, kite_count);
+
+      for (size_t i = prev_count; i < env->kite_array->count; ++i) {
+        env->kite_array->elements[i].is_active = false;
       }
-      if (!found) {
-        size_t kite_count = possible_new_kis.count;
-        size_t prev_count = env->kite_array->count;
-        Kite_Ids kite_ids = tkbc_kite_array_generate(env, kite_count);
-        for (size_t i = prev_count; i < env->kite_array->count; ++i) {
-          env->kite_array->elements[i].is_active = false;
-        }
 
-        tkbc_remap_script_kite_id_arrays_to_kite_ids(env, scb_script, kite_ids);
-        free(kite_ids.elements);
-        kite_ids.elements = NULL;
+      tkbc_remap_script_kite_id_arrays_to_kite_ids(env, scb_script, kite_ids);
+      free(kite_ids.elements);
+      kite_ids.elements = NULL;
 
-        // Set the first kite frame positions
-        for (size_t i = 0; i < scb_script->count; ++i) {
-          tkbc_patch_script_kite_positions(env, &scb_script->elements[i]);
-        }
-
-        //
-        //
-        // TODO: @Cleanup @Memory Holding all the scripts in memory is to much
-        // even an dos attac could happen, by providing a larga amount of
-        // scripts that doesn't fit into memory.
-        //
-        // Think about storing them on disk and loading them on demand or
-        // reducing the memory storage size of a script.
-        //
-        // Marvin Frohwitter 22.06.2025
-        tkbc_add_script(env,
-                        tkbc_deep_copy_script(&env->scripts_space, scb_script));
-
-        space_reset_space(&env->script_creation_space);
+      // Set the first kite frame positions
+      for (size_t i = 0; i < scb_script->count; ++i) {
+        tkbc_patch_script_kite_positions(env, &scb_script->elements[i]);
       }
+
+      //
+      //
+      // TODO: @Cleanup @Memory Holding all the scripts in memory is to much
+      // even an DOS attac could happen, by providing a large amount of
+      // scripts that doesn't fit into memory.
+      //
+      // Think about storing them on disk and loading them on demand or
+      // reducing the memory storage size of a script.
+      //
+      // Marvin Frohwitter 22.06.2025
+      tkbc_add_script(env,
+                      tkbc_deep_copy_script(&env->scripts_space, scb_script));
+
+      space_reset_space(&env->script_creation_space);
+      // For continues parsing this does not happen in an error case.
       scb_script->count = 0;
 
     script_err:
@@ -1518,7 +1521,7 @@ int tkbc_poll(int timeout) {
  * false.
  */
 bool tkbc_base_execution() {
-  if (env->scripts->count <= 0) {
+  if (env->scripts.count <= 0) {
     return false;
   }
 

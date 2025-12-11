@@ -84,6 +84,23 @@ Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id) {
 }
 
 /**
+ * @brief The function checks if a given script, represented by its id, can be
+ * found in the given scripts collection.
+ *
+ * @param scripts The collection of scripts.
+ * @param script_id The id of a script to search for.
+ * @return True if the given script was found in the scripts, otherwise false.
+ */
+bool tkbc_scripts_contains_id(Scripts scripts, Id script_id) {
+  for (size_t i = 0; i < scripts.count; ++i) {
+    if (scripts.elements[i].script_id == script_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * @brief The function can be used to check if the given id is located in the
  * kite_ids.
  *
@@ -656,15 +673,15 @@ size_t tkbc_check_finished_frames_count(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_load_next_script(Env *env) {
-  if (env->scripts->count <= 0) {
+  if (env->scripts.count <= 0) {
     return;
   }
 
   // Switch to next script.
   // NOTE: The first iteration has no loaded value jet so 0 is default.
   size_t id = env->script == NULL ? 0 : env->script->script_id;
-  size_t script_index = id % env->scripts->count;
-  size_t script_id = env->scripts->elements[script_index].script_id;
+  size_t script_index = id % env->scripts.count;
+  size_t script_id = env->scripts.elements[script_index].script_id;
   tkbc_load_script_id(env, script_id);
 }
 
@@ -679,9 +696,9 @@ void tkbc_load_next_script(Env *env) {
  */
 bool tkbc_load_script_id(Env *env, size_t script_id) {
   bool found = false;
-  for (size_t i = 0; i < env->scripts->count; ++i) {
-    if (env->scripts->elements[i].script_id == script_id) {
-      env->script = &env->scripts->elements[i];
+  for (size_t i = 0; i < env->scripts.count; ++i) {
+    if (env->scripts.elements[i].script_id == script_id) {
+      env->script = &env->scripts.elements[i];
       found = true;
       break;
     }
@@ -737,7 +754,7 @@ void tkbc_add_script(Env *env, Script script) {
     script_id = env->script->script_id;
   }
 
-  space_dap(&env->scripts_space, env->scripts, script);
+  space_dap(&env->scripts_space, &env->scripts, script);
 
   if (is_script) {
     if (!tkbc_load_script_id(env, script_id)) {
