@@ -584,6 +584,20 @@ void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Script *script,
 
 /**
  * @brief The function can be used to backpatch current kite positions in
+ * the given script to be used later in the redrawing and calculation of a
+ * script frame after the script has executed successfully.
+ *
+ * @param env The global state of the application.
+ * @param script The script where the patch should happen.
+ */
+void tkbc_patch_script_kite_positions(Env *env, Script *script) {
+  for (size_t i = 0; i < script->count; ++i) {
+    tkbc_patch_frames_kite_positions(env, &script->elements[i]);
+  }
+}
+
+/**
+ * @brief The function can be used to backpatch current kite positions in
  * the frames array to be used later in the redrawing and calculation of a
  * script frame after the script has executed successfully.
  *

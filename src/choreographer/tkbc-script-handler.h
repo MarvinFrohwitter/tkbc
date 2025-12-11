@@ -23,6 +23,8 @@ void tkbc_render_frame(Env *env, Frame *frame);
 void tkbc_patch_frames_current_time(Frames *frames);
 void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Script *script,
                                                   Kite_Ids kite_ids);
+
+void tkbc_patch_script_kite_positions(Env *env, Script *script);
 void tkbc_patch_frames_kite_positions(Env *env, Frames *frames);
 bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
