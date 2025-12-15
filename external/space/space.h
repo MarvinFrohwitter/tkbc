@@ -27,11 +27,16 @@ Planet *space_init_planet(Space *space, size_t size_in_bytes);
 void space_free_planet(Space *space, Planet *planet);
 void space_free_space(Space *space);
 void space_reset_planet(Planet *planet);
-void space_reset_planet_and_zero(Planet *planet);
 bool space_reset_planet_id(Space *space, size_t id);
+
+// WARNING: Dangerous to use:
+// These functions sets the pointer to NULL so memory ownership is passed to the
+// caller. That means the caller should free the allocated data.
+void space_reset_planet_and_zero(Planet *planet);
 bool space_reset_planet_and_zero_id(Space *space, size_t id);
-void space_reset_space(Space *space);
 void space_reset_space_and_zero(Space *space);
+
+void space_reset_space(Space *space);
 void *space_malloc(Space *space, size_t size_in_bytes);
 void *space_calloc(Space *space, size_t nmemb, size_t size);
 void *space_realloc(Space *space, void *ptr, size_t old_size, size_t new_size);
@@ -310,8 +315,17 @@ void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
   if (old_size >= new_size) {
     Planet *p = space__find_planet_from_ptr(space, ptr);
     if (p) {
-      // This is needed to achieve the free functionality that realloc provides.
-      p->count = new_size;
+      //
+      // This is needed to ensure just this one allocation is in the planet. If
+      // there is more than just one allocation the shrinking is not possible,
+      // without keeping better track of the resulting holes and in general the
+      // allocator assumes freeing all at once and not partial.
+      //
+      if (p->count == old_size) {
+        // This is needed to achieve the free functionality that realloc
+        // provides.
+        p->count = new_size;
+      }
       *planet_id = p->id;
       return ptr;
     }
@@ -325,9 +339,16 @@ void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
 
   char *new_ptr = space_malloc_planetid(space, new_size, planet_id);
   if (new_ptr) {
-    if (ptr) { // This is to ensure memcpy() does not copy from NULL, this is
-               // undefended behavior and a memory corruption.
-      memcpy(new_ptr, ptr, old_size);
+    // This is to ensure memcpy() does not copy from NULL, this is undefended
+    // behavior and a memory corruption.
+    if (ptr) {
+      // This is need if the this function shrinks the size to 0 and then the
+      // caller wants to realloc a lager pointer. In the mean time another
+      // allocation has taken the plant and a new planet was allocated to
+      // provided the requested space.
+      if (old_size) {
+        memcpy(new_ptr, ptr, old_size);
+      }
     }
   }
   return new_ptr;
