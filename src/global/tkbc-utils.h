@@ -364,9 +364,11 @@ int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
   if (err != size) {
     ok = -1;
     if (feof(file) != 0) {
-      fprintf(stderr, "ERROR:%s:%d:EOF\n", __FILE__, __LINE__);
+      fprintf(stderr, "ERROR:%s:%d: while wiring the file EOF has occurred.\n",
+              __FILE__, __LINE__);
     } else if (ferror(file) != 0) {
-      fprintf(stderr, "ERROR:%s:%d:%s\n", __FILE__, __LINE__, strerror(errno));
+      fprintf(stderr, "ERROR:%s:%d: while writing the file.\n", __FILE__,
+              __LINE__);
     }
   }
 
