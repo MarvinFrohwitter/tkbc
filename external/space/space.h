@@ -49,6 +49,8 @@ void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
                              size_t new_size, size_t *planet_id);
 
 bool space_init_capacity(Space *space, size_t size_in_bytes);
+bool space_init_capacity_in_count_plantes(Space *space, size_t size_in_bytes,
+                                          size_t count);
 size_t space__find_planet_id_from_ptr(Space *space, void *ptr);
 Planet *space__find_planet_from_ptr(Space *space, void *ptr);
 bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
@@ -202,6 +204,7 @@ void space_free_space(Space *space) {
     next = planet->next;
     space_free_planet(space, planet);
   }
+  space->sun = NULL;
 }
 
 void space_reset_planet(Planet *planet) { planet->count = 0; }
@@ -370,12 +373,56 @@ void *space_realloc(Space *space, void *ptr, size_t old_size, size_t new_size) {
 }
 
 bool space_init_capacity(Space *space, size_t size_in_bytes) {
+  if (!space || size_in_bytes == 0) {
+    return false;
+  }
+
   size_t planet_id;
   if (space_malloc_planetid(space, size_in_bytes, &planet_id)) {
     space_reset_planet_id(space, planet_id);
     return true;
   }
   return false;
+}
+
+bool space_init_capacity_in_count_plantes(Space *space, size_t size_in_bytes,
+                                          size_t count) {
+  if (!space || count == 0 || size_in_bytes == 0) {
+    return false;
+  }
+
+  if (count <= 16) {
+    size_t ids[count];
+    for (size_t i = 0; i < count; ++i) {
+      if (!space_malloc_planetid(space, size_in_bytes, &ids[i])) {
+        return false;
+      }
+    }
+    for (size_t i = 0; i < count; ++i) {
+      if (!space_reset_planet_id(space, ids[i])) {
+        return false;
+      }
+    }
+  } else {
+
+    size_t *ids = malloc(sizeof(*ids) * count);
+    for (size_t i = 0; i < count; ++i) {
+      if (!space_malloc_planetid(space, size_in_bytes, &ids[i])) {
+        free(ids);
+        return false;
+      }
+    }
+    for (size_t i = 0; i < count; ++i) {
+      if (!space_reset_planet_id(space, ids[i])) {
+        free(ids);
+        return false;
+      }
+    }
+
+    free(ids);
+  }
+
+  return true;
 }
 
 size_t space__find_planet_id_from_ptr(Space *space, void *ptr) {
