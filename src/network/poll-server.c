@@ -1134,8 +1134,8 @@ bool tkbc_received_message_handler(Client *client) {
           space_dap(scb_space, scb_frames, frame);
         }
 
-        space_dap(scb_space, scb_script,
-                  tkbc_deep_copy_frames(scb_space, scb_frames));
+        Frames frames = tkbc_deep_copy_frames(scb_space, scb_frames);
+        space_dap(scb_space, scb_script, frames);
         tkbc_reset_frames_internal_data(scb_frames);
       }
 

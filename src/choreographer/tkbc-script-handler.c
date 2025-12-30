@@ -200,8 +200,8 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
   new_script.name = script->name;
 
   for (size_t i = 0; i < script->count; ++i) {
-    space_dap(space, &new_script,
-              tkbc_deep_copy_frames(space, &script->elements[i]));
+    Frames frames = tkbc_deep_copy_frames(space, &script->elements[i]);
+    space_dap(space, &new_script, frames);
   }
   return new_script;
 }
@@ -769,7 +769,7 @@ void tkbc_add_script(Env *env, Script script) {
   }
 
   space_dap(&env->scripts_space, &env->scripts, script);
-  space_reset_space(&env->script_creation_space);
+  space_free_space(&env->script_creation_space);
 
   if (is_script) {
     if (!tkbc_load_script_id(env, script_id)) {

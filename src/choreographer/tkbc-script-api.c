@@ -232,8 +232,8 @@ void tkbc__register_frames(Env *env, ...) {
   va_start(args, env);
   Frame *frame = va_arg(args, Frame *);
   while (frame != NULL) {
-    space_dap(&env->script_creation_space, &env->scratch_buf_frames,
-              tkbc_deep_copy_frame(&env->script_creation_space, frame));
+    Frame f = tkbc_deep_copy_frame(&env->script_creation_space, frame);
+    space_dap(&env->script_creation_space, &env->scratch_buf_frames, f);
 
     if (frame->kite_id_array.script_id_append) {
       frame->kite_id_array.script_id_append = false;
@@ -261,8 +261,8 @@ void tkbc__register_frames(Env *env, ...) {
 // TODO: rename tkbc_script_team_scratch_buf_frames_append()
 void tkbc_sript_team_scratch_buf_frames_append_and_free(Env *env,
                                                         Frame *frame) {
-  space_dap(&env->script_creation_space, &env->scratch_buf_frames,
-            tkbc_deep_copy_frame(&env->script_creation_space, frame));
+  Frame f = tkbc_deep_copy_frame(&env->script_creation_space, frame);
+  space_dap(&env->script_creation_space, &env->scratch_buf_frames, f);
 
   // NOTE: This function expects to get a frame created by the
   // tkbc__frame_generate() function that handles the allocation of the id
