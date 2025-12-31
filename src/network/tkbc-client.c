@@ -1070,9 +1070,9 @@ int main(int argc, char *argv[]) {
     }
   };
 
+  space_free_space(&client.msg_space);
   client.recv_msg_buffer.elements = NULL;
   client.send_msg_buffer.elements = NULL;
-  space_free_space(&client.msg_space);
 
   shutdown(client.socket_id, SHUT_WR);
   char buf[1024] = {0};
