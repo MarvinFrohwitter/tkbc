@@ -172,8 +172,6 @@ Frame tkbc_deep_copy_frame(Space *space, Frame *frame) {
     space_dapc(space, &f.kite_id_array, frame->kite_id_array.elements,
                frame->kite_id_array.count);
 
-    // TODO: Test for reduced memory.
-    //
     // This is new since 19.11.2025 Marvin Frohwitter
     f.kite_id_array.script_id_append = frame->kite_id_array.script_id_append;
   }
@@ -770,6 +768,10 @@ void tkbc_add_script(Env *env, Script script) {
 
   space_dap(&env->scripts_space, &env->scripts, script);
   space_free_space(&env->script_creation_space);
+
+  // Rest the scratch buffers they got invalidated by resetting the space.
+  memset(&env->scratch_buf_script, 0, sizeof(env->scratch_buf_script));
+  memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));
 
   if (is_script) {
     if (!tkbc_load_script_id(env, script_id)) {

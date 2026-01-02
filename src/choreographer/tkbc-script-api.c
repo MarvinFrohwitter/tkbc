@@ -52,8 +52,6 @@ void tkbc__script_end(Env *env) {
   tkbc_add_script(env, tkbc_deep_copy_script(&env->scripts_space,
                                              &env->scratch_buf_script));
 
-  env->scratch_buf_script.name = NULL;
-  env->scratch_buf_script.count = 0;
 }
 
 /**
@@ -210,8 +208,8 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
 
   if (kite_ids.script_id_append) {
     frame->kite_id_array.script_id_append = true;
-    space_reset_space(&env->id_space);
   }
+
   frame->duration = duration;
   frame->kind = kind;
   frame->action = raw_action;
