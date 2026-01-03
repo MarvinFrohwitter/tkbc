@@ -578,8 +578,8 @@ bool received_message_handler(Message *message) {
     continue;
 
   err: {
-    bool rerun =
-        tkbc_error_handling_of_received_message_handler(message, lexer, &reset);
+    bool rerun = tkbc_error_handling_of_received_message_handler(message, lexer,
+                                                                 &reset, true);
     if (rerun) {
       continue;
     }

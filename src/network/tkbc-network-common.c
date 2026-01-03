@@ -270,7 +270,8 @@ check:
  * @param position The position from where the search should start.
  * @return The pointer of the position where the needle starts or NULL.
  */
-inline char *tkbc_find_rn_in_message_from_position(Message *message, size_t position) {
+inline char *tkbc_find_rn_in_message_from_position(Message *message,
+                                                   size_t position) {
 
   if (!message || !message->elements || position >= message->count) {
     return NULL;
@@ -295,9 +296,8 @@ inline char *tkbc_find_rn_in_message_from_position(Message *message, size_t posi
   return ptr;
 }
 
-inline bool tkbc_error_handling_of_received_message_handler(Message *message,
-                                                            Lexer *lexer,
-                                                            bool *reset) {
+inline bool tkbc_error_handling_of_received_message_handler(
+    Message *message, Lexer *lexer, bool *reset, bool display_errors) {
   char *rn = tkbc_find_rn_in_message_from_position(message, lexer->position);
   if (rn == NULL) {
     *reset = false;
@@ -310,13 +310,18 @@ inline bool tkbc_error_handling_of_received_message_handler(Message *message,
     // needed again..
     lexer->position += jump_length;
 
-    tkbc_fprintf(stderr, "WARNING", "Message: Parsing error: %.*s\n",
-                 jump_length, message->elements + message->i);
+    if (display_errors) {
+      tkbc_fprintf(stderr, "WARNING", "Message: Parsing error: %.*s\n",
+                   jump_length, message->elements + message->i);
+    }
     return true;
   }
 
-  tkbc_fprintf(stderr, "WARNING", "Message unfinished: first read bytes: %zu\n",
-               message->count - message->i);
+  if (display_errors) {
+    tkbc_fprintf(stderr, "WARNING",
+                 "Message unfinished: first read bytes: %zu\n",
+                 message->count - message->i);
+  }
 
   return false;
 }

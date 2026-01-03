@@ -25,6 +25,7 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
 char *tkbc_find_rn_in_message_from_position(Message *message, size_t position);
 
 bool tkbc_error_handling_of_received_message_handler(Message *message,
-                                                     Lexer *lexer, bool *reset);
+                                                     Lexer *lexer, bool *reset,
+                                                     bool display_errors);
 
 #endif // TKBC_NETWORK_COMMON_H

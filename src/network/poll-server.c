@@ -739,6 +739,7 @@ bool tkbc_received_message_handler(Client *client) {
     check_return(true);
   }
   do {
+    bool script_alleady_there_parsing_skip = false;
     token = lexer_next(lexer);
     if (token.kind == EOF_TOKEN) {
       break;
@@ -862,6 +863,7 @@ bool tkbc_received_message_handler(Client *client) {
       // This just fast forward a script that is already known and it reduces
       // the parsing afford.
       if (tkbc_scripts_contains_id(env->scripts, scb_script->script_id)) {
+        script_alleady_there_parsing_skip = true;
         script_parse_fail = true;
         goto script_err;
       }
@@ -1186,16 +1188,27 @@ bool tkbc_received_message_handler(Client *client) {
         tmp_buffer.elements = NULL;
       }
       if (script_parse_fail) {
+        if (script_alleady_there_parsing_skip) {
+          goto parsing_skip;
+        }
         goto err;
       }
 
       client->script_amount--;
+    parsing_skip:
+      if (client->script_amount) {
+        client->script_amount = 0;
+      }
       if (client->script_amount == 0) {
         space_dapf(&client->msg_space, &client->send_msg_buffer, "%d:\r\n",
                    MESSAGE_SCRIPT_PARSED);
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT\n");
+
+      if (script_alleady_there_parsing_skip) {
+        goto err;
+      }
     } break;
     case MESSAGE_SCRIPT_AMOUNT: {
       token = lexer_next(lexer);
@@ -1343,8 +1356,8 @@ bool tkbc_received_message_handler(Client *client) {
     continue;
 
   err: {
-    bool rerun =
-        tkbc_error_handling_of_received_message_handler(message, lexer, &reset);
+    bool rerun = tkbc_error_handling_of_received_message_handler(
+        message, lexer, &reset, !script_alleady_there_parsing_skip);
     if (rerun) {
       continue;
     }
