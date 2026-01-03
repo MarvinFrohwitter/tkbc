@@ -851,6 +851,7 @@ bool tkbc_received_message_handler(Client *client) {
       Space *scb_space = &env->script_creation_space;
       Script *scb_script = &env->scratch_buf_script;
       Frames *scb_frames = &env->scratch_buf_frames;
+      Frame frame = {0};
       Kite_Ids possible_new_kis = {0};
 
       token = lexer_next(lexer);
@@ -911,7 +912,6 @@ bool tkbc_received_message_handler(Client *client) {
         }
 
         for (size_t j = 0; j < frames_count; ++j) {
-          Frame frame = {0};
           token = lexer_next(lexer);
           if (token.kind != NUMBER) {
             script_parse_fail = true;
@@ -1137,11 +1137,25 @@ bool tkbc_received_message_handler(Client *client) {
             goto script_err;
           }
           space_dap(scb_space, scb_frames, frame);
+          memset(&frame, 0, sizeof(frame));
         }
 
-        Frames frames = tkbc_deep_copy_frames(scb_space, scb_frames);
+        // No deep_copy because the space allocator holds the memory anyways
+        // till the script is appended.
+        // Frames frames = tkbc_deep_copy_frames(scb_space, scb_frames);
+        //
+        Frames frames = *scb_frames;
         space_dap(scb_space, scb_script, frames);
-        tkbc_reset_frames_internal_data(scb_frames);
+
+        // No reset because the kite_id_array is by pointer in the elements and
+        // thy should not change. This dose not reuse the memory of the
+        // scb_frames, but that is internal the frames data has to be stored
+        // some were and can not be overwritten till the script is added to the
+        // env.scripts_space.
+        //
+        // tkbc_reset_frames_internal_data(scb_frames);
+        //
+        memset(scb_frames, 0, sizeof(*scb_frames));
       }
 
       // Post parsing
