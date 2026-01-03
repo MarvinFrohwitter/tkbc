@@ -24,11 +24,11 @@ options:
 server: poll-server
 
 poll-server: build
-	${CC} ${INCLUDE} ${CFLAGS} -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -DTKBC_SERVER -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	cp -v build/poll-server build/server
 
 poll-server-win64: build first.o
-	x86_64-w64-mingw32-gcc -DRELEASE -Wall -Wextra -O3 -static  -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/poll-server-win64 src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lws2_32 -lwinmm
+	x86_64-w64-mingw32-gcc -DRELEASE -DTKBC_SERVER -Wall -Wextra -O3 -static  -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/poll-server-win64 src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lws2_32 -lwinmm
 
 client: build first.o
 	${CC} ${INCLUDE} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${CHOREOGRAPHER_FILES} ${LIBS}
