@@ -74,6 +74,12 @@ Env *tkbc_init_env(void) {
   env->last_selected_color = GetColor(0x008080FF);
   env->color_picker_input_text[0] = '#';
 
+#define estimated_script_count 5
+#define SCIRPT_CREATION_INIT_SIZE (1024 * 256)
+  space_init_capacity(&env->script_creation_space, SCIRPT_CREATION_INIT_SIZE);
+  space_init_capacity_in_count_plantes(
+      &env->scripts_space, SCIRPT_CREATION_INIT_SIZE, estimated_script_count);
+
   return env;
 }
 

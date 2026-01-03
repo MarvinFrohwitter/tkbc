@@ -767,7 +767,7 @@ void tkbc_add_script(Env *env, Script script) {
   }
 
   space_dap(&env->scripts_space, &env->scripts, script);
-  space_free_space(&env->script_creation_space);
+  space_reset_space(&env->script_creation_space);
 
   // Rest the scratch buffers they got invalidated by resetting the space.
   memset(&env->scratch_buf_script, 0, sizeof(env->scratch_buf_script));

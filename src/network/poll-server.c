@@ -38,7 +38,7 @@
 #include "../choreographer/tkbc.h"
 
 #define CLIENT_BASE_ID 10e6
-#define MAX_BUFFER_CAPACITY 128 * 1024
+#define MAX_BUFFER_CAPACITY 256 * 1024
 static int server_socket;
 static int clients_visited = 0;
 Env *env = {0};
@@ -422,6 +422,9 @@ void tkbc_server_accept() {
         .client_address = client_address,
         .client_address_length = address_length,
     };
+
+    space_init_capacity(&client.msg_space, MAX_BUFFER_CAPACITY);
+
     tkbc_fprintf(stderr, "INFO", "CLIENT: " CLIENT_FMT " has connected.\n",
                  CLIENT_ARG(client));
     tkbc_dap(&clients, client);
@@ -1168,6 +1171,8 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_add_script(env,
                       tkbc_deep_copy_script(&env->scripts_space, scb_script));
 
+      // This is just to be explicit is already happen in the script adding.
+      //
       // For continues parsing this does not happen in an error case.
       scb_script->count = 0;
 

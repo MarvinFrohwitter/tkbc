@@ -1,5 +1,4 @@
 #include "../src/choreographer/tkbc-script-api.h"
-#include "../src/choreographer/tkbc-team-figures-api.h"
 
 // Some test scripts
 #include "demo_angle_left_right_rotation.c"

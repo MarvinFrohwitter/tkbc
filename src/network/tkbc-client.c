@@ -977,6 +977,7 @@ int main(int argc, char *argv[]) {
   }
 
   client.socket_id = tkbc_client_socket_creation(host, port);
+  space_init_capacity(&client.msg_space, 256 * 1024);
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
   SetTraceLogLevel(LOG_NONE);
