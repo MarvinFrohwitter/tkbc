@@ -1196,10 +1196,13 @@ bool tkbc_received_message_handler(Client *client) {
 
       client->script_amount--;
     parsing_skip:
-      if (client->script_amount) {
+      if (client->script_amount && script_alleady_there_parsing_skip) {
         client->script_amount = 0;
       }
       if (client->script_amount == 0) {
+        // TODO: Remove the dependency on ongoing execution in the client from
+        // this message.
+        // Lock at the start of client received_message_handler.
         space_dapf(&client->msg_space, &client->send_msg_buffer, "%d:\r\n",
                    MESSAGE_SCRIPT_PARSED);
       }

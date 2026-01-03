@@ -309,6 +309,19 @@ bool received_message_handler(Message *message) {
   Lexer *lexer =
       lexer_new(__FILE__, message->elements, message->count, message->i);
   do {
+    // TODO: When the server skips paring scripts because the id was already
+    // encountered the SCRIPT_PARSED message was never send, hence the client is
+    // not continuing the execution an waits for the server. The server can
+    // theoretically handle a next message but the client is never informed so
+    // it does not execute a next message. In cases the client does not send any
+    // scripts the server should handle that as well. Make the MESSAGE_HELLO
+    // more needed in the protocol and handle the cases of no scripts with the
+    // response of this message. Do not allow out of order messages first the
+    // handshake should be mandatory to proceed with any other message.
+    //
+    // 03.01.2026 Marvin Frohwitter
+    //
+
     token = lexer_next(lexer);
     if (token.kind == EOF_TOKEN) {
       break;
