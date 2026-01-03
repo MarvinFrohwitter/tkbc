@@ -1108,7 +1108,7 @@ bool tkbc_received_message_handler(Client *client) {
 
               size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
               bool contains = false;
-              tkbc_dap(&frame.kite_id_array, kite_id);
+              space_dap(scb_space, &frame.kite_id_array, kite_id);
               for (size_t id = 0; id < possible_new_kis.count; ++id) {
                 if (possible_new_kis.elements[id] == kite_id) {
                   contains = true;
