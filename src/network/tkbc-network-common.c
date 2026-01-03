@@ -270,8 +270,7 @@ check:
  * @param position The position from where the search should start.
  * @return The pointer of the position where the needle starts or NULL.
  */
-char *tkbc_find_rn_in_message_from_position(Message *message,
-                                            unsigned long long position) {
+inline char *tkbc_find_rn_in_message_from_position(Message *message, size_t position) {
 
   if (!message || !message->elements || position >= message->count) {
     return NULL;
@@ -294,4 +293,30 @@ char *tkbc_find_rn_in_message_from_position(Message *message,
   }
 
   return ptr;
+}
+
+inline bool tkbc_error_handling_of_received_message_handler(Message *message,
+                                                            Lexer *lexer,
+                                                            bool *reset) {
+  char *rn = tkbc_find_rn_in_message_from_position(message, lexer->position);
+  if (rn == NULL) {
+    *reset = false;
+  } else {
+    size_t jump_length = rn + 2 - &lexer->content[lexer->position];
+    //
+    // This assumes no logging is needed it destroys the correctness of a line
+    // and character reporting.
+    // use lexer_chop_char(lexer, jump_length); instead when logging is
+    // needed again..
+    lexer->position += jump_length;
+
+    tkbc_fprintf(stderr, "WARNING", "Message: Parsing error: %.*s\n",
+                 jump_length, message->elements + message->i);
+    return true;
+  }
+
+  tkbc_fprintf(stderr, "WARNING", "Message unfinished: first read bytes: %zu\n",
+               message->count - message->i);
+
+  return false;
 }

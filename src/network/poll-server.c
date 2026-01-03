@@ -1343,19 +1343,11 @@ bool tkbc_received_message_handler(Client *client) {
     continue;
 
   err: {
-    char *rn = tkbc_find_rn_in_message_from_position(message, lexer->position);
-    if (rn == NULL) {
-      reset = false;
-    } else {
-      int jump_length = rn + 2 - &lexer->content[lexer->position];
-      lexer_chop_char(lexer, jump_length);
-      tkbc_fprintf(stderr, "WARNING", "Message: Parsing error: %.*s\n",
-                   jump_length, message->elements + message->i);
+    bool rerun =
+        tkbc_error_handling_of_received_message_handler(message, lexer, &reset);
+    if (rerun) {
       continue;
     }
-    tkbc_fprintf(stderr, "WARNING",
-                 "Message unfinished: first read bytes: %zu\n",
-                 message->count - message->i);
     break;
   }
   } while (token.kind != EOF_TOKEN);
