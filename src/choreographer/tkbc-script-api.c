@@ -51,7 +51,6 @@ void tkbc__script_end(Env *env) {
 
   tkbc_add_script(env, tkbc_deep_copy_script(&env->scripts_space,
                                              &env->scratch_buf_script));
-
 }
 
 /**
@@ -256,16 +255,8 @@ void tkbc__register_frames(Env *env, ...) {
  * @param env The global state of the application.
  * @param frame The frames the should be appended to the scratch_buf_frames.
  */
-// TODO: rename tkbc_script_team_scratch_buf_frames_append()
-void tkbc_sript_team_scratch_buf_frames_append_and_free(Env *env,
-                                                        Frame *frame) {
-  Frame f = tkbc_deep_copy_frame(&env->script_creation_space, frame);
-  space_dap(&env->script_creation_space, &env->scratch_buf_frames, f);
-
-  // NOTE: This function expects to get a frame created by the
-  // tkbc__frame_generate() function that handles the allocation of the id
-  // regarding frame->kite_id_array.script_id_append so this should not be
-  // handled in this function. All given kite_ids in the frame should be freed.
+void tkbc_scratch_buf_frames_append(Env *env, Frame *frame) {
+  space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
 }
 
 /**
