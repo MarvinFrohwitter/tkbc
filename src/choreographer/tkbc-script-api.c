@@ -248,18 +248,6 @@ void tkbc__register_frames(Env *env, ...) {
 }
 
 /**
- * @brief The function copies the given frame to the scratch_buf_frames and
- * frees the original pointer and dependent on the creation also the
- * kite_id_array.
- *
- * @param env The global state of the application.
- * @param frame The frames the should be appended to the scratch_buf_frames.
- */
-void tkbc_scratch_buf_frames_append(Env *env, Frame *frame) {
-  space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
-}
-
-/**
  * @brief The function registers the given frames array into the global env
  * state that holds the script. It is also responsible for patching
  * corresponding block frame positions and frame indices.

@@ -1,8 +1,8 @@
 #ifndef TKBC_SCRIPT_API_H_
 #define TKBC_SCRIPT_API_H_
 
-#include "../global/tkbc-types.h"
 #include "../../external/space/space.h"
+#include "../global/tkbc-types.h"
 #include "tkbc-script-handler.h"
 #include <limits.h>
 #include <stdbool.h>
@@ -92,10 +92,10 @@ void tkbc__register_frames(Env *env, ...);
       (duration))
 
 void tkbc_register_frames_array(Env *env, Frames *frames);
-void tkbc_scratch_buf_frames_append(Env *env, Frame *frame);
 
 Kite_Ids tkbc__indexs_append(Space *space, ...);
-#define tkbc_indexs_append(...) tkbc__indexs_append(&env->id_space, __VA_ARGS__, UINT_MAX)
+#define tkbc_indexs_append(...)                                                \
+  tkbc__indexs_append(&env->id_space, __VA_ARGS__, UINT_MAX)
 #define ID(...) tkbc_indexs_append(__VA_ARGS__)
 
 Kite_Ids tkbc_indexs_range(int start, int end);
