@@ -1103,70 +1103,33 @@ void tkbc_script_team_diamond(Env *env, Kite_Ids kite_index_array,
                               DIRECTION direction, float angle, float box_size,
                               float move_duration, float rotation_duration) {
 
+  int sign = -1;
   if (direction == RIGHT) {
     angle = -angle;
+    sign = 1;
   }
+
   double sqrt2 = sqrt(2);
 
   SET(KITE_ROTATION_ADD(kite_index_array, angle / 2, rotation_duration));
 
-  switch (direction) {
-  case RIGHT:
-    SET(KITE_MOVE_ADD(kite_index_array, box_size / sqrt2, -box_size / sqrt2,
-                      move_duration));
-    break;
-  case LEFT:
-    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2, -box_size / sqrt2,
-                      move_duration));
-    break;
-  default:
-    assert(0 && "UNREACHABLE");
-  }
+  SET(KITE_MOVE_ADD(kite_index_array, sign * box_size / sqrt2,
+                    -box_size / sqrt2, move_duration));
 
   SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
 
-  switch (direction) {
-  case RIGHT:
-    SET(KITE_MOVE_ADD(kite_index_array, box_size / sqrt2, box_size / sqrt2,
-                      move_duration));
-    break;
-  case LEFT:
-    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2, box_size / sqrt2,
-                      move_duration));
-    break;
-  default:
-    assert(0 && "UNREACHABLE");
-  }
+  SET(KITE_MOVE_ADD(kite_index_array, sign * box_size / sqrt2, box_size / sqrt2,
+                    move_duration));
 
   SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
 
-  switch (direction) {
-  case RIGHT:
-    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2, box_size / sqrt2,
-                      move_duration));
-    break;
-  case LEFT:
-    SET(KITE_MOVE_ADD(kite_index_array, box_size / sqrt2, box_size / sqrt2,
-                      move_duration));
-    break;
-  default:
-    assert(0 && "UNREACHABLE");
-  }
+  SET(KITE_MOVE_ADD(kite_index_array, -sign * box_size / sqrt2,
+                    box_size / sqrt2, move_duration));
 
   SET(KITE_ROTATION_ADD(kite_index_array, angle, rotation_duration));
 
-  switch (direction) {
-  case RIGHT:
-    SET(KITE_MOVE_ADD(kite_index_array, -box_size / sqrt2, -box_size / sqrt2,
-                      move_duration));
-    break;
-  case LEFT:
-    SET(KITE_MOVE_ADD(kite_index_array, box_size / sqrt2, -box_size / sqrt2,
-                      move_duration));
-    break;
-  default:
-    assert(0 && "UNREACHABLE");
-  }
+  SET(KITE_MOVE_ADD(kite_index_array, -sign * box_size / sqrt2,
+                    -box_size / sqrt2, move_duration));
 
   SET(KITE_ROTATION_ADD(kite_index_array, angle / 2, rotation_duration));
 }
