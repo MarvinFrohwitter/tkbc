@@ -193,51 +193,31 @@ bool tkbc_script_team_roll_split_down(Env *env, Kite_Ids kite_index_array,
                                       float move_duration) {
   Frame *frame = NULL;
   float duration = move_duration / (end_angle - begin_angle);
+  int sign;
+
   for (size_t deg = begin_angle; deg < end_angle; ++deg) {
     tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
     for (size_t i = 0; i < kite_index_array.count; ++i) {
-      if (i % 2 == odd_even) {
-        Vector2 position = (Vector2){
-            .x = radius * cosf(PI * deg / 180),
-            .y = radius * sinf(PI * deg / 180),
-        };
-        {
-          frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i]), position.x,
-                                position.y, duration);
-          if (frame == NULL)
-            return false;
-          space_dap(&env->script_creation_space, &env->scratch_buf_frames,
-                    *frame);
-        }
-        {
-          frame =
-              KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), -1, duration);
-          if (frame == NULL)
-            return false;
-          space_dap(&env->script_creation_space, &env->scratch_buf_frames,
-                    *frame);
-        }
-      } else {
-        Vector2 position = (Vector2){
-            .x = -radius * cosf(PI * deg / 180),
-            .y = radius * sinf(PI * deg / 180),
-        };
-        {
-          frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i]), position.x,
-                                position.y, duration);
-          if (frame == NULL)
-            return false;
-          space_dap(&env->script_creation_space, &env->scratch_buf_frames,
-                    *frame);
-        }
-        {
-          frame =
-              KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), 1, duration);
-          if (frame == NULL)
-            return false;
-          space_dap(&env->script_creation_space, &env->scratch_buf_frames,
-                    *frame);
-        }
+      sign = i % 2 == odd_even ? -1 : 1;
+      Vector2 position = (Vector2){
+          .x = -sign * radius * cosf(PI * deg / 180),
+          .y = radius * sinf(PI * deg / 180),
+      };
+      {
+        frame = KITE_MOVE_ADD(ID(kite_index_array.elements[i]), position.x,
+                              position.y, duration);
+        if (frame == NULL)
+          return false;
+        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+                  *frame);
+      }
+      {
+        frame =
+            KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), sign, duration);
+        if (frame == NULL)
+          return false;
+        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+                  *frame);
       }
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
