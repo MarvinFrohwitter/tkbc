@@ -722,7 +722,7 @@ bool tkbc_script_team_arc(Env *env, Kite_Ids kite_index_array, Vector2 position,
 
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
     }
-    if (column + 1 == ceil(columns / 2.0)) {
+    if (column + 1 == (columns + 1) / 2) {
       angle = 0;
     }
     {
@@ -812,7 +812,7 @@ bool tkbc_script_team_mouth(Env *env, Kite_Ids kite_index_array,
 
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
     }
-    if (column + 1 == ceil(columns / 2.0)) {
+    if (column + 1 == (columns + 1) / 2) {
       angle = 0;
     }
     {
