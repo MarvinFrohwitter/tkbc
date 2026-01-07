@@ -558,8 +558,7 @@ bool received_message_handler(Message *message) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "CLIENTKITES\n");
     } break;
     case MESSAGE_SCRIPT_PARSED: {
-      loading.active = false;
-
+      env->scripts_parsed = true;
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_PARSED\n");
     } break;
     case MESSAGE_SCRIPT_FINISHED: {

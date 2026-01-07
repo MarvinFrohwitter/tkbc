@@ -61,7 +61,9 @@ void tkbc_draw_ui(Env *env) {
     DrawText(buf, env->window_width / 2, 10, 20, color);
   }
 
-  tkbc_ui_script_menu(env);
+  if (env->scripts_parsed) {
+    tkbc_ui_script_menu(env);
+  }
 
   if (!env->script_menu_interaction) {
     tkbc_ui_keymaps(env);

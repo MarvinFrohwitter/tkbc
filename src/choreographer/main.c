@@ -65,6 +65,7 @@ int main(void) {
       // For detection if the begin and end is called correctly.
       env->script_setup = false;
       tkbc__script_input(env);
+      env->scripts_parsed = true;
 
 #ifndef RELEASE
       tkbc_debug_print_and_export_all_scripts(NULL, env);
