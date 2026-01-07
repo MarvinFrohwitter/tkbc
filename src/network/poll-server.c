@@ -760,13 +760,14 @@ bool tkbc_received_message_handler(Client *client) {
     }
 
     int kind = atoi(lexer_token_to_cstr(lexer, &token));
+    size_t digits_count_of_kind = token.size;
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {
       goto err;
     }
 
-    message->i = lexer->position - 2;
     static_assert(MESSAGE_COUNT == 17, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    message->i = lexer->position - digits_count_of_kind - 1;
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
