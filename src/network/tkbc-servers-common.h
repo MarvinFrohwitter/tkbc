@@ -59,6 +59,7 @@ typedef struct {
   SOCKLEN client_address_length;
 
   size_t script_amount;
+  bool handshake_passed;
 } Client;
 
 typedef struct {

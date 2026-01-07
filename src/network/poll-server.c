@@ -368,10 +368,6 @@ void tkbc_client_prolog(Client *client) {
     kite_state.is_active = false;
   }
   tkbc_dap(env->kite_array, kite_state);
-
-  tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
-
-  tkbc_message_clientkites_write_to_send_msg_buffer(client);
 }
 
 /**
@@ -766,8 +762,12 @@ bool tkbc_received_message_handler(Client *client) {
       goto err;
     }
 
-    static_assert(MESSAGE_COUNT == 17, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    if (kind != MESSAGE_HELLO && !client->handshake_passed) {
+      goto err;
+    }
+
     message->i = lexer->position - digits_count_of_kind - 1;
+    static_assert(MESSAGE_COUNT == 18, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -787,6 +787,13 @@ bool tkbc_received_message_handler(Client *client) {
       if (token.kind != PUNCT_COLON) {
         check_return(false);
       }
+
+      space_dapf(&client->msg_space, &client->send_msg_buffer, "%d:\r\n",
+                 MESSAGE_HELLO_PASSED);
+      client->handshake_passed = true;
+
+      tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
+      tkbc_message_clientkites_write_to_send_msg_buffer(client);
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
@@ -1215,9 +1222,6 @@ bool tkbc_received_message_handler(Client *client) {
         client->script_amount = 0;
       }
       if (client->script_amount == 0) {
-        // TODO: Remove the dependency on ongoing execution in the client from
-        // this message.
-        // Lock at the start of client received_message_handler.
         space_dapf(&client->msg_space, &client->send_msg_buffer, "%d:\r\n",
                    MESSAGE_SCRIPT_PARSED);
       }
@@ -1369,7 +1373,7 @@ bool tkbc_received_message_handler(Client *client) {
     } break;
     default:
       tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind);
-      exit(1);
+      // exit(1);
     }
     continue;
 

@@ -2,6 +2,7 @@
 typedef enum {
   MESSAGE_ZERO = 0,
   MESSAGE_HELLO,
+  MESSAGE_HELLO_PASSED,
 
   MESSAGE_SINGLE_KITE_ADD,    // When a kite is added because a new client has
                               // connected to the server
@@ -39,6 +40,15 @@ typedef enum {
  *****
  * MESSAGE_HELLO:quote "Hello client from server!"PROTOCOL_VERSION quote:\r\n
  * MESSAGE_HELLO:quote "Hello server from client!"PROTOCOL_VERSION quote:\r\n
+ *****
+ */
+
+/**
+ *
+ * MESSAGE_HELLO_PASSED:
+ *
+ *****
+ * MESSAGE_HELLO_PASSED:\r\n
  *****
  */
 

@@ -249,6 +249,7 @@ void sending_script_handler() {
   if (!env->script_setup) {
     return;
   }
+  size_t prev_kite_array_count = env->kite_array->count;
   // For detection if the begin and end is called correctly.
   env->script_setup = false;
   tkbc__script_input(env);
@@ -257,6 +258,16 @@ void sending_script_handler() {
   tkbc_debug_print_and_export_all_scripts(NULL, env);
 #endif // RELEASE
   tkbc_message_script();
+
+  if (prev_kite_array_count != env->kite_array->count) {
+    // Remove kites that are just generated for sending a script.
+    assert(env->kite_array->count > prev_kite_array_count);
+    for (size_t i = prev_kite_array_count; i < env->kite_array->count; ++i) {
+      free(env->kite_array->elements[i].kite);
+      env->kite_array->elements[i].kite = NULL;
+    }
+    env->kite_array->count = prev_kite_array_count;
+  }
 }
 
 /**
@@ -309,19 +320,6 @@ bool received_message_handler(Message *message) {
   Lexer *lexer =
       lexer_new(__FILE__, message->elements, message->count, message->i);
   do {
-    // TODO: When the server skips paring scripts because the id was already
-    // encountered the SCRIPT_PARSED message was never send, hence the client is
-    // not continuing the execution an waits for the server. The server can
-    // theoretically handle a next message but the client is never informed so
-    // it does not execute a next message. In cases the client does not send any
-    // scripts the server should handle that as well. Make the MESSAGE_HELLO
-    // more needed in the protocol and handle the cases of no scripts with the
-    // response of this message. Do not allow out of order messages first the
-    // handshake should be mandatory to proceed with any other message.
-    //
-    // 03.01.2026 Marvin Frohwitter
-    //
-
     token = lexer_next(lexer);
     if (token.kind == EOF_TOKEN) {
       break;
@@ -348,9 +346,14 @@ bool received_message_handler(Message *message) {
       goto err;
     }
 
-    static_assert(MESSAGE_COUNT == 17, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    if (!client.handshake_passed) {
+      if (!(kind == MESSAGE_HELLO_PASSED || kind == MESSAGE_HELLO)) {
+        goto err;
+      }
+    }
 
     message->i = lexer->position - digits_count_of_kind - 1;
+    static_assert(MESSAGE_COUNT == 18, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -379,6 +382,11 @@ bool received_message_handler(Message *message) {
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
+    } break;
+    case MESSAGE_HELLO_PASSED: {
+      loading.active = false;
+      client.handshake_passed = true;
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO_PASSED\n");
     } break;
     case MESSAGE_SINGLE_KITE_ADD: {
       size_t kite_id, texture_id;
@@ -1003,18 +1011,6 @@ int main(int argc, char *argv[]) {
 
   tkbc_load_kite_images_and_textures();
 
-  size_t prev_kite_array_count = env->kite_array->count;
-  sending_script_handler();
-  if (prev_kite_array_count != env->kite_array->count) {
-    // Remove kites that are just generated for sending a script.
-    assert(env->kite_array->count > prev_kite_array_count);
-    for (size_t i = prev_kite_array_count; i < env->kite_array->count; ++i) {
-      free(env->kite_array->elements[i].kite);
-      env->kite_array->elements[i].kite = NULL;
-    }
-    env->kite_array->count = prev_kite_array_count;
-  }
-
   Popup disconnect = tkbc_popup_message("The server has disconnected!");
   loading = tkbc_popup_message("Waiting for server.");
   loading.active = true;
@@ -1047,6 +1043,8 @@ int main(int argc, char *argv[]) {
       tkbc_popup_resize(&loading);
       tkbc_draw_popup(&loading);
     } else {
+      sending_script_handler();
+
       tkbc_update_kites_for_resize_window(env);
       tkbc_draw_kite_array(env->kite_array);
       tkbc_draw_ui(env);
