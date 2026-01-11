@@ -740,10 +740,12 @@ void tkbc_client_input_handler_kite() {
     }
   }
 
+  // Rate limiting / data throttling
+  float eps = 0.01;
   if (tkbc_float_equals_epsilon(client_kite.angle, kite_state->kite->angle,
-                                0.01) &&
+                                eps) &&
       tkbc_vector2_equals_epsilon(client_kite.center, kite_state->kite->center,
-                                  0.01)) {
+                                  eps)) {
     return;
   }
   client_kite = *kite_state->kite;
