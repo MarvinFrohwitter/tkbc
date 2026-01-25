@@ -228,6 +228,10 @@ void space_free_space(Space *space) {
   assert(space->sun == NULL);
 }
 
+// The function is useful if you have to unit test a function that depends on
+// the space allocator, but you want to be sure to track every memory allocated
+// manually, so you free manually. But as a result calling space_free_space()
+// would result in double free so just free the structure.
 void space_free_space_internals_without_freeing_data(Space *space) {
   while (space->sun) {
     space_free_planet_optional_freeing_data(space, space->sun, false);
