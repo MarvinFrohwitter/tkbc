@@ -215,7 +215,14 @@ void tkbc_destroy_frames_internal_data(Frames *frames) {
     return;
   }
 
-  tkbc_reset_frames_internal_data(frames);
+  for (size_t i = 0; i < frames->count; ++i) {
+    if (frames->elements[i].kite_id_array.elements) {
+      free(frames->elements[i].kite_id_array.elements);
+      frames->elements[i].kite_id_array.elements = NULL;
+      frames->elements[i].kite_id_array.count = 0;
+      frames->elements[i].kite_id_array.capacity = 0;
+    }
+  }
 
   if (frames->kite_frame_positions.elements) {
     free(frames->kite_frame_positions.elements);
