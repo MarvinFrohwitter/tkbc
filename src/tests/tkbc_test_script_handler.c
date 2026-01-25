@@ -398,8 +398,9 @@ Test reset_frames_internal_data() {
   tkbc_reset_frames_internal_data(&frames);
 
   cassert_ptr_neq(ids, NULL);
-  cassert_ptr_eq(ids->elements, NULL);
+  cassert_ptr_neq(ids->elements, NULL);
   cassert_size_t_neq(ids->count, 3);
+  cassert_size_t_eq(ids->count, 0);
   cassert_size_t_eq(ids->capacity, 0);
 
   cassert_ptr_neq(frames.elements, NULL);
