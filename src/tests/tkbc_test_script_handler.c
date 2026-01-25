@@ -20,7 +20,7 @@ Test init_frame() {
   Test test = cassert_init_test("tkbc_init_frame()");
 
   uintptr_t stack = 0;
-  Frame *frame;
+  Frame *frame = NULL;
   cassert_ptr_neq(&frame, &stack + 0);
   cassert_set_last_cassert_description(
       &test, "A stack variable and the next one should not have the same stack "
@@ -33,15 +33,16 @@ Test init_frame() {
 
   Space space = {0};
   frame = tkbc_init_frame(&space);
-  if (!frame) {
-    free(frame);
-    return test;
-  }
+  cassert_ptr_neq(frame, NULL); // To ensure the allocation is valid, otherwise
+                                // the next test is pointless.
   cassert_ptr_neq(frame, frame_before);
   cassert_set_last_cassert_description(
       &test, "Frame before and after should not be the same.");
 
   free(frame);
+  frame = NULL;
+
+  space_free_space_internals_without_freeing_data(&space);
   return test;
 }
 
@@ -169,9 +170,18 @@ Test deep_copy_frame() {
                     frame_copy.action.as_wait.starttime);
 
   free(kite_ids.elements);
+  kite_ids.elements = NULL;
+
   free(frame_copy.kite_id_array.elements);
+  frame_copy.kite_id_array.elements = NULL;
+
   free(frame->kite_id_array.elements);
+  frame->kite_id_array.elements = NULL;
+
   free(frame);
+  frame = NULL;
+
+  space_free_space_internals_without_freeing_data(&space);
   return test;
 }
 
@@ -255,6 +265,7 @@ Test deep_copy_frames() {
   free(new_frames.elements->kite_id_array.elements);
   free(new_frames.elements);
   free(new_frames.kite_frame_positions.elements);
+  space_free_space_internals_without_freeing_data(&space);
   return test;
 }
 
@@ -306,6 +317,7 @@ Test deep_copy_script() {
   cassert_ptr_eq(script.elements, NULL);
   cassert_ptr_eq(new_script.elements, NULL);
 
+  space_free_space_internals_without_freeing_data(&space);
   return test;
 }
 
@@ -395,6 +407,7 @@ Test reset_frames_internal_data() {
   cassert_size_t_neq(frames.elements->kite_id_array.count, 0);
   cassert_size_t_neq(frames.elements->kite_id_array.capacity, 0);
 
+  size_t hack_tracking_count_number_for_memory_managment = frames.count;
   tkbc_reset_frames_internal_data(&frames);
 
   cassert_ptr_neq(ids, NULL);
@@ -411,6 +424,7 @@ Test reset_frames_internal_data() {
   cassert_size_t_eq(frames.kite_frame_positions.count, 0);
   cassert_size_t_neq(frames.kite_frame_positions.capacity, 0);
 
+  frames.count = hack_tracking_count_number_for_memory_managment;
   tkbc_destroy_frames_internal_data(&frames);
   return test;
 }
