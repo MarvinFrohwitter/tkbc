@@ -31,6 +31,12 @@ size_t tkbc_check_finished_frames_count(Env *env);
 void tkbc_load_next_script(Env *env);
 bool tkbc_load_script_id(Env *env, size_t script_id);
 void tkbc_unload_script(Env *env);
+bool tkbc_unload_script_from_memory(Env *env, size_t script_id);
+
+size_t tkbc_calculate_frame_byte_size(Frame frame);
+size_t tkbc_calculate_frames_byte_size(Frames frames);
+size_t tkbc_calculate_script_byte_size(Script script);
+
 void tkbc_add_script(Env *env, Script script);
 void tkbc_input_handler_script(Env *env);
 void tkbc_set_kite_positions_from_kite_frames_positions(Env *env);

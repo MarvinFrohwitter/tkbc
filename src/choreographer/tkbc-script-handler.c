@@ -750,6 +750,85 @@ void tkbc_unload_script(Env *env) {
 }
 
 /**
+ * @brief The function removes the script from the known scripts of the array.
+ * It does not handle the actual memory deallocation, because is is stored in a
+ * space allocator any way.
+ *
+ * @param env The global state of the application.
+ * @param script_id The id of the script that should be unloaded.
+ * @return True if the unloading was successfull, otherwise false.
+ */
+bool tkbc_unload_script_from_memory(Env *env, size_t script_id) {
+  for (size_t i = 0; i < env->scripts.count; ++i) {
+    if (script_id == env->scripts.elements[i].script_id) {
+
+      memmove(&env->scripts.elements[i], &env->scripts.elements[i + 1],
+              env->scripts.count - i - 1);
+      env->scripts.count -= 1;
+
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Calculates the size that the given frames currently take.
+ *
+ * @param frame The frame where you want to get the complete size for.
+ * @return The resulting size in bytes that is necessary to allocate the
+ * complete thing.
+ */
+size_t tkbc_calculate_frame_byte_size(Frame frame) {
+  size_t result = 0;
+  result += sizeof(frame);
+  result += frame.kite_id_array.count * sizeof(*frame.kite_id_array.elements);
+
+  return result;
+}
+
+/**
+ * @brief Calculates the size that the given frames currently take.
+ *
+ * @param frames The frames where you want to get the complete size for.
+ * @return The resulting size in bytes that is necessary to allocate the
+ * complete thing.
+ */
+size_t tkbc_calculate_frames_byte_size(Frames frames) {
+  size_t result = 0;
+  result += sizeof(frames);
+
+  for (size_t i = 0; i < frames.count; ++i) {
+    result += tkbc_calculate_frame_byte_size(frames.elements[i]);
+  }
+
+  result += frames.kite_frame_positions.count *
+            sizeof(*frames.kite_frame_positions.elements);
+
+  return result;
+}
+
+/**
+ * @brief Calculates the size that the given script currently take.
+ *
+ * @param script The script where the resulting size has to be calculated.
+ * @return The resulting size in bytes that is necessary to allocate the
+ * complete thing.
+ */
+size_t tkbc_calculate_script_byte_size(Script script) {
+
+  size_t result = 0;
+  result += sizeof(script);
+  result += strlen(script.name) + 1;
+
+  for (size_t i = 0; i < script.count; ++i) {
+    result += tkbc_calculate_frames_byte_size(script.elements[i]);
+  }
+
+  return result;
+}
+
+/**
  * @brief This function adds a script to the global array located in the env. It
  * is needed to achieve stability for the raw frames and script pointers in the
  * env, they can be invalidated when the scripts array reallocates.
@@ -773,7 +852,25 @@ void tkbc_add_script(Env *env, Script script) {
     script_id = env->script->script_id;
   }
 
-  space_dap(&env->scripts_space, &env->scripts, script);
+#define threshold_max_scripts_in_memory 10
+  if (env->scripts.count > threshold_max_scripts_in_memory) {
+    // NOTE: this is actually slow because every other script just be moved
+    // over in the array.
+    tkbc_unload_script_from_memory(env, env->scripts.elements[0].script_id);
+  }
+
+  size_t bytes_count = tkbc_calculate_script_byte_size(script);
+  fprintf(stderr, "The size of script:%zu:%s:%zu\n", script.script_id,
+          script.name, bytes_count);
+  size_t planet_id = 0;
+  void *ptr = space_malloc_planetid_force_new_planet(&env->scripts_space,
+                                                     bytes_count, &planet_id);
+  assert(ptr && "malloc has failed!");
+  space_reset_planet_id(&env->scripts_space, planet_id);
+
+  Script script_copy = tkbc_deep_copy_script(&env->scripts_space, &script);
+  space_dap(&env->scripts_space, &env->scripts, script_copy);
+
   space_reset_space(&env->script_creation_space);
 
   // Rest the scratch buffers they got invalidated by resetting the space.
