@@ -211,7 +211,7 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
   if (token.kind != NUMBER) {
     check_return(false);
   }
-  uint32_t color_number = atol(lexer_token_to_cstr(lexer, &token));
+  uint32_t color_number = atoll(lexer_token_to_cstr(lexer, &token));
   (*color).a = (color_number >> 0) & 0xFF;
   (*color).b = (color_number >> 8) & 0xFF;
   (*color).g = (color_number >> 16) & 0xFF;
