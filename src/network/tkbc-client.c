@@ -922,7 +922,7 @@ void tkbc_message_kites_positions() {
 }
 
 /**
- * @brief The function warps the user key inputs for script control into
+ * @brief The warps the user key inputs for script control into
  * messages that are send to the server.
  */
 void tkbc_client_input_handler_script() {

@@ -1192,8 +1192,7 @@ bool tkbc_received_message_handler(Client *client) {
       // reducing the memory storage size of a script.
       //
       // Marvin Frohwitter 22.06.2025
-      tkbc_add_script(env,
-                      tkbc_deep_copy_script(&env->scripts_space, scb_script));
+      tkbc_add_script(env, *scb_script);
 
       // This is just to be explicit is already happen in the script adding.
       //
@@ -1474,6 +1473,9 @@ int main(int argc, char *argv[]) {
     }
 
     int timeout = -1; // Infinite
+    if (!tkbc_script_finished(env) && env->script != NULL) {
+      timeout = 0;
+    }
     int poll_err = tkbc_poll(timeout);
     if (poll_err == -1) {
       break;

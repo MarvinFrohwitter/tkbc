@@ -49,8 +49,7 @@ void tkbc__script_end(Env *env) {
   assert(env->scratch_buf_script.count > 0);
   env->scratch_buf_script.script_id = env->scripts.count + 1;
 
-  tkbc_add_script(env, tkbc_deep_copy_script(&env->scripts_space,
-                                             &env->scratch_buf_script));
+  tkbc_add_script(env, env->scratch_buf_script);
 }
 
 /**
