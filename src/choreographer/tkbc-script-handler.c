@@ -857,6 +857,8 @@ void tkbc_add_script(Env *env, Script script) {
     // NOTE: this is actually slow because every other script just be moved
     // over in the array.
     tkbc_unload_script_from_memory(env, env->scripts.elements[0].script_id);
+    // TODO: actually unload it by searching the correct bucket in the space
+    // allocator.
   }
 
   size_t bytes_count = tkbc_calculate_script_byte_size(script);
