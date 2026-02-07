@@ -44,6 +44,8 @@ void space_reset_space(Space *space);
 void *space_malloc(Space *space, size_t size_in_bytes);
 void *space_calloc(Space *space, size_t nmemb, size_t size);
 void *space_realloc(Space *space, void *ptr, size_t old_size, size_t new_size);
+void *space_alloc_planetid(Space *space, size_t size_in_bytes,
+                           size_t *planet_id, bool force_new_planet);
 
 void *space_malloc_planetid(Space *space, size_t size_in_bytes,
                             size_t *planet_id);
@@ -51,6 +53,19 @@ void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
                             size_t *planet_id);
 void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
                              size_t new_size, size_t *planet_id);
+
+void *space_malloc_force_new_planet(Space *space, size_t size_in_bytes);
+void *space_calloc_force_new_planet(Space *space, size_t nmemb, size_t size);
+void *space_realloc_force_new_planet(Space *space, void *ptr, size_t old_size,
+                                     size_t new_size);
+
+void *space_malloc_planetid_force_new_planet(Space *space, size_t size_in_bytes,
+                                             size_t *planet_id);
+void *space_calloc_planetid_force_new_planet(Space *space, size_t nmemb,
+                                             size_t size, size_t *planet_id);
+void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
+                                              size_t old_size, size_t new_size,
+                                              size_t *planet_id);
 
 bool space_init_capacity(Space *space, size_t size_in_bytes);
 bool space_init_capacity_in_count_plantes(Space *space, size_t size_in_bytes,
@@ -61,7 +76,7 @@ bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
                             size_t new_size, size_t *planet_id);
 
 #define DAP_CAP 64
-#define space_dap(space, dynamic_array, element)                               \
+#define space_dap_impl(space, realloc_function, dynamic_array, element)        \
   do {                                                                         \
     if ((dynamic_array)->capacity <= (dynamic_array)->count) {                 \
       size_t old_capacity = (dynamic_array)->capacity;                         \
@@ -70,7 +85,7 @@ bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
       else                                                                     \
         (dynamic_array)->capacity = (dynamic_array)->capacity * 2;             \
                                                                                \
-      (dynamic_array)->elements = space_realloc(                               \
+      (dynamic_array)->elements = realloc_function(                            \
           (space), (dynamic_array)->elements,                                  \
           sizeof(*(dynamic_array)->elements) * old_capacity,                   \
           sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);     \
@@ -88,7 +103,8 @@ bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
     (dynamic_array)->count = (dynamic_array)->count + 1;                       \
   } while (0)
 
-#define space_dapc(space, dynamic_array, new_elements, new_elements_count)     \
+#define space_dapc_impl(space, realloc_function, dynamic_array, new_elements,  \
+                        new_elements_count)                                    \
   do {                                                                         \
     if ((new_elements) != NULL) {                                              \
       if ((dynamic_array)->capacity <                                          \
@@ -101,7 +117,7 @@ bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
                (dynamic_array)->count + new_elements_count) {                  \
           (dynamic_array)->capacity = (dynamic_array)->capacity * 2;           \
         }                                                                      \
-        (dynamic_array)->elements = space_realloc(                             \
+        (dynamic_array)->elements = realloc_function(                          \
             (space), (dynamic_array)->elements,                                \
             sizeof(*(dynamic_array)->elements) * old_capacity,                 \
             sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);   \
@@ -120,7 +136,7 @@ bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
     }                                                                          \
   } while (0)
 
-#define space_dapf(space, dynamic_array, fmt, ...)                             \
+#define space_dapf_impl(space, realloc_function, dynamic_array, fmt, ...)      \
   do {                                                                         \
     int n = snprintf(NULL, 0, (fmt), ##__VA_ARGS__);                           \
     if (n == -1) {                                                             \
@@ -135,7 +151,7 @@ bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
       while ((dynamic_array)->capacity < (dynamic_array)->count + n) {         \
         (dynamic_array)->capacity = (dynamic_array)->capacity * 2;             \
       }                                                                        \
-      (dynamic_array)->elements = space_realloc(                               \
+      (dynamic_array)->elements = realloc_function(                            \
           (space), (dynamic_array)->elements,                                  \
           sizeof(*(dynamic_array)->elements) * old_capacity,                   \
           sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);     \
@@ -155,6 +171,27 @@ bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
     }                                                                          \
     (dynamic_array)->count += err;                                             \
   } while (0);
+
+#define space_dap(space, dynamic_array, element)                               \
+  space_dap_impl(space, space_realloc, dynamic_array, element)
+
+#define space_ndap(space, dynamic_array, element)                              \
+  space_dap_impl(space, space_realloc_force_new_planet, dynamic_array, element)
+
+#define space_dapc(space, dynamic_array, new_elements, new_elements_count)     \
+  space_dapc_impl(space, space_realloc, dynamic_array, new_elements,           \
+                  new_elements_count)
+
+#define space_ndapc(space, dynamic_array, new_elements, new_elements_count)    \
+  space_dapc_impl(space, space_realloc_force_new_planet, dynamic_array,        \
+                  new_elements, new_elements_count)
+
+#define space_dapf(space, dynamic_array, fmt, ...)                             \
+  space_dapf_impl(space, space_realloc, dynamic_array, fmt, ##__VA_ARGS__)
+
+#define space_ndapf(space, dynamic_array, fmt, ...)                            \
+  space_dapf_impl(space, space_realloc_force_new_planet, dynamic_array, fmt,   \
+                  ##__VA_ARGS__)
 
 #endif // SPACE_H_
 
@@ -283,8 +320,8 @@ void space_reset_space_and_zero(Space *space) {
   }
 }
 
-void *space_malloc_planetid(Space *space, size_t size_in_bytes,
-                            size_t *planet_id) {
+void *space_alloc_planetid(Space *space, size_t size_in_bytes,
+                           size_t *planet_id, bool force_new_planet) {
   if (!space) {
     planet_id = NULL;
     return NULL;
@@ -304,30 +341,32 @@ void *space_malloc_planetid(Space *space, size_t size_in_bytes,
 
   Planet *p = space->sun;
   Planet *prev = space->sun;
-  while (p) {
-    if (p->count + size_in_bytes > p->capacity) {
-      prev = p;
-      p = p->next;
-      continue;
-    }
+  if (!force_new_planet) {
+    while (p) {
+      if (p->count + size_in_bytes > p->capacity) {
+        prev = p;
+        p = p->next;
+        continue;
+      }
 
-    // TODO: Think about handling this by deleting the planet chunk in between.
-    // We can't get the original pointer at this point anyway.
-    // Recovery is outside the traditional behavior of this lib, which is
-    // freeing the complete space at once and be sure that every allocated
-    // memory is freed.
-    //
-    // We can't distinguish between an actual free call or destroying our
-    // reference by setting it to NULL.
-    //
-    // Marvin Frohwitter 01.12.2025
-    assert(p->elements &&
-           "ERROR:SPACE: Memory inside a space was freed or set to NULL"
-           "by an external call outside the space api!");
-    void *place = &((char *)p->elements)[p->count];
-    p->count += size_in_bytes;
-    *planet_id = p->id;
-    return place;
+      // TODO: Think about handling this by deleting the planet chunk in
+      // between. We can't get the original pointer at this point anyway.
+      // Recovery is outside the traditional behavior of this lib, which is
+      // freeing the complete space at once and be sure that every allocated
+      // memory is freed.
+      //
+      // We can't distinguish between an actual free call or destroying our
+      // reference by setting it to NULL.
+      //
+      // Marvin Frohwitter 01.12.2025
+      assert(p->elements &&
+             "ERROR:SPACE: Memory inside a space was freed or set to NULL"
+             "by an external call outside the space api!");
+      void *place = &((char *)p->elements)[p->count];
+      p->count += size_in_bytes;
+      *planet_id = p->id;
+      return place;
+    }
   }
 
   p = space_init_planet(space, size_in_bytes);
@@ -341,6 +380,47 @@ void *space_malloc_planetid(Space *space, size_t size_in_bytes,
   p->next = NULL;
   prev->next = p;
   return prev->next->elements;
+}
+
+void *space_malloc_planetid_force_new_planet(Space *space, size_t size_in_bytes,
+                                             size_t *planet_id) {
+  return space_alloc_planetid(space, size_in_bytes, planet_id, true);
+}
+
+void *space_calloc_planetid_force_new_planet(Space *space, size_t nmemb,
+                                             size_t size, size_t *planet_id) {
+  size_t size_in_bytes = nmemb * size;
+  void *ptr =
+      space_malloc_planetid_force_new_planet(space, size_in_bytes, planet_id);
+  memset(ptr, 0, size_in_bytes);
+  return ptr;
+}
+
+void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
+                                              size_t old_size, size_t new_size,
+                                              size_t *planet_id) {
+
+  char *new_ptr =
+      space_malloc_planetid_force_new_planet(space, new_size, planet_id);
+  if (new_ptr) {
+    // This is to ensure memcpy() does not copy from NULL, this is undefended
+    // behavior and a memory corruption.
+    if (ptr) {
+      // This is need if the this function shrinks the size to 0 and then the
+      // caller wants to realloc a lager pointer. In the mean time another
+      // allocation has taken the plant and a new planet was allocated to
+      // provided the requested space.
+      if (old_size) {
+        memcpy(new_ptr, ptr, old_size > new_size ? new_size : old_size);
+      }
+    }
+  }
+  return new_ptr;
+}
+
+void *space_malloc_planetid(Space *space, size_t size_in_bytes,
+                            size_t *planet_id) {
+  return space_alloc_planetid(space, size_in_bytes, planet_id, false);
 }
 
 void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
@@ -393,6 +473,23 @@ void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
     }
   }
   return new_ptr;
+}
+
+void *space_malloc_force_new_planet(Space *space, size_t size_in_bytes) {
+  size_t id;
+  return space_malloc_planetid_force_new_planet(space, size_in_bytes, &id);
+}
+
+void *space_calloc_force_new_planet(Space *space, size_t nmemb, size_t size) {
+  size_t id;
+  return space_calloc_planetid_force_new_planet(space, nmemb, size, &id);
+}
+
+void *space_realloc_force_new_planet(Space *space, void *ptr, size_t old_size,
+                                     size_t new_size) {
+  size_t id;
+  return space_realloc_planetid_force_new_planet(space, ptr, old_size, new_size,
+                                                 &id);
 }
 
 void *space_malloc(Space *space, size_t size_in_bytes) {
