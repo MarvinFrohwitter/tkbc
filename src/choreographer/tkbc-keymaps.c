@@ -435,9 +435,9 @@ const char *tkbc_key_to_str(int key) {
   case KEY_VOLUME_DOWN: // Key: Android volume down button
     return "volume_down";
   case 161: // GLFW_KEY_WORLD_1
-    return "de_less_than";
+    return "de_less_than1";
   case 162: // GLFW_KEY_WORLD_2
-    return "de_less_than";
+    return "de_less_than2";
   default: {
     // This leaks memory.
     char *buffer = malloc(sizeof(int));

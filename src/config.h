@@ -287,7 +287,8 @@ static Key_Map default_keymaps[] = {
     },
     {
         .description = "Toggle reverse mouse follow",
-        .key = 161,
-        .hash = KMH_KEY_161,
+        .selection_key1 = 161,
+        .selection_key2 = 162,
+        .hash = KMH_KEY_161_162,
     },
 };

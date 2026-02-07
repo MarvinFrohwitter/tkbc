@@ -110,7 +110,7 @@ typedef enum {
 
   KMH_KEY_KP_5,
 
-  KMH_KEY_161,
+  KMH_KEY_161_162,
 
   KMH_COUNT,
 } Key_Map_Hash;

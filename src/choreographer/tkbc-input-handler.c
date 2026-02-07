@@ -426,7 +426,8 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
           tkbc_hash_to_key(keymaps, KMH_SWITCH_MOUSE_CONTOL_MOVEMENT))) {
     state->is_mouse_control = !state->is_mouse_control;
   }
-  if (IsKeyPressed(tkbc_hash_to_key(keymaps, KMH_KEY_161))) {
+  if (IsKeyPressed(tkbc_hash_to_keymap(keymaps, KMH_KEY_161_162).selection_key1) ||
+      IsKeyPressed(tkbc_hash_to_keymap(keymaps, KMH_KEY_161_162).selection_key2)) {
     state->is_kite_reversed = !state->is_kite_reversed;
   }
 
