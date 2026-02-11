@@ -429,6 +429,21 @@ Test reset_frames_internal_data() {
   return test;
 }
 
+Test calculate_script_byte_size_allocated() {
+  Test test = cassert_init_test("tkbc_calculate_script_byte_size_allocated()");
+
+  Script script = {0};
+  size_t calculated_size = tkbc_calculate_script_byte_size_allocated(script);
+
+  size_t basic_struct_size = sizeof(Script);
+  cassert_size_t_neq(calculated_size, 0);
+  cassert_size_t_eq(calculated_size, basic_struct_size);
+  cassert_set_last_cassert_description(
+      &test, "For empty script, calculated size should equal struct size.");
+
+  return test;
+}
+
 void tkbc_test_script_handler(Tests *tests) {
   cassert_dap(tests, init_frame());
   cassert_dap(tests, get_kite_by_id());
@@ -439,4 +454,5 @@ void tkbc_test_script_handler(Tests *tests) {
   cassert_dap(tests, deep_copy_script());
   cassert_dap(tests, destroy_frames_internal_data());
   cassert_dap(tests, reset_frames_internal_data());
+  cassert_dap(tests, calculate_script_byte_size_allocated());
 }

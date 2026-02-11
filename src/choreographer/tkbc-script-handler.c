@@ -833,51 +833,32 @@ size_t tkbc_calculate_script_byte_size(Script script) {
   return result;
 }
 
-size_t tkbc_calculate_frame_byte_size_allocated(Frame frame) {
-  size_t result = 0;
-
-  result +=
-      frame.kite_id_array.capacity * sizeof(*frame.kite_id_array.elements);
-
-  return result;
-}
-
-size_t tkbc_calculate_frames_byte_size_allocated(Frames frames) {
-  size_t result = 0;
-
-  result += sizeof(*frames.elements) * frames.capacity;
-  for (size_t i = 0; i < frames.count; ++i) {
-    Frame frame = frames.elements[i];
-    result += tkbc_calculate_frame_byte_size_allocated(frame);
-  }
-
-  result += frames.kite_frame_positions.capacity *
-            sizeof(*frames.kite_frame_positions.elements);
-
-  return result;
-}
-
 size_t tkbc_calculate_script_byte_size_allocated(Script script) {
-
   size_t result = 0;
-  result += sizeof(script);
+
   if (script.name != NULL) {
     result += strlen(script.name) + 1;
   }
 
-  result += sizeof(*script.elements) * script.capacity;
+  result += script.capacity * sizeof(Frames);
   for (size_t i = 0; i < script.count; ++i) {
-    Frames frames = script.elements[i];
-    result += tkbc_calculate_frames_byte_size_allocated(frames);
+    Frames *frames = &script.elements[i];
+
+    result += frames->kite_frame_positions.capacity * sizeof(Kite_Position);
+
+    result += frames->capacity * sizeof(Frame);
+    for (size_t j = 0; j < frames->count; ++j) {
+      result += frames->elements[j].kite_id_array.capacity * sizeof(Id);
+    }
   }
 
   return result;
 }
 
 /**
- * @brief This function adds a script to the global array located in the env. It
- * is needed to achieve stability for the raw frames and script pointers in the
- * env, they can be invalidated when the scripts array reallocates.
+ * @brief This function adds a script to the global array located in the env.
+ * It is needed to achieve stability for the raw frames and script pointers in
+ * the env, they can be invalidated when the scripts array reallocates.
  *
  * @param env The global state of the application.
  * @param script The script to add.
@@ -898,36 +879,26 @@ void tkbc_add_script(Env *env, Script script) {
     script_id = env->script->script_id;
   }
 
-#define threshold_max_scripts_in_memory 10
+#define threshold_max_scripts_in_memory 0
   if (env->scripts.count > threshold_max_scripts_in_memory) {
+    Planet *p = space__find_planet_from_ptr(&env->scripts_space,
+                                            env->scripts.elements->elements);
+    space_free_planet(&env->scripts_space, p);
+
     // NOTE: this is actually slow because every other script just be moved
     // over in the array.
     tkbc_unload_script_from_memory(env, env->scripts.elements[0].script_id);
-    // TODO: actually unload it by searching the correct bucket in the space
-    // allocator.
   }
 
-  Space_Report report = {0};
-  if (!space_report_allocations(&env->script_creation_space, &report)) {
-    assert(0 && "reporter fail");
-  }
-
-  // TODO: Wrong calculation it has to be more.
   size_t bytes_count = tkbc_calculate_script_byte_size_allocated(script);
   size_t planet_id = 0;
   void *ptr = space_malloc_planetid_force_new_planet(&env->scripts_space,
                                                      bytes_count, &planet_id);
-
   assert(ptr && "malloc has failed!");
   space_reset_planet_id(&env->scripts_space, planet_id);
 
   Script script_copy = tkbc_deep_copy_script(&env->scripts_space, &script);
   space_dap(&env->scripts_space, &env->scripts, script_copy);
-  Space_Report r = {0};
-  if (!space_report_allocations(&env->scripts_space, &r)) {
-    assert(0 && "reporter fail");
-  }
-
   space_reset_space(&env->script_creation_space);
 
   // Rest the scratch buffers they got invalidated by resetting the space.
@@ -1050,7 +1021,8 @@ void tkbc_scrub_frames(Env *env) {
  * @param position The new position of the kite.
  * @param duration The time it should take to interpolate the kite to the new
  * position.
- * @return The amount that the center position has moved to the final position.
+ * @return The amount that the center position has moved to the final
+ * position.
  */
 Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration) {
   if (duration <= 0) {
@@ -1190,8 +1162,9 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
 
 /**
  * @brief The function computes the intermediate angle that represents the
- * difference to zero from the current kite angle and respects the sign of the 0
- * angle. The intermediate angle is returned and the action stays unmodified.
+ * difference to zero from the current kite angle and respects the sign of the
+ * 0 angle. The intermediate angle is returned and the action stays
+ * unmodified.
  *
  * @param kite The kite the intermediate angel should be calculated for.
  * @param kind The action kind.
