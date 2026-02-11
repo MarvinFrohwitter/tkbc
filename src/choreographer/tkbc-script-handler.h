@@ -36,6 +36,9 @@ bool tkbc_unload_script_from_memory(Env *env, size_t script_id);
 size_t tkbc_calculate_frame_byte_size(Frame frame);
 size_t tkbc_calculate_frames_byte_size(Frames frames);
 size_t tkbc_calculate_script_byte_size(Script script);
+size_t tkbc_calculate_frame_byte_size_allocated(Frame frame);
+size_t tkbc_calculate_frames_byte_size_allocated(Frames frames);
+size_t tkbc_calculate_script_byte_size_allocated(Script script);
 
 void tkbc_add_script(Env *env, Script script);
 void tkbc_input_handler_script(Env *env);

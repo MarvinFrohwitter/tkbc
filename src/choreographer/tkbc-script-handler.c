@@ -782,6 +782,7 @@ bool tkbc_unload_script_from_memory(Env *env, size_t script_id) {
 size_t tkbc_calculate_frame_byte_size(Frame frame) {
   size_t result = 0;
   result += sizeof(frame);
+
   result += frame.kite_id_array.count * sizeof(*frame.kite_id_array.elements);
 
   return result;
@@ -832,6 +833,47 @@ size_t tkbc_calculate_script_byte_size(Script script) {
   return result;
 }
 
+size_t tkbc_calculate_frame_byte_size_allocated(Frame frame) {
+  size_t result = 0;
+
+  result +=
+      frame.kite_id_array.capacity * sizeof(*frame.kite_id_array.elements);
+
+  return result;
+}
+
+size_t tkbc_calculate_frames_byte_size_allocated(Frames frames) {
+  size_t result = 0;
+
+  result += sizeof(*frames.elements) * frames.capacity;
+  for (size_t i = 0; i < frames.count; ++i) {
+    Frame frame = frames.elements[i];
+    result += tkbc_calculate_frame_byte_size_allocated(frame);
+  }
+
+  result += frames.kite_frame_positions.capacity *
+            sizeof(*frames.kite_frame_positions.elements);
+
+  return result;
+}
+
+size_t tkbc_calculate_script_byte_size_allocated(Script script) {
+
+  size_t result = 0;
+  result += sizeof(script);
+  if (script.name != NULL) {
+    result += strlen(script.name) + 1;
+  }
+
+  result += sizeof(*script.elements) * script.capacity;
+  for (size_t i = 0; i < script.count; ++i) {
+    Frames frames = script.elements[i];
+    result += tkbc_calculate_frames_byte_size_allocated(frames);
+  }
+
+  return result;
+}
+
 /**
  * @brief This function adds a script to the global array located in the env. It
  * is needed to achieve stability for the raw frames and script pointers in the
@@ -865,8 +907,13 @@ void tkbc_add_script(Env *env, Script script) {
     // allocator.
   }
 
+  Space_Report report = {0};
+  if (!space_report_allocations(&env->script_creation_space, &report)) {
+    assert(0 && "reporter fail");
+  }
+
   // TODO: Wrong calculation it has to be more.
-  size_t bytes_count = tkbc_calculate_script_byte_size(script);
+  size_t bytes_count = tkbc_calculate_script_byte_size_allocated(script);
   size_t planet_id = 0;
   void *ptr = space_malloc_planetid_force_new_planet(&env->scripts_space,
                                                      bytes_count, &planet_id);
@@ -876,6 +923,10 @@ void tkbc_add_script(Env *env, Script script) {
 
   Script script_copy = tkbc_deep_copy_script(&env->scripts_space, &script);
   space_dap(&env->scripts_space, &env->scripts, script_copy);
+  Space_Report r = {0};
+  if (!space_report_allocations(&env->scripts_space, &r)) {
+    assert(0 && "reporter fail");
+  }
 
   space_reset_space(&env->script_creation_space);
 
