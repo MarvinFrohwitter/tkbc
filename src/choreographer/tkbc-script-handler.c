@@ -799,7 +799,8 @@ size_t tkbc_calculate_frames_byte_size(Frames frames) {
   result += sizeof(frames);
 
   for (size_t i = 0; i < frames.count; ++i) {
-    result += tkbc_calculate_frame_byte_size(frames.elements[i]);
+    Frame frame = frames.elements[i];
+    result += tkbc_calculate_frame_byte_size(frame);
   }
 
   result += frames.kite_frame_positions.count *
@@ -819,10 +820,13 @@ size_t tkbc_calculate_script_byte_size(Script script) {
 
   size_t result = 0;
   result += sizeof(script);
-  result += strlen(script.name) + 1;
+  if (script.name != NULL) {
+    result += strlen(script.name) + 1;
+  }
 
   for (size_t i = 0; i < script.count; ++i) {
-    result += tkbc_calculate_frames_byte_size(script.elements[i]);
+    Frames frames = script.elements[i];
+    result += tkbc_calculate_frames_byte_size(frames);
   }
 
   return result;
@@ -861,12 +865,12 @@ void tkbc_add_script(Env *env, Script script) {
     // allocator.
   }
 
+  // TODO: Wrong calculation it has to be more.
   size_t bytes_count = tkbc_calculate_script_byte_size(script);
-  fprintf(stderr, "The size of script:%zu:%s:%zu\n", script.script_id,
-          script.name, bytes_count);
   size_t planet_id = 0;
   void *ptr = space_malloc_planetid_force_new_planet(&env->scripts_space,
                                                      bytes_count, &planet_id);
+
   assert(ptr && "malloc has failed!");
   space_reset_planet_id(&env->scripts_space, planet_id);
 

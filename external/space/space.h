@@ -341,32 +341,38 @@ void *space_alloc_planetid(Space *space, size_t size_in_bytes,
 
   Planet *p = space->sun;
   Planet *prev = space->sun;
-  if (!force_new_planet) {
-    while (p) {
-      if (p->count + size_in_bytes > p->capacity) {
-        prev = p;
-        p = p->next;
-        continue;
-      }
-
-      // TODO: Think about handling this by deleting the planet chunk in
-      // between. We can't get the original pointer at this point anyway.
-      // Recovery is outside the traditional behavior of this lib, which is
-      // freeing the complete space at once and be sure that every allocated
-      // memory is freed.
-      //
-      // We can't distinguish between an actual free call or destroying our
-      // reference by setting it to NULL.
-      //
-      // Marvin Frohwitter 01.12.2025
-      assert(p->elements &&
-             "ERROR:SPACE: Memory inside a space was freed or set to NULL"
-             "by an external call outside the space api!");
-      void *place = &((char *)p->elements)[p->count];
-      p->count += size_in_bytes;
-      *planet_id = p->id;
-      return place;
+  while (p) {
+    // This is slow finding the end of the linked list.
+    // TODO: Maybe find the end by storing it in sun->prev.
+    if (force_new_planet) {
+      prev = p;
+      p = p->next;
+      continue;
     }
+
+    if (p->count + size_in_bytes > p->capacity) {
+      prev = p;
+      p = p->next;
+      continue;
+    }
+
+    // TODO: Think about handling this by deleting the planet chunk in
+    // between. We can't get the original pointer at this point anyway.
+    // Recovery is outside the traditional behavior of this lib, which is
+    // freeing the complete space at once and be sure that every allocated
+    // memory is freed.
+    //
+    // We can't distinguish between an actual free call or destroying our
+    // reference by setting it to NULL.
+    //
+    // Marvin Frohwitter 01.12.2025
+    assert(p->elements &&
+           "ERROR:SPACE: Memory inside a space was freed or set to NULL"
+           "by an external call outside the space api!");
+    void *place = &((char *)p->elements)[p->count];
+    p->count += size_in_bytes;
+    *planet_id = p->id;
+    return place;
   }
 
   p = space_init_planet(space, size_in_bytes);

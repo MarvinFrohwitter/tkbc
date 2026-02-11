@@ -29,8 +29,8 @@
 #define EPSILON 0.001f
 #endif // EPSILON
 #define TARGET_FPS 60
-// #define TARGET_DT (1 / (double)TARGET_FPS)
-#define TARGET_DT 0
+#define TARGET_DT (1 / (double)TARGET_FPS)
+// #define TARGET_DT 0
 
 // ===========================================================================
 // ===========================================================================
