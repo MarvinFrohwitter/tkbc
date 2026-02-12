@@ -879,15 +879,15 @@ void tkbc_add_script(Env *env, Script script) {
     script_id = env->script->script_id;
   }
 
-#define threshold_max_scripts_in_memory 10
+#define threshold_max_scripts_in_memory 3
   if (env->scripts.count > threshold_max_scripts_in_memory) {
     Planet *p = space__find_planet_from_ptr(&env->scripts_space,
                                             env->scripts.elements->elements);
-    space_free_planet(&env->scripts_space, p);
 
     // NOTE: this is actually slow because every other script just be moved
     // over in the array.
     tkbc_unload_script_from_memory(env, env->scripts.elements[0].script_id);
+    space_free_planet(&env->scripts_space, p);
   }
 
   size_t bytes_count = tkbc_calculate_script_byte_size_allocated(script);
