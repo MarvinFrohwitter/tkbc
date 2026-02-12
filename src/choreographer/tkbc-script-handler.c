@@ -763,7 +763,7 @@ bool tkbc_unload_script_from_memory(Env *env, size_t script_id) {
     if (script_id == env->scripts.elements[i].script_id) {
 
       memmove(&env->scripts.elements[i], &env->scripts.elements[i + 1],
-              env->scripts.count - i - 1);
+              sizeof(*env->scripts.elements) * (env->scripts.count - i - 1));
       env->scripts.count -= 1;
 
       return true;
