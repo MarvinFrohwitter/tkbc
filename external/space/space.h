@@ -21,6 +21,7 @@ struct Planet {
 typedef struct {
   Planet *sun;
   size_t planet_count;
+  size_t id_counter;
 } Space;
 
 Planet *space_init_planet(Space *space, size_t size_in_bytes);
@@ -222,7 +223,8 @@ Planet *space_init_planet(Space *space, size_t size_in_bytes) {
     // The '1+' is needed because 0 is an invalid id and
     // space__find_planet_id_from_ptr() returns 0 if it could not be found.
     // This allows to use size_t and still return an error value.
-    planet->id = 1 + space->planet_count++;
+    planet->id = 1 + space->id_counter++;
+    space->planet_count++;
   }
 
   return planet;
