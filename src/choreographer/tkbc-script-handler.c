@@ -879,7 +879,7 @@ void tkbc_add_script(Env *env, Script script) {
     script_id = env->script->script_id;
   }
 
-#define threshold_max_scripts_in_memory 0
+#define threshold_max_scripts_in_memory 10
   if (env->scripts.count > threshold_max_scripts_in_memory) {
     Planet *p = space__find_planet_from_ptr(&env->scripts_space,
                                             env->scripts.elements->elements);
