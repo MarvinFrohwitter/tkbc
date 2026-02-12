@@ -844,10 +844,17 @@ size_t tkbc_calculate_script_byte_size_allocated(Script script) {
   for (size_t i = 0; i < script.count; ++i) {
     Frames *frames = &script.elements[i];
 
+    // TODO: Remove it is not clear that this extra size will always be enough.
+    result += 64;
+
     result += frames->kite_frame_positions.capacity * sizeof(Kite_Position);
 
     result += frames->capacity * sizeof(Frame);
     for (size_t j = 0; j < frames->count; ++j) {
+      // TODO: Remove it is not clear that this extra size will always be
+      // enough.
+      result += 64;
+
       result += frames->elements[j].kite_id_array.capacity * sizeof(Id);
     }
   }
@@ -897,9 +904,23 @@ void tkbc_add_script(Env *env, Script script) {
   assert(ptr && "malloc has failed!");
   space_reset_planet_id(&env->scripts_space, planet_id);
 
-  Script script_copy = tkbc_deep_copy_script(&env->scripts_space, &script);
-  space_ndap(&env->scripts_space, &env->scripts, script_copy);
+  Script s_copy = tkbc_deep_copy_script(&env->scripts_space, &script);
+  space_ndap(&env->scripts_space, &env->scripts, s_copy);
   space_reset_space(&env->script_creation_space);
+
+  // TODO: Remove
+  // Huge hack !!!!
+  // This ensures that no other allocation goes into the same planet. And a
+  // script is always contained in one Planet.
+  // Consider even if the allocation size is computed correctly eventually to
+  // keep this hack just in case the ensure scripts can always be freed by
+  // freeing the corresponding Planet.
+  //
+  // Marvin Frohwitter 12.02.2026
+  //
+  // NOTE: This messes with the internals of the space allocator.
+  Planet *p = space__find_planet_from_ptr(&env->scripts_space, s_copy.elements);
+  p->count = p->capacity;
 
   // Rest the scratch buffers they got invalidated by resetting the space.
   memset(&env->scratch_buf_script, 0, sizeof(env->scratch_buf_script));
