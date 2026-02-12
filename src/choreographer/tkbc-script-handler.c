@@ -898,7 +898,7 @@ void tkbc_add_script(Env *env, Script script) {
   space_reset_planet_id(&env->scripts_space, planet_id);
 
   Script script_copy = tkbc_deep_copy_script(&env->scripts_space, &script);
-  space_dap(&env->scripts_space, &env->scripts, script_copy);
+  space_ndap(&env->scripts_space, &env->scripts, script_copy);
   space_reset_space(&env->script_creation_space);
 
   // Rest the scratch buffers they got invalidated by resetting the space.
