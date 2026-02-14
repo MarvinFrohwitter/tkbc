@@ -64,6 +64,12 @@ void tkbc_ffmpeg_handler(Env *env, const char *output_file_path) {
         env->recording = false;
         env->rendering = false;
       }
+      // This ensures that the frame buffer can be setup and remaining
+      // changes can take effect. For example disabling the fps display.
+      // Otherwise the fps display would be visible in the final video for just
+      // one frame.
+      // As a result tkbc_ffmpeg_write_image function is delayed one frame.
+      return;
     }
   }
 
