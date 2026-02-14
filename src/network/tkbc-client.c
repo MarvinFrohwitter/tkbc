@@ -999,8 +999,13 @@ int main(int argc, char *argv[]) {
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
   SetTraceLogLevel(LOG_NONE);
+#ifdef _WIN32
   SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT |
                  FLAG_WINDOW_MINIMIZED | FLAG_WINDOW_MAXIMIZED);
+#else
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT |
+                 FLAG_WINDOW_MINIMIZED | FLAG_WINDOW_MAXIMIZED);
+#endif
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
   SetTargetFPS(TARGET_FPS);

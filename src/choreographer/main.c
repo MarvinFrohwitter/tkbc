@@ -41,8 +41,15 @@ Kite_Textures kite_textures = {0};
  */
 int main(void) {
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
+
+#ifdef _WIN32
   SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT |
                  FLAG_WINDOW_MINIMIZED | FLAG_WINDOW_MAXIMIZED);
+#else
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT |
+                 FLAG_WINDOW_MINIMIZED | FLAG_WINDOW_MAXIMIZED);
+#endif
+
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
   SetTargetFPS(TARGET_FPS);
