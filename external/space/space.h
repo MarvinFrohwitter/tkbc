@@ -1,6 +1,8 @@
 #ifndef SPACE_H_
 #define SPACE_H_
 
+#include <assert.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -202,11 +204,323 @@ bool space_report_allocations(Space *space, Space_Report *report);
   space_dapf_impl(space, space_realloc_force_new_planet, dynamic_array, fmt,   \
                   ##__VA_ARGS__)
 
+void *space_printf(Space *space, const char *fmt, ...);
+void *space_strcat(Space *space, const char *first, const char *second);
+void *space_strdup(Space *space, const char *buf);
+void *space_strcpy(Space *space, const char *buf);
+void *space_strncpy(Space *space, const char *buf, size_t n);
+void *space_stpcpy(Space *space, const char *buf);
+void *space_stpncpy(Space *space, const char *buf, size_t n);
+void *space_memcpy(Space *space, const void *buf, size_t n);
+void *space_memmove(Space *space, const void *buf, size_t n);
+
+bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
+                                             size_t ptr_size);
+
+void *space_vstrcat_impl(Space *space, const char *first, ...);
+void *space_catf(Space *space, const void *first, size_t first_len,
+                 const char *fmt, ...);
+void *space_strcat(Space *space, const char *first, const char *second);
+
+#define space_strcatf(space, first_str, fmt, ...)                              \
+  space_catf(space, first_str, strlen(first_str), (fmt), __VA_ARGS__)
+
+#define space_vstrcat(space, first, ...)                                       \
+  space_vstrcat_impl(space, first, __VA_ARGS__, NULL)
+
+void *space_vcat_impl(Space *space, ...);
+#define space_vcat(space, ...) space_vcat_impl(space, __VA_ARGS__, NULL)
+
+bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
+                                             size_t ptr_size);
 #endif // SPACE_H_
 
 // ===========================================================================
 
 #ifdef SPACE_IMPLEMENTATION
+
+bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
+                                             size_t ptr_size) {
+  return (char *)p->elements + p->count - ptr_size == ptr;
+}
+
+void *space_printf(Space *space, const char *fmt, ...) {
+  va_list args;
+
+  va_start(args, fmt);
+  int n = vsnprintf(NULL, 0, fmt, args);
+  va_end(args);
+  if (n == -1) {
+    return NULL;
+  }
+
+  n += 1;
+
+  char *ptr = space_malloc(space, sizeof(*ptr) * n);
+  if (ptr == NULL) {
+    return NULL;
+  }
+
+  va_start(args, fmt);
+  int err = vsnprintf(ptr, n, fmt, args);
+  va_end(args);
+  if (err == -1) {
+    return NULL;
+  }
+
+  return ptr;
+}
+
+void *space_vcat_impl(Space *space, ...) {
+  va_list args;
+  va_start(args, space);
+  char *first = va_arg(args, char *);
+  if (first == NULL) {
+    return NULL;
+  }
+  size_t first_len = va_arg(args, size_t);
+  if (first_len == 0) {
+    return NULL;
+  }
+  va_end(args);
+
+  Planet *p = space__find_planet_from_ptr(space, (void *)first);
+  if (p &&
+      space__is_ptr_last_allocation_in_planet(p, (void *)first, first_len)) {
+    size_t save = p->count;
+
+    va_start(args, space);
+    char *arg = va_arg(args, char *); // The first one
+    size_t arg_len = va_arg(args, size_t);
+    arg = va_arg(args, char *);
+    while (arg != NULL) {
+      arg_len = va_arg(args, size_t);
+
+      if (p->count + arg_len > p->capacity) {
+        // Restore the old allocation size to be consistent with the
+        // space_strcat function.
+        p->count = save;
+        va_end(args);
+        goto alloc;
+      }
+
+      memcpy(((char *)p->elements) + p->count - 1, arg, arg_len + 1);
+      p->count += arg_len;
+
+      arg = va_arg(args, char *);
+    }
+
+    ((char *)p->elements)[p->count - 1] = '\0';
+    va_end(args);
+    return (void *)first;
+  }
+
+alloc: {}
+  size_t count = first_len + 1;
+  {
+    va_start(args, space);
+    first = va_arg(args, char *);
+    first_len = va_arg(args, size_t);
+    char *arg = va_arg(args, char *);
+    while (arg != NULL) {
+      count += va_arg(args, size_t);
+      arg = va_arg(args, char *);
+    }
+    va_end(args);
+  }
+
+  void *ptr = space_malloc(space, count);
+  p = space__find_planet_from_ptr(space, ptr);
+  p->count -= count;
+
+  memcpy(ptr, first, first_len);
+  p->count += first_len;
+
+  va_start(args, space);
+  first = va_arg(args, char *);
+  first_len = va_arg(args, size_t);
+  char *arg = va_arg(args, char *);
+  while (arg != NULL) {
+    size_t arg_len = va_arg(args, size_t);
+    memcpy((char *)p->elements + p->count - 1, arg, arg_len);
+    p->count += arg_len;
+    arg = va_arg(args, char *);
+  }
+  va_end(args);
+  ((char *)p->elements)[p->count - 1] = '\0';
+
+  return ptr;
+}
+
+void *space_vstrcat_impl(Space *space, const char *first, ...) {
+  size_t first_len = strlen(first);
+  va_list args;
+
+  Planet *p = space__find_planet_from_ptr(space, (void *)first);
+  if (p &&
+      space__is_ptr_last_allocation_in_planet(p, (void *)first, first_len)) {
+    size_t save = p->count;
+
+    va_start(args, first);
+    char *arg = va_arg(args, char *);
+    while (arg != NULL) {
+      size_t arg_len = strlen(arg);
+      if (p->count + arg_len > p->capacity) {
+        // Restore the old allocation size to be consistent with the
+        // space_strcat function.
+        p->count = save;
+        va_end(args);
+        goto alloc;
+      }
+
+      memcpy(((char *)p->elements) + p->count - 1, arg, arg_len + 1);
+      p->count += arg_len;
+
+      arg = va_arg(args, char *);
+    }
+
+    ((char *)p->elements)[p->count - 1] = '\0';
+    va_end(args);
+    return (void *)first;
+  }
+
+alloc: {}
+  size_t count = first_len + 1;
+  {
+    va_start(args, first);
+    char *arg = va_arg(args, char *);
+    while (arg != NULL) {
+      size_t arg_len = strlen(arg);
+      count += arg_len;
+      arg = va_arg(args, char *);
+    }
+    va_end(args);
+  }
+
+  void *ptr = space_malloc(space, count);
+  p = space__find_planet_from_ptr(space, ptr);
+  p->count -= count;
+
+  memcpy(ptr, first, first_len);
+  p->count += first_len;
+
+  va_start(args, first);
+  char *arg = va_arg(args, char *);
+  while (arg != NULL) {
+    size_t arg_len = strlen(arg); // This is slow to compute the length again.
+    memcpy((char *)p->elements + p->count - 1, arg, arg_len);
+    p->count += arg_len;
+    arg = va_arg(args, char *);
+  }
+  va_end(args);
+  ((char *)p->elements)[p->count - 1] = '\0';
+
+  return ptr;
+}
+
+void *space_catf(Space *space, const void *first, size_t first_len,
+                 const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  int n = vsnprintf(NULL, 0, fmt, args);
+  if (n == -1) {
+    return NULL;
+  }
+  va_end(args);
+
+  size_t max_count = n + 1;
+  Planet *p = space__find_planet_from_ptr(space, (void *)first);
+  if (p && (p->count + n <= p->capacity) &&
+      space__is_ptr_last_allocation_in_planet(p, (void *)first, first_len)) {
+    va_start(args, fmt);
+    int err = vsnprintf((char *)first + first_len, max_count, fmt, args);
+    va_end(args);
+    if (err == -1) {
+      return NULL;
+    }
+
+    p->count += err;
+    return (void *)first;
+  }
+
+  size_t combind_size = max_count + first_len;
+  void *ptr = space_malloc(space, combind_size);
+  memcpy(ptr, first, first_len);
+  va_start(args, fmt);
+  int err = vsnprintf((char *)ptr + first_len, max_count, fmt, args);
+  va_end(args);
+  if (err == -1) {
+    return NULL;
+  }
+  return ptr;
+}
+
+void *space_strcat(Space *space, const char *first, const char *second) {
+  size_t first_len = strlen(first);
+  size_t second_len = strlen(second);
+
+  Planet *p = space__find_planet_from_ptr(space, (void *)first);
+  if (p && (p->count + second_len <= p->capacity) &&
+      space__is_ptr_last_allocation_in_planet(p, (void *)first, first_len)) {
+
+    memcpy((char *)first + first_len, second, second_len + 1);
+    p->count += second_len;
+    return (void *)first;
+  }
+
+  int n = first_len + second_len + 1;
+  void *ptr = space_malloc(space, n);
+  memcpy(ptr, first, first_len);
+  memcpy((char *)ptr + first_len, second, second_len + 1);
+  return ptr;
+}
+
+void *space_strdup(Space *space, const char *buf) {
+  size_t n = strlen(buf) + 1;
+  return space_memcpy(space, buf, n);
+}
+
+void *space_strcpy(Space *space, const char *buf) {
+  size_t n = strlen(buf) + 1;
+  return space_memcpy(space, buf, n);
+}
+
+void *space_strncpy(Space *space, const char *buf, size_t n) {
+  size_t nn = strlen(buf) + 1;
+  size_t len = nn > n ? n : nn;
+  return space_memcpy(space, buf, len);
+}
+
+void *space_stpcpy(Space *space, const char *buf) {
+  size_t n = strlen(buf) + 1;
+  char *result = space_strncpy(space, buf, n);
+  return result + n - 1;
+}
+
+void *space_stpncpy(Space *space, const char *buf, size_t n) {
+  size_t nn = strlen(buf) + 1;
+  size_t len = nn > n ? n : nn;
+  char *result = space_strncpy(space, buf, len);
+  return result + len - 1;
+}
+
+void *space_memcpy(Space *space, const void *buf, size_t n) {
+  void *ptr = space_malloc(space, n);
+  if (ptr == NULL) {
+    return NULL;
+  }
+  memcpy(ptr, buf, n);
+  return ptr;
+}
+
+void *space_memmove(Space *space, const void *buf, size_t n) {
+  void *ptr = space_malloc(space, n);
+  if (ptr == NULL) {
+    return NULL;
+  }
+  memmove(ptr, buf, n);
+  return ptr;
+}
 
 Planet *space_init_planet(Space *space, size_t size_in_bytes) {
   Planet *planet = malloc(sizeof(*planet));
@@ -276,9 +590,9 @@ void space_free_space(Space *space) {
 }
 
 // The function is useful if you have to unit test a function that depends on
-// the space allocator, but you want to be sure to track every memory allocated
-// manually, so you free manually. But as a result calling space_free_space()
-// would result in double free so just free the structure.
+// the space allocator, but you want to be sure to track every memory
+// allocated manually, so you free manually. But as a result calling
+// space_free_space() would result in double free so just free the structure.
 void space_free_space_internals_without_freeing_data(Space *space) {
   while (space->sun) {
     space_free_planet_optional_freeing_data(space, space->sun, false);
@@ -453,10 +767,10 @@ void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
     Planet *p = space__find_planet_from_ptr(space, ptr);
     if (p) {
       //
-      // This is needed to ensure just this one allocation is in the planet. If
-      // there is more than just one allocation the shrinking is not possible,
-      // without keeping better track of the resulting holes and in general the
-      // allocator assumes freeing all at once and not partial.
+      // This is needed to ensure just this one allocation is in the planet.
+      // If there is more than just one allocation the shrinking is not
+      // possible, without keeping better track of the resulting holes and in
+      // general the allocator assumes freeing all at once and not partial.
       //
       if (p->count == old_size) {
         // This is needed to achieve the free functionality that realloc
@@ -623,7 +937,8 @@ bool try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
                             size_t new_size, size_t *planet_id) {
 
   Planet *p = space__find_planet_from_ptr(space, ptr);
-  if (!p || (p->count != old_size) || (p->capacity - old_size != p->count) ||
+  if (!p || (p->count != old_size) ||
+      (p->capacity - old_size != p->count) /*This seems wrong why?*/ ||
       (p->count + new_size > p->capacity)) {
     planet_id = NULL;
     return false;
