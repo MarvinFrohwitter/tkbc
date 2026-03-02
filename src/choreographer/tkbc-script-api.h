@@ -26,7 +26,8 @@ void tkbc_set_script_name(Script *script, const char *name);
     if (!*tmp) {                                                               \
       tmp = NULL;                                                              \
     }                                                                          \
-    tkbc_set_script_name(&env->scratch_buf_script, tmp);                       \
+    tkbc_set_script_name(&env->scratch_buf_script,                             \
+                         space_strdup(&env->script_creation_space, tmp));      \
   } while (0)
 
 #define tkbc_script_end() tkbc__script_end(env)
