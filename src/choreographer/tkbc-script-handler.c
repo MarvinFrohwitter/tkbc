@@ -195,7 +195,7 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
     return new_script;
   }
   new_script.script_id = script->script_id;
-  new_script.name = space_memcpy(space, script->name, strlen(script->name) + 1);
+  new_script.name = space_strdup(space, script->name);
 
   for (size_t i = 0; i < script->count; ++i) {
     Frames frames = tkbc_deep_copy_frames(space, &script->elements[i]);
