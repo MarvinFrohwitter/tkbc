@@ -53,15 +53,15 @@ build:
 clean:
 	rm -r build
 
-test: options
+test: options build
 	${CC} ${INCLUDE} ${CFLAGS} -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	./build/tests
 
-test-verbose: options
+test-verbose: options build
 	${CC} ${INCLUDE} ${CFLAGS} -DPRINT_OPERATION_AND_DESCRIPTION -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	./build/tests
 
-test-short: options
+test-short: options build
 	${CC} ${INCLUDE} ${CFLAGS} -DSHORT_LOG -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	./build/tests
 
