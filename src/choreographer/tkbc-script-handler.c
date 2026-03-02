@@ -840,22 +840,27 @@ size_t tkbc_calculate_script_byte_size_allocated(Script script) {
     result += strlen(script.name) + 1;
   }
 
-  result += script.capacity * sizeof(Frames);
+  if (script.count > 0) {
+    result += script.capacity * sizeof(Frames);
+  }
   for (size_t i = 0; i < script.count; ++i) {
     Frames *frames = &script.elements[i];
 
-    // TODO: Remove it is not clear that this extra size will always be enough.
-    result += 64;
+    // When reusing the same dynamic array the capacity can already be allocated
+    // but there is actually nothing in the array.
+    if (frames->kite_frame_positions.count > 0) {
+      result += frames->kite_frame_positions.capacity * sizeof(Kite_Position);
+    }
 
-    result += frames->kite_frame_positions.capacity * sizeof(Kite_Position);
+    if (frames->count > 0) {
+      result += frames->capacity * sizeof(Frame);
+    }
 
-    result += frames->capacity * sizeof(Frame);
     for (size_t j = 0; j < frames->count; ++j) {
-      // TODO: Remove it is not clear that this extra size will always be
-      // enough.
-      result += 64;
 
-      result += frames->elements[j].kite_id_array.capacity * sizeof(Id);
+      if (frames->elements[j].kite_id_array.count > 0) {
+        result += frames->elements[j].kite_id_array.capacity * sizeof(Id);
+      }
     }
   }
 
@@ -898,6 +903,19 @@ void tkbc_add_script(Env *env, Script script) {
   }
 
   size_t bytes_count = tkbc_calculate_script_byte_size_allocated(script);
+  bytes_count = 0;
+  { // TODO: REMOVE: HACK
+    Space s = {0};
+    // Just for speed one allocation, that assumes that scripts can fit in 1M.
+    space_init_capacity(&s, 1024 * 1024);
+    tkbc_deep_copy_script(&s, &script);
+    assert(s.sun);
+    Space_Report report = {0};
+    assert(space_report_allocations(&s, &report));
+    bytes_count = report.allocated_count;
+    space_free_space(&s);
+  }
+
   size_t planet_id = 0;
   void *ptr = space_malloc_planetid_force_new_planet(&env->scripts_space,
                                                      bytes_count, &planet_id);
