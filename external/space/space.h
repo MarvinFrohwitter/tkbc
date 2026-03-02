@@ -220,7 +220,8 @@ void *space_catf(Space *space, const void *first, size_t first_len,
 void *space_strcat(Space *space, const char *first, const char *second);
 
 #define space_strcatf(space, first_str, fmt, ...)                              \
-  space_catf(space, first_str, strlen(first_str), (fmt), __VA_ARGS__)
+  space_catf(space, first_str, frist_str ? strlen(first_str) : 0, (fmt),       \
+             __VA_ARGS__)
 
 #define space_vstrcat(space, first, ...)                                       \
   space_vstrcat_impl(space, first, __VA_ARGS__, NULL)
@@ -242,8 +243,11 @@ bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
 }
 
 void *space_printf(Space *space, const char *fmt, ...) {
-  va_list args;
+  if (!space || !fmt) {
+    return NULL;
+  }
 
+  va_list args;
   va_start(args, fmt);
   int n = vsnprintf(NULL, 0, fmt, args);
   va_end(args);
@@ -269,6 +273,10 @@ void *space_printf(Space *space, const char *fmt, ...) {
 }
 
 void *space_vcat_impl(Space *space, ...) {
+  if (!space) {
+    return NULL;
+  }
+
   va_list args;
   va_start(args, space);
   char *first = va_arg(args, char *);
@@ -349,8 +357,12 @@ alloc: {}
   return ptr;
 }
 
+// TODO
 void *space_vstrcat_impl(Space *space, const char *first, ...) {
-  size_t first_len = strlen(first);
+  if (!space) {
+    return NULL;
+  }
+  size_t first_len = first ? strlen(first) : 0;
   va_list args;
 
   Planet *p = space__find_planet_from_ptr(space, (void *)first);
@@ -394,12 +406,17 @@ alloc: {}
     va_end(args);
   }
 
-  void *ptr = space_malloc(space, count);
-  p = space__find_planet_from_ptr(space, ptr);
-  p->count -= count;
+  void *ptr = NULL;
+  if (count > 1) {
+    ptr = space_malloc(space, count);
+    p = space__find_planet_from_ptr(space, ptr);
+    p->count -= count;
+  }
 
-  memcpy(ptr, first, first_len);
-  p->count += first_len;
+  if (first) {
+    memcpy(ptr, first, first_len);
+    p->count += first_len;
+  }
 
   va_start(args, first);
   char *arg = va_arg(args, char *);
@@ -441,8 +458,13 @@ void *space_catf(Space *space, const void *first, size_t first_len,
   }
 
   size_t combind_size = max_count + first_len;
+  if (combind_size == 1) {
+    return NULL;
+  }
   void *ptr = space_malloc(space, combind_size);
-  memcpy(ptr, first, first_len);
+  if (first) {
+    memcpy(ptr, first, first_len);
+  }
   va_start(args, fmt);
   int err = vsnprintf((char *)ptr + first_len, max_count, fmt, args);
   va_end(args);
@@ -453,8 +475,12 @@ void *space_catf(Space *space, const void *first, size_t first_len,
 }
 
 void *space_strcat(Space *space, const char *first, const char *second) {
-  size_t first_len = strlen(first);
-  size_t second_len = strlen(second);
+  void *ptr = NULL;
+  if (!space || (!first && !second)) {
+    return ptr;
+  }
+  size_t first_len = first ? strlen(first) : 0;
+  size_t second_len = second ? strlen(second) : 0;
 
   Planet *p = space__find_planet_from_ptr(space, (void *)first);
   if (p && (p->count + second_len <= p->capacity) &&
@@ -466,35 +492,54 @@ void *space_strcat(Space *space, const char *first, const char *second) {
   }
 
   int n = first_len + second_len + 1;
-  void *ptr = space_malloc(space, n);
-  memcpy(ptr, first, first_len);
-  memcpy((char *)ptr + first_len, second, second_len + 1);
+  ptr = space_malloc(space, n);
+  if (first) {
+    memcpy(ptr, first, first_len);
+  }
+  if (second) {
+    memcpy((char *)ptr + first_len, second, second_len + 1);
+  }
   return ptr;
 }
 
 void *space_strdup(Space *space, const char *buf) {
+  if (!space || !buf) {
+    return NULL;
+  }
   size_t n = strlen(buf) + 1;
   return space_memcpy(space, buf, n);
 }
 
 void *space_strcpy(Space *space, const char *buf) {
+  if (!space || !buf) {
+    return NULL;
+  }
   size_t n = strlen(buf) + 1;
   return space_memcpy(space, buf, n);
 }
 
 void *space_strncpy(Space *space, const char *buf, size_t n) {
+  if (!space || !buf || n == 0) {
+    return NULL;
+  }
   size_t nn = strlen(buf) + 1;
   size_t len = nn > n ? n : nn;
   return space_memcpy(space, buf, len);
 }
 
 void *space_stpcpy(Space *space, const char *buf) {
+  if (!space || !buf) {
+    return NULL;
+  }
   size_t n = strlen(buf) + 1;
   char *result = space_strncpy(space, buf, n);
   return result + n - 1;
 }
 
 void *space_stpncpy(Space *space, const char *buf, size_t n) {
+  if (!space || !buf || n == 0) {
+    return NULL;
+  }
   size_t nn = strlen(buf) + 1;
   size_t len = nn > n ? n : nn;
   char *result = space_strncpy(space, buf, len);
@@ -502,6 +547,9 @@ void *space_stpncpy(Space *space, const char *buf, size_t n) {
 }
 
 void *space_memcpy(Space *space, const void *buf, size_t n) {
+  if (!space || !buf || n == 0) {
+    return NULL;
+  }
   void *ptr = space_malloc(space, n);
   if (ptr == NULL) {
     return NULL;
@@ -511,6 +559,9 @@ void *space_memcpy(Space *space, const void *buf, size_t n) {
 }
 
 void *space_memmove(Space *space, const void *buf, size_t n) {
+  if (!space || !buf || n == 0) {
+    return NULL;
+  }
   void *ptr = space_malloc(space, n);
   if (ptr == NULL) {
     return NULL;

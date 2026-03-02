@@ -436,8 +436,8 @@ Test calculate_script_byte_size_allocated() {
   size_t calculated_size = tkbc_calculate_script_byte_size_allocated(script);
 
   size_t basic_struct_size = sizeof(Script);
-  cassert_size_t_neq(calculated_size, 0);
-  cassert_size_t_eq(calculated_size, basic_struct_size);
+  cassert_size_t_eq(calculated_size, 0);
+  cassert_size_t_neq(calculated_size, basic_struct_size);
   cassert_set_last_cassert_description(
       &test, "For empty script, calculated size should equal struct size.");
 
