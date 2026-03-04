@@ -28,6 +28,7 @@ int tkbc_load_keymaps_from_file(Key_Maps *keymaps, const char *filename) {
     free(content.elements);
     return ok;
   }
+  ok = 0;
   Lexer *lexer = lexer_new(filename, content.elements, content.count, 0);
   Token t = lexer_next(lexer);
   while (t.kind != EOF_TOKEN && t.kind != INVALID) {
