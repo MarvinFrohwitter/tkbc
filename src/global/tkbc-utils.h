@@ -160,7 +160,10 @@ typedef enum {
 int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...);
 char *tkbc_ptoa(char *buffer, size_t buffer_size, void *number, Types type);
 char *tkbc_shift_args(int *argc, char ***argv);
+
 int tkbc_read_file(const char *filename, Content *content);
+long tkbc_read_entire_file(const char *filename, Content *content);
+
 int tkbc_write_file(const char *filename, const void *buffer, size_t size);
 int tkbc_append_file(const char *filename, const void *buffer, size_t size);
 int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
@@ -335,6 +338,108 @@ int tkbc_read_file(const char *filename, Content *content) {
     tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
                  strerror(errno));
     ok = -1;
+  }
+  return ok;
+}
+
+/**
+ * @brief The function returns the next nearest power of 2.
+ *
+ * @param number The number that should be expanded to the next power of 2.
+ * @return The next nearest power of 2 relative to the number.
+ */
+static inline uint64_t tkbc_next_pow2(uint64_t number) {
+  if (number == 0) {
+    return number;
+  }
+  --number;
+  number |= number >> 1;
+  number |= number >> 2;
+  number |= number >> 4;
+  number |= number >> 8;
+  number |= number >> 16;
+  number |= number >> 32;
+  return ++number;
+}
+
+/**
+ * @brief The function reads the entire file in one attempt into memory
+ * resulting in the content structure. For errors the specific error is already
+ * logged into stderr.
+ *
+ * @param filename The file path that should be read into memory.
+ * @param content The resulting memory pointer that contains the file content
+ * after reading.
+ * @return -1 if an error occurred, or the amount of bytes read.
+ */
+long tkbc_read_entire_file(const char *filename, Content *content) {
+  long ok = 0;
+  FILE *file = fopen(filename, "rb");
+  if (file == NULL) {
+    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
+                 strerror(errno));
+    ok = -1;
+    goto error;
+  }
+  if (fseek(file, 0, SEEK_END) < 0) {
+    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
+                 strerror(errno));
+    ok = -1;
+    goto error;
+  }
+  long size = ftell(file);
+  if (size < 0) {
+    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
+                 strerror(errno));
+    ok = -1;
+    goto error;
+  }
+  if (fseek(file, 0, SEEK_SET) < 0) {
+    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
+                 strerror(errno));
+    ok = -1;
+    goto error;
+  }
+
+  if (content->count + size > content->capacity) {
+    long size_pow2 = tkbc_next_pow2(size);
+    content->elements =
+        realloc(content->elements, sizeof(*content->elements) * size_pow2);
+    if (content->elements == NULL) {
+      tkbc_fprintf(stderr, "ERROR", "%s:%d:allocation has failed!\n", __FILE__,
+                   __LINE__);
+      ok = -1;
+      goto error;
+    }
+    content->capacity = size_pow2;
+  }
+
+  size_t read_count = fread(content->elements + content->count,
+                            sizeof(*content->elements), size, file);
+  if ((long)read_count != size) {
+    if (feof(file) != 0) {
+      content->count += read_count;
+      ok = read_count;
+      goto error;
+    }
+
+    if (ferror(file) != 0) {
+      tkbc_fprintf(stderr, "ERROR", "%s:%d:reading %s has failed!\n", __FILE__,
+                   __LINE__, filename);
+      ok = -1;
+      goto error;
+    }
+  }
+  content->count += read_count;
+  ok = read_count;
+
+error:
+  if (file) {
+    if (fclose(file) == EOF) {
+      tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
+                   strerror(errno));
+      return -1;
+    }
   }
   return ok;
 }

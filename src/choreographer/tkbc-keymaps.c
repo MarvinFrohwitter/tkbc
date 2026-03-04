@@ -20,10 +20,11 @@
  */
 int tkbc_load_keymaps_from_file(Key_Maps *keymaps, const char *filename) {
   Content content = {0};
-  int ok = tkbc_read_file(filename, &content);
+  long ok = tkbc_read_entire_file(filename, &content);
   if (ok == -1) {
-    // This is needed because tkbc_read_file() can use some of the memory of the
+    // This is needed because reading can allocate some of the memory of the
     // content and then fail.
+    assert(0 && "Read faild");
     free(content.elements);
     return ok;
   }

@@ -21,9 +21,9 @@
 void tkbc_script_parser(Env *env) {
   Content tmp_buffer = {0};
   Content script_file_content = {0};
-  int err = tkbc_read_file(env->script_file_name, &script_file_content);
-  if (err) {
-    // This is needed because tkbc_read_file() can use some of the memory of the
+  long err = tkbc_read_entire_file(env->script_file_name, &script_file_content);
+  if (err == -1) {
+    // This is needed because reading can allocate some of the memory of the
     // content and then fail.
     free(script_file_content.elements);
     return;
