@@ -24,7 +24,6 @@ int tkbc_load_keymaps_from_file(Key_Maps *keymaps, const char *filename) {
   if (ok == -1) {
     // This is needed because reading can allocate some of the memory of the
     // content and then fail.
-    assert(0 && "Read faild");
     free(content.elements);
     return ok;
   }
