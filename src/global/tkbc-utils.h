@@ -323,8 +323,8 @@ int tkbc_read_file(const char *filename, Content *content) {
   char chunk[chunk_size];
   while (feof(file) == 0) {
     memset(chunk, 0, chunk_size);
-    if (chunk_size != fread(chunk, chunk_size, 1, file)) {
-      if (ferror(file) == -1) {
+    if (chunk_size != fread(chunk, sizeof(*chunk), chunk_size, file)) {
+      if (ferror(file) != 0) {
         ok = -1;
         break;
       }
