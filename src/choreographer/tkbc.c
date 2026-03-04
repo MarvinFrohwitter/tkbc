@@ -254,8 +254,12 @@ void tkbc_file_handler(Env *env) {
     for (size_t i = 0; i < file_path_list.count && i < 1; ++i) {
       file_path = file_path_list.paths[i];
       tkbc_fprintf(stderr, "INFO", "FILE: PATH: %s\n", file_path);
+      const char *extension = GetFileExtension(file_path);
+      if (extension == NULL) {
+        continue;
+      }
 
-      if (strstr(file_path, ".kite")) {
+      if (strcmp(extension, ".kite") == 0) {
         if (env->script_file_name != NULL) {
           free(env->script_file_name);
           env->script_file_name = NULL;
