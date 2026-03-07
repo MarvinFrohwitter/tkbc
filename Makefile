@@ -1,4 +1,7 @@
 # clang bug with size_t, variadics, optimization and compiler caching
+# gcc is broken when using a format sting that just includes "%s" longer ones are fine like "Hello %s" with NULL.
+# printf("%s", NULL);
+
 CC = gcc
 RAYLIBPATH = external/raylib-5.5_linux_amd64
 INCLUDE = -I src/choreographer/ -I src/global/ -I src/network/
@@ -7,7 +10,7 @@ INCLUDE += -I ${RAYLIBPATH}/include/
 LIBS = -L ${RAYLIBPATH}/lib/
 LIBS += -l:libraylib.a
 LIBS += -lm
-CFLAGS = -x c -O0 -fPIC -pedantic -Wall -Wextra -ggdb
+CFLAGS = -x c -O0 -fPIC -Wall -Wextra -ggdb
 CHOREOGRAPHERPATH = src/choreographer
 CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c
 CHOREOGRAPHER_FILES = ${shell find ${CHOREOGRAPHERPATH}/ ! -name "main.c" -name "*.c"}

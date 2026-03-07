@@ -47,7 +47,7 @@ Frame *tkbc__script_frames_quit(Env *env, float duration);
 Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
                             Action raw_action, float duration);
 #define tkbc_frame_generate(kind, kite_ids, raw_action, duration)              \
-  tkbc__frame_generate(env, kind, kite_ids, *(Action *)&raw_action, duration)
+  tkbc__frame_generate(env, kind, kite_ids, (Action)raw_action, duration)
 void tkbc__register_frames(Env *env, ...);
 #define tkbc_register_frames(env, ...)                                         \
   tkbc__register_frames(env, __VA_ARGS__, NULL)
