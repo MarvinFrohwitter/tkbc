@@ -12,14 +12,7 @@ void team_function_demonstration(Env *env, Kite_Ids ki) {
   float rotation_duration = 1;
 
   tkbc_script_begin("team function demonstration");
-  tkbc_register_frames(env,
-                       tkbc_frame_generate(KITE_MOVE_ADD, ki,
-                                           &(CLITERAL(Move_Add_Action){
-                                               .position.x = 0,
-                                               .position.y = -300,
-                                           }),
-                                           5),
-                       tkbc_script_wait(1.5), tkbc_script_frames_quit(7));
+  SET(KITE_MOVE_ADD(ki, 0, 300, 5), KITE_WAIT(1.5), KITE_QUIT(7));
 
   tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
   tkbc_register_frames(env, tkbc_script_wait(wait_time));
@@ -33,57 +26,54 @@ void team_function_demonstration(Env *env, Kite_Ids ki) {
 
   tkbc_script_team_box_left(env, ki, 300, move_duration, rotation_duration);
   tkbc_script_team_box_right(env, ki, 300, move_duration, rotation_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
   tkbc_script_team_diamond_left(env, ki, 300, move_duration, rotation_duration);
   tkbc_script_team_diamond_right(env, ki, 300, move_duration,
                                  rotation_duration);
 
-  tkbc_register_frames(env, tkbc_script_wait(1));
-  tkbc_register_frames(
-      env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
-                               &(CLITERAL(Rotation_Action){.angle = -90}), 3));
+  SET(KITE_WAIT(1));
+  SET(KITE_ROTATION_ADD(ki, -90, 3));
 
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
 
   tkbc_script_team_split_box_up(env, ki, ODD, 300, move_duration,
                                 rotation_duration);
   tkbc_script_team_split_box_up(env, ki, EVEN, 300, move_duration,
                                 rotation_duration);
 
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
 
   tkbc_script_team_mountain(env, ki, position, offset, v_padding, h_padding,
                             move_duration, rotation_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
   tkbc_script_team_arc(env, ki, position, offset, v_padding, h_padding, 45,
                        move_duration, rotation_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
   tkbc_script_team_mountain(env, ki, position, offset, v_padding, h_padding,
                             move_duration, rotation_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
   tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
   tkbc_script_team_valley(env, ki, position, offset, v_padding, h_padding,
                           move_duration, rotation_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
   tkbc_script_team_mouth(env, ki, position, offset, v_padding, h_padding, 45,
                          move_duration, rotation_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
   tkbc_script_team_valley(env, ki, position, offset, v_padding, h_padding,
                           move_duration, rotation_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
 
   tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
   tkbc_script_team_grid(env, ki, position, offset, v_padding, h_padding, 3, 3,
                         move_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
   tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
   tkbc_script_team_grid(env, ki, position, offset, v_padding, h_padding, 3, 3,
                         move_duration);
-
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
 
   tkbc_script_end();
 }

@@ -120,32 +120,32 @@ tkbc_register_frames(env, tkbc_script_wait(duration));
 tkbc_register_frames(env, tkbc_script_frames_quit(duration));
 
 tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE_ADD, custom_ids,
-                                              &((Move_Add_Action){
+                                              ((Move_Add_Action){
                                                   .position.x = 0,
                                                   .position.y = -300,
                                               }),
                                               duration));
 
 tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE, ki,
-                                              &((Move_Action){
+                                              ((Move_Action){
                                                   .position.x = 0,
                                                   .position.y = -300,
                                               }),
                                               duration));
 
 tkbc_register_frames(env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
-                               &((Rotation_Add_Action){.angle = -0}), duration));
+                               ((Rotation_Add_Action){.angle = -0}), duration));
 
 tkbc_register_frames(env, tkbc_frame_generate(KITE_ROTATION, ki,
-                               &((Rotation_Action){.angle = 0}), duration));
+                               ((Rotation_Action){.angle = 0}), duration));
 
 tkbc_register_frames(env, tkbc_frame_generate(KITE_TIP_ROTATION_ADD, ki,
-                                         &((Tip_Rotation_Add_Action){
+                                         ((Tip_Rotation_Add_Action){
                                              .angle = 90, .tip = LEFT_TIP}),
                                          duration));
 
 tkbc_register_frames(env, tkbc_frame_generate(KITE_TIP_ROTATION, ki,
-                                         &((Tip_Rotation_Action){
+                                         ((Tip_Rotation_Action){
                                              .angle = 90, .tip = RIGHT_TIP}),
                                          duration));
 ```
@@ -174,11 +174,11 @@ This could look like this:
 // explicit:
   tkbc_register_frames(env,
                        tkbc_frame_generate(KITE_TIP_ROTATION_ADD, ki,
-                                           &((Tip_Rotation_Add_Action){
+                                           ((Tip_Rotation_Add_Action){
                                                .angle = 90, .tip = LEFT_TIP}),
                                            duration),
                        tkbc_frame_generate(KITE_MOVE_ADD, ki,
-                                           &(CLITERAL(Move_Add_Action){
+                                           (CLITERAL(Move_Add_Action){
                                                .position.x = 0,
                                                .position.y = -300,
                                            }),
