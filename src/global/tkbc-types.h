@@ -385,12 +385,12 @@ typedef struct {
   Script *script;      // A view of all the frames that should be
                        // executed in a script.
   Scripts scripts;     // The collection of all the parsed scripts.
-  Space scripts_space; //
+  Space scripts_space; // The final allocation place for all scripts.
 
-  size_t tmp_script_name_counter; // This is a counter that keeps track of the
-                                  // script names that are generated if there is
-                                  // no name provided.
-  char *script_file_name;         // The name of the script file '.kite'.
+  size_t script_id_counter; // This is a counter that keeps track of the
+                            // script id/names that are generated if there is
+                            // no name provided.
+  char *script_file_name;   // The name of the script file '.kite'.
 
   size_t send_scripts; // Represents the amount of scripts that where send to
                        // the peer partner starts; with 1.
@@ -416,11 +416,13 @@ typedef struct {
   size_t window_width;  // The window width of the application.
   size_t window_height; // The window height of the application.
 
-  Space id_space;
-  Space script_creation_space;
-  Frames scratch_buf_frames; // A buffer that can be used to construct frames.
-  Script scratch_buf_script; // A buffer that can be used to
-                             // construct a script.
+  Space id_space;              // A temporal allocation buffer for script ids.
+  Space script_creation_space; // A temporal allocation buffer for constructing
+                               // scripts before they are moved toe the final
+                               // destination scripts_space.
+  Frames scratch_buf_frames;   // A buffer that can be used to construct frames.
+  Script scratch_buf_script;   // A buffer that can be used to
+                               // construct a script.
 
   // -------FFMPEG-------
   Sound sound;           // The current loaded sound.
@@ -465,8 +467,11 @@ typedef struct {
                                      // displayed.
   Color last_selected_color; // The color that is displayed in the box below the
                              // input.
-  size_t max_favorite_colors;
-  size_t current_favorite_colors_index;
+
+  size_t max_favorite_colors; // The maximum of favorite colors slots that are
+                              // generates in the color picker.
+  size_t current_favorite_colors_index; // The current next free slot of the
+                                        // favorite_colors slots.
   Colors favorite_colors; // The current storage that holds the data for the
                           // color_picker favorite color circles.
 

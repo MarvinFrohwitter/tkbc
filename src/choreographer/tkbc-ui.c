@@ -311,6 +311,10 @@ bool tkbc_ui_script_menu(Env *env) {
   if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
       CheckCollisionPointRec(mouse, outer_script_box)) {
     DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+      Script s = env->scripts.elements[i];
+      printf("%s => %zu\n", s.name, s.script_id);
+    }
 
     tkbc_unload_script(env);
     env->script_menu_mouse_interaction_box = -1;
@@ -340,7 +344,6 @@ bool tkbc_ui_script_menu(Env *env) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
         CheckCollisionPointRec(mouse, outer_script_box)) {
       DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      // Script ids start from 1 so +1 is needed.
       // TODO: Display an error somehow if we can't load the selected script.
       tkbc_load_script_id(
           env, env->scripts.elements[env->script_menu_mouse_interaction_box]

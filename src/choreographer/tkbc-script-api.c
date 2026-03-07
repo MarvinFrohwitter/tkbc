@@ -47,7 +47,14 @@ void tkbc__script_end(Env *env) {
   env->script_setup = false;
 
   assert(env->scratch_buf_script.count > 0);
-  env->scratch_buf_script.script_id = env->scripts.count + 1;
+  env->scratch_buf_script.script_id = env->script_id_counter++;
+
+  if (!env->scratch_buf_script.name) {
+    char name[64] = {0};
+    snprintf(name, sizeof(name) - 1, "Script: %zu", env->script_id_counter);
+    tkbc_set_script_name(&env->scratch_buf_script,
+                         space_strdup(&env->script_creation_space, name));
+  }
 
   tkbc_add_script(env, env->scratch_buf_script);
 }
