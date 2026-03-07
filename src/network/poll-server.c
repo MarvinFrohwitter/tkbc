@@ -1371,7 +1371,7 @@ bool tkbc_received_message_handler(Client *client) {
     } break;
     default:
       tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind);
-      // exit(1);
+      goto err;
     }
     continue;
 

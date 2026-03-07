@@ -311,10 +311,6 @@ bool tkbc_ui_script_menu(Env *env) {
   if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
       CheckCollisionPointRec(mouse, outer_script_box)) {
     DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
-    for (size_t i = 0; i < env->scripts.count; ++i) {
-      Script s = env->scripts.elements[i];
-      printf("%s => %zu\n", s.name, s.script_id);
-    }
 
     tkbc_unload_script(env);
     env->script_menu_mouse_interaction_box = -1;
