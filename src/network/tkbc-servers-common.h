@@ -18,6 +18,7 @@ extern Env *env;
 
 #include <ctype.h>
 #include <string.h>
+#include <math.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -216,7 +217,7 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
   size_t kite_id = kite_state->kite_id;
   float x = kite_state->kite->center.x;
   float y = kite_state->kite->center.y;
-  float angle = kite_state->kite->angle;
+  float angle = fmodf(kite_state->kite->angle, 360);
   uint32_t color = ((uint32_t)kite_state->kite->body_color.r << 24) |
                    ((uint32_t)kite_state->kite->body_color.g << 16) |
                    ((uint32_t)kite_state->kite->body_color.b << 8) |
