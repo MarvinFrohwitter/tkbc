@@ -229,7 +229,6 @@ void tkbc_input_check_rotation(Key_Maps keymaps, Kite_State *s) {
  * @param s The current state of a kite that should be handled.
  */
 void tkbc_input_check_tip_turn(Key_Maps keymaps, Kite_State *s) {
-  // TODO: Think about the clamp in terms of a tip rotation
   // KEY_T
   if (!IsKeyDown(
           tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE).key)) {
@@ -311,40 +310,26 @@ void tkbc_input_check_tip_turn(Key_Maps keymaps, Kite_State *s) {
  * @param state The current state of a kite that should be handled.
  */
 void tkbc_input_check_movement(Key_Maps keymaps, Kite_State *state) {
-  int viewport_padding = state->kite->width > state->kite->height
-                             ? state->kite->width / 2
-                             : state->kite->height;
-  Vector2 window = {tkbc_get_screen_width(), tkbc_get_screen_height()};
-  window.x -= viewport_padding;
-  window.y -= viewport_padding;
 
   // KEY_H
   if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_LEFT)) ||
       IsKeyDown(KEY_LEFT)) {
-    state->kite->center.x =
-        tkbc_clamp(state->kite->center.x - state->fly_velocity,
-                   viewport_padding, window.x);
+    state->kite->center.x = state->kite->center.x - state->fly_velocity;
   }
   // KEY_J
   if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_DOWN)) ||
       IsKeyDown(KEY_DOWN)) {
-    state->kite->center.y =
-        tkbc_clamp(state->kite->center.y + state->fly_velocity,
-                   viewport_padding, window.y);
+    state->kite->center.y = state->kite->center.y + state->fly_velocity;
   }
   // KEY_K
   if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_UP)) ||
       IsKeyDown(KEY_UP)) {
-    state->kite->center.y =
-        tkbc_clamp(state->kite->center.y - state->fly_velocity,
-                   viewport_padding, window.y);
+    state->kite->center.y = state->kite->center.y - state->fly_velocity;
   }
   // KEY_L
   if (IsKeyDown(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_RIGHT)) ||
       IsKeyDown(KEY_RIGHT)) {
-    state->kite->center.x =
-        tkbc_clamp(state->kite->center.x + state->fly_velocity,
-                   viewport_padding, window.x);
+    state->kite->center.x = state->kite->center.x + state->fly_velocity;
   }
 
   tkbc_kite_update_internal(state->kite);
@@ -426,8 +411,10 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
           tkbc_hash_to_key(keymaps, KMH_SWITCH_MOUSE_CONTOL_MOVEMENT))) {
     state->is_mouse_control = !state->is_mouse_control;
   }
-  if (IsKeyPressed(tkbc_hash_to_keymap(keymaps, KMH_KEY_161_162).selection_key1) ||
-      IsKeyPressed(tkbc_hash_to_keymap(keymaps, KMH_KEY_161_162).selection_key2)) {
+  if (IsKeyPressed(
+          tkbc_hash_to_keymap(keymaps, KMH_KEY_161_162).selection_key1) ||
+      IsKeyPressed(
+          tkbc_hash_to_keymap(keymaps, KMH_KEY_161_162).selection_key2)) {
     state->is_kite_reversed = !state->is_kite_reversed;
   }
 
@@ -449,15 +436,6 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
   tkbc_calcluate_and_update_angle(keymaps, state);
   tkbc_calculate_new_kite_position(keymaps, state);
 
-  size_t window_padding = state->kite->width > state->kite->height
-                              ? state->kite->width / 2
-                              : state->kite->height;
-  Vector2 window = {
-      tkbc_get_screen_width() - window_padding,
-      tkbc_get_screen_height() - window_padding,
-  };
-  kite->center.y = tkbc_clamp(kite->center.y, window_padding, window.y);
-  kite->center.x = tkbc_clamp(kite->center.x, window_padding, window.x);
   tkbc_kite_update_internal(state->kite);
 }
 

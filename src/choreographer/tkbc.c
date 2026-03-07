@@ -545,6 +545,21 @@ void tkbc_draw_kite(Kite_State *state) {
   assert(state->kite->kite_texture_normal.height ==
          state->kite->kite_texture_flipped.height);
 
+  { // Clamping to the viewport
+    size_t window_padding = state->kite->width > state->kite->height
+                                ? state->kite->width / 2
+                                : state->kite->height;
+    Vector2 window = {
+        tkbc_get_screen_width() - window_padding,
+        tkbc_get_screen_height() - window_padding,
+    };
+    state->kite->center.y =
+        tkbc_clamp(state->kite->center.y, window_padding, window.y);
+    state->kite->center.x =
+        tkbc_clamp(state->kite->center.x, window_padding, window.x);
+    tkbc_kite_update_internal(state->kite);
+  }
+
   if (ColorIsEqual(state->kite->body_color, BLANK)) {
     /* texture kite */
     float scale = state->kite->width / state->kite->kite_texture_normal.width;
