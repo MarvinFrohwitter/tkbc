@@ -244,7 +244,6 @@ bool tkbc_ui_script_menu(Env *env) {
 
   int font_size = 22;
   Vector2 text_size;
-  char i_name[64] = {0};
   Vector2 mouse = GetMousePosition();
   for (size_t box = env->script_menu_top_interaction_box;
        box < env->screen_items + env->script_menu_top_interaction_box &&
@@ -278,22 +277,12 @@ bool tkbc_ui_script_menu(Env *env) {
       DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
     }
 
-    if (env->scripts.elements[box].name) {
-      const char *name = env->scripts.elements[box].name;
-      text_size = MeasureTextEx(GetFontDefault(), name, font_size, 0);
+    const char *name = env->scripts.elements[box].name;
+    text_size = MeasureTextEx(GetFontDefault(), name, font_size, 0);
 
-      DrawText(name, script_box.x + script_box.width / 2 - text_size.x / 2,
-               script_box.y + script_box.height / 2 - text_size.y / 2,
-               font_size, TKBC_UI_BLACK);
-    } else {
-      snprintf(i_name, sizeof(i_name) - 1, "Script: %zu", box + 1);
-      text_size = MeasureTextEx(GetFontDefault(), i_name, font_size, 0);
-
-      DrawText(i_name, script_box.x + script_box.width / 2 - text_size.x / 2,
-               script_box.y + script_box.height / 2 - text_size.y / 2,
-               font_size, TKBC_UI_BLACK);
-      memset(i_name, 0, sizeof(i_name));
-    }
+    DrawText(name, script_box.x + script_box.width / 2 - text_size.x / 2,
+             script_box.y + script_box.height / 2 - text_size.y / 2, font_size,
+             TKBC_UI_BLACK);
 
     script_box.y += script_box.height + padding;
     outer_script_box.y += env->box_height;

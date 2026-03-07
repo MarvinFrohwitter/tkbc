@@ -387,7 +387,10 @@ typedef struct {
   Scripts scripts;     // The collection of all the parsed scripts.
   Space scripts_space; //
 
-  char *script_file_name; // The name of the script file '.kite'.
+  size_t tmp_script_name_counter; // This is a counter that keeps track of the
+                                  // script names that are generated if there is
+                                  // no name provided.
+  char *script_file_name;         // The name of the script file '.kite'.
 
   size_t send_scripts; // Represents the amount of scripts that where send to
                        // the peer partner starts; with 1.

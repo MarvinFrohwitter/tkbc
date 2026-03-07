@@ -24,6 +24,14 @@ void tkbc_set_script_name(Script *script, const char *name);
     tkbc__script_begin(env);                                                   \
     const char *tmp =                                                          \
         space_vstrcat(&env->script_creation_space, NULL, ##__VA_ARGS__);       \
+                                                                               \
+    char tmp_name[64] = {0};                                                   \
+    if (!tmp) {                                                                \
+      snprintf(tmp_name, sizeof(tmp_name) - 1, "Script: %zu",                  \
+               env->tmp_script_name_counter++);                                \
+      tmp = tmp_name;                                                          \
+    }                                                                          \
+                                                                               \
     tkbc_set_script_name(&env->scratch_buf_script,                             \
                          space_strdup(&env->script_creation_space, tmp));      \
   } while (0)

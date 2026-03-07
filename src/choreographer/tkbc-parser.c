@@ -74,7 +74,8 @@ void tkbc_script_parser(Env *env) {
         break;
       } else if (strncmp("BEGIN", t.content, t.size) == 0) {
         script_begin = true;
-        tkbc__script_begin(env);
+        tkbc_script_begin();
+
         break;
       } else if (strncmp("END", t.content, t.size) == 0) {
         tkbc__script_end(env);
