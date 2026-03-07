@@ -221,13 +221,13 @@ void *space_strcat(Space *space, const char *first, const char *second);
 
 #define space_strcatf(space, first_str, fmt, ...)                              \
   space_catf(space, first_str, frist_str ? strlen(first_str) : 0, (fmt),       \
-             __VA_ARGS__)
+             ##__VA_ARGS__)
 
 #define space_vstrcat(space, first, ...)                                       \
-  space_vstrcat_impl(space, first, __VA_ARGS__, NULL)
+  space_vstrcat_impl(space, first, ##__VA_ARGS__, NULL)
 
 void *space_vcat_impl(Space *space, ...);
-#define space_vcat(space, ...) space_vcat_impl(space, __VA_ARGS__, NULL)
+#define space_vcat(space, ...) space_vcat_impl(space, ##__VA_ARGS__, NULL)
 
 bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
                                              size_t ptr_size);
@@ -309,13 +309,13 @@ void *space_vcat_impl(Space *space, ...) {
         goto alloc;
       }
 
-      memcpy(((char *)p->elements) + p->count - 1, arg, arg_len + 1);
+      memcpy(((char *)p->elements) + p->count, arg, arg_len);
       p->count += arg_len;
 
       arg = va_arg(args, char *);
     }
 
-    ((char *)p->elements)[p->count - 1] = '\0';
+    ((char *)p->elements)[p->count] = '\0';
     va_end(args);
     return (void *)first;
   }
@@ -347,12 +347,12 @@ alloc: {}
   char *arg = va_arg(args, char *);
   while (arg != NULL) {
     size_t arg_len = va_arg(args, size_t);
-    memcpy((char *)p->elements + p->count - 1, arg, arg_len);
+    memcpy((char *)p->elements + p->count, arg, arg_len);
     p->count += arg_len;
     arg = va_arg(args, char *);
   }
   va_end(args);
-  ((char *)p->elements)[p->count - 1] = '\0';
+  ((char *)p->elements)[p->count] = '\0';
 
   return ptr;
 }
@@ -366,8 +366,8 @@ void *space_vstrcat_impl(Space *space, const char *first, ...) {
   va_list args;
 
   Planet *p = space__find_planet_from_ptr(space, (void *)first);
-  if (p &&
-      space__is_ptr_last_allocation_in_planet(p, (void *)first, first_len)) {
+  if (p && space__is_ptr_last_allocation_in_planet(p, (void *)first,
+                                                   first_len + 1)) {
     size_t save = p->count;
 
     va_start(args, first);
@@ -388,7 +388,6 @@ void *space_vstrcat_impl(Space *space, const char *first, ...) {
       arg = va_arg(args, char *);
     }
 
-    ((char *)p->elements)[p->count - 1] = '\0';
     va_end(args);
     return (void *)first;
   }
@@ -407,7 +406,9 @@ alloc: {}
   }
 
   void *ptr = NULL;
-  if (count > 1) {
+  if (count == 1) {
+    return ptr;
+  } else {
     ptr = space_malloc(space, count);
     p = space__find_planet_from_ptr(space, ptr);
     p->count -= count;
@@ -422,12 +423,12 @@ alloc: {}
   char *arg = va_arg(args, char *);
   while (arg != NULL) {
     size_t arg_len = strlen(arg); // This is slow to compute the length again.
-    memcpy((char *)p->elements + p->count - 1, arg, arg_len);
+    memcpy((char *)p->elements + p->count, arg, arg_len);
     p->count += arg_len;
     arg = va_arg(args, char *);
   }
   va_end(args);
-  ((char *)p->elements)[p->count - 1] = '\0';
+  ((char *)p->elements)[p->count] = '\0';
 
   return ptr;
 }
