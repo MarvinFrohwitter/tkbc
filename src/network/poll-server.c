@@ -1,4 +1,3 @@
-#define TKBC_SERVER
 #include "poll-server.h"
 
 #include <assert.h>
@@ -61,7 +60,7 @@ Kite_Textures kite_textures; // Just for the definition do not use.
  */
 struct pollfd *tkbc_get_pollfd_by_fd(int fd) {
   for (size_t i = 0; i < fds.count; ++i) {
-    if (fds.elements[i].fd == fd) {
+    if ((int)fds.elements[i].fd == fd) {
       return &fds.elements[i];
     }
   }
@@ -205,7 +204,7 @@ int tkbc_remove_connection(Client client, bool retry) {
   }
 
   for (size_t i = 0; i < fds.count; ++i) {
-    if (fds.elements[i].fd == client.socket_id) {
+    if ((int)fds.elements[i].fd == client.socket_id) {
       typeof(fds.elements[i]) pollfd_tmp = fds.elements[i];
       fds.elements[i] = fds.elements[fds.count - 1];
       fds.elements[fds.count - 1] = pollfd_tmp;
@@ -623,7 +622,7 @@ void tkbc_socket_handling() {
       continue;
     }
 
-    if (fds.elements[idx].fd == server_socket) {
+    if ((int)fds.elements[idx].fd == server_socket) {
       // This can cause realloc so it is important to iterate the fds by
       // index.
       tkbc_server_accept();
