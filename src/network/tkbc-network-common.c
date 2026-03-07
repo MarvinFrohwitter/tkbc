@@ -298,10 +298,10 @@ inline char *tkbc_find_rn_in_message_from_position(Message *message,
 
 inline bool tkbc_error_handling_of_received_message_handler(
     Message *message, Lexer *lexer, bool *reset, bool display_errors) {
+
   char *rn = tkbc_find_rn_in_message_from_position(message, lexer->position);
-  if (rn == NULL) {
-    *reset = false;
-  } else {
+  if (rn != NULL) {
+    *reset = true;
     size_t jump_length = rn + 2 - &lexer->content[lexer->position];
     //
     // This assumes no logging is needed it destroys the correctness of a line
@@ -317,6 +317,7 @@ inline bool tkbc_error_handling_of_received_message_handler(
     return true;
   }
 
+  *reset = false;
   if (display_errors) {
     tkbc_fprintf(stderr, "WARNING",
                  "Message unfinished: first read bytes: %zu\n",
