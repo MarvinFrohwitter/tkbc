@@ -893,7 +893,7 @@ void tkbc_add_script(Env *env, Script script) {
 
 #define threshold_max_scripts_in_memory 10
   if (env->scripts.count >= threshold_max_scripts_in_memory) {
-    Planet *p = space__find_planet_from_ptr(&env->scripts_space,
+    Planet *p = space_find_planet_from_ptr(&env->scripts_space,
                                             env->scripts.elements->elements);
 
     // NOTE: this is actually slow because every other script just be moved
@@ -937,7 +937,7 @@ void tkbc_add_script(Env *env, Script script) {
   // Marvin Frohwitter 12.02.2026
   //
   // NOTE: This messes with the internals of the space allocator.
-  Planet *p = space__find_planet_from_ptr(&env->scripts_space, s_copy.elements);
+  Planet *p = space_find_planet_from_ptr(&env->scripts_space, s_copy.elements);
   p->count = p->capacity;
 
   // Rest the scratch buffers they got invalidated by resetting the space.

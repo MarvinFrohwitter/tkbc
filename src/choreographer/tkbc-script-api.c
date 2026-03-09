@@ -244,7 +244,7 @@ void tkbc__register_frames(Env *env, ...) {
     }
     // This allows the user to create a frame ptr manually and pass it and not
     // use the provided script API that uses the space buffer..
-    if (!space__find_planet_from_ptr(&env->script_creation_space, frame)) {
+    if (!space_find_planet_from_ptr(&env->script_creation_space, frame)) {
       free(frame);
     }
     frame = va_arg(args, Frame *);

@@ -446,7 +446,7 @@ bool tkbc_sockets_read(Client *client) {
     // count == capacity so the recv and send buffers can not conflict and can
     // be deleted.
     Planet *planet =
-        space__find_planet_from_ptr(&client->msg_space, recv_buffer->elements);
+        space_find_planet_from_ptr(&client->msg_space, recv_buffer->elements);
     space_free_planet(&client->msg_space, planet);
 
     recv_buffer->elements = NULL;
@@ -569,7 +569,7 @@ int tkbc_socket_write(Client *client) {
     // This is ok because the recv buffer forces a new planet with
     // count == capacity so the recv and send buffers can not conflict and can
     // be deleted.
-    Planet *planet = space__find_planet_from_ptr(
+    Planet *planet = space_find_planet_from_ptr(
         &client->msg_space, client->send_msg_buffer.elements);
     space_free_planet(&client->msg_space, planet);
 
