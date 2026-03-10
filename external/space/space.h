@@ -391,8 +391,9 @@ void *space_vstrcat_impl(Space *space, const char *first, ...) {
         va_end(args);
         goto alloc;
       }
+      memcpy((char *)p->elements + p->count - (first ? 1 : 0), arg,
+             arg_len + 1);
 
-      memcpy(((char *)p->elements) + p->count - 1, arg, arg_len + 1);
       *place = '\0';
       p->count += arg_len;
 
@@ -438,7 +439,7 @@ alloc: {}
   char *arg = va_arg(args, char *);
   while (arg != NULL) {
     size_t arg_len = strlen(arg); // This is slow to compute the length again.
-    memcpy((char *)p->elements + p->count - 1, arg, arg_len + 1);
+    memcpy((char *)p->elements + p->count - (first ? 1 : 0), arg, arg_len + 1);
     p->count += arg_len;
     arg = va_arg(args, char *);
   }
