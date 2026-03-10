@@ -373,14 +373,14 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki,
 
   if (kind == KITE_ROTATION_ADD) {
     if (brace) {
-      KITE_ROTATION_ADD(kis, angle, duration);
+      frame = KITE_ROTATION_ADD(kis, angle, duration);
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
     } else {
       SET(KITE_ROTATION_ADD(kis, angle, duration));
     }
   } else if (kind == KITE_ROTATION) {
     if (brace) {
-      KITE_ROTATION(kis, angle, duration);
+      frame = KITE_ROTATION(kis, angle, duration);
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
     } else {
       SET(KITE_ROTATION(kis, angle, duration));
@@ -447,14 +447,14 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
 
   if (kind == KITE_TIP_ROTATION_ADD) {
     if (brace) {
-      KITE_TIP_ROTATION_ADD(kis, angle, tip, duration);
+      frame = KITE_TIP_ROTATION_ADD(kis, angle, tip, duration);
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
     } else {
       SET(KITE_TIP_ROTATION_ADD(kis, angle, tip, duration));
     }
   } else if (kind == KITE_TIP_ROTATION) {
     if (brace) {
-      KITE_TIP_ROTATION(kis, angle, tip, duration);
+      frame = KITE_TIP_ROTATION(kis, angle, tip, duration);
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
     } else {
       SET(KITE_TIP_ROTATION(kis, angle, tip, duration));
