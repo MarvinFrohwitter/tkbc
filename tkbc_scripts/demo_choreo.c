@@ -22,7 +22,7 @@ void bicycle_start(Env *env, Kite_Ids ki) {
       KITE_QUIT(wait_time)
 
   );
-  SET(KITE_WAIT(4 * wait_time));
+  SET(KITE_WAIT(wait_time));
   SET(
 
       KITE_MOVE_ADD(ID(0), 2 * kite.width, -1.5 * kite.width, move_duration),
