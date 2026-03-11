@@ -30,6 +30,9 @@ typedef struct {
   size_t capacity;
 } Content; // A representation of a file content.
 
+#define STR2(literal) #literal
+#define STR(macro_literal) STR2(macro_literal)
+
 /**
  * @brief The macro gives the actual size of the given array x back.
  */

@@ -13,8 +13,6 @@
 
 extern Kite_Textures kite_textures;
 #define HEX_COLOR_LENGTH 8
-#define STR2(literal) #literal
-#define STR(macro_literal) STR2(macro_literal)
 
 /**
  * @brief The function wraps all the UI-elements to a single draw handler that
