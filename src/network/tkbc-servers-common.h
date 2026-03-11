@@ -14,6 +14,7 @@
 
 #include "../../external/space/space.h"
 #include "../global/tkbc-utils.h"
+#include "../global/tkbc-types.h"
 extern Env *env;
 
 #include <ctype.h>

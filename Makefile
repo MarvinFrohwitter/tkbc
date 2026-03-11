@@ -45,10 +45,10 @@ first.o: build
 
 
 tkbc-win64: build
-	x86_64-w64-mingw32-gcc -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o ./build/tkbc-win64 ./src/choreographer/*.c  -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32
+	x86_64-w64-mingw32-gcc -DINCLUDE_RAYLIB -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o ./build/tkbc-win64 ./src/choreographer/*.c  -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32
 
 client-win64: build first.o
-	x86_64-w64-mingw32-gcc -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/client-win64 src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32 -lws2_32
+	x86_64-w64-mingw32-gcc -DINCLUDE_RAYLIB -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/client-win64 src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32 -lws2_32
 
 build:
 	mkdir -p build

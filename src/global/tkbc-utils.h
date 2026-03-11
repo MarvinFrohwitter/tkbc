@@ -182,12 +182,12 @@ int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
                          const char *mode);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 
-#ifdef INCLUDE_RAYLIB
 int tkbc_get_screen_height();
 int tkbc_get_screen_width();
 double tkbc_get_time();
 void tkbc_make_frame_time(double target_dt);
 float tkbc_get_frame_time();
+#ifdef INCLUDE_RAYLIB
 bool tkbc_vector2_equals_epsilon(Vector2 p, Vector2 q, float epsilon);
 bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2);
 #endif
@@ -563,7 +563,6 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]) {
 extern Env *env;
 #endif // PROTOCOL_VERSION
 
-#ifdef INCLUDE_RAYLIB
 /**
  * @brief The function is a wrapper for the GetScreenHeight() that is not
  * available in the server computation.
@@ -577,8 +576,11 @@ int tkbc_get_screen_height() {
   }
   return env->window_height;
 #else
+#ifdef INCLUDE_RAYLIB
   return GetScreenHeight();
+#endif
 #endif // PROTOCOL_VERSION
+  exit(0);
 }
 
 /**
@@ -594,8 +596,12 @@ int tkbc_get_screen_width() {
   }
   return env->window_width;
 #else
+#ifdef INCLUDE_RAYLIB
   return GetScreenWidth();
+#endif
 #endif // PROTOCOL_VERSION
+  return 0;
+  exit(0);
 }
 
 /**
@@ -613,8 +619,11 @@ double tkbc_get_time() {
   }
   return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
 #else
+#ifdef INCLUDE_RAYLIB
   return GetTime();
+#endif
 #endif // PROTOCOL_VERSION
+  exit(0);
 }
 
 static double tkbc_dt = 0;
@@ -661,10 +670,14 @@ float tkbc_get_frame_time() {
 #ifdef TKBC_SERVER
   return (float)tkbc_dt;
 #else
+#ifdef INCLUDE_RAYLIB
   return GetFrameTime();
+#endif
 #endif // PROTOCOL_VERSION
+  exit(0);
 }
 
+#ifdef INCLUDE_RAYLIB
 /**
  * @brief The function checks if tow Vector2s are equal to each other with a
  * custom epsilon.
