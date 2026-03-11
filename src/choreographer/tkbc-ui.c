@@ -537,7 +537,7 @@ key_skip:
                                   env->favorite_colors.count] =
         env->last_selected_color;
     tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
-                                 env->last_selected_color);
+                                     env->last_selected_color);
   }
 
   float color_circle_radius = color_box.height / 2;
@@ -556,7 +556,7 @@ key_skip:
         IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       env->last_selected_color = env->favorite_colors.elements[i];
       tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
-                                   env->last_selected_color);
+                                       env->last_selected_color);
       tkbc_set_color_for_selected_kites(env, env->last_selected_color);
     }
 
@@ -659,7 +659,7 @@ key_skip:
     if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
       env->last_selected_color = colors[i];
       tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
-                                   env->last_selected_color);
+                                       env->last_selected_color);
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         tkbc_set_color_for_selected_kites(env, env->last_selected_color);
       }
@@ -756,7 +756,8 @@ void tkbc_ui_timeline(Env *env, size_t frames_index,
   assert(frames_index_count != 0);
   assert(env->timeline_segments <= frames_index_count);
 
-  env->timeline_segment_width = env->timeline_base.width / frames_index_count;
+  env->timeline_segment_width =
+      env->timeline_base.width / (float)frames_index_count;
 
   env->timeline_segments_width =
       env->timeline_segment_width * env->timeline_segments;
