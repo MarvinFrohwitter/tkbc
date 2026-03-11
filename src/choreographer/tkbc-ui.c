@@ -408,7 +408,7 @@ bool is_key_valid_part_of_hex_number(int key) {
  * @param text The pointer where the string result should be stored.
  * @param color The structured value that should be represented as a string.
  */
-void tkbc_set_input_text_to_color(char **text, Color color) {
+void tkbc_set_input_text_to_hex_color(char **text, Color color) {
   snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X",
            ColorToInt(color));
 }
@@ -536,7 +536,7 @@ key_skip:
     env->favorite_colors.elements[env->current_favorite_colors_index++ %
                                   env->favorite_colors.count] =
         env->last_selected_color;
-    tkbc_set_input_text_to_color(&env->color_picker_input_text,
+    tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
                                  env->last_selected_color);
   }
 
@@ -555,7 +555,7 @@ key_skip:
     if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius) &&
         IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       env->last_selected_color = env->favorite_colors.elements[i];
-      tkbc_set_input_text_to_color(&env->color_picker_input_text,
+      tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
                                    env->last_selected_color);
       tkbc_set_color_for_selected_kites(env, env->last_selected_color);
     }
@@ -658,7 +658,7 @@ key_skip:
 
     if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
       env->last_selected_color = colors[i];
-      tkbc_set_input_text_to_color(&env->color_picker_input_text,
+      tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
                                    env->last_selected_color);
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         tkbc_set_color_for_selected_kites(env, env->last_selected_color);
