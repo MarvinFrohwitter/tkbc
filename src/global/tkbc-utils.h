@@ -10,12 +10,23 @@
 #include <string.h>
 #include <time.h>
 
+#ifdef INCLUDE_RAYLIB
+#include "raylib.h"
+#endif
+
+#ifdef INCLUDE_RAYLIB
 #include "../choreographer/tkbc.h"
-#include "tkbc-types.h"
+#endif
 
 // ===========================================================================
 // ========================== KITE UTILS =====================================
 // ===========================================================================
+
+typedef struct {
+  char *elements;
+  size_t count;
+  size_t capacity;
+} Content; // A representation of a file content.
 
 /**
  * @brief The macro gives the actual size of the given array x back.
@@ -169,15 +180,19 @@ int tkbc_append_file(const char *filename, const void *buffer, size_t size);
 int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
                          const char *mode);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
+
+#ifdef INCLUDE_RAYLIB
 int tkbc_get_screen_height();
 int tkbc_get_screen_width();
 double tkbc_get_time();
 void tkbc_make_frame_time(double target_dt);
 float tkbc_get_frame_time();
-float tkbc_clamp(float z, float a, float b);
-bool tkbc_float_equals_epsilon(float x, float y, float epsilon);
 bool tkbc_vector2_equals_epsilon(Vector2 p, Vector2 q, float epsilon);
 bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2);
+#endif
+
+float tkbc_clamp(float z, float a, float b);
+bool tkbc_float_equals_epsilon(float x, float y, float epsilon);
 bool tkbc_max(int x, int y);
 
 #endif // TKBC_UTILS_H_
@@ -188,7 +203,6 @@ bool tkbc_max(int x, int y);
 
 // ========================== KITE UTILS =====================================
 
-#include "raylib.h"
 #include <errno.h>
 #include <math.h>
 
@@ -547,6 +561,8 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]) {
 #ifdef TKBC_SERVER
 extern Env *env;
 #endif // PROTOCOL_VERSION
+
+#ifdef INCLUDE_RAYLIB
 /**
  * @brief The function is a wrapper for the GetScreenHeight() that is not
  * available in the server computation.
@@ -649,6 +665,39 @@ float tkbc_get_frame_time() {
 }
 
 /**
+ * @brief The function checks if tow Vector2s are equal to each other with a
+ * custom epsilon.
+ *
+ * @param p The first value to compare.
+ * @param q The second value to compare.
+ * @param epsilon The value that represents the maximum difference  between x
+ * and y.
+ * @return True if x and y are the same in respect to epsilon, otherwise false.
+ */
+bool tkbc_vector2_equals_epsilon(Vector2 p, Vector2 q, float epsilon) {
+  int result = ((fabsf(p.x - q.x)) <=
+                (epsilon * fmaxf(1.0f, fmaxf(fabsf(p.x), fabsf(q.x))))) &&
+               ((fabsf(p.y - q.y)) <=
+                (epsilon * fmaxf(1.0f, fmaxf(fabsf(p.y), fabsf(q.y)))));
+
+  return result;
+}
+
+/**
+ * @brief This function check if two rectangles are the same.
+ *
+ * @param r1 The first rectangle.
+ * @param r2 The second rectangle.
+ * @return True if the given rectangles are the same, otherwise false.
+ */
+bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2) {
+
+  return r1.x == r2.x && r1.y == r2.y && r1.width == r2.width &&
+         r1.height == r2.height;
+}
+#endif
+
+/**
  * @brief The function checks if the point z is between the range a and b and
  * if not returns the closer point of thous.
  *
@@ -680,38 +729,6 @@ bool tkbc_float_equals_epsilon(float x, float y, float epsilon) {
       (fabsf(x - y)) <= (epsilon * fmaxf(1.0f, fmaxf(fabsf(x), fabsf(y))));
 
   return result;
-}
-
-/**
- * @brief The function checks if tow Vector2s are equal to each other with a
- * custom epsilon.
- *
- * @param p The first value to compare.
- * @param q The second value to compare.
- * @param epsilon The value that represents the maximum difference  between x
- * and y.
- * @return True if x and y are the same in respect to epsilon, otherwise false.
- */
-bool tkbc_vector2_equals_epsilon(Vector2 p, Vector2 q, float epsilon) {
-  int result = ((fabsf(p.x - q.x)) <=
-                (epsilon * fmaxf(1.0f, fmaxf(fabsf(p.x), fabsf(q.x))))) &&
-               ((fabsf(p.y - q.y)) <=
-                (epsilon * fmaxf(1.0f, fmaxf(fabsf(p.y), fabsf(q.y)))));
-
-  return result;
-}
-
-/**
- * @brief This function check if two rectangles are the same.
- *
- * @param r1 The first rectangle.
- * @param r2 The second rectangle.
- * @return True if the given rectangles are the same, otherwise false.
- */
-bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2) {
-
-  return r1.x == r2.x && r1.y == r2.y && r1.width == r2.width &&
-         r1.height == r2.height;
 }
 
 /**

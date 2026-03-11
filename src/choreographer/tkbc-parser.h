@@ -2,6 +2,7 @@
 #define TKBC_PARSER_H
 
 #include "../../external/lexer/tkbc-lexer.h"
+#include "../global/tkbc-utils.h"
 #include "../global/tkbc-types.h"
 
 void tkbc_script_parser(Env *env);

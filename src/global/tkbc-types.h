@@ -137,12 +137,6 @@ typedef enum {
   EVEN
 } ODD_EVEN; // The kite group that is split default convention up or left.
 
-typedef struct {
-  char *elements;
-  size_t count;
-  size_t capacity;
-} Content; // A representation of a file content.
-
 typedef struct { // A representation for an internal kite geometric.
   Vector2 v1;
   Vector2 v2;
