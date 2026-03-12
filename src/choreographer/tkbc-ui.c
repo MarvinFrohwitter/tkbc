@@ -93,6 +93,9 @@ void tkbc_ui_post_handler(Env *env) {
   if (env->script_setup) {
     return;
   }
+  if (env->script_menu_interaction) {
+    return;
+  }
   if (!env->color_picker_interaction) {
     return;
   }
