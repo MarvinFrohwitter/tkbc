@@ -6,6 +6,7 @@
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 #include "raylib.h"
+#include "rlgl.h"
 #include "tkbc-keymaps.h"
 #include "tkbc-script-handler.h"
 #include "tkbc-ui.h"
@@ -70,6 +71,43 @@ void tkbc_draw_ui(Env *env) {
 
   if (!env->keymaps_interaction && !env->script_menu_interaction) {
     tkbc_display_kite_information(env);
+  }
+}
+
+Color tkbc_get_color_from_screen_position(Vector2 position) {
+  int x = (int)position.x;
+  int y = (int)position.y;
+
+  Image image = LoadImageFromScreen();
+  if (image.data == NULL) {
+    return (Color){0, 0, 0, 0};
+  }
+
+  Color color = GetImageColor(image, x, y);
+  UnloadImage(image);
+  return color;
+}
+
+void tkbc_ui_post_handler(Env *env) {
+  env->color_picker_window_picking = false;
+  if (env->script_setup) {
+    return;
+  }
+  if (!env->color_picker_interaction) {
+    return;
+  }
+  if (env->color_picker_input_mouse_interaction) {
+    return;
+  }
+
+  if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) &&
+      IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    env->color_picker_window_picking = true;
+    Color c = tkbc_get_color_from_screen_position(GetMousePosition());
+    env->last_selected_color = c;
+    tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
+                                     env->last_selected_color);
+    tkbc_set_color_for_selected_kites(env, env->last_selected_color);
   }
 }
 
@@ -529,6 +567,7 @@ key_skip:
 
   if (CheckCollisionPointRec(mouse, color_box) &&
       IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    env->color_picker_input_mouse_interaction = false;
     tkbc_set_color_for_selected_kites(env, env->last_selected_color);
 
     env->favorite_colors.elements[env->current_favorite_colors_index++ %
@@ -576,15 +615,19 @@ key_skip:
   };
 
   if (CheckCollisionPointRec(mouse, forward)) {
-    DrawRectangleRounded(forward, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+    if (!env->color_picker_window_picking) {
+      DrawRectangleRounded(forward, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+    }
   } else {
     DrawRectangleRounded(forward, 1, 10, TKBC_UI_TEAL_ALPHA);
   }
 
-  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-      CheckCollisionPointRec(mouse, forward)) {
-    DrawRectangleRounded(forward, 1, 10, TKBC_UI_PURPLE_ALPHA);
-    env->color_picker_display_designs = !env->color_picker_display_designs;
+  if (!env->color_picker_window_picking) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+        CheckCollisionPointRec(mouse, forward)) {
+      DrawRectangleRounded(forward, 1, 10, TKBC_UI_PURPLE_ALPHA);
+      env->color_picker_display_designs = !env->color_picker_display_designs;
+    }
   }
 
   const char *designs = NULL;
@@ -600,6 +643,10 @@ key_skip:
 
   if (env->color_picker_display_designs) {
     forward.y += forward.height + padding + color_circle_radius * 0.5;
+
+    float remainng_space = env->window_height - forward.y;
+    padding = remainng_space / (float)kite_textures.count;
+
     Vector2 display_position = {
         .x = forward.x,
         .y = forward.y,
@@ -607,7 +654,11 @@ key_skip:
 
     for (size_t i = 0; i < kite_textures.count; ++i) {
       Texture2D t = kite_textures.elements[i].normal;
-      float scale = env->color_picker_base.width * 0.5 / t.width;
+      float scale = env->color_picker_base.width * 0.9 / t.width;
+
+      while (t.height * scale > padding) {
+        scale -= 0.01f;
+      }
       DrawTextureEx(t, display_position, 0, scale, WHITE);
 
       Rectangle collision_rectangle = {
@@ -617,16 +668,17 @@ key_skip:
           .height = t.height,
       };
 
-      if (CheckCollisionPointRec(mouse, collision_rectangle)) {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-          tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],
-                                              i);
-          tkbc_set_color_for_selected_kites(env, BLANK);
+      if (!env->color_picker_window_picking) {
+        if (CheckCollisionPointRec(mouse, collision_rectangle)) {
+          if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],
+                                                i);
+            tkbc_set_color_for_selected_kites(env, BLANK);
+          }
         }
       }
 
-      display_position.y +=
-          2 * kite_textures.elements[i].normal.height + padding;
+      display_position.y += padding;
     }
 
     return;

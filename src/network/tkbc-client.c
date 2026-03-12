@@ -1071,6 +1071,7 @@ int main(int argc, char *argv[]) {
     if (disconnect.active || loading.active || client.kite_id == -1) {
       continue;
     }
+    tkbc_ui_post_handler(env);
 
     tkbc_client_file_handler();
     if (!env->keymaps_interaction && !env->script_menu_interaction) {

@@ -455,6 +455,8 @@ typedef struct {
                                  // selection menu.
   bool color_picker_interaction; // The status if the color picker is currently
                                  // in use.
+  bool color_picker_window_picking; // Denotes if the color is picked from the
+                                    // complete screen.
   bool color_picker_input_mouse_interaction; // Checks if the input box is
                                              // clicked.
   bool color_picker_display_designs; // If the color pallet or the designs are

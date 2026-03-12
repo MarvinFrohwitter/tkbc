@@ -87,6 +87,7 @@ int main(void) {
     tkbc_draw_kite_array(env->kite_array);
     tkbc_draw_ui(env);
     EndDrawing();
+    tkbc_ui_post_handler(env);
 
     tkbc_file_handler(env);
     if (!env->keymaps_interaction && !env->script_menu_interaction) {

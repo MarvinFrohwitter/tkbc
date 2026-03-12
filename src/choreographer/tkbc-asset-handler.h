@@ -51,6 +51,8 @@ static inline void tkbc_load_kite_images_and_textures(void) {
                          KITE_IMAGE2_FORMAT);
   tkbc_append_kite_image(kite_image3, KITE_IMAGE3_WIDTH, KITE_IMAGE3_HEIGHT,
                          KITE_IMAGE3_FORMAT);
+  tkbc_append_kite_image(kite_image4, KITE_IMAGE4_WIDTH, KITE_IMAGE4_HEIGHT,
+                         KITE_IMAGE4_FORMAT);
 
   for (size_t i = 0; i < kite_images.count; ++i) {
     if (!IsImageValid(kite_images.elements[i].normal)) {

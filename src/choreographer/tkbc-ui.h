@@ -3,6 +3,8 @@
 
 #include "../global/tkbc-types.h"
 void tkbc_draw_ui(Env *env);
+Color tkbc_get_color_from_screen_position(Vector2 position);
+void tkbc_ui_post_handler(Env *env);
 void tkbc_display_kite_information_speeds(Kite_State *kite_state);
 void tkbc_display_kite_information(Env *env);
 
