@@ -470,8 +470,8 @@ void *space_vstrcat_impl(Space *space, const char *first, ...) {
         va_end(args);
         goto alloc;
       }
-      memcpy((char *)p->elements + p->count - (first ? 1 : 0), arg,
-             arg_len + 1);
+      memmove((char *)p->elements + p->count - (first ? 1 : 0), arg,
+              arg_len + 1);
 
       *place = '\0';
       p->count += arg_len;
@@ -518,7 +518,7 @@ alloc: {}
   char *arg = va_arg(args, char *);
   while (arg != NULL) {
     size_t arg_len = strlen(arg); // This is slow to compute the length again.
-    memcpy((char *)p->elements + p->count - (first ? 1 : 0), arg, arg_len + 1);
+    memmove((char *)p->elements + p->count - (first ? 1 : 0), arg, arg_len + 1);
     p->count += arg_len;
     arg = va_arg(args, char *);
   }
@@ -583,7 +583,7 @@ void *space_strcat(Space *space, const char *first, const char *second) {
   if (p && (p->count + second_len <= p->capacity) &&
       space__is_ptr_last_allocation_in_planet(p, (void *)first, first_len)) {
 
-    memcpy((char *)first + first_len, second, second_len + 1);
+    memmove((char *)first + first_len, second, second_len + 1);
     p->count += second_len;
     return (void *)first;
   }
@@ -597,7 +597,7 @@ void *space_strcat(Space *space, const char *first, const char *second) {
     memcpy(ptr, first, first_len);
   }
   if (second) {
-    memcpy((char *)ptr + first_len, second, second_len + 1);
+    memmove((char *)ptr + first_len, second, second_len + 1);
   }
   return ptr;
 }
@@ -965,7 +965,11 @@ void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
       // allocation has taken the plant and a new planet was allocated to
       // provided the requested space.
       if (old_size) {
-        memcpy(new_ptr, ptr, old_size);
+        if (ptr == new_ptr) {
+          memmove(new_ptr, ptr, old_size);
+        } else {
+          memcpy(new_ptr, ptr, old_size);
+        }
       }
     }
   }
