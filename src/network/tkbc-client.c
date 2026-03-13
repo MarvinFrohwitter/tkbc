@@ -948,10 +948,13 @@ void tkbc_client_input_handler_script() {
   // KEY_TAB
   if (env->new_script_selected) {
     // Script ids start from 1 so +1 is needed.
-    space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:%zu:\r\n",
-               MESSAGE_SCRIPT_NEXT,
-               env->scripts.elements[env->script_menu_mouse_interaction_box]
-                   .script_id);
+    space_dapf(
+        &client.msg_space, &client.send_msg_buffer, "%d:%zu:\r\n",
+        MESSAGE_SCRIPT_NEXT,
+        env->script_menu_mouse_interaction_box == -1
+            ? 0
+            : env->scripts.elements[env->script_menu_mouse_interaction_box]
+                  .script_id);
     env->new_script_selected = false;
   }
 
