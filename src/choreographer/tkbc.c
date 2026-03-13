@@ -147,6 +147,7 @@ void tkbc_destroy_env(Env *env) {
   space_free_space(&env->id_space);
   space_free_space(&env->script_creation_space);
   space_free_space(&env->scripts_space);
+  space_free_tspace();
   env->scratch_buf_script.name = NULL;
 
   free(env);

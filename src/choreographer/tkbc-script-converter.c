@@ -163,13 +163,8 @@ int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env) {
   int err = 0;
   size_t id = 1;
   for (size_t i = 0; i < env->scripts.count; ++i) {
-    char buf[32];
-    if (env->scripts.elements[i].name) {
-      sprintf(buf, "%s.kite", env->scripts.elements[i].name);
-    } else {
-      sprintf(buf, "Script%zu.kite", i);
-    }
-
+    assert(env->scripts.elements[i].name);
+    const char *buf = space_tprintf("%s.kite", env->scripts.elements[i].name);
     err = tkbc_export_script_to_dot_kite_file_from_mem(
         &env->scripts.elements[i], buf);
 
@@ -178,6 +173,7 @@ int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env) {
       break;
     }
   }
+  space_reset_tspace();
 
   return err * id;
 }
