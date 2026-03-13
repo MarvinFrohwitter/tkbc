@@ -511,17 +511,18 @@ alloc: {}
 
   if (first) {
     memcpy(ptr, first, first_len + 1);
-    p->count += first_len + 1;
+    p->count += first_len;
   }
 
   va_start(args, first);
   char *arg = va_arg(args, char *);
   while (arg != NULL) {
     size_t arg_len = strlen(arg); // This is slow to compute the length again.
-    memmove((char *)p->elements + p->count - (first ? 1 : 0), arg, arg_len + 1);
+    memmove((char *)p->elements + p->count, arg, arg_len + 1);
     p->count += arg_len;
     arg = va_arg(args, char *);
   }
+  p->count += 1;
   va_end(args);
   return ptr;
 }
@@ -594,7 +595,7 @@ void *space_strcat(Space *space, const char *first, const char *second) {
     return NULL;
   }
   if (first) {
-    memcpy(ptr, first, first_len);
+    memcpy(ptr, first, first_len + 1);
   }
   if (second) {
     memmove((char *)ptr + first_len, second, second_len + 1);
