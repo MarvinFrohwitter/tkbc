@@ -233,7 +233,8 @@ size_t space_align_power2(size_t alignment, size_t value);
 // Temporary space allocator =================================================
 Space *space_get_tspace(void);
 
-#define space_reset_tspace() space_reset_space(space_get_tspace());
+#define space_free_tspace() space_free_space(space_get_tspace())
+#define space_reset_tspace() space_reset_space(space_get_tspace())
 #define space_tmalloc(size_in_bytes)                                           \
   space_malloc(space_get_tspace(), size_in_bytes);
 #define space_tcalloc(nmemb, size)                                             \
