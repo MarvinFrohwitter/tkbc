@@ -5,6 +5,7 @@
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 #include "raylib.h"
+#include <assert.h>
 #include <stdio.h>
 
 extern Space kite_images_space;
@@ -53,6 +54,14 @@ static inline void tkbc_load_kite_images_and_textures(void) {
                          KITE_IMAGE3_FORMAT);
   tkbc_append_kite_image(kite_image4, KITE_IMAGE4_WIDTH, KITE_IMAGE4_HEIGHT,
                          KITE_IMAGE4_FORMAT);
+  assert(4 == kite_images.count);
+
+  Image colorizer_image =
+      ImageCopy(kite_images.elements[kite_images.count - 1].normal);
+
+  tkbc_append_kite_image(colorizer_image.data, colorizer_image.width,
+                         colorizer_image.height, colorizer_image.format);
+
 
   for (size_t i = 0; i < kite_images.count; ++i) {
     if (!IsImageValid(kite_images.elements[i].normal)) {

@@ -449,6 +449,8 @@ typedef struct {
                                  // timeline.
   size_t timeline_segments; // The amount of frames that the timeline displays.
 
+  bool colorizer; // If the colorizer was selected.
+
   Rectangle
       color_picker_base; // The base bounding box of the color selection menu.
   char *color_picker_input_text; // The base bounding box of the color
