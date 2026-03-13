@@ -149,7 +149,9 @@ void tkbc_input_handler_kite_array(Env *env) {
       }
 
       Kite_Ids new_kite_index_array = {0};
-      tkbc_dapc(&new_kite_index_array, frame->kite_id_array.elements, k);
+      if (k != 0) {
+        tkbc_dapc(&new_kite_index_array, frame->kite_id_array.elements, k);
+      }
       if (k + 1 < frame->kite_id_array.count) {
         tkbc_dapc(&new_kite_index_array, &frame->kite_id_array.elements[k + 1],
                   frame->kite_id_array.count - 1 - k);
