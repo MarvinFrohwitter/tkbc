@@ -510,6 +510,27 @@ void tkbc_set_input_text_to_hex_color(char **text, Color color) {
            ColorToInt(color));
 }
 
+void tkbc_draw_shadow(Rectangle shadow) {
+  float opacities[] = {0.08f,  0.089f, 0.098f, 0.107f, 0.116f, 0.125f,
+                       0.134f, 0.143f, 0.152f, 0.161f, 0.170f, 0.179f,
+                       0.188f, 0.197f, 0.206f, 0.215f, 0.224f, 0.233f,
+                       0.242f, 0.251f, 0.260f, 0.269f, 0.278f, 0.287f,
+                       0.296f, 0.305f, 0.314f, 0.323f, 0.332f, 0.35f};
+
+  shadow.y += shadow.height / 8;
+  shadow.x -= shadow.width * 0.03;
+  shadow.width *= 1.06;
+  shadow.height *= 1.06;
+
+  for (size_t i = 0; i < 3; ++i) {
+    DrawRectangleRounded(shadow, 0.15f, 20, ColorAlpha(BLACK, opacities[i]));
+    shadow.y += shadow.height * 0.06;
+    shadow.x += shadow.width * 0.015;
+    shadow.width *= 0.97;
+    shadow.height *= 0.97;
+  }
+}
+
 /**
  * @brief The function manages and displays the color picker where the user can
  * select new colors for the currently selected kites.
@@ -728,8 +749,18 @@ key_skip:
 
   if (env->colorizer) {
     Rectangle shadow = colorizer_view_background;
-    shadow.y += shadow.height / 3;
-    DrawRectangleRounded(shadow, 5, 20, TKBC_UI_GRAY_ALPHA);
+    tkbc_draw_shadow(shadow);
+
+    Rectangle floor = colorizer_view_background;
+    float old_floor_height = floor.height;
+    floor.height *= 0.3;
+    floor.y += old_floor_height - floor.height / 2;
+    float old_floor_width = floor.width;
+    floor.width *= 0.9;
+    floor.x -= (floor.width - old_floor_width) / 2;
+    DrawRectangleRounded(floor, 0.3f, 20,
+                         ColorAlpha((Color){20, 20, 20, 255}, 0.2f));
+
     DrawTextureEx(colorizer_view_texture, colorizer_view, 0,
                   colorizer_view_scale, WHITE);
   }

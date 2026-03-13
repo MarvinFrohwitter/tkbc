@@ -28,4 +28,6 @@ void tkbc_set_color_for_selected_kites(Env *env, Color color);
 void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
                                          size_t texture_id);
 
+void tkbc_draw_shadow(Rectangle shadow);
+
 #endif // TKBC_UI_H
