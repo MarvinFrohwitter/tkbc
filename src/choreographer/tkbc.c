@@ -36,6 +36,7 @@ Env *tkbc_init_env(void) {
   env->vanilla_kite = malloc(sizeof(*env->vanilla_kite));
   if (env->vanilla_kite == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+    free(env);
     return NULL;
   }
   memset(env->vanilla_kite, 0, sizeof(*env->vanilla_kite));
@@ -43,6 +44,8 @@ Env *tkbc_init_env(void) {
   env->kite_array = malloc(sizeof(*env->kite_array));
   if (env->kite_array == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+    free(env->vanilla_kite);
+    free(env);
     return NULL;
   }
   memset(env->kite_array, 0, sizeof(*env->kite_array));
@@ -63,6 +66,10 @@ Env *tkbc_init_env(void) {
   env->color_picker_input_text = calloc(10, sizeof(char));
   if (env->color_picker_input_text == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+
+    free(env->kite_array);
+    free(env->vanilla_kite);
+    free(env);
     return NULL;
   }
 

@@ -361,10 +361,12 @@ void *space_vcat_impl(Space *space, ...) {
   va_start(args, space);
   char *first = va_arg(args, char *);
   if (first == NULL) {
+    va_end(args);
     return NULL;
   }
   size_t first_len = va_arg(args, size_t);
   if (first_len == 0) {
+    va_end(args);
     return NULL;
   }
   va_end(args);
@@ -533,6 +535,7 @@ void *space_catf(Space *space, const void *first, size_t first_len,
   va_start(args, fmt);
   int n = vsnprintf(NULL, 0, fmt, args);
   if (n == -1) {
+    va_end(args);
     return NULL;
   }
   va_end(args);

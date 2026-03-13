@@ -1453,6 +1453,9 @@ int main(int argc, char *argv[]) {
 
   srand(time(NULL));
   env = tkbc_init_env();
+  if (!env) {
+    return 1;
+  }
   env->window_width = 1920;
   env->window_height = 1080;
 

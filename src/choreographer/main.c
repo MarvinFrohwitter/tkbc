@@ -56,6 +56,9 @@ int main(void) {
 
   srand(time(NULL));
   Env *env = tkbc_init_env();
+  if (!env) {
+    return 1;
+  }
   if (tkbc_load_keymaps_from_file(&env->keymaps, ".tkbc-keymaps")) {
     tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
   }
