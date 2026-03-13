@@ -219,25 +219,99 @@ void *space_memmove(Space *space, const void *buf, size_t n);
 #define space_strcatf(space, first_str, fmt, ...)                              \
   space_catf(space, first_str, first_str ? strlen(first_str) : 0, (fmt),       \
              ##__VA_ARGS__)
-
 void *space_vstrcat_impl(Space *space, const char *first, ...);
 #define space_vstrcat(space, first, ...)                                       \
   space_vstrcat_impl(space, first, ##__VA_ARGS__, NULL)
-
 void *space_vcat_impl(Space *space, ...);
 #define space_vcat(space, ...) space_vcat_impl(space, ##__VA_ARGS__, NULL)
 
 bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
                                              size_t ptr_size);
-
 size_t space_align(size_t alignment, size_t value);
 size_t space_align_power2(size_t alignment, size_t value);
+
+// Temporary space allocator =================================================
+Space *space_get_tspace(void);
+
+#define space_reset_tspace() space_reset_space(space_get_tspace());
+#define space_tmalloc(size_in_bytes)                                           \
+  space_malloc(space_get_tspace(), size_in_bytes);
+#define space_tcalloc(nmemb, size)                                             \
+  space_calloc(space_get_tspace(), nmemb, size_t size)
+#define space_trealloc(ptr, old_size, new_size)                                \
+  ;                                                                            \
+  space_realloc(space_get_tspace(), ptr, old_size, new_size)
+
+#define space_talloc_planetid(size_in_bytes, planet_id, force_new_planet)      \
+  space_alloc_planetid(space_get_tspace(), size_in_bytes, planet_id,           \
+                       force_new_planet)
+#define space_tmalloc_planetid(size_in_bytes, planet_id)                       \
+  space_malloc_planetid(space_get_tspace(), size_in_bytes, planet_id)
+#define space_tcalloc_planetid(nmemb, size, planet_id)                         \
+  space_calloc_planetid(space_get_tspace(), nmemb, size, planet_id)
+#define space_trealloc_planetid(ptr, old_size, new_size, planet_id)            \
+  space_realloc_planetid(space_get_tspace(), ptr, old_size, new_size, planet_id)
+#define space_tmalloc_force_new_planet(size_in_bytes)                          \
+  space_malloc_force_new_planet(space_get_tspace(), size_in_bytes)
+#define space_tcalloc_force_new_planet(nmemb, size)                            \
+  space_calloc_force_new_planet(space_get_tspace(), nmemb, size)
+#define space_trealloc_force_new_planet(ptr, old_size, new_size)               \
+  space_realloc_force_new_planet(space_get_tspace(), ptr, old_size, new_size)
+#define space_tmalloc_planetid_force_new_planet(size_in_bytes, planet_id)      \
+  space_malloc_planetid_force_new_planet(space_get_tspace(), size_in_bytes,    \
+                                         planet_id)
+#define space_tcalloc_planetid_force_new_planet(nmemb, size, planet_id)        \
+  space_calloc_planetid_force_new_planet(space_get_tspace(), nmemb, size,      \
+                                         planet_id)
+#define space_trealloc_planetid_force_new_planet(ptr, old_size, new_size,      \
+                                                 planet_id)                    \
+  space_realloc_planetid_force_new_planet(space_get_tspace(), ptr, old_size,   \
+                                          new_size, planet_id)
+
+#define space_tdap(dynamic_array, element)                                     \
+  space_dap_impl(space_get_tspace(), space_realloc, dynamic_array, element)
+#define space_tndap(dynamic_array, element)                                    \
+  space_dap_impl(space_get_tspace(), space_realloc_force_new_planet,           \
+                 dynamic_array, element)
+#define space_tdapc(dynamic_array, new_elements, new_elements_count) space_dapc_impl(space_get_tspace()), space_realloc, dynamic_array, new_elements, new_elements_count)
+#define space_tndapc(dynamic_array, new_elements, new_elements_count) space_dapc_impl(space_get_tspace()), space_realloc_force_new_planet, dynamic_array, new_elements, new_elements_count)
+#define space_tdapf(dynamic_array, fmt, ...)                                   \
+  space_dapf_impl(space_get_tspace(), space_realloc, dynamic_array, fmt,       \
+                  ##__VA_ARGS__)
+#define space_tndapf(dynamic_array, fmt, ...) space_dapf_impl(space_get_tspace()), space_realloc_force_new_planet, dynamic_array, fmt, ##__VA_ARGS__)
+
+#define space_tprintf(fmt, ...)                                                \
+  space_printf(space_get_tspace(), fmt, ##__VA_ARGS__)
+#define space_tcatf(first, first_len, fmt, ...)                                \
+  space_catf(space_get_tspace(), first, first_len, fmt, ##__VA_ARGS__)
+#define space_tstrcat(first, second)                                           \
+  space_strcat(space_get_tspace(), first, second)
+#define space_tstrdup(buf) space_strdup(space_get_tspace(), buf)
+#define space_tstrcpy(buf) space_strcpy(space_get_tspace(), buf)
+#define space_tstrncpy(buf, n) space_strncpy(space_get_tspace(), buf, n)
+#define space_tstpcpy(buf) space_stpcpy(space_get_tspace(), buf)
+#define space_tstpncpy(buf, n) space_stpncpy(space_get_tspace(), buf, n)
+#define space_tmemcpy(buf, n) space_memcpy(space_get_tspace(), buf, n)
+#define space_tmemmove(buf, n) space_memmove(space_get_tspace(), buf, n)
+
+#define space_tstrcatf(first_str, fmt, ...) space_catf(space_get_tspace()), first_str, first_str ? strlen(first_str) : 0, (fmt), ##__VA_ARGS__)
+#define space_tvstrcat(first, ...)                                             \
+  space_vstrcat_impl(space_get_tspace(), first, ##__VA_ARGS__, NULL)
+#define space_tvcat(...)                                                       \
+  space_vcat_impl(space_get_tspace(), ##__VA_ARGS__, NULL)
+
+// ===========================================================================
 
 #endif // SPACE_H_
 
 // ===========================================================================
 
 #ifdef SPACE_IMPLEMENTATION
+
+Space *space_get_tspace(void) {
+  static Space space = {0};
+  return &space;
+}
 
 bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
                                              size_t ptr_size) {
