@@ -229,6 +229,10 @@ void *space_vcat_impl(Space *space, ...);
 
 bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
                                              size_t ptr_size);
+
+size_t space_align(size_t alignment, size_t value);
+size_t space_align_power2(size_t alignment, size_t value);
+
 #endif // SPACE_H_
 
 // ===========================================================================
@@ -753,7 +757,8 @@ void *space_alloc_planetid(Space *space, size_t size_in_bytes,
       continue;
     }
 
-    if (p->count + size_in_bytes > p->capacity) {
+    size_t align_pcount = space_align_power2(8, p->count);
+    if (align_pcount + size_in_bytes > p->capacity) {
       prev = p;
       p = p->next;
       continue;
@@ -772,6 +777,8 @@ void *space_alloc_planetid(Space *space, size_t size_in_bytes,
     assert(p->elements &&
            "ERROR:SPACE: Memory inside a space was freed or set to NULL"
            "by an external call outside the space api!");
+
+    p->count = align_pcount;
     void *place = &((char *)p->elements)[p->count];
     p->count += size_in_bytes;
     *planet_id = p->id;
@@ -1054,4 +1061,20 @@ bool space_report_allocations(Space *space, Space_Report *report) {
 
   return true;
 }
+
+size_t space_align(size_t alignment, size_t value) {
+  if (alignment == 0) {
+    return value;
+  }
+  return ((value + alignment - 1) / alignment) * alignment;
+}
+
+size_t space_align_power2(size_t alignment, size_t value) {
+  if (alignment == 0) {
+    return value;
+  }
+  assert(alignment % 2 == 0 && "INCORRECT ALLIMENT VALUE");
+  return (value + alignment - 1) & ~(alignment - 1);
+}
+
 #endif // SPACE_IMPLEMENTATION
