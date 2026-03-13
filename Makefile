@@ -10,7 +10,9 @@ INCLUDE += -DINCLUDE_RAYLIB -I ${RAYLIBPATH}/include/
 LIBS = -L ${RAYLIBPATH}/lib/
 LIBS += -l:libraylib.a
 LIBS += -lm
-CFLAGS = -x c -O0 -fPIC -Wall -Wextra -ggdb
+CFLAGS = -x c -O0 -fPIC -Wall -Wextra -ggdb -std=gnu11
+DEBUG_CFLAGS += -fsanitize=address
+DEBUG_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=undefined
 CHOREOGRAPHERPATH = src/choreographer
 CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c
 CHOREOGRAPHER_FILES = ${shell find ${CHOREOGRAPHERPATH}/ ! -name "main.c" -name "*.c"}
@@ -34,11 +36,11 @@ poll-server-win64: build first.o
 	x86_64-w64-mingw32-gcc -DRELEASE -DTKBC_SERVER -Wall -Wextra -O3 -static  -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/poll-server-win64 src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lws2_32 -lwinmm
 
 client: build first.o
-	${CC} ${INCLUDE} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${CHOREOGRAPHER_FILES} ${LIBS}
 
 
 tkbc: build first.o
-	${CC} ${INCLUDE} ${CFLAGS} -o build/tkbc ${CHOREOGRAPHER} ${LIBS}
+	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/tkbc ${CHOREOGRAPHER} ${LIBS}
 
 first.o: build
 	${CC} ${INCLUDE} ${CFLAGS} -c tkbc_scripts/first.c -o build/first.o
@@ -57,7 +59,7 @@ clean:
 	rm -r build
 
 test: options build
-	${CC} ${INCLUDE} ${CFLAGS} -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
 	./build/tests
 
 test-verbose: options build

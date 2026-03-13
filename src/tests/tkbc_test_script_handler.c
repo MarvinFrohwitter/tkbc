@@ -26,8 +26,6 @@ Test init_frame() {
       &test, "A stack variable and the next one should not have the same stack "
              "address.");
 
-  cassert_ptr_eq(&frame, &stack + 1);
-
   void *frame_before = frame;
   cassert_ptr_eq(frame, frame_before);
 

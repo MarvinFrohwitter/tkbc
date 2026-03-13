@@ -77,7 +77,7 @@ Env *tkbc_init_env(void) {
 #define estimated_script_count 10
 #define SCIRPT_CREATION_INIT_SIZE (1024 * 1024)
 
-  space_init_capacity(&env->id_space, SCIRPT_CREATION_INIT_SIZE);
+  // space_init_capacity(&env->id_space, SCIRPT_CREATION_INIT_SIZE);
   space_init_capacity(&env->script_creation_space,
                       SCIRPT_CREATION_INIT_SIZE * 30);
   // space_init_capacity_in_count_plantes(
