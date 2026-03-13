@@ -26,6 +26,7 @@ static inline void tkbc_append_kite_image(unsigned char *data, int width,
       .format = format,
   };
 
+  image_normal = ImageCopy(image_normal);
   Image image_flipped = ImageCopy(image_normal);
   ImageFlipHorizontal(&image_flipped);
 
@@ -56,12 +57,9 @@ static inline void tkbc_load_kite_images_and_textures(void) {
                          KITE_IMAGE4_FORMAT);
   assert(4 == kite_images.count);
 
-  Image colorizer_image =
-      ImageCopy(kite_images.elements[kite_images.count - 1].normal);
-
+  Image colorizer_image = kite_images.elements->normal;
   tkbc_append_kite_image(colorizer_image.data, colorizer_image.width,
                          colorizer_image.height, colorizer_image.format);
-
 
   for (size_t i = 0; i < kite_images.count; ++i) {
     if (!IsImageValid(kite_images.elements[i].normal)) {
@@ -94,11 +92,9 @@ static inline void tkbc_assets_destroy() {
     UnloadTexture(kite_textures.elements[i].flipped);
   }
 
-  // NOTE: Unloading the "normal images" is not needed, because the data is
-  // stored constant in static memory the copy of the data is the first actual
-  // heap allocation that results in the flipped versions.
   for (size_t i = 0; i < kite_images.count; ++i) {
-    UnloadImage(kite_images.elements[i].flipped); // This is needed because?
+    UnloadImage(kite_images.elements[i].normal);
+    UnloadImage(kite_images.elements[i].flipped);
   }
 }
 

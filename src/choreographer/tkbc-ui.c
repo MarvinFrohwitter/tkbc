@@ -25,6 +25,18 @@ unsigned char *tkbc_get_position_in_image(Image image, int x, int y) {
   return &((unsigned char *)image.data)[(x + y * (int)image.width) * 4];
 }
 
+void tkbc_update_kite_texture(Kite_Texture kite_texture,
+                              Kite_Image kite_image) {
+  UpdateTexture(kite_texture.normal, kite_image.normal.data);
+  UpdateTexture(kite_texture.flipped, kite_image.flipped.data);
+}
+
+void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
+                                  Color replace) {
+  ImageColorReplace(&kite_image->normal, old, replace);
+  ImageColorReplace(&kite_image->flipped, old, replace);
+}
+
 void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
                     float rec_scale, bool single_pixel) {
 
@@ -45,22 +57,22 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
     SetPixelColor(ptr, replace,
                   kite_images.elements[kite_images.count - 1].normal.format);
 
+    p.x = kite_images.elements[kite_images.count - 1].flipped.width - p.x;
     ptr = tkbc_get_position_in_image(
         kite_images.elements[kite_images.count - 1].flipped, p.x, p.y);
     SetPixelColor(ptr, replace,
                   kite_images.elements[kite_images.count - 1].flipped.format);
   } else {
 
-    ImageColorReplace(&kite_images.elements[kite_images.count - 1].normal,
-                      old_color, replace);
-    ImageColorReplace(&kite_images.elements[kite_images.count - 1].flipped,
-                      old_color, replace);
-  }
+    // NOTE: If the colorizer is switched to the single panels the flipped
+    // version has to be handled separately like with the update of the single
+    // pixel above the position has to be manually flipped.
 
-  UpdateTexture(kite_textures.elements[kite_textures.count - 1].normal,
-                kite_images.elements[kite_images.count - 1].normal.data);
-  UpdateTexture(kite_textures.elements[kite_textures.count - 1].flipped,
-                kite_images.elements[kite_images.count - 1].flipped.data);
+    tkbc_update_kite_image_color(&kite_images.elements[kite_images.count - 1],
+                                 old_color, replace);
+  }
+  tkbc_update_kite_texture(kite_textures.elements[kite_textures.count - 1],
+                           kite_images.elements[kite_images.count - 1]);
 }
 
 /**
@@ -741,6 +753,23 @@ key_skip:
         DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_PURPLE_ALPHA);
         if (!env->colorizer) {
           env->colorizer = true;
+        } else {
+          void *data_norm =
+              kite_images.elements[kite_images.count - 1].normal.data;
+          void *data_flipped =
+              kite_images.elements[kite_images.count - 1].flipped.data;
+
+          Kite_Image kite_image = kite_images.elements[0];
+          tkbc_update_kite_texture(
+              kite_textures.elements[kite_textures.count - 1], kite_image);
+
+          kite_images.elements[kite_images.count - 1].normal =
+              ImageCopy(kite_images.elements->normal);
+          kite_images.elements[kite_images.count - 1].flipped =
+              ImageCopy(kite_images.elements->flipped);
+
+          free(data_norm);
+          free(data_flipped);
         }
       }
     }
