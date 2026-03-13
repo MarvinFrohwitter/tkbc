@@ -107,8 +107,8 @@ Client *tkbc_get_client_by_fd(int fd) {
  * @param message The message that should be send to the given client.
  */
 void tkbc_write_to_send_msg_buffer(Client *client, Message message) {
-  space_dapc(&client->msg_space, &client->send_msg_buffer, message.elements,
-             message.count);
+  space_dapc(&client->send_msg_buffer_space, &client->send_msg_buffer,
+             message.elements, message.count);
 
   tkbc_get_pollfd_by_fd(client->socket_id)->events = POLLWRNORM;
 }
@@ -154,7 +154,8 @@ bool tkbc_remove_client_by_fd(int fd) {
   for (size_t i = 0; i < clients.count; ++i) {
     if (clients.elements[i].socket_id == fd) {
       Client client_tmp = clients.elements[i];
-      space_free_space(&client_tmp.msg_space);
+      space_free_space(&client_tmp.send_msg_buffer_space);
+      space_free_space(&client_tmp.recv_msg_buffer_space);
 
       client_tmp.recv_msg_buffer.elements = NULL;
       client_tmp.send_msg_buffer.elements = NULL;
@@ -418,7 +419,8 @@ void tkbc_server_accept() {
         .client_address_length = address_length,
     };
 
-    space_init_capacity(&client.msg_space, MAX_BUFFER_CAPACITY);
+    space_init_capacity(&client.send_msg_buffer_space, MAX_BUFFER_CAPACITY);
+    space_init_capacity(&client.send_msg_buffer_space, 1024);
 
     tkbc_fprintf(stderr, "INFO", "CLIENT: " CLIENT_FMT " has connected.\n",
                  CLIENT_ARG(client));
@@ -445,9 +447,9 @@ bool tkbc_sockets_read(Client *client) {
     // This is ok because the recv buffer forces a new planet with
     // count == capacity so the recv and send buffers can not conflict and can
     // be deleted.
-    Planet *planet =
-        space_find_planet_from_ptr(&client->msg_space, recv_buffer->elements);
-    space_free_planet(&client->msg_space, planet);
+    Planet *planet = space_find_planet_from_ptr(&client->recv_msg_buffer_space,
+                                                recv_buffer->elements);
+    space_free_planet(&client->recv_msg_buffer_space, planet);
 
     recv_buffer->elements = NULL;
     recv_buffer->capacity = 0;
@@ -463,10 +465,10 @@ bool tkbc_sockets_read(Client *client) {
       recv_buffer->capacity += length;
     }
 
-    recv_buffer->elements = space_realloc_force_new_planet(
-        &client->msg_space, recv_buffer->elements,
-        sizeof(*recv_buffer->elements) * old_capacity,
-        sizeof(*recv_buffer->elements) * recv_buffer->capacity);
+    recv_buffer->elements =
+        space_realloc(&client->recv_msg_buffer_space, recv_buffer->elements,
+                      sizeof(*recv_buffer->elements) * old_capacity,
+                      sizeof(*recv_buffer->elements) * recv_buffer->capacity);
 
     if (recv_buffer->elements == NULL) {
       fprintf(stderr,
@@ -570,8 +572,8 @@ int tkbc_socket_write(Client *client) {
     // count == capacity so the recv and send buffers can not conflict and can
     // be deleted.
     Planet *planet = space_find_planet_from_ptr(
-        &client->msg_space, client->send_msg_buffer.elements);
-    space_free_planet(&client->msg_space, planet);
+        &client->send_msg_buffer_space, client->send_msg_buffer.elements);
+    space_free_planet(&client->send_msg_buffer_space, planet);
 
     client->send_msg_buffer.elements = NULL;
     client->send_msg_buffer.capacity = 0;
@@ -789,8 +791,8 @@ bool tkbc_received_message_handler(Client *client) {
         check_return(false);
       }
 
-      space_dapf(&client->msg_space, &client->send_msg_buffer, "%d:\r\n",
-                 MESSAGE_HELLO_PASSED);
+      space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
+                 "%d:\r\n", MESSAGE_HELLO_PASSED);
       client->handshake_passed = true;
 
       tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
@@ -1222,8 +1224,8 @@ bool tkbc_received_message_handler(Client *client) {
         client->script_amount = 0;
       }
       if (client->script_amount == 0) {
-        space_dapf(&client->msg_space, &client->send_msg_buffer, "%d:\r\n",
-                   MESSAGE_SCRIPT_PARSED);
+        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
+                   "%d:\r\n", MESSAGE_SCRIPT_PARSED);
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT\n");

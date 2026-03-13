@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.3.018"
+#define PROTOCOL_VERSION "0.3.019"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -54,7 +54,8 @@ typedef struct {
   ssize_t kite_id;
   Message send_msg_buffer;
   Message recv_msg_buffer;
-  Space msg_space;
+  Space send_msg_buffer_space;
+  Space recv_msg_buffer_space;
 
   int socket_id;
   SOCKADDR_IN client_address;

@@ -289,7 +289,7 @@ bool send_message_handler() {
       check_return(false);
     }
     if (n == -1) {
-      space_dap(&client.msg_space, &client.send_msg_buffer, 0);
+      space_dap(&client.send_msg_buffer_space, &client.send_msg_buffer, 0);
       tkbc_fprintf(stderr, "ERROR", "Could not broadcast message: %s\n",
                    client.send_msg_buffer.elements);
       tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
@@ -376,7 +376,7 @@ bool received_message_handler(Message *message) {
 
       {
         const char quote = '\"';
-        space_dapf(&client.msg_space, &client.send_msg_buffer,
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                    "%d:%c%s" PROTOCOL_VERSION "%c:\r\n", MESSAGE_HELLO, quote,
                    "Hello server from client!", quote);
       }
@@ -646,6 +646,7 @@ bool message_queue_handler(Message *message) {
 
   size_t length = 1024;
   if (message->capacity < message->count + length) {
+    size_t old_capacity = message->capacity;
     if (message->capacity == 0) {
       message->capacity = length;
     }
@@ -654,8 +655,10 @@ bool message_queue_handler(Message *message) {
       message->capacity += length;
     }
 
-    message->elements = realloc(message->elements,
-                                sizeof(*message->elements) * message->capacity);
+    message->elements =
+        space_realloc(&client.recv_msg_buffer_space, message->elements,
+                      sizeof(*message->elements) * old_capacity,
+                      sizeof(*message->elements) * message->capacity);
 
     if (message->elements == NULL) {
       fprintf(stderr,
@@ -750,11 +753,11 @@ void tkbc_client_input_handler_kite() {
   }
   client_kite = *kite_state->kite;
 
-  space_dapf(&client.msg_space, &client.send_msg_buffer,
+  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
              "%d:", MESSAGE_SINGLE_KITE_UPDATE);
   tkbc_message_append_clientkite(client.kite_id, &client.send_msg_buffer,
-                                 &client.msg_space);
-  space_dapf(&client.msg_space, &client.send_msg_buffer, "\r\n");
+                                 &client.send_msg_buffer_space);
+  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
 }
 
 /**
@@ -771,24 +774,24 @@ bool tkbc_message_append_script(size_t script_id) {
     if (env->scripts.elements[i].script_id != script_id) {
       continue;
     }
-    space_dapf(&client.msg_space, &client.send_msg_buffer, "%zu:", script_id);
+    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%zu:", script_id);
 
     Script *script = &env->scripts.elements[i];
-    space_dapf(&client.msg_space, &client.send_msg_buffer,
+    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                "%zu:", script->count);
     for (size_t j = 0; j < script->count; ++j) {
       Frames *frames = &script->elements[j];
-      space_dapf(&client.msg_space, &client.send_msg_buffer,
+      space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                  "%zu:", frames->frames_index);
-      space_dapf(&client.msg_space, &client.send_msg_buffer,
+      space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                  "%zu:", frames->count);
 
       for (size_t k = 0; k < frames->count; ++k) {
-        space_dapf(&client.msg_space, &client.send_msg_buffer,
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                    "%zu:", frames->elements[k].index);
-        space_dapf(&client.msg_space, &client.send_msg_buffer,
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                    "%d:", frames->elements[k].finished);
-        space_dapf(&client.msg_space, &client.send_msg_buffer,
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                    "%d:", frames->elements[k].kind);
 
         assert(ACTION_KIND_COUNT == 9 &&
@@ -797,48 +800,48 @@ bool tkbc_message_append_script(size_t script_id) {
         case KITE_QUIT:
         case KITE_WAIT: {
           Wait_Action action = frames->elements[k].action.as_wait;
-          space_dapf(&client.msg_space, &client.send_msg_buffer, "%lf",
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%lf",
                      action.starttime);
         } break;
         case KITE_MOVE:
         case KITE_MOVE_ADD: {
           Move_Action action = frames->elements[k].action.as_move;
-          space_dapf(&client.msg_space, &client.send_msg_buffer, "%f:%f",
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%f:%f",
                      action.position.x, action.position.y);
         } break;
         case KITE_ROTATION:
         case KITE_ROTATION_ADD: {
           Rotation_Action action = frames->elements[k].action.as_rotation;
-          space_dapf(&client.msg_space, &client.send_msg_buffer, "%f",
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%f",
                      action.angle);
         } break;
         case KITE_TIP_ROTATION:
         case KITE_TIP_ROTATION_ADD: {
           Tip_Rotation_Action action =
               frames->elements[k].action.as_tip_rotation;
-          space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:%f",
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%f",
                      action.tip, action.angle);
         } break;
         default:
           assert(0 && "UNREACHABLE tkbc_message_append_script()");
         }
 
-        space_dapf(&client.msg_space, &client.send_msg_buffer, ":%f",
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, ":%f",
                    frames->elements[k].duration);
 
         Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
         if (kite_ids->count) {
-          space_dapf(&client.msg_space, &client.send_msg_buffer, ":%zu:(",
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, ":%zu:(",
                      kite_ids->count);
           for (size_t id = 0; id < kite_ids->count; ++id) {
-            space_dapf(&client.msg_space, &client.send_msg_buffer, "%zu,",
+            space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%zu,",
                        kite_ids->elements[id]);
           }
           client.send_msg_buffer.count--;
-          space_dapf(&client.msg_space, &client.send_msg_buffer, ")");
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, ")");
         }
 
-        space_dapf(&client.msg_space, &client.send_msg_buffer, ":");
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, ":");
       }
     }
     return true;
@@ -855,14 +858,14 @@ bool tkbc_message_append_script(size_t script_id) {
  */
 bool tkbc_message_script() {
   bool ok = true;
-  space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:%zu:\r\n",
+  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n",
              MESSAGE_SCRIPT_AMOUNT, env->scripts.count);
 
   size_t counter = 0;
   for (size_t i = env->send_scripts; i < env->scripts.count; ++i) {
     char buf[8];
     int size = snprintf(buf, sizeof(buf), "%d:", MESSAGE_SCRIPT);
-    space_dapf(&client.msg_space, &client.send_msg_buffer, "%s", buf);
+    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%s", buf);
 
     if (!tkbc_message_append_script(env->scripts.elements[i].script_id)) {
       tkbc_fprintf(stderr, "ERROR",
@@ -871,7 +874,7 @@ bool tkbc_message_script() {
       check_return(false);
     }
 
-    space_dapf(&client.msg_space, &client.send_msg_buffer, "\r\n");
+    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
     counter++;
   }
 check:
@@ -910,15 +913,15 @@ void tkbc_client_file_handler() {
  * send_message_queue.
  */
 void tkbc_message_kites_positions() {
-  space_dapf(&client.msg_space, &client.send_msg_buffer,
+  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
              "%d:%zu:", MESSAGE_KITES_POSITIONS, env->kite_array->count);
 
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     Kite_State *kite_state = &env->kite_array->elements[i];
     tkbc_message_append_kite(kite_state, &client.send_msg_buffer,
-                             &client.msg_space);
+                             &client.send_msg_buffer_space);
   }
-  space_dapf(&client.msg_space, &client.send_msg_buffer, "\r\n");
+  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
 }
 
 /**
@@ -934,14 +937,14 @@ void tkbc_client_input_handler_script() {
   // KEY_ENTER
   if (IsKeyPressed(
           tkbc_hash_to_key(env->keymaps, KMH_SET_KITES_TO_START_POSITION))) {
-    space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:\r\n",
+    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:\r\n",
                MESSAGE_KITES_POSITIONS_RESET);
   }
 
   // KEY_SPACE
   if (IsKeyPressed(
           tkbc_hash_to_key(env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION))) {
-    space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:\r\n",
+    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:\r\n",
                MESSAGE_SCRIPT_TOGGLE);
   }
 
@@ -949,7 +952,7 @@ void tkbc_client_input_handler_script() {
   if (env->new_script_selected) {
     // Script ids start from 1 so +1 is needed.
     space_dapf(
-        &client.msg_space, &client.send_msg_buffer, "%d:%zu:\r\n",
+        &client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n",
         MESSAGE_SCRIPT_NEXT,
         env->script_menu_mouse_interaction_box == -1
             ? 0
@@ -964,7 +967,7 @@ void tkbc_client_input_handler_script() {
     float c = mouse_x - slider;
     bool drag_left = c <= 0;
 
-    space_dapf(&client.msg_space, &client.send_msg_buffer, "%d:%d:\r\n",
+    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%d:\r\n",
                MESSAGE_SCRIPT_SCRUB, drag_left);
   }
 }
@@ -998,7 +1001,8 @@ int main(int argc, char *argv[]) {
   }
 
   client.socket_id = tkbc_client_socket_creation(host, port);
-  space_init_capacity(&client.msg_space, 256 * 1024);
+  space_init_capacity(&client.send_msg_buffer_space, 256 * 1024);
+  space_init_capacity(&client.recv_msg_buffer_space, 1024);
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
   SetTraceLogLevel(LOG_NONE);
@@ -1088,7 +1092,8 @@ int main(int argc, char *argv[]) {
     }
   };
 
-  space_free_space(&client.msg_space);
+  space_free_space(&client.send_msg_buffer_space);
+  space_free_space(&client.recv_msg_buffer_space);
   client.recv_msg_buffer.elements = NULL;
   client.send_msg_buffer.elements = NULL;
 
