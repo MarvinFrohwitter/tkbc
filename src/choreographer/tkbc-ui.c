@@ -544,7 +544,6 @@ void tkbc_ui_color_picker(Env *env) {
 
   // KEY_ESCAPE
   if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
-    env->color_picker_interaction = !env->color_picker_interaction;
     env->colorizer = false;
   }
   if (!env->color_picker_interaction) {
@@ -1144,11 +1143,17 @@ void tkbc_ui_keymaps(Env *env) {
   if (IsKeyPressed(KEY_ESCAPE) &&
       tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS) != KEY_ESCAPE) {
     env->keymaps_interaction = false;
+    env->color_picker_interaction = false;
   }
   // KEY_ESCAPE
   if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
     env->keymaps_interaction = !env->keymaps_interaction;
     env->keymaps_mouse_interaction = false;
+    if (env->keymaps_interaction) {
+      env->color_picker_interaction = true;
+    } else {
+      env->color_picker_interaction = false;
+    }
   }
   if (!env->keymaps_interaction) {
     return;
