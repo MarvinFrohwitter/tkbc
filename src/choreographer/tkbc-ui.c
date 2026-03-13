@@ -517,6 +517,7 @@ void tkbc_draw_shadow(Rectangle shadow) {
                        0.242f, 0.251f, 0.260f, 0.269f, 0.278f, 0.287f,
                        0.296f, 0.305f, 0.314f, 0.323f, 0.332f, 0.35f};
 
+  Rectangle orig_shadow = shadow;
   shadow.y += shadow.height / 8;
   shadow.x -= shadow.width * 0.03;
   shadow.width *= 1.06;
@@ -529,6 +530,16 @@ void tkbc_draw_shadow(Rectangle shadow) {
     shadow.width *= 0.97;
     shadow.height *= 0.97;
   }
+
+  Rectangle floor = orig_shadow;
+  float old_floor_height = floor.height;
+  floor.height *= 0.3;
+  floor.y += old_floor_height - floor.height / 2;
+  float old_floor_width = floor.width;
+  floor.width *= 0.9;
+  floor.x -= (floor.width - old_floor_width) / 2;
+  DrawRectangleRounded(floor, 0.3f, 20,
+                       ColorAlpha((Color){20, 20, 20, 255}, 0.2f));
 }
 
 /**
@@ -712,6 +723,42 @@ key_skip:
     }
   }
 
+  if (env->color_picker_display_designs) {
+    Rectangle colorizer_button = forward;
+    colorizer_button.x += forward.width + padding;
+
+    if (CheckCollisionPointRec(mouse, colorizer_button)) {
+      if (!env->color_picker_window_picking) {
+        DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+      }
+    } else {
+      DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_TEAL_ALPHA);
+    }
+
+    if (!env->color_picker_window_picking) {
+      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+          CheckCollisionPointRec(mouse, colorizer_button)) {
+        DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_PURPLE_ALPHA);
+        if (!env->colorizer) {
+          env->colorizer = true;
+        }
+      }
+    }
+
+    const char *colorizer = NULL;
+    if (!env->colorizer) {
+      colorizer = "COLORIZER";
+    } else {
+      colorizer = "RESET";
+    }
+    text_size = MeasureTextEx(GetFontDefault(), colorizer, font_size, 0);
+    DrawText(
+        colorizer,
+        colorizer_button.x + colorizer_button.width * 0.5 - text_size.x * 0.5,
+        colorizer_button.y + colorizer_button.height * 0.5 - text_size.y * 0.5,
+        font_size, TKBC_UI_BLACK);
+  }
+
   const char *designs = NULL;
   if (env->color_picker_display_designs) {
     designs = "COLORS";
@@ -750,16 +797,6 @@ key_skip:
     Rectangle shadow = colorizer_view_background;
     tkbc_draw_shadow(shadow);
 
-    Rectangle floor = colorizer_view_background;
-    float old_floor_height = floor.height;
-    floor.height *= 0.3;
-    floor.y += old_floor_height - floor.height / 2;
-    float old_floor_width = floor.width;
-    floor.width *= 0.9;
-    floor.x -= (floor.width - old_floor_width) / 2;
-    DrawRectangleRounded(floor, 0.3f, 20,
-                         ColorAlpha((Color){20, 20, 20, 255}, 0.2f));
-
     DrawTextureEx(colorizer_view_texture, colorizer_view, 0,
                   colorizer_view_scale, WHITE);
   }
@@ -775,6 +812,7 @@ key_skip:
         .y = forward.y,
     };
 
+    float thick = 3;
     for (size_t i = 0; i < kite_textures.count;
          ++i, display_position.y += padding) {
       Texture2D t = kite_textures.elements[i].normal;
@@ -783,7 +821,27 @@ key_skip:
       while (t.height * scale > padding) {
         scale -= 0.01f;
       }
+      Rectangle shadow;
+      shadow.x = display_position.x;
+      shadow.y = display_position.y;
+      shadow.width = t.width * scale;
+      shadow.height = t.height * scale - 5 * thick;
+      tkbc_draw_shadow(shadow);
       DrawTextureEx(t, display_position, 0, scale, WHITE);
+
+      if (i == kite_textures.count - 1) {
+        Vector2 start = {
+            .x = env->color_picker_base.x,
+            .y = display_position.y,
+        };
+
+        Vector2 end = {
+            .x = env->color_picker_base.x + env->color_picker_base.width,
+            .y = display_position.y,
+        };
+
+        DrawLineEx(start, end, thick, TKBC_UI_BLACK);
+      }
 
       Rectangle collision_rectangle = {
           .x = display_position.x,
