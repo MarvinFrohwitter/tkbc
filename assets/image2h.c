@@ -37,14 +37,14 @@ int main(int argc, char *argv[]) {
     *dot = '\0';
 
     Content data = {0};
-    tkbc_dapf(&data, "#define KITE_IMAGE%s_WIDTH %d\n", image_file_path, x);
-    tkbc_dapf(&data, "#define KITE_IMAGE%s_HEIGHT %d\n", image_file_path, y);
-    tkbc_dapf(&data, "#define KITE_IMAGE%s_FORMAT %s\n", image_file_path,
+    tkbc_dapf(&data, "#define IMAGE_%s_WIDTH %d\n", image_file_path, x);
+    tkbc_dapf(&data, "#define IMAGE_%s_HEIGHT %d\n", image_file_path, y);
+    tkbc_dapf(&data, "#define IMAGE_%s_FORMAT %s\n", image_file_path,
               STR(PIXELFORMAT_UNCOMPRESSED_R8G8B8A8));
 
     tkbc_dapf(&data,
               "\nstatic unsigned char "
-              "kite_image%s[KITE_IMAGE%s_WIDTH*KITE_IMAGE%s_HEIGHT*%d] = {\n",
+              "image_%s[IMAGE_%s_WIDTH*IMAGE_%s_HEIGHT*%d] = {\n",
               image_file_path, image_file_path, image_file_path, comp);
 
     int line_comp = 15;

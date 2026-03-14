@@ -12,8 +12,8 @@ LIBS += -l:libraylib.a
 LIBS += -lm
 CFLAGS = -x c -O0 -fPIC -Wall -Wextra -ggdb -std=gnu11
 DEBUG_CFLAGS =
-DEBUG_CFLAGS += -fsanitize=address
-DEBUG_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=undefined
+# DEBUG_CFLAGS += -fsanitize=address
+# DEBUG_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=undefined
 CHOREOGRAPHERPATH = src/choreographer
 CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c
 CHOREOGRAPHER_FILES = ${shell find ${CHOREOGRAPHERPATH}/ ! -name "main.c" -name "*.c"}

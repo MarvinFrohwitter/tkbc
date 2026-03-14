@@ -2,6 +2,7 @@
 #define TKBC_UI_H
 
 #include "../global/tkbc-types.h"
+
 void tkbc_draw_ui(Env *env);
 Color tkbc_get_color_from_screen_position(Vector2 position);
 Vector2 tkbc_get_position_in_rect(Rectangle rect, float rectangle_scale,
@@ -29,5 +30,16 @@ void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
                                          size_t texture_id);
 
 void tkbc_draw_shadow(Rectangle shadow);
+unsigned char *tkbc_get_position_in_image(Image image, int x, int y);
+void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image);
+void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
+                                  Color replace);
+void tkbc_draw_pannels(Env *env, Rectangle *view_background, float view_scale,
+                       Rectangle color_box);
+void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace);
+void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p,
+                                         Color replace);
+void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
+                    float rec_scale, Colorizer_Mode mode);
 
 #endif // TKBC_UI_H

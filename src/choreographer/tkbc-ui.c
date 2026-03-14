@@ -37,8 +37,57 @@ void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
   ImageColorReplace(&kite_image->flipped, old, replace);
 }
 
+void tkbc_draw_pannels(Env *env, Rectangle *view_background, float view_scale,
+                       Rectangle color_box) {
+  Vector2 view;
+
+  Texture2D view_texture = kite_textures.elements[KITE_COLORIZER].normal;
+
+  view_scale = (env->window_width - env->color_picker_base.width -
+                env->keymaps_base.width) /
+               view_texture.width;
+
+  view.x = env->color_picker_base.x -
+           (env->window_width - env->color_picker_base.width) / 2 -
+           view_scale * view_texture.width / 2;
+
+  view.y = color_box.y;
+
+  view_background->x = view.x;
+  view_background->y = view.y;
+  view_background->width = view_texture.width * view_scale;
+  view_background->height = view_texture.height * view_scale;
+
+  if (env->colorizer) {
+    Rectangle shadow = *view_background;
+    tkbc_draw_shadow(shadow);
+
+    for (size_t i = IMAGE_SKELETON; i <= KITE_COLORIZER; ++i) {
+      view_texture = kite_textures.elements[i].normal;
+      DrawTextureEx(view_texture, view, 0, view_scale, WHITE);
+    }
+  }
+}
+
+void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace) {
+  tkbc_set_single_pixel_in_kite_image(kite_images.elements[KITE_COLORIZER], p,
+                                      replace);
+}
+
+void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p,
+                                         Color replace) {
+  // For the normal
+  unsigned char *ptr = tkbc_get_position_in_image(kite_image.normal, p.x, p.y);
+  SetPixelColor(ptr, replace, kite_image.normal.format);
+
+  // For the flipped
+  p.x = kite_image.flipped.width - p.x;
+  ptr = tkbc_get_position_in_image(kite_image.flipped, p.x, p.y);
+  SetPixelColor(ptr, replace, kite_image.flipped.format);
+}
+
 void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
-                    float rec_scale, bool single_pixel) {
+                    float rec_scale, Colorizer_Mode mode) {
 
   env->colorizer = true;
   Vector2 mouse = GetMousePosition();
@@ -51,26 +100,46 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
   }
 
   Color replace = env->last_selected_color;
-  if (single_pixel) {
-    unsigned char *ptr = tkbc_get_position_in_image(
-        kite_images.elements[kite_images.count - 1].normal, p.x, p.y);
-    SetPixelColor(ptr, replace,
-                  kite_images.elements[kite_images.count - 1].normal.format);
+  switch (mode) {
+  case SINGLE_PIXEL: {
+    tkbc_set_single_pixel_in_kite_image_colorizer(p, replace);
+  } break;
 
-    p.x = kite_images.elements[kite_images.count - 1].flipped.width - p.x;
-    ptr = tkbc_get_position_in_image(
-        kite_images.elements[kite_images.count - 1].flipped, p.x, p.y);
-    SetPixelColor(ptr, replace,
-                  kite_images.elements[kite_images.count - 1].flipped.format);
-  } else {
-
-    // NOTE: If the colorizer is switched to the single panels the flipped
-    // version has to be handled separately like with the update of the single
-    // pixel above the position has to be manually flipped.
-
-    tkbc_update_kite_image_color(&kite_images.elements[kite_images.count - 1],
+  case SELECT_COLOR: {
+    tkbc_update_kite_image_color(&kite_images.elements[KITE_COLORIZER],
                                  old_color, replace);
+
+  } break;
+  case SELECT_PANEL: {
+    // The skeleton should not be changed.
+    for (size_t i = IMAGE_SKELETON + 1; i < KITE_COLORIZER; ++i) {
+      Image im = kite_images.elements[kite_images.count - 1].normal;
+      assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+      old_color = GetImageColor(im, p.x, p.y);
+      if (old_color.a <= alpha_threshold) {
+        continue;
+      }
+
+      assert(im.width == kite_images.elements[KITE_COLORIZER].normal.width);
+      assert(im.height == kite_images.elements[KITE_COLORIZER].normal.height);
+      // Copy the panel into the KITE_COLORIZER texture
+      for (size_t y = 0; y < (size_t)im.height; ++y) {
+        for (size_t x = 0; x < (size_t)im.width; ++x) {
+          Color c = *(Color *)tkbc_get_position_in_image(im, x, y);
+          if (c.a <= alpha_threshold) {
+            continue;
+          }
+
+          tkbc_set_single_pixel_in_kite_image_colorizer(p, replace);
+        }
+      }
+    }
+
+  } break;
+  default:
+    assert(0 && "UNREACHABLE tkbc_colorizer");
   }
+
   tkbc_update_kite_texture(kite_textures.elements[kite_textures.count - 1],
                            kite_images.elements[kite_images.count - 1]);
 }
@@ -799,42 +868,22 @@ key_skip:
            forward.y + forward.height * 0.5 - text_size.y * 0.5, font_size,
            TKBC_UI_BLACK);
 
-  Vector2 colorizer_view;
   Rectangle colorizer_view_background;
-  Texture2D colorizer_view_texture =
-      kite_textures.elements[kite_textures.count - 1].normal;
+
+
   float colorizer_view_scale = 1;
-
-  colorizer_view_scale = (env->window_width - env->color_picker_base.width -
-                          env->keymaps_base.width) /
-                         colorizer_view_texture.width;
-
-  colorizer_view.x = env->color_picker_base.x -
-                     (env->window_width - env->color_picker_base.width) / 2 -
-                     colorizer_view_scale * colorizer_view_texture.width / 2;
-
-  colorizer_view.y = color_box.y + 0 * padding;
-
-  colorizer_view_background.x = colorizer_view.x;
-  colorizer_view_background.y = colorizer_view.y;
-  colorizer_view_background.width =
-      colorizer_view_texture.width * colorizer_view_scale;
-  colorizer_view_background.height =
-      colorizer_view_texture.height * colorizer_view_scale;
-
-  if (env->colorizer) {
-    Rectangle shadow = colorizer_view_background;
-    tkbc_draw_shadow(shadow);
-
-    DrawTextureEx(colorizer_view_texture, colorizer_view, 0,
-                  colorizer_view_scale, WHITE);
-  }
+  tkbc_draw_pannels(env, &colorizer_view_background, colorizer_view_scale,
+                    color_box);
 
   if (env->color_picker_display_designs) {
     forward.y += forward.height + padding + color_circle_radius * 0.5;
 
     float remainng_space = env->window_height - forward.y;
-    padding = remainng_space / (float)kite_textures.count;
+    // This is the normal thing to do but i just want kites and not the reset
+    // of the textures (float)kite_textures.count;
+    int colorizer_place = 1;
+    int amount_to_display = IMAGE_SKELETON + colorizer_place;
+    padding = remainng_space / (float)amount_to_display;
 
     Vector2 display_position = {
         .x = forward.x,
@@ -842,8 +891,11 @@ key_skip:
     };
 
     float thick = 3;
-    for (size_t i = 0; i < kite_textures.count;
+    for (size_t i = IMAGE_1; i < KITE_COLORIZER;
          ++i, display_position.y += padding) {
+      if (i == IMAGE_SKELETON) {
+        i = KITE_COLORIZER;
+      }
       Texture2D t = kite_textures.elements[i].normal;
       float scale = env->color_picker_base.width * 0.9 / t.width;
 
@@ -902,7 +954,7 @@ key_skip:
         if (i == kite_textures.count - 1) {
           if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
             tkbc_colorizer(env, kite_images.elements[i].normal,
-                           collision_rectangle, 1 / scale, false);
+                           collision_rectangle, 1 / scale, SELECT_COLOR);
           }
         }
       }
@@ -911,15 +963,19 @@ key_skip:
 
   if (env->colorizer) {
     if (CheckCollisionPointRec(mouse, colorizer_view_background)) {
-      if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        tkbc_colorizer(env, kite_images.elements[kite_images.count - 1].normal,
+      if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) &&
+          IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        tkbc_colorizer(env, kite_images.elements[KITE_COLORIZER].normal,
                        colorizer_view_background, 1 / colorizer_view_scale,
-                       false);
-      }
-      if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-        tkbc_colorizer(env, kite_images.elements[kite_images.count - 1].normal,
+                       SELECT_COLOR);
+      } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        tkbc_colorizer(env, kite_images.elements[KITE_COLORIZER].normal,
                        colorizer_view_background, 1 / colorizer_view_scale,
-                       true);
+                       SELECT_PANEL);
+      } else if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+        tkbc_colorizer(env, kite_images.elements[KITE_COLORIZER].normal,
+                       colorizer_view_background, 1 / colorizer_view_scale,
+                       SINGLE_PIXEL);
       }
     }
   }

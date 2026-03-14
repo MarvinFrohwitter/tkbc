@@ -28,6 +28,13 @@ int main(void) {
     return 1;
   }
   printf("Successfully converted: %s\n", image_name3);
+  const char *image_name4 = "4.png";
+  if (stbi_write_png(image_name4, KITE_IMAGE4_WIDTH, KITE_IMAGE4_HEIGHT, 4,
+                     kite_image4, 0) == 0) {
+    printf("ERROR: Failed %s\n", image_name4);
+    return 1;
+  }
+  printf("Successfully converted: %s\n", image_name4);
 
   return 0;
 }

@@ -9,6 +9,63 @@
 // ========================== TKBC KITE TYPES ================================
 // ===========================================================================
 
+typedef enum {
+  IMAGE_1 = 0,
+  IMAGE_2,
+  IMAGE_3,
+  IMAGE_4,
+
+  IMAGE_SKELETON,
+  IMAGE_SKELETON_LEADINGEDGE,
+  IMAGE_LEADINGEDGE,
+  IMAGE_GAZE,
+
+  IMAGE_LEFT_02_1,
+  IMAGE_LEFT_03_1,
+  IMAGE_LEFT_04_1,
+  IMAGE_LEFT_05_1,
+  IMAGE_LEFT_06_1,
+  IMAGE_LEFT_07_1,
+  IMAGE_LEFT_08_1,
+  IMAGE_LEFT_09_1,
+  IMAGE_LEFT_10_1,
+  IMAGE_LEFT_11_1,
+  IMAGE_LEFT_12_1,
+  IMAGE_LEFT_13_1,
+  IMAGE_LEFT_14_1,
+  IMAGE_LEFT_15_1,
+  IMAGE_LEFT_16_1,
+
+  IMAGE_RIGHT_02_2,
+  IMAGE_RIGHT_03_2,
+  IMAGE_RIGHT_04_2,
+  IMAGE_RIGHT_05_2,
+  IMAGE_RIGHT_06_2,
+  IMAGE_RIGHT_07_2,
+  IMAGE_RIGHT_08_2,
+  IMAGE_RIGHT_09_2,
+  IMAGE_RIGHT_10_2,
+  IMAGE_RIGHT_11_2,
+  IMAGE_RIGHT_12_2,
+  IMAGE_RIGHT_13_2,
+  IMAGE_RIGHT_14_2,
+  IMAGE_RIGHT_15_2,
+  IMAGE_RIGHT_16_2,
+
+  IMAGE_MIDDLE_06,
+  IMAGE_MIDDLE_10,
+  IMAGE_MIDDLE_13,
+
+  KITE_COLORIZER,
+  ASSETS_COUNT,
+} Assets;
+
+typedef enum {
+  SINGLE_PIXEL,
+  SELECT_COLOR,
+  SELECT_PANEL,
+} Colorizer_Mode;
+
 typedef struct {
   Image normal;
   Image flipped;
