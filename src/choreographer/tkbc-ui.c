@@ -37,26 +37,28 @@ void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
   ImageColorReplace(&kite_image->flipped, old, replace);
 }
 
-void tkbc_draw_pannels(Env *env, Rectangle *view_background, float view_scale,
+void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
                        Rectangle color_box) {
   Vector2 view;
 
   Texture2D view_texture = kite_textures.elements[KITE_COLORIZER].normal;
 
-  view_scale = (env->window_width - env->color_picker_base.width -
+  *view_scale = (env->window_width - env->color_picker_base.width -
                 env->keymaps_base.width) /
                view_texture.width;
 
   view.x = env->color_picker_base.x -
            (env->window_width - env->color_picker_base.width) / 2 -
-           view_scale * view_texture.width / 2;
+           *view_scale * view_texture.width / 2;
 
   view.y = color_box.y;
 
   view_background->x = view.x;
   view_background->y = view.y;
-  view_background->width = view_texture.width * view_scale;
-  view_background->height = view_texture.height * view_scale;
+  view_background->width = view_texture.width * *view_scale;
+  view_background->height = view_texture.height * *view_scale;
+
+  DrawRectangleRec(*view_background,RED);
 
   if (env->colorizer) {
     Rectangle shadow = *view_background;
@@ -64,7 +66,7 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float view_scale,
 
     for (size_t i = IMAGE_SKELETON; i <= KITE_COLORIZER; ++i) {
       view_texture = kite_textures.elements[i].normal;
-      DrawTextureEx(view_texture, view, 0, view_scale, WHITE);
+      DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
     }
   }
 }
@@ -140,8 +142,8 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
     assert(0 && "UNREACHABLE tkbc_colorizer");
   }
 
-  tkbc_update_kite_texture(kite_textures.elements[kite_textures.count - 1],
-                           kite_images.elements[kite_images.count - 1]);
+  tkbc_update_kite_texture(kite_textures.elements[KITE_COLORIZER],
+                           kite_images.elements[KITE_COLORIZER]);
 }
 
 /**
@@ -870,9 +872,8 @@ key_skip:
 
   Rectangle colorizer_view_background;
 
-
   float colorizer_view_scale = 1;
-  tkbc_draw_pannels(env, &colorizer_view_background, colorizer_view_scale,
+  tkbc_draw_pannels(env, &colorizer_view_background, &colorizer_view_scale,
                     color_box);
 
   if (env->color_picker_display_designs) {
@@ -952,9 +953,9 @@ key_skip:
         }
 
         if (i == kite_textures.count - 1) {
-          if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+          if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
             tkbc_colorizer(env, kite_images.elements[i].normal,
-                           collision_rectangle, 1 / scale, SELECT_COLOR);
+                           collision_rectangle, 1 / scale, SELECT_PANEL);
           }
         }
       }
@@ -963,20 +964,22 @@ key_skip:
 
   if (env->colorizer) {
     if (CheckCollisionPointRec(mouse, colorizer_view_background)) {
-      if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) &&
-          IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        tkbc_colorizer(env, kite_images.elements[KITE_COLORIZER].normal,
-                       colorizer_view_background, 1 / colorizer_view_scale,
-                       SELECT_COLOR);
-      } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        tkbc_colorizer(env, kite_images.elements[KITE_COLORIZER].normal,
-                       colorizer_view_background, 1 / colorizer_view_scale,
-                       SELECT_PANEL);
-      } else if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+      // if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) &&
+      //     IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+      //   tkbc_colorizer(env, kite_images.elements[KITE_COLORIZER].normal,
+      //                  colorizer_view_background, 1 / colorizer_view_scale,
+      //                  SELECT_COLOR);
+      // } else
+          if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         tkbc_colorizer(env, kite_images.elements[KITE_COLORIZER].normal,
                        colorizer_view_background, 1 / colorizer_view_scale,
                        SINGLE_PIXEL);
       }
+      //     else if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+      //   tkbc_colorizer(env, kite_images.elements[KITE_COLORIZER].normal,
+      //                  colorizer_view_background, 1 / colorizer_view_scale,
+      //                  SINGLE_PIXEL);
+      // }
     }
   }
 

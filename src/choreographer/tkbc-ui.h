@@ -34,12 +34,15 @@ unsigned char *tkbc_get_position_in_image(Image image, int x, int y);
 void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image);
 void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
                                   Color replace);
-void tkbc_draw_pannels(Env *env, Rectangle *view_background, float view_scale,
+
+void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
                        Rectangle color_box);
+
 void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace);
 void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p,
                                          Color replace);
 void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
                     float rec_scale, Colorizer_Mode mode);
+
 
 #endif // TKBC_UI_H
