@@ -1091,11 +1091,11 @@ int main(int argc, char *argv[]) {
       tkbc_input_sound_handler(env);
       tkbc_client_input_handler_kite();
       tkbc_client_input_handler_script();
+    }
 
       // The end of the current frame has to be executed so ffmpeg gets the full
       // executed fame.
       tkbc_ffmpeg_handler(env, "output.mp4");
-    }
   };
 
   space_free_space(&client.send_msg_buffer_space);
