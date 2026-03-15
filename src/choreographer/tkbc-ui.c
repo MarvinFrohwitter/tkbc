@@ -98,9 +98,15 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
   Vector2 mouse = GetMousePosition();
   Vector2 p = tkbc_get_position_in_rect(collision_rec, rec_scale, mouse);
 
+  Image filled = kite_images.elements[IMAGE_FILLED_PANEL].normal;
+  assert(filled.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+  assert(filled.width == kite_images.elements[KITE_COLORIZER].normal.width);
+  assert(filled.height == kite_images.elements[KITE_COLORIZER].normal.height);
+
   Color old_color = GetImageColor(image, p.x, p.y);
   char alpha_threshold = 0;
-  if (old_color.a <= alpha_threshold) {
+  if (old_color.a <= alpha_threshold &&
+      GetImageColor(filled, p.x, p.y).a <= 0) {
     return;
   }
 
@@ -116,10 +122,10 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
 
   } break;
   case SELECT_PANEL: {
-    printf("Wee are in the pannel------------------------\n");
-    for (size_t i = IMAGE_LEADINGEDGE; i < KITE_COLORIZER; ++i) {
+    for (size_t i = IMAGE_SKELETON + 1; i < KITE_COLORIZER; ++i) {
       if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) ||
-          (i == IMAGE_MIDDLE_13)) {
+          (i == IMAGE_MIDDLE_13) || (i == IMAGE_FILLED_PANEL) ||
+          (i == IMAGE_SKELETON_LEADINGEDGE)) {
         // Skip the middle once for now.
         continue;
       }
@@ -143,6 +149,23 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
           Vector2 pixel = {.x = x, .y = y};
           tkbc_set_single_pixel_in_kite_image_colorizer(pixel, replace);
         }
+      }
+    }
+
+    Image im = kite_images.elements[IMAGE_SKELETON].normal;
+    assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+    assert(im.width == kite_images.elements[KITE_COLORIZER].normal.width);
+    assert(im.height == kite_images.elements[KITE_COLORIZER].normal.height);
+    // Copy the panel into the KITE_COLORIZER texture
+    for (size_t y = 0; y < (size_t)im.height; ++y) {
+      for (size_t x = 0; x < (size_t)im.width; ++x) {
+        Color c = *(Color *)tkbc_get_position_in_image(im, x, y);
+        if (c.a <= alpha_threshold) {
+          continue;
+        }
+
+        Vector2 pixel = {.x = x, .y = y};
+        tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
       }
     }
 
