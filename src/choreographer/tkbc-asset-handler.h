@@ -52,9 +52,9 @@ static void append_assets() {
   tkbc_append_kite_image(image_4, IMAGE_4_WIDTH, IMAGE_4_HEIGHT, IMAGE_4_FORMAT);
 
   tkbc_append_kite_image(image_Skeleton, IMAGE_Skeleton_WIDTH, IMAGE_Skeleton_HEIGHT, IMAGE_Skeleton_FORMAT);
+  tkbc_append_kite_image(image_Filled_Panel, IMAGE_Filled_Panel_WIDTH, IMAGE_Filled_Panel_HEIGHT, IMAGE_Filled_Panel_FORMAT);
   tkbc_append_kite_image(image_Skeleton_Leadingedge, IMAGE_Skeleton_Leadingedge_WIDTH, IMAGE_Skeleton_Leadingedge_HEIGHT, IMAGE_Skeleton_Leadingedge_FORMAT);
   tkbc_append_kite_image(image_Leadingedge, IMAGE_Leadingedge_WIDTH, IMAGE_Leadingedge_HEIGHT, IMAGE_Leadingedge_FORMAT);
-  tkbc_append_kite_image(image_Filled_Panel, IMAGE_Filled_Panel_WIDTH, IMAGE_Filled_Panel_HEIGHT, IMAGE_Filled_Panel_FORMAT);
   tkbc_append_kite_image(image_Gaze, IMAGE_Gaze_WIDTH, IMAGE_Gaze_HEIGHT, IMAGE_Gaze_FORMAT);
 
   tkbc_append_kite_image(image_Left_01_1, IMAGE_Left_01_1_WIDTH, IMAGE_Left_01_1_HEIGHT, IMAGE_Left_01_1_FORMAT);

@@ -44,8 +44,8 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
   Texture2D view_texture = kite_textures.elements[KITE_COLORIZER].normal;
 
   *view_scale = (env->window_width - env->color_picker_base.width -
-                env->keymaps_base.width) /
-               view_texture.width;
+                 env->keymaps_base.width) /
+                view_texture.width;
 
   view.x = env->color_picker_base.x -
            (env->window_width - env->color_picker_base.width) / 2 -
@@ -67,6 +67,9 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
     //   DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
     // }
     view_texture = kite_textures.elements[KITE_COLORIZER].normal;
+    DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
+
+    view_texture = kite_textures.elements[IMAGE_SKELETON].normal;
     DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
   }
 }
@@ -113,15 +116,20 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
 
   } break;
   case SELECT_PANEL: {
-    // The skeleton should not be changed.
-    for (size_t i = IMAGE_SKELETON + 1; i < KITE_COLORIZER; ++i) {
-      Image im = kite_images.elements[kite_images.count - 1].normal;
+    printf("Wee are in the pannel------------------------\n");
+    for (size_t i = IMAGE_LEADINGEDGE; i < KITE_COLORIZER; ++i) {
+      if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) ||
+          (i == IMAGE_MIDDLE_13)) {
+        // Skip the middle once for now.
+        continue;
+      }
+
+      Image im = kite_images.elements[i].normal;
       assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
       old_color = GetImageColor(im, p.x, p.y);
       if (old_color.a <= alpha_threshold) {
         continue;
       }
-
       assert(im.width == kite_images.elements[KITE_COLORIZER].normal.width);
       assert(im.height == kite_images.elements[KITE_COLORIZER].normal.height);
       // Copy the panel into the KITE_COLORIZER texture
@@ -132,7 +140,8 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
             continue;
           }
 
-          tkbc_set_single_pixel_in_kite_image_colorizer(p, replace);
+          Vector2 pixel = {.x = x, .y = y};
+          tkbc_set_single_pixel_in_kite_image_colorizer(pixel, replace);
         }
       }
     }
@@ -826,10 +835,12 @@ key_skip:
           env->colorizer = true;
         } else {
           void *data_norm = kite_images.elements[KITE_COLORIZER].normal.data;
-          void *data_flipped = kite_images.elements[KITE_COLORIZER].flipped.data;
+          void *data_flipped =
+              kite_images.elements[KITE_COLORIZER].flipped.data;
 
           Kite_Image kite_image = kite_images.elements[IMAGE_FILLED_PANEL];
-          tkbc_update_kite_texture(kite_textures.elements[KITE_COLORIZER], kite_image);
+          tkbc_update_kite_texture(kite_textures.elements[KITE_COLORIZER],
+                                   kite_image);
 
           kite_images.elements[KITE_COLORIZER].normal =
               ImageCopy(kite_images.elements[IMAGE_FILLED_PANEL].normal);
@@ -969,7 +980,7 @@ key_skip:
       } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         tkbc_colorizer(env, kite_images.elements[KITE_COLORIZER].normal,
                        colorizer_view_background, 1 / colorizer_view_scale,
-                       SINGLE_PIXEL);
+                       SELECT_PANEL);
       } else if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
         tkbc_colorizer(env, kite_images.elements[KITE_COLORIZER].normal,
                        colorizer_view_background, 1 / colorizer_view_scale,
