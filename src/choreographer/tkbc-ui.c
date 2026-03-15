@@ -825,19 +825,16 @@ key_skip:
         if (!env->colorizer) {
           env->colorizer = true;
         } else {
-          void *data_norm =
-              kite_images.elements[kite_images.count - 1].normal.data;
-          void *data_flipped =
-              kite_images.elements[kite_images.count - 1].flipped.data;
+          void *data_norm = kite_images.elements[KITE_COLORIZER].normal.data;
+          void *data_flipped = kite_images.elements[KITE_COLORIZER].flipped.data;
 
-          Kite_Image kite_image = kite_images.elements[0];
-          tkbc_update_kite_texture(
-              kite_textures.elements[kite_textures.count - 1], kite_image);
+          Kite_Image kite_image = kite_images.elements[IMAGE_FILLED_PANEL];
+          tkbc_update_kite_texture(kite_textures.elements[KITE_COLORIZER], kite_image);
 
-          kite_images.elements[kite_images.count - 1].normal =
-              ImageCopy(kite_images.elements->normal);
-          kite_images.elements[kite_images.count - 1].flipped =
-              ImageCopy(kite_images.elements->flipped);
+          kite_images.elements[KITE_COLORIZER].normal =
+              ImageCopy(kite_images.elements[IMAGE_FILLED_PANEL].normal);
+          kite_images.elements[KITE_COLORIZER].flipped =
+              ImageCopy(kite_images.elements[IMAGE_FILLED_PANEL].flipped);
 
           free(data_norm);
           free(data_flipped);
