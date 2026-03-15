@@ -6,12 +6,14 @@
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 #include "raylib.h"
-#include "raymath.h"
 #include "rlgl.h"
 #include "tkbc-keymaps.h"
 #include "tkbc-script-handler.h"
 #include "tkbc-ui.h"
 #include "tkbc.h"
+
+#include "tkbc-asset-handler.h"
+
 
 extern Space kite_textures_space;
 extern Kite_Textures kite_textures;
@@ -35,6 +37,19 @@ void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
                                   Color replace) {
   ImageColorReplace(&kite_image->normal, old, replace);
   ImageColorReplace(&kite_image->flipped, old, replace);
+}
+
+Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image) {
+  Image image = kite_image.normal;
+  tkbc_append_kite_image(image.data, image.width, image.height, image.format);
+
+  return &kite_images.elements[kite_images.count - 1];
+}
+
+Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image) {
+  Kite_Image *new_kite_image = tkbc_copy_kite_image(kite_image);
+  tkbc_append_kite_texture(*new_kite_image);
+  return &kite_textures.elements[kite_textures.count - 1];
 }
 
 void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
@@ -67,9 +82,6 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
     //   DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
     // }
     view_texture = kite_textures.elements[KITE_COLORIZER].normal;
-    DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
-
-    view_texture = kite_textures.elements[IMAGE_SKELETON].normal;
     DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
   }
 }
@@ -283,7 +295,6 @@ void tkbc_ui_post_handler(Env *env) {
     env->last_selected_color = c;
     tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
                                      env->last_selected_color);
-    tkbc_set_color_for_selected_kites(env, env->last_selected_color);
   }
 }
 
@@ -923,6 +934,7 @@ key_skip:
     };
 
     float thick = 3;
+    char alpha_threshold = 0;
     for (size_t i = IMAGE_1; i < KITE_COLORIZER;
          ++i, display_position.y += padding) {
       if (i == IMAGE_SKELETON) {
@@ -973,17 +985,28 @@ key_skip:
         Vector2 p =
             tkbc_get_position_in_rect(collision_rectangle, 1 / scale, mouse);
         Color c = GetImageColor(image, p.x, p.y);
-        if (c.a == 0) {
+        if (c.a == alpha_threshold) {
           continue;
         }
 
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-          tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],
-                                              i);
+          if (i == KITE_COLORIZER) {
+            Kite_Texture *new_kite_texture =
+                tkbc_generate_new_kite_image_and_texture(
+                    kite_images.elements[i]);
+
+            Id new_kite_texture_id = kite_textures.count - 1;
+            tkbc_set_texture_for_selected_kites(env, new_kite_texture,
+                                                new_kite_texture_id);
+
+          } else {
+            tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],
+                                                i);
+          }
           tkbc_set_color_for_selected_kites(env, BLANK);
         }
 
-        if (i == kite_textures.count - 1) {
+        if (i == KITE_COLORIZER) {
           if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
             tkbc_colorizer(env, kite_images.elements[i].normal,
                            collision_rectangle, 1 / scale, SELECT_COLOR);

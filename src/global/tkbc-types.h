@@ -58,6 +58,9 @@ typedef enum {
   IMAGE_MIDDLE_13,
 
   KITE_COLORIZER,
+
+  // --- New generated kite designs from the colorizer.
+
   ASSETS_COUNT,
 } Assets;
 
