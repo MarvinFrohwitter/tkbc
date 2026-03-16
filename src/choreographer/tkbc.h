@@ -22,6 +22,7 @@
 #define TKBC_UI_DARKPURPLE_ALPHA ColorAlpha(DARKPURPLE, ALPHA_RATIO)
 #define TKBC_UI_LIGHTGRAY_ALPHA ColorAlpha(GRAY, ALPHA_RATIO - 0.2)
 #define TKBC_UI_GRAY_ALPHA ColorAlpha(GRAY, ALPHA_RATIO - 0.2)
+#define TKBC_UI_WHITE_ALPHA ColorAlpha(WHITE, ALPHA_RATIO)
 
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
@@ -50,10 +51,16 @@ void tkbc_kite_array_start_position(Kite_States *kite_states,
 void tkbc_file_handler(Env *env);
 void tkbc_set_kite_defaults(Kite *kite, bool is_generated);
 void tkbc_set_kite_state_defaults(Kite_State *state);
+void tkbc_set_kite_internals(Kite *kite, float fly_speed, float turn_speed,
+                             Color body_color, Color top_color, float overlap,
+                             float inner_space, float spread, float width,
+                             float height, float angle, Vector2 center,
+                             float scale);
 
 // ========================== KITE POSITION ==================================
 
 void tkbc_kite_update_internal(Kite *kite);
+void tkbc_kite_update_scale(Kite *kite, float scale);
 void tkbc_kite_update_position(Kite *kite, Vector2 *position);
 void tkbc_kite_update_angle(Kite *kite, float center_deg_rotation);
 void tkbc_center_rotation(Kite *kite, Vector2 *position,

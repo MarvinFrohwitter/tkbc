@@ -13,6 +13,8 @@ extern Kite_Textures kite_textures;
 
 #include "../../assets/combind_assets.h"
 
+// When clicking on the flying kite load it back into the colorizer
+
 void tkbc_append_kite_image(unsigned char *data, int width, int height,
                             int format) {
   Image image_normal = {

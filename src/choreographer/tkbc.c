@@ -307,6 +307,56 @@ void tkbc_file_handler(Env *env) {
 }
 
 /**
+ * @brief [TODO:description]
+ *
+ * @param kite [TODO:parameter]
+ * @param fly_speed [TODO:parameter]
+ * @param turn_speed [TODO:parameter]
+ * @param body_color [TODO:parameter]
+ * @param top_color [TODO:parameter]
+ * @param overlap [TODO:parameter]
+ * @param inner_space [TODO:parameter]
+ * @param spread [TODO:parameter]
+ * @param width [TODO:parameter]
+ * @param height [TODO:parameter]
+ * @param angle [TODO:parameter]
+ * @param center [TODO:parameter]
+ * @param scale [TODO:parameter]
+ */
+void tkbc_set_kite_internals(Kite *kite, float fly_speed, float turn_speed,
+                             Color body_color, Color top_color, float overlap,
+                             float inner_space, float spread, float width,
+                             float height, float angle, Vector2 center,
+                             float scale) {
+  kite->center = center;
+
+  kite->fly_speed = fly_speed;
+  kite->turn_speed = turn_speed;
+  kite->body_color = body_color;
+  kite->top_color = top_color;
+
+  kite->overlap = overlap;
+  kite->inner_space = inner_space;
+  kite->spread = spread;
+
+  kite->width = width;
+  kite->height = height;
+  kite->scale = scale;
+
+  kite->overlap *= kite->scale;
+  kite->inner_space *= kite->scale;
+  kite->spread *= kite->scale;
+  kite->width *= kite->scale * 2;
+
+  kite->angle = 0;
+  tkbc_kite_update_internal(kite);
+
+  // The computation is correct because of the previous given angle = 0.
+  kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
+  kite->angle = angle;
+}
+
+/**
  * @brief The function sets all the internal defaults of the kite and computes
  * the internal corner points of the kite.
  *
@@ -316,39 +366,38 @@ void tkbc_file_handler(Env *env) {
  */
 void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
   if (is_generated) {
-    kite->center.x = 0;
-    kite->center.y = 0;
-
     kite->center.x = tkbc_get_screen_width() / 2.0f;
     kite->center.y = tkbc_get_screen_height() / 2.0f;
   }
 
-  kite->fly_speed = 30;
-  kite->turn_speed = 30;
+  float fly_speed = 30;
+  float turn_speed = 30;
+  Color top_color = DARKGRAY;
+  Color body_color = TEAL;
+  float overlap = 8.0f;
+  float inner_space = 20.f;
 
+  float spread = 0.2f;
+
+  float width = 20.0f;
+  float height = 0.0f;
+  float scale = 3.7f;
+  float angle = 0;
+
+  Vector2 center;
   if (is_generated) {
-    kite->body_color = TEAL;
+    center.x = tkbc_get_screen_width() / 2.0f;
+    center.y = tkbc_get_screen_height() / 2.0f;
+    tkbc_set_kite_internals(kite, fly_speed, turn_speed, body_color, top_color,
+                            overlap, inner_space, spread, width, height, angle,
+                            center, scale);
+
+  } else {
+    center = kite->center;
+    tkbc_set_kite_internals(kite, fly_speed, turn_speed, kite->body_color,
+                            top_color, overlap, inner_space, spread, width,
+                            height, angle, center, scale);
   }
-  kite->overlap = 8.0f;
-  kite->inner_space = 20.f;
-
-  kite->top_color = DARKGRAY;
-  kite->spread = 0.2f;
-
-  kite->width = 20.0f;
-  kite->height = 0.0f;
-  kite->scale = 3.7f;
-  kite->angle = 0;
-
-  kite->overlap *= kite->scale;
-  kite->inner_space *= kite->scale;
-  kite->spread *= kite->scale;
-  kite->width *= kite->scale * 2;
-
-  tkbc_kite_update_internal(kite);
-
-  // The computation is correct because of the previous given angle = 0.
-  kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
 
   kite->old_center = kite->center;
   kite->old_angle = kite->angle;
@@ -357,7 +406,8 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
 /**
  * @brief The function sets all the default settings for a kite.
  *
- * @param state The kite state for which the values will be changed to defaults.
+ * @param state The kite state for which the values will be changed to
+ * defaults.
  */
 void tkbc_set_kite_state_defaults(Kite_State *state) {
 
@@ -379,13 +429,27 @@ void tkbc_set_kite_state_defaults(Kite_State *state) {
 /**
  * @brief The function updates all the internal geometric values according to
  * the current set position and angle. This can be used to set the internal
- * position and angle and then update the rest of the geometric values that are
- * responsible for the kite shape.
+ * position and angle and then update the rest of the geometric values that
+ * are responsible for the kite shape.
  *
  * @param kite The kite that is going to be modified.
  */
 void tkbc_kite_update_internal(Kite *kite) {
+
   tkbc_center_rotation(kite, NULL, kite->angle);
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param kite [TODO:parameter]
+ * @param scale [TODO:parameter]
+ */
+void tkbc_kite_update_scale(Kite *kite, float scale) {
+  tkbc_set_kite_internals(kite, kite->fly_speed, kite->turn_speed,
+                          kite->body_color, kite->top_color, kite->overlap,
+                          kite->inner_space, kite->spread, kite->width,
+                          kite->height, kite->angle, kite->center, scale);
 }
 
 /**
@@ -404,12 +468,12 @@ void tkbc_kite_update_position(Kite *kite, Vector2 *position) {
 
 /**
  * @brief The function updates all the internal values according to the new
- * angle with the current position. This can be used to update the angle and set
- * the values for the (internal) geometric shape of the kite.
+ * angle with the current position. This can be used to update the angle and
+ * set the values for the (internal) geometric shape of the kite.
  *
  * @param kite The kite that is going to be modified.
- * @param center_deg_rotation The rotation of the kite that is set to the given
- * rotation.
+ * @param center_deg_rotation The rotation of the kite that is set to the
+ * given rotation.
  */
 void tkbc_kite_update_angle(Kite *kite, float center_deg_rotation) {
   tkbc_center_rotation(kite, NULL, center_deg_rotation);
@@ -424,8 +488,8 @@ void tkbc_kite_update_angle(Kite *kite, float center_deg_rotation) {
  * @param kite The kite that is going to be modified.
  * @param position The new position for the kite at the center of the leading
  * edge or NULL for internal center position of the kite structure.
- * @param center_deg_rotation The rotation of the kite that is set to the given
- * rotation.
+ * @param center_deg_rotation The rotation of the kite that is set to the
+ * given rotation.
  */
 void tkbc_center_rotation(Kite *kite, Vector2 *position,
                           float center_deg_rotation) {
@@ -629,8 +693,8 @@ void tkbc_draw_kite_array(Kite_States *kite_states) {
  */
 void tkbc_update_kites_for_resize_window(Env *env) {
   // TODO: Decide what to do with the dynamic simulations. They are bound
-  // sometimes to fixed sizes in the script and can't be moved that easy to the
-  // new dimensions.
+  // sometimes to fixed sizes in the script and can't be moved that easy to
+  // the new dimensions.
   if (!env->script_finished) {
     return;
   }
@@ -677,8 +741,8 @@ Color tkbc_get_random_color() {
  * version to the given kite..
  *
  * @param kite The kite where the texture should be switched out.
- * @param kite_texture The new textures that should be assigned to the specified
- * kite.
+ * @param kite_texture The new textures that should be assigned to the
+ * specified kite.
  * @return True if the loaded textures are valid, otherwise false.
  */
 bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture) {
