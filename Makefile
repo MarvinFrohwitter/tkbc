@@ -16,8 +16,13 @@ DEBUG_CFLAGS =
 # DEBUG_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=undefined
 CHOREOGRAPHERPATH = src/choreographer
 CHOREOGRAPHER = ${CHOREOGRAPHERPATH}/main.c
-CHOREOGRAPHER_FILES = ${shell find ${CHOREOGRAPHERPATH}/ ! -name "main.c" -name "*.c"}
-CHOREOGRAPHER += ${CHOREOGRAPHER_FILES}
+CHOREOGRAPHER_FILES = ${shell find ${CHOREOGRAPHERPATH}/ ! -name "tkbc-ui.c" ! -name "main.c" -name "*.c"}
+
+CHOREOGRAPHER_FILES_SERVER = ${CHOREOGRAPHER_FILES}
+
+FILES = ${CHOREOGRAPHERPATH}/tkbc-ui.c ${CHOREOGRAPHER_FILES}
+CHOREOGRAPHER += ${FILES}
+
 
 all: options build tkbc client tkbc-win64 poll-server poll-server-win64 client-win64
 
@@ -30,14 +35,14 @@ options:
 server: poll-server
 
 poll-server: build
-	${CC} ${INCLUDE} ${CFLAGS} -DTKBC_SERVER -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -DTKBC_SERVER -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES_SERVER} ${LIBS}
 	cp -v build/poll-server build/server
 
 poll-server-win64: build first.o
-	x86_64-w64-mingw32-gcc -DRELEASE -DTKBC_SERVER -Wall -Wextra -O3 -static  -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/poll-server-win64 src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lws2_32 -lwinmm
+	x86_64-w64-mingw32-gcc -DRELEASE -DTKBC_SERVER -Wall -Wextra -O3 -static  -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/poll-server-win64 src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES_SERVER} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lws2_32 -lwinmm
 
 client: build first.o
-	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${FILES} ${LIBS}
 
 
 tkbc: build first.o
@@ -51,7 +56,7 @@ tkbc-win64: build
 	x86_64-w64-mingw32-gcc -DINCLUDE_RAYLIB -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o ./build/tkbc-win64 ./src/choreographer/*.c  -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32
 
 client-win64: build first.o
-	x86_64-w64-mingw32-gcc -DINCLUDE_RAYLIB -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/client-win64 src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${CHOREOGRAPHER_FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32 -lws2_32
+	x86_64-w64-mingw32-gcc -DINCLUDE_RAYLIB -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/client-win64 src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32 -lws2_32
 
 build:
 	mkdir -p build
@@ -60,15 +65,15 @@ clean:
 	rm -r build
 
 test: options build
-	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/tests src/tests/tkbc_tests.c ${FILES} ${LIBS}
 	./build/tests
 
 test-verbose: options build
-	${CC} ${INCLUDE} ${CFLAGS} -DPRINT_OPERATION_AND_DESCRIPTION -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -DPRINT_OPERATION_AND_DESCRIPTION -o build/tests src/tests/tkbc_tests.c ${FILES} ${LIBS}
 	./build/tests
 
 test-short: options build
-	${CC} ${INCLUDE} ${CFLAGS} -DSHORT_LOG -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES} ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -DSHORT_LOG -o build/tests src/tests/tkbc_tests.c ${FILES} ${LIBS}
 	./build/tests
 
 .PHONY: all clean options tkbc tkbc.o build client test server poll-server

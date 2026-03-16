@@ -120,9 +120,10 @@ Kite_State tkbc_init_kite(void) {
   tkbc_kite_update_position(state.kite, &start_pos);
 
   // NOTE: For the server this should be ignored, thus no textures were loaded.
-  if (kite_textures.count) {
-    tkbc_set_kite_texture(state.kite, &kite_textures.elements[0]);
-  }
+#ifndef TKBC_SERVER
+  assert(kite_textures.count);
+  tkbc_set_kite_texture(state.kite, &kite_textures.elements[0]);
+#endif
 
   return state;
 }

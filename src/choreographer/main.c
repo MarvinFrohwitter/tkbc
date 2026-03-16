@@ -107,6 +107,7 @@ int main(void) {
   tkbc_sound_destroy(env->sound);
   tkbc_destroy_env(env);
 
+  space_free_tspace();
   tkbc_assets_destroy();
   space_free_space(&kite_images_space);
   space_free_space(&kite_textures_space);

@@ -32,6 +32,7 @@
 #include "../../external/space/space.h"
 #undef SPACE_IMPLEMENTATION
 
+#include "../choreographer/tkbc-asset-handler.h"
 #include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
@@ -45,8 +46,11 @@ Clients clients = {0};
 FDs fds = {0};
 Message t_message = {0}; // The elements ptr is allocated inside of the t_space.
 
-Kite_Images kite_images;     // Just for the definition do not use.
-Kite_Textures kite_textures; // Just for the definition do not use.
+Space kite_images_space;
+Kite_Images kite_images;
+
+// Space kite_textures_space;   // This should not be used just for declaration
+// Kite_Textures kite_textures; // This should not be used just for declaration
 
 /**
  * @brief  The function can be used to get the pollfd structure that corresponds
@@ -770,7 +774,7 @@ bool tkbc_received_message_handler(Client *client) {
     }
 
     message->i = lexer->position - digits_count_of_kind - 1;
-    static_assert(MESSAGE_COUNT == 18, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    static_assert(MESSAGE_COUNT == 22, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -800,15 +804,79 @@ bool tkbc_received_message_handler(Client *client) {
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
+    case MESSAGE_GET_TEXTURE: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        check_return(false);
+      }
+      ssize_t texture_id = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        check_return(false);
+      }
+
+      if ((ssize_t)kite_images.count <= texture_id || texture_id == -1) {
+        goto err;
+      }
+
+      Image image = kite_images.elements[texture_id].normal;
+      space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
+                 "%d:", MESSAGE_SEND_TEXTURE);
+
+      tkbc_message_append_image_data(&client->send_msg_buffer_space,
+                                     &client->send_msg_buffer, image);
+
+      space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
+                 "\r\n");
+
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "MESSAGE_GET_TEXTURE\n");
+    } break;
+    case MESSAGE_GET_TEXTURE_ID: {
+      // The client can request a texture id for a kite;
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        check_return(false);
+      }
+      size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        check_return(false);
+      }
+
+      Kite *kite = tkbc_get_kite_by_id(env, kite_id);
+      if (!kite) {
+        goto err;
+      }
+      assert(kite->texture_id != -1);
+      space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
+                 "%d:%zu:%zu:\r\n", MESSAGE_SEND_TEXTURE_ID, kite_id,
+                 kite->texture_id);
+
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "MESSAGE_GET_TEXTURE_ID\n");
+    } break;
     case MESSAGE_SINGLE_KITE_UPDATE: {
-      size_t kite_id, texture_id;
+      size_t kite_id;
+      ssize_t texture_id;
+      size_t texture_width, texture_height, texture_format;
+      Space *data_space = space_get_tspace();
+      void *texture_data = NULL;
       float x, y, angle;
       Color color;
       bool is_reversed, is_active;
-      if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                         &color, &texture_id, &is_reversed,
-                                         &is_active)) {
+
+      if (!tkbc_parse_message_kite_value(
+              lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
+              &texture_width, &texture_height, &texture_format, data_space,
+              &texture_data, &is_reversed, &is_active)) {
+
         goto err;
+      }
+
+      if (texture_id == -1) {
+        tkbc_append_kite_image(texture_data, texture_width, texture_height,
+                               texture_format);
+        texture_id = kite_images.count - 1;
+        space_reset_tspace();
       }
 
       Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
@@ -824,8 +892,16 @@ bool tkbc_received_message_handler(Client *client) {
         check_return(false);
       }
 
+      if (texture_id == -1) {
+        state->kite->texture_id = kite_images.count - 1;
+      }
+
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
     } break;
+
+      // UNUSED:
+      // Think about textures when using it in the server all the textures
+      // should be known. So it is not a problem.
     case MESSAGE_KITES_POSITIONS: {
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
@@ -836,8 +912,10 @@ bool tkbc_received_message_handler(Client *client) {
       if (token.kind != PUNCT_COLON) {
         check_return(false);
       }
+
+      size_t parsed_kite_id;
       for (size_t id = 0; id < kite_count; ++id) {
-        if (!tkbc_parse_single_kite_value(lexer, -1)) {
+        if (!tkbc_parse_single_kite_value(lexer, -1, &parsed_kite_id)) {
           goto err;
         }
 
@@ -1466,6 +1544,8 @@ int main(int argc, char *argv[]) {
   };
   tkbc_dap(&fds, server_fd);
 
+  append_assets();
+
   for (;;) {
     //
     // TODO: Set the TARGET_DT to 0.
@@ -1491,9 +1571,9 @@ int main(int argc, char *argv[]) {
       tkbc_socket_handling();
 
       //
-      // The second call of socket handling is related to the fact that the base
-      // execution can set a POLLWRNORM for clients so a send call has to be
-      // called and then poll can wait for reading events.
+      // The second call of socket handling is related to the fact that the
+      // base execution can set a POLLWRNORM for clients so a send call has to
+      // be called and then poll can wait for reading events.
       {
         timeout = 0; // immediately return
         int poll_err = tkbc_poll(timeout);
@@ -1551,8 +1631,8 @@ int tkbc_poll(int timeout) {
 }
 
 /**
- * @brief The function encapsulates the script handling and possible other base
- * execution of the server.
+ * @brief The function encapsulates the script handling and possible other
+ * base execution of the server.
  *
  * @return True if the base execution and script handling succeeded, otherwise
  * false.
@@ -1623,5 +1703,7 @@ void signalhandler(int signal) {
   space_free_tspace();
 
   tkbc_destroy_env(env);
+  tkbc_assets_destroy_kite_images();
+  space_free_space(&kite_images_space);
   exit(EXIT_SUCCESS);
 }

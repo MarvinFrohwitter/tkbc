@@ -21,11 +21,6 @@ extern Kite_Images kite_images;
 extern Space kite_images_space;
 #define HEX_COLOR_LENGTH 8
 
-unsigned char *tkbc_get_position_in_image(Image image, int x, int y) {
-  assert(image.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-  return &((unsigned char *)image.data)[(x + y * (int)image.width) * 4];
-}
-
 void tkbc_update_kite_texture(Kite_Texture kite_texture,
                               Kite_Image kite_image) {
   UpdateTexture(kite_texture.normal, kite_image.normal.data);
@@ -1051,16 +1046,6 @@ key_skip:
       DrawTextureEx(t, display_position, 0, scale, WHITE);
 
       if (i == KITE_COLORIZER) {
-        Vector2 start = {
-            .x = env->color_picker_base.x,
-            .y = display_position.y,
-        };
-
-        Vector2 end = {
-            .x = env->color_picker_base.x + env->color_picker_base.width,
-            .y = display_position.y,
-        };
-
         shadow.y -= shadow.height * 0.05;
         shadow.x -= shadow.width * 0.05;
         shadow.width *= 1.1;
@@ -1098,6 +1083,9 @@ key_skip:
             Id new_kite_texture_id = kite_textures.count - 1;
             tkbc_set_texture_for_selected_kites(env, new_kite_texture,
                                                 new_kite_texture_id);
+            // TODO:
+            // For the server do a message that request a texture id and the send the texture and assign it,
+            // COWABUNGER
 
           } else {
             tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],

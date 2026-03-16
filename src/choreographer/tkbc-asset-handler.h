@@ -16,9 +16,16 @@ extern Kite_Textures kite_textures;
 
 void tkbc_append_kite_image(unsigned char *data, int width, int height,
                             int format);
+
+#ifndef TKBC_SERVER
 void tkbc_append_kite_texture(Kite_Image kite_image);
-void append_assets();
 void tkbc_load_kite_images_and_textures(void);
+
+void tkbc_assets_destroy_kite_textures();
 void tkbc_assets_destroy();
+#endif
+
+void append_assets();
+void tkbc_assets_destroy_kite_images();
 
 #endif // TKBC_ASSET_HANDLER_H_

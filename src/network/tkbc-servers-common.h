@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.3.020"
+#define PROTOCOL_VERSION "0.3.021"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -13,13 +13,19 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include "../../external/space/space.h"
-#include "../global/tkbc-utils.h"
+#include "../choreographer/tkbc-ui.h"
 #include "../global/tkbc-types.h"
+#include "../global/tkbc-utils.h"
 extern Env *env;
 
+extern Space kite_images_space;
+extern Space kite_textures_space;
+extern Kite_Images kite_images;
+extern Kite_Textures kite_textures;
+
 #include <ctype.h>
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -207,6 +213,23 @@ static inline int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   return socket_id;
 }
 
+static inline void
+tkbc_message_append_image_data(Space *space, Message *message, Image image) {
+  size_t width = image.width;
+  size_t height = image.height;
+  size_t format = image.format;
+  space_dapf(space, message, "%zu:%zu:%zu:", width, height, format);
+
+  for (size_t y = 0; y < height; y++) {
+    for (size_t x = 0; x < width; x++) {
+      unsigned char *pos = tkbc_get_position_in_image(image, x, y);
+      Color c = *(Color *)&pos;
+      uint32_t c_as_number = tkbc_color_to_uint32_t(c);
+      space_dapf(space, message, "%u:", c_as_number);
+    }
+  }
+}
+
 /**
  * @brief The function constructs a message part that contains the information
  * from the given kite_state.
@@ -220,16 +243,25 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
   float x = kite_state->kite->center.x;
   float y = kite_state->kite->center.y;
   float angle = fmodf(kite_state->kite->angle, 360);
-  uint32_t color = ((uint32_t)kite_state->kite->body_color.r << 24) |
-                   ((uint32_t)kite_state->kite->body_color.g << 16) |
-                   ((uint32_t)kite_state->kite->body_color.b << 8) |
-                   (uint32_t)kite_state->kite->body_color.a;
-  size_t texture_id = kite_state->kite->texture_id;
+
+  uint32_t color = tkbc_color_to_uint32_t(kite_state->kite->body_color);
+  ssize_t texture_id = kite_state->kite->texture_id;
+
   bool is_reversed = kite_state->is_kite_reversed;
   bool is_active = kite_state->is_active;
 
-  space_dapf(space, message, "%zu:(%f,%f):%f:%u:%zu:%zu:%zu:", kite_id, x, y,
-             angle, color, texture_id, (size_t)is_reversed, (size_t)is_active);
+  space_dapf(space, message, "%zu:(%f,%f):%f:%u:%zd:", kite_id, x, y, angle,
+             color, texture_id);
+
+  if (texture_id == -1) {
+    //NOTE: This is not nasally the KITE_COLORIZER position.
+    assert(kite_images.count != 0);
+    Image image = kite_images.elements[kite_images.count - 1].normal;
+    tkbc_message_append_image_data(space, message, image);
+  }
+
+  space_dapf(space, message, "%zu:%zu:", (size_t)is_reversed,
+             (size_t)is_active);
 }
 
 /**

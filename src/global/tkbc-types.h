@@ -219,10 +219,10 @@ typedef struct {
   Texture2D
       kite_texture_flipped; // The kite body texture that is used when the kite
                             // has flipped and flies per default reverse.
-  size_t texture_id; // The number that identifies the kite texture in the
-                     // global kite_textures.
-  float old_angle;   // The rotation angle before the frame interpolation has
-                     // stated.
+  ssize_t texture_id; // The number that identifies the kite texture in the
+                      // global kite_textures.
+  float old_angle;    // The rotation angle before the frame interpolation has
+                      // stated.
   Vector2
       old_center; // The old position before the frame interpolation has stated.
 

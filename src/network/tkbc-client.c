@@ -1,3 +1,4 @@
+// TODO check for atoi, atol, atoll for 0 as failure. Maybe use strtol instead.
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
@@ -353,7 +354,7 @@ bool received_message_handler(Message *message) {
     }
 
     message->i = lexer->position - digits_count_of_kind - 1;
-    static_assert(MESSAGE_COUNT == 18, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    static_assert(MESSAGE_COUNT == 22, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -383,21 +384,107 @@ bool received_message_handler(Message *message) {
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
+    case MESSAGE_SEND_TEXTURE: {
+
+      size_t width, height, format;
+      Space *data_space = space_get_tspace();
+      void *data = NULL;
+
+      if (!tkbc_parse_image(lexer, data_space, data, &width, &height,
+                            &format)) {
+        check_return(false);
+      }
+
+      tkbc_append_kite_image(data, width, height, format);
+      Kite_Image kite_image = kite_images.elements[kite_images.count - 1];
+      tkbc_append_kite_texture(kite_image);
+      space_reset_tspace();
+
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE\n");
+    } break;
+    case MESSAGE_SEND_TEXTURE_ID: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        check_return(false);
+      }
+      size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        check_return(false);
+      }
+
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        check_return(false);
+      }
+      // Negative values should not be send by the server. The serer should
+      // always send a valid texture_id.
+      size_t texture_id = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        check_return(false);
+      }
+
+      if (kite_textures.count <= texture_id) {
+        // The message is split to allow getting a texture by its own at some
+        // point. Maybe this is never needed, but it can be useful when a client
+        // want to get all the available textures in the server.
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
+
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID, kite_id);
+
+      } else {
+        // The kite_id should be present in the client, because it requested the
+        // texture_id with that kite_id before.
+        Kite *kite = tkbc_get_kite_by_id_unwrap(env, kite_id);
+        kite->texture_id = texture_id;
+      }
+
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE_ID\n");
+    } break;
     case MESSAGE_HELLO_PASSED: {
       loading.active = false;
       client.handshake_passed = true;
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO_PASSED\n");
     } break;
     case MESSAGE_SINGLE_KITE_ADD: {
-      size_t kite_id, texture_id;
+      size_t kite_id;
       float x, y, angle;
       Color color;
       bool is_reversed, is_active;
-      if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                         &color, &texture_id, &is_reversed,
-                                         &is_active)) {
+      ssize_t texture_id;
+      size_t texture_width, texture_height, texture_format;
+      Space *data_space = space_get_tspace();
+      void *texture_data = NULL;
+
+      if (!tkbc_parse_message_kite_value(
+              lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
+              &texture_width, &texture_height, &texture_format, data_space,
+              texture_data, &is_reversed, &is_active)) {
         goto err;
       }
+
+      if (texture_id >= (ssize_t)kite_images.count) {
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
+
+        // requested texture id
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID, kite_id);
+
+        texture_id = KITE_COLORIZER;
+      }
+
+      if (texture_id == -1) {
+        tkbc_append_kite_image(texture_data, texture_width, texture_height,
+                               texture_format);
+        tkbc_append_kite_texture(kite_images.elements[kite_images.count - 1]);
+
+        texture_id = kite_images.count - 1;
+      }
+      space_reset_tspace();
 
       tkbc_register_kite_from_values(kite_id, x, y, angle, color, texture_id,
                                      is_reversed, is_active);
@@ -422,9 +509,29 @@ bool received_message_handler(Message *message) {
     } break;
     case MESSAGE_SINGLE_KITE_UPDATE: {
 
+      size_t parsed_id;
       assert(client.kite_id != -1);
-      if (!tkbc_parse_single_kite_value(lexer, client.kite_id)) {
+      // Don't update my self the client is already more up to date than the
+      // server sends. It is local and therefore faster.
+      int ok = tkbc_parse_single_kite_value(lexer, client.kite_id, &parsed_id);
+      if (!ok) {
         goto err;
+      }
+
+      // TODO: This is still a todo in the method when removed remove this.
+      // Marvin Frohwitter 16.03.2026
+      //
+      // If the kite is invalid it is handled and registered inside the
+      // tkbc_parse_single_kite_value()
+      Kite *kite = tkbc_get_kite_by_id(env, parsed_id);
+      if (kite) {
+        // The texture request for the kite.
+        if (ok == 2) {
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                     "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, kite->texture_id);
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                     "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID, parsed_id);
+        }
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
@@ -439,9 +546,25 @@ bool received_message_handler(Message *message) {
       if (token.kind != PUNCT_COLON) {
         check_return(false);
       }
+      size_t parsed_kite_id;
       for (size_t i = 0; i < kite_count; ++i) {
-        if (!tkbc_parse_single_kite_value(lexer, -1)) {
+        if (!tkbc_parse_single_kite_value(lexer, -1, &parsed_kite_id)) {
           goto err;
+        }
+
+        Kite *kite = tkbc_get_kite_by_id_unwrap(env, parsed_kite_id);
+        if (kite->texture_id == KITE_COLORIZER) {
+          // I have to be doing both because just the MESSAGE_GET_TEXTURE_ID is
+          // not enough, because of async io. The count of the stored textures
+          // could change in between and the check to request the actual texture
+          // in MESSAGE_SEND_TEXTURE_ID does not fire.
+          //
+          // Marvin Frohwitter 16.03.2026
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                     "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, kite->texture_id);
+
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                     "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID, parsed_kite_id);
         }
       }
 
@@ -524,31 +647,61 @@ bool received_message_handler(Message *message) {
       }
 
       for (size_t i = 0; i < amount; ++i) {
-        size_t kite_id, texture_id;
+        size_t kite_id;
         float x, y, angle;
         Color color;
         bool is_reversed, is_active;
-        if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle,
-                                           &color, &texture_id, &is_reversed,
-                                           &is_active)) {
+
+        ssize_t texture_id;
+        size_t texture_width, texture_height, texture_format;
+        Space *data_space = space_get_tspace();
+        void *texture_data = NULL;
+
+        if (!tkbc_parse_message_kite_value(
+                lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
+                &texture_width, &texture_height, &texture_format, data_space,
+                texture_data, &is_reversed, &is_active)) {
           goto err;
         }
 
+        if (texture_id >= (ssize_t)kite_images.count) {
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                     "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
+
+          // requested texture id
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                     "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID, kite_id);
+
+          texture_id = KITE_COLORIZER;
+        }
+
+        if (texture_id == -1) {
+          tkbc_append_kite_image(texture_data, texture_width, texture_height,
+                                 texture_format);
+          tkbc_append_kite_texture(kite_images.elements[kite_images.count - 1]);
+
+          texture_id = kite_images.count - 1;
+        }
+
+        space_reset_tspace();
+
         // TODO: FIXME
         // TODO: The received kites are all assumed active.
-        // The problem is that the client can't distinguish between script_kites
-        // and actual client_kites these are the same because the server sends
-        // all active ones. For the start the scripts kites has to be send to
-        // the client, so the client assumes them active even they are not.
+        // The problem is that the client can't distinguish between
+        // script_kites and actual client_kites these are the same because
+        // the server sends all active ones. For the start the scripts kites
+        // has to be send to the client, so the client assumes them active
+        // even they are not.
         //
-        // The soulution send them through a different message or the better one
-        // just send the current active state_with them.
+        // The soulution send them through a different message or the better
+        // one just send the current active state_with them.
         //
-        // NOTE: That is the reason why all kites are displayed in the beginning
-        // for the second client and on. The fist one is excluided because there
-        // is a algo that checks for already known kite ids. The fist client
-        // gives the initial kite ids and the more important part didn't
-        // received a client_kites_message without already having them placed.
+        // NOTE: That is the reason why all kites are displayed in the
+        // beginning for the second client and on. The fist one is excluided
+        // because there is a algo that checks for already known kite ids.
+        // The fist client gives the initial kite ids and the more important
+        // part didn't received a client_kites_message without already
+        // having them placed.
         //
         // TODO: FIXME
 
@@ -1093,9 +1246,9 @@ int main(int argc, char *argv[]) {
       tkbc_client_input_handler_script();
     }
 
-      // The end of the current frame has to be executed so ffmpeg gets the full
-      // executed fame.
-      tkbc_ffmpeg_handler(env, "output.mp4");
+    // The end of the current frame has to be executed so ffmpeg gets the full
+    // executed fame.
+    tkbc_ffmpeg_handler(env, "output.mp4");
   };
 
   space_free_space(&client.send_msg_buffer_space);
@@ -1134,6 +1287,7 @@ int main(int argc, char *argv[]) {
   tkbc_sound_destroy(env->sound);
   tkbc_destroy_env(env);
 
+  space_free_tspace();
   tkbc_assets_destroy();
   space_free_space(&kite_images_space);
   space_free_space(&kite_textures_space);

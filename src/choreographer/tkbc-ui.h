@@ -30,7 +30,6 @@ void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
                                          size_t texture_id);
 
 void tkbc_draw_shadow(Rectangle shadow, float original_scale);
-unsigned char *tkbc_get_position_in_image(Image image, int x, int y);
 void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image);
 void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
                                   Color replace);

@@ -194,6 +194,10 @@ float tkbc_get_frame_time();
 #ifdef INCLUDE_RAYLIB
 bool tkbc_vector2_equals_epsilon(Vector2 p, Vector2 q, float epsilon);
 bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2);
+uint32_t tkbc_color_to_uint32_t(Color color);
+Color tkbc_uint32_t_to_color(uint32_t color);
+
+unsigned char *tkbc_get_position_in_image(Image image, int x, int y);
 #endif
 
 float tkbc_clamp(float z, float a, float b);
@@ -714,6 +718,40 @@ bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2) {
   return r1.x == r2.x && r1.y == r2.y && r1.width == r2.width &&
          r1.height == r2.height;
 }
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param color [TODO:parameter]
+ * @return [TODO:return]
+ */
+uint32_t tkbc_color_to_uint32_t(Color color) {
+  uint32_t c = ((uint32_t)color.r << 24) | ((uint32_t)color.g << 16) |
+               ((uint32_t)color.b << 8) | (uint32_t)color.a;
+
+  return c;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param color [TODO:parameter]
+ * @return [TODO:return]
+ */
+Color tkbc_uint32_t_to_color(uint32_t color) {
+  Color c;
+  c.a = (color >> 0) & 0xFF;
+  c.b = (color >> 8) & 0xFF;
+  c.g = (color >> 16) & 0xFF;
+  c.r = (color >> 24) & 0xFF;
+  return c;
+}
+
+unsigned char *tkbc_get_position_in_image(Image image, int x, int y) {
+  assert(image.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+  return &((unsigned char *)image.data)[(x + y * (int)image.width) * 4];
+}
+
 #endif
 
 /**

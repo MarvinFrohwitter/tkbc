@@ -1,4 +1,5 @@
 #include "tkbc-network-common.h"
+#include "../choreographer/tkbc-asset-handler.h"
 #include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-utils.h"
@@ -41,8 +42,14 @@ void tkbc_reset_space_and_null_message(Space *space, Message *message) {
  */
 void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
                                      float angle, Color color,
-                                     size_t texture_id, bool is_reversed,
+                                     ssize_t texture_id, bool is_reversed,
                                      bool is_active) {
+  // There should not be a single missing texture in here.
+  // This just enshures that not an implicit cast from (ssize_t) to (size_t)
+  // happens when calling this function. For the same reason the type of
+  // texture_id is (ssize_t) to catch it here explicitly.
+  assert(texture_id >= 0);
+
   assert(state);
   state->kite->center.x = x;
   state->kite->center.y = y;
@@ -55,10 +62,12 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
   // This is needed because in the server this step
   // is meaningless. The server don't have to load assets to
   // administrate them the ids of the assets should be enough.
-  if (kite_textures.count) {
-    assert(kite_textures.count > texture_id);
-    tkbc_set_kite_texture(state->kite, &kite_textures.elements[texture_id]);
-  }
+#ifndef TKBC_SERVER
+  // NOTE if the new designed texture was not send to the other client the
+  // client has a smaller textures.count,
+  assert(kite_textures.count >= (size_t)texture_id);
+  tkbc_set_kite_texture(state->kite, &kite_textures.elements[texture_id]);
+#endif
 
   tkbc_kite_update_internal(state->kite);
 }
@@ -70,38 +79,136 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
  * @param lexer The current state and data of the string to parse.
  * @param id -1 if the parsed kite values should be updated, if the values
  * should not be updated pass the kite_id.
- * @return True if the kite values can be parsed out of the data the lexer
- * contains and is updated, if the kite values are parsed not updated -1 is
- * returned and false is returned if the parsing has failed and no updates were
- * made.
+ * @param parsed_id The kite_id that is parsed out.
+ * @return 1 if the kite values can be parsed out of the data the lexer
+ * contains and is updated, 2 every thing like 1 but the assigned texture is
+ * KITE_COLORIZER because the parsed texture was not available, if the kite
+ * values are parsed not updated -1 is returned and 0 is returned if the parsing
+ * has failed and no updates were made.
  */
-int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
-  size_t id, texture_id;
+int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id,
+                                 size_t *parsed_id) {
+  int ok = 1;
+
   float x, y, angle;
   Color color;
   bool is_reversed, is_active;
-  if (!tkbc_parse_message_kite_value(lexer, &id, &x, &y, &angle, &color,
-                                     &texture_id, &is_reversed, &is_active)) {
-    return 0;
+
+  ssize_t texture_id;
+  size_t texture_width, texture_height, texture_format;
+  Space *data_space = space_get_tspace();
+  void *texture_data = NULL;
+
+  if (!tkbc_parse_message_kite_value(
+          lexer, parsed_id, &x, &y, &angle, &color, &texture_id, &texture_width,
+          &texture_height, &texture_format, data_space, texture_data,
+          &is_reversed, &is_active)) {
+
+    check_return(0);
   }
 
   if (kite_id >= 0) {
-    if ((size_t)kite_id == id) {
-      return -1;
+    if ((size_t)kite_id == *parsed_id) {
+      check_return(-1);
     }
   }
 
-  Kite_State *state = tkbc_get_kite_state_by_id(env, id);
+  // Append it
+  if (texture_id == -1) {
+    tkbc_append_kite_image(texture_data, texture_width, texture_height,
+                           texture_format);
+    texture_id = kite_images.count - 1;
+  }
+
+  if (texture_id >= (ssize_t)kite_images.count) {
+    texture_id = KITE_COLORIZER;
+    ok = 2;
+  }
+
+  Kite_State *state = tkbc_get_kite_state_by_id(env, *parsed_id);
   // NOTE: This ignores unknown kites and just sets the values for valid ones.
   // Unknown kites are not a parsing error so true is returned.
   // TODO: But for the client not the server the kite missing kite should be
   // handled because the server expects the client to have it so the client
   // lost it or hasn't registered one jet.
+  //
+  // // TODO: So for the client register the kite like single kite add kite.
   if (state) {
     tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id,
                                     is_reversed, is_active);
   }
-  return 1;
+
+check:
+  space_reset_tspace();
+  return ok;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param lexer [TODO:parameter]
+ * @param data_space [TODO:parameter]
+ * @param data [TODO:parameter]
+ * @param width [TODO:parameter]
+ * @param height [TODO:parameter]
+ * @param format [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_parse_image(Lexer *lexer, Space *data_space, void *data,
+                      size_t *width, size_t *height, size_t *format) {
+  bool ok = true;
+  Token token;
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER) {
+    return false;
+  }
+  *width = atoi(lexer_token_to_cstr(lexer, &token));
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    return false;
+  }
+
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER) {
+    return false;
+  }
+  *height = atoi(lexer_token_to_cstr(lexer, &token));
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    return false;
+  }
+
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER) {
+    return false;
+  }
+  *format = atoi(lexer_token_to_cstr(lexer, &token));
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    return false;
+  }
+
+  assert(*format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+  data = space_malloc(data_space, *width * *height * sizeof(uint32_t));
+
+  for (size_t y; y < *height; ++y) {
+    for (size_t x; x < *width; ++x) {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        return false;
+      }
+
+      uint32_t n = atoll(lexer_token_to_cstr(lexer, &token));
+      memcpy(data, &n, sizeof(n));
+
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        return false;
+      }
+    }
+  }
+
+  return ok;
 }
 
 /**
@@ -115,7 +222,12 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
  * @param angle The angle the corresponding parsed value is assigned to.
  * @param color The color the corresponding parsed value is assigned to.
  * @param texture_id The id that represents the texture in the global
- * kite_textures.
+ * kite_textures or -1 if the data is passed.
+ * @param texture_width [TODO:parameter]
+ * @param texture_height [TODO:parameter]
+ * @param texture_format [TODO:parameter]
+ * @param data_space [TODO:parameter]
+ * @param texture_data [TODO:parameter]
  * @param is_reversed If the kite should fly reverse by default.
  * @param is_active If the kite should be displayed on the screen.
  * @return True if all values have been parsed correctly and are assigned,
@@ -123,7 +235,10 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id) {
  */
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
                                    float *y, float *angle, Color *color,
-                                   size_t *texture_id, bool *is_reversed,
+                                   ssize_t *texture_id, size_t *texture_width,
+                                   size_t *texture_height,
+                                   size_t *texture_format, Space *data_space,
+                                   void *texture_data, bool *is_reversed,
                                    bool *is_active) {
   Content buffer = {0};
   Token token;
@@ -186,6 +301,7 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
   if (token.kind != PUNCT_COLON) {
     check_return(false);
   }
+
   token = lexer_next(lexer);
   if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
     check_return(false);
@@ -212,24 +328,42 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
     check_return(false);
   }
   uint32_t color_number = atoll(lexer_token_to_cstr(lexer, &token));
-  (*color).a = (color_number >> 0) & 0xFF;
-  (*color).b = (color_number >> 8) & 0xFF;
-  (*color).g = (color_number >> 16) & 0xFF;
-  (*color).r = (color_number >> 24) & 0xFF;
+  *color = tkbc_uint32_t_to_color(color_number);
+
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     check_return(false);
   }
 
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER) {
-    check_return(false);
-  }
-  *texture_id = atoi(lexer_token_to_cstr(lexer, &token));
+  {
 
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COLON) {
-    check_return(false);
+    token = lexer_next(lexer);
+    if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+      check_return(false);
+    }
+    if (token.kind == PUNCT_SUB) {
+      tkbc_dapc(&buffer, token.content, token.size);
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        check_return(false);
+      }
+    }
+    tkbc_dapc(&buffer, token.content, token.size);
+    tkbc_dap(&buffer, 0);
+    *texture_id = atof(buffer.elements);
+    buffer.count = 0;
+
+    token = lexer_next(lexer);
+    if (token.kind != PUNCT_COLON) {
+      check_return(false);
+    }
+  }
+
+  if (*texture_id == -1) {
+    if (!tkbc_parse_image(lexer, data_space, texture_data, texture_width,
+                          texture_height, texture_format)) {
+      check_return(false);
+    }
   }
 
   token = lexer_next(lexer);

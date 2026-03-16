@@ -12,8 +12,9 @@ extern Space kite_textures_space;
 extern Kite_Textures kite_textures;
 
 #include "../../assets/combind_assets.h"
+#include "tkbc-asset-handler.h"
 
-// When clicking on the flying kite load it back into the colorizer
+// Save and load kite designs from config files.
 
 void tkbc_append_kite_image(unsigned char *data, int width, int height,
                             int format) {
@@ -33,14 +34,6 @@ void tkbc_append_kite_image(unsigned char *data, int width, int height,
             ((Kite_Image){
                 .normal = image_normal,
                 .flipped = image_flipped,
-            }));
-}
-
-void tkbc_append_kite_texture(Kite_Image kite_image) {
-  space_dap(&kite_textures_space, &kite_textures,
-            ((Kite_Texture){
-                .normal = LoadTextureFromImage(kite_image.normal),
-                .flipped = LoadTextureFromImage(kite_image.flipped),
             }));
 }
 
@@ -140,6 +133,15 @@ void append_assets() {
                          colorizer_image.height, colorizer_image.format);
 }
 
+#ifndef TKBC_SERVER
+void tkbc_append_kite_texture(Kite_Image kite_image) {
+  space_dap(&kite_textures_space, &kite_textures,
+            ((Kite_Texture){
+                .normal = LoadTextureFromImage(kite_image.normal),
+                .flipped = LoadTextureFromImage(kite_image.flipped),
+            }));
+}
+
 void tkbc_load_kite_images_and_textures(void) {
 
   append_assets();
@@ -169,14 +171,24 @@ void tkbc_load_kite_images_and_textures(void) {
   }
 }
 
-void tkbc_assets_destroy() {
+void tkbc_assets_destroy_kite_textures() {
   for (size_t i = 0; i < kite_textures.count; ++i) {
     UnloadTexture(kite_textures.elements[i].normal);
     UnloadTexture(kite_textures.elements[i].flipped);
   }
+}
 
+void tkbc_assets_destroy() {
+  tkbc_assets_destroy_kite_images();
+  tkbc_assets_destroy_kite_textures();
+}
+#endif
+
+void tkbc_assets_destroy_kite_images() {
   for (size_t i = 0; i < kite_images.count; ++i) {
     UnloadImage(kite_images.elements[i].normal);
     UnloadImage(kite_images.elements[i].flipped);
   }
 }
+
+
