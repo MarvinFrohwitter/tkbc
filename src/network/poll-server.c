@@ -800,12 +800,12 @@ bool tkbc_received_message_handler(Client *client) {
     case MESSAGE_GET_TEXTURE: {
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
-        check_return(false);
+        goto err;
       }
       ssize_t texture_id = atoi(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
-        check_return(false);
+        goto err;
       }
 
       if ((ssize_t)kite_images.count <= texture_id || texture_id == -1) {
@@ -828,12 +828,12 @@ bool tkbc_received_message_handler(Client *client) {
       // The client can request a texture id for a kite;
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
-        check_return(false);
+        goto err;
       }
       size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
-        check_return(false);
+        goto err;
       }
 
       Kite *kite = tkbc_get_kite_by_id(env, kite_id);
@@ -898,12 +898,12 @@ bool tkbc_received_message_handler(Client *client) {
     case MESSAGE_KITES_POSITIONS: {
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
-        check_return(false);
+        goto err;
       }
       size_t kite_count = atoi(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
-        check_return(false);
+        goto err;
       }
 
       size_t parsed_kite_id;

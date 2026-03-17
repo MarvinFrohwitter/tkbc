@@ -392,7 +392,7 @@ bool received_message_handler(Message *message) {
 
       if (!tkbc_parse_image(lexer, data_space, data, &width, &height,
                             &format)) {
-        check_return(false);
+        goto err;
       }
 
       tkbc_append_kite_image(data, width, height, format);
@@ -405,24 +405,24 @@ bool received_message_handler(Message *message) {
     case MESSAGE_SEND_TEXTURE_ID: {
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
-        check_return(false);
+        goto err;
       }
       size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
-        check_return(false);
+        goto err;
       }
 
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
-        check_return(false);
+        goto err;
       }
       // Negative values should not be send by the server. The serer should
       // always send a valid texture_id.
       size_t texture_id = atoi(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
-        check_return(false);
+        goto err;
       }
 
       if (kite_textures.count <= texture_id) {
