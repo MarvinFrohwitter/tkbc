@@ -13,9 +13,7 @@ typedef enum {
   MESSAGE_CLIENT_DISCONNECT,
 
   MESSAGE_CLIENTKITES, // From server to client in the beginning to inform the
-                       // client about all kites and when a acript is running.
-  MESSAGE_KITES,
-
+                       // client about all kites and when a script is running.
   MESSAGE_KITES_POSITIONS,
   MESSAGE_KITES_POSITIONS_RESET,
 
@@ -77,7 +75,6 @@ typedef enum {
  *****
  */
 
-/////////////////// Duplicate ?
 /**
  *
  * MESSAGE_CLIENTKITES: From server to client in the beginning to inform the
@@ -87,16 +84,6 @@ typedef enum {
  * MESSAGE_CLIENTKITES:active_count:[kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:]^*\r\n
  *****
  */
-
-/**
- *
- * MESSAGE_KITES: From server to client
- *
- *****
- * MESSAGE_KITES:active_count:[kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:]^*\r\n
- *****
- */
-///////////////////
 
 /**
  *

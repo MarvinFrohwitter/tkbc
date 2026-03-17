@@ -438,7 +438,8 @@ bool received_message_handler(Message *message) {
       } else {
         // The kite_id should be present in the client, because it requested the
         // texture_id with that kite_id before.
-        Kite *kite = tkbc_get_kite_by_id_unwrap(env, kite_id);
+        Kite *kite = tkbc_get_kite_by_id(env, kite_id);
+        assert(kite != NULL);
         kite->texture_id = texture_id;
       }
 
@@ -535,62 +536,6 @@ bool received_message_handler(Message *message) {
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
-    } break;
-    case MESSAGE_KITES: {
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
-        check_return(false);
-      }
-      size_t kite_count = atoi(lexer_token_to_cstr(lexer, &token));
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        check_return(false);
-      }
-      size_t parsed_kite_id;
-      for (size_t i = 0; i < kite_count; ++i) {
-        if (!tkbc_parse_single_kite_value(lexer, -1, &parsed_kite_id)) {
-          goto err;
-        }
-
-        Kite *kite = tkbc_get_kite_by_id_unwrap(env, parsed_kite_id);
-        if (kite->texture_id == KITE_COLORIZER) {
-          // I have to be doing both because just the MESSAGE_GET_TEXTURE_ID is
-          // not enough, because of async io. The count of the stored textures
-          // could change in between and the check to request the actual texture
-          // in MESSAGE_SEND_TEXTURE_ID does not fire.
-          //
-          // Marvin Frohwitter 16.03.2026
-          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                     "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, kite->texture_id);
-
-          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                     "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID, parsed_kite_id);
-        }
-      }
-
-      size_t server_width = 1920;
-      size_t server_height = 1080;
-      size_t width = env->window_width;
-      size_t height = env->window_height;
-
-      // Disables the input controlling if a start position reset happen.
-      for (size_t i = 0; i < env->kite_array->count; ++i) {
-        env->kite_array->elements[i].is_kite_input_handler_active = false;
-
-        // Readjust for the possible different window sizes. The server
-        // calculates everything with 1920x1080.
-        Kite *kite = env->kite_array->elements[i].kite;
-        kite->center.x = (kite->center.x / (float)server_width) * (float)width;
-        kite->center.y =
-            (kite->center.y / (float)server_height) * (float)height;
-        kite->old_center.x =
-            (kite->old_center.x / (float)server_width) * (float)width;
-        kite->old_center.y =
-            (kite->old_center.y / (float)server_height) * (float)height;
-        tkbc_kite_update_internal(kite);
-      }
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES\n");
     } break;
     case MESSAGE_SCRIPT_META_DATA: {
       token = lexer_next(lexer);

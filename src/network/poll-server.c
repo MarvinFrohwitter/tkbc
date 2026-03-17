@@ -335,7 +335,12 @@ void tkbc_message_clientkites(Message *t_message) {
     if (!tkbc_message_append_clientkite(kite_state->kite_id, t_message,
                                         space_get_tspace())) {
       Client *client = tkbc_get_client_by_kite_id(kite_state->kite_id);
-      tkbc_server_shutdown_client(*client, false);
+      if (client != NULL) {
+        tkbc_server_shutdown_client(*client, false);
+      } else {
+        // This was not a client that was registered, so it has to be a script
+        // kite.
+      }
     }
   }
   space_tdapf(t_message, "\r\n");
@@ -702,26 +707,6 @@ check:
 }
 
 /**
- * @brief The function constructs and sends the message KITES to all registered
- * kites.
- *
- * @return True if the message was send successfully, otherwise false.
- */
-void tkbc_message_kites_write_to_all_send_msg_buffers() {
-  space_tdapf(&t_message, "%d:%zu:", MESSAGE_KITES, env->kite_array->count);
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    Kite_State *kite_state = &env->kite_array->elements[i];
-    if (kite_state->is_active) {
-      tkbc_message_append_kite(kite_state, &t_message, space_get_tspace());
-    }
-  }
-  space_tdapf(&t_message, "\r\n");
-  tkbc_write_to_all_send_msg_buffers(t_message);
-
-  tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
-}
-
-/**
  * @brief The function parses the messages out of the given
  * receive_message_queue data. If an invalid message is found the rest of the
  * receive_message_queue till the '\r\n' is dorpped. The parser continues from
@@ -919,7 +904,7 @@ bool tkbc_received_message_handler(Client *client) {
           goto err;
         }
 
-        tkbc_message_kites_write_to_all_send_msg_buffers();
+        tkbc_message_clientkites_write_to_all_send_msg_buffers();
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS\n");
@@ -929,7 +914,7 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_kite_array_start_position(env->kite_array, env->window_width,
                                      env->window_height);
 
-      tkbc_message_kites_write_to_all_send_msg_buffers();
+      tkbc_message_clientkites_write_to_all_send_msg_buffers();
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS_RESET\n");
     } break;
