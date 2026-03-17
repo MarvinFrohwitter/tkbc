@@ -354,7 +354,7 @@ bool received_message_handler(Message *message) {
     }
 
     message->i = lexer->position - digits_count_of_kind - 1;
-    static_assert(MESSAGE_COUNT == 22, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    static_assert(MESSAGE_COUNT == 21, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);

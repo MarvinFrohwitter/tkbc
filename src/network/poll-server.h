@@ -20,7 +20,8 @@ void tkbc_remove_connection_retry(Client client);
 void tkbc_server_shutdown_client(Client client, bool force);
 void tkbc_message_hello_write_to_send_msg_buffer(Client *client);
 bool tkbc_message_kiteadd_write_to_all_send_msg_buffers(size_t client_index);
-void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client);
+void tkbc_message_clientkites_write_to_send_msg_buffer(
+    Client *client, bool overwrite_is_active);
 void tkbc_client_prolog(Client *client);
 void tkbc_server_accept();
 bool tkbc_sockets_read(Client *client);
@@ -31,7 +32,7 @@ int tkbc_poll(int timeout);
 
 bool tkbc_base_execution();
 
-void tkbc_message_clientkites(Message *message);
+void tkbc_message_clientkites(Message *t_message, bool overwrite_is_active);
 void tkbc_message_clientkites_write_to_all_send_msg_buffers();
 void tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
     size_t script_id, size_t script_count, size_t frames_index);

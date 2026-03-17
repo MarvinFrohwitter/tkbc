@@ -316,19 +316,24 @@ check:
  *
  * @param message The message buffer where the constructed message should be
  * appended to.
+ * @param overwrite_is_active Via this flag the you can overwrite the check
+ * is_active and so all kites get treated as active.
  */
-void tkbc_message_clientkites(Message *t_message) {
+void tkbc_message_clientkites(Message *t_message, bool overwrite_is_active) {
   size_t active_count = 0;
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].is_active) {
       active_count++;
     }
   }
+  if (overwrite_is_active) {
+    active_count = env->kite_array->count;
+  }
 
   space_tdapf(t_message, "%d:%zu:", MESSAGE_CLIENTKITES, active_count);
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     Kite_State *kite_state = &env->kite_array->elements[i];
-    if (!kite_state->is_active) {
+    if (!kite_state->is_active && !overwrite_is_active) {
       continue;
     }
 
@@ -351,9 +356,12 @@ void tkbc_message_clientkites(Message *t_message) {
  * all the data from the current registered kites.
  *
  * @param client The client that should get the message.
+ * @param overwrite_is_active Via this flag the you can overwrite the check
+ * is_active and so all kites get treated as active.
  */
-void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client) {
-  tkbc_message_clientkites(&t_message);
+void tkbc_message_clientkites_write_to_send_msg_buffer(
+    Client *client, bool overwrite_is_active) {
+  tkbc_message_clientkites(&t_message, overwrite_is_active);
   tkbc_write_to_send_msg_buffer(client, t_message);
 
   tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
@@ -656,7 +664,7 @@ void tkbc_socket_handling() {
  * registered kites.
  */
 void tkbc_message_clientkites_write_to_all_send_msg_buffers() {
-  tkbc_message_clientkites(&t_message);
+  tkbc_message_clientkites(&t_message, false);
   tkbc_write_to_all_send_msg_buffers(t_message);
 
   tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
@@ -759,7 +767,7 @@ bool tkbc_received_message_handler(Client *client) {
     }
 
     message->i = lexer->position - digits_count_of_kind - 1;
-    static_assert(MESSAGE_COUNT == 22, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    static_assert(MESSAGE_COUNT == 21, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
       token = lexer_next(lexer);
@@ -785,7 +793,7 @@ bool tkbc_received_message_handler(Client *client) {
       client->handshake_passed = true;
 
       tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
-      tkbc_message_clientkites_write_to_send_msg_buffer(client);
+      tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
@@ -903,7 +911,6 @@ bool tkbc_received_message_handler(Client *client) {
         if (!tkbc_parse_single_kite_value(lexer, -1, &parsed_kite_id)) {
           goto err;
         }
-
         tkbc_message_clientkites_write_to_all_send_msg_buffers();
       }
 
@@ -1292,7 +1299,6 @@ bool tkbc_received_message_handler(Client *client) {
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT\n");
-
       if (script_alleady_there_parsing_skip) {
         goto err;
       }
