@@ -1302,6 +1302,8 @@ bool tkbc_received_message_handler(Client *client) {
       if (script_alleady_there_parsing_skip) {
         goto err;
       }
+
+      tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
     } break;
     case MESSAGE_SCRIPT_AMOUNT: {
       token = lexer_next(lexer);
