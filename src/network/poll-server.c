@@ -1291,9 +1291,10 @@ bool tkbc_received_message_handler(Client *client) {
       client->script_amount--;
     parsing_skip:
       if (client->script_amount && script_alleady_there_parsing_skip) {
+        script_parse_fail = false;
         client->script_amount = 0;
       }
-      if (client->script_amount == 0) {
+      if (client->script_amount == 0 && !script_parse_fail) {
         space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
                    "%d:\r\n", MESSAGE_SCRIPT_PARSED);
       }
