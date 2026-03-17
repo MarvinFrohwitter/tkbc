@@ -222,8 +222,7 @@ tkbc_message_append_image_data(Space *space, Message *message, Image image) {
 
   for (size_t y = 0; y < height; y++) {
     for (size_t x = 0; x < width; x++) {
-      unsigned char *pos = tkbc_get_position_in_image(image, x, y);
-      Color c = *(Color *)&pos;
+      Color c = *(Color *)tkbc_get_position_in_image(image, x, y);
       uint32_t c_as_number = tkbc_color_to_uint32_t(c);
       space_dapf(space, message, "%u:", c_as_number);
     }
@@ -254,7 +253,7 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
              color, texture_id);
 
   if (texture_id == -1) {
-    //NOTE: This is not nasally the KITE_COLORIZER position.
+    // NOTE: This is not nasally the KITE_COLORIZER position.
     assert(kite_images.count != 0);
     Image image = kite_images.elements[kite_images.count - 1].normal;
     tkbc_message_append_image_data(space, message, image);

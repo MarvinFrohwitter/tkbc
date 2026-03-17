@@ -191,8 +191,8 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, void *data,
   assert(*format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
   data = space_malloc(data_space, *width * *height * sizeof(uint32_t));
 
-  for (size_t y; y < *height; ++y) {
-    for (size_t x; x < *width; ++x) {
+  for (size_t y = 0; y < *height; ++y) {
+    for (size_t x = 0; x < *width; ++x) {
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
         return false;
