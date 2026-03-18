@@ -192,6 +192,7 @@ double tkbc_get_time();
 void tkbc_make_frame_time(double target_dt);
 float tkbc_get_frame_time();
 #ifdef INCLUDE_RAYLIB
+bool tkbc_is_same_image(Image a, Image b);
 bool tkbc_vector2_equals_epsilon(Vector2 p, Vector2 q, float epsilon);
 bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2);
 uint32_t tkbc_color_to_uint32_t(Color color);
@@ -687,6 +688,101 @@ float tkbc_get_frame_time() {
 }
 
 #ifdef INCLUDE_RAYLIB
+/**
+ * @brief [TODO:description]
+ *
+ * @param format [TODO:parameter]
+ * @return [TODO:return]
+ */
+static int bytes_per_pixel_from_format(PixelFormat format) {
+  switch (format) {
+  case PIXELFORMAT_UNCOMPRESSED_GRAYSCALE:
+    return 1;
+  case PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA:
+    return 2;
+  case PIXELFORMAT_UNCOMPRESSED_R5G6B5:
+    return 2;
+  case PIXELFORMAT_UNCOMPRESSED_R8G8B8:
+    return 3;
+  case PIXELFORMAT_UNCOMPRESSED_R5G5B5A1:
+    return 2;
+  case PIXELFORMAT_UNCOMPRESSED_R4G4B4A4:
+    return 2;
+  case PIXELFORMAT_UNCOMPRESSED_R8G8B8A8:
+    return 4;
+
+  case PIXELFORMAT_UNCOMPRESSED_R32:
+    return 4;
+  case PIXELFORMAT_UNCOMPRESSED_R32G32B32:
+    return 12;
+  case PIXELFORMAT_UNCOMPRESSED_R32G32B32A32:
+    return 16;
+
+  case PIXELFORMAT_COMPRESSED_DXT1_RGB:
+  case PIXELFORMAT_COMPRESSED_DXT1_RGBA:
+  case PIXELFORMAT_COMPRESSED_DXT3_RGBA:
+  case PIXELFORMAT_COMPRESSED_DXT5_RGBA:
+  case PIXELFORMAT_COMPRESSED_ETC1_RGB:
+  case PIXELFORMAT_COMPRESSED_ETC2_RGB:
+  case PIXELFORMAT_COMPRESSED_ETC2_EAC_RGBA:
+  case PIXELFORMAT_COMPRESSED_PVRT_RGB:
+  case PIXELFORMAT_COMPRESSED_PVRT_RGBA:
+  case PIXELFORMAT_COMPRESSED_ASTC_4x4_RGBA:
+  case PIXELFORMAT_COMPRESSED_ASTC_8x8_RGBA:
+    return 0;
+
+  default:
+    return -1;
+  }
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param a [TODO:parameter]
+ * @param b [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_is_same_image(Image a, Image b) {
+  if (a.data == NULL || b.data == NULL)
+    return false;
+
+  if (a.width != b.width)
+    return false;
+  if (a.height != b.height)
+    return false;
+  if (a.mipmaps != b.mipmaps)
+    return false;
+  if (a.format != b.format)
+    return false;
+
+  int bpp = bytes_per_pixel_from_format(a.format);
+  if (bpp <= 0)
+    return false;
+
+  size_t total_bytes = 0;
+  if (a.mipmaps <= 1) {
+    total_bytes = a.width * a.height * bpp;
+  } else {
+    int w = a.width;
+    int h = a.height;
+    for (int level = 0; level < a.mipmaps; ++level) {
+      if (w < 1)
+        w = 1;
+      if (h < 1)
+        h = 1;
+      total_bytes += w * h * bpp;
+      w = w >> 1;
+      h = h >> 1;
+    }
+  }
+
+  if (total_bytes == 0)
+    return false;
+
+  return memcmp(a.data, b.data, total_bytes) == 0;
+}
+
 /**
  * @brief The function checks if tow Vector2s are equal to each other with a
  * custom epsilon.

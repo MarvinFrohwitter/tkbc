@@ -953,21 +953,27 @@ key_skip:
         if (!env->colorizer) {
           env->colorizer = true;
         } else {
-          void *data_norm = kite_images.elements[KITE_COLORIZER].normal.data;
-          void *data_flipped =
-              kite_images.elements[KITE_COLORIZER].flipped.data;
+          Image a = kite_images.elements[KITE_COLORIZER].normal;
+          Image b = kite_images.elements[IMAGE_FILLED_PANEL].normal;
+          bool same = tkbc_is_same_image(a, b);
 
-          Kite_Image kite_image = kite_images.elements[IMAGE_FILLED_PANEL];
-          tkbc_update_kite_texture(kite_textures.elements[KITE_COLORIZER],
-                                   kite_image);
+          if (!same) {
+            void *data_norm = kite_images.elements[KITE_COLORIZER].normal.data;
+            void *data_flipped =
+                kite_images.elements[KITE_COLORIZER].flipped.data;
 
-          kite_images.elements[KITE_COLORIZER].normal =
-              ImageCopy(kite_images.elements[IMAGE_FILLED_PANEL].normal);
-          kite_images.elements[KITE_COLORIZER].flipped =
-              ImageCopy(kite_images.elements[IMAGE_FILLED_PANEL].flipped);
+            Kite_Image kite_image = kite_images.elements[IMAGE_FILLED_PANEL];
+            tkbc_update_kite_texture(kite_textures.elements[KITE_COLORIZER],
+                                     kite_image);
 
-          free(data_norm);
-          free(data_flipped);
+            kite_images.elements[KITE_COLORIZER].normal =
+                ImageCopy(kite_images.elements[IMAGE_FILLED_PANEL].normal);
+            kite_images.elements[KITE_COLORIZER].flipped =
+                ImageCopy(kite_images.elements[IMAGE_FILLED_PANEL].flipped);
+
+            free(data_norm);
+            free(data_flipped);
+          }
         }
       }
     }
@@ -1076,18 +1082,25 @@ key_skip:
 
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
           if (i == KITE_COLORIZER) {
-            Kite_Texture *new_kite_texture =
-                tkbc_generate_new_kite_image_and_texture(
-                    kite_images.elements[i]);
 
-            tkbc_set_texture_for_selected_kites(env, new_kite_texture, -1);
+            Image a = kite_images.elements[KITE_COLORIZER].normal;
+            Image b = kite_images.elements[IMAGE_FILLED_PANEL].normal;
+            bool same = tkbc_is_same_image(a, b);
+
+            if (!same) {
+              Kite_Texture *new_kite_texture =
+                  tkbc_generate_new_kite_image_and_texture(
+                      kite_images.elements[i]);
+
+              tkbc_set_texture_for_selected_kites(env, new_kite_texture, -1);
+            }
 
           } else {
             tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],
                                                 i);
 
             // Note just for the kites designed by the colorizer
-            // The other ones do not fit because thy are blurry and you kinda
+            // The other ones do not fit because thy are blury and you kinda
             // want to preserve that. Also thy don't have a skeleton, they are
             // just perfectly blended.
             if (i > KITE_COLORIZER) {
