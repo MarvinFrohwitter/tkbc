@@ -886,6 +886,7 @@ bool tkbc_received_message_handler(Client *client) {
         tkbc_append_kite_image(texture_data, texture_width, texture_height,
                                texture_format);
         texture_id = kite_images.count - 1;
+        state->kite->texture_id = texture_id;
         space_reset_tspace();
       }
 
@@ -897,6 +898,8 @@ bool tkbc_received_message_handler(Client *client) {
                                       is_reversed, is_active);
 
       // TEXTURE lager and Unknown
+      printf("texture_id = %zd\n", texture_id);
+      printf("kite_images.count = %zu\n", kite_images.count);
       if ((ssize_t)kite_images.count <= texture_id) {
         space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
                    "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
@@ -908,9 +911,6 @@ bool tkbc_received_message_handler(Client *client) {
         check_return(false);
       }
 
-      if (texture_id == -1) {
-        state->kite->texture_id = kite_images.count - 1;
-      }
       state->kite->is_texture_new = false;
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
