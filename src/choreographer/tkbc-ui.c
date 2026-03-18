@@ -1087,13 +1087,12 @@ key_skip:
             Image b = kite_images.elements[IMAGE_FILLED_PANEL].normal;
             bool same = tkbc_is_same_image(a, b);
 
+            Kite_Texture *new_kite_texture = &kite_textures.elements[i];
             if (!same) {
-              Kite_Texture *new_kite_texture =
-                  tkbc_generate_new_kite_image_and_texture(
-                      kite_images.elements[i]);
-
-              tkbc_set_texture_for_selected_kites(env, new_kite_texture, -1);
+              new_kite_texture = tkbc_generate_new_kite_image_and_texture(
+                  kite_images.elements[i]);
             }
+            tkbc_set_texture_for_selected_kites(env, new_kite_texture, -1);
 
           } else {
             tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],
