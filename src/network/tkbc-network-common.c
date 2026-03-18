@@ -192,12 +192,17 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
 
   // TODO This is a null terminator because of the one number so continue lexing
   // as number
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER && token.kind != NULL_TERMINATOR) {
-    return false;
-  }
+  size_t start = lexer->position;
+  do {
+    token = lexer_next(lexer);
+    if (token.kind == EOF_TOKEN) {
+      break;
+    }
+    assert(token.kind != ERROR);
+    // assert(token.kind != INVALID); // RawData: unprintable chars are invalid.
+  } while (token.kind != PUNCT_COLON);
 
-  if (token.size != *width * *height * 4) {
+  if (lexer->position - start - 1 != *width * *height * 4) {
     return false;
   }
 
@@ -206,7 +211,6 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
     return false;
   }
 
-  token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     return false;
   }
