@@ -1091,8 +1091,11 @@ key_skip:
             if (!same) {
               new_kite_texture = tkbc_generate_new_kite_image_and_texture(
                   kite_images.elements[i]);
+              tkbc_set_texture_for_selected_kites(env, new_kite_texture, -1);
+            } else {
+              tkbc_set_texture_for_selected_kites(
+                  env, &kite_textures.elements[i], i);
             }
-            tkbc_set_texture_for_selected_kites(env, new_kite_texture, -1);
 
           } else {
             tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],
