@@ -852,7 +852,7 @@ bool tkbc_received_message_handler(Client *client) {
       ssize_t texture_id;
       size_t texture_width, texture_height, texture_format;
       Space *data_space = space_get_tspace();
-      void *texture_data = NULL;
+      unsigned char *texture_data = NULL;
       float x, y, angle;
       Color color;
       bool is_reversed, is_active;

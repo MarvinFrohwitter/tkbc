@@ -97,11 +97,11 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id,
   ssize_t texture_id;
   size_t texture_width, texture_height, texture_format;
   Space *data_space = space_get_tspace();
-  void *texture_data = NULL;
+  unsigned char *texture_data = NULL;
 
   if (!tkbc_parse_message_kite_value(
           lexer, parsed_id, &x, &y, &angle, &color, &texture_id, &texture_width,
-          &texture_height, &texture_format, data_space, texture_data,
+          &texture_height, &texture_format, data_space, &texture_data,
           &is_reversed, &is_active)) {
 
     check_return(0);
@@ -154,7 +154,7 @@ check:
  * @param format [TODO:parameter]
  * @return [TODO:return]
  */
-bool tkbc_parse_image(Lexer *lexer, Space *data_space, void *data,
+bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
                       size_t *width, size_t *height, size_t *format) {
   bool ok = true;
   Token token;
@@ -189,23 +189,26 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, void *data,
   }
 
   assert(*format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-  data = space_malloc(data_space, *width * *height * sizeof(uint32_t));
 
-  for (size_t y = 0; y < *height; ++y) {
-    for (size_t x = 0; x < *width; ++x) {
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
-        return false;
-      }
+  // TODO This is a null terminator because of the one number so continue lexing
+  // as number
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER && token.kind != NULL_TERMINATOR) {
+    return false;
+  }
 
-      uint32_t n = atoll(lexer_token_to_cstr(lexer, &token));
-      memcpy(data, &n, sizeof(n));
+  if (token.size != *width * *height * 4) {
+    return false;
+  }
 
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        return false;
-      }
-    }
+  *data = space_memcpy(data_space, token.content, token.size * sizeof(**data));
+  if (!data) {
+    return false;
+  }
+
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    return false;
   }
 
   return ok;
@@ -238,8 +241,8 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
                                    ssize_t *texture_id, size_t *texture_width,
                                    size_t *texture_height,
                                    size_t *texture_format, Space *data_space,
-                                   void *texture_data, bool *is_reversed,
-                                   bool *is_active) {
+                                   unsigned char **texture_data,
+                                   bool *is_reversed, bool *is_active) {
   Content buffer = {0};
   Token token;
   bool ok = true;

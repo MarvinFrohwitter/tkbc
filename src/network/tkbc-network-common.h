@@ -19,15 +19,15 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
                                      bool is_active);
 int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id,
                                  size_t *parsed_id);
-bool tkbc_parse_image(Lexer *lexer, Space *data_space, void *data,
+bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
                       size_t *width, size_t *height, size_t *format);
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
                                    float *y, float *angle, Color *color,
                                    ssize_t *texture_id, size_t *texture_width,
                                    size_t *texture_height,
                                    size_t *texture_format, Space *data_space,
-                                   void *texture_data, bool *is_reversed,
-                                   bool *is_active);
+                                   unsigned char **texture_data,
+                                   bool *is_reversed, bool *is_active);
 char *tkbc_find_rn_in_message_from_position(Message *message, size_t position);
 
 bool tkbc_error_handling_of_received_message_handler(Message *message,

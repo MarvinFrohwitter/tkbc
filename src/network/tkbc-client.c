@@ -2,6 +2,7 @@
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
+#define MAX_BUFFER_CAPACITY 1024 * 1024
 
 #include "tkbc-client.h"
 #include "tkbc-network-common.h"
@@ -388,9 +389,9 @@ bool received_message_handler(Message *message) {
 
       size_t width, height, format;
       Space *data_space = space_get_tspace();
-      void *data = NULL;
+      unsigned char *data = NULL;
 
-      if (!tkbc_parse_image(lexer, data_space, data, &width, &height,
+      if (!tkbc_parse_image(lexer, data_space, &data, &width, &height,
                             &format)) {
         goto err;
       }
@@ -458,12 +459,12 @@ bool received_message_handler(Message *message) {
       ssize_t texture_id;
       size_t texture_width, texture_height, texture_format;
       Space *data_space = space_get_tspace();
-      void *texture_data = NULL;
+      unsigned char *texture_data = NULL;
 
       if (!tkbc_parse_message_kite_value(
               lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
               &texture_width, &texture_height, &texture_format, data_space,
-              texture_data, &is_reversed, &is_active)) {
+              &texture_data, &is_reversed, &is_active)) {
         goto err;
       }
 
@@ -600,12 +601,12 @@ bool received_message_handler(Message *message) {
         ssize_t texture_id;
         size_t texture_width, texture_height, texture_format;
         Space *data_space = space_get_tspace();
-        void *texture_data = NULL;
+        unsigned char *texture_data = NULL;
 
         if (!tkbc_parse_message_kite_value(
                 lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
                 &texture_width, &texture_height, &texture_format, data_space,
-                texture_data, &is_reversed, &is_active)) {
+                &texture_data, &is_reversed, &is_active)) {
           goto err;
         }
 
@@ -734,7 +735,7 @@ check:
  */
 bool message_queue_handler(Message *message) {
 
-  if (message->count == 0 && message->capacity > 32 * 1024) {
+  if (message->count == 0 && message->capacity > MAX_BUFFER_CAPACITY) {
     tkbc_fprintf(stderr, "INFO", "realloced message: old capacity: %zu",
                  message->capacity);
     free(message->elements);
@@ -742,7 +743,7 @@ bool message_queue_handler(Message *message) {
     message->capacity = 0;
   }
 
-  size_t length = 1024;
+  size_t length = 1024 * 512;
   if (message->capacity < message->count + length) {
     size_t old_capacity = message->capacity;
     if (message->capacity == 0) {
