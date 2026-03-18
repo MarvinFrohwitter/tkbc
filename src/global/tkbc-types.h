@@ -221,8 +221,11 @@ typedef struct {
                             // has flipped and flies per default reverse.
   ssize_t texture_id; // The number that identifies the kite texture in the
                       // global kite_textures.
-  float old_angle;    // The rotation angle before the frame interpolation has
-                      // stated.
+
+  bool is_texture_new; // Indicates if the texture is currently newly created.
+
+  float old_angle; // The rotation angle before the frame interpolation has
+                   // stated.
   Vector2
       old_center; // The old position before the frame interpolation has stated.
 

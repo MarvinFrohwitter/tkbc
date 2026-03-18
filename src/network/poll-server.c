@@ -797,6 +797,22 @@ bool tkbc_received_message_handler(Client *client) {
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
+    case MESSAGE_SEND_TEXTURE: {
+
+      size_t width, height, format;
+      Space *data_space = space_get_tspace();
+      unsigned char *data = NULL;
+
+      if (!tkbc_parse_image(lexer, data_space, &data, &width, &height,
+                            &format)) {
+        goto err;
+      }
+
+      tkbc_append_kite_image(data, width, height, format);
+      space_reset_tspace();
+
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE\n");
+    } break;
     case MESSAGE_GET_TEXTURE: {
       token = lexer_next(lexer);
       if (token.kind != NUMBER) {
@@ -865,6 +881,7 @@ bool tkbc_received_message_handler(Client *client) {
         goto err;
       }
 
+      Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
       if (texture_id == -1) {
         tkbc_append_kite_image(texture_data, texture_width, texture_height,
                                texture_format);
@@ -872,13 +889,19 @@ bool tkbc_received_message_handler(Client *client) {
         space_reset_tspace();
       }
 
-      Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
       // Consider disconnecting the client if the client is not found by its
       // kite id. Instead of crashing the complete server.
       // With a correct client implementation the state should always be
       // available. No memory corruption on the server side implied.
       tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id,
                                       is_reversed, is_active);
+
+      // TEXTURE lager and Unknown
+      if ((ssize_t)kite_images.count <= texture_id) {
+        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
+                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
+        state->kite->texture_id = KITE_COLORIZER;
+      }
 
       if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
               kite_id)) {
@@ -888,6 +911,7 @@ bool tkbc_received_message_handler(Client *client) {
       if (texture_id == -1) {
         state->kite->texture_id = kite_images.count - 1;
       }
+      state->kite->is_texture_new = false;
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
     } break;

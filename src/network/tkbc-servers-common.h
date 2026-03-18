@@ -243,14 +243,19 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
   bool is_reversed = kite_state->is_kite_reversed;
   bool is_active = kite_state->is_active;
 
-  space_dapf(space, message, "%zu:(%f,%f):%f:%u:%zd:", kite_id, x, y, angle,
-             color, texture_id);
+  space_dapf(space, message, "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
 
-  if (texture_id == -1) {
+  if (texture_id == -1 || kite_state->kite->is_texture_new) {
+
+    space_dapf(space, message, "%d:", -1);
+
     // NOTE: This is not nasally the KITE_COLORIZER position.
     assert(kite_images.count != 0);
     Image image = kite_images.elements[kite_images.count - 1].normal;
     tkbc_message_append_image_data(space, message, image);
+    kite_state->kite->is_texture_new = false;
+  } else {
+    space_dapf(space, message, "%zd:", texture_id);
   }
 
   space_dapf(space, message, "%zu:%zu:", (size_t)is_reversed,

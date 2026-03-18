@@ -1080,12 +1080,7 @@ key_skip:
                 tkbc_generate_new_kite_image_and_texture(
                     kite_images.elements[i]);
 
-            Id new_kite_texture_id = kite_textures.count - 1;
-            tkbc_set_texture_for_selected_kites(env, new_kite_texture,
-                                                new_kite_texture_id);
-            // TODO:
-            // For the server do a message that request a texture id and the send the texture and assign it,
-            // COWABUNGER
+            tkbc_set_texture_for_selected_kites(env, new_kite_texture, -1);
 
           } else {
             tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],
@@ -1191,15 +1186,23 @@ void tkbc_set_color_for_selected_kites(Env *env, Color color) {
  * @param env The global state of the application.
  * @param kite_texture The new pair of textures that should be assigned to all
  * the selected kites.
- * @param texture_id The id that represents the kite_texture ans is assigned
- * to all the selected kites in the kite array.
+ * @param texture_id The id that represents the kite_texture and is assigned
+ * to all the selected kites in the kite array, when -1 the last appended
+ * texture slot is set for the texture_id.
  */
 void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
-                                         size_t texture_id) {
+                                         ssize_t texture_id) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].is_kite_input_handler_active) {
       tkbc_set_kite_texture(env->kite_array->elements[i].kite, kite_texture);
-      env->kite_array->elements[i].kite->texture_id = texture_id;
+      if (texture_id == -1) {
+        env->kite_array->elements[i].kite->texture_id = kite_textures.count - 1;
+        env->kite_array->elements[i].kite->is_texture_new = true;
+
+      } else {
+        env->kite_array->elements[i].kite->texture_id = texture_id;
+        env->kite_array->elements[i].kite->is_texture_new = false;
+      }
     }
   }
 }

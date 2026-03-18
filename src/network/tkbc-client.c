@@ -385,6 +385,36 @@ bool received_message_handler(Message *message) {
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
+    case MESSAGE_GET_TEXTURE: {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        goto err;
+      }
+      ssize_t texture_id = atoi(lexer_token_to_cstr(lexer, &token));
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        goto err;
+      }
+
+      if ((ssize_t)kite_images.count <= texture_id || texture_id == -1) {
+        // Can not provide texture.
+        goto err;
+      }
+
+      { // TODO: Factor out it is the same in the server.
+        Image image = kite_images.elements[texture_id].normal;
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                   "%d:", MESSAGE_SEND_TEXTURE);
+
+        tkbc_message_append_image_data(&client.send_msg_buffer_space,
+                                       &client.send_msg_buffer, image);
+
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                   "\r\n");
+      }
+
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE\n");
+    } break;
     case MESSAGE_SEND_TEXTURE: {
 
       size_t width, height, format;
