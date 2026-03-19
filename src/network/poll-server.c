@@ -898,8 +898,6 @@ bool tkbc_received_message_handler(Client *client) {
                                       is_reversed, is_active);
 
       // TEXTURE lager and Unknown
-      printf("texture_id = %zd\n", texture_id);
-      printf("kite_images.count = %zu\n", kite_images.count);
       if ((ssize_t)kite_images.count <= texture_id) {
         space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
                    "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
