@@ -198,6 +198,11 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
     if (token.kind == EOF_TOKEN) {
       break;
     }
+
+    if (lexer->position - start - 1 > *width * *height * 4) {
+      return false;
+    }
+
     assert(token.kind != ERROR);
     // assert(token.kind != INVALID); // RawData: unprintable chars are invalid.
   } while (token.kind != PUNCT_COLON);
