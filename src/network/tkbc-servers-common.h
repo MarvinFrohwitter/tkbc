@@ -219,8 +219,12 @@ tkbc_message_append_image_data(Space *space, Message *message, Image image) {
   size_t height = image.height;
   size_t format = image.format;
   space_dapf(space, message, "%zu:%zu:%zu:", width, height, format);
-  space_dapc(space, message, (unsigned char *)image.data, width * height * 4);
-  space_dap(space, message, ':');
+  for (size_t y = 0; y < height; y++) {
+    for (size_t x = 0; x < width; x++) {
+      Color c = *(Color *)tkbc_get_position_in_image(image, x, y);
+      space_dapf(space, message, "%u:", *(uint32_t *)&c);
+    }
+  }
 }
 
 /**

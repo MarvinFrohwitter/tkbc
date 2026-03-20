@@ -190,37 +190,35 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
   }
 
   assert(*format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+  *data = space_malloc(data_space, *width * *height * 4 * sizeof(**data));
+  if (!*data) {
+    return false;
+  }
 
-  // TODO This is a null terminator because of the one number so continue lexing
-  // as number
-  size_t start = lexer->position;
-  do {
-    token = lexer_next(lexer);
-    if (token.kind == EOF_TOKEN) {
-      break;
+  size_t offset = 0;
+  for (size_t y = 0; y < *height; y++) {
+    for (size_t x = 0; x < *width; x++) {
+      token = lexer_next(lexer);
+      if (token.kind != NUMBER) {
+        check_return(false);
+      }
+
+      uint32_t color_number = atoll(lexer_token_to_cstr(lexer, &token));
+      memcpy(*data + offset, &color_number, sizeof(color_number));
+
+      token = lexer_next(lexer);
+      if (token.kind != PUNCT_COLON) {
+        check_return(false);
+      }
+
+      offset += sizeof(color_number);
     }
-
-    if (lexer->position - start - 1 > *width * *height * 4) {
-      return false;
-    }
-
-    assert(token.kind != ERROR);
-    // assert(token.kind != INVALID); // RawData: unprintable chars are invalid.
-  } while (token.kind != PUNCT_COLON);
-
-  if (lexer->position - start - 1 != *width * *height * 4) {
-    return false;
   }
 
-  *data = space_memcpy(data_space, token.content, token.size * sizeof(**data));
-  if (!data) {
-    return false;
+check: {}
+  if (!ok) {
+    space_reset_space(data_space);
   }
-
-  if (token.kind != PUNCT_COLON) {
-    return false;
-  }
-
   return ok;
 }
 
