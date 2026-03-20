@@ -38,7 +38,8 @@
 #include "../choreographer/tkbc.h"
 
 #define CLIENT_BASE_ID 10e6
-#define MAX_BUFFER_CAPACITY 256 * 1024
+#define MAX_BUFFER_CAPACITY 1024 * 1024
+#define BUFFER_CAPACITY 512 * 1024
 static int server_socket;
 static int clients_visited = 0;
 Env *env = {0};
@@ -436,8 +437,8 @@ void tkbc_server_accept() {
         .client_address_length = address_length,
     };
 
-    space_init_capacity(&client.send_msg_buffer_space, MAX_BUFFER_CAPACITY);
-    space_init_capacity(&client.send_msg_buffer_space, 1024);
+    space_init_capacity(&client.send_msg_buffer_space, BUFFER_CAPACITY);
+    space_init_capacity(&client.recv_msg_buffer_space, BUFFER_CAPACITY);
 
     tkbc_fprintf(stderr, "INFO", "CLIENT: " CLIENT_FMT " has connected.\n",
                  CLIENT_ARG(client));
@@ -455,7 +456,7 @@ void tkbc_server_accept() {
  */
 bool tkbc_sockets_read(Client *client) {
   Message *recv_buffer = &client->recv_msg_buffer;
-  size_t length = 1024 * 32;
+  size_t length = BUFFER_CAPACITY;
 
   if (recv_buffer->count == 0 && recv_buffer->capacity > MAX_BUFFER_CAPACITY) {
     tkbc_fprintf(stderr, "INFO", "realloced recv_buffer: old capacity: %zu\n",
@@ -539,7 +540,7 @@ bool tkbc_sockets_read(Client *client) {
  * an error occurred or -11 if the error was EAGAIN.
  */
 int tkbc_socket_write(Client *client) {
-  size_t length = 1024;
+  size_t length = BUFFER_CAPACITY;
   size_t diff = (client->send_msg_buffer.count - client->send_msg_buffer.i);
   size_t amount = diff < length ? diff : length;
 

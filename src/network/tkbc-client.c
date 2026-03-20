@@ -3,6 +3,7 @@
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 #define MAX_BUFFER_CAPACITY 1024 * 1024
+#define BUFFER_CAPACITY 1024 * 1024
 
 #include "tkbc-client.h"
 #include "tkbc-network-common.h"
@@ -773,7 +774,7 @@ bool message_queue_handler(Message *message) {
     message->capacity = 0;
   }
 
-  size_t length = 1024 * 512;
+  size_t length = BUFFER_CAPACITY;
   if (message->capacity < message->count + length) {
     size_t old_capacity = message->capacity;
     if (message->capacity == 0) {
@@ -1133,8 +1134,8 @@ int main(int argc, char *argv[]) {
   }
 
   client.socket_id = tkbc_client_socket_creation(host, port);
-  space_init_capacity(&client.send_msg_buffer_space, 256 * 1024);
-  space_init_capacity(&client.recv_msg_buffer_space, 1024);
+  space_init_capacity(&client.send_msg_buffer_space, BUFFER_CAPACITY);
+  space_init_capacity(&client.recv_msg_buffer_space, BUFFER_CAPACITY);
 
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
   SetTraceLogLevel(LOG_NONE);

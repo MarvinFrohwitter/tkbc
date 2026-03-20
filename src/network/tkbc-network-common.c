@@ -3,6 +3,7 @@
 #include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-utils.h"
+#include "tkbc-servers-common.h"
 
 #include <stdarg.h>
 #include <stdbool.h>
