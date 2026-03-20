@@ -813,8 +813,8 @@ LEXDEF int lexer_check_is_number(Lexer *lexer, Token *token) {
         }
       }
 
-      while (isdigit(lexer->content[lexer->position]) &&
-             lexer_check_boundary(lexer)) {
+      while (lexer_check_boundary(lexer) &&
+             isdigit(lexer->content[lexer->position])) {
 
         lexer_chop_char(lexer, 1);
       }
@@ -953,8 +953,8 @@ LEXDEF int lexer_check_is_comment(Lexer *lexer, Token *token, int is_multi) {
 
   while (lexer_check_boundary(lexer)) {
     if (is_multi) {
-      if (lexer_char_is(lexer, '*') && lexer_next_char_is(lexer, '/') &&
-          lexer_check_boundary_next(lexer)) {
+      if (lexer_char_is(lexer, '*') && lexer_check_boundary_next(lexer) &&
+          lexer_next_char_is(lexer, '/')) {
         lexer_chop_char(lexer, 2);
         break;
       }
@@ -1139,8 +1139,8 @@ BASICLEXDEF Token lexer_next(Lexer *lexer) {
   }
 
   // Check for multi line Comments
-  if (lexer_char_is(lexer, '/') && lexer_next_char_is(lexer, '*') &&
-      lexer_check_boundary_next(lexer)) {
+  if (lexer_char_is(lexer, '/') && lexer_check_boundary_next(lexer) &&
+      lexer_next_char_is(lexer, '*')) {
 
     if (!lexer_check_is_comment(lexer, &token, 1)) {
       return lexer_error(lexer);
