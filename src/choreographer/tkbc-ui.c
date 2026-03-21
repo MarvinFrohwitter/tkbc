@@ -150,6 +150,7 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
     for (size_t i = IMAGE_SKELETON; i < KITE_COLORIZER; ++i) {
       if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) ||
           (i == IMAGE_MIDDLE_13) || (i == IMAGE_FILLED_PANEL) ||
+          (i == IMAGE_SKELETON) ||
           (i == IMAGE_SKELETON_LEADINGEDGE)) {
         // Skip the middle once for now.
         continue;
