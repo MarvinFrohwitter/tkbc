@@ -646,8 +646,7 @@ bool is_key_valid_part_of_hex_number(int key) {
  * @param color The structured value that should be represented as a string.
  */
 void tkbc_set_input_text_to_hex_color(char **text, Color color) {
-  snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X",
-           ColorToInt(color));
+  snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X", tkbc_color_to_uint32_t(color));
 }
 
 void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
@@ -857,7 +856,7 @@ key_skip:
 
   if (strlen(env->color_picker_input_text) == HEX_COLOR_LENGTH + 1) {
     env->last_selected_color =
-        GetColor(strtol(env->color_picker_input_text + 1, NULL, 16));
+        GetColor(strtoull(env->color_picker_input_text + 1, NULL, 16));
   }
 
   Rectangle color_box;
