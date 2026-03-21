@@ -1169,10 +1169,10 @@ key_skip:
     DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
 
     if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
-      env->last_selected_color = colors[i];
-      tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
-                                       env->last_selected_color);
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        env->last_selected_color = colors[i];
+        tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
+                env->last_selected_color);
         tkbc_set_color_for_selected_kites(env, env->last_selected_color);
       }
     }
