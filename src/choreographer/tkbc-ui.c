@@ -150,8 +150,7 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
     for (size_t i = IMAGE_SKELETON; i < KITE_COLORIZER; ++i) {
       if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) ||
           (i == IMAGE_MIDDLE_13) || (i == IMAGE_FILLED_PANEL) ||
-          (i == IMAGE_SKELETON) ||
-          (i == IMAGE_SKELETON_LEADINGEDGE)) {
+          (i == IMAGE_SKELETON) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
         // Skip the middle once for now.
         continue;
       }
@@ -646,7 +645,8 @@ bool is_key_valid_part_of_hex_number(int key) {
  * @param color The structured value that should be represented as a string.
  */
 void tkbc_set_input_text_to_hex_color(char **text, Color color) {
-  snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X", tkbc_color_to_uint32_t(color));
+  snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X",
+           tkbc_color_to_uint32_t(color));
 }
 
 void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
@@ -1151,10 +1151,57 @@ key_skip:
   color_circle.y += 2 * color_circle_radius + padding;
 
   Color colors[] = {
-      LIGHTGRAY, GRAY,  DARKGRAY,  YELLOW,  GOLD,   ORANGE,
-      PINK,      RED,   MAROON,    GREEN,   LIME,   DARKGREEN,
-      SKYBLUE,   BLUE,  DARKBLUE,  PURPLE,  VIOLET, DARKPURPLE,
-      BEIGE,     BROWN, DARKBROWN, MAGENTA, TEAL,
+      // LIGHTGRAY,
+      // GRAY,
+      // DARKGRAY,
+      // YELLOW,
+      // GOLD,
+      // ORANGE,
+      // PINK,
+      // RED,
+      // MAROON,
+      // GREEN,
+      // LIME,
+      // DARKGREEN,
+      // SKYBLUE,
+      // BLUE,
+      // DARKBLUE,
+      // PURPLE,
+      // VIOLET,
+      // DARKPURPLE,
+      // BEIGE,
+      // BROWN,
+      // DARKBROWN,
+      // MAGENTA,
+      // TEAL,
+
+      ICAREX_weiß,
+      ICAREX_hellgrau,
+      ICAREX_dunkelgrau,
+      ICAREX_schwarz,
+      ICAREX_rot,
+      ICAREX_orange,
+      ICAREX_gold,
+      ICAREX_gelb,
+      ICAREX_grün,
+      ICAREX_cedar,
+      ICAREX_teal,
+      ICAREX_caribbean,
+      ICAREX_slate,
+      ICAREX_hellblau,
+      ICAREX_blau,
+      ICAREX_dunkelblau,
+      ICAREX_plum,
+      ICAREX_aubergin,
+      ICAREX_milkalila1,
+      ICAREX_milkalila2,
+      ICAREX_lila,
+      ICAREX_rasberry,
+      ICAREX_zartrosa,
+      ICAREX_brown,
+      ICAREX_neongelb,
+      ICAREX_neonorange,
+      ICAREX_neongrün,
   };
 
   for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
@@ -1172,7 +1219,7 @@ key_skip:
       if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         env->last_selected_color = colors[i];
         tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
-                env->last_selected_color);
+                                         env->last_selected_color);
         tkbc_set_color_for_selected_kites(env, env->last_selected_color);
       }
     }

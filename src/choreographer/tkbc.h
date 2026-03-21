@@ -6,6 +6,41 @@
 
 #define TEAL CLITERAL(Color){0, 128, 128, 255} // Teal
 
+#define ICAREX_weiß       CLITERAL(Color){0xFF, 0xFF, 0xFF, 0xFF}
+#define ICAREX_hellgrau   CLITERAL(Color){169,  169,  169,  0xFF}
+#define ICAREX_dunkelgrau CLITERAL(Color){58,   58,   58,   0xFF}
+#define ICAREX_schwarz    CLITERAL(Color){0,    0,    0,    0xFF}
+#define ICAREX_rot        CLITERAL(Color){255,  0,    0,    0xFF}
+#define ICAREX_orange     CLITERAL(Color){255,  101,  50,   0xFF}
+#define ICAREX_gold       CLITERAL(Color){204,  153,  0,    0xFF}
+#define ICAREX_gelb       CLITERAL(Color){255,  204,  50,   0xFF}
+
+#define ICAREX_grün       CLITERAL(Color){0,    128,  0,    0xFF}
+#define ICAREX_cedar      CLITERAL(Color){60,   179,  113,  0xFF}
+
+#define ICAREX_teal       CLITERAL(Color){0,    153,  153,  0xFF}
+#define ICAREX_caribbean  CLITERAL(Color){44,   164,  173,  0xFF}
+#define ICAREX_slate      CLITERAL(Color){70,   130,  180,  79}
+#define ICAREX_hellblau   CLITERAL(Color){50,   211,  255,  0xFF}
+
+#define ICAREX_blau       CLITERAL(Color){30,   144,  255,  0xFF}
+#define ICAREX_dunkelblau CLITERAL(Color){0,    0,    205,  0xFF}
+
+#define ICAREX_plum       CLITERAL(Color){132,  68,   82,   0xFF}
+#define ICAREX_aubergin   CLITERAL(Color){102,  0,    80,   0xFF}
+#define ICAREX_milkalila1 CLITERAL(Color){147,  95,   255,  0xFF}
+#define ICAREX_milkalila2 CLITERAL(Color){114,  84,   154,  0xFF}
+#define ICAREX_lila       CLITERAL(Color){153,  0,    153,  0xFF}
+
+#define ICAREX_rasberry   CLITERAL(Color){255,  0,    129,  0xFF}
+#define ICAREX_zartrosa   CLITERAL(Color){255,  136,  153,  0xFF}
+#define ICAREX_brown      CLITERAL(Color){139,  69,   0,    0xFF}
+
+#define ICAREX_neongelb   CLITERAL(Color){199,  255,  0,    0xFF}
+#define ICAREX_neonorange CLITERAL(Color){255,  65,   0,    0xFF}
+#define ICAREX_neongrün   CLITERAL(Color){0,    255,  0,    0xFF}
+
+
 #define TKBC_UI_WHITE ColorBrightness(WHITE, 0)
 #define TKBC_UI_SKYBLUE ColorBrightness(SKYBLUE, 0)
 #define TKBC_UI_PURPLE ColorBrightness(PURPLE, 0)
