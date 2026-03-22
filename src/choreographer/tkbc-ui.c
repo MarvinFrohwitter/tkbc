@@ -1150,7 +1150,7 @@ key_skip:
   color_circle.x = left_circle_center;
   color_circle.y += 2 * color_circle_radius + padding;
 
-  Color colors[] = {
+  static Color colors[] = {
       // LIGHTGRAY,
       // GRAY,
       // DARKGRAY,
