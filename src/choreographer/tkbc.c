@@ -78,7 +78,7 @@ Env *tkbc_init_env(void) {
     tkbc_dap(&env->favorite_colors, BLANK);
   }
 
-  env->last_selected_color = GetColor(0x008080FF);
+  env->last_selected_color = tkbc_uint32_t_to_color(0x008080FF);
   env->color_picker_input_text[0] = '#';
 
 #define estimated_script_count 10

@@ -855,8 +855,8 @@ key_skip:
   DrawRectangleRec(cursor, TKBC_UI_BLACK);
 
   if (strlen(env->color_picker_input_text) == HEX_COLOR_LENGTH + 1) {
-    env->last_selected_color =
-        GetColor(strtoull(env->color_picker_input_text + 1, NULL, 16));
+    env->last_selected_color = tkbc_uint32_t_to_color(
+        strtoull(env->color_picker_input_text + 1, NULL, 16));
   }
 
   Rectangle color_box;
@@ -1173,35 +1173,14 @@ key_skip:
       // BROWN,
       // DARKBROWN,
       // MAGENTA,
-      // TEAL,
 
-      ICAREX_weiß,
-      ICAREX_hellgrau,
-      ICAREX_dunkelgrau,
-      ICAREX_schwarz,
-      ICAREX_rot,
-      ICAREX_orange,
-      ICAREX_gold,
-      ICAREX_gelb,
-      ICAREX_grün,
-      ICAREX_cedar,
-      ICAREX_teal,
-      ICAREX_caribbean,
-      ICAREX_slate,
-      ICAREX_hellblau,
-      ICAREX_blau,
-      ICAREX_dunkelblau,
-      ICAREX_plum,
-      ICAREX_aubergin,
-      ICAREX_milkalila1,
-      ICAREX_milkalila2,
-      ICAREX_lila,
-      ICAREX_rasberry,
-      ICAREX_zartrosa,
-      ICAREX_brown,
-      ICAREX_neongelb,
-      ICAREX_neonorange,
-      ICAREX_neongrün,
+      ICAREX_weiß,     ICAREX_hellgrau,   ICAREX_dunkelgrau, ICAREX_schwarz,
+      ICAREX_rot,      ICAREX_orange,     ICAREX_gold,       ICAREX_gelb,
+      ICAREX_grün,     ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
+      ICAREX_slate,    ICAREX_hellblau,   ICAREX_blau,       ICAREX_dunkelblau,
+      ICAREX_plum,     ICAREX_aubergin,   ICAREX_milkalila1, ICAREX_milkalila2,
+      ICAREX_lila,     ICAREX_rasberry,   ICAREX_zartrosa,   ICAREX_brown,
+      ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongrün,   TEAL,
   };
 
   for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
