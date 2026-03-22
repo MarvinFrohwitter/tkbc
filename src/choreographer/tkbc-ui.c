@@ -650,11 +650,11 @@ void tkbc_set_input_text_to_hex_color(char **text, Color color) {
 }
 
 void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
-  float opacities[] = {0.08f,  0.089f, 0.098f, 0.107f, 0.116f, 0.125f,
-                       0.134f, 0.143f, 0.152f, 0.161f, 0.170f, 0.179f,
-                       0.188f, 0.197f, 0.206f, 0.215f, 0.224f, 0.233f,
-                       0.242f, 0.251f, 0.260f, 0.269f, 0.278f, 0.287f,
-                       0.296f, 0.305f, 0.314f, 0.323f, 0.332f, 0.35f};
+  static float opacities[] = {0.08f,  0.089f, 0.098f, 0.107f, 0.116f, 0.125f,
+                              0.134f, 0.143f, 0.152f, 0.161f, 0.170f, 0.179f,
+                              0.188f, 0.197f, 0.206f, 0.215f, 0.224f, 0.233f,
+                              0.242f, 0.251f, 0.260f, 0.269f, 0.278f, 0.287f,
+                              0.296f, 0.305f, 0.314f, 0.323f, 0.332f, 0.35f};
 
   Rectangle orig_shadow = shadow;
   shadow.y += shadow.height / 8;
