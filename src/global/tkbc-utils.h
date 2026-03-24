@@ -689,10 +689,11 @@ float tkbc_get_frame_time() {
 
 #ifdef INCLUDE_RAYLIB
 /**
- * @brief [TODO:description]
+ * @brief The function computes how may bytes per pixel a pixel format needs.
  *
- * @param format [TODO:parameter]
- * @return [TODO:return]
+ * @param format The pixel format representation from raylib.
+ * @return How many bytes a particular format needs per pixel,
+ * for uncompressed formats 0 is returned, in an unknown case -1 is returned.
  */
 static int bytes_per_pixel_from_format(PixelFormat format) {
   switch (format) {
@@ -737,11 +738,11 @@ static int bytes_per_pixel_from_format(PixelFormat format) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief Checks if the given two images have the same data.
  *
- * @param a [TODO:parameter]
- * @param b [TODO:parameter]
- * @return [TODO:return]
+ * @param a The first image.
+ * @param b The second image.
+ * @return True if the images are the same, otherwise false.
  */
 bool tkbc_is_same_image(Image a, Image b) {
   if (a.data == NULL || b.data == NULL)
@@ -816,10 +817,10 @@ bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function converts a given Color struct to a uint32_t.
  *
- * @param color [TODO:parameter]
- * @return [TODO:return]
+ * @param color The color to convert.
+ * @return The integer representation of the color packed in 4 bytes.
  */
 uint32_t tkbc_color_to_uint32_t(Color color) {
   uint32_t c = ((uint32_t)color.r << 24) | ((uint32_t)color.g << 16) |
@@ -829,10 +830,11 @@ uint32_t tkbc_color_to_uint32_t(Color color) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function unpacks the given color from a uint32_t to the Color
+ * type.
  *
- * @param color [TODO:parameter]
- * @return [TODO:return]
+ * @param color The color represented as a 4 byte integer.
+ * @return The unpacked color information for the 4 bytes.
  */
 Color tkbc_uint32_t_to_color(uint32_t color) {
   Color c;
