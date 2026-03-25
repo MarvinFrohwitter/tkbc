@@ -5,6 +5,7 @@
 #include "../global/tkbc-utils.h"
 #include "tkbc-servers-common.h"
 
+#include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -66,8 +67,9 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
 #ifndef TKBC_SERVER
   // NOTE if the new designed texture was not send to the other client the
   // client has a smaller textures.count,
-  assert(kite_textures.count >= (size_t)texture_id);
-  tkbc_set_kite_texture(state->kite, &kite_textures.elements[texture_id]);
+  Kite_Texture *kite_texture = tkbc_find_asset_in_kite_textures(texture_id);
+  assert(kite_texture != NULL);
+  tkbc_set_kite_texture(state->kite, kite_texture);
 #endif
 
   tkbc_kite_update_internal(state->kite);
@@ -84,8 +86,8 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
  * @return 1 if the kite values can be parsed out of the data the lexer
  * contains and is updated, 2 every thing like 1 but the assigned texture is
  * KITE_COLORIZER because the parsed texture was not available, if the kite
- * values are parsed not updated -1 is returned and 0 is returned if the parsing
- * has failed and no updates were made.
+ * values are parsed not updated -1 is returned and 0 is returned if the
+ * parsing has failed and no updates were made.
  */
 int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id,
                                  size_t *parsed_id) {
@@ -116,12 +118,15 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id,
 
   // Append it
   if (texture_id == -1) {
-    tkbc_append_kite_image(texture_data, texture_width, texture_height,
-                           texture_format);
-    texture_id = kite_images.count - 1;
+    texture_id = tkbc_append_kite_image(texture_data, texture_width,
+                                        texture_height, texture_format);
+#ifndef TKBC_SERVER
+    tkbc_append_kite_texture(kite_images.elements[kite_images.count - 1]);
+#endif
   }
 
-  if (texture_id >= (ssize_t)kite_images.count) {
+  bool found = tkbc_find_asset_id_in_kite_images(texture_id);
+  if (!found && texture_id != -1) {
     texture_id = KITE_COLORIZER;
     ok = 2;
   }
@@ -156,14 +161,16 @@ check:
  * @return [TODO:return]
  */
 bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
-                      size_t *width, size_t *height, size_t *format) {
+                      size_t *width, size_t *height, size_t *format,
+                      size_t *texture_id) {
   bool ok = true;
   Token token;
+
   token = lexer_next(lexer);
   if (token.kind != NUMBER) {
     return false;
   }
-  *width = atoi(lexer_token_to_cstr(lexer, &token));
+  *texture_id = atoll(lexer_token_to_cstr(lexer, &token));
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     return false;
@@ -173,7 +180,7 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
   if (token.kind != NUMBER) {
     return false;
   }
-  *height = atoi(lexer_token_to_cstr(lexer, &token));
+  *width = atoll(lexer_token_to_cstr(lexer, &token));
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     return false;
@@ -183,7 +190,17 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
   if (token.kind != NUMBER) {
     return false;
   }
-  *format = atoi(lexer_token_to_cstr(lexer, &token));
+  *height = atoll(lexer_token_to_cstr(lexer, &token));
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    return false;
+  }
+
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER) {
+    return false;
+  }
+  *format = atoll(lexer_token_to_cstr(lexer, &token));
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     return false;
@@ -203,7 +220,8 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
         check_return(false);
       }
 
-      uint32_t color_number = atoll(lexer_token_to_cstr(lexer, &token));
+      uint32_t color_number =
+          strtoull(lexer_token_to_cstr(lexer, &token), NULL, 10);
       memcpy(*data + offset, &color_number, sizeof(color_number));
 
       token = lexer_next(lexer);
@@ -361,7 +379,7 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
     }
     tkbc_dapc(&buffer, token.content, token.size);
     tkbc_dap(&buffer, 0);
-    *texture_id = atof(buffer.elements);
+    *texture_id = atoll(buffer.elements);
     buffer.count = 0;
 
     token = lexer_next(lexer);
@@ -371,8 +389,9 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
   }
 
   if (*texture_id == -1) {
+    Id id; // Throw away. This is the id where the client stores the image.
     if (!tkbc_parse_image(lexer, data_space, texture_data, texture_width,
-                          texture_height, texture_format)) {
+                          texture_height, texture_format, &id)) {
       check_return(false);
     }
   }
@@ -408,8 +427,8 @@ check:
 }
 
 /**
- * @brief The function tries to find \r\n in the message starting form the given
- * position without allocation in message the same way strstr does it.
+ * @brief The function tries to find \r\n in the message starting form the
+ * given position without allocation in message the same way strstr does it.
  *
  * @param message The message structure the should hold the data.
  * @param position The position from where the search should start.

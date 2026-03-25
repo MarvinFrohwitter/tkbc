@@ -49,6 +49,7 @@ Message t_message = {0}; // The elements ptr is allocated inside of the t_space.
 
 Space kite_images_space;
 Kite_Images kite_images;
+size_t textures_id_mapper;
 
 // Space kite_textures_space;   // This should not be used just for declaration
 // Kite_Textures kite_textures; // This should not be used just for declaration
@@ -803,13 +804,17 @@ bool tkbc_received_message_handler(Client *client) {
       size_t width, height, format;
       Space *data_space = space_get_tspace();
       unsigned char *data = NULL;
+      size_t texture_id;
 
-      if (!tkbc_parse_image(lexer, data_space, &data, &width, &height,
-                            &format)) {
+      if (!tkbc_parse_image(lexer, data_space, &data, &width, &height, &format,
+                            &texture_id)) {
         goto err;
       }
 
-      tkbc_append_kite_image(data, width, height, format);
+      bool found = tkbc_find_asset_id_in_kite_images(texture_id);
+      if (!found) {
+        tkbc_append_kite_image(data, width, height, format);
+      }
       space_reset_tspace();
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE\n");
@@ -819,22 +824,23 @@ bool tkbc_received_message_handler(Client *client) {
       if (token.kind != NUMBER) {
         goto err;
       }
-      ssize_t texture_id = atoi(lexer_token_to_cstr(lexer, &token));
+      ssize_t texture_id = atoll(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         goto err;
       }
 
-      if ((ssize_t)kite_images.count <= texture_id || texture_id == -1) {
+      Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
+      if (kite_image == NULL) {
         goto err;
       }
 
-      Image image = kite_images.elements[texture_id].normal;
       space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
                  "%d:", MESSAGE_SEND_TEXTURE);
 
       tkbc_message_append_image_data(&client->send_msg_buffer_space,
-                                     &client->send_msg_buffer, image);
+                                     &client->send_msg_buffer,
+                                     kite_image->normal, kite_image->id);
 
       space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
                  "\r\n");
@@ -879,16 +885,26 @@ bool tkbc_received_message_handler(Client *client) {
               &texture_width, &texture_height, &texture_format, data_space,
               &texture_data, &is_reversed, &is_active)) {
 
+        space_reset_tspace();
         goto err;
       }
 
       Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
       if (texture_id == -1) {
-        tkbc_append_kite_image(texture_data, texture_width, texture_height,
-                               texture_format);
-        texture_id = kite_images.count - 1;
+        Id id = tkbc_append_kite_image(texture_data, texture_width,
+                                       texture_height, texture_format);
+        texture_id = id;
         state->kite->texture_id = texture_id;
         space_reset_tspace();
+      }
+
+      // TEXTURE lager and Unknown
+      bool found = tkbc_find_asset_id_in_kite_images(texture_id);
+      if (!found) {
+        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
+                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
+        texture_id = KITE_COLORIZER;
+        state->kite->texture_id = texture_id;
       }
 
       // Consider disconnecting the client if the client is not found by its
@@ -897,13 +913,6 @@ bool tkbc_received_message_handler(Client *client) {
       // available. No memory corruption on the server side implied.
       tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id,
                                       is_reversed, is_active);
-
-      // TEXTURE lager and Unknown
-      if ((ssize_t)kite_images.count <= texture_id) {
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
-                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
-        state->kite->texture_id = KITE_COLORIZER;
-      }
 
       if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
               kite_id)) {

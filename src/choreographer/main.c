@@ -33,6 +33,7 @@ Space kite_images_space = {0};
 Kite_Images kite_images = {0};
 Space kite_textures_space = {0};
 Kite_Textures kite_textures = {0};
+size_t textures_id_mapper;
 
 /**
  * @brief The main function that handles the event loop.
@@ -99,9 +100,9 @@ int main(void) {
       tkbc_input_handler_script(env);
     }
 
-      // The end of the current frame has to be executed so ffmpeg gets the full
-      // executed fame.
-      tkbc_ffmpeg_handler(env, "output.mp4");
+    // The end of the current frame has to be executed so ffmpeg gets the full
+    // executed fame.
+    tkbc_ffmpeg_handler(env, "output.mp4");
   };
 
   tkbc_sound_destroy(env->sound);

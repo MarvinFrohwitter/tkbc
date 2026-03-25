@@ -70,6 +70,7 @@ Space kite_images_space = {0};
 Kite_Images kite_images = {0};
 Space kite_textures_space = {0};
 Kite_Textures kite_textures = {0};
+size_t textures_id_mapper;
 
 /**
  * @brief The function prints the way the program should be called.
@@ -391,24 +392,25 @@ bool received_message_handler(Message *message) {
       if (token.kind != NUMBER) {
         goto err;
       }
-      ssize_t texture_id = atoi(lexer_token_to_cstr(lexer, &token));
+      ssize_t texture_id = atoll(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         goto err;
       }
 
-      if ((ssize_t)kite_images.count <= texture_id || texture_id == -1) {
+      Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
+      if (kite_image == NULL) {
         // Can not provide texture.
         goto err;
       }
 
       { // TODO: Factor out it is the same in the server.
-        Image image = kite_images.elements[texture_id].normal;
         space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                    "%d:", MESSAGE_SEND_TEXTURE);
 
         tkbc_message_append_image_data(&client.send_msg_buffer_space,
-                                       &client.send_msg_buffer, image);
+                                       &client.send_msg_buffer,
+                                       kite_image->normal, kite_image->id);
 
         space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                    "\r\n");
@@ -421,15 +423,19 @@ bool received_message_handler(Message *message) {
       size_t width, height, format;
       Space *data_space = space_get_tspace();
       unsigned char *data = NULL;
+      size_t texture_id;
 
-      if (!tkbc_parse_image(lexer, data_space, &data, &width, &height,
-                            &format)) {
+      if (!tkbc_parse_image(lexer, data_space, &data, &width, &height, &format,
+                            &texture_id)) {
         goto err;
       }
 
-      tkbc_append_kite_image(data, width, height, format);
-      Kite_Image kite_image = kite_images.elements[kite_images.count - 1];
-      tkbc_append_kite_texture(kite_image);
+      Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
+      if (!kite_image) {
+        tkbc_append_kite_image(data, width, height, format);
+        Kite_Image kite_image = kite_images.elements[kite_images.count - 1];
+        tkbc_append_kite_texture(kite_image);
+      }
       space_reset_tspace();
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE\n");
@@ -451,13 +457,15 @@ bool received_message_handler(Message *message) {
       }
       // Negative values should not be send by the server. The serer should
       // always send a valid texture_id.
-      size_t texture_id = atoi(lexer_token_to_cstr(lexer, &token));
+      ssize_t texture_id = atoll(lexer_token_to_cstr(lexer, &token));
+      assert(texture_id != -1);
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         goto err;
       }
 
-      if (kite_textures.count <= texture_id) {
+      Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
+      if (kite_image == NULL) {
         // The message is split to allow getting a texture by its own at some
         // point. Maybe this is never needed, but it can be useful when a client
         // want to get all the available textures in the server.
@@ -496,10 +504,12 @@ bool received_message_handler(Message *message) {
               lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
               &texture_width, &texture_height, &texture_format, data_space,
               &texture_data, &is_reversed, &is_active)) {
+        space_reset_tspace();
         goto err;
       }
 
-      if (texture_id >= (ssize_t)kite_images.count) {
+      Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
+      if (!kite_image && texture_id != -1) {
         space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                    "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
 
@@ -511,11 +521,10 @@ bool received_message_handler(Message *message) {
       }
 
       if (texture_id == -1) {
-        tkbc_append_kite_image(texture_data, texture_width, texture_height,
-                               texture_format);
+        Id id = tkbc_append_kite_image(texture_data, texture_width,
+                                       texture_height, texture_format);
         tkbc_append_kite_texture(kite_images.elements[kite_images.count - 1]);
-
-        texture_id = kite_images.count - 1;
+        texture_id = id;
       }
       space_reset_tspace();
 
@@ -638,10 +647,12 @@ bool received_message_handler(Message *message) {
                 lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
                 &texture_width, &texture_height, &texture_format, data_space,
                 &texture_data, &is_reversed, &is_active)) {
+          space_reset_tspace();
           goto err;
         }
 
-        if (texture_id >= (ssize_t)kite_images.count) {
+        Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
+        if (!kite_image && texture_id != -1) {
           space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                      "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
 
@@ -653,11 +664,11 @@ bool received_message_handler(Message *message) {
         }
 
         if (texture_id == -1) {
-          tkbc_append_kite_image(texture_data, texture_width, texture_height,
-                                 texture_format);
+          Id id = tkbc_append_kite_image(texture_data, texture_width,
+                                         texture_height, texture_format);
           tkbc_append_kite_texture(kite_images.elements[kite_images.count - 1]);
 
-          texture_id = kite_images.count - 1;
+          texture_id = id;
         }
 
         space_reset_tspace();

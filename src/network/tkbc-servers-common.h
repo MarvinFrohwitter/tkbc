@@ -13,6 +13,7 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include "../../external/space/space.h"
+#include "../choreographer/tkbc-asset-handler.h"
 #include "../choreographer/tkbc-ui.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
@@ -213,12 +214,13 @@ static inline int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   return socket_id;
 }
 
-static inline void
-tkbc_message_append_image_data(Space *space, Message *message, Image image) {
+static inline void tkbc_message_append_image_data(Space *space,
+                                                  Message *message, Image image,
+                                                  Id id) {
   size_t width = image.width;
   size_t height = image.height;
   size_t format = image.format;
-  space_dapf(space, message, "%zu:%zu:%zu:", width, height, format);
+  space_dapf(space, message, "%zu:%zu:%zu:%zu:", id, width, height, format);
   for (size_t y = 0; y < height; y++) {
     for (size_t x = 0; x < width; x++) {
       Color c = *(Color *)tkbc_get_position_in_image(image, x, y);
@@ -255,8 +257,9 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
 
     // NOTE: This is not nasally the KITE_COLORIZER position.
     assert(kite_images.count != 0);
-    Image image = kite_images.elements[kite_images.count - 1].normal;
-    tkbc_message_append_image_data(space, message, image);
+    Kite_Image *kite_image = &kite_images.elements[kite_images.count - 1];
+    tkbc_message_append_image_data(space, message, kite_image->normal,
+                                   kite_image->id);
     kite_state->kite->is_texture_new = false;
   } else {
     space_dapf(space, message, "%zd:", texture_id);

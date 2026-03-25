@@ -11,13 +11,15 @@ extern Kite_Images kite_images;
 extern Space kite_textures_space;
 extern Kite_Textures kite_textures;
 
+extern size_t textures_id_mapper;
+
 #include "../../assets/combind_assets.h"
 #include "tkbc-asset-handler.h"
 
 // Save and load kite designs from config files.
 
-void tkbc_append_kite_image(unsigned char *data, int width, int height,
-                            int format) {
+Id tkbc_append_kite_image(unsigned char *data, int width, int height,
+                          int format) {
   Image image_normal = {
       .data = data,
       .width = width,
@@ -30,11 +32,14 @@ void tkbc_append_kite_image(unsigned char *data, int width, int height,
   Image image_flipped = ImageCopy(image_normal);
   ImageFlipHorizontal(&image_flipped);
 
+  size_t id = textures_id_mapper++;
   space_dap(&kite_images_space, &kite_images,
             ((Kite_Image){
                 .normal = image_normal,
                 .flipped = image_flipped,
+                .id = id,
             }));
+  return id;
 }
 
 void append_assets() {
@@ -139,6 +144,8 @@ void tkbc_append_kite_texture(Kite_Image kite_image) {
             ((Kite_Texture){
                 .normal = LoadTextureFromImage(kite_image.normal),
                 .flipped = LoadTextureFromImage(kite_image.flipped),
+
+                .id = kite_image.id,
             }));
 }
 
@@ -191,4 +198,44 @@ void tkbc_assets_destroy_kite_images() {
   }
 }
 
+// TODO: Rename when combining Kite_Image and Kite_Texture to one asset type
+bool tkbc_find_asset_id_in_kite_images(ssize_t id) {
+  if (id == -1) {
+    return false;
+  }
+  for (size_t i = 0; i < kite_images.count; ++i) {
+    if (kite_images.elements[i].id == (Id)id) {
+      return true;
+    }
+  }
+  return false;
+}
 
+// TODO: Rename when combining Kite_Image and Kite_Texture to one asset type
+Kite_Image *tkbc_find_asset_in_kite_images(ssize_t id) {
+  if (id == -1) {
+    return false;
+  }
+  for (size_t i = 0; i < kite_images.count; ++i) {
+    if (kite_images.elements[i].id == (Id)id) {
+      return &kite_images.elements[i];
+    }
+  }
+  return NULL;
+}
+
+#ifndef TKBC_SERVER
+// TODO: Rename when combining Kite_Image and Kite_Texture to one asset type
+Kite_Texture *tkbc_find_asset_in_kite_textures(ssize_t id) {
+  if (id == -1) {
+    return false;
+  }
+  for (size_t i = 0; i < kite_textures.count; ++i) {
+    if (kite_textures.elements[i].id == (Id)id) {
+      return &kite_textures.elements[i];
+    }
+  }
+  return NULL;
+}
+
+#endif

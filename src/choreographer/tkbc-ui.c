@@ -14,6 +14,7 @@
 
 #include "tkbc-asset-handler.h"
 
+extern size_t textures_id_mapper;
 extern Space kite_textures_space;
 extern Kite_Textures kite_textures;
 
@@ -33,15 +34,17 @@ void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
   ImageColorReplace(&kite_image->flipped, old, replace);
 }
 
-Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image) {
+Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image, Id *new_id) {
   Image image = kite_image.normal;
-  tkbc_append_kite_image(image.data, image.width, image.height, image.format);
+  *new_id = tkbc_append_kite_image(image.data, image.width, image.height,
+                                   image.format);
 
   return &kite_images.elements[kite_images.count - 1];
 }
 
-Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image) {
-  Kite_Image *new_kite_image = tkbc_copy_kite_image(kite_image);
+Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image,
+                                                       Id *new_id) {
+  Kite_Image *new_kite_image = tkbc_copy_kite_image(kite_image, new_id);
   tkbc_append_kite_texture(*new_kite_image);
   return &kite_textures.elements[kite_textures.count - 1];
 }
@@ -1091,17 +1094,21 @@ key_skip:
 
             Kite_Texture *new_kite_texture = &kite_textures.elements[i];
             if (!same) {
+              Id new_id;
               new_kite_texture = tkbc_generate_new_kite_image_and_texture(
-                  kite_images.elements[i]);
-              tkbc_set_texture_for_selected_kites(env, new_kite_texture, -1);
+                  kite_images.elements[i], &new_id);
+              tkbc_set_texture_for_selected_kites(env, new_kite_texture, new_id,
+                                                  true);
             } else {
               tkbc_set_texture_for_selected_kites(
-                  env, &kite_textures.elements[i], i);
+                  env, &kite_textures.elements[i], kite_textures.elements[i].id,
+                  false);
             }
 
           } else {
             tkbc_set_texture_for_selected_kites(env, &kite_textures.elements[i],
-                                                i);
+                                                kite_textures.elements[i].id,
+                                                false);
 
             // Note just for the kites designed by the colorizer
             // The other ones do not fit because thy are blury and you kinda
@@ -1232,20 +1239,17 @@ void tkbc_set_color_for_selected_kites(Env *env, Color color) {
  * @param texture_id The id that represents the kite_texture and is assigned
  * to all the selected kites in the kite array, when -1 the last appended
  * texture slot is set for the texture_id.
+ * @param is_texture_new Describes whenever the  texture is newly generated
+ * right before.
  */
 void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
-                                         ssize_t texture_id) {
+                                         ssize_t texture_id,
+                                         bool is_texture_new) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].is_kite_input_handler_active) {
       tkbc_set_kite_texture(env->kite_array->elements[i].kite, kite_texture);
-      if (texture_id == -1) {
-        env->kite_array->elements[i].kite->texture_id = kite_textures.count - 1;
-        env->kite_array->elements[i].kite->is_texture_new = true;
-
-      } else {
-        env->kite_array->elements[i].kite->texture_id = texture_id;
-        env->kite_array->elements[i].kite->is_texture_new = false;
-      }
+      env->kite_array->elements[i].kite->texture_id = texture_id;
+      env->kite_array->elements[i].kite->is_texture_new = is_texture_new;
     }
   }
 }

@@ -70,14 +70,21 @@ typedef enum {
   SELECT_PANEL,
 } Colorizer_Mode;
 
+typedef size_t Index; // NOTE: Check for clang compiler issue in project.
+typedef size_t Id;    // NOTE: Check for clang compiler issue in project.
+
 typedef struct {
   Image normal;
   Image flipped;
+
+  Id id;
 } Kite_Image;
 
 typedef struct {
   Texture2D normal;
   Texture2D flipped;
+
+  Id id;
 } Kite_Texture;
 
 typedef struct {
@@ -204,8 +211,6 @@ typedef struct { // A representation for an internal kite geometric.
   Vector2 v3;
 } Triangle;
 
-typedef size_t Index; // NOTE: Check for clang compiler issue in project.
-typedef size_t Id;    // NOTE: Check for clang compiler issue in project.
 typedef struct {
   Id kite_id;       // The universal id that is associated with one kite.
   Vector2 position; // The position that is located at the center of the top
