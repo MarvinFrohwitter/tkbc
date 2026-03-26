@@ -24,6 +24,8 @@
 #include "tkbc-network-common.h"
 #include "tkbc-servers-common.h"
 
+#include "messages/tkbc-messages.h"
+
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 #undef TKBC_UTILS_IMPLEMENTATION
@@ -820,32 +822,11 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE\n");
     } break;
     case MESSAGE_GET_TEXTURE: {
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
-        goto err;
-      }
-      ssize_t texture_id = atoll(lexer_token_to_cstr(lexer, &token));
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
+      if (!tkbc_messages_get_texture(lexer, client)) {
         goto err;
       }
 
-      Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
-      if (kite_image == NULL) {
-        goto err;
-      }
-
-      space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
-                 "%d:", MESSAGE_SEND_TEXTURE);
-
-      tkbc_message_append_image_data(&client->send_msg_buffer_space,
-                                     &client->send_msg_buffer,
-                                     kite_image->normal, kite_image->id);
-
-      space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
-                 "\r\n");
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "MESSAGE_GET_TEXTURE\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE\n");
     } break;
     case MESSAGE_GET_TEXTURE_ID: {
       // The client can request a texture id for a kite;
@@ -868,7 +849,7 @@ bool tkbc_received_message_handler(Client *client) {
                  "%d:%zu:%zu:\r\n", MESSAGE_SEND_TEXTURE_ID, kite_id,
                  kite->texture_id);
 
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "MESSAGE_GET_TEXTURE_ID\n");
+      tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE_ID\n");
     } break;
     case MESSAGE_SINGLE_KITE_UPDATE: {
       size_t kite_id;
@@ -922,31 +903,6 @@ bool tkbc_received_message_handler(Client *client) {
       state->kite->is_texture_new = false;
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
-    } break;
-
-      // UNUSED:
-      // Think about textures when using it in the server all the textures
-      // should be known. So it is not a problem.
-    case MESSAGE_KITES_POSITIONS: {
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
-        goto err;
-      }
-      size_t kite_count = atoi(lexer_token_to_cstr(lexer, &token));
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        goto err;
-      }
-
-      size_t parsed_kite_id;
-      for (size_t id = 0; id < kite_count; ++id) {
-        if (!tkbc_parse_single_kite_value(lexer, -1, &parsed_kite_id)) {
-          goto err;
-        }
-        tkbc_message_clientkites_write_to_all_send_msg_buffers();
-      }
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS\n");
     } break;
     case MESSAGE_KITES_POSITIONS_RESET: {
       // All parsing is already done above.

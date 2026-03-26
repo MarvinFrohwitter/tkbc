@@ -48,7 +48,7 @@ typedef struct sockaddr SOCKADDR;
 typedef socklen_t SOCKLEN;
 #endif //_WIN32
 
-#include "tkbc-interface.h"
+#include "messages/tkbc-interface.h"
 
 typedef struct {
   char *elements;

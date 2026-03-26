@@ -1,3 +1,5 @@
+#ifndef TKBC_INTERFACE_H
+#define TKBC_INTERFACE_H
 // name : kind : data
 typedef enum {
   MESSAGE_ZERO = 0,
@@ -14,7 +16,6 @@ typedef enum {
 
   MESSAGE_CLIENTKITES, // From server to client in the beginning to inform the
                        // client about all kites and when a script is running.
-  MESSAGE_KITES_POSITIONS,
   MESSAGE_KITES_POSITIONS_RESET,
 
   MESSAGE_SCRIPT,
@@ -82,15 +83,6 @@ typedef enum {
  *
  *****
  * MESSAGE_CLIENTKITES:active_count:[kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:]^*\r\n
- *****
- */
-
-/**
- *
- * MESSAGE_KITES_POSITIONS: UNUSED
- *
- *****
- * MESSAGE_KITES_POSITIONS:kite_array->count:[kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:]^*\r\n
  *****
  */
 
@@ -189,3 +181,5 @@ typedef enum {
  * MESSAGE_SCRIPT_FINISHED:\r\n
  *****
  */
+
+#endif // TKBC_INTERFACE_H

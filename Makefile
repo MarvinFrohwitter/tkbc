@@ -35,14 +35,14 @@ options:
 server: poll-server
 
 poll-server: build
-	${CC} ${INCLUDE} ${CFLAGS} -DTKBC_SERVER -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES_SERVER} ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -DTKBC_SERVER -o build/poll-server src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES_SERVER} src/network/messages/*.c ${LIBS}
 	cp -v build/poll-server build/server
 
 poll-server-win64: build first.o
-	x86_64-w64-mingw32-gcc -DRELEASE -DTKBC_SERVER -Wall -Wextra -O3 -static -mwindows -DINCLUDE_RAYLIB -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/poll-server-win64 src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES_SERVER} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lws2_32 -lwinmm
+	x86_64-w64-mingw32-gcc -DRELEASE -DTKBC_SERVER -Wall -Wextra -O3 -static -mwindows -DINCLUDE_RAYLIB -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/poll-server-win64 src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES_SERVER} src/network/messages/*.c -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lws2_32 -lwinmm
 
 client: build first.o
-	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${FILES} ${LIBS}
+	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c src/network/messages/*.c ${FILES} ${LIBS}
 
 
 tkbc: build first.o
@@ -56,7 +56,7 @@ tkbc-win64: build
 	x86_64-w64-mingw32-gcc -DINCLUDE_RAYLIB -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o ./build/tkbc-win64 ./src/choreographer/*.c  -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32
 
 client-win64: build first.o
-	x86_64-w64-mingw32-gcc -DINCLUDE_RAYLIB -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/client-win64 src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${FILES} -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32 -lws2_32
+	x86_64-w64-mingw32-gcc -DINCLUDE_RAYLIB -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-5.5_win64_mingw-w64/include/ -o build/client-win64 src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${FILES} src/network/messages/*.c -L ./external/raylib-5.5_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32 -lws2_32
 
 build:
 	mkdir -p build

@@ -8,6 +8,8 @@
 #include "tkbc-client.h"
 #include "tkbc-network-common.h"
 
+#include "messages/tkbc-messages.h"
+
 #include <raylib.h>
 #include <raymath.h>
 
@@ -388,32 +390,8 @@ bool received_message_handler(Message *message) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
     case MESSAGE_GET_TEXTURE: {
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
+      if (!tkbc_messages_get_texture(lexer, &client)) {
         goto err;
-      }
-      ssize_t texture_id = atoll(lexer_token_to_cstr(lexer, &token));
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        goto err;
-      }
-
-      Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
-      if (kite_image == NULL) {
-        // Can not provide texture.
-        goto err;
-      }
-
-      { // TODO: Factor out it is the same in the server.
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                   "%d:", MESSAGE_SEND_TEXTURE);
-
-        tkbc_message_append_image_data(&client.send_msg_buffer_space,
-                                       &client.send_msg_buffer,
-                                       kite_image->normal, kite_image->id);
-
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                   "\r\n");
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE\n");
@@ -1050,22 +1028,6 @@ void tkbc_client_file_handler() {
 
     env->kite_array->count = prev_kite_array_count;
   }
-}
-
-/**
- * @brief The function constructs a message KITES_POSITIONS and append it to the
- * send_message_queue.
- */
-void tkbc_message_kites_positions() {
-  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-             "%d:%zu:", MESSAGE_KITES_POSITIONS, env->kite_array->count);
-
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    Kite_State *kite_state = &env->kite_array->elements[i];
-    tkbc_message_append_kite(kite_state, &client.send_msg_buffer,
-                             &client.send_msg_buffer_space);
-  }
-  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
 }
 
 /**
