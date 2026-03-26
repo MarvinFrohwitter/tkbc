@@ -771,24 +771,11 @@ bool tkbc_received_message_handler(Client *client) {
     }
 
     message->i = lexer->position - digits_count_of_kind - 1;
-    static_assert(MESSAGE_COUNT == 21, "NEW MESSAGE_COUNT WAS INTRODUCED");
+    static_assert(MESSAGE_COUNT == 20, "NEW MESSAGE_COUNT WAS INTRODUCED");
     switch (kind) {
     case MESSAGE_HELLO: {
-      token = lexer_next(lexer);
-      if (token.kind != STRINGLITERAL) {
-        check_return(false);
-      }
-
-      const char *greeting =
-          "\"Hello server from client!" PROTOCOL_VERSION "\"";
-      const char *compare = lexer_token_to_cstr(lexer, &token);
-      if (strncmp(compare, greeting, strlen(greeting)) != 0) {
-        tkbc_fprintf(stderr, "ERROR", "Hello message failed!\n");
-        tkbc_fprintf(stderr, "ERROR", "Wrong protocol version!\n");
-        check_return(false);
-      }
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
+      if (!tkbc_messages_hello_verification(
+              lexer, "\"Hello server from client!" PROTOCOL_VERSION "\"")) {
         check_return(false);
       }
 
@@ -802,22 +789,9 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
     case MESSAGE_SEND_TEXTURE: {
-
-      size_t width, height, format;
-      Space *data_space = space_get_tspace();
-      unsigned char *data = NULL;
-      size_t texture_id;
-
-      if (!tkbc_parse_image(lexer, data_space, &data, &width, &height, &format,
-                            &texture_id)) {
+      if (!tkbc_messages_send_texture(lexer)) {
         goto err;
       }
-
-      bool found = tkbc_find_asset_id_in_kite_images(texture_id);
-      if (!found) {
-        tkbc_append_kite_image(data, width, height, format);
-      }
-      space_reset_tspace();
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE\n");
     } break;
