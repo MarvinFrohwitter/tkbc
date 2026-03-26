@@ -60,10 +60,11 @@ typedef enum {
 
 /**
  *
- * MESSAGE_SINGLE_KITE_ADD:
+ * MESSAGE_SINGLE_KITE_ADD: Server notifies all clients about a new kite.
+ * When texture_id is -1, inline image data is included.
  *
  *****
- * MESSAGE_SINGLE_KITE_ADD:kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:\r\n
+ * MESSAGE_SINGLE_KITE_ADD:kite_id:(x,y):angle:color:texture_id_or_-1:{id:width:height:format:{pixel_data}:}?is_reversed:is_active:\r\n
  *****
  */
 
@@ -79,10 +80,11 @@ typedef enum {
 /**
  *
  * MESSAGE_CLIENTKITES: From server to client in the beginning to inform the
- * client about all kites and when a acript is running.
+ * client about all kites and when a script is running. When texture_id is -1,
+ * inline image data is included.
  *
  *****
- * MESSAGE_CLIENTKITES:active_count:[kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:]^*\r\n
+ * MESSAGE_CLIENTKITES:active_count:[kite_id:(x,y):angle:color:texture_id_or_-1:{id:width:height:format:{pixel_data}:}?is_reversed:is_active:]^*\r\n
  *****
  */
 
@@ -97,10 +99,12 @@ typedef enum {
 
 /**
  *
- * MESSAGE_SINGLE_KITE_UPDATE: Duplicate?
+ * MESSAGE_SINGLE_KITE_UPDATE: Client sends kite position update to server.
+ * Server broadcasts to all other clients. When texture_id is -1, inline image
+ * data is included.
  *
  *****
- * MESSAGE_SINGLE_KITE_UPDATE:kite_id:(x,y):angle:color:texture_id:is_reversed:is_active:\r\n
+ * MESSAGE_SINGLE_KITE_UPDATE:kite_id:(x,y):angle:color:texture_id_or_-1:{id:width:height:format:{pixel_data}:}?is_reversed:is_active:\r\n
  *****
  */
 
@@ -179,6 +183,43 @@ typedef enum {
  *
  *****
  * MESSAGE_SCRIPT_FINISHED:\r\n
+ *****
+ */
+
+/**
+ *
+ * MESSAGE_GET_TEXTURE_ID:
+ *
+ *****
+ * MESSAGE_GET_TEXTURE_ID:kite_id:\r\n
+ *****
+ */
+
+/**
+ *
+ * MESSAGE_SEND_TEXTURE_ID:
+ *
+ *****
+ * MESSAGE_SEND_TEXTURE_ID:kite_id:texture_id:\r\n
+ *****
+ */
+
+/**
+ *
+ * MESSAGE_GET_TEXTURE:
+ * ID.
+ *
+ *****
+ * MESSAGE_GET_TEXTURE:texture_id:\r\n
+ *****
+ */
+
+/**
+ *
+ * MESSAGE_SEND_TEXTURE:
+ *
+ *****
+ * MESSAGE_SEND_TEXTURE:id:width:height:format:{pixel_data}:\r\n
  *****
  */
 
