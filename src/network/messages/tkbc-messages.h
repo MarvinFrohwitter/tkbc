@@ -9,5 +9,11 @@
 bool tkbc_messages_hello_verification(Lexer *lexer, const char *greeting);
 bool tkbc_messages_get_texture(Lexer *lexer, Client *client);
 bool tkbc_messages_send_texture(Lexer *lexer);
+bool tkbc_messages_send_texture_id(Env *env, Lexer *lexer, Client *client);
+bool tkbc_messages_get_texture_id(Lexer *lexer, Client *client);
+bool tkbc_messages_script_meta_data(Lexer *lexer);
+
+bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client,
+                                   Kite *client_kite);
 
 #endif // TKBC_MESSAGES_H

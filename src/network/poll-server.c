@@ -803,26 +803,9 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE\n");
     } break;
     case MESSAGE_GET_TEXTURE_ID: {
-      // The client can request a texture id for a kite;
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
+      if (!tkbc_messages_get_texture_id(lexer, client)) {
         goto err;
       }
-      size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        goto err;
-      }
-
-      Kite *kite = tkbc_get_kite_by_id(env, kite_id);
-      if (!kite) {
-        goto err;
-      }
-      assert(kite->texture_id != -1);
-      space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
-                 "%d:%zu:%zu:\r\n", MESSAGE_SEND_TEXTURE_ID, kite_id,
-                 kite->texture_id);
-
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE_ID\n");
     } break;
     case MESSAGE_SINGLE_KITE_UPDATE: {

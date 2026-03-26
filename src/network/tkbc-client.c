@@ -391,46 +391,8 @@ bool received_message_handler(Message *message) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE\n");
     } break;
     case MESSAGE_SEND_TEXTURE_ID: {
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
+      if (!tkbc_messages_send_texture_id(env, lexer, &client)) {
         goto err;
-      }
-      size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        goto err;
-      }
-
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
-        goto err;
-      }
-      // Negative values should not be send by the server. The serer should
-      // always send a valid texture_id.
-      ssize_t texture_id = atoll(lexer_token_to_cstr(lexer, &token));
-      assert(texture_id != -1);
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        goto err;
-      }
-
-      Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
-      if (kite_image == NULL) {
-        // The message is split to allow getting a texture by its own at some
-        // point. Maybe this is never needed, but it can be useful when a client
-        // want to get all the available textures in the server.
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
-
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID, kite_id);
-
-      } else {
-        // The kite_id should be present in the client, because it requested the
-        // texture_id with that kite_id before.
-        Kite *kite = tkbc_get_kite_by_id(env, kite_id);
-        assert(kite != NULL);
-        kite->texture_id = texture_id;
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE_ID\n");
@@ -441,60 +403,8 @@ bool received_message_handler(Message *message) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO_PASSED\n");
     } break;
     case MESSAGE_SINGLE_KITE_ADD: {
-      size_t kite_id;
-      float x, y, angle;
-      Color color;
-      bool is_reversed, is_active;
-      ssize_t texture_id;
-      size_t texture_width, texture_height, texture_format;
-      Space *data_space = space_get_tspace();
-      unsigned char *texture_data = NULL;
-
-      if (!tkbc_parse_message_kite_value(
-              lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
-              &texture_width, &texture_height, &texture_format, data_space,
-              &texture_data, &is_reversed, &is_active)) {
-        space_reset_tspace();
+      if (!tkbc_messages_single_kite_add(env, lexer, &client, &client_kite)) {
         goto err;
-      }
-
-      Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
-      if (!kite_image && texture_id != -1) {
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
-
-        // requested texture id
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID, kite_id);
-
-        texture_id = KITE_COLORIZER;
-      }
-
-      if (texture_id == -1) {
-        Id id = tkbc_append_kite_image(texture_data, texture_width,
-                                       texture_height, texture_format);
-        tkbc_append_kite_texture(kite_images.elements[kite_images.count - 1]);
-        texture_id = id;
-      }
-      space_reset_tspace();
-
-      tkbc_register_kite_from_values(kite_id, x, y, angle, color, texture_id,
-                                     is_reversed, is_active);
-
-      static bool first_message_kite_add = true;
-      if (first_message_kite_add) {
-        // This assumes the server sends the first SINGLE_KITE_ADD to the
-        // client, that contains his own kite;
-        if (client.kite_id == -1) {
-          client.kite_id = kite_id;
-        }
-
-        Kite_State *kite_state = tkbc_get_kite_state_by_id(env, kite_id);
-        if (kite_state) {
-          kite_state->is_kite_input_handler_active = true;
-          client_kite = *kite_state->kite;
-        }
-        first_message_kite_add = false;
       }
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_ADD\n");
@@ -529,41 +439,9 @@ bool received_message_handler(Message *message) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
     } break;
     case MESSAGE_SCRIPT_META_DATA: {
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
+      if (!tkbc_messages_script_meta_data(lexer)) {
         goto err;
       }
-      env->server_script_id = atoi(lexer_token_to_cstr(lexer, &token));
-
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        goto err;
-      }
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
-        goto err;
-      }
-
-      env->server_script_frames_count =
-          atoi(lexer_token_to_cstr(lexer, &token));
-
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        goto err;
-      }
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
-        goto err;
-      }
-
-      env->server_script_frames_index =
-          atoi(lexer_token_to_cstr(lexer, &token));
-
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        goto err;
-      }
-      env->script_finished = true;
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_META_DATA\n");
     } break;
@@ -852,8 +730,8 @@ void tkbc_client_input_handler_kite() {
 }
 
 /**
- * @brief The function appends the script found from the given script_id in the
- * scripts to the given message structure.
+ * @brief The function appends the script found from the given script_id in
+ * the scripts to the given message structure.
  *
  * @param script_id The script number the should be appended.
  * @return True if the script was found and is correctly appended, otherwise
@@ -1051,10 +929,10 @@ void tkbc_client_input_handler_script() {
 }
 
 /**
- * @brief The function is the entry point and sets up the client socket and the
- * connection to the server. The main event loop is created and managed. In
- * there message communication to server is handled as well as all the input
- * from the user.
+ * @brief The function is the entry point and sets up the client socket and
+ * the connection to the server. The main event loop is created and managed.
+ * In there message communication to server is handled as well as all the
+ * input from the user.
  *
  * @param argc The commandline argument count.
  * @param argv The arguments form the commandline.
