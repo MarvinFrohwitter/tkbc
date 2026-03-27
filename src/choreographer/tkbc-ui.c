@@ -22,18 +22,41 @@ extern Kite_Images kite_images;
 extern Space kite_images_space;
 #define HEX_COLOR_LENGTH 8
 
+/**
+ * @brief The function updates the GPU texture with new data from the kite
+ * image.
+ *
+ * @param kite_texture The texture to update.
+ * @param kite_image The image data to upload to the texture.
+ */
 void tkbc_update_kite_texture(Kite_Texture kite_texture,
                               Kite_Image kite_image) {
   UpdateTexture(kite_texture.normal, kite_image.normal.data);
   UpdateTexture(kite_texture.flipped, kite_image.flipped.data);
 }
 
+/**
+ * @brief The function replaces all occurrences of a color in the kite image
+ * with a new color.
+ *
+ * @param kite_image The kite image to modify.
+ * @param old The color to replace.
+ * @param replace The new color to use.
+ */
 void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
                                   Color replace) {
   ImageColorReplace(&kite_image->normal, old, replace);
   ImageColorReplace(&kite_image->flipped, old, replace);
 }
 
+/**
+ * @brief The function creates a copy of a kite image and adds it to the
+ * kite images collection.
+ *
+ * @param kite_image The kite image to copy.
+ * @param new_id Pointer to store the new id assigned to the copied image.
+ * @return Pointer to the newly created kite image.
+ */
 Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image, Id *new_id) {
   Image image = kite_image.normal;
   *new_id = tkbc_append_kite_image(image.data, image.width, image.height,
@@ -42,6 +65,14 @@ Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image, Id *new_id) {
   return &kite_images.elements[kite_images.count - 1];
 }
 
+/**
+ * @brief The function creates a new kite image and its corresponding texture
+ * from an existing kite image.
+ *
+ * @param kite_image The source kite image to copy.
+ * @param new_id Pointer to store the new id.
+ * @return Pointer to the newly created kite texture.
+ */
 Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image,
                                                        Id *new_id) {
   Kite_Image *new_kite_image = tkbc_copy_kite_image(kite_image, new_id);
@@ -49,6 +80,16 @@ Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image,
   return &kite_textures.elements[kite_textures.count - 1];
 }
 
+/**
+ * @brief The function dispatches the colorizer mode based on mouse and keyboard
+ * input. Different modes are activated depending on modifier keys and mouse
+ * buttons.
+ *
+ * @param env The global state of the application.
+ * @param image The image being colorized.
+ * @param collision_rec The bounding rectangle for the colorizer.
+ * @param scale The current view scale.
+ */
 void tkbc_dispatch_colorizer_mode(Env *env, Image image,
                                   Rectangle collision_rec, float scale) {
   if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) &&
@@ -61,6 +102,15 @@ void tkbc_dispatch_colorizer_mode(Env *env, Image image,
   }
 }
 
+/**
+ * @brief The function draws the colorizer panels including the kite texture
+ * view and color selection boxes.
+ *
+ * @param env The global state of the application.
+ * @param view_background The background rectangle for the view.
+ * @param view_scale Pointer to store the calculated view scale.
+ * @param color_box The rectangle for the color selection box.
+ */
 void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
                        Rectangle color_box) {
   Vector2 view;
@@ -102,11 +152,26 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
   }
 }
 
+/**
+ * @brief The function sets a single pixel in the colorizer kite image at the
+ * given position with the specified color.
+ *
+ * @param p The position of the pixel to set.
+ * @param replace The color to set at the position.
+ */
 void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace) {
   tkbc_set_single_pixel_in_kite_image(kite_images.elements[KITE_COLORIZER], p,
                                       replace);
 }
 
+/**
+ * @brief The function sets a single pixel in the kite image to the specified
+ * color. This is used for the colorizer tool in single pixel mode.
+ *
+ * @param kite_image The kite image to modify.
+ * @param p The position of the pixel to set.
+ * @param replace The color to set at the position.
+ */
 void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p,
                                          Color replace) {
   // For the normal
@@ -119,6 +184,17 @@ void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p,
   SetPixelColor(ptr, replace, kite_image.flipped.format);
 }
 
+/**
+ * @brief The function handles the colorizer tool which allows painting on
+ * kite images. It supports different modes: selecting colors, selecting
+ * panels, and painting single pixels.
+ *
+ * @param env The global state of the application.
+ * @param image The image being colorized.
+ * @param collision_rec The bounding rectangle for the colorizer.
+ * @param rec_scale The scale of the rectangle.
+ * @param mode The colorizer mode to use.
+ */
 void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
                     float rec_scale, Colorizer_Mode mode) {
 
@@ -267,6 +343,15 @@ void tkbc_draw_ui(Env *env) {
   }
 }
 
+/**
+ * @brief The function converts a screen position to a position within a
+ * scaled rectangle.
+ *
+ * @param rect The bounding rectangle.
+ * @param rectangle_scale The scale factor.
+ * @param pos The screen position to convert.
+ * @return The position within the scaled rectangle.
+ */
 Vector2 tkbc_get_position_in_rect(Rectangle rect, float rectangle_scale,
                                   Vector2 pos) {
   return (Vector2){
@@ -275,6 +360,13 @@ Vector2 tkbc_get_position_in_rect(Rectangle rect, float rectangle_scale,
   };
 }
 
+/**
+ * @brief The function gets the color from a specific position on the screen.
+ * It captures the screen and extracts the color at the given position.
+ *
+ * @param position The screen position to get the color from.
+ * @return The color at the specified position.
+ */
 Color tkbc_get_color_from_screen_position(Vector2 position) {
   int x = (int)position.x;
   int y = (int)position.y;
@@ -289,6 +381,12 @@ Color tkbc_get_color_from_screen_position(Vector2 position) {
   return color;
 }
 
+/**
+ * @brief The function handles post-update UI interactions that includes getting
+ * a color from a screen position after all draw calls are completed.
+ *
+ * @param env The global state of the application.
+ */
 void tkbc_ui_post_handler(Env *env) {
   env->color_picker_window_picking = false;
   if (env->script_setup) {
@@ -622,6 +720,12 @@ void tkbc_display_kite_information(Env *env) {
  * @param kite_state The kite for which the current speed values should be
  * displayed on the screen.
  */
+/**
+ * @brief The function displays information about the currently selected kite's
+ * speeds (fly and turn speed).
+ *
+ * @param kite_state The kite state to display information for.
+ */
 void tkbc_display_kite_information_speeds(Kite_State *kite_state) {
   char buf[64] = {0};
   sprintf(buf, "Turn Speed: %.0f \t Fly Speed: %.0f",
@@ -638,6 +742,13 @@ void tkbc_display_kite_information_speeds(Kite_State *kite_state) {
  * @return True if the given key would pass the isxdigit() function, otherwise
  * false.
  */
+/**
+ * @brief The function checks if a key is a valid hexadecimal digit.
+ *
+ * @param key The key code to check.
+ * @return True if the key is a valid hex digit (0-9, A-F, a-f), otherwise
+ * false.
+ */
 bool is_key_valid_part_of_hex_number(int key) {
   return (key >= KEY_ZERO && key <= KEY_NINE) || (key >= KEY_A && key <= KEY_F);
 }
@@ -649,11 +760,25 @@ bool is_key_valid_part_of_hex_number(int key) {
  * @param text The pointer where the string result should be stored.
  * @param color The structured value that should be represented as a string.
  */
+/**
+ * @brief The function converts a color to a hexadecimal string representation
+ * and updates the input text.
+ *
+ * @param text Pointer to the text string to update.
+ * @param color The color to convert to hex string.
+ */
 void tkbc_set_input_text_to_hex_color(char **text, Color color) {
   snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X",
            tkbc_color_to_uint32_t(color));
 }
 
+/**
+ * @brief The function draws a shadow effect around a rectangle with multiple
+ * layered opacity levels.
+ *
+ * @param shadow The rectangle to draw the shadow around.
+ * @param original_scale The scale factor for the shadow.
+ */
 void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
   static float opacities[] = {0.08f,  0.089f, 0.098f, 0.107f, 0.116f, 0.125f,
                               0.134f, 0.143f, 0.152f, 0.161f, 0.170f, 0.179f,

@@ -308,21 +308,23 @@ void tkbc_file_handler(Env *env) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function sets all the internal properties of a kite including
+ * position, speed, colors, dimensions, and scale. The internal geometric
+ * points are recalculated after setting the values.
  *
- * @param kite [TODO:parameter]
- * @param fly_speed [TODO:parameter]
- * @param turn_speed [TODO:parameter]
- * @param body_color [TODO:parameter]
- * @param top_color [TODO:parameter]
- * @param overlap [TODO:parameter]
- * @param inner_space [TODO:parameter]
- * @param spread [TODO:parameter]
- * @param width [TODO:parameter]
- * @param height [TODO:parameter]
- * @param angle [TODO:parameter]
- * @param center [TODO:parameter]
- * @param scale [TODO:parameter]
+ * @param kite The kite to configure.
+ * @param fly_speed The flying speed of the kite.
+ * @param turn_speed The turning speed of the kite.
+ * @param body_color The color of the kite body.
+ * @param top_color The color of the kite leading edge.
+ * @param overlap The overlap distance between kite parts.
+ * @param inner_space The inner space between kite parts.
+ * @param spread The overlap of the top leading edge to the side.
+ * @param width The base width of the kite.
+ * @param height The base height of the kite.
+ * @param angle The rotation angle in degrees.
+ * @param center The center position of the kite.
+ * @param scale The scale factor for the kite.
  */
 void tkbc_set_kite_internals(Kite *kite, float fly_speed, float turn_speed,
                              Color body_color, Color top_color, float overlap,
@@ -441,10 +443,11 @@ void tkbc_kite_update_internal(Kite *kite) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function updates the scale of the kite and recalculates all
+ * internal geometric values.
  *
- * @param kite [TODO:parameter]
- * @param scale [TODO:parameter]
+ * @param kite The kite to update.
+ * @param scale The new scale factor for the kite.
  */
 void tkbc_kite_update_scale(Kite *kite, float scale) {
   tkbc_set_kite_internals(kite, kite->fly_speed, kite->turn_speed,

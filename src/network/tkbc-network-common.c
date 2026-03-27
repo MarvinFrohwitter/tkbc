@@ -150,15 +150,17 @@ check:
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function parses image data from the lexer. It extracts the texture
+ * id, width, height, format, and pixel data for a kite texture.
  *
- * @param lexer [TODO:parameter]
- * @param data_space [TODO:parameter]
- * @param data [TODO:parameter]
- * @param width [TODO:parameter]
- * @param height [TODO:parameter]
- * @param format [TODO:parameter]
- * @return [TODO:return]
+ * @param lexer The current lexer containing the message data.
+ * @param data_space The space for allocating image data.
+ * @param data Pointer to store the parsed image data.
+ * @param width Pointer to store the image width.
+ * @param height Pointer to store the image height.
+ * @param format Pointer to store the pixel format.
+ * @param texture_id Pointer to store the texture id.
+ * @return True if the image was parsed successfully, otherwise false.
  */
 bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
                       size_t *width, size_t *height, size_t *format,
@@ -252,11 +254,11 @@ check: {}
  * @param color The color the corresponding parsed value is assigned to.
  * @param texture_id The id that represents the texture in the global
  * kite_textures or -1 if the data is passed.
- * @param texture_width [TODO:parameter]
- * @param texture_height [TODO:parameter]
- * @param texture_format [TODO:parameter]
- * @param data_space [TODO:parameter]
- * @param texture_data [TODO:parameter]
+ * @param texture_width The width of the texture.
+ * @param texture_height The height of the texture.
+ * @param texture_format The format of the texture.
+ * @param data_space The space for allocating texture data.
+ * @param texture_data Pointer to store the texture data.
  * @param is_reversed If the kite should fly reverse by default.
  * @param is_active If the kite should be displayed on the screen.
  * @return True if all values have been parsed correctly and are assigned,

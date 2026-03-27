@@ -18,6 +18,16 @@ extern size_t textures_id_mapper;
 
 // Save and load kite designs from config files.
 
+/**
+ * @brief The function appends a new kite image to the global kite_images
+ * collection. The image data is copied and stored.
+ *
+ * @param data The raw image data.
+ * @param width The width of the image.
+ * @param height The height of the image.
+ * @param format The pixel format of the image.
+ * @return The id assigned to the newly appended kite image.
+ */
 Id tkbc_append_kite_image(unsigned char *data, int width, int height,
                           int format) {
   Image image_normal = {
@@ -42,6 +52,11 @@ Id tkbc_append_kite_image(unsigned char *data, int width, int height,
   return id;
 }
 
+/**
+ * @brief The function loads all the predefined kite assets into the
+ * asset collection. This includes left, right, middle, skeleton,
+ * leading edge, and other predefined kite images.
+ */
 void append_assets() {
   tkbc_append_kite_image(image_1, IMAGE_1_WIDTH, IMAGE_1_HEIGHT,
                          IMAGE_1_FORMAT);
@@ -139,6 +154,13 @@ void append_assets() {
 }
 
 #ifndef TKBC_SERVER
+/**
+ * @brief The function creates and appends a new kite texture from the given
+ * kite image. The texture is loaded from the image for both normal and flipped
+ * orientations.
+ *
+ * @param kite_image The kite image from which the texture should be created.
+ */
 void tkbc_append_kite_texture(Kite_Image kite_image) {
   space_dap(&kite_textures_space, &kite_textures,
             ((Kite_Texture){
@@ -149,6 +171,10 @@ void tkbc_append_kite_texture(Kite_Image kite_image) {
             }));
 }
 
+/**
+ * @brief The function loads all kite images and creates textures from them.
+ * This function should only be called on the client side, not on the server.
+ */
 void tkbc_load_kite_images_and_textures(void) {
 
   append_assets();
@@ -178,6 +204,9 @@ void tkbc_load_kite_images_and_textures(void) {
   }
 }
 
+/**
+ * @brief The function unloads all the kite textures from GPU memory.
+ */
 void tkbc_assets_destroy_kite_textures() {
   for (size_t i = 0; i < kite_textures.count; ++i) {
     UnloadTexture(kite_textures.elements[i].normal);
@@ -185,12 +214,19 @@ void tkbc_assets_destroy_kite_textures() {
   }
 }
 
+/**
+ * @brief The function destroys all kite assets including images and textures.
+ * This should only be called on the client side.
+ */
 void tkbc_assets_destroy() {
   tkbc_assets_destroy_kite_images();
   tkbc_assets_destroy_kite_textures();
 }
 #endif
 
+/**
+ * @brief The function unloads all the kite images from memory.
+ */
 void tkbc_assets_destroy_kite_images() {
   for (size_t i = 0; i < kite_images.count; ++i) {
     UnloadImage(kite_images.elements[i].normal);
@@ -199,6 +235,13 @@ void tkbc_assets_destroy_kite_images() {
 }
 
 // TODO: Rename when combining Kite_Image and Kite_Texture to one asset type
+/**
+ * @brief The function searches for an asset with the given id in the kite
+ * images collection.
+ *
+ * @param id The id to search for.
+ * @return True if the asset with the given id is found, otherwise false.
+ */
 bool tkbc_find_asset_id_in_kite_images(ssize_t id) {
   if (id == -1) {
     return false;
@@ -212,6 +255,13 @@ bool tkbc_find_asset_id_in_kite_images(ssize_t id) {
 }
 
 // TODO: Rename when combining Kite_Image and Kite_Texture to one asset type
+/**
+ * @brief The function finds and returns a pointer to the kite image with the
+ * given id.
+ *
+ * @param id The id to search for.
+ * @return Pointer to the kite image if found, otherwise NULL.
+ */
 Kite_Image *tkbc_find_asset_in_kite_images(ssize_t id) {
   if (id == -1) {
     return false;
@@ -226,6 +276,13 @@ Kite_Image *tkbc_find_asset_in_kite_images(ssize_t id) {
 
 #ifndef TKBC_SERVER
 // TODO: Rename when combining Kite_Image and Kite_Texture to one asset type
+/**
+ * @brief The function finds and returns a pointer to the kite texture with the
+ * given id.
+ *
+ * @param id The id to search for.
+ * @return Pointer to the kite texture if found, otherwise NULL.
+ */
 Kite_Texture *tkbc_find_asset_in_kite_textures(ssize_t id) {
   if (id == -1) {
     return false;

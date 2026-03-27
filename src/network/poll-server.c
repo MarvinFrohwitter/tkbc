@@ -1074,6 +1074,13 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
+/**
+ * @brief The function wraps the poll/WSAPoll system call for monitoring
+ * socket file descriptors for I/O events.
+ *
+ * @param timeout The timeout in milliseconds for the poll operation.
+ * @return The number of file descriptors with events, 0 on timeout, or -1 on error.
+ */
 int tkbc_poll(int timeout) {
 
 #ifdef _WIN32
