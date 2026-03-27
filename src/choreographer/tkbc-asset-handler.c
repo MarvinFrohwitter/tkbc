@@ -57,7 +57,7 @@ Id tkbc_append_kite_image(unsigned char *data, int width, int height,
  * asset collection. This includes left, right, middle, skeleton,
  * leading edge, and other predefined kite images.
  */
-void append_assets() {
+void append_assets(void) {
   tkbc_append_kite_image(image_1, IMAGE_1_WIDTH, IMAGE_1_HEIGHT,
                          IMAGE_1_FORMAT);
   tkbc_append_kite_image(image_2, IMAGE_2_WIDTH, IMAGE_2_HEIGHT,
@@ -207,7 +207,7 @@ void tkbc_load_kite_images_and_textures(void) {
 /**
  * @brief The function unloads all the kite textures from GPU memory.
  */
-void tkbc_assets_destroy_kite_textures() {
+void tkbc_assets_destroy_kite_textures(void) {
   for (size_t i = 0; i < kite_textures.count; ++i) {
     UnloadTexture(kite_textures.elements[i].normal);
     UnloadTexture(kite_textures.elements[i].flipped);
@@ -218,7 +218,7 @@ void tkbc_assets_destroy_kite_textures() {
  * @brief The function destroys all kite assets including images and textures.
  * This should only be called on the client side.
  */
-void tkbc_assets_destroy() {
+void tkbc_assets_destroy(void) {
   tkbc_assets_destroy_kite_images();
   tkbc_assets_destroy_kite_textures();
 }
@@ -227,7 +227,7 @@ void tkbc_assets_destroy() {
 /**
  * @brief The function unloads all the kite images from memory.
  */
-void tkbc_assets_destroy_kite_images() {
+void tkbc_assets_destroy_kite_images(void) {
   for (size_t i = 0; i < kite_images.count; ++i) {
     UnloadImage(kite_images.elements[i].normal);
     UnloadImage(kite_images.elements[i].flipped);

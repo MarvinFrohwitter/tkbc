@@ -251,7 +251,7 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
  * @brief The function prepares the sending of the default scripts that are
  * compiled into the client and pushes them into the send_message_queue.
  */
-void sending_script_handler() {
+void sending_script_handler(void) {
   if (!env->script_setup) {
     return;
   }
@@ -283,7 +283,7 @@ void sending_script_handler() {
  * @return True if all the messages in the message buffer are send to the server
  * and the message buffer is cleared, otherwise false if an error has occurred.
  */
-bool send_message_handler() {
+bool send_message_handler(void) {
   bool ok = true;
   if (client.send_msg_buffer.count) {
     // NOTE: this assumes the whole message buffer could be send in one go.
@@ -684,7 +684,7 @@ bool message_queue_handler(Message *message) {
  * that is associated with this current client. The result is written to the
  * send_message_queue.
  */
-void tkbc_client_input_handler_kite() {
+void tkbc_client_input_handler_kite(void) {
   Kite_State *kite_state = tkbc_get_kite_state_by_id(env, client.kite_id);
   if (!kite_state) {
     return;
@@ -827,7 +827,7 @@ bool tkbc_message_append_script(size_t script_id) {
  *
  * @return True if the message script could be constructed, otherwise false.
  */
-bool tkbc_message_script() {
+bool tkbc_message_script(void) {
   bool ok = true;
   space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
              "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT, env->scripts.count);
@@ -859,7 +859,7 @@ check:
  * drop, those can contain music and the scripts files that have a '.kite'
  * extension other files are ignored.
  */
-void tkbc_client_file_handler() {
+void tkbc_client_file_handler(void) {
   size_t prev_kite_array_count = env->kite_array->count;
 
   tkbc_file_handler(env);
@@ -884,7 +884,7 @@ void tkbc_client_file_handler() {
  * @brief The function warps the user key inputs for script control into
  * messages that are send to the server.
  */
-void tkbc_client_input_handler_script() {
+void tkbc_client_input_handler_script(void) {
   if (env->scripts.count <= 0) {
     return;
   }

@@ -21,12 +21,12 @@ size_t tkbc_append_kite_image(unsigned char *data, int width, int height,
 void tkbc_append_kite_texture(Kite_Image kite_image);
 void tkbc_load_kite_images_and_textures(void);
 
-void tkbc_assets_destroy_kite_textures();
-void tkbc_assets_destroy();
+void tkbc_assets_destroy_kite_textures(void);
+void tkbc_assets_destroy(void);
 #endif
 
-void append_assets();
-void tkbc_assets_destroy_kite_images();
+void append_assets(void);
+void tkbc_assets_destroy_kite_images(void);
 
 bool tkbc_find_asset_id_in_kite_images(ssize_t id);
 Kite_Image *tkbc_find_asset_in_kite_images(ssize_t id);

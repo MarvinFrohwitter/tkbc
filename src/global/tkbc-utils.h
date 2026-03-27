@@ -186,11 +186,11 @@ int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
                          const char *mode);
 void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 
-int tkbc_get_screen_height();
-int tkbc_get_screen_width();
-double tkbc_get_time();
+int tkbc_get_screen_height(void);
+int tkbc_get_screen_width(void);
+double tkbc_get_time(void);
 void tkbc_make_frame_time(double target_dt);
-float tkbc_get_frame_time();
+float tkbc_get_frame_time(void);
 #ifdef INCLUDE_RAYLIB
 bool tkbc_is_same_image(Image a, Image b);
 bool tkbc_vector2_equals_epsilon(Vector2 p, Vector2 q, float epsilon);
@@ -579,7 +579,7 @@ extern Env *env;
  *
  * @return The screen height of the window.
  */
-int tkbc_get_screen_height() {
+int tkbc_get_screen_height(void) {
 #ifdef TKBC_SERVER
   if (env == NULL) {
     return 0;
@@ -599,7 +599,7 @@ int tkbc_get_screen_height() {
  *
  * @return The screen width of the window.
  */
-int tkbc_get_screen_width() {
+int tkbc_get_screen_width(void) {
 #ifdef TKBC_SERVER
   if (env == NULL) {
     return 0;
@@ -620,7 +620,7 @@ int tkbc_get_screen_width() {
  *
  * @return The time since the program has initialized.
  */
-double tkbc_get_time() {
+double tkbc_get_time(void) {
 #ifdef TKBC_SERVER
   struct timespec ts;
   if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
@@ -676,7 +676,7 @@ void tkbc_make_frame_time(double target_dt) {
  *
  * @return The delta time off a computation cycle.
  */
-float tkbc_get_frame_time() {
+float tkbc_get_frame_time(void) {
 #ifdef TKBC_SERVER
   return (float)tkbc_dt;
 #else

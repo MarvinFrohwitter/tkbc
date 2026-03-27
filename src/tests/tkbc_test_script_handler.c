@@ -16,7 +16,7 @@
 #include "../../external/space/space.h"
 #undef SPACE_IMPLEMENTATION
 
-Test init_frame() {
+Test init_frame(void) {
   Test test = cassert_init_test("tkbc_init_frame()");
 
   uintptr_t stack = 0;
@@ -44,7 +44,7 @@ Test init_frame() {
   return test;
 }
 
-Test get_kite_by_id() {
+Test get_kite_by_id(void) {
   Test test = cassert_init_test("tkbc_get_kite_by_id()");
   Env *env = tkbc_init_env();
   Kite_State kite_state0 = tkbc_init_kite();
@@ -75,7 +75,7 @@ Test get_kite_by_id() {
   return test;
 }
 
-Test get_kite_state_by_id() {
+Test get_kite_state_by_id(void) {
   Test test = cassert_init_test("tkbc_get_kite_state_by_id()");
   Env *env = tkbc_init_env();
   Kite_State kite_state0 = tkbc_init_kite();
@@ -116,7 +116,7 @@ Test get_kite_state_by_id() {
   return test;
 }
 
-Test contains_id() {
+Test contains_id(void) {
   Test test = cassert_init_test("tkbc_contains_id()");
   Kite_Ids kite_ids = tkbc_indexs_range(4, 13);
   cassert_size_t_eq(kite_ids.count, 9);
@@ -145,7 +145,7 @@ Test contains_id() {
   return test;
 }
 
-Test deep_copy_frame() {
+Test deep_copy_frame(void) {
   Test test = cassert_init_test("tkbc_deep_copy_frame()");
   Space space = {0};
   Frame *frame = tkbc_init_frame(&space);
@@ -183,7 +183,7 @@ Test deep_copy_frame() {
   return test;
 }
 
-Test deep_copy_frames() {
+Test deep_copy_frames(void) {
   Test test = cassert_init_test("tkbc_deep_copy_frames()");
 
   Frames *frames = malloc(sizeof(*frames));
@@ -267,7 +267,7 @@ Test deep_copy_frames() {
   return test;
 }
 
-Test deep_copy_script() {
+Test deep_copy_script(void) {
   Test test = cassert_init_test("deep_copy_script()");
   Script script = {0};
   Frames frames = {0};
@@ -319,7 +319,7 @@ Test deep_copy_script() {
   return test;
 }
 
-Test destroy_frames_internal_data() {
+Test destroy_frames_internal_data(void) {
   Test test = cassert_init_test("tkbc_destroy_frames_internal_data()");
   Frames frames = {0};
   Frame frame = {0};
@@ -373,7 +373,7 @@ Test destroy_frames_internal_data() {
   return test;
 }
 
-Test reset_frames_internal_data() {
+Test reset_frames_internal_data(void) {
   Test test = cassert_init_test("tkbc_reset_frames_internal_data()");
   Frames frames = {0};
   Frame frame = {0};
@@ -427,7 +427,7 @@ Test reset_frames_internal_data() {
   return test;
 }
 
-Test calculate_script_byte_size_allocated() {
+Test calculate_script_byte_size_allocated(void) {
   Test test = cassert_init_test("tkbc_calculate_script_byte_size_allocated()");
 
   Script script = {0};

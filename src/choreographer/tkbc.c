@@ -729,7 +729,7 @@ void tkbc_update_kites_for_resize_window(Env *env) {
  *
  * @return color definition from raylib.
  */
-Color tkbc_get_random_color() {
+Color tkbc_get_random_color(void) {
   Color colors[] = {
       LIGHTGRAY, GRAY,  DARKGRAY,  YELLOW,  GOLD,   ORANGE,
       PINK,      RED,   MAROON,    GREEN,   LIME,   DARKGREEN,

@@ -394,7 +394,7 @@ void tkbc_client_prolog(Client *client) {
 /**
  * @brief The function handles the accept call of new clients.
  */
-void tkbc_server_accept() {
+void tkbc_server_accept(void) {
 
   SOCKADDR_IN client_address;
   SOCKLEN address_length = sizeof(client_address);
@@ -641,7 +641,7 @@ bool tkbc_server_handle_client(Client *client) {
  * @brief The function handles new incoming connections and checks for the data
  * on the sockets after an updates was detected.
  */
-void tkbc_socket_handling() {
+void tkbc_socket_handling(void) {
   for (ssize_t idx = 0; idx < (ssize_t)fds.count; ++idx) {
     if (fds.elements[idx].revents == 0) {
       continue;
@@ -667,7 +667,7 @@ void tkbc_socket_handling() {
  * @brief The function constructs and sends the message CLIENTKITES to all
  * registered kites.
  */
-void tkbc_message_clientkites_write_to_all_send_msg_buffers() {
+void tkbc_message_clientkites_write_to_all_send_msg_buffers(void) {
   tkbc_message_clientkites(&t_message, false);
   tkbc_write_to_all_send_msg_buffers(t_message);
 
@@ -1106,7 +1106,7 @@ int tkbc_poll(int timeout) {
  * @return True if the base execution and script handling succeeded, otherwise
  * false.
  */
-bool tkbc_base_execution() {
+bool tkbc_base_execution(void) {
   if (env->scripts.count <= 0) {
     return false;
   }

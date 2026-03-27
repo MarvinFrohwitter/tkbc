@@ -3,7 +3,7 @@
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-types.h"
 
-Test kite_update_internal() {
+Test kite_update_internal(void) {
   Test test = cassert_init_test("tkbc_kite_update_internal()");
 
   Kite_State kite_state = tkbc_init_kite();
@@ -58,7 +58,7 @@ Test kite_update_internal() {
   return test;
 }
 
-Test kite_update_position() {
+Test kite_update_position(void) {
   Test test = cassert_init_test("tkbc_kite_update_position()");
 
   Kite_State kite_state = tkbc_init_kite();
@@ -109,7 +109,7 @@ Test kite_update_position() {
   return test;
 }
 
-Test kite_update_angle() {
+Test kite_update_angle(void) {
   Test test = cassert_init_test("tkbc_kite_update_angle()");
 
   Kite_State kite_state = tkbc_init_kite();
@@ -158,7 +158,7 @@ Test kite_update_angle() {
   return test;
 }
 
-Test center_rotation() {
+Test center_rotation(void) {
   Test test = cassert_init_test("tkbc_center_rotation()");
 
   Kite_State kite_state = tkbc_init_kite();
@@ -209,7 +209,7 @@ Test center_rotation() {
   return test;
 }
 
-Test tip_rotation_left() {
+Test tip_rotation_left(void) {
   Test test = cassert_init_test("tkbc_tip_rotation(LEFT)");
 
   Kite_State kite_state = tkbc_init_kite();
@@ -263,7 +263,7 @@ Test tip_rotation_left() {
   return test;
 }
 
-Test tip_rotation_right() {
+Test tip_rotation_right(void) {
   Test test = cassert_init_test("tkbc_tip_rotation(RIGHT)");
 
   Kite_State kite_state = tkbc_init_kite();

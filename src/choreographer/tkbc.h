@@ -110,6 +110,6 @@ void tkbc_draw_kite_array(Kite_States *kite_states);
 void tkbc_update_kites_for_resize_window(Env *env);
 
 bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture);
-Color tkbc_get_random_color();
+Color tkbc_get_random_color(void);
 
 #endif // TKBC_H_

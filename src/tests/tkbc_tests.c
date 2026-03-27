@@ -8,7 +8,7 @@
 Kite_Images kite_images;
 Kite_Textures kite_textures;
 
-int main() {
+int main(void) {
   cassert_tests {
     tkbc_test_geometrics(&tests);
     tkbc_test_script_handler(&tests);
