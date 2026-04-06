@@ -598,38 +598,37 @@ check:
 /**
  * @brief The function handles the incoming messages from the server.
  *
- * @param message The message buffer to which the read message should be
- * appended.
  * @return True if the reading and parsing of the received messages from the
  * server was successful, otherwise false.
  */
-bool message_queue_handler(Message *message) {
-
-  if (message->count == 0 && message->capacity > MAX_BUFFER_CAPACITY) {
+bool message_queue_handler() {
+  if (client.recv_msg_buffer.count == 0 &&
+      client.recv_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
     tkbc_fprintf(stderr, "INFO", "realloced message: old capacity: %zu",
-                 message->capacity);
-    free(message->elements);
-    message->elements = NULL;
-    message->capacity = 0;
+                 client.recv_msg_buffer.capacity);
+    space_free_space(&client.recv_msg_buffer_space);
+    client.recv_msg_buffer.capacity = 0;
   }
 
   size_t length = BUFFER_CAPACITY;
-  if (message->capacity < message->count + length) {
-    size_t old_capacity = message->capacity;
-    if (message->capacity == 0) {
-      message->capacity = length;
+  if (client.recv_msg_buffer.capacity < client.recv_msg_buffer.count + length) {
+    size_t old_capacity = client.recv_msg_buffer.capacity;
+    if (client.recv_msg_buffer.capacity == 0) {
+      client.recv_msg_buffer.capacity = length;
     }
 
-    while (message->capacity < message->count + length) {
-      message->capacity += length;
+    while (client.recv_msg_buffer.capacity <
+           client.recv_msg_buffer.count + length) {
+      client.recv_msg_buffer.capacity += length;
     }
 
-    message->elements =
-        space_realloc(&client.recv_msg_buffer_space, message->elements,
-                      sizeof(*message->elements) * old_capacity,
-                      sizeof(*message->elements) * message->capacity);
+    client.recv_msg_buffer.elements = space_realloc(
+        &client.recv_msg_buffer_space, client.recv_msg_buffer.elements,
+        sizeof(*client.recv_msg_buffer.elements) * old_capacity,
+        sizeof(*client.recv_msg_buffer.elements) *
+            client.recv_msg_buffer.capacity);
 
-    if (message->elements == NULL) {
+    if (client.recv_msg_buffer.elements == NULL) {
       fprintf(stderr,
               "The allocation for the dynamic array has failed in: %s: %d\n",
               __FILE__, __LINE__);
@@ -637,7 +636,9 @@ bool message_queue_handler(Message *message) {
     }
   }
 
-  int n = recv(client.socket_id, message->elements + message->count, length, 0);
+  int n = recv(client.socket_id,
+               client.recv_msg_buffer.elements + client.recv_msg_buffer.count,
+               length, 0);
 
   if (n < 0) {
 #ifdef _WIN32
@@ -662,13 +663,14 @@ bool message_queue_handler(Message *message) {
     return false;
   }
 
-  message->count += n;
+  client.recv_msg_buffer.count += n;
 
-  if (!received_message_handler(message)) {
+  if (!received_message_handler(&client.recv_msg_buffer)) {
     if (n > 0) {
       tkbc_fprintf(stderr, "WARNING", "---------------------------------\n");
-      if (message->count < INT_MAX) {
-        fprintf(stderr, "%.*s", (int)message->count, message->elements);
+      if (client.recv_msg_buffer.count < INT_MAX) {
+        fprintf(stderr, "%.*s", (int)client.recv_msg_buffer.count,
+                client.recv_msg_buffer.elements);
       } else {
         fprintf(stderr, "Discarded message is to large to display!\n");
       }
@@ -993,7 +995,7 @@ int main(int argc, char *argv[]) {
   bool sending_receiving = true;
   while (!WindowShouldClose()) {
     if (sending_receiving) {
-      if (!message_queue_handler(&client.recv_msg_buffer)) {
+      if (!message_queue_handler()) {
         disconnect.active = true;
       }
       sending_receiving = send_message_handler();
