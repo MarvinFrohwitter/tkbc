@@ -465,9 +465,6 @@ bool tkbc_sockets_read(Client *client) {
     tkbc_fprintf(stderr, "INFO", "realloced recv_buffer: old capacity: %zu\n",
                  recv_buffer->capacity);
 
-    // This is ok because the recv buffer forces a new planet with
-    // count == capacity so the recv and send buffers can not conflict and can
-    // be deleted.
     Planet *planet = space_find_planet_from_ptr(&client->recv_msg_buffer_space,
                                                 recv_buffer->elements);
     space_free_planet(&client->recv_msg_buffer_space, planet);
@@ -589,9 +586,6 @@ int tkbc_socket_write(Client *client) {
                  "realloced send_msg_buffer: old capacity: %zu\n",
                  client->send_msg_buffer.capacity);
 
-    // This is ok because the recv buffer forces a new planet with
-    // count == capacity so the recv and send buffers can not conflict and can
-    // be deleted.
     Planet *planet = space_find_planet_from_ptr(
         &client->send_msg_buffer_space, client->send_msg_buffer.elements);
     space_free_planet(&client->send_msg_buffer_space, planet);

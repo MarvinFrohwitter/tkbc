@@ -606,7 +606,12 @@ bool message_queue_handler() {
       client.recv_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
     tkbc_fprintf(stderr, "INFO", "realloced message: old capacity: %zu",
                  client.recv_msg_buffer.capacity);
-    space_free_space(&client.recv_msg_buffer_space);
+
+    Planet *planet = space_find_planet_from_ptr(
+        &client.recv_msg_buffer_space, &client.recv_msg_buffer.elements);
+    space_free_planet(&client.recv_msg_buffer_space, planet);
+
+    client.recv_msg_buffer.elements = NULL;
     client.recv_msg_buffer.capacity = 0;
   }
 
