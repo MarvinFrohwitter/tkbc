@@ -18,11 +18,7 @@
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 extern Env *env;
-
-extern Space kite_images_space;
-extern Space kite_textures_space;
-extern Kite_Images kite_images;
-extern Kite_Textures kite_textures;
+extern Assets assets;
 
 #include <ctype.h>
 #include <math.h>
@@ -256,10 +252,11 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
     space_dapf(space, message, "%d:", -1);
 
     // NOTE: This is not nasally the KITE_COLORIZER position.
-    assert(kite_images.count != 0);
-    Kite_Image *kite_image = &kite_images.elements[kite_images.count - 1];
+    assert(assets.count != 0);
+    Asset *asset = &assets.elements[assets.count - 1];
+    Kite_Image *kite_image = &asset->kite_image;
     tkbc_message_append_image_data(space, message, kite_image->normal,
-                                   kite_image->id);
+                                   asset->id);
     kite_state->kite->is_texture_new = false;
   } else {
     space_dapf(space, message, "%zd:", texture_id);

@@ -29,11 +29,7 @@
 
 #include "../../tkbc_scripts/first.c"
 
-Space kite_images_space = {0};
-Kite_Images kite_images = {0};
-Space kite_textures_space = {0};
-Kite_Textures kite_textures = {0};
-size_t textures_id_mapper;
+Assets assets = {0};
 
 /**
  * @brief The main function that handles the event loop.
@@ -110,8 +106,7 @@ int main(void) {
 
   space_free_tspace();
   tkbc_assets_destroy();
-  space_free_space(&kite_images_space);
-  space_free_space(&kite_textures_space);
+  space_free_space(&assets.space);
   CloseWindow();
   return 0;
 }

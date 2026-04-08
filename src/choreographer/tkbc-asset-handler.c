@@ -5,13 +5,8 @@
 #include <assert.h>
 #include <stdio.h>
 
-extern Space kite_images_space;
-extern Kite_Images kite_images;
-
-extern Space kite_textures_space;
-extern Kite_Textures kite_textures;
-
-extern size_t textures_id_mapper;
+extern Assets assets;
+static size_t gloabl_asset_id_factory = 0;
 
 #include "../../assets/combind_assets.h"
 #include "tkbc-asset-handler.h"
@@ -42,14 +37,18 @@ Id tkbc_append_kite_image(unsigned char *data, int width, int height,
   Image image_flipped = ImageCopy(image_normal);
   ImageFlipHorizontal(&image_flipped);
 
-  size_t id = textures_id_mapper++;
-  space_dap(&kite_images_space, &kite_images,
-            ((Kite_Image){
-                .normal = image_normal,
-                .flipped = image_flipped,
-                .id = id,
+  Kite_Image kite_image = (Kite_Image){
+      .normal = image_normal,
+      .flipped = image_flipped,
+  };
+
+  space_dap(&assets.space, &assets,
+            ((Asset){
+                .type = ASSETS_KITE_DESIGN_KIND,
+                .kite_image = kite_image,
+                .id = gloabl_asset_id_factory,
             }));
-  return id;
+  return gloabl_asset_id_factory++;
 }
 
 /**
@@ -148,7 +147,7 @@ void append_assets(void) {
   tkbc_append_kite_image(image_Middle_12, IMAGE_Middle_12_WIDTH,
                          IMAGE_Middle_12_HEIGHT, IMAGE_Middle_12_FORMAT);
 
-  Image colorizer_image = kite_images.elements[IMAGE_FILLED_PANEL].normal;
+  Image colorizer_image = assets.elements[IMAGE_FILLED_PANEL].kite_image.normal;
   tkbc_append_kite_image(colorizer_image.data, colorizer_image.width,
                          colorizer_image.height, colorizer_image.format);
 }
@@ -161,14 +160,16 @@ void append_assets(void) {
  *
  * @param kite_image The kite image from which the texture should be created.
  */
-void tkbc_append_kite_texture(Kite_Image kite_image) {
-  space_dap(&kite_textures_space, &kite_textures,
-            ((Kite_Texture){
-                .normal = LoadTextureFromImage(kite_image.normal),
-                .flipped = LoadTextureFromImage(kite_image.flipped),
-
-                .id = kite_image.id,
-            }));
+void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image,
+                                            Id asset_id) {
+  Asset *asset = tkbc_find_asset_from_id(asset_id);
+  if (!asset) {
+    return;
+  }
+  asset->kite_texture = (Kite_Texture){
+      .normal = LoadTextureFromImage(kite_image.normal),
+      .flipped = LoadTextureFromImage(kite_image.flipped),
+  };
 }
 
 /**
@@ -179,25 +180,26 @@ void tkbc_load_kite_images_and_textures(void) {
 
   append_assets();
 
-  for (size_t i = 0; i < kite_images.count; ++i) {
-    if (!IsImageValid(kite_images.elements[i].normal)) {
+  for (size_t i = 0; i < assets.count; ++i) {
+    if (!IsImageValid(assets.elements[i].kite_image.normal)) {
       tkbc_fprintf(stderr, "ERROR", "Could not load normal kite image: %zu.\n",
                    i);
     }
-    if (!IsImageValid(kite_images.elements[i].flipped)) {
+    if (!IsImageValid(assets.elements[i].kite_image.flipped)) {
       tkbc_fprintf(stderr, "ERROR", "Could not load flipped kite image: %zu.\n",
                    i);
     }
 
-    tkbc_append_kite_texture(kite_images.elements[i]);
+    tkbc_load_kite_texture_from_kite_image(assets.elements[i].kite_image,
+                                           assets.elements[i].id);
   }
 
-  for (size_t i = 0; i < kite_textures.count; ++i) {
-    if (!IsTextureValid(kite_textures.elements[i].normal)) {
+  for (size_t i = 0; i < assets.count; ++i) {
+    if (!IsTextureValid(assets.elements[i].kite_texture.normal)) {
       tkbc_fprintf(stderr, "ERROR",
                    "Could not load normal kite texture: %zu.\n", i);
     }
-    if (!IsTextureValid(kite_textures.elements[i].flipped)) {
+    if (!IsTextureValid(assets.elements[i].kite_texture.flipped)) {
       tkbc_fprintf(stderr, "ERROR",
                    "Could not load flipped kite texture: %zu.\n", i);
     }
@@ -208,9 +210,9 @@ void tkbc_load_kite_images_and_textures(void) {
  * @brief The function unloads all the kite textures from GPU memory.
  */
 void tkbc_assets_destroy_kite_textures(void) {
-  for (size_t i = 0; i < kite_textures.count; ++i) {
-    UnloadTexture(kite_textures.elements[i].normal);
-    UnloadTexture(kite_textures.elements[i].flipped);
+  for (size_t i = 0; i < assets.count; ++i) {
+    UnloadTexture(assets.elements[i].kite_texture.normal);
+    UnloadTexture(assets.elements[i].kite_texture.flipped);
   }
 }
 
@@ -228,71 +230,53 @@ void tkbc_assets_destroy(void) {
  * @brief The function unloads all the kite images from memory.
  */
 void tkbc_assets_destroy_kite_images(void) {
-  for (size_t i = 0; i < kite_images.count; ++i) {
-    UnloadImage(kite_images.elements[i].normal);
-    UnloadImage(kite_images.elements[i].flipped);
+  for (size_t i = 0; i < assets.count; ++i) {
+    UnloadImage(assets.elements[i].kite_image.normal);
+    UnloadImage(assets.elements[i].kite_image.flipped);
   }
 }
 
-// TODO: Rename when combining Kite_Image and Kite_Texture to one asset type
 /**
- * @brief The function searches for an asset with the given id in the kite
- * images collection.
+ * @brief The function tries to find a specific asset by an id.
  *
- * @param id The id to search for.
- * @return True if the asset with the given id is found, otherwise false.
+ * @param id The id of the assets to search for.
+ * @return The found asset, if not found NULL.
  */
-bool tkbc_find_asset_id_in_kite_images(ssize_t id) {
-  if (id == -1) {
-    return false;
-  }
-  for (size_t i = 0; i < kite_images.count; ++i) {
-    if (kite_images.elements[i].id == (Id)id) {
-      return true;
-    }
-  }
-  return false;
-}
-
-// TODO: Rename when combining Kite_Image and Kite_Texture to one asset type
-/**
- * @brief The function finds and returns a pointer to the kite image with the
- * given id.
- *
- * @param id The id to search for.
- * @return Pointer to the kite image if found, otherwise NULL.
- */
-Kite_Image *tkbc_find_asset_in_kite_images(ssize_t id) {
-  if (id == -1) {
-    return false;
-  }
-  for (size_t i = 0; i < kite_images.count; ++i) {
-    if (kite_images.elements[i].id == (Id)id) {
-      return &kite_images.elements[i];
+Asset *tkbc_find_asset_from_id(Id id) {
+  for (size_t i = 0; i < assets.count; ++i) {
+    if (assets.elements[i].id == id) {
+      return &assets.elements[i];
     }
   }
   return NULL;
 }
 
+/**
+ * @brief This function calculates the current number of assets that is related
+ * to the kite designs.
+ *
+ * @return The count of the currently registered assets related to kite design.
+ */
+size_t tkbc_get_current_kite_design_count() {
+  size_t result = 0;
+  for (size_t i = 0; i < assets.count; ++i) {
+    if (assets.elements[i].type == ASSETS_KITE_DESIGN_KIND) {
+      result++;
+    }
+  }
+  return result;
+}
+
+Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width,
+                                           int height, int format) {
+
+  Id id = tkbc_append_kite_image(data, width, height, format);
+  // This is just for compilation the function is not used in
+  // the server at all. Just the files in this dir are all
+  // passed to the server compilations as well.
 #ifndef TKBC_SERVER
-// TODO: Rename when combining Kite_Image and Kite_Texture to one asset type
-/**
- * @brief The function finds and returns a pointer to the kite texture with the
- * given id.
- *
- * @param id The id to search for.
- * @return Pointer to the kite texture if found, otherwise NULL.
- */
-Kite_Texture *tkbc_find_asset_in_kite_textures(ssize_t id) {
-  if (id == -1) {
-    return false;
-  }
-  for (size_t i = 0; i < kite_textures.count; ++i) {
-    if (kite_textures.elements[i].id == (Id)id) {
-      return &kite_textures.elements[i];
-    }
-  }
-  return NULL;
-}
-
+  Kite_Image kite_image = assets.elements[assets.count - 1].kite_image;
+  tkbc_load_kite_texture_from_kite_image(kite_image, id);
 #endif
+  return id;
+}

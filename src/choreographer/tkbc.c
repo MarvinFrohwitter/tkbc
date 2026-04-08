@@ -16,7 +16,7 @@
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
 
-extern Kite_Textures kite_textures;
+extern Assets assets;
 
 /**
  * @brief The function initializes a new Env.
@@ -121,8 +121,8 @@ Kite_State tkbc_init_kite(void) {
 
   // NOTE: For the server this should be ignored, thus no textures were loaded.
 #ifndef TKBC_SERVER
-  assert(kite_textures.count);
-  tkbc_set_kite_texture(state.kite, &kite_textures.elements[0]);
+  assert(assets.count);
+  tkbc_set_kite_texture(state.kite, &assets.elements[0].kite_texture);
 #endif
 
   return state;

@@ -15,7 +15,7 @@
 #include <string.h>
 
 extern Env *env;
-extern Kite_Textures kite_textures;
+extern Assets assets;
 
 /**
  * @brief The function resets the space and sets the elements ptr from the
@@ -67,7 +67,10 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
 #ifndef TKBC_SERVER
   // NOTE if the new designed texture was not send to the other client the
   // client has a smaller textures.count,
-  Kite_Texture *kite_texture = tkbc_find_asset_in_kite_textures(texture_id);
+
+  Asset *asset = tkbc_find_asset_from_id(texture_id);
+  assert(asset != NULL);
+  Kite_Texture *kite_texture = &asset->kite_texture;
   assert(kite_texture != NULL);
   tkbc_set_kite_texture(state->kite, kite_texture);
 #endif
@@ -118,14 +121,11 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id,
 
   // Append it
   if (texture_id == -1) {
-    texture_id = tkbc_append_kite_image(texture_data, texture_width,
-                                        texture_height, texture_format);
-#ifndef TKBC_SERVER
-    tkbc_append_kite_texture(kite_images.elements[kite_images.count - 1]);
-#endif
+    texture_id = tkbc_append_kite_image_and_kite_texture(
+        texture_data, texture_width, texture_height, texture_format);
   }
 
-  bool found = tkbc_find_asset_id_in_kite_images(texture_id);
+  Asset *found = tkbc_find_asset_from_id(texture_id);
   if (!found && texture_id != -1) {
     texture_id = KITE_COLORIZER;
     ok = 2;

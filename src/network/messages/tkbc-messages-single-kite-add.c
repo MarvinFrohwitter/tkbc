@@ -30,8 +30,8 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client,
     return false;
   }
 
-  Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
-  if (!kite_image && texture_id != -1) {
+  Asset *asset = tkbc_find_asset_from_id(texture_id);
+  if (!asset && texture_id != -1) {
     space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
                "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
 
@@ -43,22 +43,14 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client,
   }
 
   if (texture_id == -1) {
-    Id id = tkbc_append_kite_image(texture_data, texture_width, texture_height,
-                                   texture_format);
-
-    // This is just for compilation the function is not used in
-    // the server at all. Just the files in this dir are all
-    // passed to the server compilations aswell.
-#ifndef TKBC_SERVER
-    tkbc_append_kite_texture(kite_images.elements[kite_images.count - 1]);
-#endif
-    texture_id = id;
+    texture_id = tkbc_append_kite_image_and_kite_texture(
+        texture_data, texture_width, texture_height, texture_format);
   }
   space_reset_tspace();
 
   // This is just for compilation the function is not used in
   // the server at all. Just the files in this dir are all
-  // passed to the server compilations aswell.
+  // passed to the server compilations as well.
 #ifndef TKBC_SERVER
   tkbc_register_kite_from_values(kite_id, x, y, angle, color, texture_id,
                                  is_reversed, is_active);

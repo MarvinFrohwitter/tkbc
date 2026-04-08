@@ -49,12 +49,7 @@ Clients clients = {0};
 FDs fds = {0};
 Message t_message = {0}; // The elements ptr is allocated inside of the t_space.
 
-Space kite_images_space;
-Kite_Images kite_images;
-size_t textures_id_mapper;
-
-// Space kite_textures_space;   // This should not be used just for declaration
-// Kite_Textures kite_textures; // This should not be used just for declaration
+Assets assets = {0};
 
 /**
  * @brief  The function can be used to get the pollfd structure that corresponds
@@ -831,7 +826,8 @@ bool tkbc_received_message_handler(Client *client) {
       }
 
       // TEXTURE lager and Unknown
-      bool found = tkbc_find_asset_id_in_kite_images(texture_id);
+
+      Asset *found = tkbc_find_asset_from_id(texture_id);
       if (!found) {
         space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
                    "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
@@ -1073,7 +1069,8 @@ int main(int argc, char *argv[]) {
  * socket file descriptors for I/O events.
  *
  * @param timeout The timeout in milliseconds for the poll operation.
- * @return The number of file descriptors with events, 0 on timeout, or -1 on error.
+ * @return The number of file descriptors with events, 0 on timeout, or -1 on
+ * error.
  */
 int tkbc_poll(int timeout) {
 
@@ -1167,6 +1164,6 @@ void signalhandler(int signal) {
 
   tkbc_destroy_env(env);
   tkbc_assets_destroy_kite_images();
-  space_free_space(&kite_images_space);
+  space_free_space(&assets.space);
   exit(EXIT_SUCCESS);
 }

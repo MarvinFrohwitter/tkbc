@@ -7,7 +7,6 @@
 #include "tkbc-messages.h"
 
 #include <stdbool.h>
-extern Kite_Images kite_images;
 
 bool tkbc_messages_send_texture_id(Env *env, Lexer *lexer, Client *client) {
   Token token;
@@ -34,8 +33,8 @@ bool tkbc_messages_send_texture_id(Env *env, Lexer *lexer, Client *client) {
     return false;
   }
 
-  Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
-  if (kite_image == NULL) {
+  Asset *asset = tkbc_find_asset_from_id(texture_id);
+  if (asset == NULL) {
     // The message is split to allow getting a texture by its own at some
     // point. Maybe this is never needed, but it can be useful when a client
     // want to get all the available textures in the server.

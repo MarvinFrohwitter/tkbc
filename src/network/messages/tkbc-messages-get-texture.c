@@ -1,15 +1,13 @@
 #include "../../../external/lexer/tkbc-lexer.h"
-#include "../../global/tkbc-types.h"
 #include "../../../external/space/space.h"
 #include "../../choreographer/tkbc-asset-handler.h"
+#include "../../global/tkbc-types.h"
 #include "../tkbc-servers-common.h"
 #include "tkbc-interface.h"
 
 #include "tkbc-messages.h"
 
 #include <stdbool.h>
-
-extern Kite_Images kite_images;
 
 /**
  * @brief [TODO:description]
@@ -30,7 +28,12 @@ bool tkbc_messages_get_texture(Lexer *lexer, Client *client) {
     return false;
   }
 
-  Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
+  Asset *asset = tkbc_find_asset_from_id(texture_id);
+  if (asset == NULL) {
+    // Can not provide texture.
+    return false;
+  }
+  Kite_Image *kite_image = &asset->kite_image;
   if (kite_image == NULL) {
     // Can not provide texture.
     return false;
@@ -41,7 +44,7 @@ bool tkbc_messages_get_texture(Lexer *lexer, Client *client) {
 
   tkbc_message_append_image_data(&client->send_msg_buffer_space,
                                  &client->send_msg_buffer, kite_image->normal,
-                                 kite_image->id);
+                                 asset->id);
 
   space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "\r\n");
   return true;

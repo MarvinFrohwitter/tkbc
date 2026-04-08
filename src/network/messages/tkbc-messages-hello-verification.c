@@ -7,8 +7,6 @@
 
 #include <stdbool.h>
 
-extern Kite_Images kite_images;
-
 /**
  * @brief [TODO:description]
  *

@@ -6,7 +6,6 @@
 #include "tkbc-messages.h"
 
 #include <stdbool.h>
-extern Kite_Images kite_images;
 
 bool tkbc_messages_get_texture_id(Lexer *lexer, Client *client) {
   // The client can request a texture id for a kite;

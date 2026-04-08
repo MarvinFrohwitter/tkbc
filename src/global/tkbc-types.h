@@ -9,6 +9,9 @@
 // ========================== TKBC KITE TYPES ================================
 // ===========================================================================
 
+typedef size_t Index; // NOTE: Check for clang compiler issue in project.
+typedef size_t Id;    // NOTE: Check for clang compiler issue in project.
+
 typedef enum {
   IMAGE_1 = 0,
   IMAGE_2,
@@ -61,7 +64,39 @@ typedef enum {
 
   // --- New generated kite designs from the colorizer.
 
-  ASSETS_COUNT,
+  ASSET_KITE_DESIGN_COUNT,
+} Asset_Kite_Design_Kind;
+
+typedef enum {
+  ASSETS_KITE_DESIGN_KIND,
+  ASSETS_KIND_COUNT,
+} Assets_Kind;
+
+typedef struct {
+  Image normal;
+  Image flipped;
+} Kite_Image;
+
+typedef struct {
+  Texture2D normal;
+  Texture2D flipped;
+} Kite_Texture;
+
+typedef struct {
+  Assets_Kind type;
+  Id id;
+
+  Kite_Image kite_image;
+  Kite_Texture kite_texture;
+
+} Asset;
+
+typedef struct {
+  Asset *elements;
+  size_t count;
+  size_t capacity;
+
+  Space space;
 } Assets;
 
 typedef enum {
@@ -69,35 +104,6 @@ typedef enum {
   SELECT_COLOR,
   SELECT_PANEL,
 } Colorizer_Mode;
-
-typedef size_t Index; // NOTE: Check for clang compiler issue in project.
-typedef size_t Id;    // NOTE: Check for clang compiler issue in project.
-
-typedef struct {
-  Image normal;
-  Image flipped;
-
-  Id id;
-} Kite_Image;
-
-typedef struct {
-  Texture2D normal;
-  Texture2D flipped;
-
-  Id id;
-} Kite_Texture;
-
-typedef struct {
-  Kite_Texture *elements;
-  size_t count;
-  size_t capacity;
-} Kite_Textures;
-
-typedef struct {
-  Kite_Image *elements;
-  size_t count;
-  size_t capacity;
-} Kite_Images;
 
 typedef struct {
   const char *description;

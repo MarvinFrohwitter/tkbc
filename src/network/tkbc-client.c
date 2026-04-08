@@ -68,11 +68,7 @@ Client client = {0};
 Kite client_kite;
 Popup loading = {0};
 
-Space kite_images_space = {0};
-Kite_Images kite_images = {0};
-Space kite_textures_space = {0};
-Kite_Textures kite_textures = {0};
-size_t textures_id_mapper;
+Assets assets = {0};
 
 /**
  * @brief The function prints the way the program should be called.
@@ -479,8 +475,8 @@ bool received_message_handler(Message *message) {
           goto err;
         }
 
-        Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
-        if (!kite_image && texture_id != -1) {
+        Asset *found = tkbc_find_asset_from_id(texture_id);
+        if (!found && texture_id != -1) {
           space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                      "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
 
@@ -492,11 +488,8 @@ bool received_message_handler(Message *message) {
         }
 
         if (texture_id == -1) {
-          Id id = tkbc_append_kite_image(texture_data, texture_width,
-                                         texture_height, texture_format);
-          tkbc_append_kite_texture(kite_images.elements[kite_images.count - 1]);
-
-          texture_id = id;
+          texture_id = tkbc_append_kite_image_and_kite_texture(
+              texture_data, texture_width, texture_height, texture_format);
         }
 
         space_reset_tspace();
@@ -1096,8 +1089,7 @@ int main(int argc, char *argv[]) {
 
   space_free_tspace();
   tkbc_assets_destroy();
-  space_free_space(&kite_images_space);
-  space_free_space(&kite_textures_space);
+  space_free_space(&assets.space);
   CloseWindow();
   tkbc_fprintf(stderr, "INFO", "EXITED SUCCESSFULLY.\n");
   return 0;

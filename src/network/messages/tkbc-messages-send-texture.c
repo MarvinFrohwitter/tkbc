@@ -7,7 +7,7 @@
 #include "tkbc-messages.h"
 
 #include <stdbool.h>
-extern Kite_Images kite_images;
+extern Assets assets;
 
 /**
  * @brief [TODO:description]
@@ -26,13 +26,9 @@ bool tkbc_messages_send_texture(Lexer *lexer) {
     return false;
   }
 
-  Kite_Image *kite_image = tkbc_find_asset_in_kite_images(texture_id);
-  if (!kite_image) {
-    tkbc_append_kite_image(data, width, height, format);
-#ifndef TKBC_SERVER
-    Kite_Image kite_image = kite_images.elements[kite_images.count - 1];
-    tkbc_append_kite_texture(kite_image);
-#endif
+  Asset *asset = tkbc_find_asset_from_id(texture_id);
+  if (!asset) {
+    tkbc_append_kite_image_and_kite_texture(data, width, height, format);
   }
   space_reset_tspace();
   return true;
