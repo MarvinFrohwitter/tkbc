@@ -16,7 +16,7 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client,
   size_t kite_id;
   float x, y, angle;
   Color color;
-  bool is_reversed, is_active;
+  bool is_reversed, is_active, is_script_kite;
   ssize_t texture_id;
   size_t texture_width, texture_height, texture_format;
   Space *data_space = space_get_tspace();
@@ -25,7 +25,7 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client,
   if (!tkbc_parse_message_kite_value(
           lexer, &kite_id, &x, &y, &angle, &color, &texture_id, &texture_width,
           &texture_height, &texture_format, data_space, &texture_data,
-          &is_reversed, &is_active)) {
+          &is_reversed, &is_active, &is_script_kite)) {
     space_reset_tspace();
     return false;
   }
@@ -53,7 +53,7 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client,
   // passed to the server compilations as well.
 #ifndef TKBC_SERVER
   tkbc_register_kite_from_values(kite_id, x, y, angle, color, texture_id,
-                                 is_reversed, is_active);
+                                 is_reversed, is_active, is_script_kite);
 #endif
 
   static bool first_message_kite_add = true;

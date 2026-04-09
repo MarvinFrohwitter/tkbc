@@ -705,7 +705,8 @@ bool tkbc_ui_script_menu(Env *env) {
  */
 void tkbc_display_kite_information(Env *env) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].is_kite_input_handler_active) {
+    if (env->kite_array->elements[i].is_active &&
+        env->kite_array->elements[i].is_kite_input_handler_active) {
       tkbc_display_kite_information_speeds(&env->kite_array->elements[i]);
       return;
     }

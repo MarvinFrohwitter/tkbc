@@ -380,7 +380,7 @@ void tkbc_client_prolog(Client *client) {
   kite_state.kite_id = client->kite_id;
   float r = (float)rand() / RAND_MAX;
   kite_state.kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
-  if (!tkbc_script_finished(env)) {
+  if (!tkbc_script_finished(env) || env->script != NULL) {
     kite_state.is_active = false;
   }
   tkbc_dap(env->kite_array, kite_state);
@@ -655,9 +655,13 @@ void tkbc_socket_handling(void) {
 /**
  * @brief The function constructs and sends the message CLIENTKITES to all
  * registered kites.
+ *
+ * @param overwrite_is_active Via this flag the you can overwrite the check
+ * is_active and so all kites get treated as active.
  */
-void tkbc_message_clientkites_write_to_all_send_msg_buffers(void) {
-  tkbc_message_clientkites(&t_message, false);
+void tkbc_message_clientkites_write_to_all_send_msg_buffers(
+    bool overwrite_is_active) {
+  tkbc_message_clientkites(&t_message, overwrite_is_active);
   tkbc_write_to_all_send_msg_buffers(t_message);
 
   tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
@@ -672,7 +676,7 @@ void tkbc_message_clientkites_write_to_all_send_msg_buffers(void) {
  * @param frames_index The current index of the collection of individual frames
  * in a script.
  */
-void tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
+void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(
     size_t script_id, size_t script_count, size_t frames_index) {
 
   space_tdapf(&t_message, "%d:%zu:%zu:%zu:\r\n", MESSAGE_SCRIPT_META_DATA,
@@ -692,7 +696,7 @@ void tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
  * false.
  */
 bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
-    size_t client_id) {
+    size_t client_id, int fd) {
   bool ok = true;
   space_tdapf(&t_message, "%d:", MESSAGE_SINGLE_KITE_UPDATE);
   if (!tkbc_message_append_clientkite(client_id, &t_message,
@@ -700,7 +704,7 @@ bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
     check_return(false);
   }
   space_tdapf(&t_message, "\r\n");
-  tkbc_write_to_all_send_msg_buffers_except(t_message, client_id);
+  tkbc_write_to_all_send_msg_buffers_except(t_message, fd);
 
 check:
   tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
@@ -805,12 +809,12 @@ bool tkbc_received_message_handler(Client *client) {
       unsigned char *texture_data = NULL;
       float x, y, angle;
       Color color;
-      bool is_reversed, is_active;
+      bool is_reversed, is_active, is_script_kite;
 
       if (!tkbc_parse_message_kite_value(
               lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
               &texture_width, &texture_height, &texture_format, data_space,
-              &texture_data, &is_reversed, &is_active)) {
+              &texture_data, &is_reversed, &is_active, &is_script_kite)) {
 
         space_reset_tspace();
         goto err;
@@ -840,10 +844,10 @@ bool tkbc_received_message_handler(Client *client) {
       // With a correct client implementation the state should always be
       // available. No memory corruption on the server side implied.
       tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id,
-                                      is_reversed, is_active);
+                                      is_reversed, is_active, is_script_kite);
 
       if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
-              kite_id)) {
+              kite_id, client->socket_id)) {
         check_return(false);
       }
 
@@ -856,7 +860,7 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_kite_array_start_position(env->kite_array, env->window_width,
                                      env->window_height);
 
-      tkbc_message_clientkites_write_to_all_send_msg_buffers();
+      tkbc_message_clientkites_write_to_all_send_msg_buffers(true);
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS_RESET\n");
     } break;
@@ -1108,11 +1112,11 @@ bool tkbc_base_execution(void) {
 
     if (env->frames->frames_index != bindex) {
       bindex = env->frames->frames_index;
-      tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
+      tkbc_message_script_meta_data_write_to_all_send_msg_buffers(
           env->script->script_id, env->script->count, bindex);
     }
 
-    tkbc_message_clientkites_write_to_all_send_msg_buffers();
+    tkbc_message_clientkites_write_to_all_send_msg_buffers(false);
 
     if (tkbc_script_finished(env)) {
       space_tdapf(&t_message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);

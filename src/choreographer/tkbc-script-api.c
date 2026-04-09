@@ -280,9 +280,10 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     }
 
     for (size_t j = 0; j < frame->kite_id_array.count; ++j) {
-      Kite *kite = tkbc_get_kite_by_id(env, frame->kite_id_array.elements[j]);
-      kite->old_angle = kite->angle;
-      kite->old_center = kite->center;
+      Kite_State *state = tkbc_get_kite_state_by_id(env, frame->kite_id_array.elements[j]);
+      state->kite->old_angle = state->kite->angle;
+      state->kite->old_center = state->kite->center;
+      state->is_script_kite = true;
     }
   }
   tkbc_patch_frames_kite_positions(env, frames);

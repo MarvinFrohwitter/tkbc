@@ -10,7 +10,8 @@ int tkbc_client_socket_creation(const char *host, const char *port);
 
 void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
                                     float angle, Color color, size_t texture_id,
-                                    bool is_reversed, bool is_active);
+                                    bool is_reversed, bool is_active,
+                                    bool is_script_kite);
 void sending_script_handler(void);
 bool send_message_handler(void);
 bool received_message_handler(Message *message);

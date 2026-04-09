@@ -330,6 +330,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
 
   for (size_t i = prev_count; i < env->kite_array->count; ++i) {
     env->kite_array->elements[i].is_active = false;
+    env->kite_array->elements[i].is_script_kite = true;
   }
 
   tkbc_remap_script_kite_id_arrays_to_kite_ids(env, scb_script, kite_ids);

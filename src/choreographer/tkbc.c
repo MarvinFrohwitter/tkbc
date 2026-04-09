@@ -232,17 +232,21 @@ void tkbc_kite_array_start_position(Kite_States *kite_states,
   float kite_width = kite_states->elements[0].kite->width;
   float kite_height = kite_states->elements[0].kite->height;
   float viewport_padding =
-      kite_width > kite_height ? kite_width / 2 : kite_height;
+      kite_width > kite_height ? kite_width / 2.0f : kite_height;
 
-  Vector2 start_pos = {.x = window_width / 2.0f -
-                            kite_states->count * kite_width + kite_width / 2.0f,
+  size_t count = tkbc_get_active_kite_count(kite_states);
+
+  Vector2 start_pos = {.x = window_width / 2.0f - count * kite_width +
+                            kite_width / 2.0f,
                        .y = window_height - 2 * viewport_padding};
 
   for (size_t i = 0; i < kite_states->count; ++i) {
-    tkbc_set_kite_state_defaults(&kite_states->elements[i]);
-    tkbc_set_kite_defaults(kite_states->elements[i].kite, false);
-    tkbc_center_rotation(kite_states->elements[i].kite, &start_pos, 0);
-    start_pos.x += 2 * kite_width;
+    if (kite_states->elements[i].is_active) {
+      tkbc_set_kite_state_defaults(&kite_states->elements[i]);
+      tkbc_set_kite_defaults(kite_states->elements[i].kite, false);
+      tkbc_center_rotation(kite_states->elements[i].kite, &start_pos, 0);
+      start_pos.x += 2 * kite_width;
+    }
   }
 }
 

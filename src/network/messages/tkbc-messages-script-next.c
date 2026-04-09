@@ -21,15 +21,35 @@ bool tkbc_messages_script_next(Lexer *lexer) {
     return false;
   }
 
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    Kite_State *kite_state = &env->kite_array->elements[i];
+    kite_state->is_active = false;
+  }
+
   if (script_id == 0) {
     tkbc_unload_script(env);
     // This parsing function is just used in the server but liked in the client
     // as well so just a simple guard for compilation.
 #ifdef TKBC_SERVER
-    tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(0, 0, 0);
+    tkbc_message_script_meta_data_write_to_all_send_msg_buffers(0, 0, 0);
 #endif
-    goto no_script;
+
+    // Enable the normal client kites.
+    for (size_t i = 0; i < env->kite_array->count; ++i) {
+      Kite_State *kite_state = &env->kite_array->elements[i];
+      if (!kite_state->is_script_kite) {
+        kite_state->is_active = true;
+      }
+    }
+
+    // This parsing function is just used in the server but liked in the client
+    // as well so just a simple guard for compilation.
+#ifdef TKBC_SERVER
+    tkbc_message_clientkites_write_to_all_send_msg_buffers(false);
+#endif
+    return true;
   }
+
   // TODO: Report possible failures of loading back to the client.
   tkbc_load_script_id(env, script_id);
   env->server_script_kite_max_count = 0;
@@ -42,7 +62,6 @@ bool tkbc_messages_script_next(Lexer *lexer) {
   // Activate the kites that belong to the script.
   Kite_Ids ids = {0};
   for (size_t i = 0; i < env->script->count; ++i) {
-
     // TODO: Just filter for the kites that are in the parsed script_id.
 
     for (size_t j = 0; j < env->script->elements[i].count; ++j) {
@@ -83,6 +102,12 @@ bool tkbc_messages_script_next(Lexer *lexer) {
     Kite_Ids kite_ids = tkbc_kite_array_generate(env, needed_kites);
     free(kite_ids.elements);
   }
-no_script:
+
+  // This parsing function is just used in the server but liked in the client
+  // as well so just a simple guard for compilation.
+#ifdef TKBC_SERVER
+  tkbc_message_clientkites_write_to_all_send_msg_buffers(true);
+#endif
+
   return true;
 }

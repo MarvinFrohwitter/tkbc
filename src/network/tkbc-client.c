@@ -26,6 +26,7 @@
 #include "../choreographer/tkbc-input-handler.h"
 #include "../choreographer/tkbc-keymaps.h"
 #include "../choreographer/tkbc-script-api.h"
+#include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc-sound-handler.h"
 #include "../choreographer/tkbc-ui.h"
 #include "../choreographer/tkbc.h"
@@ -234,10 +235,11 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
  */
 void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
                                     float angle, Color color, size_t texture_id,
-                                    bool is_reversed, bool is_active) {
+                                    bool is_reversed, bool is_active,
+                                    bool is_script_kite) {
   Kite_State state = tkbc_init_kite();
   tkbc_assign_values_to_kitestate(&state, x, y, angle, color, texture_id,
-                                  is_reversed, is_active);
+                                  is_reversed, is_active, is_script_kite);
 
   state.kite_id = kite_id;
   tkbc_dap(env->kite_array, state);
@@ -452,15 +454,11 @@ bool received_message_handler(Message *message) {
         goto err;
       }
 
-      for (size_t i = 0; i < env->kite_array->count; ++i) {
-        env->kite_array->elements[i].is_active = false;
-      }
-
       for (size_t i = 0; i < amount; ++i) {
         size_t kite_id;
         float x, y, angle;
         Color color;
-        bool is_reversed, is_active;
+        bool is_reversed, is_active, is_script_kite;
 
         ssize_t texture_id;
         size_t texture_width, texture_height, texture_format;
@@ -470,7 +468,7 @@ bool received_message_handler(Message *message) {
         if (!tkbc_parse_message_kite_value(
                 lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
                 &texture_width, &texture_height, &texture_format, data_space,
-                &texture_data, &is_reversed, &is_active)) {
+                &texture_data, &is_reversed, &is_active, &is_script_kite)) {
           space_reset_tspace();
           goto err;
         }
@@ -494,7 +492,10 @@ bool received_message_handler(Message *message) {
 
         space_reset_tspace();
 
-        // TODO: FIXME
+        // TODO: FIXME The complete comment is bullshit
+        //
+        // Marvin Frohwitter 09.04.2026
+        //
         // TODO: The received kites are all assumed active.
         // The problem is that the client can't distinguish between
         // script_kites and actual client_kites these are the same because
@@ -502,12 +503,12 @@ bool received_message_handler(Message *message) {
         // has to be send to the client, so the client assumes them active
         // even they are not.
         //
-        // The soulution send them through a different message or the better
+        // The solution send them through a different message or the better
         // one just send the current active state_with them.
         //
         // NOTE: That is the reason why all kites are displayed in the
         // beginning for the second client and on. The fist one is excluided
-        // because there is a algo that checks for already known kite ids.
+        // because there is an algo that checks for already known kite ids.
         // The fist client gives the initial kite ids and the more important
         // part didn't received a client_kites_message without already
         // having them placed.
@@ -518,12 +519,12 @@ bool received_message_handler(Message *message) {
         if (state == NULL) {
           // If the kite_id is not registered.
           tkbc_register_kite_from_values(kite_id, x, y, angle, color,
-                                         texture_id, is_reversed, is_active);
-          // NOTE: The kite_state defaults ensure. is_active = true;
+                                         texture_id, is_reversed, is_active,
+                                         is_script_kite);
         } else {
           tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id,
-                                          is_reversed, is_active);
-          state->is_active = true;
+                                          is_reversed, is_active,
+                                          is_script_kite);
         }
       }
 
@@ -679,54 +680,94 @@ bool message_queue_handler() {
   return true;
 }
 
+static bool tkbc_update_kites_input_handling_for_message_single_kite_update(
+    Kite_State *kite_state) {
+  Vector2 pos = kite_state->kite->center;
+  float angle = kite_state->kite->angle;
+  tkbc_input_handler(env->keymaps, kite_state);
+
+  // Rate limiting / data throttling
+  float eps = 0.01;
+  if (tkbc_float_equals_epsilon(angle, kite_state->kite->angle, eps) &&
+      tkbc_vector2_equals_epsilon(pos, kite_state->kite->center, eps)) {
+    return false;
+  }
+
+  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+             "%d:", MESSAGE_SINGLE_KITE_UPDATE);
+  tkbc_message_append_clientkite(kite_state->kite_id, &client.send_msg_buffer,
+                                 &client.send_msg_buffer_space);
+  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
+  return true;
+}
+
 /**
  * @brief The function constructs a message SINGLE_KITE_UPDATE out of the kite
  * that is associated with this current client. The result is written to the
  * send_message_queue.
  */
 void tkbc_client_input_handler_kite(void) {
-  Kite_State *kite_state = tkbc_get_kite_state_by_id(env, client.kite_id);
-  if (!kite_state) {
-    return;
-  }
+  if (env->server_script_id != 0) {
 
-  if (IsKeyPressed(KEY_ONE)) {
-    kite_state->is_kite_input_handler_active =
-        !kite_state->is_kite_input_handler_active;
-  }
-  if (!kite_state->is_kite_input_handler_active) {
-    return;
-  }
+    { ///////////////////////////////////////////////////////////////////////
+      Kite_State *kite_state = tkbc_get_kite_state_by_id(env, client.kite_id);
+      if (!kite_state) {
+        return;
+      }
+      kite_state->is_kite_input_handler_active = false;
+    } ///////////////////////////////////////////////////////////////////////
 
-  Vector2 pos = {
-      .x = kite_state->kite->center.x,
-      .y = kite_state->kite->center.y,
-  };
-  float angle = kite_state->kite->angle;
+    int max_contolling_counter = 9;
+    for (size_t i = 0;
+         max_contolling_counter >= 0 && i < env->kite_array->count; ++i) {
+      if (env->kite_array->elements[i].is_active) {
+        max_contolling_counter--;
+        Id kite_id = env->kite_array->elements[i].kite_id;
+        Kite_State *kite_state = tkbc_get_kite_state_by_id(env, kite_id);
+        if (!kite_state) {
+          continue;
+        }
 
-  tkbc_input_handler(env->keymaps, kite_state);
+        if (IsKeyPressed(9 - max_contolling_counter + 48)) {
+          kite_state->is_kite_input_handler_active =
+              !kite_state->is_kite_input_handler_active;
+        }
+        if (!kite_state->is_kite_input_handler_active) {
+          continue;
+        }
+        if (!tkbc_update_kites_input_handling_for_message_single_kite_update(
+                kite_state)) {
+          continue;
+        }
+      }
+    }
 
-  if (Vector2Equals(pos, kite_state->kite->center)) {
-    if (FloatEquals(angle, kite_state->kite->angle)) {
+  } else {
+
+    ///////////////////////////////////////////////////////////
+
+    Kite_State *kite_state = tkbc_get_kite_state_by_id(env, client.kite_id);
+    if (!kite_state) {
       return;
     }
-  }
 
-  // Rate limiting / data throttling
-  float eps = 0.01;
-  if (tkbc_float_equals_epsilon(client_kite.angle, kite_state->kite->angle,
-                                eps) &&
-      tkbc_vector2_equals_epsilon(client_kite.center, kite_state->kite->center,
-                                  eps)) {
-    return;
-  }
-  client_kite = *kite_state->kite;
+    if (IsKeyPressed(KEY_ONE)) {
+      kite_state->is_kite_input_handler_active =
+          !kite_state->is_kite_input_handler_active;
+    }
+    if (!kite_state->is_kite_input_handler_active) {
+      return;
+    }
+    if (!tkbc_update_kites_input_handling_for_message_single_kite_update(
+            kite_state)) {
+      return;
+    }
 
-  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-             "%d:", MESSAGE_SINGLE_KITE_UPDATE);
-  tkbc_message_append_clientkite(client.kite_id, &client.send_msg_buffer,
-                                 &client.send_msg_buffer_space);
-  space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
+    if (env->script_finished && env->script == NULL &&
+        env->server_script_id == 0) {
+      client_kite = *kite_state->kite;
+    }
+  }
 }
 
 /**

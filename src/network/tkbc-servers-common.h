@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.3.022"
+#define PROTOCOL_VERSION "0.3.023"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -233,7 +233,7 @@ static inline void tkbc_message_append_image_data(Space *space,
  * @param message The Message struct that should contain the serialized data.
  */
 static inline void tkbc_message_append_kite(Kite_State *kite_state,
-                                            Message *message, Space *space) {
+                                             Message *message, Space *space) {
   size_t kite_id = kite_state->kite_id;
   float x = kite_state->kite->center.x;
   float y = kite_state->kite->center.y;
@@ -244,6 +244,7 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
 
   bool is_reversed = kite_state->is_kite_reversed;
   bool is_active = kite_state->is_active;
+  bool is_script_kite = kite_state->is_script_kite;
 
   space_dapf(space, message, "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
 
@@ -262,8 +263,8 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
     space_dapf(space, message, "%zd:", texture_id);
   }
 
-  space_dapf(space, message, "%zu:%zu:", (size_t)is_reversed,
-             (size_t)is_active);
+  space_dapf(space, message, "%zu:%zu:%zu:", (size_t)is_reversed,
+             (size_t)is_active, (size_t)is_script_kite);
 }
 
 /**

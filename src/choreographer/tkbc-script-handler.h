@@ -13,6 +13,8 @@ Kite *tkbc_get_kite_by_id(Env *env, size_t id);
 Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id);
 bool tkbc_scripts_contains_id(Scripts scripts, Id script_id);
 bool tkbc_contains_id(Kite_Ids kite_ids, size_t id);
+bool tkbc_find_first_active_script_kite(Env *env, Id *id);
+size_t tkbc_get_active_kite_count(Kite_States *kite_states);
 Frame tkbc_deep_copy_frame(Space *space, Frame *frame);
 Frames tkbc_deep_copy_frames(Space *space, Frames *frames);
 Script tkbc_deep_copy_script(Space *space, Script *script);

@@ -41,11 +41,12 @@ void tkbc_reset_space_and_null_message(Space *space, Message *message) {
  * kite.
  * @param is_reversed If the kite should fly reverse by default.
  * @param is_active If the kite should be displayed on the screen.
+ * @param is_script_kite Indicates if the kite is part of a script.
  */
 void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
                                      float angle, Color color,
                                      ssize_t texture_id, bool is_reversed,
-                                     bool is_active) {
+                                     bool is_active, bool is_script_kite) {
   // There should not be a single missing texture in here.
   // This just enshures that not an implicit cast from (ssize_t) to (size_t)
   // happens when calling this function. For the same reason the type of
@@ -59,7 +60,13 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
   state->kite->body_color = color;
   state->kite->texture_id = texture_id;
   state->is_kite_reversed = is_reversed;
+
   state->is_active = is_active;
+  state->is_script_kite = is_script_kite;
+
+  if (!is_active) {
+    state->is_kite_input_handler_active = false;
+  }
 
   // This is needed because in the server this step
   // is meaningless. The server don't have to load assets to
@@ -98,7 +105,7 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id,
 
   float x, y, angle;
   Color color;
-  bool is_reversed, is_active;
+  bool is_reversed, is_active, is_script_kite;
 
   ssize_t texture_id;
   size_t texture_width, texture_height, texture_format;
@@ -108,7 +115,7 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id,
   if (!tkbc_parse_message_kite_value(
           lexer, parsed_id, &x, &y, &angle, &color, &texture_id, &texture_width,
           &texture_height, &texture_format, data_space, &texture_data,
-          &is_reversed, &is_active)) {
+          &is_reversed, &is_active, &is_script_kite)) {
 
     check_return(0);
   }
@@ -141,7 +148,7 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id,
   // // TODO: So for the client register the kite like single kite add kite.
   if (state) {
     tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id,
-                                    is_reversed, is_active);
+                                    is_reversed, is_active, is_script_kite);
   }
 
 check:
@@ -261,6 +268,7 @@ check: {}
  * @param texture_data Pointer to store the texture data.
  * @param is_reversed If the kite should fly reverse by default.
  * @param is_active If the kite should be displayed on the screen.
+ * @param is_script_kite If the kite is part of a script.
  * @return True if all values have been parsed correctly and are assigned,
  * otherwise false.
  */
@@ -270,7 +278,8 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
                                    size_t *texture_height,
                                    size_t *texture_format, Space *data_space,
                                    unsigned char **texture_data,
-                                   bool *is_reversed, bool *is_active) {
+                                   bool *is_reversed, bool *is_active,
+                                   bool *is_script_kite) {
   Content buffer = {0};
   Token token;
   bool ok = true;
@@ -414,6 +423,17 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
     check_return(false);
   }
   *is_active = !!atoi(lexer_token_to_cstr(lexer, &token));
+
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    check_return(false);
+  }
+
+  token = lexer_next(lexer);
+  if (token.kind != NUMBER) {
+    check_return(false);
+  }
+  *is_script_kite = !!atoi(lexer_token_to_cstr(lexer, &token));
 
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {

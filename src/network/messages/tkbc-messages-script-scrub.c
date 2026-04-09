@@ -15,8 +15,17 @@ bool tkbc_messages_script_scrub(Lexer *lexer) {
     return false;
   }
   bool drag_left = atoi(lexer_token_to_cstr(lexer, &token));
+  token = lexer_next(lexer);
+  if (token.kind != PUNCT_COLON) {
+    return false;
+  }
 
-  // TODO: Ensure a script is loaded. And the kite_ids are correctly mapped.
+  // No script is available nothing to scrub
+  if (env->script == NULL) {
+    return true;
+  }
+
+  // TODO: Ensure kite_ids are correctly mapped.
   {
     if (env->script->count <= 0) {
       return false;
@@ -39,15 +48,10 @@ bool tkbc_messages_script_scrub(Lexer *lexer) {
     tkbc_set_kite_positions_from_kite_frames_positions(env);
   }
 
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COLON) {
-    return false;
-  }
-
   // This parsing function is just used in the server but liked in the client as
   // well so just a simple guard for compilation.
 #ifdef TKBC_SERVER
-  tkbc_message_srcipt_meta_data_write_to_all_send_msg_buffers(
+  tkbc_message_script_meta_data_write_to_all_send_msg_buffers(
       env->script->script_id, env->script->count, env->frames->frames_index);
 #endif
   return true;

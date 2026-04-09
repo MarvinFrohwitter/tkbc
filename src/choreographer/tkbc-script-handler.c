@@ -118,6 +118,34 @@ bool tkbc_contains_id(Kite_Ids kite_ids, size_t id) {
 }
 
 /**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param id [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_find_first_active_script_kite(Env *env, Id *id) {
+  for (size_t k = 0; k < env->kite_array->count; ++k) {
+    if (env->kite_array->elements[k].is_active &&
+        env->kite_array->elements[k].is_script_kite) {
+      *id = env->kite_array->elements[k].kite_id;
+      return true;
+    }
+  }
+  return false;
+}
+
+size_t tkbc_get_active_kite_count(Kite_States *kite_states) {
+  size_t result = 0;
+  for (size_t k = 0; k < kite_states->count; ++k) {
+    if (kite_states->elements[k].is_active) {
+      ++result;
+    }
+  }
+  return result;
+}
+
+/**
  * @brief The function copies every single value even the values that are just
  * represented by a pointer of the struct Frames to a new instance. Every
  * internal pointer is a new one in the created representation and points to the
@@ -756,7 +784,7 @@ void tkbc_unload_script(Env *env) {
  *
  * @param env The global state of the application.
  * @param script_id The id of the script that should be unloaded.
- * @return True if the unloading was successfull, otherwise false.
+ * @return True if the unloading was successful, otherwise false.
  */
 bool tkbc_unload_script_from_memory(Env *env, size_t script_id) {
   for (size_t i = 0; i < env->scripts.count; ++i) {
@@ -894,7 +922,7 @@ void tkbc_add_script(Env *env, Script script) {
 #define threshold_max_scripts_in_memory 10
   if (env->scripts.count >= threshold_max_scripts_in_memory) {
     Planet *p = space_find_planet_from_ptr(&env->scripts_space,
-                                            env->scripts.elements->elements);
+                                           env->scripts.elements->elements);
 
     // NOTE: this is actually slow because every other script just be moved
     // over in the array.
