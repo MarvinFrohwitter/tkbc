@@ -274,7 +274,7 @@ typedef struct {
 
   bool is_script_kite;
 
-  bool is_active;      // If the kite should be drawn.
+  bool is_active;                    // If the kite should be drawn.
   bool is_kite_input_handler_active; // Representation of a manual user control
                                      // selection.
 
@@ -484,6 +484,10 @@ typedef struct {
   bool script_interrupt; // The indication if a script is currently going to be
                          // loaded.
   bool script_finished;  // The indication a script has finished.
+
+  bool script_loading; // Indicates if the script is loaded that si needed to
+                       // functions like scrubbing when the user can not even
+                       // see the script.
 
   int fps;              // The fps of the application.
   size_t window_width;  // The window width of the application.

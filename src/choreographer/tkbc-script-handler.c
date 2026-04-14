@@ -729,7 +729,7 @@ void tkbc_load_next_script(Env *env) {
   size_t id = env->script == NULL ? 0 : env->script->script_id;
   size_t script_index = id % env->scripts.count;
   size_t script_id = env->scripts.elements[script_index].script_id;
-  tkbc_load_script_id(env, script_id);
+  tkbc_load_script_id(env, script_id, true);
 }
 
 /**
@@ -741,7 +741,7 @@ void tkbc_load_next_script(Env *env) {
  * current execution.
  * @return True if the script could be loaded successfully, otherwise false.
  */
-bool tkbc_load_script_id(Env *env, size_t script_id) {
+bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh) {
   bool found = false;
   for (size_t i = 0; i < env->scripts.count; ++i) {
     if (env->scripts.elements[i].script_id == script_id) {
@@ -756,9 +756,20 @@ bool tkbc_load_script_id(Env *env, size_t script_id) {
   }
 
   env->frames = &env->script->elements[0];
-  tkbc_set_kite_positions_from_kite_frames_positions(env);
-  env->script_finished = false;
+  if (!fresh) {
+    tkbc_set_kite_positions_from_kite_frames_positions(env);
+  } else {
+    // load without setting any position but clear alle the saved positions
+    // start a fresh play.
+    assert(env->script);
+    for (size_t i = 0; i < env->script->count; ++i) {
+      env->script->elements[i].kite_frame_positions.count = 0;
+    }
 
+    tkbc_patch_script_kite_positions(env, env->script);
+  }
+  env->script_finished = false;
+  env->script_loading = true;
   return true;
 }
 
@@ -973,7 +984,7 @@ void tkbc_add_script(Env *env, Script script) {
   memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));
 
   if (is_script) {
-    if (!tkbc_load_script_id(env, script_id)) {
+    if (!tkbc_load_script_id(env, script_id, false)) {
       return;
     }
   }
@@ -1011,7 +1022,20 @@ void tkbc_input_handler_script(Env *env) {
     }
   }
 
-  tkbc_scrub_frames(env);
+  // This guard just prevent it for one frame.
+  // But it can't be blocked for longer because the user may actually want to
+  // scrub that fast.
+  // This is a bit of a bad design for trackpads but there
+  // is no way around that.
+  if (!env->script_loading) {
+    tkbc_scrub_frames(env);
+  }
+
+  // TODO: Change condition to something like UI interaction.
+  if (!env->keymaps_interaction && !env->script_menu_interaction &&
+      !env->colorizer) {
+    env->script_loading = false;
+  }
 }
 
 /**

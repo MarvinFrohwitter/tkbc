@@ -18,6 +18,67 @@ extern Assets assets;
 #define HEX_COLOR_LENGTH 8
 
 /**
+ * @brief The function wraps all the UI-elements to a single draw handler that
+ * computes the position and size of the UI-components.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_draw_ui(Env *env) {
+  env->window_height = tkbc_get_screen_height();
+  env->window_width = tkbc_get_screen_width();
+
+  // TODO: The script bar is not displayed if another client triggered a script.
+  if ((env->frames || env->server_script_id) &&
+      !(env->script_menu_interaction || env->keymaps_interaction)) {
+    // A script is currently executing.
+
+    if (env->server_script_id) {
+      //
+      // NOTE: This realise on the fact that server_script_id will just be set
+      // on a client and not a no server related client.
+      //
+      // This is in a .c file so a preprocessor macro would just work if it is
+      // passed to the compiler directly. In this case a dependency on a custom
+      // macro form a client reduces the freedom of the client choosing it.
+      //
+      // Marvin Frohwitter 10.08.2025
+
+      tkbc_ui_timeline(env, env->server_script_frames_index,
+                       env->server_script_frames_count);
+    } else {
+      tkbc_ui_timeline(env, env->frames->frames_index, env->script->count);
+    }
+  }
+
+  if (!env->rendering) {
+    Color color = TKBC_UI_TEAL;
+    int fps = GetFPS();
+    if (fps < 25) {
+      color = TKBC_UI_PURPLE;
+    }
+
+    char buf[16] = {0};
+    sprintf(buf, "%2i FPS", fps);
+    DrawText(buf, env->window_width / 2, 10, 20, color);
+  }
+
+  if (env->scripts_parsed) {
+    tkbc_ui_script_menu(env);
+  }
+
+  if (!env->script_menu_interaction) {
+    if (!env->colorizer) {
+      tkbc_ui_keymaps(env);
+    }
+    tkbc_ui_color_picker(env);
+  }
+
+  if (!env->keymaps_interaction && !env->script_menu_interaction) {
+    tkbc_display_kite_information(env);
+  }
+}
+
+/**
  * @brief The function updates the GPU texture with new data from the kite
  * image.
  *
@@ -279,67 +340,6 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
 
   tkbc_update_kite_texture(assets.elements[KITE_COLORIZER].kite_texture,
                            assets.elements[KITE_COLORIZER].kite_image);
-}
-
-/**
- * @brief The function wraps all the UI-elements to a single draw handler that
- * computes the position and size of the UI-components.
- *
- * @param env The global state of the application.
- */
-void tkbc_draw_ui(Env *env) {
-  env->window_height = tkbc_get_screen_height();
-  env->window_width = tkbc_get_screen_width();
-
-  // TODO: The script bar is not displayed if another client triggered a script.
-  if ((env->frames || env->server_script_id) &&
-      !(env->script_menu_interaction || env->keymaps_interaction)) {
-    // A script is currently executing.
-
-    if (env->server_script_id) {
-      //
-      // NOTE: This realise on the fact that server_script_id will just be set
-      // on a client and not a no server related client.
-      //
-      // This is in a .c file so a preprocessor macro would just work if it is
-      // passed to the compiler directly. In this case a dependency on a custom
-      // macro form a client reduces the freedom of the client choosing it.
-      //
-      // Marvin Frohwitter 10.08.2025
-
-      tkbc_ui_timeline(env, env->server_script_frames_index,
-                       env->server_script_frames_count);
-    } else {
-      tkbc_ui_timeline(env, env->frames->frames_index, env->script->count);
-    }
-  }
-
-  if (!env->rendering) {
-    Color color = TKBC_UI_TEAL;
-    int fps = GetFPS();
-    if (fps < 25) {
-      color = TKBC_UI_PURPLE;
-    }
-
-    char buf[16] = {0};
-    sprintf(buf, "%2i FPS", fps);
-    DrawText(buf, env->window_width / 2, 10, 20, color);
-  }
-
-  if (env->scripts_parsed) {
-    tkbc_ui_script_menu(env);
-  }
-
-  if (!env->script_menu_interaction) {
-    if (!env->colorizer) {
-      tkbc_ui_keymaps(env);
-    }
-    tkbc_ui_color_picker(env);
-  }
-
-  if (!env->keymaps_interaction && !env->script_menu_interaction) {
-    tkbc_display_kite_information(env);
-  }
 }
 
 /**
@@ -679,9 +679,17 @@ bool tkbc_ui_script_menu(Env *env) {
       assert(env->script_menu_mouse_interaction_box != -1);
       assert(env->scripts.count >=
              (size_t)env->script_menu_mouse_interaction_box);
+
+      // TODO: Handle false as an persistente loading option.
+      // A script should be completely resettable and you should be able to
+      // restore the current play state.
+
       tkbc_load_script_id(
-          env, env->scripts.elements[env->script_menu_mouse_interaction_box]
-                   .script_id);
+          env,
+          env->scripts.elements[env->script_menu_mouse_interaction_box]
+              .script_id,
+          true);
+
       env->script_menu_interaction = false;
       env->new_script_selected = true;
     }

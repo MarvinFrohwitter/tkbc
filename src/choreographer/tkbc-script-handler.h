@@ -31,7 +31,7 @@ void tkbc_patch_frames_kite_positions(Env *env, Frames *frames);
 bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
 void tkbc_load_next_script(Env *env);
-bool tkbc_load_script_id(Env *env, size_t script_id);
+bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh);
 void tkbc_unload_script(Env *env);
 bool tkbc_unload_script_from_memory(Env *env, size_t script_id);
 

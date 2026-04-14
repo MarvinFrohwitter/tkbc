@@ -51,7 +51,21 @@ bool tkbc_messages_script_next(Lexer *lexer) {
   }
 
   // TODO: Report possible failures of loading back to the client.
-  tkbc_load_script_id(env, script_id);
+  //
+  // NOTE: Partial played scripts should not save load there old state, because
+  // more than one player could interact with the same script controlling and it
+  // could get very wired.
+  //
+  // This is not a good behavior for multiple clients.
+  // tkbc_load_script_id(env, script_id, false);
+  //
+  // When adding potantiol buttons to the UI revisit and reevaluate the
+  // decision.
+  //
+  // Marvin Frohwitter 13 April 2026
+
+  tkbc_load_script_id(env, script_id, true);
+
   env->server_script_kite_max_count = 0;
 
   // TODO: Find a better way to do it reliable.
