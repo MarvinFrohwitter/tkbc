@@ -338,7 +338,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
   kite_ids.elements = NULL;
 
   // Set the first kite positions
-  tkbc_patch_script_kite_positions(env, scb_script);
+  tkbc_patch_script_kite_positions(env, scb_script, scb_space);
 
   //
   //

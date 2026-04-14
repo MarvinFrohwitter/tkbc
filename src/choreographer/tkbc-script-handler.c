@@ -622,10 +622,11 @@ void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Script *script,
  *
  * @param env The global state of the application.
  * @param script The script where the patch should happen.
+ * @param space The space where the allocation should happen.
  */
-void tkbc_patch_script_kite_positions(Env *env, Script *script) {
+void tkbc_patch_script_kite_positions(Env *env, Script *script, Space *space) {
   for (size_t i = 0; i < script->count; ++i) {
-    tkbc_patch_frames_kite_positions(env, &script->elements[i]);
+    tkbc_patch_frames_kite_positions(env, &script->elements[i], space);
   }
 }
 
@@ -637,8 +638,9 @@ void tkbc_patch_script_kite_positions(Env *env, Script *script) {
  * @param env The global state of the application.
  * @param frames The frames where the kite positions should be updated to the
  * current kite values.
+ * @param space The space where the allocation should happen.
  */
-void tkbc_patch_frames_kite_positions(Env *env, Frames *frames) {
+void tkbc_patch_frames_kite_positions(Env *env, Frames *frames, Space *space) {
   for (size_t i = 0; i < frames->count; ++i) {
     if (!frames->elements[i].kite_id_array.count) {
       continue;
@@ -670,8 +672,7 @@ void tkbc_patch_frames_kite_positions(Env *env, Frames *frames) {
       }
 
       if (!contains) {
-        space_dap(&env->script_creation_space, &frames->kite_frame_positions,
-                  kite_position);
+        space_dap(space, &frames->kite_frame_positions, kite_position);
       }
     }
   }
@@ -766,7 +767,7 @@ bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh) {
       env->script->elements[i].kite_frame_positions.count = 0;
     }
 
-    tkbc_patch_script_kite_positions(env, env->script);
+    tkbc_patch_script_kite_positions(env, env->script, &env->scripts_space);
   }
   env->script_finished = false;
   env->script_loading = true;
@@ -798,6 +799,11 @@ void tkbc_unload_script(Env *env) {
  * @return True if the unloading was successful, otherwise false.
  */
 bool tkbc_unload_script_from_memory(Env *env, size_t script_id) {
+  // This will potentially not clean up everything because the resetting of the
+  // kite frame positions for example can cause reallocation so to fix that the
+  // space has to be per script basis.
+  // TODO: Make the space per script and not for all scripts.
+
   for (size_t i = 0; i < env->scripts.count; ++i) {
     if (script_id == env->scripts.elements[i].script_id) {
 

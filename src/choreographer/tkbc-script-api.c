@@ -280,13 +280,14 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     }
 
     for (size_t j = 0; j < frame->kite_id_array.count; ++j) {
-      Kite_State *state = tkbc_get_kite_state_by_id(env, frame->kite_id_array.elements[j]);
+      Kite_State *state =
+          tkbc_get_kite_state_by_id(env, frame->kite_id_array.elements[j]);
       state->kite->old_angle = state->kite->angle;
       state->kite->old_center = state->kite->center;
       state->is_script_kite = true;
     }
   }
-  tkbc_patch_frames_kite_positions(env, frames);
+  tkbc_patch_frames_kite_positions(env, frames, &env->script_creation_space);
   Frames copy_frames =
       tkbc_deep_copy_frames(&env->script_creation_space, frames);
   space_dap(&env->script_creation_space, &env->scratch_buf_script, copy_frames);
