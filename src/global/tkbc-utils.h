@@ -188,6 +188,7 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 
 int tkbc_get_screen_height(void);
 int tkbc_get_screen_width(void);
+bool is_mouse_double_click(int mouse_button);
 double tkbc_get_time(void);
 void tkbc_make_frame_time(double target_dt);
 float tkbc_get_frame_time(void);
@@ -612,6 +613,53 @@ int tkbc_get_screen_width(void) {
 #endif // PROTOCOL_VERSION
   return 0;
   exit(0);
+}
+
+#define TKBC_MAX_DOUBLECLICK_MS 400 // max time between two clicks
+/**
+ * @brief This function detects a double click.
+ *
+ * @param mouse_button The mouse_button that is pressed.
+ * @return True if a double click is detected otherwise false:
+ */
+bool is_mouse_double_click(int mouse_button) {
+  static int last_release_time_ms;
+  static bool waiting_for_second_click;
+
+  struct timespec ts;
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+    exit(0);
+  }
+  double current_time = (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+
+  if (IsMouseButtonReleased(mouse_button)) {
+    int now_ms = current_time * 1000;
+
+    if (waiting_for_second_click) {
+      int delta = now_ms - last_release_time_ms;
+      waiting_for_second_click = false;
+      if (delta >= 0 && delta <= TKBC_MAX_DOUBLECLICK_MS) {
+        return true;
+      }
+      last_release_time_ms = now_ms;
+      waiting_for_second_click = true;
+      return false;
+    } else {
+      last_release_time_ms = now_ms;
+      waiting_for_second_click = true;
+      return false;
+    }
+  }
+
+  if (waiting_for_second_click) {
+    int now_ms = current_time * 1000;
+    if (now_ms - last_release_time_ms > TKBC_MAX_DOUBLECLICK_MS) {
+      waiting_for_second_click = false;
+    }
+  }
+
+  return false;
 }
 
 /**

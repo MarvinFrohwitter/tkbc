@@ -581,6 +581,7 @@ bool tkbc_ui_script_menu(Env *env) {
   int font_size = 22;
   Vector2 text_size;
   Vector2 mouse = GetMousePosition();
+  bool double_click_confirm = false;
   for (size_t box = env->script_menu_top_interaction_box;
        box < env->screen_items + env->script_menu_top_interaction_box &&
        box < scripts_count;
@@ -610,7 +611,11 @@ bool tkbc_ui_script_menu(Env *env) {
 
     if (env->script_menu_mouse_interaction &&
         (ssize_t)box == env->script_menu_mouse_interaction_box) {
+
       DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+      if (is_mouse_double_click(MOUSE_LEFT_BUTTON)) {
+        double_click_confirm = true;
+      }
     }
 
     const char *name = env->scripts.elements[box].name;
@@ -673,8 +678,9 @@ bool tkbc_ui_script_menu(Env *env) {
   }
 
   if (env->script_menu_mouse_interaction) {
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-        CheckCollisionPointRec(mouse, outer_script_box)) {
+    if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+         CheckCollisionPointRec(mouse, outer_script_box)) ||
+        double_click_confirm) {
       DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
       assert(env->script_menu_mouse_interaction_box != -1);
       assert(env->scripts.count >=
