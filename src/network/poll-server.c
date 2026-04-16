@@ -887,8 +887,8 @@ bool tkbc_received_message_handler(Client *client) {
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_AMOUNT\n");
     } break;
     case MESSAGE_SCRIPT_TOGGLE: {
-      // TODO:Think about toggling the script kites and normal client kites
-      // back and forth.
+      // The script associated kites don't have to be toggled in visibility,
+      // because you want to be able to pause the script.
       env->script_finished = !env->script_finished;
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_TOGGLE\n");
