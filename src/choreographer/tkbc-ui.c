@@ -618,6 +618,9 @@ bool tkbc_ui_script_menu(Env *env) {
       }
     }
 
+    // TODO: Display an icon on the right of the selection that unload the
+    // script form memory. See the TODO for making the space per script.
+
     const char *name = env->scripts.elements[box].name;
     text_size = MeasureTextEx(GetFontDefault(), name, font_size, 0);
 
@@ -639,7 +642,7 @@ bool tkbc_ui_script_menu(Env *env) {
   outer_script_box.y =
       env->box_height * env->screen_items + env->box_height / 2.f;
 
-  /* ------------------------- Reset key ----------------------------------- */
+  /* ------------------------- NO_SCRIPT KEY -------------------------------- */
   outer_script_box.x += padding + (interaction_buttons_count - 3) *
                                       (padding + outer_script_box.width);
 
@@ -690,6 +693,8 @@ bool tkbc_ui_script_menu(Env *env) {
       // A script should be completely resettable and you should be able to
       // restore the current play state.
 
+      // TODO: Display an icon on the left of the selection that does not reset
+      // it if clicked.
       tkbc_load_script_id(
           env,
           env->scripts.elements[env->script_menu_mouse_interaction_box]
