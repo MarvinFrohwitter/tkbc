@@ -11,8 +11,16 @@
 // The env of type Env is passed automatically into the scope of the
 // script_input it is not globally available.
 tkbc_script_input {
-  Kite_Ids ki = tkbc_kite_array_generate(env, 2);
   kite = *env->vanilla_kite;
+
+  // NOTE: The fact that sometimes the id is hard-coded to 0 or 1 is just
+  // possible because of the internal handling knowledge in general the ki's
+  // that are returned in this call should be used.
+#define kite_count 2
+  Kite_Ids ki = tkbc_kite_array_generate(env, kite_count);
+  static_assert(kite_count >= 2, "");
+  zero = ki.elements[0];
+  one = ki.elements[1];
 
   split_roll_demonstration(env, ki);
   choreo(env, ki);
@@ -37,11 +45,11 @@ tkbc_script_input {
   // the correct position manually.
   //
   // tkbc_script_begin(); SET(
-  //     KITE_MOVE_ADD(ID(0), -kite.width, 0, rotation_duration),
-  //     KITE_MOVE_ADD(ID(1), kite.width, 0, rotation_duration),
+  //     KITE_MOVE_ADD(ID(zero), -kite.width, 0, rotation_duration),
+  //     KITE_MOVE_ADD(ID(one), kite.width, 0, rotation_duration),
 
-  //     KITE_TIP_ROTATION_ADD(ID(0), 180, LEFT_TIP, rotation_duration),
-  //     KITE_TIP_ROTATION_ADD(ID(1), 180, LEFT_TIP, rotation_duration)
+  //     KITE_TIP_ROTATION_ADD(ID(zero), 180, LEFT_TIP, rotation_duration),
+  //     KITE_TIP_ROTATION_ADD(ID(one), 180, LEFT_TIP, rotation_duration)
 
   // );
   // tkbc_script_end();

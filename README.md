@@ -37,6 +37,8 @@ Step 1 Initialization
 ```C
 // Create the maximum amount of kites that should be used in the script.
 Kite_Ids ki = tkbc_kite_array_generate(env, 4);
+Id zero = ki.elements[0];
+Id one = ki.elements[1];
 ```
 
 Step 2 Set up the script scope
@@ -86,12 +88,12 @@ COLLECTION(KITE_QUIT(duration));
 SET(KITE_WAIT(duration));
 
 SET(
-    KITE_MOVE_ADD(ID(0), kite.width + 2 * space + kite.width / 2.0,
+    KITE_MOVE_ADD(ID(zero), kite.width + 2 * space + kite.width / 2.0,
                   -kite.width - space - space, move_duration),
 );
 
 SET(
-    KITE_MOVE(ID(0), env->window_width / 2.0 - kite.width - space,
+    KITE_MOVE(ID(zero), env->window_width / 2.0 - kite.width - space,
               env->window_height - kite.height - space, 0),
 );
 
@@ -104,11 +106,11 @@ SET(
 );
 
 SET(
-    KITE_TIP_ROTATION_ADD(ID(0), 315, LEFT_TIP, rotation_duration)
+    KITE_TIP_ROTATION_ADD(ID(zero), 315, LEFT_TIP, rotation_duration)
 );
 
 SET(
-    KITE_TIP_ROTATION(ID(0), 315, RIGHT_TIP, rotation_duration)
+    KITE_TIP_ROTATION(ID(zero), 315, RIGHT_TIP, rotation_duration)
 );
 ```
 
@@ -159,9 +161,9 @@ This could look like this:
 // simple:
   SET(
 
-      KITE_MOVE(ID(0), env->window_width / 2.0 - kite.width - space,
+      KITE_MOVE(ID(zero), env->window_width / 2.0 - kite.width - space,
                 env->window_height - kite.height - space, 0),
-      KITE_MOVE(ID(1),
+      KITE_MOVE(ID(one),
                 env->window_width / 2.0 + kite.width + space,
                 env->window_height - kite.height - space, 0),
       KITE_ROTATION(ki, 0, 0),
