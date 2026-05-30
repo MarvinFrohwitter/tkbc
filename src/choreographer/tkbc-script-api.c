@@ -361,22 +361,22 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
   if (kite_count <= 0) {
     return (Kite_Ids){0};
   }
+  Kite_Ids ids = {0};
   for (size_t i = 0; i < kite_count; ++i) {
     tkbc_dap(env->kite_array, tkbc_init_kite());
     // The id starts from 0.
+    assert(env->kite_id_counter < CLIENT_BASE_ID);
+    Id next_kite_id = env->kite_id_counter++;
     env->kite_array->elements[env->kite_array->count - 1].kite_id =
-        env->kite_id_counter++;
+        next_kite_id;
     env->kite_array->elements[env->kite_array->count - 1].kite->body_color =
         tkbc_get_random_color();
+
+    tkbc_dap(&ids, next_kite_id);
   }
 
   tkbc_kite_array_start_position(env->kite_array, env->window_width,
                                  env->window_height);
-
-  Kite_Ids ids = tkbc_indexs_range(
-      env->kite_array->elements[env->kite_array->count - kite_count].kite_id,
-      env->kite_array->elements[env->kite_array->count - kite_count].kite_id +
-          kite_count);
   return ids;
 }
 

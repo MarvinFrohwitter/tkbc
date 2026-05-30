@@ -39,7 +39,6 @@
 #include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
 
-#define CLIENT_BASE_ID 10e6
 #define MAX_BUFFER_CAPACITY 1024 * 1024
 #define BUFFER_CAPACITY 512 * 1024
 static int server_socket;
@@ -428,8 +427,13 @@ void tkbc_server_accept(void) {
     // index.
     tkbc_dap(&fds, client_fd);
 
+    // There are up to CLIENT_BASE_IDs possible for the scripts but then there
+    // are conflicts.
+    // To avoid having conflicts with useful ids such as 0,1,2 and so on, those
+    // could be hard-coded in scripts, the client kite ids start hight.
+    static Id counter_not_for_the_scripts_to_remove_confilcts = CLIENT_BASE_ID;
     Client client = {
-        .kite_id = CLIENT_BASE_ID + env->kite_id_counter++,
+        .kite_id = counter_not_for_the_scripts_to_remove_confilcts++,
         .socket_id = client_socket_id,
         .client_address = client_address,
         .client_address_length = address_length,
