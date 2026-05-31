@@ -39,13 +39,15 @@ void bicycle_start(Env *env, Kite_Ids ki) {
   );
   SET(
 
-      KITE_MOVE_ADD(ID(one), -(-2 * kite.width), 1.5 * kite.width, move_duration),
+      KITE_MOVE_ADD(ID(one), -(-2 * kite.width), 1.5 * kite.width,
+                    move_duration),
       KITE_ROTATION_ADD(tkbc_indexs_append(1), -315, rotation_duration)
 
   );
   SET(
 
-      KITE_MOVE_ADD(ID(zero), -(2 * kite.width), 1.5 * kite.width, move_duration),
+      KITE_MOVE_ADD(ID(zero), -(2 * kite.width), 1.5 * kite.width,
+                    move_duration),
       KITE_ROTATION_ADD(tkbc_indexs_append(0), 315, rotation_duration)
 
   );
@@ -211,7 +213,8 @@ void rollkiss_90_break(Env *env) {
       KITE_ROTATION_ADD(ID(zero), 270, rotation_duration),
       KITE_ROTATION_ADD(ID(one), 270, rotation_duration),
 
-      KITE_MOVE_ADD(ID(zero), -kite.height / 2, 0.5 * kite.width, move_duration),
+      KITE_MOVE_ADD(ID(zero), -kite.height / 2, 0.5 * kite.width,
+                    move_duration),
       KITE_MOVE_ADD(ID(one), kite.height / 2, -0.5 * kite.width, move_duration)
 
   );
@@ -384,8 +387,10 @@ void arc_to_diamond_out(Env *env) {
 void bicycle_in(Env *env) {
   SET(
 
-      KITE_MOVE_ADD(ID(zero), 2 * kite.width + kite.width / 2, 0, move_duration),
-      KITE_MOVE_ADD(ID(one), -2 * kite.width - kite.width / 2, 0, move_duration),
+      KITE_MOVE_ADD(ID(zero), 2 * kite.width + kite.width / 2, 0,
+                    move_duration),
+      KITE_MOVE_ADD(ID(one), -2 * kite.width - kite.width / 2, 0,
+                    move_duration),
 
       KITE_ROTATION_ADD(ID(zero), -360, move_duration),
       KITE_ROTATION_ADD(ID(one), 360, move_duration)
@@ -401,7 +406,8 @@ void rollkiss_90_break_to_anti_split_position(Env *env) {
       KITE_ROTATION_ADD(ID(zero), -270, move_duration),
       KITE_ROTATION_ADD(ID(one), -270, move_duration),
 
-      KITE_MOVE_ADD(ID(zero), 0.5 * kite.width, -kite.height / 2, move_duration),
+      KITE_MOVE_ADD(ID(zero), 0.5 * kite.width, -kite.height / 2,
+                    move_duration),
       KITE_MOVE_ADD(ID(one), -0.5 * kite.width, kite.height / 2, move_duration)
 
   );
@@ -423,7 +429,8 @@ void inverse_bicycle_change(Env *env) {
   SET(
 
       KITE_ROTATION_ADD(ID(zero), -90, move_duration),
-      KITE_MOVE_ADD(ID(zero), -kite.height / 2 - kite.width / 2, 0, move_duration),
+      KITE_MOVE_ADD(ID(zero), -kite.height / 2 - kite.width / 2, 0,
+                    move_duration),
 
       KITE_ROTATION_ADD(ID(one), -90, move_duration),
       KITE_MOVE_ADD(ID(one), kite.height / 2 + kite.width / 2,
@@ -434,7 +441,8 @@ void inverse_bicycle_change(Env *env) {
   SET(
 
       KITE_ROTATION_ADD(ID(zero), -90, move_duration),
-      KITE_MOVE_ADD(ID(zero), -kite.height / 2 + kite.width / 2, 0, move_duration),
+      KITE_MOVE_ADD(ID(zero), -kite.height / 2 + kite.width / 2, 0,
+                    move_duration),
 
       KITE_ROTATION_ADD(ID(one), -90, move_duration),
       KITE_MOVE_ADD(ID(one), kite.height / 2 - kite.width / 2,
@@ -502,9 +510,10 @@ void corner_turn_out(Env *env, Kite_Ids ki) {
 void to_center_slide_in(Env *env) {
   SET(
 
-      // KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.width / 2, 4 * kite.width -
-      // kite.width / 2, move_duration), KITE_MOVE_ADD(ID(one), -4 * kite.width +
-      // kite.width / 2, -4 * kite.width + kite.width / 2, move_duration)
+      // KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.width / 2, 4 * kite.width
+      // - kite.width / 2, move_duration), KITE_MOVE_ADD(ID(one), -4 *
+      // kite.width + kite.width / 2, -4 * kite.width + kite.width / 2,
+      // move_duration)
 
       KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.height,
                     4 * kite.width - kite.height, move_duration),
@@ -536,13 +545,18 @@ void pair_change_90(Env *env) {
 
 void choreo(Env *env, Kite_Ids ki) {
   kite = *env->vanilla_kite;
-  // TODO: It is not allowed to modify these directly because it is not clear
-  // if there are other generated kites in front of the array. Proved a
-  // configuration option function for kite styles as a API user call that is
-  // applied later after the generation of the kits happen.
-
-  // env->kite_array->elements[0].kite->body_color = DARKGREEN;
-  // env->kite_array->elements[1].kite->body_color = BLUE;
+  bool ok = tkbc_configure_kites(env, ki,
+                                 (Kite_Config){
+                                     .kite_id = zero,
+                                     .body_color = RED,
+                                     .top_color = kite.top_color,
+                                 },
+                                 (Kite_Config){
+                                     .kite_id = one,
+                                     .body_color = BLUE,
+                                     .top_color = kite.top_color,
+                                 });
+  assert(ok);
 
   tkbc_script_begin("My Immortal");
   bicycle_start(env, ki);

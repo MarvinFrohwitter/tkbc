@@ -4,10 +4,10 @@
 #include "../../external/space/space.h"
 #include "../global/tkbc-types.h"
 #include "tkbc-script-handler.h"
+#include <assert.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <assert.h>
 
 // ===========================================================================
 // ========================== SCRIPT API =====================================
@@ -17,6 +17,8 @@ void tkbc__script_input(Env *env);
 void tkbc__script_begin(Env *env);
 void tkbc__script_end(Env *env);
 void tkbc_set_script_name(Script *script, const char *name);
+bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config,
+                          ...);
 
 #define tkbc_script_input void tkbc__script_input(Env *env)
 

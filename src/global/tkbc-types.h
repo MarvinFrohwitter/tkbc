@@ -218,6 +218,12 @@ typedef struct { // A representation for an internal kite geometric.
 } Triangle;
 
 typedef struct {
+  Id kite_id; // The universal id that is associated with exactly one kite.
+  Color body_color; // The color that is set for the kite body.
+  Color top_color; // The color that is set for the leading edge.
+} Kite_Config; // A structure that can bundle some kite configuration options.
+
+typedef struct {
   Id kite_id;       // The universal id that is associated with one kite.
   Vector2 position; // The position that is located at the center of the top
                     // leading edge.

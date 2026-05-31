@@ -7,6 +7,7 @@
 #include "tkbc-script-converter.h"
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -30,6 +31,78 @@ void tkbc__script_begin(Env *env) {
  */
 void tkbc_set_script_name(Script *script, const char *name) {
   script->name = name;
+}
+
+/**
+ * @brief The function applies the given Kite_Configs to the internal kite
+ * states.
+ *
+ * @param env The global state of the application.
+ * @param kis The ids that are associated with the configurations.
+ * @param first_config The first mandatory Kite_Config.
+ * @return True if the configurations are applied successfully, otherwise false
+ * and the kite_ids that failed are set so UINT_MAX.
+ */
+bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config,
+                          ...) {
+  if (kis.count == 0 || !env || !env->kite_array ||
+      env->kite_array->count == 0) {
+    assert(false && "ERROR: Something unexpected happened");
+  }
+
+  Kite_Config config = first_config;
+  bool ok = true;
+  Kite_State *state;
+  va_list args;
+  va_start(args, first_config);
+
+  state = tkbc_get_kite_state_by_id(env, first_config.kite_id);
+  if (!state) {
+    ok = false;
+    bool found = false;
+    for (size_t j = 0; j < kis.count; ++j) {
+      if (kis.elements[j] == first_config.kite_id) {
+        kis.elements[j] = UINT_MAX;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      assert(false && "The give config id was not present in the kite_ids");
+    }
+  }
+
+  size_t i = 0;
+  goto configure;
+  for (; i < kis.count; ++i) {
+    config = va_arg(args, Kite_Config);
+
+    state = tkbc_get_kite_state_by_id(env, config.kite_id);
+    if (!state) {
+      ok = false;
+      bool found = false;
+      for (size_t j = 0; j < kis.count; ++j) {
+        if (kis.elements[j] == config.kite_id) {
+          kis.elements[j] = UINT_MAX;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        assert(false && "The give config id was not present in the kite_ids");
+      }
+      continue;
+    }
+
+  configure:
+    static_assert(184 == sizeof(Kite),
+                  "Possible more config options in the KITE");
+    state->kite->body_color = config.body_color;
+    state->kite->top_color = config.top_color;
+  }
+
+  va_end(args);
+  return ok;
 }
 
 /**
@@ -94,11 +167,11 @@ void tkbc_script_update_frames(Env *env) {
 
   //
   // TODO: Add is_scrubed to every script so that the positions don't have to
-  // be computed again after visiting the script once. Maybe just scrub left can
-  // be implemented.
-  // Keep in mind if the scripts will be stored to the disk, that feature is not
-  // yet implemented, it has to recompute the positions in case the storing does
-  // not include the positions. Marvin Frohwitter 25.06.2025
+  // be computed again after visiting the script once. Maybe just scrub left
+  // can be implemented. Keep in mind if the scripts will be stored to the
+  // disk, that feature is not yet implemented, it has to recompute the
+  // positions in case the storing does not include the positions. Marvin
+  // Frohwitter 25.06.2025
   for (size_t i = 0; i < env->frames->kite_frame_positions.count; ++i) {
     Id id = env->frames->kite_frame_positions.elements[i].kite_id;
     Kite *kite = tkbc_get_kite_by_id(env, id);
@@ -384,8 +457,8 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
  * @brief The function prints the given script that has to be in memory to the
  * specified output in a debug format.
  *
- * @param stream The stream where the output of the debug print will end up, if
- * NULL is provided the print will be omitted.
+ * @param stream The stream where the output of the debug print will end up,
+ * if NULL is provided the print will be omitted.
  * @param script The pointer to the script that should be printed.
  */
 void tkbc_print_script(FILE *stream, Script *script) {
@@ -526,8 +599,8 @@ void tkbc_print_script(FILE *stream, Script *script) {
  * @brief The function prints all scripts that are in memory to the specified
  * output in a  debug format.
  *
- * @param stream The stream where the output of the debug print will end up, if
- * NULL is provided the print will be omitted.
+ * @param stream The stream where the output of the debug print will end up,
+ * if NULL is provided the print will be omitted.
  * @param env The global state of the application.
  */
 void tkbc_print_all_scripts(FILE *stream, Env *env) {
@@ -542,12 +615,12 @@ void tkbc_print_all_scripts(FILE *stream, Env *env) {
 /**
  * @brief The function prints all scripts that are in memory to the specified
  * output in a  debug format. In a second step the scripts are going to be
- * exported and saved in .kite file with the corresponding script name, that is
- * specified at the script declaration time or it will get a custom generated
- * name with an id, if no name was specified.
+ * exported and saved in .kite file with the corresponding script name, that
+ * is specified at the script declaration time or it will get a custom
+ * generated name with an id, if no name was specified.
  *
- * @param stream The stream where the output of the debug print will end up, if
- * NULL is provided the print will be omitted.
+ * @param stream The stream where the output of the debug print will end up,
+ * if NULL is provided the print will be omitted.
  * @param env The global state of the application.
  */
 void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env) {
