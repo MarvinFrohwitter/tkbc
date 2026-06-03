@@ -43,6 +43,7 @@ size_t tkbc_calculate_script_byte_size_allocated(Script script);
 void tkbc_add_script(Env *env, Script script);
 void tkbc_input_handler_script(Env *env);
 void tkbc_set_kite_positions_from_kite_frames_positions(Env *env);
+void tkbc_execute_scrub_slide(Env *env, bool drag_left);
 void tkbc_scrub_frames(Env *env);
 
 // ===========================================================================

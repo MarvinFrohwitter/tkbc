@@ -1072,6 +1072,36 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
 }
 
 /**
+ * @brief This function moves to the prev/next frame of a script and
+ * recalculates the script_frames_positions
+ *
+ * @param env The global state of the application.
+ * @param drag_left True, if the script should be moved forward, otherwise
+ * false.
+ */
+void tkbc_execute_scrub_slide(Env *env, bool drag_left) {
+  env->script_finished = true;
+
+  // The indexes are assumed in order and at the corresponding index.
+  // This is needed to avoid a down cast of size_t to long or int that can
+  // hold ever value of size_t.
+  if (drag_left) {
+    if (env->frames->frames_index > 0) {
+      env->frames = &env->script->elements[env->frames->frames_index - 1];
+    }
+  } else {
+    if (env->frames->frames_index + 1 < env->script->count) {
+      env->frames = &env->script->elements[env->frames->frames_index + 1];
+    }
+  }
+
+  for (size_t i = 0; i < env->frames->count; ++i) {
+    env->frames->elements[i].finished = false;
+  }
+  tkbc_set_kite_positions_from_kite_frames_positions(env);
+}
+
+/**
  * @brief The function computes the frame state of the timeline and syncs up
  * the currently loaded frame. It computes mouse control of the timeline.
  *
@@ -1088,23 +1118,7 @@ void tkbc_scrub_frames(Env *env) {
     float c = mouse_x - slider;
     bool drag_left = c <= 0;
 
-    env->script_finished = true;
-
-    // The indexes are assumed in order and at the corresponding index.
-    // This is needed to avoid a down cast of size_t to long or int that can
-    // hold ever value of size_t.
-    if (drag_left) {
-      if (env->frames->frames_index > 0) {
-        env->frames = &env->script->elements[env->frames->frames_index - 1];
-      }
-    } else {
-      env->frames = &env->script->elements[env->frames->frames_index + 1];
-    }
-
-    for (size_t i = 0; i < env->frames->count; ++i) {
-      env->frames->elements[i].finished = false;
-    }
-    tkbc_set_kite_positions_from_kite_frames_positions(env);
+    tkbc_execute_scrub_slide(env, drag_left);
   }
 }
 
