@@ -135,8 +135,11 @@ tkbc_register_frames(env, tkbc_frame_generate(KITE_MOVE, ki,
                                               }),
                                               duration));
 
+// NOTE: When using -0 for a direct rotation to 0 degrees anticlockwise use **explicitly** the float version.
+// There the negative sign is preserved and can be used.
+// It will be interpreted correctly if you use a IEEE 754 floating point number.
 tkbc_register_frames(env, tkbc_frame_generate(KITE_ROTATION_ADD, ki,
-                               ((Rotation_Add_Action){.angle = -0}), duration));
+                               ((Rotation_Add_Action){.angle = -0.f}), duration));
 
 tkbc_register_frames(env, tkbc_frame_generate(KITE_ROTATION, ki,
                                ((Rotation_Action){.angle = 0}), duration));
