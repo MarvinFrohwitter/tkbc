@@ -447,3 +447,124 @@ const char *tkbc_key_to_str(int key) {
   }
   }
 }
+
+static bool tkbc_check_key(int key, Key_Mode mode) {
+  switch (mode) {
+  case MODE_DOWN:
+    return IsKeyDown(key);
+  case MODE_PRESSED:
+    return IsKeyPressed(key);
+  case MODE_UP:
+    return IsKeyUp(key);
+  case MODE_RELEASED:
+    return IsKeyReleased(key);
+  case MODE_NULL:
+  default:
+    return false;
+  }
+}
+
+bool tkbc_check_keymap(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg,
+                       int kso) {
+  Key_Map km = tkbc_hash_to_keymap(keymaps, hash);
+  bool result = false;
+  if (km.key && (kso & KEY) && (cfg.key != MODE_NULL)) {
+    result = tkbc_check_key(km.key, cfg.key);
+    if (!result) {
+      return result;
+    }
+  }
+
+  if (km.mod_key && (kso & MOD_KEY) && (cfg.mod_key != MODE_NULL)) {
+    result = result && tkbc_check_key(km.mod_key, cfg.mod_key);
+    if (!result) {
+      return result;
+    }
+  }
+
+  if (km.selection_key1 && (kso & SELECTION_KEY1) &&
+      (cfg.selection_key != MODE_NULL)) {
+    result = result && tkbc_check_key(km.selection_key1, cfg.selection_key);
+    if (!result) {
+      return result;
+    }
+  }
+
+  return result;
+}
+
+bool tkbc_check_keymap_full(Key_Maps keymaps, int hash,
+                            Key_Map_Check_Config cfg) {
+  return tkbc_check_keymap(keymaps, hash, cfg, KEY | MOD_KEY | SELECTION_KEY1);
+}
+
+#define KEY_CONFIG(value_key, value_mode_key, value_selection_key)             \
+  ((Key_Map_Check_Config){.key = (value_key),                                  \
+                          .mod_key = (value_mode_key),                         \
+                          .selection_key = (value_selection_key)})
+#define VA_KEY_CONFIG(...) ((Key_Map_Check_Config){__VA_ARGS__})
+
+const Key_Map_Check_Config KEY_MAP_CHECK_DOWN_ = {
+    .key = MODE_DOWN,
+    .mod_key = MODE_DOWN,
+    .selection_key = MODE_DOWN,
+};
+
+void foo(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg) {
+
+  tkbc_check_keymap_full(keymaps, hash, cfg);
+
+  tkbc_check_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
+                    KEY_CONFIG(MODE_PRESSED, MODE_DOWN, MODE_NULL),
+                    KEY | MOD_KEY);
+  tkbc_check_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
+                    VA_KEY_CONFIG(.key = MODE_PRESSED, .mod_key = MODE_DOWN),
+                    KEY | MOD_KEY);
+  tkbc_check_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
+                    VA_KEY_CONFIG(MODE_PRESSED, MODE_DOWN), KEY | MOD_KEY);
+
+  tkbc_check_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
+                    VA_KEY_CONFIG(MODE_PRESSED, MODE_DOWN), KEY | MOD_KEY);
+
+  tkbc_check_keymap_full(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
+                         VA_KEY_CONFIG(MODE_DOWN, MODE_DOWN, MODE_DOWN));
+  tkbc_check_keymap_full(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
+                         KEY_MAP_CHECK_DOWN_);
+
+  bool a =
+      IsKeyDown(
+          tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE).key) &&
+      IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE)
+                    .mod_key) &&
+      IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE)
+                    .selection_key1);
+  (void)a;
+}
+
+/*-------------- DEFAULT CONFIGS -------------------------------------------*/
+
+const Key_Map_Check_Config KEY_MAP_CHECK_DOWN = {
+    .key = MODE_DOWN,
+    .mod_key = MODE_DOWN,
+    .selection_key = MODE_DOWN,
+};
+
+const Key_Map_Check_Config KEY_CHECK_UP = {
+    .key = MODE_UP,
+    .mod_key = MODE_UP,
+    .selection_key = MODE_UP,
+};
+
+const Key_Map_Check_Config KEY_CHECK_PRESSED = {
+    .key = MODE_PRESSED,
+    .mod_key = MODE_PRESSED,
+    .selection_key = MODE_PRESSED,
+};
+
+const Key_Map_Check_Config KEY_CHECK_RELEASED = {
+    .key = MODE_RELEASED,
+    .mod_key = MODE_RELEASED,
+    .selection_key = MODE_RELEASED,
+};
+
+///////////////////////////////////////////////////////////

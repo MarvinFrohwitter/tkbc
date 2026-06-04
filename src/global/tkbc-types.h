@@ -105,6 +105,28 @@ typedef enum {
   SELECT_PANEL,
 } Colorizer_Mode;
 
+typedef enum {
+  KEY = (1 << 0),
+  MOD_KEY = (1 << 1),
+  MOD_CO_KEY = (1 << 2),
+  SELECTION_KEY1 = (1 << 3),
+  SELECTION_KEY2 = (1 << 4),
+} Key_Mode_Storage_Option;
+
+typedef enum {
+  MODE_NULL = 0,
+  MODE_DOWN,
+  MODE_PRESSED,
+  MODE_UP,
+  MODE_RELEASED,
+} Key_Mode;
+
+typedef struct {
+  Key_Mode key;
+  Key_Mode mod_key;
+  Key_Mode selection_key;
+} Key_Map_Check_Config;
+
 typedef struct {
   const char *description;
   const char *mod_key_str;
@@ -220,7 +242,7 @@ typedef struct { // A representation for an internal kite geometric.
 typedef struct {
   Id kite_id; // The universal id that is associated with exactly one kite.
   Color body_color; // The color that is set for the kite body.
-  Color top_color; // The color that is set for the leading edge.
+  Color top_color;  // The color that is set for the leading edge.
 } Kite_Config; // A structure that can bundle some kite configuration options.
 
 typedef struct {
