@@ -932,15 +932,15 @@ void tkbc_client_input_handler_script(void) {
 
   // Hard reset to startposition angel 0
   // KEY_ENTER
-  if (IsKeyPressed(
-          tkbc_hash_to_key(env->keymaps, KMH_SET_KITES_TO_START_POSITION))) {
+  if (tkbc_check_keymaps_full(env->keymaps, KMH_SET_KITES_TO_START_POSITION,
+                              KEY_MAP_CHECK_KEY_PRESSED)) {
     space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                "%d:\r\n", MESSAGE_KITES_POSITIONS_RESET);
   }
 
   // KEY_SPACE
-  if (IsKeyPressed(
-          tkbc_hash_to_key(env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION))) {
+  if (tkbc_check_keymaps_full(env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION,
+                              KEY_MAP_CHECK_KEY_PRESSED)) {
     space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                "%d:\r\n", MESSAGE_SCRIPT_TOGGLE);
   }

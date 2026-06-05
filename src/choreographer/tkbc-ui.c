@@ -148,6 +148,7 @@ Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image,
  */
 void tkbc_dispatch_colorizer_mode(Env *env, Image image,
                                   Rectangle collision_rec, float scale) {
+  // TODO: Make the key map customizable for the user.
   if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) &&
       IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
     tkbc_colorizer(env, image, collision_rec, scale, SELECT_COLOR);
@@ -401,6 +402,7 @@ void tkbc_ui_post_handler(Env *env) {
     return;
   }
 
+  // TODO: Make the key map customizable for the user.
   if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) &&
       IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
     env->color_picker_window_picking = true;
@@ -541,12 +543,15 @@ void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
  * @return True if menu was force closed, otherwise false.
  */
 bool tkbc_ui_script_menu(Env *env) {
-  if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
+
+  if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS,
+                              KEY_MAP_CHECK_KEY_PRESSED)) {
     env->script_menu_interaction = false;
     return true;
   }
 
-  if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_SWITCHES_NEXT_SCRIPT))) {
+  if (tkbc_check_keymaps_full(env->keymaps, KMH_SWITCHES_NEXT_SCRIPT,
+                              KEY_MAP_CHECK_KEY_PRESSED)) {
     env->script_menu_interaction = !env->script_menu_interaction;
     env->script_menu_mouse_interaction = false;
   }
@@ -914,7 +919,8 @@ void tkbc_ui_color_picker(Env *env) {
   }
 
   // KEY_ESCAPE
-  if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
+  if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS,
+                              KEY_MAP_CHECK_KEY_PRESSED)) {
     env->colorizer = false;
   }
   if (!env->color_picker_interaction) {
@@ -1554,20 +1560,14 @@ void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration,
   if (key != KEY_ESCAPE) {
     Key_Map *km = &env->keymaps.elements[env->keymaps_mouse_interaction_box];
     switch (env->keymaps_interaction_rec_number) {
+    case BOX_KEY:
+      tkbc_set_key_or_delete(&km->key, &km->key_str, key);
+      break;
     case BOX_MOD_KEY:
       tkbc_set_key_or_delete(&km->mod_key, &km->mod_key_str, key);
       break;
-    case BOX_MOD_CO_KEY:
-      tkbc_set_key_or_delete(&km->mod_co_key, &km->mod_co_key_str, key);
-      break;
-    case BOX_SELECTION_KEY1:
-      tkbc_set_key_or_delete(&km->selection_key1, &km->selection_key1_str, key);
-      break;
-    case BOX_SELECTION_KEY2:
-      tkbc_set_key_or_delete(&km->selection_key2, &km->selection_key2_str, key);
-      break;
-    case BOX_KEY:
-      tkbc_set_key_or_delete(&km->key, &km->key_str, key);
+    case BOX_SELECTION_KEY:
+      tkbc_set_key_or_delete(&km->selection_key, &km->selection_key_str, key);
       break;
     default:
       assert(0 && "UNREACHABLE tkbc_draw_key_box()");
@@ -1587,20 +1587,14 @@ key_change_skip: {}
 
   const char *str;
   switch (iteration) {
+  case BOX_KEY:
+    str = env->keymaps.elements[cur_major_box].key_str;
+    break;
   case BOX_MOD_KEY:
     str = env->keymaps.elements[cur_major_box].mod_key_str;
     break;
-  case BOX_MOD_CO_KEY:
-    str = env->keymaps.elements[cur_major_box].mod_co_key_str;
-    break;
-  case BOX_SELECTION_KEY1:
-    str = env->keymaps.elements[cur_major_box].selection_key1_str;
-    break;
-  case BOX_SELECTION_KEY2:
-    str = env->keymaps.elements[cur_major_box].selection_key2_str;
-    break;
-  case BOX_KEY:
-    str = env->keymaps.elements[cur_major_box].key_str;
+  case BOX_SELECTION_KEY:
+    str = env->keymaps.elements[cur_major_box].selection_key_str;
     break;
   default:
     assert(0 && "UNREACHABLE tkbc_draw_key_box()");
@@ -1639,7 +1633,8 @@ void tkbc_ui_keymaps(Env *env) {
     env->color_picker_interaction = false;
   }
   // KEY_ESCAPE
-  if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS))) {
+  if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS,
+                              KEY_MAP_CHECK_KEY_PRESSED)) {
     env->keymaps_interaction = !env->keymaps_interaction;
     env->keymaps_mouse_interaction = false;
     if (env->keymaps_interaction) {
@@ -1668,7 +1663,8 @@ void tkbc_ui_keymaps(Env *env) {
        box < env->keymaps.count;
        ++box) {
 
-    size_t key_box_count = 5;
+    static_assert(KEY_MODE_STORAGE_OPTION_COUNT == 3, "Amount has changed");
+    size_t key_box_count = KEY_MODE_STORAGE_OPTION_COUNT;
     Rectangle key_box = {
         .x = env->keymaps_base.x + padding,
         .y = env->keymaps_base.y + env->box_height / 2.0,
@@ -1702,9 +1698,7 @@ void tkbc_ui_keymaps(Env *env) {
 
     for (size_t i = 0; i < key_box_count; ++i) {
       // BOX_MOD_KEY
-      // BOX_MOD_CO_KEY
-      // BOX_SELECTION_KEY1
-      // BOX_SELECTION_KEY2
+      // BOX_SELECTION_KEY
       // BOX_KEY
       tkbc_draw_key_box(env, key_box, i, box);
 

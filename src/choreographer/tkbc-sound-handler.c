@@ -39,22 +39,22 @@ void tkbc_sound_destroy(Sound sound) {
 void tkbc_input_sound_handler(Env *env) {
   // Handles current loaded sound file.
   // KEY_N && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
-  Key_Map keymap = tkbc_hash_to_keymap(env->keymaps, KMH_STOPS_SOUND);
-  if (IsKeyPressed(keymap.key) &&
-      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
+  if (tkbc_check_keymaps_full(env->keymaps, KMH_STOPS_SOUND,
+                              KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {
     StopSound(env->sound);
     // KEY_N
-  } else if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_PLAYS_SOUND))) {
+  } else if (tkbc_check_keymaps_full(env->keymaps, KMH_PLAYS_SOUND,
+                                     KEY_MAP_CHECK_KEY_PRESSED)) {
     PlaySound(env->sound);
   }
 
-  keymap = tkbc_hash_to_keymap(env->keymaps, KMH_RESUMES_SOUND);
   // KEY_M && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
-  if (IsKeyPressed(keymap.key) &&
-      (IsKeyDown(keymap.mod_key) || IsKeyDown(keymap.mod_co_key))) {
+  if (tkbc_check_keymaps_full(env->keymaps, KMH_RESUMES_SOUND,
+                              KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {
     ResumeSound(env->sound);
     // KEY_M
-  } else if (IsKeyPressed(tkbc_hash_to_key(env->keymaps, KMH_PAUSES_SOUND))) {
+  } else if (tkbc_check_keymaps_full(env->keymaps, KMH_PAUSES_SOUND,
+                                     KEY_MAP_CHECK_KEY_PRESSED)) {
     PauseSound(env->sound);
   }
 }

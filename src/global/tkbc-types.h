@@ -3,6 +3,7 @@
 
 #include "../../external/space/space.h"
 #include "raylib.h"
+#include <assert.h>
 #include <stddef.h>
 
 // ===========================================================================
@@ -108,10 +109,11 @@ typedef enum {
 typedef enum {
   KEY = (1 << 0),
   MOD_KEY = (1 << 1),
-  MOD_CO_KEY = (1 << 2),
-  SELECTION_KEY1 = (1 << 3),
-  SELECTION_KEY2 = (1 << 4),
+  SELECTION_KEY = (1 << 2),
+
+  KEY_MODE_STORAGE_OPTION_COUNT = 3,
 } Key_Mode_Storage_Option;
+static_assert(KEY_MODE_STORAGE_OPTION_COUNT == 3, "Amount has changed");
 
 typedef enum {
   MODE_NULL = 0,
@@ -125,19 +127,17 @@ typedef struct {
   Key_Mode key;
   Key_Mode mod_key;
   Key_Mode selection_key;
+
+  bool is_or;
 } Key_Map_Check_Config;
 
 typedef struct {
   const char *description;
   const char *mod_key_str;
-  const char *mod_co_key_str;
-  const char *selection_key1_str;
-  const char *selection_key2_str;
+  const char *selection_key_str;
   const char *key_str;
   int mod_key;
-  int mod_co_key;
-  int selection_key1;
-  int selection_key2;
+  int selection_key;
   int key;
   int hash;
 } Key_Map;
@@ -160,10 +160,15 @@ typedef enum {
 
   KMH_ROTATE_KITES_CENTER_CLOCKWISE,
   KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE,
-  KMH_ROTATE_KITES_TIP_CLOCKWISE,
-  KMH_ROTATE_KITES_TIP_ANTICLOCKWISE,
-  KMH_ROTATE_KITES_CIRCLE_CLOCKWISE,
-  KMH_ROTATE_KITES_CIRCLE_ANTICLOCKWISE,
+
+  KMH_ROTATE_KITES_LEFT_TIP_CLOCKWISE,
+  KMH_ROTATE_KITES_RIGHT_TIP_CLOCKWISE,
+
+  KMH_ROTATE_KITES_LEFT_TIP_ANTICLOCKWISE,
+  KMH_ROTATE_KITES_RIGHT_TIP_ANTICLOCKWISE,
+
+  // KMH_ROTATE_KITES_CIRCLE_CLOCKWISE,
+  // KMH_ROTATE_KITES_CIRCLE_ANTICLOCKWISE,
 
   KMH_TOGGLE_FIXED,
 
@@ -206,18 +211,18 @@ typedef enum {
 
   KMH_KEY_KP_5,
 
-  KMH_KEY_161_162,
+  KMH_KEY_REVERS_MOUSE_FOLLOW,
 
   KMH_COUNT,
 } Key_Map_Hash;
 
 typedef enum {
   BOX_INVALID = -1,
+
+  // The order of the items correspond to the display in the key maps menu.
   BOX_MOD_KEY = 0,
-  BOX_MOD_CO_KEY = 1,
-  BOX_SELECTION_KEY1 = 2,
-  BOX_SELECTION_KEY2 = 3,
-  BOX_KEY = 4,
+  BOX_SELECTION_KEY = 1,
+  BOX_KEY = 2,
 } Key_Box;
 
 typedef enum {

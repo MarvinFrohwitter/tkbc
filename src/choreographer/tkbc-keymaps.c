@@ -44,17 +44,7 @@ int tkbc_load_keymaps_from_file(Key_Maps *keymaps, const char *filename) {
     if (t.kind != NUMBER) {
       check_return(1);
     }
-    int mod_co_key = atoi(lexer_token_to_cstr(lexer, &t));
-    t = lexer_next(lexer);
-    if (t.kind != NUMBER) {
-      check_return(1);
-    }
-    int selection_key1 = atoi(lexer_token_to_cstr(lexer, &t));
-    t = lexer_next(lexer);
-    if (t.kind != NUMBER) {
-      check_return(1);
-    }
-    int selection_key2 = atoi(lexer_token_to_cstr(lexer, &t));
+    int selection_key = atoi(lexer_token_to_cstr(lexer, &t));
     t = lexer_next(lexer);
     if (t.kind != NUMBER) {
       check_return(1);
@@ -65,9 +55,7 @@ int tkbc_load_keymaps_from_file(Key_Maps *keymaps, const char *filename) {
     for (size_t i = 0; i < keymaps->count; ++i) {
       if (hash == keymaps->elements[i].hash) {
         keymaps->elements[i].mod_key = mod_key;
-        keymaps->elements[i].mod_co_key = mod_co_key;
-        keymaps->elements[i].selection_key1 = selection_key1;
-        keymaps->elements[i].selection_key2 = selection_key2;
+        keymaps->elements[i].selection_key = selection_key;
         keymaps->elements[i].key = key;
         break;
       }
@@ -96,10 +84,9 @@ bool tkbc_save_keymaps_to_file(Key_Maps keymaps, const char *filename) {
     return false;
   }
   for (size_t i = 0; i < keymaps.count; ++i) {
-    fprintf(file, "%d %d %d %d %d %d\n", keymaps.elements[i].hash,
-            keymaps.elements[i].mod_key, keymaps.elements[i].mod_co_key,
-            keymaps.elements[i].selection_key1,
-            keymaps.elements[i].selection_key2, keymaps.elements[i].key);
+    fprintf(file, "%d %d %d %d\n", keymaps.elements[i].hash,
+            keymaps.elements[i].mod_key, keymaps.elements[i].selection_key,
+            keymaps.elements[i].key);
   }
 
   fclose(file);
@@ -133,9 +120,7 @@ void tkbc_set_keymaps_defaults(Key_Maps *keymaps) {
     for (size_t j = 0; j < keymaps->count; ++j) {
       if (keymaps->elements[j].hash == default_keymaps[i].hash) {
         keymaps->elements[j].mod_key = default_keymaps[i].mod_key;
-        keymaps->elements[j].mod_co_key = default_keymaps[i].mod_co_key;
-        keymaps->elements[j].selection_key1 = default_keymaps[i].selection_key1;
-        keymaps->elements[j].selection_key2 = default_keymaps[i].selection_key2;
+        keymaps->elements[j].selection_key = default_keymaps[i].selection_key;
         keymaps->elements[j].key = default_keymaps[i].key;
       }
     }
@@ -153,12 +138,8 @@ void tkbc_setup_keymaps_strs(Key_Maps *keymaps) {
   for (size_t i = 0; i < keymaps->count; ++i) {
     keymaps->elements[i].mod_key_str =
         tkbc_key_to_str(keymaps->elements[i].mod_key);
-    keymaps->elements[i].mod_co_key_str =
-        tkbc_key_to_str(keymaps->elements[i].mod_co_key);
-    keymaps->elements[i].selection_key1_str =
-        tkbc_key_to_str(keymaps->elements[i].selection_key1);
-    keymaps->elements[i].selection_key2_str =
-        tkbc_key_to_str(keymaps->elements[i].selection_key2);
+    keymaps->elements[i].selection_key_str =
+        tkbc_key_to_str(keymaps->elements[i].selection_key);
     keymaps->elements[i].key_str = tkbc_key_to_str(keymaps->elements[i].key);
   }
 }
@@ -449,122 +430,81 @@ const char *tkbc_key_to_str(int key) {
 }
 
 static bool tkbc_check_key(int key, Key_Mode mode) {
+  bool result = false;
+  bool check = false;
+  if (key == KEY_LEFT_SHIFT) {
+    result = tkbc_check_key(KEY_RIGHT_SHIFT, mode);
+  }
+  if (key == KEY_LEFT_CONTROL) {
+    result = tkbc_check_key(KEY_RIGHT_CONTROL, mode);
+  }
+
   switch (mode) {
   case MODE_DOWN:
-    return IsKeyDown(key);
+    check = IsKeyDown(key);
+    break;
   case MODE_PRESSED:
-    return IsKeyPressed(key);
+    check = IsKeyPressed(key);
+    break;
   case MODE_UP:
-    return IsKeyUp(key);
+    check = IsKeyUp(key);
+    break;
   case MODE_RELEASED:
-    return IsKeyReleased(key);
+    check = IsKeyReleased(key);
+    break;
   case MODE_NULL:
   default:
     return false;
   }
+
+  if (!result) {
+    result = check;
+  }
+  return result;
 }
 
-bool tkbc_check_keymap(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg,
-                       int kso) {
-  Key_Map km = tkbc_hash_to_keymap(keymaps, hash);
+bool tkbc_check_keymap(Key_Map keymap, Key_Map_Check_Config cfg, int kso) {
   bool result = false;
-  if (km.key && (kso & KEY) && (cfg.key != MODE_NULL)) {
-    result = tkbc_check_key(km.key, cfg.key);
-    if (!result) {
-      return result;
-    }
+  bool visited = false;
+  if (keymap.key && (kso & KEY) && (cfg.key != MODE_NULL)) {
+    result = tkbc_check_key(keymap.key, cfg.key);
+    visited = true;
   }
 
-  if (km.mod_key && (kso & MOD_KEY) && (cfg.mod_key != MODE_NULL)) {
-    result = result && tkbc_check_key(km.mod_key, cfg.mod_key);
-    if (!result) {
-      return result;
-    }
-  }
-
-  if (km.selection_key1 && (kso & SELECTION_KEY1) &&
+  if (keymap.selection_key && (kso & SELECTION_KEY) &&
       (cfg.selection_key != MODE_NULL)) {
-    result = result && tkbc_check_key(km.selection_key1, cfg.selection_key);
-    if (!result) {
-      return result;
+    if (cfg.is_or) {
+      result =
+          tkbc_check_key(keymap.selection_key, cfg.selection_key) || result;
+    } else {
+      result =
+          tkbc_check_key(keymap.selection_key, cfg.selection_key) && result;
+    }
+    visited = true;
+  }
+
+  if (keymap.mod_key && (kso & MOD_KEY) && (cfg.mod_key != MODE_NULL)) {
+    bool ok = tkbc_check_key(keymap.mod_key, cfg.mod_key);
+    result = ok && result;
+    if (ok && !visited) {
+      result = ok;
     }
   }
 
   return result;
 }
 
-bool tkbc_check_keymap_full(Key_Maps keymaps, int hash,
-                            Key_Map_Check_Config cfg) {
-  return tkbc_check_keymap(keymaps, hash, cfg, KEY | MOD_KEY | SELECTION_KEY1);
+bool tkbc_check_keymap_full(Key_Map keymap, Key_Map_Check_Config cfg) {
+  return tkbc_check_keymap(keymap, cfg, KEY | MOD_KEY | SELECTION_KEY);
 }
 
-#define KEY_CONFIG(value_key, value_mode_key, value_selection_key)             \
-  ((Key_Map_Check_Config){.key = (value_key),                                  \
-                          .mod_key = (value_mode_key),                         \
-                          .selection_key = (value_selection_key)})
-#define VA_KEY_CONFIG(...) ((Key_Map_Check_Config){__VA_ARGS__})
-
-const Key_Map_Check_Config KEY_MAP_CHECK_DOWN_ = {
-    .key = MODE_DOWN,
-    .mod_key = MODE_DOWN,
-    .selection_key = MODE_DOWN,
-};
-
-void foo(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg) {
-
-  tkbc_check_keymap_full(keymaps, hash, cfg);
-
-  tkbc_check_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
-                    KEY_CONFIG(MODE_PRESSED, MODE_DOWN, MODE_NULL),
-                    KEY | MOD_KEY);
-  tkbc_check_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
-                    VA_KEY_CONFIG(.key = MODE_PRESSED, .mod_key = MODE_DOWN),
-                    KEY | MOD_KEY);
-  tkbc_check_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
-                    VA_KEY_CONFIG(MODE_PRESSED, MODE_DOWN), KEY | MOD_KEY);
-
-  tkbc_check_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
-                    VA_KEY_CONFIG(MODE_PRESSED, MODE_DOWN), KEY | MOD_KEY);
-
-  tkbc_check_keymap_full(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
-                         VA_KEY_CONFIG(MODE_DOWN, MODE_DOWN, MODE_DOWN));
-  tkbc_check_keymap_full(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE,
-                         KEY_MAP_CHECK_DOWN_);
-
-  bool a =
-      IsKeyDown(
-          tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE).key) &&
-      IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE)
-                    .mod_key) &&
-      IsKeyDown(tkbc_hash_to_keymap(keymaps, KMH_ROTATE_KITES_TIP_CLOCKWISE)
-                    .selection_key1);
-  (void)a;
+bool tkbc_check_keymaps(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg,
+                        int kso) {
+  Key_Map keymap = tkbc_hash_to_keymap(keymaps, hash);
+  return tkbc_check_keymap(keymap, cfg, kso);
 }
 
-/*-------------- DEFAULT CONFIGS -------------------------------------------*/
-
-const Key_Map_Check_Config KEY_MAP_CHECK_DOWN = {
-    .key = MODE_DOWN,
-    .mod_key = MODE_DOWN,
-    .selection_key = MODE_DOWN,
-};
-
-const Key_Map_Check_Config KEY_CHECK_UP = {
-    .key = MODE_UP,
-    .mod_key = MODE_UP,
-    .selection_key = MODE_UP,
-};
-
-const Key_Map_Check_Config KEY_CHECK_PRESSED = {
-    .key = MODE_PRESSED,
-    .mod_key = MODE_PRESSED,
-    .selection_key = MODE_PRESSED,
-};
-
-const Key_Map_Check_Config KEY_CHECK_RELEASED = {
-    .key = MODE_RELEASED,
-    .mod_key = MODE_RELEASED,
-    .selection_key = MODE_RELEASED,
-};
-
-///////////////////////////////////////////////////////////
+bool tkbc_check_keymaps_full(Key_Maps keymaps, int hash,
+                             Key_Map_Check_Config cfg) {
+  return tkbc_check_keymaps(keymaps, hash, cfg, KEY | MOD_KEY | SELECTION_KEY);
+}

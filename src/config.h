@@ -27,7 +27,6 @@ static Key_Map default_keymaps[] = {
     {
         .description = "End recording the screen.",
         .mod_key = KEY_LEFT_SHIFT,
-        .mod_co_key = KEY_RIGHT_SHIFT,
         .key = KEY_V,
         .hash = KMH_END_RECORDING,
     },
@@ -47,38 +46,52 @@ static Key_Map default_keymaps[] = {
     },
 
     {
-        .description = "Rotate all selected kites at the tip clockwise.",
-        .selection_key1 = KEY_H,
-        .selection_key2 = KEY_L,
+        .description = "Rotate all selected kites at the left tip clockwise.",
+        .selection_key = KEY_H,
         .key = KEY_T,
-        .hash = KMH_ROTATE_KITES_TIP_CLOCKWISE,
+        .hash = KMH_ROTATE_KITES_LEFT_TIP_CLOCKWISE,
     },
     {
-        .description = "Rotate all selected kites at the tip anticlockwise.",
-        .mod_key = KEY_LEFT_SHIFT,
-        .mod_co_key = KEY_RIGHT_SHIFT,
-        .selection_key1 = KEY_H,
-        .selection_key2 = KEY_L,
+        .description = "Rotate all selected kites at the right tip clockwise.",
+        .selection_key = KEY_L,
         .key = KEY_T,
-        .hash = KMH_ROTATE_KITES_TIP_ANTICLOCKWISE,
+        .hash = KMH_ROTATE_KITES_RIGHT_TIP_CLOCKWISE,
     },
 
     {
-        .description = "Rotate kites around in a circle clockwise.",
-        .selection_key1 = KEY_H,
-        .selection_key2 = KEY_L,
-        .key = KEY_C,
-        .hash = KMH_ROTATE_KITES_CIRCLE_CLOCKWISE,
+        .description =
+            "Rotate all selected kites at the left tip anticlockwise.",
+        .mod_key = KEY_LEFT_SHIFT,
+        .selection_key = KEY_H,
+        .key = KEY_T,
+        .hash = KMH_ROTATE_KITES_LEFT_TIP_ANTICLOCKWISE,
     },
     {
-        .description = "Rotate kites around in a circle anticlockwise.",
+        .description =
+            "Rotate all selected kites at the right tip anticlockwise.",
         .mod_key = KEY_LEFT_SHIFT,
-        .mod_co_key = KEY_RIGHT_SHIFT,
-        .selection_key1 = KEY_H,
-        .selection_key2 = KEY_L,
-        .key = KEY_C,
-        .hash = KMH_ROTATE_KITES_CIRCLE_ANTICLOCKWISE,
+        .selection_key = KEY_L,
+        .key = KEY_T,
+        .hash = KMH_ROTATE_KITES_RIGHT_TIP_ANTICLOCKWISE,
     },
+
+    // {
+    //     .description = "Rotate kites around in a circle clockwise.",
+    //     .selection_key1 = KEY_H,
+    //     .selection_key2 = KEY_L,
+    //     .key = KEY_C,
+    //     .hash = KMH_ROTATE_KITES_CIRCLE_CLOCKWISE,
+    // },
+    // {
+    //     .description = "Rotate kites around in a circle anticlockwise.",
+    //     .mod_key = KEY_LEFT_SHIFT,
+    //     .mod_co_key = KEY_RIGHT_SHIFT,
+    //     .selection_key1 = KEY_H,
+    //     .selection_key2 = KEY_L,
+    //     .key = KEY_C,
+    //     .hash = KMH_ROTATE_KITES_CIRCLE_ANTICLOCKWISE,
+    // },
+    //
 
     {
         .description =
@@ -121,7 +134,6 @@ static Key_Map default_keymaps[] = {
     {
         .description = "Reduce the fly speed.",
         .mod_key = KEY_LEFT_SHIFT,
-        .mod_co_key = KEY_RIGHT_SHIFT,
         .key = KEY_P,
         .hash = KMH_REDUCE_FLY_SPEED,
     },
@@ -134,7 +146,6 @@ static Key_Map default_keymaps[] = {
     {
         .description = "Reduce the turn speed.",
         .mod_key = KEY_LEFT_SHIFT,
-        .mod_co_key = KEY_RIGHT_SHIFT,
         .key = KEY_O,
         .hash = KMH_REDUCE_TURN_SPEED,
     },
@@ -159,7 +170,6 @@ static Key_Map default_keymaps[] = {
     {
         .description = "Stops the current sound track.",
         .mod_key = KEY_LEFT_SHIFT,
-        .mod_co_key = KEY_RIGHT_SHIFT,
         .key = KEY_N,
         .hash = KMH_STOPS_SOUND,
     },
@@ -172,7 +182,6 @@ static Key_Map default_keymaps[] = {
     {
         .description = "Resumes the currently loaded sound track.",
         .mod_key = KEY_LEFT_SHIFT,
-        .mod_co_key = KEY_RIGHT_SHIFT,
         .key = KEY_M,
         .hash = KMH_RESUMES_SOUND,
     },
@@ -186,14 +195,12 @@ static Key_Map default_keymaps[] = {
     {
         .description = "Lock the angle of the kite.",
         .mod_key = KEY_LEFT_SHIFT,
-        .mod_co_key = KEY_RIGHT_SHIFT,
         .key = KEY_NULL,
         .hash = KMH_LOCK_KITE_ANGLE,
     },
     {
         .description = "Lock the angle for tip turn.",
         .mod_key = KEY_LEFT_CONTROL,
-        .mod_co_key = KEY_RIGHT_CONTROL,
         .key = KEY_NULL,
         .hash = KMH_LOCK_KITE_TIP,
     },
@@ -287,8 +294,8 @@ static Key_Map default_keymaps[] = {
     },
     {
         .description = "Toggle reverse mouse follow",
-        .selection_key1 = 161,
-        .selection_key2 = 162,
-        .hash = KMH_KEY_161_162,
+        .selection_key = 162,
+        .key = 161,
+        .hash = KMH_KEY_REVERS_MOUSE_FOLLOW,
     },
 };
