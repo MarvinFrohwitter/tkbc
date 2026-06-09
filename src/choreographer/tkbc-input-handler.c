@@ -451,7 +451,6 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
   state->is_angle_locked = false;
   state->is_tip_locked = false;
   state->is_rotating = false;
-  state->selected_tips = 0;
 
   Kite *kite = state->kite;
   tkbc_check_is_mouse_in_dead_zone(state, kite->height / 2);
@@ -509,8 +508,17 @@ void tkbc_input_check_tip_rotation_mouse_control(Key_Maps keymaps,
       IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
 
   if (!is_left && !is_right) {
+    s->is_angle_locked = true;
     return;
   }
+  if (is_left && is_right) {
+    s->is_angle_locked = true;
+    return;
+  }
+
+  // The selected_tips is reseated hear so that the previous tip can be still
+  // recognised. For example when both tips are selected and flying forward.
+  s->selected_tips = 0;
 
   // Q //
   if (is_left) {
@@ -741,10 +749,6 @@ void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps,
       result_angle += remainder < 0 ? -45 : 45;
     }
 
-    if (state->is_angle_locked) {
-      tkbc_kite_update_angle(state->kite, result_angle);
-    }
-
     if (state->is_tip_locked) {
 
       if (!state->selected_tips) {
@@ -762,6 +766,12 @@ void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps,
       }
       if (state->selected_tips & RIGHT_TIP) {
         tkbc_tip_rotation(state->kite, NULL, result_angle, RIGHT_TIP);
+      }
+    } else {
+      // This is needed to ensure angel lock when tip lock is on.
+      // When pressing both tips is should snap as a tip and not center.
+      if (state->is_angle_locked) {
+        tkbc_kite_update_angle(state->kite, result_angle);
       }
     }
   }
