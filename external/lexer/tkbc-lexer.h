@@ -1,5 +1,5 @@
 // A C-Programming lexer
-// Copyright (c) 2023-2025 Marvin Frohwitter. All Rights Reserved.
+// Copyright (c) 2023-2026 Marvin Frohwitter. All Rights Reserved.
 
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -75,119 +75,123 @@ static const char PUNCTUATORS[] = {
     ',',  ']', ')', '=', ';', '{', '}', '&', '*', '+', '-', '~',  '|', '/',
     '\\', '%', '<', '>', '^', '|', '?', ':', '(', '[', '!', '\'', '.'};
 
+#define KINDS_LIST                                                             \
+  X_KIND(INVALID, -1)                                                          \
+  X_KIND(NULL_TERMINATOR, 0)                                                   \
+  X_KIND(ERROR, 1)                                                             \
+  X_KIND(NUMBER, 2)                                                            \
+  X_KIND(KEYWORD, 3)                                                           \
+  X_KIND(STRINGLITERAL, 4)                                                     \
+  X_KIND(IDENTIFIER, 5)                                                        \
+  X_KIND(PUNCTUATOR, 6)                                                        \
+  X_KIND(CONSTANT, 7)                                                          \
+  X_KIND(PREPROCESSING, 8)                                                     \
+  X_KIND(COMMENT, 9)                                                           \
+  X_KIND(EOF_TOKEN, 10)                                                        \
+  X_KIND(PUNCT_SINGLEQUOTE, 39, /* "'"*/)                                      \
+  X_KIND(PUNCT_DOUBLEQUOTE, 34, /* '"'*/)                                      \
+  X_KIND(PUNCT_BACKSLASH, '\\', /* 92*/)                                       \
+                                                                               \
+  /* ALL PUNCTUATORS */                                                        \
+                                                                               \
+  X_KIND(PUNCT_NOT, '!', /*      33*/)                                         \
+  X_KIND(PUNCT_HTAG, '#', /*     35*/)                                         \
+  X_KIND(PUNCT_MOD, '%', /*      37*/)                                         \
+  X_KIND(PUNCT_BAND, '&', /*     38*/)                                         \
+  X_KIND(PUNCT_MUL, '*', /*      42*/)                                         \
+  X_KIND(PUNCT_ADD, '+', /*      43*/)                                         \
+  X_KIND(PUNCT_COMMA, ',', /*     44*/)                                        \
+  X_KIND(PUNCT_SUB, '-', /*      45*/)                                         \
+  X_KIND(PUNCT_DIV, '/', /*      47*/)                                         \
+  X_KIND(PUNCT_LPAREN, '(', /*   50*/)                                         \
+  X_KIND(PUNCT_RPAREN, ')', /*   51*/)                                         \
+  X_KIND(PUNCT_POINT, '.', /*    56*/)                                         \
+  X_KIND(PUNCT_COLON, ':', /*    58*/)                                         \
+  X_KIND(PUNCT_SEMICOLON, ';', /* 59*/)                                        \
+  X_KIND(PUNCT_LANGLE, '<', /*   60*/)                                         \
+  X_KIND(PUNCT_ASSIGN, '=', /*   61*/)                                         \
+  X_KIND(PUNCT_RANGLE, '>', /*   62*/)                                         \
+  X_KIND(PUNCT_ASK, '?', /*      63*/)                                         \
+  X_KIND(PUNCT_LBRACKET, '[', /* 91*/)                                         \
+  X_KIND(PUNCT_RBRACKET, ']', /* 93*/)                                         \
+  X_KIND(PUNCT_BXOR, '^', /*     94*/)                                         \
+  X_KIND(PUNCT_LBRACE, '{', /*   123*/)                                        \
+  X_KIND(PUNCT_BOR, '|', /*      124*/)                                        \
+  X_KIND(PUNCT_RBRACE, '}', /*   125*/)                                        \
+  X_KIND(PUNCT_BNOT, '~', /*     126*/)                                        \
+                                                                               \
+  /* LANGECOLON = LBRACKET;    // '<: = ['        */                           \
+  /* COLONRANGE = RBRACKET;    // ':> = ]'        */                           \
+  /* LANGELMOD = LBRACE;       // '<% = {'        */                           \
+  /* KANGELMOD = RBRACE;       // '%> = }'        */                           \
+  /* MODCOLON = HTAG;          // '%: = #'        */                           \
+  /* MODCOLONMODCOLON = HHTAG; // '%:%: = ##'     */                           \
+                                                                               \
+  X_KIND(PUNCT_EQUAL, 257, /*      '=='*/)                                     \
+  X_KIND(PUNCT_MULEQ, 258, /*      '*='*/)                                     \
+  X_KIND(PUNCT_DIVEQ, 259, /*      '/='*/)                                     \
+  X_KIND(PUNCT_MODEQ, 260, /*      '%='*/)                                     \
+  X_KIND(PUNCT_ADDEQ, 261, /*      '+='*/)                                     \
+  X_KIND(PUNCT_SUBEQ, 262, /*      '-='*/)                                     \
+  X_KIND(PUNCT_LEFTSHIFTEQ, 263, /*'<<='*/)                                    \
+  X_KIND(PUNCT_RIGHTSHIFTEQ, 264, /*'>>='*/)                                   \
+  X_KIND(PUNCT_BANDEQ, 265, /*     '&='*/)                                     \
+  X_KIND(PUNCT_BOREQ, 266, /*      '|='*/)                                     \
+  X_KIND(PUNCT_BXOREQ, 267, /*     '^='*/)                                     \
+  X_KIND(PUNCT_NOTEQ, 268, /*      '!='*/)                                     \
+  X_KIND(PUNCT_LOREQ, 269, /*      '<='*/)                                     \
+  X_KIND(PUNCT_GOREQ, 270, /*      '>='*/)                                     \
+  X_KIND(PUNCT_LAND, 271, /*       '&&'*/)                                     \
+  X_KIND(PUNCT_LOR, 272, /*        '||'*/)                                     \
+  X_KIND(PUNCT_LEFTSHIFT, 273, /*  '<<'*/)                                     \
+  X_KIND(PUNCT_RIGHTSHIFT, 274, /* '>>'*/)                                     \
+  X_KIND(PUNCT_PDEREF, 275, /*     '->'*/)                                     \
+  X_KIND(PUNCT_DECREMENT, 276, /*  '--'*/)                                     \
+  X_KIND(PUNCT_INCREMENT, 277, /*  '++'*/)                                     \
+  X_KIND(PUNCT_HHTAG, 278, /*      '##'*/)                                     \
+  X_KIND(PUNCT_VARIADIC, 279, /*   '...'*/)                                    \
+                                                                               \
+  /* ALL KEYWORDS */                                                           \
+  X_KIND(KEYWORD_AUTO, 280)                                                    \
+                                                                               \
+  X_KIND(KEYWORD_BREAK, 281)                                                   \
+  X_KIND(KEYWORD_CASE, 282)                                                    \
+  X_KIND(KEYWORD_CHAR, 283)                                                    \
+  X_KIND(KEYWORD_CONST, 284)                                                   \
+  X_KIND(KEYWORD_CONTINUE, 285)                                                \
+  X_KIND(KEYWORD_DEFAULT, 286)                                                 \
+  X_KIND(KEYWORD_DO, 287)                                                      \
+  X_KIND(KEYWORD_DOUBLE, 288)                                                  \
+  X_KIND(KEYWORD_ELSE, 289)                                                    \
+  X_KIND(KEYWORD_ENUM, 290)                                                    \
+  X_KIND(KEYWORD_EXTERN, 291)                                                  \
+  X_KIND(KEYWORD_FLOAT, 292)                                                   \
+  X_KIND(KEYWORD_FOR, 293)                                                     \
+  X_KIND(KEYWORD_GOTO, 294)                                                    \
+  X_KIND(KEYWORD_IF, 295)                                                      \
+  X_KIND(KEYWORD_INT, 296)                                                     \
+  X_KIND(KEYWORD_LONG, 297)                                                    \
+  X_KIND(KEYWORD_REGISTER, 298)                                                \
+  X_KIND(KEYWORD_RETURN, 299)                                                  \
+  X_KIND(KEYWORD_SHORT, 300)                                                   \
+  X_KIND(KEYWORD_SIGNED, 301)                                                  \
+  X_KIND(KEYWORD_SIZEOF, 302)                                                  \
+  X_KIND(KEYWORD_STATIC, 303)                                                  \
+  X_KIND(KEYWORD_STRUCT, 304)                                                  \
+  X_KIND(KEYWORD_SWITCH, 305)                                                  \
+  X_KIND(KEYWORD_TYPEDEF, 306)                                                 \
+  X_KIND(KEYWORD_UNION, 307)                                                   \
+  X_KIND(KEYWORD_UNSIGNED, 308)                                                \
+  X_KIND(KEYWORD_VOID, 309)                                                    \
+  X_KIND(KEYWORD_VOLATILE, 310)                                                \
+  X_KIND(KEYWORD_WHILE, 311)                                                   \
+  X_KIND(KEYWORD_SIZE_T, 312)
+
 /* The Token Kind that can be detected by the lexer. */
 typedef enum Kind {
-  INVALID = -1,
-  NULL_TERMINATOR = 0,
-  ERROR = 1,
-  NUMBER = 2,
-  KEYWORD = 3,
-  STRINGLITERAL = 4,
-  IDENTIFIER = 5,
-  PUNCTUATOR = 6,
-  CONSTANT = 7,
-  PREPROCESSING = 8,
-  COMMENT = 9,
-  EOF_TOKEN = 10,
-
-  PUNCT_SINGLEQUOTE = 39, // "'"
-  PUNCT_DOUBLEQUOTE = 34, // '"'
-  PUNCT_BACKSLASH = '\\', // 92
-
-  // ALL PUNCTUATORS
-  PUNCT_NOT = '!',       // 33
-  PUNCT_HTAG = '#',      // 35
-  PUNCT_MOD = '%',       // 37
-  PUNCT_BAND = '&',      // 38
-  PUNCT_MUL = '*',       // 42
-  PUNCT_ADD = '+',       // 43
-  PUNCT_COMMA = ',',     // 44
-  PUNCT_SUB = '-',       // 45
-  PUNCT_DIV = '/',       // 47
-  PUNCT_LPAREN = '(',    // 50
-  PUNCT_RPAREN = ')',    // 51
-  PUNCT_POINT = '.',     // 56
-  PUNCT_COLON = ':',     // 58
-  PUNCT_SEMICOLON = ';', // 59
-  PUNCT_LANGLE = '<',    // 60
-  PUNCT_ASSIGN = '=',    // 61
-  PUNCT_RANGLE = '>',    // 62
-  PUNCT_ASK = '?',       // 63
-  PUNCT_LBRACKET = '[',  // 91
-  PUNCT_RBRACKET = ']',  // 93
-  PUNCT_BXOR = '^',      // 94
-  PUNCT_LBRACE = '{',    // 123
-  PUNCT_BOR = '|',       // 124
-  PUNCT_RBRACE = '}',    // 125
-  PUNCT_BNOT = '~',      // 126
-
-  PUNCT_EQUAL = 257,        //'=='
-  PUNCT_MULEQ = 258,        //'*='
-  PUNCT_DIVEQ = 259,        //'/='
-  PUNCT_MODEQ = 260,        //'%='
-  PUNCT_ADDEQ = 261,        //'+='
-  PUNCT_SUBEQ = 262,        //'-='
-  PUNCT_LEFTSHIFTEQ = 263,  //'<<='
-  PUNCT_RIGHTSHIFTEQ = 264, //'>>='
-  PUNCT_BANDEQ = 265,       //'&='
-  PUNCT_BOREQ = 266,        //'|='
-  PUNCT_BXOREQ = 267,       //'^='
-  PUNCT_NOTEQ = 268,        //'!='
-  PUNCT_LOREQ = 269,        //'<='
-  PUNCT_GOREQ = 270,        //'>='
-  PUNCT_LAND = 271,         //'&&'
-  PUNCT_LOR = 272,          //'||'
-  PUNCT_LEFTSHIFT = 273,    //'<<'
-  PUNCT_RIGHTSHIFT = 274,   //'>>'
-  PUNCT_PDEREF = 275,       //'->'
-  PUNCT_DECREMENT = 276,    //'--'
-  PUNCT_INCREMENT = 277,    //'++'
-  PUNCT_HHTAG = 278,        //'##'
-  PUNCT_VARIADIC = 279,     //'...'
-
-  // LANGECOLON = LBRACKET;    // '<: = ['
-  // COLONRANGE = RBRACKET;    // ':> = ]'
-  // LANGELMOD = LBRACE;       // '<% = {'
-  // KANGELMOD = RBRACE;       // '%> = }'
-  // MODCOLON = HTAG;          // '%: = #'
-  // MODCOLONMODCOLON = HHTAG; // '%:%: = ##'
-
-  // ALL KEYWORDS
-
-  KEYWORD_AUTO = 280,
-  KEYWORD_BREAK = 281,
-  KEYWORD_CASE = 282,
-  KEYWORD_CHAR = 283,
-  KEYWORD_CONST = 284,
-  KEYWORD_CONTINUE = 285,
-  KEYWORD_DEFAULT = 286,
-  KEYWORD_DO = 287,
-  KEYWORD_DOUBLE = 288,
-  KEYWORD_ELSE = 289,
-  KEYWORD_ENUM = 290,
-  KEYWORD_EXTERN = 291,
-  KEYWORD_FLOAT = 292,
-  KEYWORD_FOR = 293,
-  KEYWORD_GOTO = 294,
-  KEYWORD_IF = 295,
-  KEYWORD_INT = 296,
-  KEYWORD_LONG = 297,
-  KEYWORD_REGISTER = 298,
-  KEYWORD_RETURN = 299,
-  KEYWORD_SHORT = 300,
-  KEYWORD_SIGNED = 301,
-  KEYWORD_SIZEOF = 302,
-  KEYWORD_STATIC = 303,
-  KEYWORD_STRUCT = 304,
-  KEYWORD_SWITCH = 305,
-  KEYWORD_TYPEDEF = 306,
-  KEYWORD_UNION = 307,
-  KEYWORD_UNSIGNED = 308,
-  KEYWORD_VOID = 309,
-  KEYWORD_VOLATILE = 310,
-  KEYWORD_WHILE = 311,
-  KEYWORD_SIZE_T = 312,
-
+#define X_KIND(name, value, ...) name = value,
+  KINDS_LIST
+#undef X_KIND
 } Kind;
 
 typedef struct Token {
@@ -271,12 +275,9 @@ typedef struct Token {
     }                                                                          \
   } while (0)
 
-/* ==========================================================================
- */
-/* ============================ PUBLIC FUNCTIONS ============================
- */
-/* ==========================================================================
- */
+/* ========================================================================= */
+/* ============================ PUBLIC FUNCTIONS =========================== */
+/* ========================================================================= */
 
 BASICLEXDEF Lexer *lexer_new(const char *file_path, char *content, size_t size,
                              size_t position);
@@ -284,12 +285,9 @@ BASICLEXDEF void lexer_del(Lexer *lexer);
 BASICLEXDEF Token lexer_next(Lexer *lexer);
 const char *lexer_token_to_cstr(Lexer *lexer, Token *token);
 
-/* ==========================================================================
- */
-/* ============================ PRIVAT FUNCTIONS ============================
- */
-/* ==========================================================================
- */
+/* ========================================================================= */
+/* ============================ PRIVAT FUNCTIONS =========================== */
+/* ========================================================================= */
 
 LEXDEF Token lexer_eof_token(Lexer *lexer);
 LEXDEF Token lexer_error(Lexer *lexer);
@@ -315,14 +313,13 @@ LEXDEF int lexer_check_boundary_next(Lexer *lexer);
 LEXDEF int lexer_keyword_set_token(Lexer *lexer, Token *token, size_t length);
 LEXDEF int lexer_punctuator_set_token(Lexer *lexer, Token *token,
                                       size_t length);
+LEXDEF const char *lexer_kind_to_str(Kind kind);
 
-/* ==========================================================================
- */
+/* ========================================================================= */
 LEXDEF int is_escape_seq(char c);
 LEXDEF int is_sybol_alnum_and_(char c);
 LEXDEF int is_sybol_alpha_and_(char c);
-/* ==========================================================================
- */
+/* ========================================================================= */
 
 #endif // LEXER_H_
 
@@ -1692,6 +1689,26 @@ LEXDEF int lexer_punctuator_set_token(Lexer *lexer, Token *token,
     return 0;
   }
   return 1;
+}
+
+/**
+ * @brief The function creates a string representation of the available kinds.
+ *
+ * @param kind The kinds that the lexer knows about.
+ * @return The c_string representation of the given kind.
+ */
+LEXDEF const char *lexer_kind_to_str(Kind kind) {
+  switch (kind) {
+#define X_KIND(name, value, ...)                                               \
+  case name:                                                                   \
+    return #name;
+    KINDS_LIST
+#undef X
+  default:
+    assert("UNREACHABLE");
+  }
+
+  return NULL;
 }
 
 #endif // LEXER_IMPLEMENTATION
