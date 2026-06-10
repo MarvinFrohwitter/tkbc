@@ -542,6 +542,11 @@ typedef struct {
   bool recording;        // The state if the recording of the window.
   bool rendering;        // The state of the rendering ffmpeg process
 
+  // ------Font------
+  Font font;            // The current font to use.
+  bool needs_font_free; // Indication if the font freeing has to be handled
+                        // separately.
+
   // -------UI-------
   Scrollbar keymaps_scrollbar;
   bool keymaps_interaction; // The status if the keymaps are currently edited.

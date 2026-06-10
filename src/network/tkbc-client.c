@@ -1027,8 +1027,9 @@ int main(int argc, char *argv[]) {
 
   tkbc_load_kite_images_and_textures();
 
-  Popup disconnect = tkbc_popup_message("The server has disconnected!");
-  loading = tkbc_popup_message("Waiting for server.");
+  Popup disconnect =
+      tkbc_popup_message(env->font, "The server has disconnected!");
+  loading = tkbc_popup_message(env->font, "Waiting for server.");
   loading.active = true;
 
   bool sending_receiving = true;

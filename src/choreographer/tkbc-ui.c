@@ -59,7 +59,11 @@ void tkbc_draw_ui(Env *env) {
 
     char buf[16] = {0};
     sprintf(buf, "%2i FPS", fps);
-    DrawText(buf, env->window_width / 2, 10, 20, color);
+    Vector2 p = {
+        .x = env->window_width / 2.0f,
+        .y = 10,
+    };
+    DrawTextEx(env->font, buf, p, 20, 2, color);
   }
 
   if (env->scripts_parsed) {
@@ -627,11 +631,13 @@ bool tkbc_ui_script_menu(Env *env) {
     // script form memory. See the TODO for making the space per script.
 
     const char *name = env->scripts.elements[box].name;
-    text_size = MeasureTextEx(GetFontDefault(), name, font_size, 0);
+    text_size =
+        tkbc_reduce_str_to_fit_box(env->font, name, &font_size, script_box);
 
-    DrawText(name, script_box.x + script_box.width / 2 - text_size.x / 2,
-             script_box.y + script_box.height / 2 - text_size.y / 2, font_size,
-             TKBC_UI_BLACK);
+    Vector2 p;
+    p.x = script_box.x + script_box.width / 2 - text_size.x / 2,
+    p.y = script_box.y + script_box.height / 2 - text_size.y / 2,
+    DrawTextEx(env->font, name, p, font_size, 2, TKBC_UI_BLACK);
 
     script_box.y += script_box.height + padding;
     outer_script_box.y += env->box_height;
@@ -668,12 +674,12 @@ bool tkbc_ui_script_menu(Env *env) {
   }
 
   const char *no_script = "NO SCRIPT";
-  text_size = MeasureTextEx(GetFontDefault(), no_script, font_size, 0);
-  DrawText(
-      no_script,
-      outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5,
-      outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5,
-      font_size, TKBC_UI_BLACK);
+  text_size = tkbc_reduce_str_to_fit_box(env->font, no_script, &font_size,
+                                         outer_script_box);
+  Vector2 p;
+  p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
+  p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
+  DrawTextEx(env->font, no_script, p, font_size, 2, TKBC_UI_BLACK);
 
   /* ------------------------- Confirm key --------------------------------- */
   outer_script_box.x +=
@@ -711,12 +717,12 @@ bool tkbc_ui_script_menu(Env *env) {
     }
   }
   const char *confirm = "CONFIRM";
-  text_size = MeasureTextEx(GetFontDefault(), confirm, font_size, 0);
-  DrawText(
-      confirm,
-      outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5,
-      outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5,
-      font_size, TKBC_UI_BLACK);
+  text_size = tkbc_reduce_str_to_fit_box(env->font, confirm, &font_size,
+                                         outer_script_box);
+
+  p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
+  p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
+  DrawTextEx(env->font, confirm, p, font_size, 2, TKBC_UI_BLACK);
 
   return false;
 }
@@ -731,7 +737,7 @@ void tkbc_display_kite_information(Env *env) {
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     if (env->kite_array->elements[i].is_active &&
         env->kite_array->elements[i].is_kite_input_handler_active) {
-      tkbc_display_kite_information_speeds(&env->kite_array->elements[i]);
+      tkbc_display_kite_information_speeds(env, &env->kite_array->elements[i]);
       return;
     }
   }
@@ -748,14 +754,15 @@ void tkbc_display_kite_information(Env *env) {
  * @brief The function displays information about the currently selected kite's
  * speeds (fly and turn speed).
  *
+ * @param env The global state of the application.
  * @param kite_state The kite state to display information for.
  */
-void tkbc_display_kite_information_speeds(Kite_State *kite_state) {
+void tkbc_display_kite_information_speeds(Env *env, Kite_State *kite_state) {
   char buf[64] = {0};
   sprintf(buf, "Turn Speed: %.0f \t Fly Speed: %.0f",
           kite_state->kite->turn_speed, kite_state->kite->fly_speed);
   Vector2 pos = {10, 10};
-  DrawText(buf, pos.x, pos.y, 20, TKBC_UI_TEAL);
+  DrawTextEx(env->font, buf, pos, 20, 2, TKBC_UI_TEAL);
 }
 
 /**
@@ -936,8 +943,7 @@ void tkbc_ui_color_picker(Env *env) {
   int padding = 10;
   int font_size = 22;
   const char *description = "Enter a hex color code.";
-  Vector2 text_size =
-      MeasureTextEx(GetFontDefault(), description, font_size, 0);
+  Vector2 text_size = MeasureTextEx(env->font, description, font_size, 2);
   float description_height = text_size.y + padding;
 
   Rectangle input_box;
@@ -947,8 +953,11 @@ void tkbc_ui_color_picker(Env *env) {
                 input_box.width / 2;
   input_box.y = padding + description_height;
 
-  DrawText(description, input_box.x, env->color_picker_base.y + padding,
-           font_size, TKBC_UI_BLACK);
+  Vector2 p;
+  p.x = input_box.x;
+  p.y = env->color_picker_base.y + padding;
+  DrawTextEx(env->font, description, p, font_size, 2, TKBC_UI_BLACK);
+
   DrawRectangleRounded(input_box, 50, 20, WHITE);
 
   size_t char_amount = strlen(env->color_picker_input_text);
@@ -982,31 +991,33 @@ void tkbc_ui_color_picker(Env *env) {
   }
 
 key_skip:
-  text_size = MeasureTextEx(GetFontDefault(), env->color_picker_input_text,
-                            font_size, 0);
-  DrawText(env->color_picker_input_text, input_box.x + padding,
-           input_box.y + input_box.height / 2 - text_size.y / 2, font_size,
-           TKBC_UI_GRAY);
+  text_size =
+      MeasureTextEx(env->font, env->color_picker_input_text, font_size, 2);
+  p.x = input_box.x + padding;
+  p.y = input_box.y + input_box.height / 2 - text_size.y / 2;
+  DrawTextEx(env->font, env->color_picker_input_text, p, font_size, 2,
+             TKBC_UI_GRAY);
 
   if (env->color_picker_input_text[1] == '\0') {
     const char *shadow_text = "  008080FF";
-    text_size = MeasureTextEx(GetFontDefault(), shadow_text, font_size, 0);
-    DrawText(shadow_text, input_box.x + padding,
-             input_box.y + input_box.height / 2 - text_size.y / 2, font_size,
-             TKBC_UI_LIGHTGRAY);
+    text_size = MeasureTextEx(env->font, shadow_text, font_size, 2);
+
+    Vector2 p;
+    p.x = input_box.x + padding;
+    p.y = input_box.y + input_box.height / 2 - text_size.y / 2;
+    DrawTextEx(env->font, shadow_text, p, font_size, 2, TKBC_UI_LIGHTGRAY);
     // Rest so the cursor does not add the text_size, when the shadow text is
     // displayed.
-    text_size.x = 0;
-    text_size.y = 0;
+    text_size = MeasureTextEx(env->font, "#", font_size, 2);
   }
 
   Rectangle cursor = input_box;
   cursor.width = 2;
   cursor.height = input_box.height * 0.9;
   cursor.y = input_box.y + input_box.height / 2 - cursor.height / 2;
-  float font_correction_factor = 1;
-  cursor.x = input_box.x + (padding >> 1) + (padding << 1) +
-             font_correction_factor * text_size.x;
+
+  int padding_from_letter = 2;
+  cursor.x = input_box.x + padding + text_size.x + padding_from_letter;
   DrawRectangleRec(cursor, TKBC_UI_BLACK);
 
   if (strlen(env->color_picker_input_text) == HEX_COLOR_LENGTH + 1) {
@@ -1141,12 +1152,14 @@ key_skip:
     } else {
       colorizer = "RESET";
     }
-    text_size = MeasureTextEx(GetFontDefault(), colorizer, font_size, 0);
-    DrawText(
-        colorizer,
-        colorizer_button.x + colorizer_button.width * 0.5 - text_size.x * 0.5,
-        colorizer_button.y + colorizer_button.height * 0.5 - text_size.y * 0.5,
-        font_size, TKBC_UI_BLACK);
+
+    text_size = tkbc_reduce_str_to_fit_box(env->font, colorizer, &font_size,
+                                           colorizer_button);
+    Vector2 p;
+    p.x = colorizer_button.x + colorizer_button.width * 0.5 - text_size.x * 0.5;
+    p.y =
+        colorizer_button.y + colorizer_button.height * 0.5 - text_size.y * 0.5;
+    DrawTextEx(env->font, colorizer, p, font_size, 2, TKBC_UI_BLACK);
   }
 
   const char *designs = NULL;
@@ -1155,10 +1168,12 @@ key_skip:
   } else {
     designs = "DESIGNS";
   }
-  text_size = MeasureTextEx(GetFontDefault(), designs, font_size, 0);
-  DrawText(designs, forward.x + forward.width * 0.5 - text_size.x * 0.5,
-           forward.y + forward.height * 0.5 - text_size.y * 0.5, font_size,
-           TKBC_UI_BLACK);
+  text_size =
+      tkbc_reduce_str_to_fit_box(env->font, designs, &font_size, forward);
+
+  p.x = forward.x + forward.width * 0.5 - text_size.x * 0.5;
+  p.y = forward.y + forward.height * 0.5 - text_size.y * 0.5;
+  DrawTextEx(env->font, designs, p, font_size, 2, TKBC_UI_BLACK);
 
   Rectangle colorizer_view_background;
 
@@ -1604,16 +1619,11 @@ key_change_skip: {}
     str = "---";
   }
 
-  do {
-    text_size = MeasureTextEx(GetFontDefault(), str, font_size, 0);
-    font_size -= 1;
-  } while (text_size.x > rectangle.width / 2.0 &&
-           text_size.y > rectangle.height / 2.0);
-
-  text_size = MeasureTextEx(GetFontDefault(), str, font_size, 0);
-  DrawText(str, rectangle.x + rectangle.width * 0.5 - text_size.x * 0.5,
-           rectangle.y + rectangle.height * 0.5 - text_size.y * 0.5, font_size,
-           TKBC_UI_BLACK);
+  text_size = tkbc_reduce_str_to_fit_box(env->font, str, &font_size, rectangle);
+  Vector2 p;
+  p.x = rectangle.x + rectangle.width * 0.5 - text_size.x * 0.5;
+  p.y = rectangle.y + rectangle.height * 0.5 - text_size.y * 0.5;
+  DrawTextEx(env->font, str, p, font_size, 2, TKBC_UI_BLACK);
 }
 
 /**
@@ -1684,17 +1694,21 @@ void tkbc_ui_keymaps(Env *env) {
     }
 
     int font_size = 22;
-    do {
-      text_size =
-          MeasureTextEx(GetFontDefault(),
-                        env->keymaps.elements[box].description, font_size, 0);
-      font_size -= 1;
-    } while (text_size.x + 2 * padding > env->keymaps_base.width &&
-             text_size.y + 2 * padding > env->box_height / 2.0);
+    const char *text = env->keymaps.elements[box].description;
 
-    DrawText(env->keymaps.elements[box].description,
-             env->keymaps_base.x + padding, env->keymaps_base.y + padding,
-             font_size, TKBC_UI_BLACK);
+    Vector2 p;
+    p.x = env->keymaps_base.x + padding;
+    p.y = env->keymaps_base.y + padding;
+    Rectangle bounding_box = {
+        .x = p.x,
+        .y = p.y,
+        .width = env->keymaps_base.width,
+        .height = env->box_height,
+    };
+
+    text_size =
+        tkbc_reduce_str_to_fit_box(env->font, text, &font_size, bounding_box);
+    DrawTextEx(env->font, text, p, font_size, 2, TKBC_UI_BLACK);
 
     for (size_t i = 0; i < key_box_count; ++i) {
       // BOX_MOD_KEY
@@ -1718,7 +1732,7 @@ void tkbc_ui_keymaps(Env *env) {
   env->keymaps_base.x += padding;
   env->keymaps_base.y =
       env->box_height * env->screen_items + env->keymaps_base.height;
-  size_t font_size = env->keymaps_base.height * 0.75;
+  int font_size = env->keymaps_base.height * 0.75;
 
   if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
     DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
@@ -1735,12 +1749,14 @@ void tkbc_ui_keymaps(Env *env) {
     }
   }
   const char *load = "LOAD";
-  text_size = MeasureTextEx(GetFontDefault(), load, font_size, 0);
-  DrawText(
-      load,
-      env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
-      env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
-      font_size, TKBC_UI_BLACK);
+  text_size = tkbc_reduce_str_to_fit_box(env->font, load, &font_size,
+                                         env->keymaps_base);
+
+  Vector2 p;
+  p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5;
+  p.y =
+      env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5;
+  DrawTextEx(env->font, load, p, font_size, 2, TKBC_UI_BLACK);
 
   env->keymaps_base.x += padding + env->keymaps_base.width;
   if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
@@ -1757,12 +1773,12 @@ void tkbc_ui_keymaps(Env *env) {
     }
   }
   const char *reset = "RESET";
-  text_size = MeasureTextEx(GetFontDefault(), reset, font_size, 0);
-  DrawText(
-      reset,
-      env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
+  text_size = tkbc_reduce_str_to_fit_box(env->font, reset, &font_size,
+                                         env->keymaps_base);
+  p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
+  p.y =
       env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
-      font_size, TKBC_UI_BLACK);
+  DrawTextEx(env->font, reset, p, font_size, 2, TKBC_UI_BLACK);
 
   env->keymaps_base.x += padding + env->keymaps_base.width;
   if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
@@ -1778,10 +1794,10 @@ void tkbc_ui_keymaps(Env *env) {
     }
   }
   const char *save = "SAVE";
-  text_size = MeasureTextEx(GetFontDefault(), save, font_size, 0);
-  DrawText(
-      save,
-      env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
+  text_size = tkbc_reduce_str_to_fit_box(env->font, save, &font_size,
+                                         env->keymaps_base);
+  p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
+  p.y =
       env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
-      font_size, TKBC_UI_BLACK);
+  DrawTextEx(env->font, save, p, font_size, 2, TKBC_UI_BLACK);
 }

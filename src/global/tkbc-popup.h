@@ -24,11 +24,12 @@ typedef struct {
   int font_size;    // The font size of the main text.
   int text_width;   // The text width of the main text of the pop-up.
   Color text_color; // The text foreground color of the main text.
+  Font font;        // The text font
 } Popup; // The structure that contains all the information to display a pop-up.
 
 int tkbc_check_popup_interaction(Popup *popup);
 void tkbc_popup_resize(Popup *popup);
 bool tkbc_draw_popup(Popup *popup);
-Popup tkbc_popup_message(const char *message);
+Popup tkbc_popup_message(Font font, const char *message);
 
 #endif // TKBC_POPUP_H_

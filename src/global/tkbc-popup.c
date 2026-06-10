@@ -88,33 +88,19 @@ bool tkbc_draw_popup(Popup *popup) {
   DrawRectangleRec(popup->base, popup->base_color);
   DrawRectangleRec(popup->option1, popup->option1_color);
 
-  float opt1_font_size = popup->option1.width;
-  const Font defaul_font = GetFontDefault();
-  Vector2 opt1_text_size =
-      MeasureTextEx(defaul_font, popup->option1_text, opt1_font_size, 0);
-
-  for (; opt1_text_size.x > popup->option1.width; opt1_font_size -= 0.1) {
-    opt1_text_size =
-        MeasureTextEx(defaul_font, popup->option1_text, opt1_font_size, 0);
-  }
-
-  // NOTE: The actual text displayment is not always the measured width, so it
-  // is reduce manual by factor.
-  const float factor = 4.8;
-  const float shift_factor = factor * (popup->option1.width - opt1_text_size.x);
-
-  opt1_text_size = MeasureTextEx(defaul_font, popup->option1_text,
-                                 opt1_font_size - factor, 0);
-
   if (popup->option1_text == NULL) {
     popup->option1_text = "OK";
   }
-  DrawText(popup->option1_text,
-           popup->option1.x + popup->option1.width / 2.0 -
-               opt1_text_size.x / 2.0 - factor * shift_factor,
-           popup->option1.y + popup->option1.height / 2.0 -
-               opt1_text_size.y / 2.0 + factor * shift_factor,
-           opt1_text_size.y, TKBC_UI_BLACK);
+
+  int opt1_font_size = popup->option1.height;
+  Vector2 opt1_text_size = tkbc_reduce_str_to_fit_box(
+      popup->font, popup->option1_text, &opt1_font_size, popup->option1);
+
+  Vector2 p = {0};
+  p.x = popup->option1.x + popup->option1.width / 2.0 - opt1_text_size.x / 2.0;
+  p.y = popup->option1.y + popup->option1.height / 2.0 - opt1_text_size.y / 2.0;
+  DrawTextEx(popup->font, popup->option1_text, p, opt1_font_size, 2,
+             TKBC_UI_BLACK);
 
   DrawRectangleRec(popup->cross, popup->cross_color);
   Vector2 start_pos = {.x = popup->cross.x, .y = popup->cross.y};
@@ -128,10 +114,11 @@ bool tkbc_draw_popup(Popup *popup) {
   end_pos.x = popup->cross.x;
   end_pos.y = popup->cross.y + popup->cross.height;
   DrawLineEx(start_pos, end_pos, thick, TKBC_UI_BLACK);
-  DrawText(popup->text,
-           popup->base.x + ((popup->base.width - popup->text_width) / 2.0),
-           popup->base.y + popup->base.height / 2 - popup->font_size / 2.0,
-           popup->font_size, popup->text_color);
+
+  p.x = popup->base.x + popup->base.width / 2.0 - popup->text_width / 2.0;
+  p.y = popup->base.y + popup->base.height / 2.0 - popup->font_size / 2.0;
+  DrawTextEx(popup->font, popup->text, p, popup->font_size, 2,
+             popup->text_color);
 
   popup->cross_color = save_cross_color;
   popup->option1_color = save_opiton1_color;
@@ -142,12 +129,13 @@ bool tkbc_draw_popup(Popup *popup) {
  * @brief The function creates a popup and sets the given message as its main
  * text.
  *
- * @param message The text that should be displayed in the main bounding box.
+ * @param font The font to use.
+ * @param message The text that should be displayed in the main bounding box
  * @return The new created popup.
  */
-Popup tkbc_popup_message(const char *message) {
+Popup tkbc_popup_message(Font font, const char *message) {
   const int font_size = 30;
-  const int text_width = MeasureText(message, font_size);
+  const Vector2 size = MeasureTextEx(font, message, font_size, 0);
 
   Popup frame = {
       .active = false,
@@ -156,8 +144,9 @@ Popup tkbc_popup_message(const char *message) {
       .option1_color = TKBC_UI_TEAL,
       .text = message,
       .font_size = font_size,
-      .text_width = text_width,
+      .text_width = size.x,
       .text_color = TKBC_UI_BLACK,
+      .font = font,
   };
 
   return frame;

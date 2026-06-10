@@ -200,6 +200,8 @@ uint32_t tkbc_color_to_uint32_t(Color color);
 Color tkbc_uint32_t_to_color(uint32_t color);
 
 unsigned char *tkbc_get_position_in_image(Image image, int x, int y);
+Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size,
+                                   Rectangle bounding_box);
 #endif
 
 float tkbc_clamp(float z, float a, float b);
@@ -898,6 +900,28 @@ unsigned char *tkbc_get_position_in_image(Image image, int x, int y) {
   return &((unsigned char *)image.data)[(x + y * (int)image.width) * 4];
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param font [TODO:parameter]
+ * @param str [TODO:parameter]
+ * @param font_size [TODO:parameter]
+ * @param bounding_box [TODO:parameter]
+ * @return [TODO:return]
+ */
+Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size,
+                                   Rectangle bounding_box) {
+  Vector2 text_size = {0};
+
+  text_size = MeasureTextEx(font, str, *font_size, 0);
+  while (text_size.x > bounding_box.width / 2.0 &&
+         text_size.y > bounding_box.height / 2.0) {
+    *font_size -= 1;
+    text_size = MeasureTextEx(font, str, *font_size, 2);
+  }
+  return text_size;
+}
+
 #endif
 
 /**
@@ -942,4 +966,5 @@ bool tkbc_float_equals_epsilon(float x, float y, float epsilon) {
  * @return The bigger one of those.
  */
 bool tkbc_max(int x, int y) { return x > y ? x : y; }
+
 #endif // TKBC_UTILS_IMPLEMENTATION

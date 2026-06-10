@@ -60,6 +60,18 @@ Env *tkbc_init_env(void) {
   env->script_finished = true;
   env->fps = TARGET_FPS;
 
+  // const char *font_name = "iosevka-regular.ttf";
+  // const char *font_name = "GreatVibes-Regular.ttf";
+  const char *font_name = "";
+  env->font = LoadFont(font_name);
+  if (!IsFontValid(env->font)) {
+    env->font = GetFontDefault();
+    env->needs_font_free = true;
+  }
+#ifdef TKBC_SERVER
+  env->font = GetFontDefault();
+#endif
+
   env->box_height = 80;
   env->keymaps_interaction_rec_number = -1;
 
@@ -152,6 +164,9 @@ void tkbc_destroy_env(Env *env) {
   env->vanilla_kite = NULL;
   tkbc_destroy_kite_array(env->kite_array);
 
+  if (env->needs_font_free) {
+    UnloadFont(env->font);
+  }
   space_free_space(&env->id_space);
   space_free_space(&env->script_creation_space);
   space_free_space(&env->scripts_space);

@@ -8,7 +8,7 @@ Color tkbc_get_color_from_screen_position(Vector2 position);
 Vector2 tkbc_get_position_in_rect(Rectangle rect, float rectangle_scale,
                                   Vector2 pos);
 void tkbc_ui_post_handler(Env *env);
-void tkbc_display_kite_information_speeds(Kite_State *kite_state);
+void tkbc_display_kite_information_speeds(Env *env, Kite_State *kite_state);
 void tkbc_display_kite_information(Env *env);
 
 void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
