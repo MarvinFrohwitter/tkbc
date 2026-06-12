@@ -14,6 +14,9 @@ Client *tkbc_get_client_by_fd(int fd);
 void tkbc_write_to_send_msg_buffer(Client *client, Message message);
 void tkbc_write_to_all_send_msg_buffers(Message message);
 void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd);
+
+Kite_State *tkbc_check_for_orphan_kite_states(bool *orphan);
+bool tkbc_remove_fd_unorderd(int fd);
 bool tkbc_remove_client_by_fd(int fd);
 int tkbc_remove_connection(Client client, bool retry);
 void tkbc_remove_connection_retry(Client client);
@@ -29,6 +32,7 @@ int tkbc_socket_write(Client *client);
 bool tkbc_server_handle_client(Client *client);
 void tkbc_socket_handling(void);
 int tkbc_poll(int timeout);
+bool tkbc_close(int __fd);
 
 bool tkbc_base_execution(void);
 

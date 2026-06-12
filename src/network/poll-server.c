@@ -101,6 +101,31 @@ Client *tkbc_get_client_by_fd(int fd) {
 }
 
 /**
+ * @brief [TODO:description]
+ *
+ * @param orphan [TODO:parameter]
+ * @return [TODO:return]
+ */
+Kite_State *tkbc_check_for_orphan_kite_states(bool *orphan) {
+  Kite_State *state = NULL;
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    state = &env->kite_array->elements[i];
+    if (state->is_script_kite) {
+      continue;
+    }
+    Id kite_id = state->kite_id;
+    Client *client = tkbc_get_client_by_kite_id(kite_id);
+    if (client == NULL) {
+      // orphan client found
+      *orphan = true;
+      return state;
+    }
+  }
+  *orphan = false;
+  return NULL;
+}
+
+/**
  * @brief The function appends the given message to the client send messages
  * buffer that later is send in a batch to the client.
  *
@@ -130,8 +155,8 @@ void tkbc_write_to_all_send_msg_buffers(Message message) {
  * @brief The function appends the given message to all the registered clients
  * send message buffers except the one given by the fd.
  *
- * @param message The message that should be send to the clients except the one
- * specified with the fd..
+ * @param message The message that should be send to the clients except the
+ * one specified with the fd..
  * @param fd The file descriptor where the message should not be send to.
  */
 void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd) {
@@ -174,6 +199,25 @@ bool tkbc_remove_client_by_fd(int fd) {
 }
 
 /**
+ * @brief [TODO:description]
+ *
+ * @param fd [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_remove_fd_unorderd(int fd) {
+  for (size_t i = 0; i < fds.count; ++i) {
+    if ((int)fds.elements[i].fd == fd) {
+      typeof(fds.elements[i]) pollfd_tmp = fds.elements[i];
+      fds.elements[i] = fds.elements[fds.count - 1];
+      fds.elements[fds.count - 1] = pollfd_tmp;
+      fds.count -= 1;
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * @brief The function can be used to remove a client specified by the fd from
  * the server clients list and it also tries to remove the corresponding kite.
  *
@@ -181,11 +225,12 @@ bool tkbc_remove_client_by_fd(int fd) {
  * @param retry The boolean indicator if the client should retry to disconnect
  * the client from the server.
  * @return 0 If the client kite has been removed from the list and the server
- * hat disconnected the client socket connection. 1 if the client kite count not
- * be removed, in this case the function can be recalled with the retry option
- * on that will then try to remove the network connection. -1 is returned if tue
- * removal of the network connection hat failed in that case the kite was
- * removed if no retry is on, if retry is on the kite list will be changed.
+ * hat disconnected the client socket connection. 1 if the client kite count
+ * not be removed, in this case the function can be recalled with the retry
+ * option on that will then try to remove the network connection. -1 is
+ * returned if tue removal of the network connection hat failed in that case
+ * the kite was removed if no retry is on, if retry is on the kite list will
+ * be changed.
  */
 int tkbc_remove_connection(Client client, bool retry) {
   if (!retry) {
@@ -205,15 +250,7 @@ int tkbc_remove_connection(Client client, bool retry) {
     return -1;
   }
 
-  for (size_t i = 0; i < fds.count; ++i) {
-    if ((int)fds.elements[i].fd == client.socket_id) {
-      typeof(fds.elements[i]) pollfd_tmp = fds.elements[i];
-      fds.elements[i] = fds.elements[fds.count - 1];
-      fds.elements[fds.count - 1] = pollfd_tmp;
-      fds.count -= 1;
-      break;
-    }
-  }
+  tkbc_remove_fd_unorderd(client.socket_id);
 
   return 0;
 }
@@ -237,31 +274,44 @@ void tkbc_remove_connection_retry(Client client) {
 }
 
 /**
+ * @brief [TODO:description]
+ *
+ * @param __fd [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_close(int __fd) {
+#ifdef _WIN32
+  if (closesocket(__fd) == -1) {
+    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
+                 WSAGetLastError());
+    WSACleanup();
+    return false;
+  }
+  WSACleanup();
+#else
+  if (close(__fd) == -1) {
+    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
+                 strerror(errno));
+    return false;
+  }
+#endif // _WIN32
+  return true;
+}
+
+/**
  * @brief The function shutdown the client connection that is given by the
  * client argument.
  *
  * @param client The client connection that should be closed.
- * @param force Represents that every action that might not shutdown the client
- * immediately is omitted.
+ * @param force Represents that every action that might not shutdown the
+ * client immediately is omitted.
  */
 void tkbc_server_shutdown_client(Client client, bool force) {
   shutdown(client.socket_id, SHUT_WR);
   for (char b[1024]; recv(client.socket_id, b, sizeof(b), 0) > 0;)
     ;
 
-#ifdef _WIN32
-  if (closesocket(client.socket_id) == -1) {
-
-    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
-                 WSAGetLastError());
-  }
-  WSACleanup();
-#else
-  if (close(client.socket_id) == -1) {
-    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
-                 strerror(errno));
-  }
-#endif // _WIN32
+  tkbc_close(client.socket_id);
 
   if (!force) {
     space_tdapf(&t_message, "%d:%zu:\r\n", MESSAGE_CLIENT_DISCONNECT,
@@ -350,8 +400,8 @@ void tkbc_message_clientkites(Message *t_message, bool overwrite_is_active) {
 }
 
 /**
- * @brief The function constructs and send the message CLIENTKITES that contain
- * all the data from the current registered kites.
+ * @brief The function constructs and send the message CLIENTKITES that
+ * contain all the data from the current registered kites.
  *
  * @param client The client that should get the message.
  * @param overwrite_is_active Via this flag the you can overwrite the check
@@ -366,9 +416,9 @@ void tkbc_message_clientkites_write_to_send_msg_buffer(
 }
 
 /**
- * @brief The function combines the fist initial construction of the kite for a
- * new client and sends the fist hello message and sends the positions for all
- * the rest of the registered kites.
+ * @brief The function combines the fist initial construction of the kite for
+ * a new client and sends the fist hello message and sends the positions for
+ * all the rest of the registered kites.
  *
  * @param client The new client that should get a kite associated with.
  */
@@ -429,8 +479,8 @@ void tkbc_server_accept(void) {
 
     // There are up to CLIENT_BASE_IDs possible for the scripts but then there
     // are conflicts.
-    // To avoid having conflicts with useful ids such as 0,1,2 and so on, those
-    // could be hard-coded in scripts, the client kite ids start hight.
+    // To avoid having conflicts with useful ids such as 0,1,2 and so on,
+    // those could be hard-coded in scripts, the client kite ids start hight.
     static Id counter_not_for_the_scripts_to_remove_confilcts = CLIENT_BASE_ID;
     Client client = {
         .kite_id = counter_not_for_the_scripts_to_remove_confilcts++,
@@ -596,8 +646,8 @@ int tkbc_socket_write(Client *client) {
 }
 
 /**
- * @brief The function encapsulates the reading and writing communication of the
- * given client.
+ * @brief The function encapsulates the reading and writing communication of
+ * the given client.
  *
  * @param client The client where the message stored in the send_msg_buffer in
  * @return True if the handling (reading or writing data) of the clients has
@@ -631,8 +681,8 @@ bool tkbc_server_handle_client(Client *client) {
 }
 
 /**
- * @brief The function handles new incoming connections and checks for the data
- * on the sockets after an updates was detected.
+ * @brief The function handles new incoming connections and checks for the
+ * data on the sockets after an updates was detected.
  */
 void tkbc_socket_handling(void) {
   for (ssize_t idx = 0; idx < (ssize_t)fds.count; ++idx) {
@@ -645,7 +695,23 @@ void tkbc_socket_handling(void) {
       // index.
       tkbc_server_accept();
     } else {
-      Client *client = tkbc_get_client_by_fd(fds.elements[idx].fd);
+      int fd = fds.elements[idx].fd;
+      Client *client = tkbc_get_client_by_fd(fd);
+      if (client == NULL) {
+        //
+        // We lost a client reference somewhere! This is a bug in the server.
+        //
+
+        // Try to remove a kite that has no corresponding client anymore, if
+        // it can be found.
+        bool orphan;
+        Kite_State *s = tkbc_check_for_orphan_kite_states(&orphan);
+        if (orphan) {
+          tkbc_remove_kite_from_list(env->kite_array, s->kite_id);
+        }
+        tkbc_remove_fd_unorderd(fd);
+        tkbc_close(fd);
+      }
       bool result = tkbc_server_handle_client(client);
       if (!result) {
         tkbc_server_shutdown_client(*client, false);
@@ -677,8 +743,8 @@ void tkbc_message_clientkites_write_to_all_send_msg_buffers(
  *
  * @param script_id The id that is the current load script.
  * @param script_count The amount of scripts that are available.
- * @param frames_index The current index of the collection of individual frames
- * in a script.
+ * @param frames_index The current index of the collection of individual
+ * frames in a script.
  */
 void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(
     size_t script_id, size_t script_count, size_t frames_index) {
@@ -691,8 +757,8 @@ void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(
 }
 
 /**
- * @brief The function constructs the message SINGLE_KITE_UPDATE that contains a
- * data serialization for one specified kite.
+ * @brief The function constructs the message SINGLE_KITE_UPDATE that contains
+ * a data serialization for one specified kite.
  *
  * @param client_id The client id that corresponds to the data that should be
  * appended.
@@ -722,8 +788,8 @@ check:
  * there as recovery.
  *
  * @param client The client, that holds the received message to parse.
- * @return True if every message is parsed correctly from the data, false if an
- * parsing error has occurred.
+ * @return True if every message is parsed correctly from the data, false if
+ * an parsing error has occurred.
  */
 bool tkbc_received_message_handler(Client *client) {
   bool reset = true;
@@ -825,6 +891,9 @@ bool tkbc_received_message_handler(Client *client) {
       }
 
       Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
+      if (state == NULL) {
+        check_return(false); // Disconnect the client.
+      }
       if (texture_id == -1) {
         Id id = tkbc_append_kite_image(texture_data, texture_width,
                                        texture_height, texture_format);
@@ -852,7 +921,7 @@ bool tkbc_received_message_handler(Client *client) {
 
       if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
               kite_id, client->socket_id)) {
-        check_return(false);
+        check_return(false); // Disconnect the client.
       }
 
       state->kite->is_texture_new = false;
@@ -1153,18 +1222,7 @@ void signalhandler(int signal) {
   }
 
   shutdown(server_socket, SHUT_RDWR);
-#ifdef _WIN32
-  if (closesocket(server_socket) == -1) {
-
-    tkbc_fprintf(stderr, "ERROR", "Main Server Socket: %d\n",
-                 WSAGetLastError());
-  }
-  WSACleanup();
-#else
-  if (close(server_socket) == -1) {
-    tkbc_fprintf(stderr, "ERROR", "Main Server Socket: %s\n", strerror(errno));
-  }
-#endif // _WIN32
+  tkbc_close(server_socket);
 
   free(clients.elements);
   free(fds.elements);
