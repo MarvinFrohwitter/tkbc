@@ -215,7 +215,15 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data,
     return false;
   }
 
-  assert(*format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+  if (*width * *height > (300 * 300) * 16) {
+    // Prevent to much data.
+    // Just for safety.
+    return false;
+  }
+  if (*format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+    // Other file format are not supported.
+    return false;
+  }
   *data = space_malloc(data_space, *width * *height * 4 * sizeof(**data));
   if (!*data) {
     return false;
