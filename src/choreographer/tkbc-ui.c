@@ -962,8 +962,8 @@ void tkbc_ui_color_picker(Env *env) {
 
   size_t char_amount = strlen(env->color_picker_input_text);
 
-  int key = GetKeyPressed();
   Vector2 mouse = GetMousePosition();
+  int key = GetKeyPressed();
   if (CheckCollisionPointRec(mouse, input_box) &&
       IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
     env->color_picker_input_mouse_interaction = true;
@@ -979,7 +979,8 @@ void tkbc_ui_color_picker(Env *env) {
     goto key_skip;
   }
 
-  if (key == KEY_BACKSPACE) {
+  // if (key == KEY_BACKSPACE) {
+  if (IsKeyDown(KEY_BACKSPACE)) {
     if (char_amount > 1) {
       env->color_picker_input_text[char_amount - 1] = '\0';
     }
@@ -992,15 +993,15 @@ void tkbc_ui_color_picker(Env *env) {
 
 key_skip:
   text_size =
-      MeasureTextEx(env->font, env->color_picker_input_text, font_size, 2);
+      MeasureTextEx(env->font, env->color_picker_input_text, font_size, 4);
   p.x = input_box.x + padding;
   p.y = input_box.y + input_box.height / 2 - text_size.y / 2;
-  DrawTextEx(env->font, env->color_picker_input_text, p, font_size, 2,
+  DrawTextEx(env->font, env->color_picker_input_text, p, font_size, 4,
              TKBC_UI_GRAY);
 
   if (env->color_picker_input_text[1] == '\0') {
     const char *shadow_text = "  008080FF";
-    text_size = MeasureTextEx(env->font, shadow_text, font_size, 2);
+    text_size = MeasureTextEx(env->font, shadow_text, font_size, 4);
 
     Vector2 p;
     p.x = input_box.x + padding;
@@ -1008,7 +1009,7 @@ key_skip:
     DrawTextEx(env->font, shadow_text, p, font_size, 2, TKBC_UI_LIGHTGRAY);
     // Rest so the cursor does not add the text_size, when the shadow text is
     // displayed.
-    text_size = MeasureTextEx(env->font, "#", font_size, 2);
+    text_size = MeasureTextEx(env->font, "#", font_size, 4);
   }
 
   Rectangle cursor = input_box;
@@ -1016,7 +1017,7 @@ key_skip:
   cursor.height = input_box.height * 0.9;
   cursor.y = input_box.y + input_box.height / 2 - cursor.height / 2;
 
-  int padding_from_letter = 2;
+  int padding_from_letter = 1;
   cursor.x = input_box.x + padding + text_size.x + padding_from_letter;
   DrawRectangleRec(cursor, TKBC_UI_BLACK);
 
