@@ -171,13 +171,13 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
     if (connection_status == -1) {
 #ifdef _WIN32
       tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-      if (closesocket(client.socket_id) == -1) {
+      if (closesocket(client_socket) == -1) {
         tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
                      WSAGetLastError());
       }
 #else
       tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-      if (close(client.socket_id) == -1) {
+      if (close(client_socket) == -1) {
         tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
                      strerror(errno));
       }
