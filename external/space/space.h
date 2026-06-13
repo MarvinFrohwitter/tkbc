@@ -9,6 +9,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef SPACEDEF
+#define SPACEDEF static inline
+#endif // SPACEDEF
+
 typedef struct Planet Planet;
 struct Planet {
   void *elements;
@@ -204,6 +208,7 @@ bool space_report_allocations(Space *space, Space_Report *report);
   space_dapf_impl(space, space_realloc_force_new_planet, dynamic_array, fmt,   \
                   ##__VA_ARGS__)
 
+// TODO: Make space_snprintf and alias space_sprintf
 void *space_printf(Space *space, const char *fmt, ...);
 void *space_catf(Space *space, const void *first, size_t first_len,
                  const char *fmt, ...);
@@ -309,12 +314,37 @@ Space *space_get_tspace(void);
 
 #ifdef SPACE_IMPLEMENTATION
 
-Space *space_get_tspace(void) {
+/**
+ * @brief Gets a pointer to the thread-local temporary space allocator.
+ *
+ * This function returns a static Space instance that can be used for temporary
+ * allocations without needing to create and manage a Space structure manually.
+ * The temporary space persists across calls and should be reset or freed
+ * when no longer needed using space_reset_tspace() or space_free_tspace().
+ *
+ * @return Pointer to the static temporary Space structure.
+ */
+SPACEDEF Space *space_get_tspace(void) {
   thread_local static Space space = {0};
   return &space;
 }
 
-bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
+/**
+ * @brief Checks whether a given pointer represents the last allocation in a
+ * planet.
+ *
+ * This internal function determines if a pointer points to the most recently
+ * allocated memory block within a planet. This is useful for operations like
+ * in-place reallocation or string concatenation that can modify memory directly
+ * if the pointer is at the end of the used space.
+ *
+ * @param p Pointer to the Planet to check.
+ * @param ptr The pointer to verify.
+ * @param ptr_size The size of the memory block pointed to by ptr.
+ * @return true if ptr is the last allocation in the planet and can be modified
+ * in place, false otherwise.
+ */
+SPACEDEF bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
                                              size_t ptr_size) {
   if (!p || !ptr || ptr_size > p->count) {
     return false;
@@ -322,7 +352,19 @@ bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
   return (char *)p->elements + p->count - ptr_size == ptr;
 }
 
-void *space_printf(Space *space, const char *fmt, ...) {
+/**
+ * @brief Allocates memory in the space and writes a formatted string into it.
+ *
+ * This function works similarly to sprintf/snprintf but allocates memory from
+ * the space allocator instead of a static buffer. The formatted string is
+ * stored in allocated memory that will be freed when the space is reset or
+ * freed.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param fmt A null-terminated format string following printf conventions.
+ * @return Pointer to the allocated formatted string, or NULL on failure.
+ */
+SPACEDEF void *space_printf(Space *space, const char *fmt, ...) {
   if (!space || !fmt) {
     return NULL;
   }
@@ -352,7 +394,18 @@ void *space_printf(Space *space, const char *fmt, ...) {
   return ptr;
 }
 
-void *space_vcat_impl(Space *space, ...) {
+/**
+ * @brief Concatenates multiple buffers with explicit lengths in the space.
+ *
+ * This is a variadic helper function that takes pointers to buffers followed by
+ * their lengths. It attempts to append subsequent buffers to the first buffer
+ * in-place if there is sufficient capacity, otherwise it allocates new memory.
+ * This is used by the space_vcat macro.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @return Pointer to the concatenated buffer, or NULL on failure.
+ */
+SPACEDEF void *space_vcat_impl(Space *space, ...) {
   if (!space) {
     return NULL;
   }
@@ -361,12 +414,10 @@ void *space_vcat_impl(Space *space, ...) {
   va_start(args, space);
   char *first = va_arg(args, char *);
   if (first == NULL) {
-    va_end(args);
     return NULL;
   }
   size_t first_len = va_arg(args, size_t);
   if (first_len == 0) {
-    va_end(args);
     return NULL;
   }
   va_end(args);
@@ -439,7 +490,21 @@ alloc: {}
   return ptr;
 }
 
-void *space_vstrcat_impl(Space *space, const char *first, ...) {
+/**
+ * @brief Concatenates multiple null-terminated strings in the space.
+ *
+ * This is a variadic helper function that takes null-terminated string
+ * pointers. It calculates string lengths automatically using strlen. It
+ * attempts to append subsequent strings to the first string in-place if there
+ * is sufficient capacity in the planet, otherwise it allocates new memory. This
+ * is used by the space_vstrcat macro.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param first The first null-terminated string to concatenate.
+ * @return Pointer to the concatenated null-terminated string, or NULL on
+ * failure.
+ */
+SPACEDEF void *space_vstrcat_impl(Space *space, const char *first, ...) {
   if (!space) {
     return NULL;
   }
@@ -529,13 +594,26 @@ alloc: {}
   return ptr;
 }
 
-void *space_catf(Space *space, const void *first, size_t first_len,
+/**
+ * @brief Concatenates an existing buffer with a formatted string in the space.
+ *
+ * This function appends a formatted string to an existing buffer pointer.
+ * If the original pointer is at the end of a planet's used memory and there
+ * is sufficient capacity, it may extend the memory in place. Otherwise, it
+ * allocates new combined memory.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param first Pointer to the existing buffer to append to.
+ * @param first_len Length of the first buffer.
+ * @param fmt Format string to create the string to append.
+ * @return Pointer to the concatenated buffer, or NULL on failure.
+ */
+SPACEDEF void *space_catf(Space *space, const void *first, size_t first_len,
                  const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   int n = vsnprintf(NULL, 0, fmt, args);
   if (n == -1) {
-    va_end(args);
     return NULL;
   }
   va_end(args);
@@ -575,7 +653,21 @@ void *space_catf(Space *space, const void *first, size_t first_len,
   return ptr;
 }
 
-void *space_strcat(Space *space, const char *first, const char *second) {
+/**
+ * @brief Concatenates two null-terminated strings in the space.
+ *
+ * This function combines two strings into a single string allocated from the
+ * space. If the first string pointer is at the end of a planet's used memory
+ * and there is sufficient capacity, it may append in place. Otherwise, it
+ * allocates new combined memory.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param first The first null-terminated string.
+ * @param second The second null-terminated string to append to first.
+ * @return Pointer to the concatenated null-terminated string, or NULL on
+ * failure.
+ */
+SPACEDEF void *space_strcat(Space *space, const char *first, const char *second) {
   void *ptr = NULL;
   if (!space || (!first && !second)) {
     return ptr;
@@ -606,7 +698,19 @@ void *space_strcat(Space *space, const char *first, const char *second) {
   return ptr;
 }
 
-void *space_strdup(Space *space, const char *buf) {
+/**
+ * @brief Creates a copy of a string in the space.
+ *
+ * This function allocates memory in the space and copies the entire string
+ * including its null terminator into the newly allocated memory. The original
+ * string remains unchanged.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param buf The null-terminated string to duplicate.
+ * @return Pointer to the newly allocated copy of the string, or NULL on
+ * failure.
+ */
+SPACEDEF void *space_strdup(Space *space, const char *buf) {
   if (!space || !buf) {
     return NULL;
   }
@@ -614,7 +718,20 @@ void *space_strdup(Space *space, const char *buf) {
   return space_memcpy(space, buf, n);
 }
 
-void *space_strcpy(Space *space, const char *buf) {
+/**
+ * @brief Copies a null-terminated string into newly allocated space memory.
+ *
+ * This function allocates enough memory in the space to hold the string
+ * including its null terminator, then copies the entire string into the
+ * allocated memory. This is similar to strdup but implemented using
+ * space_memcpy internally.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param buf The null-terminated string to copy.
+ * @return Pointer to the newly allocated copy of the string, or NULL on
+ * failure.
+ */
+SPACEDEF void *space_strcpy(Space *space, const char *buf) {
   if (!space || !buf) {
     return NULL;
   }
@@ -622,7 +739,22 @@ void *space_strcpy(Space *space, const char *buf) {
   return space_memcpy(space, buf, n);
 }
 
-void *space_strncpy(Space *space, const char *buf, size_t n) {
+/**
+ * @brief Copies up to n characters into newly allocated space memory.
+ *
+ * This function works like the standard strncpy function but allocates memory
+ * from the space allocator instead. It copies at most n characters from the
+ * source string. If the source is longer or equal than n, the result will not
+ * be null-terminated. If the source is shorter than n, then the resulting
+ * buffer will be just the length of buf plus the null byte.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param buf The null-terminated string to copy.
+ * @param n Maximum number of characters to copy from buf.
+ * @return Pointer to the newly allocated copy of the string, or NULL on
+ * failure.
+ */
+SPACEDEF void *space_strncpy(Space *space, const char *buf, size_t n) {
   if (!space || !buf || n == 0) {
     return NULL;
   }
@@ -631,7 +763,21 @@ void *space_strncpy(Space *space, const char *buf, size_t n) {
   return space_memcpy(space, buf, len);
 }
 
-void *space_stpcpy(Space *space, const char *buf) {
+/**
+ * @brief Copies a string into the space and returns a pointer to its null
+ * terminator.
+ *
+ * This function works like the standard stpcpy function but allocates memory
+ * from the space allocator. It copies the entire source string including the
+ * null terminator and returns a pointer to the null terminator of the new
+ * string, allowing for immediate string continuation.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param buf The null-terminated string to copy.
+ * @return Pointer to the null terminator of the newly allocated string, or NULL
+ * on failure.
+ */
+SPACEDEF void *space_stpcpy(Space *space, const char *buf) {
   if (!space || !buf) {
     return NULL;
   }
@@ -643,7 +789,22 @@ void *space_stpcpy(Space *space, const char *buf) {
   return result + n - 1;
 }
 
-void *space_stpncpy(Space *space, const char *buf, size_t n) {
+/**
+ * @brief Copies up to n characters into the space and returns a pointer to the
+ * end.
+ *
+ * This function works like the standard stpncpy function but allocates memory
+ * from the space allocator. It copies at most n characters from the source
+ * string and returns a pointer to either the null terminator (if reached) or
+ * n characters into the destination.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param buf The null-terminated string to copy.
+ * @param n Maximum number of characters to copy from buf.
+ * @return Pointer to the null terminator (or n characters if no null
+ * terminator), or NULL on failure.
+ */
+SPACEDEF void *space_stpncpy(Space *space, const char *buf, size_t n) {
   if (!space || !buf || n == 0) {
     return NULL;
   }
@@ -659,7 +820,21 @@ void *space_stpncpy(Space *space, const char *buf, size_t n) {
   return result + len - 1;
 }
 
-void *space_memcpy(Space *space, const void *buf, size_t n) {
+/**
+ * @brief Allocates memory in the space and copies raw bytes into it.
+ *
+ * This function allocates the specified number of bytes in the space and
+ * copies the given memory content into the newly allocated buffer. This is
+ * the most general-purpose function for copying any type of data into space
+ * memory, similar to the standard memcpy function.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param buf Pointer to the memory to copy.
+ * @param n Number of bytes to copy from buf.
+ * @return Pointer to the newly allocated copy of the memory, or NULL on
+ * failure.
+ */
+SPACEDEF void *space_memcpy(Space *space, const void *buf, size_t n) {
   if (!space || !buf || n == 0) {
     return NULL;
   }
@@ -671,7 +846,22 @@ void *space_memcpy(Space *space, const void *buf, size_t n) {
   return ptr;
 }
 
-void *space_memmove(Space *space, const void *buf, size_t n) {
+/**
+ * @brief Allocates memory in the space and copies bytes, handling overlapping
+ * regions.
+ *
+ * This function allocates the specified number of bytes in the space and copies
+ * the given memory content into the newly allocated buffer. Unlike memcpy,
+ * this function correctly handles cases where the source and destination
+ * memory regions overlap.
+ *
+ * @param space Pointer to the Space structure used for allocation.
+ * @param buf Pointer to the memory to copy.
+ * @param n Number of bytes to copy from buf.
+ * @return Pointer to the newly allocated copy of the memory, or NULL on
+ * failure.
+ */
+SPACEDEF void *space_memmove(Space *space, const void *buf, size_t n) {
   if (!space || !buf || n == 0) {
     return NULL;
   }
@@ -683,7 +873,21 @@ void *space_memmove(Space *space, const void *buf, size_t n) {
   return ptr;
 }
 
-Planet *space_init_planet(Space *space, size_t size_in_bytes) {
+/**
+ * @brief Creates and initializes a new planet memory area with the specified
+ * capacity.
+ *
+ * A planet is a memory area that can hold multiple allocations. This function
+ * allocates a new planet structure and allocates memory for its data buffer
+ * with the specified capacity. The planet is assigned a unique ID that can be
+ * used to identify allocations from this planet.
+ *
+ * @param space Pointer to the Space structure that will contain this planet.
+ * @param size_in_bytes The initial capacity of the planet's data buffer in
+ * bytes.
+ * @return Pointer to the newly created Planet, or NULL on allocation failure.
+ */
+SPACEDEF Planet *space_init_planet(Space *space, size_t size_in_bytes) {
   Planet *planet = malloc(sizeof(*planet));
   if (planet) {
     memset(planet, 0, sizeof(*planet));
@@ -704,11 +908,35 @@ Planet *space_init_planet(Space *space, size_t size_in_bytes) {
   return planet;
 }
 
-void space_free_planet(Space *space, Planet *planet) {
+/**
+ * @brief Frees a planet and all its allocated data from the space.
+ *
+ * This function removes the planet from the space's linked list and frees both
+ * the planet structure and its data buffer. All allocations within this planet
+ * become invalid after this call.
+ *
+ * @param space Pointer to the Space structure containing the planet.
+ * @param planet Pointer to the Planet to free.
+ */
+SPACEDEF void space_free_planet(Space *space, Planet *planet) {
   space_free_planet_optional_freeing_data(space, planet, true);
 }
 
-void space_free_planet_optional_freeing_data(Space *space, Planet *planet,
+/**
+ * @brief Frees a planet with control over whether to free the underlying data
+ * buffer.
+ *
+ * This function removes the planet from the space's linked list. The free_data
+ * parameter controls whether the planet's data buffer is also freed. When
+ * false, only the planet structure is freed, leaving the data buffer allocated
+ * - useful for scenarios where the caller wants to take ownership of the data.
+ *
+ * @param space Pointer to the Space structure containing the planet.
+ * @param planet Pointer to the Planet to free.
+ * @param free_data If true, frees both the planet structure and its data
+ * buffer; if false, only frees the planet structure itself.
+ */
+SPACEDEF void space_free_planet_optional_freeing_data(Space *space, Planet *planet,
                                              bool free_data) {
   if (!planet || !space || !space->sun) {
     return;
@@ -741,7 +969,16 @@ void space_free_planet_optional_freeing_data(Space *space, Planet *planet,
   space->planet_count--;
 }
 
-void space_free_space(Space *space) {
+/**
+ * @brief Frees all planets in the space and releases all allocated memory.
+ *
+ * This function iterates through all planets in the space, freeing each planet
+ * and its data buffer. After this call, all memory managed by the space is
+ * released and the space is left in an empty state with zero planets.
+ *
+ * @param space Pointer to the Space structure to free.
+ */
+SPACEDEF void space_free_space(Space *space) {
   while (space->sun) {
     space_free_planet(space, space->sun);
   }
@@ -749,11 +986,18 @@ void space_free_space(Space *space) {
   assert(space->sun == NULL);
 }
 
-// The function is useful if you have to unit test a function that depends on
-// the space allocator, but you want to be sure to track every memory
-// allocated manually, so you free manually. But as a result calling
-// space_free_space() would result in double free so just free the structure.
-void space_free_space_internals_without_freeing_data(Space *space) {
+/**
+ * @brief Frees the internal structures of the space without freeing the
+ * allocated data.
+ *
+ * The function is useful if you have to unit test a function that depends on
+ * the space allocator, but you want to be sure to track every memory
+ * allocated manually, so you free manually. But as a result calling
+ * space_free_space() would result in double free so just free the structure.
+ *
+ * @param space Pointer to the Space structure.
+ */
+SPACEDEF void space_free_space_internals_without_freeing_data(Space *space) {
   while (space->sun) {
     space_free_planet_optional_freeing_data(space, space->sun, false);
   }
@@ -761,8 +1005,32 @@ void space_free_space_internals_without_freeing_data(Space *space) {
   assert(space->sun == NULL);
 }
 
-void space_reset_planet(Planet *planet) { planet->count = 0; }
-void space_reset_planet_and_zero(Planet *planet) {
+/**
+ * @brief Resets a planet's used count to zero, making all its memory available
+ * for reuse.
+ *
+ * This function resets the planet's internal counter to zero without freeing
+ * any memory. All previously allocated data in the planet becomes inaccessible
+ * but the memory remains allocated. This is useful for reusing a planet's
+ * capacity without the overhead of reallocation.
+ *
+ * @param planet Pointer to the Planet to reset.
+ */
+SPACEDEF void space_reset_planet(Planet *planet) { planet->count = 0; }
+
+/**
+ * @brief Resets a planet and zeros out all its memory, passing ownership to the
+ * caller.
+ *
+ * WARNING: This function zeros all memory in the planet and sets internal
+ * pointers to NULL so that memory ownership is effectively transferred to the
+ * caller. After calling this function, the caller is responsible for freeing
+ * the allocated data that was previously managed by the space. This is useful
+ * for taking snapshots or when you need to manually manage memory lifecycle.
+ *
+ * @param planet Pointer to the Planet to reset and zero.
+ */
+SPACEDEF void space_reset_planet_and_zero(Planet *planet) {
   if (!planet) {
     return;
   }
@@ -772,7 +1040,19 @@ void space_reset_planet_and_zero(Planet *planet) {
   planet->count = 0;
 }
 
-bool space_reset_planet_id(Space *space, size_t id) {
+/**
+ * @brief Resets a planet by looking it up using its unique identifier.
+ *
+ * This function searches the space for a planet with the specified ID and
+ * resets its used count to zero, making all its memory available for reuse.
+ * The planet retains its capacity and allocated data buffer.
+ *
+ * @param space Pointer to the Space structure to search.
+ * @param id The unique identifier of the planet to reset.
+ * @return true if a planet with the given ID was found and reset; false
+ * otherwise.
+ */
+SPACEDEF bool space_reset_planet_id(Space *space, size_t id) {
   for (Planet *planet = space->sun; planet; planet = planet->next) {
     if (planet->id == id) {
       space_reset_planet(planet);
@@ -782,7 +1062,17 @@ bool space_reset_planet_id(Space *space, size_t id) {
   return false;
 }
 
-bool space_reset_planet_and_zero_id(Space *space, size_t id) {
+/**
+ * @brief Resets and zeros a planet by its ID.
+ *
+ * WARNING: This sets the pointer to NULL so memory ownership is passed to the
+ * caller. The caller should free the allocated data.
+ *
+ * @param space Pointer to the Space structure.
+ * @param id The ID of the planet to reset and zero.
+ * @return true if the planet was found and reset, false otherwise.
+ */
+SPACEDEF bool space_reset_planet_and_zero_id(Space *space, size_t id) {
   for (Planet *planet = space->sun; planet; planet = planet->next) {
     if (planet->id == id) {
       space_reset_planet_and_zero(planet);
@@ -792,19 +1082,60 @@ bool space_reset_planet_and_zero_id(Space *space, size_t id) {
   return false;
 }
 
-void space_reset_space(Space *space) {
+/**
+ * @brief Resets all planets in the space, making all memory available for
+ * reuse.
+ *
+ * This function iterates through all planets in the space and resets each one's
+ * used count to zero. This makes all previously allocated memory in all planets
+ * available for new allocations without freeing and reallocating. The data in
+ * the planets is not cleared but becomes inaccessible until overwritten.
+ *
+ * @param space Pointer to the Space structure to reset.
+ */
+SPACEDEF void space_reset_space(Space *space) {
   for (Planet *p = space->sun; p; p = p->next) {
     space_reset_planet(p);
   }
 }
 
-void space_reset_space_and_zero(Space *space) {
+/**
+ * @brief Resets all planets in the space and zeros out all their memory.
+ *
+ * WARNING: This function zeros all memory in all planets and sets internal
+ * pointers to NULL so that memory ownership is effectively transferred to the
+ * caller. After calling this function, the caller is responsible for freeing
+ * all data that was previously managed by the space. This is useful for taking
+ * snapshots or when you need to manually manage the memory lifecycle of all
+ * allocations.
+ *
+ * @param space Pointer to the Space structure to reset and zero.
+ */
+SPACEDEF void space_reset_space_and_zero(Space *space) {
   for (Planet *p = space->sun; p; p = p->next) {
     space_reset_planet_and_zero(p);
   }
 }
 
-void *space_alloc_planetid(Space *space, size_t size_in_bytes,
+/**
+ * @brief Core allocation function that allocates memory and optionally returns
+ * the planet ID.
+ *
+ * This is the main internal allocation function that handles memory allocation
+ * from the space. It searches existing planets for sufficient free space, and
+ * if found, allocates from there. If force_new_planet is true or no existing
+ * planet has enough space, a new planet is created. The planet ID is useful for
+ * tracking which planet an allocation came from.
+ *
+ * @param space Pointer to the Space structure.
+ * @param size_in_bytes The number of bytes to allocate.
+ * @param planet_id Pointer to store the ID of the planet where memory was
+ * allocated; this value is set to 0 on failure.
+ * @param force_new_planet If true, always allocates in a new planet; if false,
+ *                         attempts to use existing planet space first.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
+SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
                            size_t *planet_id, bool force_new_planet) {
   if (!space) {
     *planet_id = 0;
@@ -879,12 +1210,40 @@ void *space_alloc_planetid(Space *space, size_t size_in_bytes,
   return prev->next->elements;
 }
 
-void *space_malloc_planetid_force_new_planet(Space *space, size_t size_in_bytes,
+/**
+ * @brief Allocates memory in a brand new planet, bypassing existing planet
+ * capacity.
+ *
+ * This function always creates a new planet for the allocation rather than
+ * using available space in existing planets. This is useful when you need to
+ * isolate an allocation into its own memory area, which can be freed
+ * independently.
+ *
+ * @param space Pointer to the Space structure.
+ * @param size_in_bytes The number of bytes to allocate.
+ * @param planet_id Pointer to store the ID of the newly created planet.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
+SPACEDEF void *space_malloc_planetid_force_new_planet(Space *space, size_t size_in_bytes,
                                              size_t *planet_id) {
   return space_alloc_planetid(space, size_in_bytes, planet_id, true);
 }
 
-void *space_calloc_planetid_force_new_planet(Space *space, size_t nmemb,
+/**
+ * @brief Allocates zero-initialized memory array in a brand new planet.
+ *
+ * This function allocates an array of nmemb elements, each of the specified
+ * size, in a newly created planet. All bytes are initialized to zero, making
+ * this useful for allocating arrays, structures, or any data that needs to be
+ * initially zeroed.
+ *
+ * @param space Pointer to the Space structure.
+ * @param nmemb Number of elements to allocate.
+ * @param size Size of each element in bytes.
+ * @param planet_id Pointer to store the ID of the newly created planet.
+ * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
+ */
+SPACEDEF void *space_calloc_planetid_force_new_planet(Space *space, size_t nmemb,
                                              size_t size, size_t *planet_id) {
   size_t size_in_bytes = nmemb * size;
   void *ptr =
@@ -895,7 +1254,17 @@ void *space_calloc_planetid_force_new_planet(Space *space, size_t nmemb,
   return ptr;
 }
 
-void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
+/**
+ * @brief Reallocates memory in a new planet, copying data if necessary.
+ *
+ * @param space Pointer to the Space structure.
+ * @param ptr Pointer to the existing memory to reallocate.
+ * @param old_size The size of the existing memory.
+ * @param new_size The new size to allocate.
+ * @param planet_id Pointer to store the ID of the newly created planet.
+ * @return Pointer to the reallocated memory, or NULL on failure.
+ */
+SPACEDEF void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
                                               size_t old_size, size_t new_size,
                                               size_t *planet_id) {
 
@@ -917,12 +1286,42 @@ void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
   return new_ptr;
 }
 
-void *space_malloc_planetid(Space *space, size_t size_in_bytes,
+/**
+ * @brief Allocates memory in the space and returns the planet ID for tracking.
+ *
+ * This function allocates memory from the space, attempting to use existing
+ * planet capacity first before creating new planets. The returned planet ID
+ * can be used to identify which planet the allocation came from, which is
+ * useful for debugging or memory management.
+ *
+ * @param space Pointer to the Space structure.
+ * @param size_in_bytes The number of bytes to allocate.
+ * @param planet_id Pointer to store the ID of the planet where memory was
+ * allocated; this value is set to 0 on failure.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
+SPACEDEF void *space_malloc_planetid(Space *space, size_t size_in_bytes,
                             size_t *planet_id) {
   return space_alloc_planetid(space, size_in_bytes, planet_id, false);
 }
 
-void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
+/**
+ * @brief Allocates a zero-initialized array in the space and returns the planet
+ * ID.
+ *
+ * This function allocates an array of nmemb elements, each of the specified
+ * size, from the space. All bytes are initialized to zero. This is useful for
+ * allocating arrays, structures, or any data that needs to start in a zeroed
+ * state.
+ *
+ * @param space Pointer to the Space structure.
+ * @param nmemb Number of elements to allocate.
+ * @param size Size of each element in bytes.
+ * @param planet_id Pointer to store the ID of the planet where memory was
+ * allocated; this value is set to 0 on failure.
+ * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
+ */
+SPACEDEF void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
                             size_t *planet_id) {
   size_t size_in_bytes = nmemb * size;
   void *ptr = space_malloc_planetid(space, size_in_bytes, planet_id);
@@ -932,7 +1331,23 @@ void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
   return ptr;
 }
 
-void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
+/**
+ * @brief Changes the size of an existing allocation, potentially moving it.
+ *
+ * This function attempts to resize an existing allocation to a new size. If the
+ * current allocation is at the end of a planet with enough free space following
+ * it, it may be expanded in place. Otherwise, a new allocation is made and the
+ * old data is copied. This is similar to the standard realloc function.
+ *
+ * @param space Pointer to the Space structure.
+ * @param ptr Pointer to the existing memory to resize.
+ * @param old_size The size of the existing memory block.
+ * @param new_size The new desired size.
+ * @param planet_id Pointer to store the ID of the planet where memory is
+ * allocated; this value is set to 0 on failure.
+ * @return Pointer to the resized memory, or NULL on failure.
+ */
+SPACEDEF void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
                              size_t new_size, size_t *planet_id) {
   if (old_size >= new_size) {
     Planet *p = space_find_planet_from_ptr(space, ptr);
@@ -980,39 +1395,129 @@ void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
   return new_ptr;
 }
 
-void *space_malloc_force_new_planet(Space *space, size_t size_in_bytes) {
+/**
+ * @brief Allocates memory in a newly created planet, isolating the allocation.
+ *
+ * This function always creates a new planet for the allocation rather than
+ * using available space in existing planets. This ensures the allocation is
+ * isolated in its own memory area, which can be useful for independent
+ * lifetime management.
+ *
+ * @param space Pointer to the Space structure.
+ * @param size_in_bytes The number of bytes to allocate.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
+SPACEDEF void *space_malloc_force_new_planet(Space *space, size_t size_in_bytes) {
   size_t id;
   return space_malloc_planetid_force_new_planet(space, size_in_bytes, &id);
 }
 
-void *space_calloc_force_new_planet(Space *space, size_t nmemb, size_t size) {
+/**
+ * @brief Allocates a zero-initialized array in a newly created planet.
+ *
+ * This function allocates an array of nmemb elements in a new planet, with all
+ * bytes initialized to zero. This is useful for allocating arrays or structures
+ * that need to start in a zeroed state while keeping the allocation isolated.
+ *
+ * @param space Pointer to the Space structure.
+ * @param nmemb Number of elements to allocate.
+ * @param size Size of each element in bytes.
+ * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
+ */
+SPACEDEF void *space_calloc_force_new_planet(Space *space, size_t nmemb, size_t size) {
   size_t id;
   return space_calloc_planetid_force_new_planet(space, nmemb, size, &id);
 }
 
-void *space_realloc_force_new_planet(Space *space, void *ptr, size_t old_size,
+/**
+ * @brief Resizes an allocation by creating a new planet and copying data.
+ *
+ * This function always allocates new memory in a fresh planet rather than
+ * trying to expand in place or use existing planet space. The old data is
+ * copied to the new location. This ensures the allocation is isolated in its
+ * own area.
+ *
+ * @param space Pointer to the Space structure.
+ * @param ptr Pointer to the existing memory to resize.
+ * @param old_size The size of the existing memory block.
+ * @param new_size The new desired size.
+ * @return Pointer to the resized memory, or NULL on failure.
+ */
+SPACEDEF void *space_realloc_force_new_planet(Space *space, void *ptr, size_t old_size,
                                      size_t new_size) {
   size_t id;
   return space_realloc_planetid_force_new_planet(space, ptr, old_size, new_size,
                                                  &id);
 }
 
-void *space_malloc(Space *space, size_t size_in_bytes) {
+/**
+ * @brief Allocates raw memory from the space allocator.
+ *
+ * This is the primary allocation function for the space allocator. It searches
+ * existing planets for available space and uses that first, creating a new
+ * planet only when necessary. The allocated memory is uninitialized and
+ * contains garbage values, similar to the standard malloc function.
+ *
+ * @param space Pointer to the Space structure.
+ * @param size_in_bytes The number of bytes to allocate.
+ * @return Pointer to the allocated uninitialized memory, or NULL on failure.
+ */
+SPACEDEF void *space_malloc(Space *space, size_t size_in_bytes) {
   size_t id;
   return space_malloc_planetid(space, size_in_bytes, &id);
 }
 
-void *space_calloc(Space *space, size_t nmemb, size_t size) {
+/**
+ * @brief Allocates a zero-initialized array from the space.
+ *
+ * This function allocates an array of nmemb elements, each of the specified
+ * size, from the space allocator. All bytes are initialized to zero. This is
+ * useful for allocating arrays, structures, or any data that needs to start in
+ * a cleared state.
+ *
+ * @param space Pointer to the Space structure.
+ * @param nmemb Number of elements to allocate.
+ * @param size Size of each element in bytes.
+ * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
+ */
+SPACEDEF void *space_calloc(Space *space, size_t nmemb, size_t size) {
   size_t id;
   return space_calloc_planetid(space, nmemb, size, &id);
 }
 
-void *space_realloc(Space *space, void *ptr, size_t old_size, size_t new_size) {
+/**
+ * @brief Resizes an existing allocation within the space.
+ *
+ * This function changes the size of a previously allocated memory block. If the
+ * current allocation is at the end of a planet with enough free space, it may
+ * be expanded in place without copying. Otherwise, new memory is allocated and
+ * the old data is copied over. This behaves similarly to the standard realloc.
+ *
+ * @param space Pointer to the Space structure.
+ * @param ptr Pointer to the existing memory to resize.
+ * @param old_size The size of the existing memory block.
+ * @param new_size The new desired size.
+ * @return Pointer to the resized memory, or NULL on failure.
+ */
+SPACEDEF void *space_realloc(Space *space, void *ptr, size_t old_size, size_t new_size) {
   size_t id;
   return space_realloc_planetid(space, ptr, old_size, new_size, &id);
 }
 
-bool space_init_capacity(Space *space, size_t size_in_bytes) {
+/**
+ * @brief Pre-allocates a planet with the specified capacity in the space.
+ *
+ * This function creates a new planet with enough space for the specified number
+ * of bytes, then immediately resets it to make the memory available for use.
+ * This is useful for preparing the space with a known capacity before
+ * performing multiple allocations, which can improve performance by reducing
+ * reallocation.
+ *
+ * @param space Pointer to the Space structure.
+ * @param size_in_bytes The capacity to pre-allocate in bytes.
+ * @return true if capacity was successfully initialized, false otherwise.
+ */
+SPACEDEF bool space_init_capacity(Space *space, size_t size_in_bytes) {
   if (!space || size_in_bytes == 0) {
     return false;
   }
@@ -1025,7 +1530,20 @@ bool space_init_capacity(Space *space, size_t size_in_bytes) {
   return false;
 }
 
-bool space_init_capacity_in_count_plantes(Space *space, size_t size_in_bytes,
+/**
+ * @brief Pre-allocates multiple planets with the specified capacity.
+ *
+ * This function creates multiple planets, each with the specified capacity,
+ * then immediately resets them to make all the memory available. This is useful
+ * for preparing the space with a known number of planet before performing
+ * multiple allocations, which can improve performance by reducing reallocation.
+ *
+ * @param space Pointer to the Space structure.
+ * @param size_in_bytes The capacity for each planet in bytes.
+ * @param count The number of planets to create and initialize.
+ * @return true if all planets were successfully initialized, false otherwise.
+ */
+SPACEDEF bool space_init_capacity_in_count_plantes(Space *space, size_t size_in_bytes,
                                           size_t count) {
   if (!space || count == 0 || size_in_bytes == 0) {
     return false;
@@ -1068,7 +1586,20 @@ bool space_init_capacity_in_count_plantes(Space *space, size_t size_in_bytes,
   return true;
 }
 
-size_t space_find_planet_id_from_ptr(Space *space, void *ptr) {
+/**
+ * @brief Looks up which planet a pointer belongs to and returns its ID.
+ *
+ * This function searches through all planets in the space to find which one
+ * contains the given pointer. It checks if the pointer falls within the memory
+ * range of any planet's data buffer. Returns 0 if the pointer is not found
+ * in any planet.
+ *
+ * @param space Pointer to the Space structure to search.
+ * @param ptr Pointer to the memory address to find the planet for.
+ * @return The unique ID of the planet containing the pointer, or 0 if not
+ * found.
+ */
+SPACEDEF size_t space_find_planet_id_from_ptr(Space *space, void *ptr) {
   if (!ptr || !space) {
     return 0;
   }
@@ -1089,7 +1620,19 @@ size_t space_find_planet_id_from_ptr(Space *space, void *ptr) {
   return 0;
 }
 
-Planet *space_find_planet_from_ptr(Space *space, void *ptr) {
+/**
+ * @brief Looks up and returns the planet structure containing a pointer.
+ *
+ * This function searches through all planets in the space to find which one
+ * contains the given pointer. It checks if the pointer falls within the memory
+ * range of any planet's data buffer. Returns NULL if the pointer is not found.
+ *
+ * @param space Pointer to the Space structure to search.
+ * @param ptr Pointer to the memory address to find the planet for.
+ * @return Pointer to the Planet structure containing the pointer, or NULL if
+ * not found.
+ */
+SPACEDEF Planet *space_find_planet_from_ptr(Space *space, void *ptr) {
   if (!ptr || !space) {
     return NULL;
   }
@@ -1110,7 +1653,24 @@ Planet *space_find_planet_from_ptr(Space *space, void *ptr) {
   return NULL;
 }
 
-bool space_try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
+/**
+ * @brief Attempts to expand a memory allocation in place without moving it.
+ *
+ * This function checks if an existing allocation can be extended without
+ * reallocating and moving the data. It succeeds only if the pointer is at
+ * the end of a planet's used memory and there is enough free capacity following
+ * it. This is more efficient than a full reallocation when possible.
+ *
+ * @param space Pointer to the Space structure.
+ * @param ptr Pointer to the existing memory to expand.
+ * @param old_size The current size of the allocation in bytes.
+ * @param new_size The desired new size in bytes.
+ * @param planet_id Pointer to store the planet ID if expansion succeeds;
+ *                 set to 0 if expansion fails.
+ * @return true if the memory was successfully expanded in place; false
+ * otherwise.
+ */
+SPACEDEF bool space_try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
                                   size_t new_size, size_t *planet_id) {
 
   Planet *p = space_find_planet_from_ptr(space, ptr);
@@ -1125,7 +1685,21 @@ bool space_try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
   return true;
 }
 
-bool space_report_allocations(Space *space, Space_Report *report) {
+/**
+ * @brief Gathers statistics about current memory usage in the space.
+ *
+ * This function collects information about all planets in the space, including
+ * the total number of planets, the total allocated capacity across all planets,
+ * and the total used memory (count). This is useful for debugging, logging,
+ * or implementing memory usage tracking.
+ *
+ * @param space Pointer to the Space structure to report on.
+ * @param report Pointer to the Space_Report structure that will be filled
+ *               with the current memory statistics.
+ * @return true if the report was successfully generated; false if space is NULL
+ *         or if the statistics would overflow.
+ */
+SPACEDEF bool space_report_allocations(Space *space, Space_Report *report) {
   if (!space) {
     return false;
   }
@@ -1145,14 +1719,40 @@ bool space_report_allocations(Space *space, Space_Report *report) {
   return true;
 }
 
-size_t space_align(size_t alignment, size_t value) {
+/**
+ * @brief Aligns a value up to the specified alignment boundary.
+ *
+ * This function rounds up the given value to the next multiple of the
+ * alignment. For example, with alignment of 8, a value of 5 becomes 8, 8
+ * becomes 8, and 9 becomes 16. This is useful for ensuring memory or index
+ * alignment.
+ *
+ * @param alignment The alignment boundary to use (must be > 0).
+ * @param value The value to align.
+ * @return The smallest value >= the input value that is a multiple of
+ * alignment.
+ */
+SPACEDEF size_t space_align(size_t alignment, size_t value) {
   if (alignment == 0) {
     return value;
   }
   return ((value + alignment - 1) / alignment) * alignment;
 }
 
-size_t space_align_power2(size_t alignment, size_t value) {
+/**
+ * @brief Aligns a value to a power-of-two alignment boundary using bitwise
+ * operations.
+ *
+ * This function efficiently rounds up the value to the next multiple of a
+ * power-of-two alignment using bitwise AND. This is faster than division-based
+ * alignment for power-of-two values. The alignment must be a power of 2.
+ *
+ * @param alignment The power-of-two alignment boundary to use.
+ * @param value The value to align.
+ * @return The smallest value >= the input value that is a multiple of
+ * alignment.
+ */
+SPACEDEF size_t space_align_power2(size_t alignment, size_t value) {
   if (alignment == 0) {
     return value;
   }

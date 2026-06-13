@@ -6,6 +6,15 @@
 #define MAX_BUFFER_CAPACITY 1024 * 1024
 #define BUFFER_CAPACITY 1024 * 1024
 
+#define SPACEDEF inline
+#define SPACE_IMPLEMENTATION
+#include "../../external/space/space.h"
+#undef SPACE_IMPLEMENTATION
+
+#define TKBC_UTILS_IMPLEMENTATION
+#include "../global/tkbc-utils.h"
+#undef TKBC_UTILS_IMPLEMENTATION
+
 #include "tkbc-client.h"
 #include "tkbc-network-common.h"
 
@@ -14,13 +23,6 @@
 #include <raylib.h>
 #include <raymath.h>
 
-#define SPACE_IMPLEMENTATION
-#include "../../external/space/space.h"
-#undef SPACE_IMPLEMENTATION
-
-#define TKBC_UTILS_IMPLEMENTATION
-#include "../global/tkbc-utils.h"
-#undef TKBC_UTILS_IMPLEMENTATION
 
 #include "../choreographer/tkbc-asset-handler.h"
 #include "../choreographer/tkbc-ffmpeg.h"

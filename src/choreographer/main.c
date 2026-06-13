@@ -7,13 +7,15 @@
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 
+#define SPACEDEF inline
+#define SPACE_IMPLEMENTATION
+#include "../../external/space/space.h"
+#undef SPACE_IMPLEMENTATION
+
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
 #undef TKBC_UTILS_IMPLEMENTATION
 
-#define SPACE_IMPLEMENTATION
-#include "../../external/space/space.h"
-#undef SPACE_IMPLEMENTATION
 
 #include "tkbc-asset-handler.h"
 #include "tkbc-ffmpeg.h"

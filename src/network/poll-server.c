@@ -1,4 +1,11 @@
-#include "poll-server.h"
+#define SPACEDEF inline
+#define SPACE_IMPLEMENTATION
+#include "../../external/space/space.h"
+#undef SPACE_IMPLEMENTATION
+
+#define TKBC_UTILS_IMPLEMENTATION
+#include "../global/tkbc-utils.h"
+#undef TKBC_UTILS_IMPLEMENTATION
 
 #include <assert.h>
 #include <string.h>
@@ -21,18 +28,11 @@
 #include <sys/socket.h>
 #endif
 
+#include "poll-server.h"
 #include "tkbc-network-common.h"
 #include "tkbc-servers-common.h"
 
 #include "messages/tkbc-messages.h"
-
-#define TKBC_UTILS_IMPLEMENTATION
-#include "../global/tkbc-utils.h"
-#undef TKBC_UTILS_IMPLEMENTATION
-
-#define SPACE_IMPLEMENTATION
-#include "../../external/space/space.h"
-#undef SPACE_IMPLEMENTATION
 
 #include "../choreographer/tkbc-asset-handler.h"
 #include "../choreographer/tkbc-script-api.h"
