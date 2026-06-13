@@ -99,7 +99,7 @@ static inline void tkbc_server_usage(const char *program_name) {
 static inline bool tkbc_server_commandline_check(int argc,
                                                  const char *program_name) {
   if (argc > 1) {
-    tkbc_fprintf(stderr, "ERROR", "To may arguments.\n");
+    tkbc_fprintf(stderr, "ERROR", "Too may arguments.\n");
     tkbc_server_usage(program_name);
     exit(1);
   }
@@ -233,7 +233,7 @@ static inline void tkbc_message_append_image_data(Space *space,
  * @param message The Message struct that should contain the serialized data.
  */
 static inline void tkbc_message_append_kite(Kite_State *kite_state,
-                                             Message *message, Space *space) {
+                                            Message *message, Space *space) {
   size_t kite_id = kite_state->kite_id;
   float x = kite_state->kite->center.x;
   float y = kite_state->kite->center.y;

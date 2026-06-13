@@ -92,7 +92,7 @@ void tkbc_client_usage(const char *program_name) {
  */
 bool tkbc_client_commandline_check(int argc, const char *program_name) {
   if (argc > 2) {
-    tkbc_fprintf(stderr, "ERROR", "To may arguments.\n");
+    tkbc_fprintf(stderr, "ERROR", "Too may arguments.\n");
     tkbc_client_usage(program_name);
     exit(1);
   }
