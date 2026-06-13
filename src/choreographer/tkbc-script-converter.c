@@ -1,3 +1,4 @@
+#include "tkbc-script-converter.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 #include "tkbc-script-handler.h"
