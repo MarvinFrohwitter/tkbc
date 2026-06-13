@@ -15,7 +15,7 @@ bool tkbc_messages_get_texture_id(Lexer *lexer, Client *client) {
   if (token.kind != NUMBER) {
     return false;
   }
-  size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
+  size_t kite_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     return false;

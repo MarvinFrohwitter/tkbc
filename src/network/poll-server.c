@@ -950,8 +950,8 @@ bool tkbc_received_message_handler(Client *client) {
         goto err;
       }
 
-      client->script_amount = atoi(lexer_token_to_cstr(lexer, &token));
-
+      client->script_amount =
+          strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         goto err;

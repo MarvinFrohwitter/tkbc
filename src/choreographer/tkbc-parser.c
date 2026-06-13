@@ -88,7 +88,7 @@ void tkbc_script_parser(Env *env) {
 
         t = lexer_next(l);
         if (t.kind == NUMBER) {
-          size_t kite_number = atoi(lexer_token_to_cstr(l, &t));
+          size_t kite_number = strtoul(lexer_token_to_cstr(l, &t), NULL, 10);
           if (env->kite_array->count >= kite_number) {
             ki = tkbc_indexs_generate(kite_number);
             for (size_t i = 0; i < ki.count; ++i) {

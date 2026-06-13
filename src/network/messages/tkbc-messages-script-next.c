@@ -15,7 +15,7 @@ bool tkbc_messages_script_next(Lexer *lexer) {
   if (token.kind != NUMBER) {
     return false;
   }
-  int script_id = atoi(lexer_token_to_cstr(lexer, &token));
+  ssize_t script_id = strtoll(lexer_token_to_cstr(lexer, &token), NULL, 10);
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     return false;

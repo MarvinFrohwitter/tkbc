@@ -21,7 +21,8 @@ bool tkbc_messages_script_meta_data(Lexer *lexer) {
   if (token.kind != NUMBER) {
     return false;
   }
-  env->server_script_id = atoi(lexer_token_to_cstr(lexer, &token));
+
+  env->server_script_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
 
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
@@ -32,7 +33,8 @@ bool tkbc_messages_script_meta_data(Lexer *lexer) {
     return false;
   }
 
-  env->server_script_frames_count = atoi(lexer_token_to_cstr(lexer, &token));
+  env->server_script_frames_count =
+      strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
 
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
@@ -43,7 +45,8 @@ bool tkbc_messages_script_meta_data(Lexer *lexer) {
     return false;
   }
 
-  env->server_script_frames_index = atoi(lexer_token_to_cstr(lexer, &token));
+  env->server_script_frames_index =
+      strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
 
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {

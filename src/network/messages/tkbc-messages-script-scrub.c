@@ -14,7 +14,7 @@ bool tkbc_messages_script_scrub(Lexer *lexer) {
   if (token.kind != NUMBER) {
     return false;
   }
-  bool drag_left = atoi(lexer_token_to_cstr(lexer, &token));
+  bool drag_left = !!atoi(lexer_token_to_cstr(lexer, &token));
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     return false;

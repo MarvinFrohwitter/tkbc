@@ -295,7 +295,10 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
   if (token.kind != NUMBER) {
     check_return(false);
   }
-  *kite_id = atoi(lexer_token_to_cstr(lexer, &token));
+
+
+
+  *kite_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     check_return(false);

@@ -25,7 +25,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
     script_parse_fail = true;
     goto script_err;
   }
-  scb_script->script_id = atoi(lexer_token_to_cstr(lexer, &token));
+  scb_script->script_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
   //
   // This just fast forward a script that is already known and it reduces
   // the parsing afford.
@@ -45,7 +45,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
     script_parse_fail = true;
     goto script_err;
   }
-  size_t script_count = atoi(lexer_token_to_cstr(lexer, &token));
+  size_t script_count = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
   token = lexer_next(lexer);
   if (token.kind != PUNCT_COLON) {
     script_parse_fail = true;
@@ -58,7 +58,8 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
       script_parse_fail = true;
       goto script_err;
     }
-    scb_frames->frames_index = atoi(lexer_token_to_cstr(lexer, &token));
+    scb_frames->frames_index =
+        strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {
       script_parse_fail = true;
@@ -70,7 +71,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
       script_parse_fail = true;
       goto script_err;
     }
-    size_t frames_count = atoi(lexer_token_to_cstr(lexer, &token));
+    size_t frames_count = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {
       script_parse_fail = true;
@@ -83,7 +84,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
         script_parse_fail = true;
         goto script_err;
       }
-      frame.index = atoi(lexer_token_to_cstr(lexer, &token));
+      frame.index = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         script_parse_fail = true;
@@ -94,7 +95,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
         script_parse_fail = true;
         goto script_err;
       }
-      frame.finished = atoi(lexer_token_to_cstr(lexer, &token));
+      frame.finished = !!atoi(lexer_token_to_cstr(lexer, &token));
       token = lexer_next(lexer);
       if (token.kind != PUNCT_COLON) {
         script_parse_fail = true;
@@ -253,7 +254,8 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
           script_parse_fail = true;
           goto script_err;
         }
-        size_t kite_ids_count = atoi(lexer_token_to_cstr(lexer, &token));
+        size_t kite_ids_count =
+            strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
         token = lexer_next(lexer);
         if (token.kind != PUNCT_COLON) {
           script_parse_fail = true;
@@ -271,7 +273,8 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
             goto script_err;
           }
 
-          size_t kite_id = atoi(lexer_token_to_cstr(lexer, &token));
+          size_t kite_id =
+              strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
           bool contains = false;
           space_dap(scb_space, &frame.kite_id_array, kite_id);
           for (size_t id = 0; id < possible_new_kis.count; ++id) {
