@@ -3,13 +3,13 @@
 # printf("%s", NULL);
 
 CC = gcc
-RAYLIBPATH = external/raylib-5.5_linux_amd64
+RAYLIBPATH = external/raylib-6.0_linux_amd64
 INCLUDE = -I src/choreographer/ -I src/global/ -I src/network/
 INCLUDE += -I tkbc_scripts/ -I build/
 INCLUDE += -DINCLUDE_RAYLIB -I ${RAYLIBPATH}/include/
 LIBS = -L ${RAYLIBPATH}/lib/
 LIBS += -l:libraylib.a
-LIBS += -lm
+LIBS += -lm -lX11
 CFLAGS = -x c -O3 -fPIC -Wall -Wextra -ggdb -std=gnu23
 DEBUG_CFLAGS =
 # DEBUG_CFLAGS += -fsanitize=address

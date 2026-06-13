@@ -904,14 +904,9 @@ void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
 
   tkbc_kite_update_position(&k, &displayment_top_center);
 
-  int centerX = k.left.v2.x;
-  int centerY = k.left.v2.y;
+  DrawCircleGradient(k.left.v2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
 
-  DrawCircleGradient(centerX, centerY, radius, WHITE, TKBC_UI_GRAY_ALPHA);
-
-  centerX = k.right.v2.x;
-  centerY = k.right.v2.y;
-  DrawCircleGradient(centerX, centerY, radius, WHITE, TKBC_UI_GRAY_ALPHA);
+  DrawCircleGradient(k.right.v2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
 }
 
 /**

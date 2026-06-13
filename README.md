@@ -2,7 +2,9 @@
 
 - The choreography creator.
 
-- The dependency is version 5.5:
+- The dependency is version 6.0:
+- Original Raylib 6.0 Source Code: <https://github.com/raysan5/raylib/releases/tag/6.0>
+- For commits older than the used library is:
 - Original Raylib 5.5 Source Code: <https://github.com/raysan5/raylib/releases/tag/5.5>
 - For commits older than fb53c95 the used library is:
 - Original Raylib 5.0 Source Code: <https://github.com/raysan5/raylib/releases/tag/5.0>
