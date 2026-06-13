@@ -120,7 +120,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
       } break;
 
       default:
-        assert(0 && "UNREACHABLE tkbc_script_kite_from_mem");
+        assert(0 && "UNREACHABLE tkbc_export_script_to_dot_kite_file_from_mem");
       }
 
       tkbc_dapf(&out, " %f\n", f->duration);
