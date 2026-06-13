@@ -56,7 +56,7 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client,
                                  is_reversed, is_active, is_script_kite);
 #endif
 
-  static bool first_message_kite_add = true;
+  static _Atomic bool first_message_kite_add = true;
   if (first_message_kite_add) {
     // This assumes the server sends the first SINGLE_KITE_ADD to the
     // client, that contains his own kite;

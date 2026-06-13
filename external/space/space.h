@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 
 typedef struct Planet Planet;
 struct Planet {
@@ -310,7 +311,7 @@ Space *space_get_tspace(void);
 #ifdef SPACE_IMPLEMENTATION
 
 Space *space_get_tspace(void) {
-  static Space space = {0};
+  thread_local static Space space = {0};
   return &space;
 }
 

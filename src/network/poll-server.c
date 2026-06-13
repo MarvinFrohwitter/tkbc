@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <threads.h>
 #include <unistd.h>
 
 #ifdef _WIN32
@@ -46,7 +47,8 @@ static int clients_visited = 0;
 Env *env = {0};
 Clients clients = {0};
 FDs fds = {0};
-Message t_message = {0}; // The elements ptr is allocated inside of the t_space.
+// The elements ptr is allocated inside of the t_space.
+thread_local Message t_message = {0};
 
 Assets assets = {0};
 
