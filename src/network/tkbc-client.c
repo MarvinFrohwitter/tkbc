@@ -1,4 +1,5 @@
 // TODO check for atoi, atol, atoll for 0 as failure. Maybe use strtol instead.
+#include <limits.h>
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
@@ -807,8 +808,8 @@ bool tkbc_message_append_script(size_t script_id) {
         space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                    "%d:", frames->elements[k].kind);
 
-        assert(ACTION_KIND_COUNT == 9 &&
-               "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
+        static_assert(ACTION_KIND_COUNT == 9,
+                      "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
         switch (frames->elements[k].kind) {
         case KITE_QUIT:
         case KITE_WAIT: {
@@ -836,6 +837,8 @@ bool tkbc_message_append_script(size_t script_id) {
                      "%d:%f", action.tip, action.angle);
         } break;
         default:
+          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                     ":UNKNOWN ACTION");
           assert(0 && "UNREACHABLE tkbc_message_append_script()");
         }
 
@@ -877,7 +880,7 @@ bool tkbc_message_script(void) {
 
   size_t counter = 0;
   for (size_t i = env->send_scripts; i < env->scripts.count; ++i) {
-    char buf[8];
+    char buf[16];
     int size = snprintf(buf, sizeof(buf), "%d:", MESSAGE_SCRIPT);
     space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%s",
                buf);

@@ -113,8 +113,8 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
         goto script_err;
       }
 
-      char sign;
-      Action action;
+      char sign = '+';
+      Action action = {0};
       static_assert(ACTION_KIND_COUNT == 9,
                     "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
       switch (frame.kind) {
@@ -226,6 +226,8 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
 
       default:
         assert(0 && "UNREACHABLE SCRIPT received_message_handler");
+        script_parse_fail = true;
+        goto script_err;
       }
 
       frame.action = action;
