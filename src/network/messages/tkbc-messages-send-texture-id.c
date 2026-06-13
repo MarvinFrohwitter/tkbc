@@ -8,6 +8,15 @@
 
 #include <stdbool.h>
 
+/**
+ * @brief Handles a SEND_TEXTURE_ID message by associating a texture with a
+ * kite, requesting the texture data if not yet available.
+ *
+ * @param env The global state of the application.
+ * @param lexer The lexer positioned at the message content.
+ * @param client The client that sent the message.
+ * @return True if the texture id was processed successfully, otherwise false.
+ */
 bool tkbc_messages_send_texture_id(Env *env, Lexer *lexer, Client *client) {
   Token token;
   token = lexer_next(lexer);

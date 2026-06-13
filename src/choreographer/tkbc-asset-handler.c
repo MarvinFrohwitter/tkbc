@@ -267,6 +267,15 @@ size_t tkbc_get_current_kite_design_count() {
   return result;
 }
 
+/**
+ * @brief Appends a kite image to the asset list and loads its texture.
+ *
+ * @param data The raw pixel data of the kite image.
+ * @param width The width of the image in pixels.
+ * @param height The height of the image in pixels.
+ * @param format The pixel format of the image data.
+ * @return Id The asset id of the appended kite image.
+ */
 Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width,
                                            int height, int format) {
 

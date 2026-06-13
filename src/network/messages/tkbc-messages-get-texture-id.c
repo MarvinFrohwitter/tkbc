@@ -7,6 +7,15 @@
 
 #include <stdbool.h>
 
+/**
+ * @brief Handles a GET_TEXTURE_ID message from a client by responding with the
+ * texture id for a given kite id.
+ *
+ * @param lexer The lexer positioned at the message content.
+ * @param client The client that sent the request.
+ * @return True if the message was parsed and responded to successfully,
+ * otherwise false.
+ */
 bool tkbc_messages_get_texture_id(Lexer *lexer, Client *client) {
   // The client can request a texture id for a kite;
   Token token;

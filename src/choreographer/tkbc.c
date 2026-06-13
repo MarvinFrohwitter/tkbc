@@ -62,8 +62,10 @@ Env *tkbc_init_env(void) {
 
   // const char *font_name = "iosevka-regular.ttf";
   // const char *font_name = "GreatVibes-Regular.ttf";
+#ifndef TKBC_SERVER
   const char *font_name = "";
   env->font = LoadFont(font_name);
+#endif
   if (!IsFontValid(env->font)) {
     env->font = GetFontDefault();
     env->needs_font_free = true;

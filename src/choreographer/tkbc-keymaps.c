@@ -429,6 +429,14 @@ const char *tkbc_key_to_str(int key) {
   }
 }
 
+/**
+ * @brief Checks if a key is in the given mode state, also checking its
+ * left/right counterpart if it is a modifier key (Ctrl/Shift).
+ *
+ * @param key The key to check.
+ * @param mode The mode to check against (DOWN, PRESSED, UP, RELEASED).
+ * @return True if the key is in the given mode state, otherwise false.
+ */
 static bool tkbc_check_key(int key, Key_Mode mode) {
   bool result = false;
   bool check = false;
@@ -463,6 +471,15 @@ static bool tkbc_check_key(int key, Key_Mode mode) {
   return result;
 }
 
+/**
+ * @brief Checks a keymap against a given configuration and key selection
+ * option.
+ *
+ * @param keymap The keymap to check.
+ * @param cfg The key map check configuration.
+ * @param kso The key selection option bitmask.
+ * @return True if the keymap matches the configuration, otherwise false.
+ */
 bool tkbc_check_keymap(Key_Map keymap, Key_Map_Check_Config cfg, int kso) {
   bool result = false;
   bool visited = false;
@@ -494,16 +511,41 @@ bool tkbc_check_keymap(Key_Map keymap, Key_Map_Check_Config cfg, int kso) {
   return result;
 }
 
+/**
+ * @brief Checks a keymap against all key options.
+ *
+ * @param keymap The keymap to check.
+ * @param cfg The key map check configuration.
+ * @return True if the keymap matches the full configuration, otherwise false.
+ */
 bool tkbc_check_keymap_full(Key_Map keymap, Key_Map_Check_Config cfg) {
   return tkbc_check_keymap(keymap, cfg, KEY | MOD_KEY | SELECTION_KEY);
 }
 
+/**
+ * @brief Looks up a keymap by hash and checks it against a configuration.
+ *
+ * @param keymaps The keymaps collection.
+ * @param hash The hash key to look up the keymap.
+ * @param cfg The key map check configuration.
+ * @param kso The key selection option bitmask.
+ * @return True if the resolved keymap matches, otherwise false.
+ */
 bool tkbc_check_keymaps(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg,
                         int kso) {
   Key_Map keymap = tkbc_hash_to_keymap(keymaps, hash);
   return tkbc_check_keymap(keymap, cfg, kso);
 }
 
+/**
+ * @brief Looks up a keymap by hash and checks it against all key options.
+ *
+ * @param keymaps The keymaps collection.
+ * @param hash The hash key to look up the keymap.
+ * @param cfg The key map check configuration.
+ * @return True if the resolved keymap matches the full configuration, otherwise
+ * false,
+ */
 bool tkbc_check_keymaps_full(Key_Maps keymaps, int hash,
                              Key_Map_Check_Config cfg) {
   return tkbc_check_keymaps(keymaps, hash, cfg, KEY | MOD_KEY | SELECTION_KEY);

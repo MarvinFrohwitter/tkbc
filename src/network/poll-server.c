@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <string.h>
-#include <threads.h>
 #include <unistd.h>
 
 #ifdef _WIN32
@@ -429,7 +428,7 @@ void tkbc_client_prolog(Client *client) {
 
   Kite_State kite_state = tkbc_init_kite();
   kite_state.kite_id = client->kite_id;
-  float r = (float)rand() / RAND_MAX;
+  float r = (float)rand() / (float)RAND_MAX;
   kite_state.kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
   if (!tkbc_script_finished(env) || env->script != NULL) {
     kite_state.is_active = false;

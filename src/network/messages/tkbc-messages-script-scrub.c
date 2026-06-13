@@ -8,6 +8,13 @@
 
 #include <stdbool.h>
 
+/**
+ * @brief Handles a SCRIPT_SCRUB message by scrubbing through the current script
+ * timeline.
+ *
+ * @param lexer The lexer positioned at the message content.
+ * @return True if the scrub was executed successfully, otherwise false.
+ */
 bool tkbc_messages_script_scrub(Lexer *lexer) {
   Token token;
   token = lexer_next(lexer);

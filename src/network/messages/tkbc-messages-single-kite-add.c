@@ -11,6 +11,17 @@
 
 #include <stdbool.h>
 
+/**
+ * @brief Handles a SINGLE_KITE_ADD message by registering a new kite from
+ * parsed values, associating it with the client if it is the first kite.
+ *
+ * @param env The global state of the application.
+ * @param lexer The lexer positioned at the message content.
+ * @param client The client that sent the message and is possibly requested
+ * for texture data.
+ * @param client_kite Output parameter set to the client's kite on first add.
+ * @return True if the kite was registered successfully, otherwise false.
+ */
 bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client,
                                    Kite *client_kite) {
   size_t kite_id;

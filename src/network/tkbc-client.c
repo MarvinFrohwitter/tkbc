@@ -683,6 +683,15 @@ bool message_queue_handler() {
   return true;
 }
 
+/**
+ * @brief Processes input handling for a kite state and sends a
+ * SINGLE_KITE_UPDATE message if the kite position or angle changed
+ * significantly.
+ *
+ * @param kite_state The kite state to update.
+ * @return true If an update message was sent.
+ * @return false If no significant change occurred.
+ */
 static bool tkbc_update_kites_input_handling_for_message_single_kite_update(
     Kite_State *kite_state) {
   Vector2 pos = kite_state->kite->center;

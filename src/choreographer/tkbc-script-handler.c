@@ -135,6 +135,12 @@ bool tkbc_find_first_active_script_kite(Env *env, Id *id) {
   return false;
 }
 
+/**
+ * @brief Counts the number of active kites in the kite states array.
+ *
+ * @param kite_states The kite states array.
+ * @return size_t The number of active kites.
+ */
 size_t tkbc_get_active_kite_count(Kite_States *kite_states) {
   size_t result = 0;
   for (size_t k = 0; k < kite_states->count; ++k) {
@@ -878,6 +884,13 @@ size_t tkbc_calculate_script_byte_size(Script script) {
   return result;
 }
 
+/**
+ * @brief Calculates the total allocated byte size of a script including its
+ * internal data.
+ *
+ * @param script The script to calculate the size for.
+ * @return size_t The total allocated byte size.
+ */
 size_t tkbc_calculate_script_byte_size_allocated(Script script) {
   size_t result = 0;
 

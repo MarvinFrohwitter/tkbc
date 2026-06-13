@@ -493,6 +493,17 @@ inline char *tkbc_find_rn_in_message_from_position(Message *message,
   return ptr;
 }
 
+/**
+ * @brief Handles parsing errors in received messages by skipping to the next
+ * valid message delimiter.
+ *
+ * @param message The received message buffer.
+ * @param lexer The lexer positioned at the error location.
+ * @param reset Set to true if a delimiter was found and position was advanced.
+ * @param display_errors If true, prints the error to stderr.
+ * @return true If an error was handled and position was advanced.
+ * @return false If no delimiter was found.
+ */
 inline bool tkbc_error_handling_of_received_message_handler(
     Message *message, Lexer *lexer, bool *reset, bool display_errors) {
 

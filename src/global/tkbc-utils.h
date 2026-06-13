@@ -628,6 +628,7 @@ bool is_mouse_double_click(int mouse_button) {
   static int last_release_time_ms;
   static bool waiting_for_second_click;
 
+  // TODO: Make this cross platform clock_gettime()
   struct timespec ts;
   if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));

@@ -9,6 +9,18 @@
 
 #include <stdbool.h>
 
+/**
+ * @brief Handles a SCRIPT message by parsing and registering a script from the
+ * client.
+ *
+ * @param env The global state of the application.
+ * @param lexer The lexer positioned at the message content.
+ * @param client The client that sent the script.
+ * @param script_alleady_there_parsing_skip Set to true if the script was
+ * already known and parsing was skipped.
+ * @return true If the script was parsed and registered successfully.
+ * @return false If parsing failed or the script was already known.
+ */
 bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
                           bool *script_alleady_there_parsing_skip) {
   Token token;

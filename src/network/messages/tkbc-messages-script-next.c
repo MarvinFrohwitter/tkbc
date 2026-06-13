@@ -9,6 +9,13 @@
 
 #include <stdbool.h>
 
+/**
+ * @brief Handles a SCRIPT_NEXT message by loading and activating the next
+ * script, deactivating non-script kites.
+ *
+ * @param lexer The lexer positioned at the message content.
+ * @return True if the script was loaded successfully, otherwise false.
+ */
 bool tkbc_messages_script_next(Lexer *lexer) {
   Token token;
   token = lexer_next(lexer);
