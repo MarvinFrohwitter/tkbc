@@ -73,7 +73,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
         Move_Action action = f->action.as_move;
         tkbc_dapf(&out, "MOVE ");
         tkbc_print_kites(&out, f->kite_id_array);
-        tkbc_dapf(&out, " %f %f", action.position.x, action.position.y);
+        tkbc_dapf(&out, " %G %G", action.position.x, action.position.y);
 
       } break;
 
@@ -81,7 +81,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
         Move_Add_Action action = f->action.as_move_add;
         tkbc_dapf(&out, "MOVE_ADD ");
         tkbc_print_kites(&out, f->kite_id_array);
-        tkbc_dapf(&out, " %f %f", action.position.x, action.position.y);
+        tkbc_dapf(&out, " %G %G", action.position.x, action.position.y);
 
       } break;
 
@@ -89,7 +89,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
         Rotation_Action action = f->action.as_rotation;
         tkbc_dapf(&out, "ROTATION ");
         tkbc_print_kites(&out, f->kite_id_array);
-        tkbc_dapf(&out, " %f", action.angle);
+        tkbc_dapf(&out, " %G", action.angle);
 
       } break;
 
@@ -97,7 +97,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
         Rotation_Add_Action action = f->action.as_rotation_add;
         tkbc_dapf(&out, "ROTATION_ADD ");
         tkbc_print_kites(&out, f->kite_id_array);
-        tkbc_dapf(&out, " %f", action.angle);
+        tkbc_dapf(&out, " %G", action.angle);
 
       } break;
 
@@ -105,7 +105,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
         Tip_Rotation_Action action = f->action.as_tip_rotation;
         tkbc_dapf(&out, "TIP_ROTATION ");
         tkbc_print_kites(&out, f->kite_id_array);
-        tkbc_dapf(&out, " %f %s", action.angle,
+        tkbc_dapf(&out, " %G %s", action.angle,
                   action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
       } break;
@@ -114,7 +114,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
         Tip_Rotation_Add_Action action = f->action.as_tip_rotation_add;
         tkbc_dapf(&out, "TIP_ROTATION_ADD ");
         tkbc_print_kites(&out, f->kite_id_array);
-        tkbc_dapf(&out, " %f %s", action.angle,
+        tkbc_dapf(&out, " %G %s", action.angle,
                   action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
       } break;
@@ -123,7 +123,8 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
         assert(0 && "UNREACHABLE tkbc_export_script_to_dot_kite_file_from_mem");
       }
 
-      tkbc_dapf(&out, " %f\n", f->duration);
+      tkbc_dapf(&out, " %G", f->duration);
+      tkbc_dapf(&out, "\n");
     }
 
     if (script->elements[frames].count > 1) {
