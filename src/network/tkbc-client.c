@@ -488,9 +488,14 @@ bool received_message_handler(Message *message) {
           texture_id = KITE_COLORIZER;
         }
 
-        if (texture_id == -1) {
+        if (texture_id == -1 && texture_data) {
           texture_id = tkbc_append_kite_image_and_kite_texture(
               texture_data, texture_width, texture_height, texture_format);
+        } else {
+          // The server does not have the texture this is a bug.
+          // The server want to request random image data. Related to kite_id
+          // that the client not necessary has.
+          assert(texture_data);
         }
 
         space_reset_tspace();
@@ -1028,6 +1033,8 @@ int main(int argc, char *argv[]) {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
   SetTargetFPS(TARGET_FPS);
+  tkbc_load_kite_images_and_textures();
+  SetWindowIcon(tkbc_get_asset_image(LOGO).as.image);
 
   srand(time(NULL));
   env = tkbc_init_env();
@@ -1145,7 +1152,6 @@ int main(int argc, char *argv[]) {
   tkbc_destroy_env(env);
 
   space_free_tspace();
-  tkbc_assets_destroy();
   space_free_space(&assets.space);
   CloseWindow();
   tkbc_fprintf(stderr, "INFO", "EXITED SUCCESSFULLY.\n");

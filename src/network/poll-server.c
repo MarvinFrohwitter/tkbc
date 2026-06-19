@@ -1232,7 +1232,6 @@ void signalhandler(int signal) {
   space_free_tspace();
 
   tkbc_destroy_env(env);
-  tkbc_assets_destroy_kite_images();
   space_free_space(&assets.space);
   exit(EXIT_SUCCESS);
 }

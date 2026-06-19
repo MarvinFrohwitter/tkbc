@@ -16,7 +16,6 @@
 #include "../global/tkbc-utils.h"
 #undef TKBC_UTILS_IMPLEMENTATION
 
-
 #include "tkbc-asset-handler.h"
 #include "tkbc-ffmpeg.h"
 #include "tkbc-input-handler.h"
@@ -52,6 +51,8 @@ int main(void) {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
   SetTargetFPS(TARGET_FPS);
+  tkbc_load_kite_images_and_textures();
+  SetWindowIcon(tkbc_get_asset_image(LOGO).as.image);
 
   srand(time(NULL));
   Env *env = tkbc_init_env();
@@ -63,8 +64,6 @@ int main(void) {
   }
   SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
-
-  tkbc_load_kite_images_and_textures();
 
   while (!WindowShouldClose()) {
     BeginDrawing();
@@ -107,7 +106,6 @@ int main(void) {
   tkbc_destroy_env(env);
 
   space_free_tspace();
-  tkbc_assets_destroy();
   space_free_space(&assets.space);
   CloseWindow();
   return 0;

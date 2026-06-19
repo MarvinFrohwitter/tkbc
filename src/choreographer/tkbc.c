@@ -11,6 +11,7 @@
 
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include "tkbc-asset-handler.h"
 #include "tkbc-keymaps.h"
 #include "tkbc-parser.h"
 #include "tkbc-script-handler.h"
@@ -136,7 +137,9 @@ Kite_State tkbc_init_kite(void) {
   // NOTE: For the server this should be ignored, thus no textures were loaded.
 #ifndef TKBC_SERVER
   assert(assets.count);
-  tkbc_set_kite_texture(state.kite, &assets.elements[0].kite_texture);
+
+  tkbc_set_kite_texture(state.kite,
+                        &tkbc_get_asset_kite_design(IMAGE_1).as.kite_texture);
 #endif
 
   return state;
@@ -174,6 +177,8 @@ void tkbc_destroy_env(Env *env) {
   space_free_space(&env->scripts_space);
   space_free_tspace();
   env->scratch_buf_script.name = NULL;
+
+  tkbc_assets_destroy();
 
   free(env);
   env = NULL;
@@ -415,6 +420,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
     tkbc_set_kite_internals(kite, fly_speed, turn_speed, body_color, top_color,
                             overlap, inner_space, spread, width, height, angle,
                             center, scale);
+    kite->texture_id = IMAGE_1;
 
   } else {
     center = kite->center;

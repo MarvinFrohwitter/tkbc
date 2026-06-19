@@ -77,7 +77,8 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
 
   Asset *asset = tkbc_find_asset_from_id(texture_id);
   assert(asset != NULL);
-  Kite_Texture *kite_texture = &asset->kite_texture;
+  Kite_Texture *kite_texture =
+      &tkbc_get_asset_kite_design(asset->id).as.kite_texture;
   assert(kite_texture != NULL);
   tkbc_set_kite_texture(state->kite, kite_texture);
 #endif
@@ -295,8 +296,6 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x,
   if (token.kind != NUMBER) {
     check_return(false);
   }
-
-
 
   *kite_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
   token = lexer_next(lexer);

@@ -249,13 +249,16 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
   space_dapf(space, message, "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
 
   if (texture_id == -1 || kite_state->kite->is_texture_new) {
-
-    space_dapf(space, message, "%d:", -1);
+    texture_id = -1;
+    space_dapf(space, message, "%zd:", texture_id);
 
     // NOTE: This is not nasally the KITE_COLORIZER position.
     assert(assets.count != 0);
-    Asset *asset = &assets.elements[assets.count - 1];
-    Kite_Image *kite_image = &asset->kite_image;
+
+    Asset *asset = &tkbc_get_asset_kite_design(assets.count - 1);
+
+    Kite_Image *kite_image =
+        &tkbc_get_asset_kite_design(asset->id).as.kite_image;
     tkbc_message_append_image_data(space, message, kite_image->normal,
                                    asset->id);
     kite_state->kite->is_texture_new = false;

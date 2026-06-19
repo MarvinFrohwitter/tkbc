@@ -14,20 +14,23 @@ typedef size_t Index; // NOTE: Check for clang compiler issue in project.
 typedef size_t Id;    // NOTE: Check for clang compiler issue in project.
 
 typedef enum {
-  IMAGE_1 = 0,
+  LOGO = 0,
+
+  KITE_DEFAULT_DESIGNS_BEGIN,
+  IMAGE_1 = KITE_DEFAULT_DESIGNS_BEGIN,
   IMAGE_2,
   IMAGE_3,
   IMAGE_4,
+  KITE_DEFAULT_DESIGNS_END = IMAGE_4,
 
-  IMAGE_SKELETON,
+  IMAGE_PANNEL_PARTS_BEGIN,
+  IMAGE_SKELETON = IMAGE_PANNEL_PARTS_BEGIN,
   IMAGE_FILLED_PANEL,
   IMAGE_SKELETON_LEADINGEDGE,
   IMAGE_LEADINGEDGE,
   IMAGE_GAZE,
 
-  IMAGE_PANNEL_PARTS_BEGIN,
-
-  IMAGE_LEFT_02_1 = IMAGE_PANNEL_PARTS_BEGIN,
+  IMAGE_LEFT_02_1,
   IMAGE_LEFT_03_1,
   IMAGE_LEFT_04_1,
   IMAGE_LEFT_05_1,
@@ -70,10 +73,11 @@ typedef enum {
   // --- New generated kite designs from the colorizer.
 
   ASSET_KITE_DESIGN_COUNT,
-} Asset_Kite_Design_Kind;
+} Asset_Id_Kind;
 
 typedef enum {
-  ASSETS_KITE_DESIGN_KIND,
+  ASSETS_IMAGE,
+  ASSETS_KITE_DESIGN,
   ASSETS_KIND_COUNT,
 } Assets_Kind;
 
@@ -91,8 +95,14 @@ typedef struct {
   Assets_Kind type;
   Id id;
 
-  Kite_Image kite_image;
-  Kite_Texture kite_texture;
+  union {
+    Image image;
+
+    struct {
+      Kite_Image kite_image;
+      Kite_Texture kite_texture;
+    };
+  } as;
 
 } Asset;
 

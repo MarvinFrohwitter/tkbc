@@ -33,7 +33,8 @@ bool tkbc_messages_get_texture(Lexer *lexer, Client *client) {
     // Can not provide texture.
     return false;
   }
-  Kite_Image *kite_image = &asset->kite_image;
+
+  Kite_Image *kite_image = &tkbc_get_asset_kite_design(asset->id).as.kite_image;
   if (kite_image == NULL) {
     // Can not provide texture.
     return false;
