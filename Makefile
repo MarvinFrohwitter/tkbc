@@ -10,7 +10,7 @@ INCLUDE += -DINCLUDE_RAYLIB -I ${RAYLIBPATH}/include/
 LIBS = -L ${RAYLIBPATH}/lib/
 LIBS += -l:libraylib.a
 LIBS += -lm -lX11
-CFLAGS = -x c -O3 -fPIC -Wall -Wextra -ggdb -std=gnu23
+CFLAGS = -x c -O0 -fPIC -Wall -Wextra -ggdb -std=gnu23
 DEBUG_CFLAGS =
 # DEBUG_CFLAGS += -fsanitize=address
 # DEBUG_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=undefined

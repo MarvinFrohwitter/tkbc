@@ -32,4 +32,6 @@ Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width,
                    assert(assets.elements[(kind)].type == ASSETS_KITE_DESIGN), \
                    (kind))]
 
+#define tkbc_get_asset(kind) assets.elements[(assert(assets.count > 0), (kind))]
+
 #endif // TKBC_ASSET_HANDLER_H_

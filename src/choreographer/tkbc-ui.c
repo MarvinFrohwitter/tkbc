@@ -1201,17 +1201,11 @@ key_skip:
     forward.y += forward.height + color_circle_radius * 0.5;
 
     float remainng_space = env->window_height - forward.y;
-    // This is the normal thing to do but i just want kites and not the reset
-    // of the textures (float)kite_textures.count;
-    int colorizer_place = 1;
 
     size_t amount = tkbc_get_current_kite_design_count();
-    int amount_to_display = (KITE_DEFAULT_DESIGNS_END - KITE_DEFAULT_DESIGNS_BEGIN + 1) + colorizer_place;
-    amount_to_display = amount - amount_to_display;
 
     float actual_padding = padding * 2;
-    padding = (remainng_space - actual_padding * amount_to_display) /
-              (float)amount_to_display;
+    padding = (remainng_space - actual_padding * amount) / (float)amount;
 
     Vector2 display_position = {
         .x = forward.x,
@@ -1220,12 +1214,10 @@ key_skip:
 
     float thick = 3;
     char alpha_threshold = 0;
-    for (size_t i = IMAGE_1; i < amount;
-         ++i, display_position.y += padding + actual_padding) {
-      if (i == IMAGE_PANNEL_PARTS_BEGIN) {
-        i = KITE_COLORIZER;
+    for (size_t i = 0; i < assets.count; ++i) {
+      if (tkbc_get_asset(i).type != ASSETS_KITE_DESIGN) {
+        continue;
       }
-      assert(assets.elements[i].type == ASSETS_KITE_DESIGN);
 
       Texture2D t = tkbc_get_asset_kite_design(i).as.kite_texture.normal;
       float scale = env->color_picker_base.width * 0.9 / t.width;
@@ -1257,6 +1249,15 @@ key_skip:
           .width = t.width * scale,
           .height = t.height * scale,
       };
+
+      //
+      // Update to the next display position so that continue will work
+      // correctly.
+      //
+      // This can not be done in the for(;; advance) advance part because the
+      // short-circuiting for not kite designs should not increase the
+      // display.
+      display_position.y += padding + actual_padding;
 
       if (env->color_picker_window_picking) {
         continue;
