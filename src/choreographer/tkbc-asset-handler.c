@@ -194,11 +194,14 @@ void tkbc_load_kite_images_and_textures(void) {
                    i);
     }
 
+    if (assets.elements[i].id >= IMAGE_PANNEL_PARTS_BEGIN &&
+        assets.elements[i].id <= IMAGE_PANNEL_PARTS_END) {
+      continue;
+    }
+
     tkbc_load_kite_texture_from_kite_image(assets.elements[i].kite_image,
                                            assets.elements[i].id);
-  }
 
-  for (size_t i = 0; i < assets.count; ++i) {
     if (!IsTextureValid(assets.elements[i].kite_texture.normal)) {
       tkbc_fprintf(stderr, "ERROR",
                    "Could not load normal kite texture: %zu.\n", i);
