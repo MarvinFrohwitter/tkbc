@@ -48,6 +48,7 @@ Id tkbc_append_kite_image(unsigned char *data, int width, int height,
                 .kite_image = kite_image,
                 .id = gloabl_asset_id_factory,
             }));
+
   return gloabl_asset_id_factory++;
 }
 
@@ -170,6 +171,9 @@ void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image,
       .normal = LoadTextureFromImage(kite_image.normal),
       .flipped = LoadTextureFromImage(kite_image.flipped),
   };
+
+  GenTextureMipmaps(&asset->kite_texture.normal);
+  GenTextureMipmaps(&asset->kite_texture.flipped);
 }
 
 /**
