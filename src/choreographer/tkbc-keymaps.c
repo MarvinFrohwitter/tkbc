@@ -490,12 +490,15 @@ bool tkbc_check_keymap(Key_Map keymap, Key_Map_Check_Config cfg, int kso) {
 
   if (keymap.selection_key && (kso & SELECTION_KEY) &&
       (cfg.selection_key != MODE_NULL)) {
+
+    bool ok = tkbc_check_key(keymap.selection_key, cfg.selection_key);
     if (cfg.is_or) {
-      result =
-          tkbc_check_key(keymap.selection_key, cfg.selection_key) || result;
+      result = ok || result;
     } else {
-      result =
-          tkbc_check_key(keymap.selection_key, cfg.selection_key) && result;
+      result = ok && result;
+      if (ok && !visited) {
+        result = ok;
+      }
     }
     visited = true;
   }
