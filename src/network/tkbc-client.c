@@ -1,5 +1,4 @@
 // TODO check for atoi, atol, atoll for 0 as failure. Maybe use strtol instead.
-#include <limits.h>
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
@@ -22,7 +21,6 @@
 
 #include <raylib.h>
 #include <raymath.h>
-
 
 #include "../choreographer/tkbc-asset-handler.h"
 #include "../choreographer/tkbc-ffmpeg.h"
@@ -61,6 +59,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
