@@ -115,7 +115,7 @@ bool tkbc_client_commandline_check(int argc, const char *program_name) {
  * @param host The address of the server the client should connect to.
  * @param port The port where the server is available.
  * @return The client socket if the creation and connection has succeeded,
- * otherwise the program crashes.
+ * otherwise -1;
  */
 int tkbc_client_socket_creation(const char *host, const char *port) {
 #ifdef _WIN32
@@ -139,12 +139,12 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
 #ifdef _WIN32
     WSACleanup();
 #endif
-    exit(1);
+    return -1;
   }
 
   //
   // Loop through all results and connect to the first we can
-  int client_socket;
+  int client_socket = -1;
   for (rp = servinfo; rp != NULL; rp = rp->ai_next) {
     client_socket = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
     if (client_socket == -1) {
@@ -198,7 +198,7 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
 #ifdef _WIN32
     WSACleanup();
 #endif
-    exit(1);
+    return -1;
   }
   // ==============================================================
 
@@ -212,11 +212,23 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
     tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
     closesocket(client_socket);
     WSACleanup();
-    exit(1);
+    return -1;
   }
 #else
   int flags = fcntl(client_socket, F_GETFL, 0);
-  fcntl(client_socket, F_SETFL, flags | O_NONBLOCK);
+  if (flags == -1) {
+    tkbc_fprintf(stderr, "ERROR", "Could not get socket flags: %s\n",
+                 strerror(errno));
+    close(client_socket);
+    return -1;
+  }
+  flags = fcntl(client_socket, F_SETFL, flags | O_NONBLOCK);
+  if (flags == -1) {
+    tkbc_fprintf(stderr, "ERROR", "Could not set the non-blocking: %s\n",
+                 strerror(errno));
+    close(client_socket);
+    return -1;
+  }
 #endif
 
   tkbc_fprintf(stderr, "INFO", "Connected to server: %s:%s\n", host, port);
@@ -707,6 +719,9 @@ static bool tkbc_update_kites_input_handling_for_message_single_kite_update(
   Vector2 pos = kite_state->kite->center;
   float angle = kite_state->kite->angle;
   tkbc_input_handler(env->keymaps, kite_state);
+  if (client.socket_id == -1) {
+    return true;
+  }
 
   // Rate limiting / data throttling
   float eps = 0.01;
@@ -928,6 +943,12 @@ void tkbc_client_file_handler(void) {
   size_t prev_kite_array_count = env->kite_array->count;
 
   tkbc_file_handler(env);
+  if (client.socket_id == -1) {
+    // TODO: Find a cleaner alternative // Find other places where that happens.
+    //  It is a little bit of a hack.
+    // This allows for offline mode.
+    return;
+  }
   if (env->scripts.count > 0 && env->scripts.count - env->send_scripts > 0) {
 
     tkbc_message_script();
@@ -1021,11 +1042,8 @@ int main(int argc, char *argv[]) {
     port = tkbc_shift_args(&argc, &argv);
   }
 
-  client.socket_id = tkbc_client_socket_creation(host, port);
-  space_init_capacity(&client.send_msg_buffer_space, BUFFER_CAPACITY);
-  space_init_capacity(&client.recv_msg_buffer_space, BUFFER_CAPACITY);
-
   const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
+
   SetTraceLogLevel(LOG_NONE);
 #ifdef _WIN32
   SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT |
@@ -1045,19 +1063,41 @@ int main(int argc, char *argv[]) {
   if (!env) {
     return 1;
   }
+  // The font loading has to happen before creating Popup's.
+  Popup disconnect =
+      tkbc_popup_message(env->font, "The server has disconnected!");
+  loading = tkbc_popup_message(env->font, "Waiting for server.");
+
+  bool sending_receiving = true;
+  { // This is defered to allow window creation, asset loading and env init.
+    client.socket_id = tkbc_client_socket_creation(host, port);
+    if (client.socket_id == -1) {
+      // Generate a base kite that you can fly. The server doesn't provide you a
+      // kite.
+      Kite_State s = tkbc_init_kite();
+      s.is_active = true;
+      s.kite_id = env->kite_id_counter++;
+      client.kite_id = s.kite_id;
+      s.is_kite_input_handler_active = true;
+      client_kite = *s.kite;
+      tkbc_dap(env->kite_array, s);
+      sending_receiving = false;
+      loading.active = false;
+    } else {
+      loading.active = true;
+      space_init_capacity(&client.send_msg_buffer_space, BUFFER_CAPACITY);
+      space_init_capacity(&client.recv_msg_buffer_space, BUFFER_CAPACITY);
+    }
+  }
+
   if (tkbc_load_keymaps_from_file(&env->keymaps, ".tkbc-keymaps")) {
     tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
   }
   SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
 
-  Popup disconnect =
-      tkbc_popup_message(env->font, "The server has disconnected!");
-  loading = tkbc_popup_message(env->font, "Waiting for server.");
-  loading.active = true;
-
-  bool sending_receiving = true;
   while (!WindowShouldClose()) {
+
     if (sending_receiving) {
       if (!message_queue_handler()) {
         disconnect.active = true;
@@ -1084,7 +1124,26 @@ int main(int argc, char *argv[]) {
       tkbc_popup_resize(&loading);
       tkbc_draw_popup(&loading);
     } else {
-      sending_script_handler();
+
+      if (sending_receiving) {
+        sending_script_handler();
+      } else {
+        // Offline Mode.
+        if (env->script_setup) {
+          // For detection if the begin and end is called correctly.
+          env->script_setup = false;
+          tkbc__script_input(env);
+          env->scripts_parsed = true;
+
+#ifndef RELEASE
+          tkbc_debug_print_and_export_all_scripts(NULL, env);
+#endif // RELEASE
+        }
+
+        if (!tkbc_script_finished(env)) {
+          tkbc_script_update_frames(env);
+        }
+      }
 
       tkbc_update_kites_for_resize_window(env);
       tkbc_draw_kite_array(env->kite_array);
@@ -1109,7 +1168,11 @@ int main(int argc, char *argv[]) {
     if (!env->keymaps_interaction && !env->script_menu_interaction) {
       tkbc_input_sound_handler(env);
       tkbc_client_input_handler_kite();
-      tkbc_client_input_handler_script();
+      if (client.socket_id == -1) {
+        tkbc_input_handler_script(env);
+      } else {
+        tkbc_client_input_handler_script();
+      }
     }
 
     // The end of the current frame has to be executed so ffmpeg gets the full
@@ -1117,38 +1180,40 @@ int main(int argc, char *argv[]) {
     tkbc_ffmpeg_handler(env, "output.mp4");
   };
 
-  space_free_space(&client.send_msg_buffer_space);
-  space_free_space(&client.recv_msg_buffer_space);
-  client.recv_msg_buffer.elements = NULL;
-  client.send_msg_buffer.elements = NULL;
+  if (client.socket_id != -1) {
+    space_free_space(&client.send_msg_buffer_space);
+    space_free_space(&client.recv_msg_buffer_space);
+    client.recv_msg_buffer.elements = NULL;
+    client.send_msg_buffer.elements = NULL;
 
-  shutdown(client.socket_id, SHUT_WR);
-  char buf[1024] = {0};
-  int n;
-  do {
-    n = read(client.socket_id, buf, sizeof(buf));
-  } while (n > 0);
+    shutdown(client.socket_id, SHUT_WR);
+    char buf[1024] = {0};
+    int n;
+    do {
+      n = read(client.socket_id, buf, sizeof(buf));
+    } while (n > 0);
 
-  if (n == 0) {
-    tkbc_fprintf(stderr, "INFO", "Could not read any more data.\n");
-  }
-  if (n < 0) {
-    tkbc_fprintf(stderr, "ERROR", "Reading failed: %s\n", strerror(errno));
-  }
+    if (n == 0) {
+      tkbc_fprintf(stderr, "INFO", "Could not read any more data.\n");
+    }
+    if (n < 0) {
+      tkbc_fprintf(stderr, "ERROR", "Reading failed: %s\n", strerror(errno));
+    }
 
 #ifdef _WIN32
-  if (closesocket(client.socket_id) == -1) {
+    if (closesocket(client.socket_id) == -1) {
 
-    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
-                 WSAGetLastError());
-  }
-  WSACleanup();
+      tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
+                   WSAGetLastError());
+    }
+    WSACleanup();
 #else
-  if (close(client.socket_id) == -1) {
-    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
-                 strerror(errno));
-  }
+    if (close(client.socket_id) == -1) {
+      tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
+                   strerror(errno));
+    }
 #endif
+  }
 
   tkbc_sound_destroy(env->sound);
   tkbc_destroy_env(env);
