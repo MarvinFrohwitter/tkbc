@@ -8,6 +8,14 @@
 Kite_Images kite_images;
 Kite_Textures kite_textures;
 
+/**
+ * @brief Test program entry point.
+ *
+ * Initialises global kite data, runs geometric and script handler
+ * tests, prints results, then cleans up.
+ *
+ * @return 0 on success.
+ */
 int main(void) {
   cassert_tests {
     tkbc_test_geometrics(&tests);

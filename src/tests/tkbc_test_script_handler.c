@@ -442,6 +442,11 @@ Test calculate_script_byte_size_allocated(void) {
   return test;
 }
 
+/**
+ * @brief Run all script handler unit tests.
+ *
+ * @param tests Pointer to the Tests struct to register results in.
+ */
 void tkbc_test_script_handler(Tests *tests) {
   cassert_dap(tests, init_frame());
   cassert_dap(tests, get_kite_by_id());

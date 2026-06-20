@@ -317,6 +317,11 @@ Test tip_rotation_right(void) {
   return test;
 }
 
+/**
+ * @brief Run all geometric unit tests.
+ *
+ * @param tests Pointer to the Tests struct to register results in.
+ */
 void tkbc_test_geometrics(Tests *tests) {
   cassert_dap(tests, center_rotation());
   cassert_dap(tests, tip_rotation_left());

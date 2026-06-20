@@ -277,10 +277,11 @@ void tkbc_remove_connection_retry(Client client) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief Close a socket file descriptor in a cross platform way and logs the
+ * error.
  *
- * @param __fd [TODO:parameter]
- * @return [TODO:return]
+ * @param __fd The socket file descriptor to close.
+ * @return true on success, false on error.
  */
 bool tkbc_close(int __fd) {
 #ifdef _WIN32

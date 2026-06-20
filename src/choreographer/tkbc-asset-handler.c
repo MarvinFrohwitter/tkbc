@@ -84,6 +84,12 @@ Id tkbc_append_asset_image(unsigned char *data, int width, int height,
   return gloabl_asset_id_factory++;
 }
 
+/**
+ * @brief Append all kite image assets to the global asset list.
+ *
+ * Registers the predefined kite panel kite images, Skeleton, Filled Panel,
+ * Leadingedge, Gaze, etc.
+ */
 void tkbc_append_kite_image_pannels() {
   tkbc_append_asset_image(image_Skeleton, IMAGE_Skeleton_WIDTH,
                           IMAGE_Skeleton_HEIGHT, IMAGE_Skeleton_FORMAT);
