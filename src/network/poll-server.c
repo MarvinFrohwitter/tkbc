@@ -441,8 +441,11 @@ void tkbc_client_prolog(Client *client) {
 
 /**
  * @brief The function handles the accept call of new clients.
+ *
+ * @return True if the accept has worked and a new client was registered, false
+ * if an error occurred.
  */
-void tkbc_server_accept(void) {
+bool tkbc_server_accept(void) {
 
   SOCKADDR_IN client_address;
   SOCKLEN address_length = sizeof(client_address);
@@ -452,7 +455,7 @@ void tkbc_server_accept(void) {
   if (client_socket_id == -1) {
     if (errno != EAGAIN) {
       tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-      assert(0 && "accept error");
+      return false;
     }
   } else {
 
@@ -463,12 +466,25 @@ void tkbc_server_accept(void) {
       tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
       closesocket(client_socket_id);
       WSACleanup();
-      exit(1);
+      return false;
     }
 #else
     // Set the socket to non-blocking
     int flags = fcntl(client_socket_id, F_GETFL, 0);
-    fcntl(client_socket_id, F_SETFL, flags | O_NONBLOCK);
+
+    if (flags == -1) {
+      tkbc_fprintf(stderr, "ERROR", "Could not get socket flags: %s\n",
+                   strerror(errno));
+      close(client_socket_id);
+      return false;
+    }
+    flags = fcntl(client_socket_id, F_SETFL, flags | O_NONBLOCK);
+    if (flags == -1) {
+      tkbc_fprintf(stderr, "ERROR", "Could not get socket flags: %s\n",
+                   strerror(errno));
+      close(client_socket_id);
+      return false;
+    }
 #endif // _WIN32
 
     clients_visited++;
@@ -502,6 +518,7 @@ void tkbc_server_accept(void) {
 
     tkbc_client_prolog(&clients.elements[clients.count - 1]);
   }
+  return true;
 }
 
 /**
@@ -1059,7 +1076,20 @@ int main(int argc, char *argv[]) {
 #else
   // Set the socket to non-blocking
   int flags = fcntl(server_socket, F_GETFL, 0);
-  fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
+  if (flags == -1) {
+    tkbc_fprintf(stderr, "ERROR", "Could not get server socket flags: %s\n",
+                 strerror(errno));
+    close(server_socket);
+    exit(1);
+  }
+  flags = fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
+  if (flags == -1) {
+    tkbc_fprintf(stderr, "ERROR",
+                 "Could not set the server socket to non-blocking: %s\n",
+                 strerror(errno));
+    close(server_socket);
+    exit(1);
+  }
 #endif // _WIN32
 
   srand(time(NULL));
