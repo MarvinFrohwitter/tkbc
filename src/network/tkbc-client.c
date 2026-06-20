@@ -724,8 +724,14 @@ static bool tkbc_update_kites_input_handling_for_message_single_kite_update(
     return true;
   }
 
+  // NOTE:
   // Rate limiting / data throttling
-  float eps = 0.01;
+  //
+  // Do not completely remove this because fps will be the message count the
+  // server has to handle from this client per second.
+  //
+  // Marvin Frohwitter 20.06.2026
+  float eps = 0.0001;
   if (tkbc_float_equals_epsilon(angle, kite_state->kite->angle, eps) &&
       tkbc_vector2_equals_epsilon(pos, kite_state->kite->center, eps)) {
     return false;
