@@ -404,27 +404,23 @@ long tkbc_read_entire_file(const char *filename, Content *content) {
   long ok = 0;
   FILE *file = fopen(filename, "rb");
   if (file == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
-                 strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
     ok = -1;
     goto error;
   }
   if (fseek(file, 0, SEEK_END) < 0) {
-    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
-                 strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
     ok = -1;
     goto error;
   }
   long size = ftell(file);
   if (size < 0) {
-    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
-                 strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
     ok = -1;
     goto error;
   }
   if (fseek(file, 0, SEEK_SET) < 0) {
-    tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
-                 strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
     ok = -1;
     goto error;
   }
@@ -434,8 +430,8 @@ long tkbc_read_entire_file(const char *filename, Content *content) {
     content->elements =
         realloc(content->elements, sizeof(*content->elements) * size_pow2);
     if (content->elements == NULL) {
-      tkbc_fprintf(stderr, "ERROR", "%s:%d:allocation has failed!\n", __FILE__,
-                   __LINE__);
+      tkbc_fprintf(stderr, "ERROR", "%s:%d:allocation has failed for file %s\n",
+                   __FILE__, __LINE__, filename);
       ok = -1;
       goto error;
     }
@@ -464,8 +460,7 @@ long tkbc_read_entire_file(const char *filename, Content *content) {
 error:
   if (file) {
     if (fclose(file) == EOF) {
-      tkbc_fprintf(stderr, "ERROR", "%s:%d:%s\n", __FILE__, __LINE__,
-                   strerror(errno));
+      tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
       return -1;
     }
   }
@@ -488,7 +483,7 @@ int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
   int ok = 0;
   FILE *file = fopen(filename, mode);
   if (file == NULL) {
-    fprintf(stderr, "ERROR: %s:%d:%s\n", __FILE__, __LINE__, strerror(errno));
+      tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
     ok = -1;
     return ok;
   }
@@ -497,7 +492,7 @@ int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
   if (err != size) {
     ok = -1;
     if (feof(file) != 0) {
-      fprintf(stderr, "ERROR:%s:%d: while wiring the file EOF has occurred.\n",
+      fprintf(stderr, "ERROR:%s:%d: while writing the file EOF has occurred.\n",
               __FILE__, __LINE__);
     } else if (ferror(file) != 0) {
       fprintf(stderr, "ERROR:%s:%d: while writing the file.\n", __FILE__,
@@ -506,7 +501,7 @@ int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
   }
 
   if (fclose(file) == EOF) {
-    fprintf(stderr, "ERROR:%s:%d:%s", __FILE__, __LINE__, strerror(errno));
+      tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
     ok = -1;
   }
   return ok;
