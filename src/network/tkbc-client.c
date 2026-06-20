@@ -6,6 +6,8 @@
 #define BUFFER_CAPACITY 1024 * 1024
 
 #define SPACEDEF inline
+#include "tkbc-servers-common.h"
+
 #define SPACE_IMPLEMENTATION
 #include "../../external/space/space.h"
 #undef SPACE_IMPLEMENTATION
