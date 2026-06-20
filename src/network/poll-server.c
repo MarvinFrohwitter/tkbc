@@ -431,6 +431,7 @@ void tkbc_client_prolog(Client *client) {
 
   Kite_State kite_state = tkbc_init_kite();
   kite_state.kite_id = client->kite_id;
+  kite_state.is_active = true;
   float r = (float)rand() / (float)RAND_MAX;
   kite_state.kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
   if (!tkbc_script_finished(env) || env->script != NULL) {
