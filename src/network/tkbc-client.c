@@ -505,13 +505,14 @@ bool received_message_handler(Message *message) {
         if (texture_id == -1 && texture_data) {
           texture_id = tkbc_append_kite_image_and_kite_texture(
               texture_data, texture_width, texture_height, texture_format);
-        // } else {
-        //   if (!found) {
-        //     // The server does not have the texture this is a bug.
-        //     // The server want to request random image data. Related to kite_id
-        //     // that the client not necessary has.
-        //     assert(texture_data);
-        //   }
+          // } else {
+          //   if (!found) {
+          //     // The server does not have the texture this is a bug.
+          //     // The server want to request random image data. Related to
+          //     kite_id
+          //     // that the client not necessary has.
+          //     assert(texture_data);
+          //   }
         }
 
         space_reset_tspace();
