@@ -1049,8 +1049,6 @@ int main(int argc, char *argv[]) {
   SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
   tkbc_init_sound(40);
 
-  tkbc_load_kite_images_and_textures();
-
   Popup disconnect =
       tkbc_popup_message(env->font, "The server has disconnected!");
   loading = tkbc_popup_message(env->font, "Waiting for server.");
