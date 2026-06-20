@@ -481,37 +481,44 @@ static bool tkbc_check_key(int key, Key_Mode mode) {
  * @return True if the keymap matches the configuration, otherwise false.
  */
 bool tkbc_check_keymap(Key_Map keymap, Key_Map_Check_Config cfg, int kso) {
-  bool result = false;
-  bool visited = false;
+  bool key_check = false;
+  bool selection_check = false;
+  bool mod_check = false;
+  bool has_key = false;
+  bool has_selection = false;
+  bool has_mod = false;
+
   if (keymap.key && (kso & KEY) && (cfg.key != MODE_NULL)) {
-    result = tkbc_check_key(keymap.key, cfg.key);
-    visited = true;
+    key_check = tkbc_check_key(keymap.key, cfg.key);
+    has_key = true;
   }
 
   if (keymap.selection_key && (kso & SELECTION_KEY) &&
       (cfg.selection_key != MODE_NULL)) {
-
-    bool ok = tkbc_check_key(keymap.selection_key, cfg.selection_key);
-    if (cfg.is_or) {
-      result = ok || result;
-    } else {
-      result = ok && result;
-      if (ok && !visited) {
-        result = ok;
-      }
-    }
-    visited = true;
+    selection_check = tkbc_check_key(keymap.selection_key, cfg.selection_key);
+    has_selection = true;
   }
 
   if (keymap.mod_key && (kso & MOD_KEY) && (cfg.mod_key != MODE_NULL)) {
-    bool ok = tkbc_check_key(keymap.mod_key, cfg.mod_key);
-    result = ok && result;
-    if (ok && !visited) {
-      result = ok;
-    }
+    mod_check = tkbc_check_key(keymap.mod_key, cfg.mod_key);
+    has_mod = true;
   }
 
-  return result;
+  bool base = false;
+  if (has_key && has_selection) {
+    base = cfg.is_or ? (key_check || selection_check)
+                     : (key_check && selection_check);
+  } else if (has_key) {
+    base = key_check;
+  } else if (has_selection) {
+    base = selection_check;
+  }
+
+  if (has_mod) {
+    return (has_key || has_selection) ? (base && mod_check) : mod_check;
+  }
+
+  return base;
 }
 
 /**

@@ -39,11 +39,11 @@ static Key_Map default_keymaps[] = {
 
     // KEY_1|...|KEY_9 Toggles the selection of a kite.
 
-    {
-        .description = "Rotate all selected kites angle 0.",
-        .key = KEY_X,
-        .hash = KMH_ROTATE_KITES_ANGLE_ZERO,
-    },
+    // {
+    //     .description = "Rotate all selected kites angle 0.",
+    //     .key = KEY_X,
+    //     .hash = KMH_ROTATE_KITES_ANGLE_ZERO,
+    // },
 
     {
         .description = "Rotate all selected kites at the left tip clockwise.",
