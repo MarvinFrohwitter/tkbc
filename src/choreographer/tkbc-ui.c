@@ -929,6 +929,27 @@ void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
 }
 
 /**
+ * @brief Checks for all keys that can be a valid hex key. If there are pressed
+ * one or pressed repeat.
+ *
+ * @return The hex color key that is down or 0 if no color key is down.
+ */
+KeyboardKey tkbc_is_hex_color_key_down() {
+  static KeyboardKey keys[] = {
+      KEY_ZERO, KEY_ONE,   KEY_TWO,   KEY_THREE, KEY_FOUR, KEY_FIVE,
+      KEY_SIX,  KEY_SEVEN, KEY_EIGHT, KEY_NINE,  KEY_A,    KEY_B,
+      KEY_C,    KEY_D,     KEY_E,     KEY_F,
+  };
+
+  for (KeyboardKey key = 0; key < ARRAY_LENGTH(keys); ++key) {
+    if (IsKeyPressedRepeat(keys[key]) || IsKeyPressed(keys[key])) {
+      return keys[key];
+    }
+  }
+  return KEY_NULL;
+}
+
+/**
  * @brief The function manages and displays the color picker where the user
  * can select new colors for the currently selected kites.
  *
@@ -977,14 +998,12 @@ void tkbc_ui_color_picker(Env *env) {
   size_t char_amount = strlen(env->color_picker_input_text);
 
   Vector2 mouse = GetMousePosition();
-  int key = GetKeyPressed();
   if (CheckCollisionPointRec(mouse, input_box) &&
       IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
     env->color_picker_input_mouse_interaction = true;
   }
 
-  if (key == KEY_ENTER ||
-      key == tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS)) {
+  if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
     env->color_picker_input_mouse_interaction = false;
     goto key_skip;
   }
@@ -993,12 +1012,14 @@ void tkbc_ui_color_picker(Env *env) {
     goto key_skip;
   }
 
-  // if (key == KEY_BACKSPACE) {
-  if (IsKeyDown(KEY_BACKSPACE)) {
+  // For slow and fast key repetition detection.
+  if (IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) {
     if (char_amount > 1) {
       env->color_picker_input_text[char_amount - 1] = '\0';
     }
-  } else if (is_key_valid_part_of_hex_number(key)) {
+  }
+  KeyboardKey key = tkbc_is_hex_color_key_down();
+  if (key != KEY_NULL) {
     if (char_amount > HEX_COLOR_LENGTH) {
       goto key_skip;
     }

@@ -24,6 +24,7 @@ void tkbc_ui_keymaps(Env *env);
 
 void tkbc_set_input_text_to_hex_color(char **text, Color color);
 
+KeyboardKey tkbc_is_hex_color_key_down();
 void tkbc_ui_color_picker(Env *env);
 void tkbc_set_color_for_selected_kites(Env *env, Color color);
 void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
