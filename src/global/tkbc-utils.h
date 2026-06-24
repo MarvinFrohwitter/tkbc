@@ -483,7 +483,7 @@ int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
   int ok = 0;
   FILE *file = fopen(filename, mode);
   if (file == NULL) {
-      tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
     ok = -1;
     return ok;
   }
@@ -501,7 +501,7 @@ int tkbc_write_file_mode(const char *filename, const void *buffer, size_t size,
   }
 
   if (fclose(file) == EOF) {
-      tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
+    tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
     ok = -1;
   }
   return ok;
@@ -897,13 +897,15 @@ unsigned char *tkbc_get_position_in_image(Image image, int x, int y) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function computes the maximum font size that can be used to
+ * display the given text inside a given bounding box.
  *
- * @param font [TODO:parameter]
- * @param str [TODO:parameter]
- * @param font_size [TODO:parameter]
- * @param bounding_box [TODO:parameter]
- * @return [TODO:return]
+ * @param font The font that represents the glyph sizes.
+ * @param str The text that should fit in the bounding_box.
+ * @param font_size The font size the str has to be displayed at to fit the
+ * bounding_box.
+ * @param bounding_box The rectangle where the text str should fit in.
+ * @return The text with and height that fits the bounding_box.
  */
 Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size,
                                    Rectangle bounding_box) {
