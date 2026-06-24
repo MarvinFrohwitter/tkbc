@@ -153,8 +153,8 @@ Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image,
  */
 void tkbc_dispatch_colorizer_mode(Env *env, Image image,
                                   Rectangle collision_rec, float scale) {
-  // TODO: Make the key map customizable for the user.
-  if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) &&
+
+  if (tkbc_check_key(KEY_LEFT_CONTROL, MODE_DOWN) &&
       IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
     tkbc_colorizer(env, image, collision_rec, scale, SELECT_COLOR);
   } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -425,8 +425,7 @@ void tkbc_ui_post_handler(Env *env) {
     return;
   }
 
-  // TODO: Make the key map customizable for the user.
-  if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) &&
+  if (tkbc_check_key(KEY_LEFT_CONTROL, MODE_DOWN) &&
       IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
     env->color_picker_window_picking = true;
     Color c = tkbc_get_color_from_screen_position(GetMousePosition());

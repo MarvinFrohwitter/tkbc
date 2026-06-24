@@ -437,7 +437,7 @@ const char *tkbc_key_to_str(int key) {
  * @param mode The mode to check against (DOWN, PRESSED, UP, RELEASED).
  * @return True if the key is in the given mode state, otherwise false.
  */
-static bool tkbc_check_key(int key, Key_Mode mode) {
+bool tkbc_check_key(int key, Key_Mode mode) {
   bool result = false;
   bool check = false;
   if (key == KEY_LEFT_SHIFT) {

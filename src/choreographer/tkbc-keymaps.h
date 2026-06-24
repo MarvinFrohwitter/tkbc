@@ -15,10 +15,13 @@ const char *tkbc_key_to_str(int key);
 int tkbc_hash_to_key(Key_Maps keymaps, int hash);
 Key_Map tkbc_hash_to_keymap(Key_Maps keymaps, int hash);
 
+bool tkbc_check_key(int key, Key_Mode mode);
 bool tkbc_check_keymap(Key_Map keymap, Key_Map_Check_Config cfg, int kso);
 bool tkbc_check_keymap_full(Key_Map keymap, Key_Map_Check_Config cfg);
-bool tkbc_check_keymaps(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg, int kso);
-bool tkbc_check_keymaps_full(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg);
+bool tkbc_check_keymaps(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg,
+                        int kso);
+bool tkbc_check_keymaps_full(Key_Maps keymaps, int hash,
+                             Key_Map_Check_Config cfg);
 
 #define KEY_CONFIG(value_key, value_mode_key, value_selection_key)             \
   ((Key_Map_Check_Config){.key = (value_key),                                  \
