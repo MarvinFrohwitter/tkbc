@@ -723,9 +723,6 @@ void tkbc_draw_kite_array(Kite_States *kite_states) {
  * @param env The global state of the application.
  */
 void tkbc_update_kites_for_resize_window(Env *env) {
-  // TODO: Decide what to do with the dynamic simulations. They are bound
-  // sometimes to fixed sizes in the script and can't be moved that easy to
-  // the new dimensions.
   if (!env->script_finished) {
     return;
   }
