@@ -208,8 +208,9 @@ bool space_report_allocations(Space *space, Space_Report *report);
   space_dapf_impl(space, space_realloc_force_new_planet, dynamic_array, fmt,   \
                   ##__VA_ARGS__)
 
-// TODO: Make space_snprintf and alias space_sprintf
 void *space_printf(Space *space, const char *fmt, ...);
+void *space_snprintf(Space *space, int n, const char *fmt, ...);
+#define space_sprintf(space, fmt, ...) space_printf(space, fmt, ##__VA_ARGS__)
 void *space_catf(Space *space, const void *first, size_t first_len,
                  const char *fmt, ...);
 void *space_strcat(Space *space, const char *first, const char *second);
@@ -288,6 +289,10 @@ Space *space_get_tspace(void);
 
 #define space_tprintf(fmt, ...)                                                \
   space_printf(space_get_tspace(), fmt, ##__VA_ARGS__)
+#define space_tsprintf(fmt, ...)                                               \
+  space_sprintf(space_get_tspace(), fmt, ##__VA_ARGS__)
+#define space_tsnprintf(n, fmt, ...)                                           \
+  space_snprintf(space_get_tspace(), n, fmt, ##__VA_ARGS__);
 #define space_tcatf(first, first_len, fmt, ...)                                \
   space_catf(space_get_tspace(), first, first_len, fmt, ##__VA_ARGS__)
 #define space_tstrcat(first, second)                                           \
@@ -317,10 +322,11 @@ Space *space_get_tspace(void);
 /**
  * @brief Gets a pointer to the thread-local temporary space allocator.
  *
- * This function returns a static Space instance that can be used for temporary
- * allocations without needing to create and manage a Space structure manually.
- * The temporary space persists across calls and should be reset or freed
- * when no longer needed using space_reset_tspace() or space_free_tspace().
+ * This function returns a static Space instance that can be used for
+ * temporary allocations without needing to create and manage a Space
+ * structure manually. The temporary space persists across calls and should
+ * be reset or freed when no longer needed using space_reset_tspace() or
+ * space_free_tspace().
  *
  * @return Pointer to the static temporary Space structure.
  */
@@ -345,11 +351,57 @@ SPACEDEF Space *space_get_tspace(void) {
  * in place, false otherwise.
  */
 SPACEDEF bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
-                                             size_t ptr_size) {
+                                                      size_t ptr_size) {
   if (!p || !ptr || ptr_size > p->count) {
     return false;
   }
   return (char *)p->elements + p->count - ptr_size == ptr;
+}
+
+/**
+ * @brief Allocates memory in the space and writes a formatted string into it.
+ *
+ * This function works similarly to snprintf but allocates memory from
+ * the space allocator instead of a static buffer. The formatted string is
+ * stored in allocated memory that will be freed when the space is reset or
+ * freed.
+
+ * @param space Pointer to the Space structure used for allocation.
+ * @param n Maximum number of characters that should be part of the
+ * null-terminated resulting string.
+ * @param fmt A null-terminated format string following printf conventions.
+ * @return Pointer to the allocated formatted string, or NULL on failure.
+ */
+SPACEDEF void *space_snprintf(Space *space, int n, const char *fmt, ...) {
+  if (!space || !fmt || n == 0) {
+    return NULL;
+  }
+
+  va_list args;
+  va_start(args, fmt);
+  int sn = vsnprintf(NULL, 0, fmt, args);
+  va_end(args);
+  if (sn == -1) {
+    return NULL;
+  }
+  if (sn < n) {
+    n = sn;
+  }
+  n += 1;
+
+  char *ptr = space_malloc(space, sizeof(*ptr) * n);
+  if (ptr == NULL) {
+    return NULL;
+  }
+
+  va_start(args, fmt);
+  int err = vsnprintf(ptr, n, fmt, args);
+  va_end(args);
+  if (err == -1) {
+    return NULL;
+  }
+
+  return ptr;
 }
 
 /**
@@ -609,7 +661,7 @@ alloc: {}
  * @return Pointer to the concatenated buffer, or NULL on failure.
  */
 SPACEDEF void *space_catf(Space *space, const void *first, size_t first_len,
-                 const char *fmt, ...) {
+                          const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   int n = vsnprintf(NULL, 0, fmt, args);
@@ -667,7 +719,8 @@ SPACEDEF void *space_catf(Space *space, const void *first, size_t first_len,
  * @return Pointer to the concatenated null-terminated string, or NULL on
  * failure.
  */
-SPACEDEF void *space_strcat(Space *space, const char *first, const char *second) {
+SPACEDEF void *space_strcat(Space *space, const char *first,
+                            const char *second) {
   void *ptr = NULL;
   if (!space || (!first && !second)) {
     return ptr;
@@ -936,8 +989,9 @@ SPACEDEF void space_free_planet(Space *space, Planet *planet) {
  * @param free_data If true, frees both the planet structure and its data
  * buffer; if false, only frees the planet structure itself.
  */
-SPACEDEF void space_free_planet_optional_freeing_data(Space *space, Planet *planet,
-                                             bool free_data) {
+SPACEDEF void space_free_planet_optional_freeing_data(Space *space,
+                                                      Planet *planet,
+                                                      bool free_data) {
   if (!planet || !space || !space->sun) {
     return;
   }
@@ -1136,7 +1190,7 @@ SPACEDEF void space_reset_space_and_zero(Space *space) {
  * @return Pointer to the allocated memory, or NULL on failure.
  */
 SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
-                           size_t *planet_id, bool force_new_planet) {
+                                    size_t *planet_id, bool force_new_planet) {
   if (!space) {
     *planet_id = 0;
     return NULL;
@@ -1224,8 +1278,9 @@ SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
  * @param planet_id Pointer to store the ID of the newly created planet.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_malloc_planetid_force_new_planet(Space *space, size_t size_in_bytes,
-                                             size_t *planet_id) {
+SPACEDEF void *space_malloc_planetid_force_new_planet(Space *space,
+                                                      size_t size_in_bytes,
+                                                      size_t *planet_id) {
   return space_alloc_planetid(space, size_in_bytes, planet_id, true);
 }
 
@@ -1243,8 +1298,9 @@ SPACEDEF void *space_malloc_planetid_force_new_planet(Space *space, size_t size_
  * @param planet_id Pointer to store the ID of the newly created planet.
  * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
  */
-SPACEDEF void *space_calloc_planetid_force_new_planet(Space *space, size_t nmemb,
-                                             size_t size, size_t *planet_id) {
+SPACEDEF void *space_calloc_planetid_force_new_planet(Space *space,
+                                                      size_t nmemb, size_t size,
+                                                      size_t *planet_id) {
   size_t size_in_bytes = nmemb * size;
   void *ptr =
       space_malloc_planetid_force_new_planet(space, size_in_bytes, planet_id);
@@ -1265,8 +1321,9 @@ SPACEDEF void *space_calloc_planetid_force_new_planet(Space *space, size_t nmemb
  * @return Pointer to the reallocated memory, or NULL on failure.
  */
 SPACEDEF void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
-                                              size_t old_size, size_t new_size,
-                                              size_t *planet_id) {
+                                                       size_t old_size,
+                                                       size_t new_size,
+                                                       size_t *planet_id) {
 
   char *new_ptr =
       space_malloc_planetid_force_new_planet(space, new_size, planet_id);
@@ -1301,7 +1358,7 @@ SPACEDEF void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
  * @return Pointer to the allocated memory, or NULL on failure.
  */
 SPACEDEF void *space_malloc_planetid(Space *space, size_t size_in_bytes,
-                            size_t *planet_id) {
+                                     size_t *planet_id) {
   return space_alloc_planetid(space, size_in_bytes, planet_id, false);
 }
 
@@ -1322,7 +1379,7 @@ SPACEDEF void *space_malloc_planetid(Space *space, size_t size_in_bytes,
  * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
  */
 SPACEDEF void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
-                            size_t *planet_id) {
+                                     size_t *planet_id) {
   size_t size_in_bytes = nmemb * size;
   void *ptr = space_malloc_planetid(space, size_in_bytes, planet_id);
   if (ptr) {
@@ -1348,7 +1405,7 @@ SPACEDEF void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
  * @return Pointer to the resized memory, or NULL on failure.
  */
 SPACEDEF void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
-                             size_t new_size, size_t *planet_id) {
+                                      size_t new_size, size_t *planet_id) {
   if (old_size >= new_size) {
     Planet *p = space_find_planet_from_ptr(space, ptr);
     if (p) {
@@ -1407,7 +1464,8 @@ SPACEDEF void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
  * @param size_in_bytes The number of bytes to allocate.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_malloc_force_new_planet(Space *space, size_t size_in_bytes) {
+SPACEDEF void *space_malloc_force_new_planet(Space *space,
+                                             size_t size_in_bytes) {
   size_t id;
   return space_malloc_planetid_force_new_planet(space, size_in_bytes, &id);
 }
@@ -1424,7 +1482,8 @@ SPACEDEF void *space_malloc_force_new_planet(Space *space, size_t size_in_bytes)
  * @param size Size of each element in bytes.
  * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
  */
-SPACEDEF void *space_calloc_force_new_planet(Space *space, size_t nmemb, size_t size) {
+SPACEDEF void *space_calloc_force_new_planet(Space *space, size_t nmemb,
+                                             size_t size) {
   size_t id;
   return space_calloc_planetid_force_new_planet(space, nmemb, size, &id);
 }
@@ -1443,8 +1502,9 @@ SPACEDEF void *space_calloc_force_new_planet(Space *space, size_t nmemb, size_t 
  * @param new_size The new desired size.
  * @return Pointer to the resized memory, or NULL on failure.
  */
-SPACEDEF void *space_realloc_force_new_planet(Space *space, void *ptr, size_t old_size,
-                                     size_t new_size) {
+SPACEDEF void *space_realloc_force_new_planet(Space *space, void *ptr,
+                                              size_t old_size,
+                                              size_t new_size) {
   size_t id;
   return space_realloc_planetid_force_new_planet(space, ptr, old_size, new_size,
                                                  &id);
@@ -1499,7 +1559,8 @@ SPACEDEF void *space_calloc(Space *space, size_t nmemb, size_t size) {
  * @param new_size The new desired size.
  * @return Pointer to the resized memory, or NULL on failure.
  */
-SPACEDEF void *space_realloc(Space *space, void *ptr, size_t old_size, size_t new_size) {
+SPACEDEF void *space_realloc(Space *space, void *ptr, size_t old_size,
+                             size_t new_size) {
   size_t id;
   return space_realloc_planetid(space, ptr, old_size, new_size, &id);
 }
@@ -1543,8 +1604,9 @@ SPACEDEF bool space_init_capacity(Space *space, size_t size_in_bytes) {
  * @param count The number of planets to create and initialize.
  * @return true if all planets were successfully initialized, false otherwise.
  */
-SPACEDEF bool space_init_capacity_in_count_plantes(Space *space, size_t size_in_bytes,
-                                          size_t count) {
+SPACEDEF bool space_init_capacity_in_count_plantes(Space *space,
+                                                   size_t size_in_bytes,
+                                                   size_t count) {
   if (!space || count == 0 || size_in_bytes == 0) {
     return false;
   }
@@ -1670,8 +1732,9 @@ SPACEDEF Planet *space_find_planet_from_ptr(Space *space, void *ptr) {
  * @return true if the memory was successfully expanded in place; false
  * otherwise.
  */
-SPACEDEF bool space_try_to_expand_in_place(Space *space, void *ptr, size_t old_size,
-                                  size_t new_size, size_t *planet_id) {
+SPACEDEF bool space_try_to_expand_in_place(Space *space, void *ptr,
+                                           size_t old_size, size_t new_size,
+                                           size_t *planet_id) {
 
   Planet *p = space_find_planet_from_ptr(space, ptr);
   if (!p || !space__is_ptr_last_allocation_in_planet(p, ptr, old_size) ||
