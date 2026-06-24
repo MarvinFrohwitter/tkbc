@@ -104,10 +104,12 @@ Client *tkbc_get_client_by_fd(int fd) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function checks for Kite_State's  that are hold in memory but
+ * nobody is using them. This could occur if a client has disconnected and the
+ * removal was just partially.
  *
- * @param orphan [TODO:parameter]
- * @return [TODO:return]
+ * @param orphan Returns true if an orphan Kite_State has been found.
+ * @return The first orphan Kite_State if one exists, otherwise NULL.
  */
 Kite_State *tkbc_check_for_orphan_kite_states(bool *orphan) {
   Kite_State *state = NULL;
