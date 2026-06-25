@@ -30,6 +30,8 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
   state->fly_velocity *= dt;
   state->fly_velocity *= state->kite->fly_speed;
 
+  tkbc_input_check_speed(keymaps, state);
+
   if (tkbc_check_keymaps_full(keymaps, KMH_KEY_KP_8, KEY_MAP_CHECK_DOWN))
     tkbc_kite_update_angle(state->kite, 0);
   if (tkbc_check_keymaps_full(keymaps, KMH_KEY_KP_9, KEY_MAP_CHECK_DOWN))
@@ -57,21 +59,32 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
   if (IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
       IsKeyUp(
           tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)) &&
-      IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_LEFT_TIP_CLOCKWISE)) &&
-      IsKeyUp(tkbc_hash_to_key(keymaps,
-                               KMH_ROTATE_KITES_RIGHT_TIP_ANTICLOCKWISE)) &&
+      IsKeyUp(
+          tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_LEFT_TIP_ANTICLOCKWISE)) &&
+      IsKeyUp(
+          tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_RIGHT_TIP_CLOCKWISE)) &&
       IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_LEFT_TIP_CLOCKWISE)) &&
       IsKeyUp(tkbc_hash_to_key(keymaps,
                                KMH_ROTATE_KITES_RIGHT_TIP_ANTICLOCKWISE))) {
     state->interrupt_smoothness = false;
   }
+
+  // Needed to support tip turns with fixed interrupted steps like 45.
+  if (state->is_tip_locked &&
+      ((IsKeyUp(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) &&
+        IsKeyUp(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) ||
+       (IsKeyDown(
+            tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
+        IsKeyDown(tkbc_hash_to_key(keymaps,
+                                   KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE))))) {
+    state->interrupt_smoothness = false;
+  }
+
   if (state->interrupt_smoothness) {
     return;
   }
 
-  tkbc_input_check_speed(keymaps, state);
   // KEY_F
-
   if (tkbc_check_keymaps_full(keymaps, KMH_TOGGLE_FIXED,
                               KEY_MAP_CHECK_KEY_PRESSED)) {
     state->is_fixed_rotation = !state->is_fixed_rotation;
@@ -476,13 +489,30 @@ void tkbc_input_check_rotation_mouse_control(Key_Maps keymaps, Kite_State *s) {
       IsMouseButtonDown(MOUSE_BUTTON_LEFT)
 
   ) {
-    tkbc_kite_update_angle(s->kite, s->kite->angle + s->turn_velocity);
+
+    if (s->is_fixed_rotation) {
+      if (!s->interrupt_smoothness) {
+        tkbc_kite_update_angle(s->kite, s->kite->angle + 45);
+      }
+      s->interrupt_smoothness = true;
+
+    } else {
+      tkbc_kite_update_angle(s->kite, s->kite->angle + s->turn_velocity);
+    }
     s->is_rotating = true;
 
   } else if (tkbc_check_keymaps_full(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE,
                                      KEY_MAP_CHECK_DOWN) ||
              IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-    tkbc_kite_update_angle(s->kite, s->kite->angle - s->turn_velocity);
+    if (s->is_fixed_rotation) {
+      if (!s->interrupt_smoothness) {
+        tkbc_kite_update_angle(s->kite, s->kite->angle - 45);
+      }
+      s->interrupt_smoothness = true;
+
+    } else {
+      tkbc_kite_update_angle(s->kite, s->kite->angle - s->turn_velocity);
+    }
     s->is_rotating = true;
   }
 }
@@ -526,16 +556,36 @@ void tkbc_input_check_tip_rotation_mouse_control(Key_Maps keymaps,
     // W
     if (tkbc_check_keymaps_full(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE,
                                 KEY_MAP_CHECK_DOWN)) {
-      tkbc_tip_rotation(s->kite, NULL, s->kite->angle + s->turn_velocity,
-                        LEFT_TIP);
+
+      if (s->is_fixed_rotation) {
+        if (!s->interrupt_smoothness) {
+          tkbc_tip_rotation(s->kite, NULL, s->kite->angle + 45, LEFT_TIP);
+        }
+        s->interrupt_smoothness = true;
+
+      } else {
+        tkbc_tip_rotation(s->kite, NULL, s->kite->angle + s->turn_velocity,
+                          LEFT_TIP);
+      }
+
       s->is_rotating = true;
     }
 
     // S
     if (tkbc_check_keymaps_full(keymaps, KMH_MOVES_KITES_AWAY_MOUSE,
                                 KEY_MAP_CHECK_DOWN)) {
-      tkbc_tip_rotation(s->kite, NULL, s->kite->angle - s->turn_velocity,
-                        LEFT_TIP);
+
+      if (s->is_fixed_rotation) {
+        if (!s->interrupt_smoothness) {
+          tkbc_tip_rotation(s->kite, NULL, s->kite->angle - 45, LEFT_TIP);
+        }
+        s->interrupt_smoothness = true;
+
+      } else {
+        tkbc_tip_rotation(s->kite, NULL, s->kite->angle - s->turn_velocity,
+                          LEFT_TIP);
+      }
+
       s->is_rotating = true;
     }
   }
@@ -546,16 +596,36 @@ void tkbc_input_check_tip_rotation_mouse_control(Key_Maps keymaps,
     // W
     if (tkbc_check_keymaps_full(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE,
                                 KEY_MAP_CHECK_DOWN)) {
-      tkbc_tip_rotation(s->kite, NULL, s->kite->angle - s->turn_velocity,
-                        RIGHT_TIP);
+
+      if (s->is_fixed_rotation) {
+        if (!s->interrupt_smoothness) {
+          tkbc_tip_rotation(s->kite, NULL, s->kite->angle - 45, RIGHT_TIP);
+        }
+        s->interrupt_smoothness = true;
+
+      } else {
+        tkbc_tip_rotation(s->kite, NULL, s->kite->angle - s->turn_velocity,
+                          RIGHT_TIP);
+      }
+
       s->is_rotating = true;
     }
 
     // S
     if (tkbc_check_keymaps_full(keymaps, KMH_MOVES_KITES_AWAY_MOUSE,
                                 KEY_MAP_CHECK_DOWN)) {
-      tkbc_tip_rotation(s->kite, NULL, s->kite->angle + s->turn_velocity,
-                        RIGHT_TIP);
+
+      if (s->is_fixed_rotation) {
+        if (!s->interrupt_smoothness) {
+          tkbc_tip_rotation(s->kite, NULL, s->kite->angle + 45, RIGHT_TIP);
+        }
+        s->interrupt_smoothness = true;
+
+      } else {
+        tkbc_tip_rotation(s->kite, NULL, s->kite->angle + s->turn_velocity,
+                          RIGHT_TIP);
+      }
+
       s->is_rotating = true;
     }
   }
