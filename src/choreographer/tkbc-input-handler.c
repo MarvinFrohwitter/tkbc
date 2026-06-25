@@ -31,6 +31,13 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
   state->fly_velocity *= state->kite->fly_speed;
 
   tkbc_input_check_speed(keymaps, state);
+  // KEY_F
+  if (tkbc_check_keymaps_full(keymaps, KMH_TOGGLE_FIXED,
+                              KEY_MAP_CHECK_KEY_PRESSED)) {
+    state->is_fixed_rotation = !state->is_fixed_rotation;
+    state->interrupt_smoothness = false;
+    return;
+  }
 
   if (tkbc_check_keymaps_full(keymaps, KMH_KEY_KP_8, KEY_MAP_CHECK_DOWN))
     tkbc_kite_update_angle(state->kite, 0);
@@ -69,30 +76,53 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
     state->interrupt_smoothness = false;
   }
 
-  // Needed to support tip turns with fixed interrupted steps like 45.
-  if (state->is_tip_locked &&
-      ((IsKeyUp(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) &&
-        IsKeyUp(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) ||
+  // NOTE:  If not a single lock state is detected we can be in a continuous
+  // interrupt_smoothness state. This is wanted for the basic mouse follow so
+  // that the kite can only snap 45 deg or in general the defined snapping
+  // angle and can not be overwritten by pressing the other rotation direction
+  // (otherwise it could rotate onwards when still hold on to that key).
+
+  if (state->is_angle_locked &&
+      ((IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
+        IsKeyUp(tkbc_hash_to_key(keymaps,
+                                 KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE))) ||
        (IsKeyDown(
             tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
         IsKeyDown(tkbc_hash_to_key(keymaps,
                                    KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE))))) {
+
     state->interrupt_smoothness = false;
   }
 
-  if (state->interrupt_smoothness) {
-    return;
-  }
+  // Needed to support tip turns with fixed interrupted steps like 45.
+  if (state->is_tip_locked &&
+      ((IsKeyUp(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) &&
+        IsKeyUp(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) ||
 
-  // KEY_F
-  if (tkbc_check_keymaps_full(keymaps, KMH_TOGGLE_FIXED,
-                              KEY_MAP_CHECK_KEY_PRESSED)) {
-    state->is_fixed_rotation = !state->is_fixed_rotation;
-    return;
+       (IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
+        IsKeyUp(tkbc_hash_to_key(keymaps,
+                                 KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE))) ||
+
+       (IsKeyDown(
+            tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
+        IsKeyDown(
+            tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)))
+
+           )) {
+    state->interrupt_smoothness = false;
   }
 
   tkbc_mouse_control(keymaps, state);
   if (!state->is_mouse_control) {
+    if (state->interrupt_smoothness) { // This is possibly not needed but while
+                                       // implementing the mouse control i don't
+                                       // want to break it. Because i now use
+                                       // interrupt_smoothness also in the mouse
+                                       // control but it was originally used in
+                                       // the traditional key map control.
+
+      return;
+    }
     tkbc_input_check_mouse(state);
     tkbc_input_check_rotation(keymaps, state);
     tkbc_input_check_tip_turn(keymaps, state);
@@ -484,12 +514,25 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
 void tkbc_input_check_rotation_mouse_control(Key_Maps keymaps, Kite_State *s) {
   // KEY_R
 
-  if (tkbc_check_keymaps_full(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE,
+  bool is_left =
+      tkbc_check_keymaps_full(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE,
                               KEY_MAP_CHECK_DOWN) ||
-      IsMouseButtonDown(MOUSE_BUTTON_LEFT)
+      IsMouseButtonDown(MOUSE_BUTTON_LEFT);
 
-  ) {
+  bool is_right =
+      tkbc_check_keymaps_full(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE,
+                              KEY_MAP_CHECK_DOWN) ||
+      IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
 
+  if (is_left && is_right) {
+    s->is_rotating = true;
+    return;
+  }
+  if (!is_left && !is_right) {
+    return;
+  }
+
+  if (is_left) {
     if (s->is_fixed_rotation) {
       if (!s->interrupt_smoothness) {
         tkbc_kite_update_angle(s->kite, s->kite->angle + 45);
@@ -501,9 +544,7 @@ void tkbc_input_check_rotation_mouse_control(Key_Maps keymaps, Kite_State *s) {
     }
     s->is_rotating = true;
 
-  } else if (tkbc_check_keymaps_full(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE,
-                                     KEY_MAP_CHECK_DOWN) ||
-             IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+  } else if (is_right) {
     if (s->is_fixed_rotation) {
       if (!s->interrupt_smoothness) {
         tkbc_kite_update_angle(s->kite, s->kite->angle - 45);
