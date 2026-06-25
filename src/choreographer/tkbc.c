@@ -446,7 +446,7 @@ void tkbc_set_kite_state_defaults(Kite_State *state) {
   state->fly_velocity = 10;
   state->turn_velocity = 10;
   state->is_center_rotation = false;
-  state->is_fixed_rotation = true;
+  state->is_fixed_rotation = false;
   state->interrupt_movement = false;
   state->interrupt_smoothness = false;
   state->is_mouse_control = true;
