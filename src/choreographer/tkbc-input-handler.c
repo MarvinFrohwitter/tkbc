@@ -36,7 +36,6 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
                               KEY_MAP_CHECK_KEY_PRESSED)) {
     state->is_fixed_rotation = !state->is_fixed_rotation;
     state->interrupt_smoothness = false;
-    return;
   }
 
   if (tkbc_check_keymaps_full(keymaps, KMH_KEY_KP_8, KEY_MAP_CHECK_DOWN))
@@ -76,12 +75,13 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
     state->interrupt_smoothness = false;
   }
 
+  //
   // NOTE:  If not a single lock state is detected we can be in a continuous
   // interrupt_smoothness state. This is wanted for the basic mouse follow so
   // that the kite can only snap 45 deg or in general the defined snapping
   // angle and can not be overwritten by pressing the other rotation direction
   // (otherwise it could rotate onwards when still hold on to that key).
-
+  //
   if (state->is_angle_locked &&
       ((IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
         IsKeyUp(tkbc_hash_to_key(keymaps,
@@ -94,7 +94,9 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
     state->interrupt_smoothness = false;
   }
 
+  //
   // Needed to support tip turns with fixed interrupted steps like 45.
+  //
   if (state->is_tip_locked &&
       ((IsKeyUp(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) &&
         IsKeyUp(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) ||
@@ -873,8 +875,11 @@ void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps,
     return;
   }
 
-  if (state->is_angle_locked || state->is_tip_locked ||
-      state->interrupt_smoothness) {
+  if (state->is_rotating) {
+    return;
+  }
+
+  if (state->is_angle_locked || state->is_tip_locked || state->interrupt_smoothness) {
     float remainder = fmodf(state->kite->angle, 45);
     float result_angle = fmodf(state->kite->angle, 360) - remainder;
     if (fabsf(remainder) > 22.5) {
@@ -900,6 +905,7 @@ void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps,
         tkbc_tip_rotation(state->kite, NULL, result_angle, RIGHT_TIP);
       }
     } else {
+
       // This is needed to ensure angel lock when tip lock is on.
       // When pressing both tips is should snap as a tip and not center.
       if (state->is_angle_locked || state->interrupt_smoothness) {
