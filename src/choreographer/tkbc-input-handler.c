@@ -873,7 +873,8 @@ void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps,
     return;
   }
 
-  if (state->is_angle_locked || state->is_tip_locked) {
+  if (state->is_angle_locked || state->is_tip_locked ||
+      state->interrupt_smoothness) {
     float remainder = fmodf(state->kite->angle, 45);
     float result_angle = fmodf(state->kite->angle, 360) - remainder;
     if (fabsf(remainder) > 22.5) {
@@ -901,7 +902,7 @@ void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps,
     } else {
       // This is needed to ensure angel lock when tip lock is on.
       // When pressing both tips is should snap as a tip and not center.
-      if (state->is_angle_locked) {
+      if (state->is_angle_locked || state->interrupt_smoothness) {
         tkbc_kite_update_angle(state->kite, result_angle);
       }
     }
