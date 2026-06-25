@@ -762,8 +762,27 @@ void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state) {
                                   KEY_MAP_CHECK_DOWN)) {
         kite->center.x -= state->fly_velocity;
       }
-    } else {
+    } else if (state->is_tip_locked) {
+      // NOTE: This has currently no pair in the W/S direction so it is
+      // disabled. But the "else if" branch prevents a sudle bug where if
+      // rotating and moving the mouse while pressing A/D will move the kite.
+      // So the mouse will affect the kite but should not because of locking.
 
+      // // KEY_D
+      // if (tkbc_check_keymaps_full(keymaps,
+      // KMH_MOVES_KITES_RIGHT_AROUND_MOUSE,
+      //                             KEY_MAP_CHECK_DOWN)) {
+      //   kite->center.x -= state->fly_velocity * face.x;
+      //   kite->center.y -= state->fly_velocity * face.y;
+      // }
+      // // KEY_A
+      // if (tkbc_check_keymaps_full(keymaps, KMH_MOVES_KITES_LEFT_AROUND_MOUSE,
+      //                             KEY_MAP_CHECK_DOWN)) {
+      //   kite->center.x += state->fly_velocity * face.x;
+      //   kite->center.y += state->fly_velocity * face.y;
+      // }
+
+    } else {
       // KEY_D
       if (tkbc_check_keymaps_full(keymaps, KMH_MOVES_KITES_RIGHT_AROUND_MOUSE,
                                   KEY_MAP_CHECK_DOWN)) {
