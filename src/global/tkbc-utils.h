@@ -206,7 +206,7 @@ Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size,
 
 float tkbc_clamp(float z, float a, float b);
 bool tkbc_float_equals_epsilon(float x, float y, float epsilon);
-bool tkbc_max(int x, int y);
+int tkbc_max(int x, int y);
 
 #endif // TKBC_UTILS_H_
 
@@ -963,6 +963,6 @@ bool tkbc_float_equals_epsilon(float x, float y, float epsilon) {
  * @param y The second integer.
  * @return The bigger one of those.
  */
-bool tkbc_max(int x, int y) { return x > y ? x : y; }
+int tkbc_max(int x, int y) { return x > y ? x : y; }
 
 #endif // TKBC_UTILS_IMPLEMENTATION
