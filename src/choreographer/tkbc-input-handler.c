@@ -497,8 +497,9 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
 
   Kite *kite = state->kite;
   tkbc_check_is_mouse_in_dead_zone(state, kite->height / 2);
-  tkbc_check_is_angle_locked(keymaps, state);
-  tkbc_calcluate_and_update_angle(keymaps, state);
+  tkbc_caluculate_and_update_locked_angles(keymaps, state);
+  tkbc_calcluate_and_update_face_mouse_angle(state);
+  tkbc_calculate_and_update_snapping_angle(keymaps, state);
   tkbc_calculate_new_kite_position(keymaps, state);
 
   tkbc_kite_update_internal(state->kite);
@@ -936,7 +937,8 @@ bool tkbc_check_is_mouse_in_dead_zone(Kite_State *state,
  * @param state The current state of a kite that should be handled.
  * @return True if the kite angle is locked to a fixed angle, otherwise false.
  */
-bool tkbc_check_is_angle_locked(Key_Maps keymaps, Kite_State *state) {
+bool tkbc_caluculate_and_update_locked_angles(Key_Maps keymaps,
+                                              Kite_State *state) {
 
   if (tkbc_check_keymaps_full(keymaps, KMH_LOCK_KITE_ANGLE,
                               KEY_MAP_CHECK_DOWN)) {
@@ -963,13 +965,11 @@ bool tkbc_check_is_angle_locked(Key_Maps keymaps, Kite_State *state) {
 }
 
 /**
- * @brief The function computes the new angle in respect to the mouse position
- * and if snapping is activated it checks for new snapping angle.
+ * @brief The function computes the new angle in respect to the mouse position.
  *
- * @param keymaps The current set keymaps.
  * @param state The current state of a kite that should be handled.
  */
-void tkbc_calcluate_and_update_angle(Key_Maps keymaps, Kite_State *state) {
+void tkbc_calcluate_and_update_face_mouse_angle(Kite_State *state) {
   if (state->is_rotating) {
     return;
   }
@@ -998,6 +998,4 @@ void tkbc_calcluate_and_update_angle(Key_Maps keymaps, Kite_State *state) {
       tkbc_kite_update_angle(state->kite, result_angle);
     }
   }
-
-  tkbc_calculate_and_update_snapping_angle(keymaps, state);
 }
