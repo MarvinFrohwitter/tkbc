@@ -358,7 +358,6 @@ int tkbc_read_file(const char *filename, Content *content) {
       }
     }
     tkbc_dapc(content, chunk, n);
-    content->count += n;
   }
   if (content->count > 0) {
     tkbc_dap(content, '\0');
