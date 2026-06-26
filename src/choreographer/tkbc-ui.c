@@ -1169,11 +1169,10 @@ key_skip:
           bool same = tkbc_is_same_image(a, b);
 
           if (!same) {
-
-            free(tkbc_get_asset_kite_design(KITE_COLORIZER)
-                     .as.kite_image.normal.data);
-            free(tkbc_get_asset_kite_design(KITE_COLORIZER)
-                     .as.kite_image.flipped.data);
+            UnloadImage(tkbc_get_asset_kite_design(KITE_COLORIZER)
+                            .as.kite_image.normal);
+            UnloadImage(tkbc_get_asset_kite_design(KITE_COLORIZER)
+                            .as.kite_image.flipped);
 
             tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal =
                 ImageCopy(b);
