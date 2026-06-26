@@ -355,6 +355,10 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     for (size_t j = 0; j < frame->kite_id_array.count; ++j) {
       Kite_State *state =
           tkbc_get_kite_state_by_id(env, frame->kite_id_array.elements[j]);
+      assert(state);
+      if (!state) {
+        continue;
+      }
       state->kite->old_angle = state->kite->angle;
       state->kite->old_center = state->kite->center;
       state->is_script_kite = true;
