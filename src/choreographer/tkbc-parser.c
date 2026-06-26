@@ -591,7 +591,6 @@ bool tkbc_parse_team_figures(Env *env, Kite_Ids kis, Lexer *lexer,
 
     tkbc_script_team_line(env, kis, position, offset, h_padding, move_duration);
   } else if (strcmp("TEAM_GRID", function_name) == 0) {
-    Kite_Ids kis = {0};
     Vector2 position, offset;
     float v_padding, h_padding;
     size_t rows, columns;
