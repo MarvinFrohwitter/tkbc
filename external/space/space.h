@@ -243,8 +243,7 @@ Space *space_get_tspace(void);
 #define space_reset_tspace() space_reset_space(space_get_tspace())
 #define space_tmalloc(size_in_bytes)                                           \
   space_malloc(space_get_tspace(), size_in_bytes);
-#define space_tcalloc(nmemb, size)                                             \
-  space_calloc(space_get_tspace(), nmemb, size_t size)
+#define space_tcalloc(nmemb, size) space_calloc(space_get_tspace(), nmemb, size)
 #define space_trealloc(ptr, old_size, new_size)                                \
   ;                                                                            \
   space_realloc(space_get_tspace(), ptr, old_size, new_size)
@@ -280,12 +279,18 @@ Space *space_get_tspace(void);
 #define space_tndap(dynamic_array, element)                                    \
   space_dap_impl(space_get_tspace(), space_realloc_force_new_planet,           \
                  dynamic_array, element)
-#define space_tdapc(dynamic_array, new_elements, new_elements_count) space_dapc_impl(space_get_tspace()), space_realloc, dynamic_array, new_elements, new_elements_count)
-#define space_tndapc(dynamic_array, new_elements, new_elements_count) space_dapc_impl(space_get_tspace()), space_realloc_force_new_planet, dynamic_array, new_elements, new_elements_count)
+#define space_tdapc(dynamic_array, new_elements, new_elements_count)           \
+  space_dapc_impl(space_get_tspace(), space_realloc, dynamic_array,            \
+                  new_elements, new_elements_count)
+#define space_tndapc(dynamic_array, new_elements, new_elements_count)          \
+  space_dapc_impl(space_get_tspace(), space_realloc_force_new_planet,          \
+                  dynamic_array, new_elements, new_elements_count)
 #define space_tdapf(dynamic_array, fmt, ...)                                   \
   space_dapf_impl(space_get_tspace(), space_realloc, dynamic_array, fmt,       \
                   ##__VA_ARGS__)
-#define space_tndapf(dynamic_array, fmt, ...) space_dapf_impl(space_get_tspace()), space_realloc_force_new_planet, dynamic_array, fmt, ##__VA_ARGS__)
+#define space_tndapf(dynamic_array, fmt, ...)                                  \
+  space_dapf_impl(space_get_tspace(), space_realloc_force_new_planet,          \
+                  dynamic_array, fmt, ##__VA_ARGS__)
 
 #define space_tprintf(fmt, ...)                                                \
   space_printf(space_get_tspace(), fmt, ##__VA_ARGS__)
@@ -305,7 +310,9 @@ Space *space_get_tspace(void);
 #define space_tmemcpy(buf, n) space_memcpy(space_get_tspace(), buf, n)
 #define space_tmemmove(buf, n) space_memmove(space_get_tspace(), buf, n)
 
-#define space_tstrcatf(first_str, fmt, ...) space_catf(space_get_tspace()), first_str, first_str ? strlen(first_str) : 0, (fmt), ##__VA_ARGS__)
+#define space_tstrcatf(first_str, fmt, ...)                                    \
+  space_catf(space_get_tspace(), first_str, first_str ? strlen(first_str) : 0, \
+             (fmt), ##__VA_ARGS__)
 #define space_tvstrcat(first, ...)                                             \
   space_vstrcat_impl(space_get_tspace(), first, ##__VA_ARGS__, NULL)
 #define space_tvcat(...)                                                       \
