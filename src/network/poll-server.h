@@ -45,5 +45,5 @@ bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
     size_t client_id, int fd);
 void tkbc_message_kites_write_to_all_send_msg_buffers(void);
 bool tkbc_received_message_handler(Client *client);
-void signalhandler(int signal);
+void exit_handler();
 #endif // TKBC_POLL_SERVER_H

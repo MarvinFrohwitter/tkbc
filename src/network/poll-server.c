@@ -1053,9 +1053,9 @@ int main(int argc, char *argv[]) {
   sig_action.sa_handler = SIG_IGN;
   sigaction(SIGPIPE, &sig_action, NULL);
 
-  signal(SIGABRT, signalhandler);
-  signal(SIGINT, signalhandler);
-  signal(SIGTERM, signalhandler);
+  signal(SIGABRT, abort);
+  signal(SIGINT, abort);
+  signal(SIGTERM, abort);
 #endif // _WIN32
   tkbc_fprintf(stderr, "INFO", "%s\n", "The server has started.");
 
@@ -1175,7 +1175,7 @@ int main(int argc, char *argv[]) {
     tkbc_base_execution();
   }
 
-  signalhandler(0);
+  exit_handler();
   return 0;
 }
 
@@ -1247,12 +1247,9 @@ bool tkbc_base_execution(void) {
 
 /**
  * @brief The function represents the closing handler of the server. It can be
- * used as a signal handler or be called if the server should be shutdown-
- *
- * @param signal The signal that might has occurred.
+ * called if the server should be shutdown.
  */
-void signalhandler(int signal) {
-  (void)signal;
+void exit_handler() {
   tkbc_fprintf(stderr, "INFO", "Closing...\n");
 
   for (size_t i = 0; i < clients.count; ++i) {
