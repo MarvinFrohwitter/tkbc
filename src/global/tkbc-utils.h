@@ -619,7 +619,7 @@ int tkbc_get_screen_width(void) {
   exit(0);
 }
 
-#define TKBC_MAX_DOUBLECLICK_MS 250 // max time between two clicks
+#define TKBC_MAX_DOUBLECLICK_MS 400 // max time between two clicks
 /**
  * @brief This function detects a double click.
  *

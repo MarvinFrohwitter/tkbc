@@ -643,8 +643,13 @@ bool tkbc_ui_script_menu(Env *env) {
         (ssize_t)box == env->script_menu_mouse_interaction_box) {
 
       DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      if (is_mouse_double_click(MOUSE_LEFT_BUTTON)) {
+      static ssize_t is_the_same_box_as_last_double_click = -1;
+      if (is_mouse_double_click(MOUSE_LEFT_BUTTON) &&
+          (ssize_t)box == is_the_same_box_as_last_double_click) {
+        is_the_same_box_as_last_double_click = -1;
         double_click_confirm = true;
+      } else if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+        is_the_same_box_as_last_double_click = box;
       }
     }
 
