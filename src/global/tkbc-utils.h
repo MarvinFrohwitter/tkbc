@@ -619,7 +619,7 @@ int tkbc_get_screen_width(void) {
   exit(0);
 }
 
-#define TKBC_MAX_DOUBLECLICK_MS 400 // max time between two clicks
+#define TKBC_MAX_DOUBLECLICK_MS 250 // max time between two clicks
 /**
  * @brief This function detects a double click.
  *
@@ -631,6 +631,7 @@ bool is_mouse_double_click(int mouse_button) {
   static_assert(MOUSE_BUTTON_BACK == 6, "MOUSE_BUTTON positions changed");
   static_assert(MOUSE_BUTTON_COUNT == MOUSE_BUTTON_BACK + 1,
                 "More mouse buttons need to be handled.");
+  assert(mouse_button >= 0 && mouse_button < MOUSE_BUTTON_COUNT);
   switch (mouse_button) {
   case MOUSE_BUTTON_LEFT:
   case MOUSE_BUTTON_RIGHT:
@@ -643,31 +644,27 @@ bool is_mouse_double_click(int mouse_button) {
   default:
     assert(false && "UNREACHABLE");
   }
+
   static struct {
-    int last_release_time_ms;
-    bool waiting_for_second_click;
+    int last_release_ms;
+    bool waiting;
     bool cached;
     bool result;
-  } key_table[MOUSE_BUTTON_COUNT] = {
-      [MOUSE_BUTTON_LEFT] = {0},   [MOUSE_BUTTON_RIGHT] = {0},
-      [MOUSE_BUTTON_MIDDLE] = {0}, [MOUSE_BUTTON_SIDE] = {0},
-      [MOUSE_BUTTON_EXTRA] = {0},  [MOUSE_BUTTON_FORWARD] = {0},
-  };
+  } state[MOUSE_BUTTON_COUNT] = {0};
 
   static float cached_frame_time = 0;
   float frame_time = tkbc_get_frame_time();
   if (frame_time != cached_frame_time) {
     cached_frame_time = frame_time;
     for (int i = 0; i < MOUSE_BUTTON_COUNT; i++) {
-      key_table[i].cached = false;
+      state[i].cached = false;
     }
   }
 
-  if (key_table[mouse_button].cached) {
-    return key_table[mouse_button].result;
+  if (state[mouse_button].cached) {
+    return state[mouse_button].result;
   }
 
-  // TODO: Make this cross platform clock_gettime()
   struct timespec ts;
   if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
@@ -677,30 +674,25 @@ bool is_mouse_double_click(int mouse_button) {
   int now_ms = current_time * 1000;
 
   bool result = false;
-
   if (IsMouseButtonReleased(mouse_button)) {
-    if (key_table[mouse_button].waiting_for_second_click) {
-      int delta = now_ms - key_table[mouse_button].last_release_time_ms;
-      key_table[mouse_button].waiting_for_second_click = false;
-      if (delta >= 0 && delta <= TKBC_MAX_DOUBLECLICK_MS) {
+    if (state[mouse_button].waiting) {
+      int delta = now_ms - state[mouse_button].last_release_ms;
+      state[mouse_button].waiting = false;
+      if (delta >= 0 && delta <= TKBC_MAX_DOUBLECLICK_MS)
         result = true;
-      }
     }
     if (!result) {
-      key_table[mouse_button].last_release_time_ms = now_ms;
-      key_table[mouse_button].waiting_for_second_click = true;
+      state[mouse_button].last_release_ms = now_ms;
+      state[mouse_button].waiting = true;
     }
+  } else if (state[mouse_button].waiting &&
+             now_ms - state[mouse_button].last_release_ms >
+                 TKBC_MAX_DOUBLECLICK_MS) {
+    state[mouse_button].waiting = false;
   }
 
-  if (!result && key_table[mouse_button].waiting_for_second_click) {
-    if (now_ms - key_table[mouse_button].last_release_time_ms >
-        TKBC_MAX_DOUBLECLICK_MS) {
-      key_table[mouse_button].waiting_for_second_click = false;
-    }
-  }
-
-  key_table[mouse_button].cached = true;
-  key_table[mouse_button].result = result;
+  state[mouse_button].cached = true;
+  state[mouse_button].result = result;
   return result;
 }
 
