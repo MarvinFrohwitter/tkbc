@@ -730,6 +730,16 @@ void tkbc_update_kites_for_resize_window(Env *env) {
   size_t width = tkbc_get_screen_width();
   size_t height = tkbc_get_screen_height();
 
+  if (width == 0 || height == 0) {
+    return;
+  }
+
+  if (env->window_width == 0 || env->window_height == 0) {
+    env->window_width = width;
+    env->window_height = height;
+    return;
+  }
+
   if (env->window_width != width || env->window_height != height) {
     for (size_t i = 0; i < env->kite_array->count; ++i) {
       Kite *kite = env->kite_array->elements[i].kite;
@@ -742,10 +752,9 @@ void tkbc_update_kites_for_resize_window(Env *env) {
           kite->old_center.y / (float)env->window_height * (float)height;
       tkbc_kite_update_internal(kite);
     }
-
-    env->window_width = width;
-    env->window_height = height;
   }
+  env->window_width = width;
+  env->window_height = height;
 }
 
 /**

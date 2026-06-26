@@ -27,6 +27,10 @@ void tkbc_draw_ui(Env *env) {
   env->window_height = tkbc_get_screen_height();
   env->window_width = tkbc_get_screen_width();
 
+  if (env->window_width == 0 || env->window_height == 0) {
+    return;
+  }
+
   // TODO: The script bar is not displayed if another client triggered a script.
   if ((env->frames || env->server_script_id) &&
       !(env->script_menu_interaction || env->keymaps_interaction)) {
