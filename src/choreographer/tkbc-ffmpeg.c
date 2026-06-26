@@ -106,7 +106,7 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   env->ffmpeg = malloc(sizeof(*env->ffmpeg));
   if (env->ffmpeg == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
+    return false;
   }
   memset(env->ffmpeg, 0, sizeof(*env->ffmpeg));
   env->recording = true;
@@ -370,7 +370,7 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   env->ffmpeg = malloc(sizeof(*env->ffmpeg));
   if (env->ffmpeg == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
+    return false;
   }
   memset(env->ffmpeg, 0, sizeof(*env->ffmpeg));
 
