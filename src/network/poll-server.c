@@ -1038,6 +1038,11 @@ check:
   return ok;
 }
 
+void signalhandler(int signal) {
+  (void)signal;
+  abort();
+}
+
 /**
  * @brief The entry point sets up the event loop checks for socket connections
  * and computes different positions up on the messages.
@@ -1053,9 +1058,9 @@ int main(int argc, char *argv[]) {
   sig_action.sa_handler = SIG_IGN;
   sigaction(SIGPIPE, &sig_action, NULL);
 
-  signal(SIGABRT, abort);
-  signal(SIGINT, abort);
-  signal(SIGTERM, abort);
+  signal(SIGABRT, signalhandler);
+  signal(SIGINT, signalhandler);
+  signal(SIGTERM, signalhandler);
 #endif // _WIN32
   tkbc_fprintf(stderr, "INFO", "%s\n", "The server has started.");
 
