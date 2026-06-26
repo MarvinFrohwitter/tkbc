@@ -316,9 +316,10 @@ char *tkbc_ptoa(char *buffer, size_t buffer_size, void *number, Types type) {
  * @return The pointer to the first argument.
  */
 char *tkbc_shift_args(int *argc, char ***argv) {
-  char *old_argv = **argv;
+  char *old_argv = NULL;
 
   if (*argc > 0) {
+    old_argv = **argv;
     *argc = *argc - 1;
     *argv = *argv + 1;
   } else
