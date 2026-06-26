@@ -1,3 +1,7 @@
+// TODO: When a client with a server is used and the colorizer sets a new texture the texture is set for all kites in this client temporally till the server sends the news data for the other kites.
+// Just set it for the current client kite in case of script kites do that as well but exclude all kites that are not your own kite and a script kite. So basically every other client kite.
+
+//
 // TODO check for atoi, atol, atoll for 0 as failure. Maybe use strtol instead.
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
