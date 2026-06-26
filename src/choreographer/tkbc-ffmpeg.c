@@ -296,18 +296,18 @@ int tkbc_ffmpeg_write_image(Env *env) {
     Image image = LoadImageFromScreen();
     ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
     for (int y = 0; y < image.height; ++y) {
-      LPDWORD amount = NULL;
+      DWORD amount = 0;
       // ERROR_IO_PENDING is not handled.
       int write_status =
           WriteFile(env->ffmpeg->pipe, (uint32_t *)image.data + image.width * y,
-                    sizeof(uint32_t) * image.width, amount, NULL);
+                    sizeof(uint32_t) * image.width, &amount, NULL);
 
       if (!write_status) {
         DWORD err = GetLastError();
         if (err == ERROR_IO_PENDING) {
           tkbc_fprintf(stderr, "ERROR",
                        "Process: ffmpeg: pending write! Amount written: %d\n",
-                       *amount);
+                       amount);
           continue;
         }
         tkbc_fprintf(stderr, "ERROR",
