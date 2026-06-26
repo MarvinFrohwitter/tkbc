@@ -290,10 +290,8 @@ bool tkbc_close(int __fd) {
   if (closesocket(__fd) == -1) {
     tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
                  WSAGetLastError());
-    WSACleanup();
     return false;
   }
-  WSACleanup();
 #else
   if (close(__fd) == -1) {
     tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
@@ -468,7 +466,6 @@ bool tkbc_server_accept(void) {
     if (ioctlsocket(client_socket_id, FIONBIO, &mode) != 0) {
       tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
       closesocket(client_socket_id);
-      WSACleanup();
       return false;
     }
 #else
@@ -1264,6 +1261,9 @@ void signalhandler(int signal) {
 
   shutdown(server_socket, SHUT_RDWR);
   tkbc_close(server_socket);
+#ifdef _WIN32
+  WSACleanup();
+#endif // _WIN32
 
   free(clients.elements);
   free(fds.elements);
