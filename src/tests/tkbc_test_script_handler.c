@@ -8,13 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TKBC_UTILS_IMPLEMENTATION
 #include "../global/tkbc-utils.h"
-#undef TKBC_UTILS_IMPLEMENTATION
-
-#define SPACE_IMPLEMENTATION
 #include "../../external/space/space.h"
-#undef SPACE_IMPLEMENTATION
+
 
 Test init_frame(void) {
   Test test = cassert_init_test("tkbc_init_frame()");

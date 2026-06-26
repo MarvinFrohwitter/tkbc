@@ -13,7 +13,7 @@ size_t tkbc_append_kite_image(unsigned char *data, int width, int height,
 
 #ifndef TKBC_SERVER
 void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, Id asset_id);
-void tkbc_load_kite_images_and_textures(void);
+void tkbc_load_assets(void);
 #endif
 
 void append_assets(void);

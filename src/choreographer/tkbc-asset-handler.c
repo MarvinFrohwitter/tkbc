@@ -236,7 +236,7 @@ void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image,
  * @brief The function loads all kite images and creates textures from them.
  * This function should only be called on the client side, not on the server.
  */
-void tkbc_load_kite_images_and_textures(void) {
+void tkbc_load_assets(void) {
 
   // TODO: Make a type dependent image loader.
   append_assets();

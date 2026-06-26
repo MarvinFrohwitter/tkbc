@@ -1,3 +1,12 @@
+#define SPACEDEF inline
+#define SPACE_IMPLEMENTATION
+#include "../../external/space/space.h"
+#undef SPACE_IMPLEMENTATION
+
+#define TKBC_UTILS_IMPLEMENTATION
+#include "../global/tkbc-utils.h"
+#undef TKBC_UTILS_IMPLEMENTATION
+
 #include "tkbc_test_geometrics.c"
 #include "tkbc_test_script_handler.c"
 
@@ -5,8 +14,8 @@
 #define CASSERT_IMPLEMENTATION
 #include "../../external/cassert/cassert.h"
 
-Kite_Images kite_images;
-Kite_Textures kite_textures;
+Assets assets = {0};
+Env *env = {0};
 
 /**
  * @brief Test program entry point.

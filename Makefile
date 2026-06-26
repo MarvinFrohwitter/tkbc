@@ -65,15 +65,15 @@ clean:
 	rm -r build
 
 test: options build
-	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/tests src/tests/tkbc_tests.c ${FILES} ${LIBS}
+	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -DTKBC_SERVER -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES_SERVER} ${LIBS}
 	./build/tests
 
 test-verbose: options build
-	${CC} ${INCLUDE} ${CFLAGS} -DPRINT_OPERATION_AND_DESCRIPTION -o build/tests src/tests/tkbc_tests.c ${FILES} ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -DTKBC_SERVER -DPRINT_OPERATION_AND_DESCRIPTION -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES_SERVER} ${LIBS}
 	./build/tests
 
 test-short: options build
-	${CC} ${INCLUDE} ${CFLAGS} -DSHORT_LOG -o build/tests src/tests/tkbc_tests.c ${FILES} ${LIBS}
+	${CC} ${INCLUDE} ${CFLAGS} -DTKBC_SERVER -DSHORT_LOG -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES_SERVER} ${LIBS}
 	./build/tests
 
 .PHONY: all clean options tkbc tkbc.o build client test server poll-server

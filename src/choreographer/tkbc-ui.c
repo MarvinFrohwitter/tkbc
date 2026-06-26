@@ -137,7 +137,6 @@ Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image,
                                                        Id *new_id) {
   Kite_Image *new_kite_image = tkbc_copy_kite_image(kite_image, new_id);
   tkbc_load_kite_texture_from_kite_image(*new_kite_image, *new_id);
-
   return &tkbc_get_asset_kite_design(assets.count - 1).as.kite_texture;
 }
 

@@ -1062,7 +1062,7 @@ int main(int argc, char *argv[]) {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
   SetTargetFPS(TARGET_FPS);
-  tkbc_load_kite_images_and_textures();
+  tkbc_load_assets();
   SetWindowIcon(tkbc_get_asset_image(LOGO).as.image);
 
   srand(time(NULL));
