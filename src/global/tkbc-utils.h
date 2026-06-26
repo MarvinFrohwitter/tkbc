@@ -401,7 +401,8 @@ static inline uint64_t tkbc_next_pow2(uint64_t number) {
  * @param filename The file path that should be read into memory.
  * @param content The resulting memory pointer that contains the file content
  * after reading.
- * @return -1 if an error occurred, or the amount of bytes read.
+ * @return -1 if an error occurred,-2 if reading has failed, -4 if reading and
+ * closing the file has failed, or the amount of bytes read.
  */
 long tkbc_read_entire_file(const char *filename, Content *content) {
   long ok = 0;
@@ -453,7 +454,7 @@ long tkbc_read_entire_file(const char *filename, Content *content) {
     if (ferror(file) != 0) {
       tkbc_fprintf(stderr, "ERROR", "%s:%d:reading %s has failed!\n", __FILE__,
                    __LINE__, filename);
-      ok = -1;
+      ok = -2;
       goto error;
     }
   }
@@ -464,6 +465,9 @@ error:
   if (file) {
     if (fclose(file) == EOF) {
       tkbc_fprintf(stderr, "ERROR", "%s:%s\n", filename, strerror(errno));
+      if (ok == -2) {
+        return -4;
+      }
       return -1;
     }
   }
