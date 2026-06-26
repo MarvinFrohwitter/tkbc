@@ -83,13 +83,18 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
   // (otherwise it could rotate onwards when still hold on to that key).
   //
   if (state->is_angle_locked &&
-      ((IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
-        IsKeyUp(tkbc_hash_to_key(keymaps,
-                                 KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE))) ||
-       (IsKeyDown(
-            tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
-        IsKeyDown(tkbc_hash_to_key(keymaps,
-                                   KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE))))) {
+      (((IsKeyUp(
+             tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
+         IsMouseButtonUp(MOUSE_BUTTON_RIGHT)) &&
+        (IsKeyUp(tkbc_hash_to_key(keymaps,
+                                  KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)) &&
+         IsMouseButtonUp(MOUSE_BUTTON_LEFT))) ||
+       ((IsKeyDown(
+             tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
+         IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) &&
+        (IsKeyDown(tkbc_hash_to_key(keymaps,
+                                    KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)) &&
+         IsMouseButtonDown(MOUSE_BUTTON_LEFT))))) {
 
     state->interrupt_smoothness = false;
   }
@@ -101,15 +106,18 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
       ((IsKeyUp(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_TOWARDS_MOUSE)) &&
         IsKeyUp(tkbc_hash_to_key(keymaps, KMH_MOVES_KITES_AWAY_MOUSE))) ||
 
-       (IsKeyUp(tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
-        IsKeyUp(tkbc_hash_to_key(keymaps,
-                                 KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE))) ||
-
-       (IsKeyDown(
-            tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
-        IsKeyDown(
-            tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)))
-
+       ((IsKeyUp(
+             tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
+         IsMouseButtonUp(MOUSE_BUTTON_RIGHT)) &&
+        (IsKeyUp(tkbc_hash_to_key(keymaps,
+                                  KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)) &&
+         IsMouseButtonUp(MOUSE_BUTTON_LEFT))) ||
+       ((IsKeyDown(
+             tkbc_hash_to_key(keymaps, KMH_ROTATE_KITES_CENTER_CLOCKWISE)) &&
+         IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) &&
+        (IsKeyDown(tkbc_hash_to_key(keymaps,
+                                    KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE)) &&
+         IsMouseButtonDown(MOUSE_BUTTON_LEFT)))
            )) {
     state->interrupt_smoothness = false;
   }
@@ -879,7 +887,8 @@ void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps,
     return;
   }
 
-  if (state->is_angle_locked || state->is_tip_locked || state->interrupt_smoothness) {
+  if (state->is_angle_locked || state->is_tip_locked ||
+      state->interrupt_smoothness) {
     float remainder = fmodf(state->kite->angle, 45);
     float result_angle = fmodf(state->kite->angle, 360) - remainder;
     if (fabsf(remainder) > 22.5) {
