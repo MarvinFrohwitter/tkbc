@@ -679,6 +679,9 @@ bool tkbc_server_handle_client(Client *client) {
     return false;
   }
   struct pollfd *pollfd = tkbc_get_pollfd_by_fd(client->socket_id);
+  if (!pollfd) {
+    return false;
+  }
   int result;
   switch (pollfd->events) {
   case POLLRDNORM:
