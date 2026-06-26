@@ -522,7 +522,7 @@ void tkbc_print_script(FILE *stream, Script *script) {
         fprintf(stream, "      Action-Kind: Kite_Move\n");
         Move_Action action =
             script->elements[block].elements[frame].action.as_move;
-        fprintf(stream, "        Position:(%f,%f)\n", action.position.y,
+        fprintf(stream, "        Position:(%f,%f)\n", action.position.x,
                 action.position.y);
       } break;
 
@@ -530,7 +530,7 @@ void tkbc_print_script(FILE *stream, Script *script) {
         fprintf(stream, "      Action-Kind: KITE_MOVE_ADD\n");
         Move_Add_Action action =
             script->elements[block].elements[frame].action.as_move_add;
-        fprintf(stream, "        Position:(%f,%f)\n", action.position.y,
+        fprintf(stream, "        Position:(%f,%f)\n", action.position.x,
                 action.position.y);
       } break;
 
