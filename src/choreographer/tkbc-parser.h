@@ -14,6 +14,8 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki,
                          bool brace, Content *tmp_buffer);
 bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
                              Kite_Ids ki, bool brace, Content *tmp_buffer);
+
+bool tkbc_parse_number_prolog(Lexer *lexer, Content *tmp_buffer);
 bool tkbc_parse_float(float *number, Lexer *lexer, Content *tmp_buffer);
 bool tkbc_parse_size_t(size_t *number, Lexer *lexer, Content *tmp_buffer);
 bool tkbc_parse_team_figures(Env *env, Kite_Ids kis, Lexer *lexer,

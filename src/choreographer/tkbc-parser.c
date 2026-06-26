@@ -471,42 +471,43 @@ check:
 }
 
 /**
- * @brief The macro parses the possible additional plus and minus sign in front
- * of a number that is returned by the lexer.
+ * @brief The function parses the possible additional plus and minus sign in
+ * front of a number that is returned by the lexer.
  *
  * @param lexer The parsing state of the .kite script.
  * @param tmp_buffer The dynamic array buffer where the parsed tokens should be
  * appended to.
  */
-#define tkbc_parse_number_prolog(lexer, tmp_buffer)                            \
-  do {                                                                         \
-    Token token = lexer_next(lexer);                                           \
-    char sign;                                                                 \
-    bool issign = false;                                                       \
-                                                                               \
-    if (strncmp("-", token.content, token.size) == 0 ||                        \
-        strncmp("+", token.content, token.size) == 0) {                        \
-      issign = true;                                                           \
-      sign = *(char *)token.content;                                           \
-    }                                                                          \
-                                                                               \
-    if (token.kind != NUMBER && !issign) {                                     \
-      return false;                                                            \
-    }                                                                          \
-    if (issign) {                                                              \
-      token = lexer_next(lexer);                                               \
-    }                                                                          \
-    if (token.kind != NUMBER) {                                                \
-      return false;                                                            \
-    }                                                                          \
-                                                                               \
-    tmp_buffer->count = 0;                                                     \
-    if (issign) {                                                              \
-      tkbc_dap(tmp_buffer, sign);                                              \
-    }                                                                          \
-    tkbc_dapc(tmp_buffer, token.content, token.size);                          \
-    tkbc_dap(tmp_buffer, 0);                                                   \
-  } while (0)
+bool tkbc_parse_number_prolog(Lexer *lexer, Content *tmp_buffer) {
+  // TODO: Make this maybe part of the lexer.
+  Token token = lexer_next(lexer);
+  char sign;
+  bool issign = false;
+
+  if (strncmp("-", token.content, token.size) == 0 ||
+      strncmp("+", token.content, token.size) == 0) {
+    issign = true;
+    sign = *(char *)token.content;
+  }
+
+  if (token.kind != NUMBER && !issign) {
+    return false;
+  }
+  if (issign) {
+    token = lexer_next(lexer);
+  }
+  if (token.kind != NUMBER) {
+    return false;
+  }
+
+  tmp_buffer->count = 0;
+  if (issign) {
+    tkbc_dap(tmp_buffer, sign);
+  }
+  tkbc_dapc(tmp_buffer, token.content, token.size);
+  tkbc_dap(tmp_buffer, 0);
+  return true;
+}
 
 /**
  * @brief The function tries to parse a floating point number out of the current
@@ -522,7 +523,9 @@ check:
  * value stays untouched.
  */
 bool tkbc_parse_float(float *number, Lexer *lexer, Content *tmp_buffer) {
-  tkbc_parse_number_prolog(lexer, tmp_buffer);
+  if (!tkbc_parse_number_prolog(lexer, tmp_buffer)) {
+    return false;
+  }
   *number = strtof(tmp_buffer->elements, NULL);
   return true;
 }
@@ -542,7 +545,9 @@ bool tkbc_parse_float(float *number, Lexer *lexer, Content *tmp_buffer) {
  * value stays untouched.
  */
 bool tkbc_parse_size_t(size_t *number, Lexer *lexer, Content *tmp_buffer) {
-  tkbc_parse_number_prolog(lexer, tmp_buffer);
+  if (!tkbc_parse_number_prolog(lexer, tmp_buffer)) {
+    return false;
+  }
   *number = (size_t)strtoull(tmp_buffer->elements, NULL, 10);
   return true;
 }
