@@ -366,8 +366,13 @@ bool received_message_handler(Message *message) {
       goto err;
     }
 
+    static bool received_hello = false;
     if (!client.handshake_passed) {
       if (!(kind == MESSAGE_HELLO_PASSED || kind == MESSAGE_HELLO)) {
+        goto err;
+      }
+
+      if (kind == MESSAGE_HELLO_PASSED && !received_hello) {
         goto err;
       }
     }
@@ -388,6 +393,7 @@ bool received_message_handler(Message *message) {
                    "Hello server from client!", quote);
       }
 
+      received_hello = true;
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
     } break;
     case MESSAGE_GET_TEXTURE: {

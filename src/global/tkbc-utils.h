@@ -576,7 +576,7 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]) {
 
 #ifdef TKBC_SERVER
 extern Env *env;
-#endif // PROTOCOL_VERSION
+#endif
 
 /**
  * @brief The function is a wrapper for the GetScreenHeight() that is not
@@ -594,7 +594,7 @@ int tkbc_get_screen_height(void) {
 #ifdef INCLUDE_RAYLIB
   return GetScreenHeight();
 #endif
-#endif // PROTOCOL_VERSION
+#endif
   exit(0);
 }
 
@@ -614,7 +614,7 @@ int tkbc_get_screen_width(void) {
 #ifdef INCLUDE_RAYLIB
   return GetScreenWidth();
 #endif
-#endif // PROTOCOL_VERSION
+#endif
   return 0;
   exit(0);
 }
@@ -714,7 +714,7 @@ double tkbc_get_time(void) {
 #ifdef INCLUDE_RAYLIB
   return GetTime();
 #endif
-#endif // PROTOCOL_VERSION
+#endif
   exit(0);
 }
 
@@ -765,7 +765,7 @@ float tkbc_get_frame_time(void) {
 #ifdef INCLUDE_RAYLIB
   return GetFrameTime();
 #endif
-#endif // PROTOCOL_VERSION
+#endif
   exit(0);
 }
 
