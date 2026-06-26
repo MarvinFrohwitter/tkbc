@@ -393,6 +393,21 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   if (0 > pid) {
     tkbc_fprintf(stderr, "ERROR", "The fork was not possible:%s\n",
                  strerror(errno));
+
+    int close_status = close(fildes[0]);
+    if (close_status < 0) {
+      tkbc_fprintf(
+          stderr, "ERROR",
+          "The ffmpeg_end() function could not close the pipe: %d: %s\n",
+          fildes[0], strerror(errno));
+    }
+    close_status = close(fildes[1]);
+    if (close_status < 0) {
+      tkbc_fprintf(stderr, "ERROR",
+                   "The ffmpeg_end() function could not close the pipe field: "
+                   "%d: %s\n",
+                   fildes[1], strerror(errno));
+    }
     return false;
   }
 
