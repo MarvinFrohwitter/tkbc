@@ -122,6 +122,8 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   if (!CreatePipe(&rpipe, &wpipe, &security_attributes, 0)) {
     tkbc_fprintf(stderr, "ERROR", "Creating the pipe has failed with:%d\n",
                  GetLastError());
+    free(env->ffmpeg);
+    env->ffmpeg = NULL;
     return false;
   }
 
@@ -129,6 +131,11 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
     tkbc_fprintf(stderr, "ERROR",
                  "The write pipe could not be set to HANDLE_FLAG_INHERIT:%d\n",
                  GetLastError());
+
+    CloseHandle(wpipe);
+    CloseHandle(rpipe);
+    free(env->ffmpeg);
+    env->ffmpeg = NULL;
     return false;
   }
 
@@ -142,6 +149,10 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
     tkbc_fprintf(stderr, "ERROR",
                  "Could not get STD_OUTPUT_HANDLE for ffmpeg: %d\n",
                  GetLastError());
+    CloseHandle(wpipe);
+    CloseHandle(rpipe);
+    free(env->ffmpeg);
+    env->ffmpeg = NULL;
     return false;
   }
   startup_info.hStdError = GetStdHandle(STD_ERROR_HANDLE);
@@ -149,6 +160,10 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
     tkbc_fprintf(stderr, "ERROR",
                  "Could not get STD_ERROR_HANDLE for ffmpeg: %d\n",
                  GetLastError());
+    CloseHandle(wpipe);
+    CloseHandle(rpipe);
+    free(env->ffmpeg);
+    env->ffmpeg = NULL;
     return false;
   }
 
@@ -179,6 +194,8 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
                    GetLastError());
       CloseHandle(wpipe);
       CloseHandle(rpipe);
+      free(env->ffmpeg);
+      env->ffmpeg = NULL;
       return false;
     }
 
@@ -198,6 +215,8 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
                    GetLastError());
       CloseHandle(wpipe);
       CloseHandle(rpipe);
+      free(env->ffmpeg);
+      env->ffmpeg = NULL;
       return false;
     }
   }
@@ -381,6 +400,9 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   if (-1 == pipe_status) {
     tkbc_fprintf(stderr, "ERROR", "Creating the pipe has failed with:%s\n",
                  strerror(errno));
+    free(env->ffmpeg);
+    env->ffmpeg = NULL;
+    return false;
   }
 
   char resolution[32] = {0};
