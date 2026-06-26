@@ -295,7 +295,7 @@ int tkbc_ffmpeg_write_image(Env *env) {
     bool ok = 0;
     Image image = LoadImageFromScreen();
     ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-    for (int y = 1; y <= image.height; ++y) {
+    for (int y = 0; y < image.height; ++y) {
       LPDWORD amount = NULL;
       // ERROR_IO_PENDING is not handled.
       int write_status =
@@ -573,7 +573,7 @@ int tkbc_ffmpeg_write_image(Env *env) {
     bool ok = 0;
     Image image = LoadImageFromScreen();
     ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-    for (int y = 1; y <= image.height; ++y) {
+    for (int y = 0; y < image.height; ++y) {
       int write_status =
           write(env->ffmpeg->pipe, (uint32_t *)image.data + image.width * y,
                 sizeof(uint32_t) * image.width);
