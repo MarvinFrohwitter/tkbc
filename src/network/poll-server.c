@@ -678,6 +678,9 @@ int tkbc_socket_write(Client *client) {
  * succeeded, otherwise false.
  */
 bool tkbc_server_handle_client(Client *client) {
+  if (!client) {
+    return false;
+  }
   struct pollfd *pollfd = tkbc_get_pollfd_by_fd(client->socket_id);
   int result;
   switch (pollfd->events) {
@@ -735,6 +738,7 @@ void tkbc_socket_handling(void) {
         }
         tkbc_remove_fd_unorderd(fd);
         tkbc_close(fd);
+        continue;
       }
       bool result = tkbc_server_handle_client(client);
       if (!result) {
