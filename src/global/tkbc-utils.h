@@ -350,16 +350,19 @@ int tkbc_read_file(const char *filename, Content *content) {
   size_t chunk_size = 4 * 1024;
   char chunk[chunk_size];
   while (feof(file) == 0) {
-    memset(chunk, 0, chunk_size);
-    if (chunk_size != fread(chunk, sizeof(*chunk), chunk_size, file)) {
+    size_t n = fread(chunk, sizeof(*chunk), chunk_size, file);
+    if (chunk_size != n) {
       if (ferror(file) != 0) {
         ok = -1;
         break;
       }
     }
-    tkbc_dapc(content, chunk, chunk_size);
+    tkbc_dapc(content, chunk, n);
+    content->count += n;
+  }
+  if (content->count > 0) {
     tkbc_dap(content, '\0');
-    content->count = strlen(content->elements);
+    content->count--;
   }
 
   if (fclose(file) == EOF) {
