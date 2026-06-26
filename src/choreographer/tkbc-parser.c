@@ -125,7 +125,7 @@ void tkbc_script_parser(Env *env) {
       } else if (strncmp("TIP_ROTATION", t.content, t.size) == 0) {
         if (!tkbc_parse_tip_rotation(env, l, KITE_TIP_ROTATION, ki, brace,
                                      &tmp_buffer)) {
-          break;
+          goto err;
         }
         break;
       } else if (strncmp("TIP_ROTATION_ADD", t.content, t.size) == 0) {
