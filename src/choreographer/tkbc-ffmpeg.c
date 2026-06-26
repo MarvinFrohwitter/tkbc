@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -205,7 +206,7 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
              "ffmpeg -loglevel verbose -y -f rawvideo -pix_fmt rgba -s %s -r "
              "%s -i pipe:0 -i %s -c:v libx264 -vb 2500k -c:a aac -ab 200k "
              "-pix_fmt yuv420p %s",
-             resolution, env->sound_file_name, fps, output_file_path);
+             resolution, fps, env->sound_file_name, output_file_path);
 
     tkbc_fprintf(stderr, "INFO", "%s %s\n", "[CMD]", ffmpeg_cmd);
     if (!CreateProcess(NULL, ffmpeg_cmd, NULL, NULL, TRUE, 0, NULL, NULL,
@@ -242,6 +243,7 @@ bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
     return true;
   }
 
+  FlushFileBuffers(env->ffmpeg->pipe);
   BOOL close_status = CloseHandle(env->ffmpeg->pipe);
   if (close_status == 0) {
     tkbc_fprintf(stderr, "ERROR",
@@ -249,7 +251,6 @@ bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
                  "Error code: %d\n",
                  env->ffmpeg->pipe, GetLastError());
   }
-  FlushFileBuffers(env->ffmpeg->pipe);
 
   env->recording = false;
   bool status = tkbc_ffmpeg_wait(*env->ffmpeg, is_kill_foreced);
@@ -311,27 +312,17 @@ check:
  */
 int tkbc_ffmpeg_write_image(Env *env) {
   if (env->rendering) {
-    bool ok = 0;
+    int ok = 0;
     Image image = LoadImageFromScreen();
     ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
     for (int y = 0; y < image.height; ++y) {
       DWORD amount = 0;
-      // ERROR_IO_PENDING is not handled.
-      int write_status =
-          WriteFile(env->ffmpeg->pipe, (uint32_t *)image.data + image.width * y,
-                    sizeof(uint32_t) * image.width, &amount, NULL);
-
-      if (!write_status) {
-        DWORD err = GetLastError();
-        if (err == ERROR_IO_PENDING) {
-          tkbc_fprintf(stderr, "ERROR",
-                       "Process: ffmpeg: pending write! Amount written: %d\n",
-                       amount);
-          continue;
-        }
+      if (!WriteFile(env->ffmpeg->pipe,
+                     (uint32_t *)image.data + image.width * y,
+                     sizeof(uint32_t) * image.width, &amount, NULL)) {
         tkbc_fprintf(stderr, "ERROR",
-                     "Could not write to the pipe: Error code: %d\n", err);
-
+                     "Could not write to the pipe: Error code: %d\n",
+                     GetLastError());
         check_return(-1);
       }
     }
@@ -592,7 +583,7 @@ bool tkbc_ffmpeg_wait(Process process, bool is_kill_foreced) {
  */
 int tkbc_ffmpeg_write_image(Env *env) {
   if (env->rendering) {
-    bool ok = 0;
+    int ok = 0;
     Image image = LoadImageFromScreen();
     ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
     for (int y = 0; y < image.height; ++y) {
