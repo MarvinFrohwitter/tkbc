@@ -627,9 +627,6 @@ int tkbc_get_screen_width(void) {
  * @return True if a double click is detected otherwise false:
  */
 bool is_mouse_double_click(int mouse_button) {
-// TODO: make this function callable multiple times a frame without detecting a
-// click when called a second time. The second click suld only be detected in
-// the next frame.
 #define MOUSE_BUTTON_COUNT 7
   static_assert(MOUSE_BUTTON_BACK == 6, "MOUSE_BUTTON positions changed");
   static_assert(MOUSE_BUTTON_COUNT == MOUSE_BUTTON_BACK + 1,
@@ -649,11 +646,26 @@ bool is_mouse_double_click(int mouse_button) {
   static struct {
     int last_release_time_ms;
     bool waiting_for_second_click;
+    bool cached;
+    bool result;
   } key_table[MOUSE_BUTTON_COUNT] = {
       [MOUSE_BUTTON_LEFT] = {0},   [MOUSE_BUTTON_RIGHT] = {0},
       [MOUSE_BUTTON_MIDDLE] = {0}, [MOUSE_BUTTON_SIDE] = {0},
       [MOUSE_BUTTON_EXTRA] = {0},  [MOUSE_BUTTON_FORWARD] = {0},
   };
+
+  static float cached_frame_time = 0;
+  float frame_time = tkbc_get_frame_time();
+  if (frame_time != cached_frame_time) {
+    cached_frame_time = frame_time;
+    for (int i = 0; i < MOUSE_BUTTON_COUNT; i++) {
+      key_table[i].cached = false;
+    }
+  }
+
+  if (key_table[mouse_button].cached) {
+    return key_table[mouse_button].result;
+  }
 
   // TODO: Make this cross platform clock_gettime()
   struct timespec ts;
@@ -664,27 +676,32 @@ bool is_mouse_double_click(int mouse_button) {
   double current_time = (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
   int now_ms = current_time * 1000;
 
+  bool result = false;
+
   if (IsMouseButtonReleased(mouse_button)) {
     if (key_table[mouse_button].waiting_for_second_click) {
       int delta = now_ms - key_table[mouse_button].last_release_time_ms;
       key_table[mouse_button].waiting_for_second_click = false;
       if (delta >= 0 && delta <= TKBC_MAX_DOUBLECLICK_MS) {
-        return true;
+        result = true;
       }
     }
-    key_table[mouse_button].last_release_time_ms = now_ms;
-    key_table[mouse_button].waiting_for_second_click = true;
-    return false;
+    if (!result) {
+      key_table[mouse_button].last_release_time_ms = now_ms;
+      key_table[mouse_button].waiting_for_second_click = true;
+    }
   }
 
-  if (key_table[mouse_button].waiting_for_second_click) {
+  if (!result && key_table[mouse_button].waiting_for_second_click) {
     if (now_ms - key_table[mouse_button].last_release_time_ms >
         TKBC_MAX_DOUBLECLICK_MS) {
       key_table[mouse_button].waiting_for_second_click = false;
     }
   }
 
-  return false;
+  key_table[mouse_button].cached = true;
+  key_table[mouse_button].result = result;
+  return result;
 }
 
 /**
