@@ -1,10 +1,10 @@
 #include "raylib.h"
+#include <assert.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -45,11 +45,13 @@ struct Process {
  * @param env The global state of the application.
  * @param output_file_path The file path of the output video.
  */
-void tkbc_ffmpeg_handler(Env *env, const char *output_file_path) {
+void tkbc_ffmpeg_handler(Env *env) {
   // KEY_B
   if (tkbc_check_keymaps_full(env->keymaps, KMH_TAKE_SCREENSHOT,
                               KEY_MAP_CHECK_KEY_PRESSED)) {
-    TakeScreenshot("1.png");
+    TakeScreenshot(tkbc_generate_file_name_with_time_stamp(
+        space_get_tspace(), "Choreo Picture - ", ".png"));
+    space_reset_tspace();
   }
 
   //
@@ -66,15 +68,19 @@ void tkbc_ffmpeg_handler(Env *env, const char *output_file_path) {
   } else if (tkbc_check_keymaps_full(env->keymaps, KMH_BEGIN_RECORDING,
                                      KEY_MAP_CHECK_KEY_PRESSED)) {
     if (!env->rendering) {
+
+      const char *output_file_path = tkbc_generate_file_name_with_time_stamp(
+          space_get_tspace(), "Choreo Video - ", ".mp4");
       if (!tkbc_ffmpeg_create_proc(env, output_file_path)) {
         env->recording = false;
         env->rendering = false;
       }
+      space_reset_tspace();
       // This ensures that the frame buffer can be setup and remaining
       // changes can take effect. For example disabling the fps display.
-      // Otherwise the fps display would be visible in the final video for just
-      // one frame.
-      // As a result tkbc_ffmpeg_write_image function is delayed one frame.
+      // Otherwise the fps display would be visible in the final video for
+      // just one frame. As a result tkbc_ffmpeg_write_image function is
+      // delayed one frame.
       return;
     }
   }

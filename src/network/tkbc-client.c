@@ -1192,7 +1192,7 @@ int main(int argc, char *argv[]) {
 
     // The end of the current frame has to be executed so ffmpeg gets the full
     // executed fame.
-    tkbc_ffmpeg_handler(env, "output.mp4");
+    tkbc_ffmpeg_handler(env);
   };
 
   if (client.socket_id != -1) {

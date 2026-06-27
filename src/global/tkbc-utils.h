@@ -20,6 +20,9 @@
 #include "../choreographer/tkbc.h"
 #endif
 
+#include "../../external/space/space.h"
+
+
 // ===========================================================================
 // ========================== KITE UTILS =====================================
 // ===========================================================================
@@ -189,6 +192,10 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 int tkbc_get_screen_height(void);
 int tkbc_get_screen_width(void);
 bool is_mouse_double_click(int mouse_button);
+
+const char *tkbc_generate_file_name_with_time_stamp(Space *space,
+                                                    const char *prefix,
+                                                    const char *postfix);
 double tkbc_get_time(void);
 void tkbc_make_frame_time(double target_dt);
 float tkbc_get_frame_time(void);
@@ -694,6 +701,22 @@ bool is_mouse_double_click(int mouse_button) {
   state[mouse_button].cached = true;
   state[mouse_button].result = result;
   return result;
+}
+
+// TODO: Add signature docs.
+const char *tkbc_generate_file_name_with_time_stamp(Space *space,
+                                                    const char *prefix,
+                                                    const char *postfix) {
+  const time_t current_time = time(NULL);
+  if (current_time == (time_t)-1) {
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+    return NULL;
+  }
+
+  char buffer[26];
+  const char *time_string = ctime_r(&current_time, buffer);
+  buffer[24] = '\0'; // This is to remove the new line from the time_string.
+  return space_sprintf(space, "%s%s%s", prefix, time_string, postfix);
 }
 
 /**

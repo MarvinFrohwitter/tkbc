@@ -99,7 +99,7 @@ int main(void) {
 
     // The end of the current frame has to be executed so ffmpeg gets the full
     // executed fame.
-    tkbc_ffmpeg_handler(env, "output.mp4");
+    tkbc_ffmpeg_handler(env);
   };
 
   tkbc_sound_destroy(env->sound);
