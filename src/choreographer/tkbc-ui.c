@@ -1000,7 +1000,7 @@ void tkbc_ui_color_picker(Env *env) {
   p.y = env->color_picker_base.y + padding;
   DrawTextEx(env->font, description, p, font_size, 2, TKBC_UI_BLACK);
 
-  DrawRectangleRounded(input_box, 50, 20, WHITE);
+  DrawRectangleRounded(input_box, 1, 20, WHITE);
 
   size_t char_amount = strlen(env->color_picker_input_text);
 
@@ -1074,9 +1074,9 @@ key_skip:
   color_box.x = input_box.x;
   color_box.y = padding + input_box.y + input_box.height;
   // This is for allowing correct displayment of the alpha.
-  DrawRectangleRounded(color_box, 2, 20, WHITE);
-  DrawRectangleRounded(color_box, 2, 20, env->last_selected_color);
-  DrawRectangleRoundedLinesEx(color_box, 2, 20, 1, BLACK);
+  DrawRectangleRounded(color_box, 1, 20, WHITE);
+  DrawRectangleRounded(color_box, 1, 20, env->last_selected_color);
+  DrawRectangleRoundedLinesEx(color_box, 1, 20, 1, BLACK);
 
   if (CheckCollisionPointRec(mouse, color_box) &&
       IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
