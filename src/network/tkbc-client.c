@@ -1,4 +1,4 @@
-//
+// name of the program caller
 // TODO check for atoi, atol, atoll for 0 as failure. Maybe use strtol instead.
 //
 #define WINDOW_SCALE 120
