@@ -22,7 +22,6 @@
 
 #include "../../external/space/space.h"
 
-
 // ===========================================================================
 // ========================== KITE UTILS =====================================
 // ===========================================================================
@@ -713,9 +712,9 @@ const char *tkbc_generate_file_name_with_time_stamp(Space *space,
     return NULL;
   }
 
-  char buffer[26];
-  const char *time_string = ctime_r(&current_time, buffer);
-  buffer[24] = '\0'; // This is to remove the new line from the time_string.
+  char *time_string = ctime(&current_time);
+  time_string = space_strdup(space, time_string);
+  time_string[24] = '\0'; // This is to remove the '\n' from the time_string.
   return space_sprintf(space, "%s%s%s", prefix, time_string, postfix);
 }
 
