@@ -1,5 +1,5 @@
 # clang bug with size_t, variadics, optimization and compiler caching
-# gcc is broken when using a format sting that just includes "%s" longer ones are fine like "Hello %s" with NULL.
+# gcc is broken when using a format string that just includes "%s" longer ones are fine like "Hello %s" with NULL.
 # printf("%s", NULL);
 
 CC = gcc
@@ -59,21 +59,19 @@ client-win64: build first.o
 	x86_64-w64-mingw32-gcc -DINCLUDE_RAYLIB -DRELEASE -Wall -Wextra -O3 -static -mwindows -I ./external/raylib-6.0_win64_mingw-w64/include/ -o build/client-win64 src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c ${FILES} src/network/messages/*.c -L ./external/raylib-6.0_win64_mingw-w64/lib/ -lraylib -lwinmm -lgdi32 -lws2_32
 
 build:
-	mkdir -p build
+	${CC} ${CFLAGS} -o cb cb2.c
+	./cb build
 
 clean:
-	rm -r build
+	./cb clean
 
-test: options build
-	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -DTKBC_SERVER -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES_SERVER} ${LIBS}
-	./build/tests
+test: build
+	./cb test
 
-test-verbose: options build
-	${CC} ${INCLUDE} ${CFLAGS} -DTKBC_SERVER -DPRINT_OPERATION_AND_DESCRIPTION -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES_SERVER} ${LIBS}
-	./build/tests
+test-verbose: build
+	./cb test verbose
 
-test-short: options build
-	${CC} ${INCLUDE} ${CFLAGS} -DTKBC_SERVER -DSHORT_LOG -o build/tests src/tests/tkbc_tests.c ${CHOREOGRAPHER_FILES_SERVER} ${LIBS}
-	./build/tests
+test-short: build
+	./cb test short
 
 .PHONY: all clean options tkbc tkbc.o build client test server poll-server
