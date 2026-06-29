@@ -41,15 +41,15 @@ poll-server: build
 poll-server-win64: build first.o
 	x86_64-w64-mingw32-gcc -DRELEASE -DTKBC_SERVER -Wall -Wextra -O3 -static -mwindows -DINCLUDE_RAYLIB -I ./external/raylib-6.0_win64_mingw-w64/include/ -o build/poll-server-win64 src/network/poll-server.c src/network/tkbc-network-common.c ${CHOREOGRAPHER_FILES_SERVER} src/network/messages/*.c -L ./external/raylib-6.0_win64_mingw-w64/lib/ -lraylib -lws2_32 -lwinmm
 
-client: build first.o
-	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/client src/network/tkbc-client.c src/network/tkbc-network-common.c src/global/tkbc-popup.c src/network/messages/*.c ${FILES} ${LIBS}
+client: build
+	./cb client
 
 
-tkbc: build first.o
-	${CC} ${INCLUDE} ${DEBUG_CFLAGS} ${CFLAGS} -o build/tkbc ${CHOREOGRAPHER} ${LIBS}
+tkbc: build
+	./cb tkbc
 
 first.o: build
-	${CC} ${INCLUDE} ${CFLAGS} -c tkbc_scripts/first.c -o build/first.o
+	./cb first.o
 
 
 tkbc-win64: build
@@ -60,9 +60,11 @@ client-win64: build first.o
 
 build:
 	${CC} ${CFLAGS} -o cb cb2.c
-	./cb build
 
-clean:
+build-dir: build
+	./cb build-dir
+
+clean: build
 	./cb clean
 
 test: build
