@@ -1,12 +1,19 @@
+// clang bug with size_t, variadics, optimization and compiler caching
+// gcc is broken when using a format string that just includes "%s" longer ones
+// are fine like "Hello %s" with NULL.
+// printf("%s", NULL);
+
 #include <string.h>
 #define CB_IMPLEMENTATION
 #include "cb.h"
 Cmd cmd = {0};
 
 #define shift(array, size) (assert(0 < (size)), (size)--, *(array)++)
-#define CC "gcc"
+// #define CC "gcc"
+#define CC "clang"
 #define BUILD_PATH "build/"
-#define RAYLIB_PATH "external/raylib-6.0_linux_amd64/"
+#define RAYLIB_PATH_LINUX "external/raylib-6.0_linux_amd64/"
+#define RAYLIB_PATH_WINDOWS "external/raylib-6.0_win64_mingw-w64/"
 #define TESTS_PATH "src/tests/"
 #define SCRIPT_PATH "tkbc_scripts/"
 #define CHOREOGRAPHER_PATH "src/choreographer/"
@@ -34,6 +41,9 @@ char *get_next_or_last(char ***array, int *size) {
 }
 
 typedef struct {
+  bool release;
+  bool ndebug;
+
   bool include_raylib;
   bool tkbc_server;
 
@@ -42,13 +52,21 @@ typedef struct {
 } Define_Opts;
 
 #define define(cmd, ...) define_opt((cmd), ((Define_Opts){__VA_ARGS__}))
-
 void define_opt(Cmd *cmd, Define_Opts opts) {
-  if (opts.tkbc_server) {
-    CFLAGS(cmd, "-DTKBC_SERVER");
+
+  if (opts.release) {
+    CFLAGS(cmd, "-DRELEASE");
+    CFLAGS(cmd, "-DNDEBUG");
   }
+  if (opts.ndebug) {
+    CFLAGS(cmd, "-DNDEBUG");
+  }
+
   if (opts.include_raylib) {
     CFLAGS(cmd, "-DINCLUDE_RAYLIB");
+  }
+  if (opts.tkbc_server) {
+    CFLAGS(cmd, "-DTKBC_SERVER");
   }
   if (opts.print_operation_and_description) {
     CFLAGS(cmd, "-DPRINT_OPERATION_AND_DESCRIPTION");
@@ -58,23 +76,48 @@ void define_opt(Cmd *cmd, Define_Opts opts) {
   }
 }
 
-void cflags(Cmd *cmd, bool sanitize) {
-  CFLAGS(cmd, "-fPIC", "-O3", "-Wall", "-Wextra", "-ggdb");
-  if (sanitize) {
+typedef struct {
+  bool sanitize;
+  bool WINDOWS;
+} Cflags_Opts;
+
+#define cflags(cmd, ...) cflags_opt(cmd, ((Cflags_Opts){__VA_ARGS__}))
+void cflags_opt(Cmd *cmd, Cflags_Opts opts) {
+  CFLAGS(cmd, "-fPIC", "-O0", "-Wall", "-Wextra", "-ggdb", "-std=gnu23");
+  if (opts.WINDOWS) {
+    CFLAGS(cmd, "-static");
+    CFLAGS(cmd, "-mwindows");
+  }
+
+  if (opts.sanitize) {
     CFLAGS(cmd, "-fsanitize=address");
     CFLAGS(cmd, "-fsanitize=undefined");
     CFLAGS(cmd, "-fno-sanitize-recover=undefined");
   }
 }
 
-void include(Cmd *cmd, bool include_raylib) {
+typedef struct {
+  bool raylib;
+  bool LINUX;
+  bool WINDOWS;
+} Include_Opts;
+
+#define include(cmd, ...) include_opt(cmd, ((Include_Opts){__VA_ARGS__}))
+void include_opt(Cmd *cmd, Include_Opts opts) {
   INCLUDE(cmd, "-I", CHOREOGRAPHER_PATH);
-  INCLUDE(cmd, "-I", "src/global/", "-I", "src/network/");
+  INCLUDE(cmd, "-I", "src/global/");
   INCLUDE(cmd, "-I", "src/network/");
   INCLUDE(cmd, "-I", "tkbc_scripts/");
   INCLUDE(cmd, "-I", BUILD_PATH);
-  if (include_raylib) {
-    INCLUDE(cmd, "-I", RAYLIB_PATH "include/");
+  if (opts.raylib) {
+    if (0) {
+    } else if (opts.LINUX) {
+      INCLUDE(cmd, "-I", RAYLIB_PATH_LINUX "include/");
+    } else if (opts.WINDOWS) {
+      INCLUDE(cmd, "-I", RAYLIB_PATH_WINDOWS "include/");
+    } else {
+      exit(EXIT_FAILURE);
+    }
   }
 }
 
@@ -82,19 +125,39 @@ typedef struct {
   bool math;
   bool raylib;
   bool X11;
+
+  bool LINUX;
+  bool WINDOWS;
+
+  bool network;
 } Libs_Opts;
 
 #define libs(cmd, ...) libs_opt((cmd), ((Libs_Opts){__VA_ARGS__}))
 void libs_opt(Cmd *cmd, Libs_Opts opts) {
   if (opts.math) {
-    INCLUDE(cmd, "-lm");
+    LIBS(cmd, "-lm");
   }
   if (opts.raylib) {
-    INCLUDE(cmd, "-L", RAYLIB_PATH "lib/");
-    INCLUDE(cmd, "-l:libraylib.a");
-  }
-  if (opts.X11) {
-    INCLUDE(cmd, "-lX11");
+    if (0) {
+    } else if (opts.LINUX) {
+      LDFLAGS(cmd, "-L", RAYLIB_PATH_LINUX "lib/");
+      LIBS(cmd, "-l:libraylib.a");
+      if (opts.X11) {
+        LIBS(cmd, "-lX11");
+      }
+    } else if (opts.WINDOWS) {
+      LDFLAGS(cmd, "-L", RAYLIB_PATH_WINDOWS "lib/");
+      // Linking order is important because of collisions.
+      LIBS(cmd, "-l:libraylib.a");
+      LIBS(cmd, "-lwinmm");
+      LIBS(cmd, "-lgdi32");
+
+      if (opts.network) {
+        LIBS(cmd, "-lws2_32");
+      }
+    } else {
+      exit(EXIT_FAILURE);
+    }
   }
 }
 
@@ -104,9 +167,9 @@ void files_for_test(Cmd *cmd) {
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-team-figures-api.c");
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-handler.c");
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-keymaps.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-converter.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-parser.c");
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-asset-handler.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-parser.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-converter.c");
 }
 
 void files_for_choreographer(Cmd *cmd) {
@@ -115,16 +178,30 @@ void files_for_choreographer(Cmd *cmd) {
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-team-figures-api.c");
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-asset-handler.c");
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-keymaps.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-sound-handler.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-ui.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-ffmpeg.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-input-handler.c");
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-handler.c");
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-parser.c");
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-converter.c");
 }
 
+void files_for_tkbc(Cmd *cmd) {
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "main.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-ui.c");
+
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-sound-handler.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-ffmpeg.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-input-handler.c");
+
+  files_for_choreographer(cmd);
+}
+
 void files_for_client(Cmd *cmd) {
+  cb_cmd_push(cmd, NETWORK_PATH "tkbc-client.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-ui.c");
+
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-sound-handler.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-ffmpeg.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-input-handler.c");
+
   files_for_choreographer(cmd);
 
   cb_cmd_push(cmd, GLOBAL_PATH "tkbc-popup.c");
@@ -133,9 +210,27 @@ void files_for_client(Cmd *cmd) {
   cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-hello-verification.c");
   cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-send-texture.c");
   cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-get-texture.c");
+
   cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-send-texture-id.c");
   cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script-meta-data.c");
   cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-single-kite-add.c");
+}
+
+void files_for_server(Cmd *cmd) {
+  cb_cmd_push(cmd, NETWORK_PATH "poll-server.c");
+
+  files_for_choreographer(cmd);
+
+  cb_cmd_push(cmd, NETWORK_PATH "tkbc-network-common.c");
+
+  cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-hello-verification.c");
+  cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-send-texture.c");
+  cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-get-texture.c");
+
+  cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-get-texture-id.c");
+  cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script-scrub.c");
+  cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script-next.c");
+  cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script.c");
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -148,10 +243,25 @@ void clean(Cmd *cmd) {
     exit(EXIT_FAILURE);
 }
 
-void first_o(Cmd *cmd) {
+typedef struct {
+  bool LINUX;
+  bool WINDOWS;
+} OS_Opts;
+
+#define first_o(cmd, ...) first_o_opt(cmd, ((OS_Opts){__VA_ARGS__}))
+void first_o_opt(Cmd *cmd, OS_Opts os) {
   cb_cmd_push(cmd, CC);
-  include(cmd, false);
-  cflags(cmd, false);
+  if (0) {
+  } else if (os.LINUX) {
+    include(cmd, .raylib = true, .LINUX = true);
+  } else if (os.WINDOWS) {
+    include(cmd, .raylib = true, .WINDOWS = true);
+  } else {
+    printf("hello\n");
+    exit(EXIT_FAILURE);
+  }
+
+  cflags(cmd); // TODO Think about windows cflags(cmd, .WINDOWS = true);
   cb_cmd_push(cmd, "-c");
   cb_cmd_push(cmd, "-o", BUILD_PATH "first.o");
   cb_cmd_push(cmd, SCRIPT_PATH "first.c");
@@ -160,34 +270,108 @@ void first_o(Cmd *cmd) {
     exit(EXIT_FAILURE);
 }
 
-void tkbc(Cmd *cmd) {
-  first_o(cmd);
+#define tkbc(cmd, ...) tkbc_opt(cmd, ((OS_Opts){__VA_ARGS__}))
+void tkbc_opt(Cmd *cmd, OS_Opts os) {
 
-  cb_cmd_push(cmd, CC);
-  include(cmd, true);
-  cflags(cmd, false);
-  define(cmd, .include_raylib = true);
+  if (0) {
+  } else if (os.LINUX) {
+    first_o(cmd, .LINUX = true);
+    cb_cmd_push(cmd, CC);
+    include(cmd, .raylib = true, .LINUX = true);
+    cflags(cmd);
+    define(cmd, .include_raylib = true);
+    cb_cmd_push(cmd, "-o", BUILD_PATH "tkbc");
+  } else if (os.WINDOWS) {
+    first_o(cmd, .WINDOWS = true);
+    cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
+    include(cmd, .raylib = true, .WINDOWS = true);
+    define(cmd, .include_raylib = true, .release = true, .ndebug = false);
+    cflags(cmd, .WINDOWS = true);
+    cb_cmd_push(cmd, "-o", BUILD_PATH "tkbc-win64");
+  } else {
+    exit(EXIT_FAILURE);
+  }
 
-  cb_cmd_push(cmd, "-o", BUILD_PATH "tkbc");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "main.c");
-  files_for_choreographer(cmd);
-  libs(cmd, .raylib = true, .X11 = true, .math = true);
+  files_for_tkbc(cmd);
+
+  if (0) {
+  } else if (os.LINUX) {
+    libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
+  } else if (os.WINDOWS) {
+    libs(cmd, .raylib = true, .WINDOWS = true);
+  } else {
+    exit(EXIT_FAILURE);
+  }
 
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
 }
 
-void client(Cmd *cmd) {
-  first_o(cmd);
-  cb_cmd_push(cmd, CC);
-  include(cmd, true);
-  cflags(cmd, false);
-  define(cmd, .include_raylib = true);
+#define client(cmd, ...) client_opt(cmd, ((OS_Opts){__VA_ARGS__}))
+void client_opt(Cmd *cmd, OS_Opts os) {
+  if (0) {
+  } else if (os.LINUX) {
+    first_o(cmd, .LINUX = true);
+    cb_cmd_push(cmd, CC);
+    include(cmd, .raylib = true, .LINUX = true);
+    cflags(cmd);
+    define(cmd, .include_raylib = true);
+    cb_cmd_push(cmd, "-o", BUILD_PATH "client");
+  } else if (os.WINDOWS) {
+    first_o(cmd, .WINDOWS = true);
+    cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
+    include(cmd, .raylib = true, .WINDOWS = true);
+    cflags(cmd, .WINDOWS = true);
+    define(cmd, .include_raylib = true, .release = true, .ndebug = false);
+    cb_cmd_push(cmd, "-o", BUILD_PATH "client-win64");
+  } else {
+    exit(EXIT_FAILURE);
+  }
 
-  cb_cmd_push(cmd, "-o", BUILD_PATH "client");
-  cb_cmd_push(cmd, NETWORK_PATH "tkbc-client.c");
   files_for_client(cmd);
-  libs(cmd, .raylib = true, .X11 = true, .math = true);
+
+  if (0) {
+  } else if (os.LINUX) {
+    libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
+  } else if (os.WINDOWS) {
+    libs(cmd, .raylib = true, .WINDOWS = true, .network = true);
+  } else {
+    exit(EXIT_FAILURE);
+  }
+
+  if (!cb_run_sync(cmd))
+    exit(EXIT_FAILURE);
+}
+
+#define server(cmd, ...) server_opt(cmd, ((OS_Opts){__VA_ARGS__}))
+void server_opt(Cmd *cmd, OS_Opts os) {
+  if (0) {
+  } else if (os.LINUX) {
+    cb_cmd_push(cmd, CC);
+    include(cmd, .raylib = true, .LINUX = true);
+    cflags(cmd);
+    define(cmd, .include_raylib = true, .tkbc_server = true);
+    cb_cmd_push(cmd, "-o", BUILD_PATH "server");
+  } else if (os.WINDOWS) {
+    cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
+    include(cmd, .raylib = true, .WINDOWS = true);
+    cflags(cmd, .WINDOWS = true);
+    define(cmd, .include_raylib = true, .tkbc_server = true, .release = true);
+    cb_cmd_push(cmd, "-o", BUILD_PATH "server-win64");
+  } else {
+    exit(EXIT_FAILURE);
+  }
+
+  files_for_server(cmd);
+
+  if (0) {
+  } else if (os.LINUX) {
+    libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
+  } else if (os.WINDOWS) {
+    libs(cmd, .raylib = true, .WINDOWS = true, .network = true);
+  } else {
+    exit(EXIT_FAILURE);
+  }
 
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
@@ -202,8 +386,8 @@ typedef struct {
 #define tests(cmd, ...) tests_opt((cmd), ((Tests_Opts){__VA_ARGS__}))
 void tests_opt(Cmd *cmd, Tests_Opts opts) {
   cb_cmd_push(cmd, CC);
-  include(cmd, true);
-  cflags(cmd, false);
+  include(cmd, .raylib = true, .LINUX = true);
+  cflags(cmd);
   if (0) {
   } else if (opts.normal) {
     define(cmd, .include_raylib = true, .tkbc_server = true);
@@ -218,7 +402,7 @@ void tests_opt(Cmd *cmd, Tests_Opts opts) {
   cb_cmd_push(cmd, "-o", BUILD_PATH "tests");
   cb_cmd_push(cmd, TESTS_PATH "tkbc_tests.c");
   files_for_test(cmd);
-  libs(cmd, .raylib = true, .X11 = true, .math = true);
+  libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
 
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);
@@ -245,17 +429,21 @@ typedef struct {
 
   bool tkbc;
   bool client;
+  bool server;
 } Usage_Opts;
 
 #define FLAG_HELP "help"
 #define FLAG_BUILD_DIR "build-dir"
 #define FLAG_CLEAN "clean"
-#define FLAG_FIRST_O "first.0"
+#define FLAG_FIRST_O "first.o"
 #define FLAG_TEST "test"
 #define FLAG_TEST_VERBOSE "verbose"
 #define FLAG_TEST_SHORT "short"
 #define FLAG_TKBC "tkbc"
 #define FLAG_CLIENT "client"
+#define FLAG_SERVER "server"
+#define FLAG_LINUX "linux"
+#define FLAG_WINDOWS "windows"
 
 #define usage(...) usage_opt(((Usage_Opts){__VA_ARGS__}))
 void usage_opt(Usage_Opts opts) {
@@ -278,6 +466,9 @@ void usage_opt(Usage_Opts opts) {
   }
   if (opts.client || opts.all) {
     fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_CLIENT);
+  }
+  if (opts.server || opts.all) {
+    fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_SERVER);
   }
   exit(EXIT_FAILURE);
 }
@@ -314,12 +505,20 @@ int main(int argc, char *argv[]) {
     make_build_dir(&cmd);
     void flag_client(char *flag, char ***argv, int *argc);
     flag_client(flag, &argv, &argc);
+  } else if (str_compare(FLAG_SERVER, flag)) {
+    make_build_dir(&cmd);
+    void flag_server(char *flag, char ***argv, int *argc);
+    flag_server(flag, &argv, &argc);
   } else {
     usage(.prog_name = prog_name, .all = true);
   }
 
   return 0;
 }
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 
 void flag_build(char *flag, char ***argv, int *argc) {
   make_build_dir(&cmd);
@@ -340,11 +539,42 @@ void flag_clean(char *flag, char ***argv, int *argc) {
 }
 
 void flag_first_o(char *flag, char ***argv, int *argc) {
-  first_o(&cmd);
   char *prev_flag = flag;
   flag = get_next_or_last(argv, argc);
-  if (prev_flag != flag) {
-    usage(.prog_name = prog_name, .first_o = true);
+  if (str_compare(flag, prev_flag)) {
+    // defaults to linux when no other argument is specified.
+    first_o(&cmd, .LINUX = true);
+  } else {
+    char ***saved_argv = argv;
+    int saved_argc = *argc;
+    bool first = true;
+  second:
+    for (;;) {
+      prev_flag = flag;
+      if (0) {
+      } else if (str_compare(FLAG_LINUX, flag)) {
+        if (!first) {
+          first_o(&cmd, .LINUX = true);
+        }
+      } else if (str_compare(FLAG_WINDOWS, flag)) {
+        if (!first) {
+          first_o(&cmd, .WINDOWS = true);
+        }
+      } else {
+        usage(.prog_name = prog_name, .first_o = true);
+      }
+
+      flag = get_next_or_last(argv, argc);
+      if (prev_flag == flag) {
+        if (first) {
+          first = false;
+          argv = saved_argv;
+          *argc = saved_argc;
+          goto second;
+        }
+        break;
+      }
+    }
   }
 }
 
@@ -388,19 +618,121 @@ void flag_test(char *flag, char ***argv, int *argc) {
 }
 
 void flag_tkbc(char *flag, char ***argv, int *argc) {
-  tkbc(&cmd);
   char *prev_flag = flag;
   flag = get_next_or_last(argv, argc);
-  if (prev_flag != flag) {
-    usage(.prog_name = prog_name, .tkbc = true);
+  if (str_compare(flag, prev_flag)) {
+    // defaults to linux when no other argument is specified.
+    tkbc(&cmd, .LINUX = true);
+  } else {
+    char ***saved_argv = argv;
+    int saved_argc = *argc;
+    bool first = true;
+  second:
+    for (;;) {
+      prev_flag = flag;
+      if (0) {
+      } else if (str_compare(FLAG_LINUX, flag)) {
+        if (!first) {
+          tkbc(&cmd, .LINUX = true);
+        }
+      } else if (str_compare(FLAG_WINDOWS, flag)) {
+        if (!first) {
+          tkbc(&cmd, .WINDOWS = true);
+        }
+      } else {
+        usage(.prog_name = prog_name, .tkbc = true);
+      }
+
+      flag = get_next_or_last(argv, argc);
+      if (prev_flag == flag) {
+        if (first) {
+          first = false;
+          argv = saved_argv;
+          *argc = saved_argc;
+          goto second;
+        }
+        break;
+      }
+    }
   }
 }
 
 void flag_client(char *flag, char ***argv, int *argc) {
-  client(&cmd);
   char *prev_flag = flag;
   flag = get_next_or_last(argv, argc);
-  if (prev_flag != flag) {
-    usage(.prog_name = prog_name, .client = true);
+  if (str_compare(flag, prev_flag)) {
+    // defaults to linux when no other argument is specified.
+    client(&cmd, .LINUX = true);
+  } else {
+    char ***saved_argv = argv;
+    int saved_argc = *argc;
+    bool first = true;
+  second:
+    for (;;) {
+      prev_flag = flag;
+      if (0) {
+      } else if (str_compare(FLAG_LINUX, flag)) {
+        if (!first) {
+          client(&cmd, .LINUX = true);
+        }
+      } else if (str_compare(FLAG_WINDOWS, flag)) {
+        if (!first) {
+          client(&cmd, .WINDOWS = true);
+        }
+      } else {
+        usage(.prog_name = prog_name, .client = true);
+      }
+
+      flag = get_next_or_last(argv, argc);
+      if (prev_flag == flag) {
+        if (first) {
+          first = false;
+          argv = saved_argv;
+          *argc = saved_argc;
+          goto second;
+        }
+        break;
+      }
+    }
+  }
+}
+
+void flag_server(char *flag, char ***argv, int *argc) {
+  char *prev_flag = flag;
+  flag = get_next_or_last(argv, argc);
+  if (str_compare(flag, prev_flag)) {
+    // defaults to linux when no other argument is specified.
+    server(&cmd, .LINUX = true);
+  } else {
+    char ***saved_argv = argv;
+    int saved_argc = *argc;
+    bool first = true;
+  second:
+    for (;;) {
+      prev_flag = flag;
+      if (0) {
+      } else if (str_compare(FLAG_LINUX, flag)) {
+        if (!first) {
+          server(&cmd, .LINUX = true);
+        }
+      } else if (str_compare(FLAG_WINDOWS, flag)) {
+        if (!first) {
+          server(&cmd, .WINDOWS = true);
+        }
+      } else {
+        usage(.prog_name = prog_name, .server = true);
+      }
+
+      flag = get_next_or_last(argv, argc);
+      if (prev_flag == flag) {
+        if (first) {
+          first = false;
+          argv = saved_argv;
+          *argc = saved_argc;
+          goto second;
+        }
+        break;
+      }
+    }
   }
 }
