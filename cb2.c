@@ -95,17 +95,14 @@ void libs_opt(Cmd *cmd, Libs_Opts opts) {
 }
 
 void files_for_test(Cmd *cmd) {
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-handler.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-ffmpeg.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-asset-handler.c");
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-team-figures-api.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-input-handler.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-sound-handler.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-parser.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-converter.c");
-  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-keymaps.c");
   cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-api.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-team-figures-api.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-handler.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-keymaps.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-converter.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-parser.c");
+  cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-asset-handler.c");
 }
 
 //////////////////////////////////////////////////////////////////////////////
