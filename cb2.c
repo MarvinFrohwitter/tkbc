@@ -458,7 +458,7 @@ void usage_opt(Usage_Opts opts) {
     fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_FIRST_O);
   }
   if (opts.test || opts.all) {
-    fprintf(stderr, "       <%s> <%s> [%s, %s]\n", opts.prog_name, FLAG_TEST,
+    fprintf(stderr, "       <%s> <%s> [%s|%s]\n", opts.prog_name, FLAG_TEST,
             FLAG_TEST_VERBOSE, FLAG_TEST_SHORT);
   }
   if (opts.tkbc || opts.all) {
