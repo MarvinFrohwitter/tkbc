@@ -23,7 +23,7 @@
 
 #include "messages/tkbc-messages.h"
 
-#include <raylib.h>
+#include "raylib.h"
 #include <raymath.h>
 
 #include "../choreographer/tkbc-asset-handler.h"

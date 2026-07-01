@@ -5,7 +5,7 @@
 #include "../../external/space/space.h"
 #include "tkbc-servers-common.h"
 
-#include <raylib.h>
+#include "raylib.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

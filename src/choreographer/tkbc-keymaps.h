@@ -1,7 +1,7 @@
 #ifndef TKBC_KEYMAPS_H
 #define TKBC_KEYMAPS_H
 
-#include <raylib.h>
+#include "raylib.h"
 #include <stddef.h>
 
 #include "../global/tkbc-types.h"

@@ -2,7 +2,7 @@
 
 #include "../global/tkbc-types.h"
 #include "tkbc-keymaps.h"
-#include <raylib.h>
+#include "raylib.h"
 #include <stdlib.h>
 #include <string.h>
 

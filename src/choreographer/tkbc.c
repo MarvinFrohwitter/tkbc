@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <math.h>
-#include <raylib.h>
+#include "raylib.h"
 #include <raymath.h>
 #include <stdbool.h>
 #include <stddef.h>
