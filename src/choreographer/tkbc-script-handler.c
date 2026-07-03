@@ -551,9 +551,8 @@ void tkbc_patch_frames_current_time(Frames *frames) {
  * @param script The script where the kite ids should be remapped to new values.
  * @param kite_ids The ids array that contain the new values.
  */
-void tkbc_remap_script_kite_id_arrays_to_kite_ids(Env *env, Script *script,
+void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script,
                                                   Kite_Ids kite_ids) {
-  assert(env);
   assert(script);
   assert(script->count > 0);
   assert(kite_ids.count > 0);
@@ -978,6 +977,7 @@ void tkbc_add_script(Env *env, Script script) {
   void *ptr = space_malloc_planetid_force_new_planet(&env->scripts_space,
                                                      bytes_count, &planet_id);
   assert(ptr && "malloc has failed!");
+  (void)ptr;
   space_reset_planet_id(&env->scripts_space, planet_id);
 
   Script s_copy = tkbc_deep_copy_script(&env->scripts_space, &script);

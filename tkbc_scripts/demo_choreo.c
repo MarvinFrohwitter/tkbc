@@ -557,6 +557,7 @@ void choreo(Env *env, Kite_Ids ki) {
                                      .top_color = kite.top_color,
                                  });
   assert(ok);
+  (void)ok;
 
   tkbc_script_begin("My Immortal");
   bicycle_start(env, ki);

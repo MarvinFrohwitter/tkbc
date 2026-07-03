@@ -704,6 +704,7 @@ bool tkbc_server_handle_client(Client *client) {
     return true;
   default:
     assert(0 && "UNKNOWN EVENT");
+    return false;
   }
 }
 

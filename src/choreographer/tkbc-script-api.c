@@ -634,5 +634,6 @@ void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env) {
     }
     int ret = tkbc_export_all_scripts_to_dot_kite_file_from_mem(env);
     assert(ret == 0 && "ERROR: Not all the scripts are correctly exported.");
+    (void)ret;
   }
 }
