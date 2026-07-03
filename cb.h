@@ -79,7 +79,6 @@ void cb__cmd_push(Cmd *cmd, const char **args, size_t args_count);
 pid_t cb_run_async(Cmd *cmd);
 bool cb_wait(pid_t pid);
 bool cb_run_sync(Cmd *cmd);
-bool check_char_is_safe(unsigned char c);
 
 #define cb_cmd_push(cmd, ...)                                                  \
   cb__cmd_push(cmd, (const char *[]){__VA_ARGS__},                             \
@@ -181,17 +180,4 @@ bool cb_run_sync(Cmd *cmd) {
   }
   return cb_wait(pid);
 }
-
-bool check_char_is_safe(unsigned char c) {
-  const unsigned char *unsafe_chars = (unsigned char *)"$_+=:,.@%/";
-
-  while (*unsafe_chars) {
-    if (c == *unsafe_chars) {
-      return false;
-    }
-    unsafe_chars++;
-  }
-  return true;
-}
-
 #endif // CB_IMPLEMENTATION
