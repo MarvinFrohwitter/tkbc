@@ -20,8 +20,6 @@
 #include "../choreographer/tkbc.h"
 #endif
 
-#include "../../external/space/space.h"
-
 // ===========================================================================
 // ========================== KITE UTILS =====================================
 // ===========================================================================
@@ -190,15 +188,14 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 
 int tkbc_get_screen_height(void);
 int tkbc_get_screen_width(void);
-bool is_mouse_double_click(int mouse_button);
 
-const char *tkbc_generate_file_name_with_time_stamp(Space *space,
-                                                    const char *prefix,
+char *tkbc_generate_file_name_with_time_stamp(const char *prefix,
                                                     const char *postfix);
 double tkbc_get_time(void);
 void tkbc_make_frame_time(double target_dt);
 float tkbc_get_frame_time(void);
 #ifdef INCLUDE_RAYLIB
+bool is_mouse_double_click(int mouse_button);
 bool tkbc_is_same_image(Image a, Image b);
 bool tkbc_vector2_equals_epsilon(Vector2 p, Vector2 q, float epsilon);
 bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2);
@@ -625,6 +622,104 @@ int tkbc_get_screen_width(void) {
   exit(0);
 }
 
+// TODO: Add signature docs.
+char *tkbc_generate_file_name_with_time_stamp(const char *prefix,
+                                                    const char *postfix) {
+  const time_t current_time = time(NULL);
+  if (current_time == (time_t)-1) {
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+    return NULL;
+  }
+
+  size_t time_string_len = 26;
+  char *time_string = ctime(&current_time);
+  time_string = strdup(time_string);
+  time_string[24] = '\0'; // This is to remove the '\n' from the time_string.
+  size_t size = strlen(prefix) + time_string_len + strlen(postfix);
+  char *mem = malloc(size * sizeof(char));
+  int ret = snprintf(mem, size, "%s%s%s", prefix, time_string, postfix);
+  free(time_string);
+  if (ret != (int)size) {
+    free(mem);
+    return NULL;
+  }
+  return mem;
+}
+
+/**
+ * @brief The function is a wrapper for the GetTime() that is not available
+ * in the server computation.
+ *
+ * @return The time since the program has initialized.
+ */
+double tkbc_get_time(void) {
+#ifdef TKBC_SERVER
+  struct timespec ts;
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+    exit(0);
+  }
+  return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+#else
+#ifdef INCLUDE_RAYLIB
+  return GetTime();
+#endif
+#endif
+  exit(0);
+}
+
+static double tkbc_dt = 0;
+/**
+ * @brief The function sets the global tkbc_dt that represents a delta time
+ * between the execution calls of this function. By setting the target_dt to 0
+ * it can be used to profile the execution time between two calls of this
+ * function. It also can be used to generate a delta time for fps related event
+ * loop calls. By setting the target_dt to 1/TARGET_FPS, where TARGET_FPS
+ * represents the upper limit if the event loop iteration per second.
+ *
+ * @param target_dt The delta time in seconds that should be reached before
+ * continuing the execution.
+ */
+void tkbc_make_frame_time(double target_dt) {
+  static double tkbc_last_frame_time = 0;
+
+  double current_time = tkbc_get_time();
+  tkbc_dt = (current_time - tkbc_last_frame_time);
+
+  if (target_dt && tkbc_dt < target_dt) {
+    double remaining = target_dt - tkbc_dt;
+
+    const struct timespec rqtp = {
+        .tv_sec = (long int)remaining,
+        .tv_nsec = (remaining - (double)(long int)remaining) * 1e9,
+    };
+
+    nanosleep(&rqtp, NULL);
+    current_time = tkbc_get_time();
+    tkbc_dt = (current_time - tkbc_last_frame_time);
+  }
+
+  tkbc_last_frame_time = current_time;
+}
+
+/**
+ * @brief The function is a wrapper for the GetFrameTime() that is not available
+ * in the server computation.
+ *
+ * @return The delta time off a computation cycle.
+ */
+float tkbc_get_frame_time(void) {
+#ifdef TKBC_SERVER
+  return (float)tkbc_dt;
+#else
+#ifdef INCLUDE_RAYLIB
+  return GetFrameTime();
+#endif
+#endif
+  exit(0);
+}
+
+#ifdef INCLUDE_RAYLIB
 #define TKBC_MAX_DOUBLECLICK_MS 400 // max time between two clicks
 /**
  * @brief This function detects a double click.
@@ -702,96 +797,6 @@ bool is_mouse_double_click(int mouse_button) {
   return result;
 }
 
-// TODO: Add signature docs.
-const char *tkbc_generate_file_name_with_time_stamp(Space *space,
-                                                    const char *prefix,
-                                                    const char *postfix) {
-  const time_t current_time = time(NULL);
-  if (current_time == (time_t)-1) {
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-    return NULL;
-  }
-
-  char *time_string = ctime(&current_time);
-  time_string = space_strdup(space, time_string);
-  time_string[24] = '\0'; // This is to remove the '\n' from the time_string.
-  return space_sprintf(space, "%s%s%s", prefix, time_string, postfix);
-}
-
-/**
- * @brief The function is a wrapper for the GetTime() that is not available
- * in the server computation.
- *
- * @return The time since the program has initialized.
- */
-double tkbc_get_time(void) {
-#ifdef TKBC_SERVER
-  struct timespec ts;
-  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-    exit(0);
-  }
-  return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
-#else
-#ifdef INCLUDE_RAYLIB
-  return GetTime();
-#endif
-#endif
-  exit(0);
-}
-
-static double tkbc_dt = 0;
-/**
- * @brief The function sets the global tkbc_dt that represents a delta time
- * between the execution calls of this function. By setting the target_dt to 0
- * it can be used to profile the execution time between two calls of this
- * function. It also can be used to generate a delta time for fps related event
- * loop calls. By setting the target_dt to 1/TARGET_FPS, where TARGET_FPS
- * represents the upper limit if the event loop iteration per second.
- *
- * @param target_dt The delta time in seconds that should be reached before
- * continuing the execution.
- */
-void tkbc_make_frame_time(double target_dt) {
-  static double tkbc_last_frame_time = 0;
-
-  double current_time = tkbc_get_time();
-  tkbc_dt = (current_time - tkbc_last_frame_time);
-
-  if (target_dt && tkbc_dt < target_dt) {
-    double remaining = target_dt - tkbc_dt;
-
-    const struct timespec rqtp = {
-        .tv_sec = (long int)remaining,
-        .tv_nsec = (remaining - (double)(long int)remaining) * 1e9,
-    };
-
-    nanosleep(&rqtp, NULL);
-    current_time = tkbc_get_time();
-    tkbc_dt = (current_time - tkbc_last_frame_time);
-  }
-
-  tkbc_last_frame_time = current_time;
-}
-
-/**
- * @brief The function is a wrapper for the GetFrameTime() that is not available
- * in the server computation.
- *
- * @return The delta time off a computation cycle.
- */
-float tkbc_get_frame_time(void) {
-#ifdef TKBC_SERVER
-  return (float)tkbc_dt;
-#else
-#ifdef INCLUDE_RAYLIB
-  return GetFrameTime();
-#endif
-#endif
-  exit(0);
-}
-
-#ifdef INCLUDE_RAYLIB
 /**
  * @brief The function computes how may bytes per pixel a pixel format needs.
  *

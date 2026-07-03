@@ -49,9 +49,11 @@ void tkbc_ffmpeg_handler(Env *env) {
   // KEY_B
   if (tkbc_check_keymaps_full(env->keymaps, KMH_TAKE_SCREENSHOT,
                               KEY_MAP_CHECK_KEY_PRESSED)) {
-    TakeScreenshot(tkbc_generate_file_name_with_time_stamp(
-        space_get_tspace(), "Choreo Picture - ", ".png"));
-    space_reset_tspace();
+
+    char *file_name =
+        tkbc_generate_file_name_with_time_stamp("Choreo Picture - ", ".png");
+    TakeScreenshot(file_name);
+    free(file_name);
   }
 
   //
@@ -69,13 +71,14 @@ void tkbc_ffmpeg_handler(Env *env) {
                                      KEY_MAP_CHECK_KEY_PRESSED)) {
     if (!env->rendering) {
 
-      const char *output_file_path = tkbc_generate_file_name_with_time_stamp(
-          space_get_tspace(), "Choreo Video - ", ".mp4");
+      char *output_file_path =
+          tkbc_generate_file_name_with_time_stamp("Choreo Video - ", ".mp4");
+
       if (!tkbc_ffmpeg_create_proc(env, output_file_path)) {
         env->recording = false;
         env->rendering = false;
       }
-      space_reset_tspace();
+      free(output_file_path);
       // This ensures that the frame buffer can be setup and remaining
       // changes can take effect. For example disabling the fps display.
       // Otherwise the fps display would be visible in the final video for
