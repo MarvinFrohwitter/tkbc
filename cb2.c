@@ -12,6 +12,7 @@ Cmd cmd = {0};
 // #define CC "gcc"
 #define CC "clang"
 #define BUILD_PATH "build/"
+#define ASSETS_PATH "assets/"
 #define RAYLIB_PATH_LINUX "external/raylib-6.0_linux_amd64/"
 #define RAYLIB_PATH_WINDOWS "external/raylib-6.0_win64_mingw-w64/"
 #define TESTS_PATH "src/tests/"
@@ -243,6 +244,23 @@ void clean(Cmd *cmd) {
     exit(EXIT_FAILURE);
 }
 
+void assets(Cmd *cmd) {
+  cb_cmd_push(cmd, CC);
+  cflags(cmd, .sanitize = true);
+
+  cb_cmd_push(cmd, "-o", BUILD_PATH "assets2h");
+  cb_cmd_push(cmd, ASSETS_PATH "assets2h.c");
+  libs(cmd, .math = true);
+
+  if (!cb_run_sync(cmd))
+    exit(EXIT_FAILURE);
+
+  cb_cmd_push(cmd, "./" BUILD_PATH "assets2h", ASSETS_PATH);
+
+  if (!cb_run_sync(cmd))
+    exit(EXIT_FAILURE);
+}
+
 typedef struct {
   bool LINUX;
   bool WINDOWS;
@@ -257,7 +275,6 @@ void first_o_opt(Cmd *cmd, OS_Opts os) {
   } else if (os.WINDOWS) {
     include(cmd, .raylib = true, .WINDOWS = true);
   } else {
-    printf("hello\n");
     exit(EXIT_FAILURE);
   }
 
@@ -387,7 +404,7 @@ typedef struct {
 void tests_opt(Cmd *cmd, Tests_Opts opts) {
   cb_cmd_push(cmd, CC);
   include(cmd, .raylib = true, .LINUX = true);
-  cflags(cmd);
+  cflags(cmd, .sanitize = true);
   if (0) {
   } else if (opts.normal) {
     define(cmd, .include_raylib = true, .tkbc_server = true);
@@ -426,6 +443,7 @@ typedef struct {
   bool clean;
   bool first_o;
   bool test;
+  bool assets;
 
   bool tkbc;
   bool client;
@@ -437,6 +455,7 @@ typedef struct {
 #define FLAG_CLEAN "clean"
 #define FLAG_FIRST_O "first.o"
 #define FLAG_TEST "test"
+#define FLAG_ASSETS "assets"
 #define FLAG_TEST_VERBOSE "verbose"
 #define FLAG_TEST_SHORT "short"
 #define FLAG_TKBC "tkbc"
@@ -460,6 +479,9 @@ void usage_opt(Usage_Opts opts) {
   if (opts.test || opts.all) {
     fprintf(stderr, "       <%s> <%s> [%s|%s]\n", opts.prog_name, FLAG_TEST,
             FLAG_TEST_VERBOSE, FLAG_TEST_SHORT);
+  }
+  if (opts.assets || opts.all) {
+    fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_ASSETS);
   }
   if (opts.tkbc || opts.all) {
     fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_TKBC);
@@ -497,6 +519,10 @@ int main(int argc, char *argv[]) {
     make_build_dir(&cmd);
     void flag_test(char *flag, char ***argv, int *argc);
     flag_test(flag, &argv, &argc);
+  } else if (str_compare(FLAG_ASSETS, flag)) {
+    make_build_dir(&cmd);
+    void flag_assets(char *flag, char ***argv, int *argc);
+    flag_assets(flag, &argv, &argc);
   } else if (str_compare(FLAG_TKBC, flag)) {
     make_build_dir(&cmd);
     void flag_tkbc(char *flag, char ***argv, int *argc);
@@ -614,6 +640,15 @@ void flag_test(char *flag, char ***argv, int *argc) {
         break;
       }
     }
+  }
+}
+
+void flag_assets(char *flag, char ***argv, int *argc) {
+  assets(&cmd);
+  char *prev_flag = flag;
+  flag = get_next_or_last(argv, argc);
+  if (prev_flag != flag) {
+    usage(.prog_name = prog_name, .assets = true);
   }
 }
 

@@ -32,6 +32,7 @@ typedef struct {
 
 #define STR2(literal) #literal
 #define STR(macro_literal) STR2(macro_literal)
+#define shift(array, size) (assert(0 < (size)), (size)--, *(array)++)
 
 /**
  * @brief The macro gives the actual size of the given array x back.

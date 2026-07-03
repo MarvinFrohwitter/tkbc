@@ -13,6 +13,9 @@ build-dir: build
 clean: build
 	./cb clean
 
+assets: build
+	./cb assets
+
 first.o: build
 	./cb first.o
 
