@@ -75,13 +75,15 @@ typedef struct {
     }                                                                          \
   } while (0)
 
-void cb__cmd_push(Cmd *cmd, ...);
+void cb__cmd_push(Cmd *cmd, const char **args, size_t args_count);
 pid_t cb_run_async(Cmd *cmd);
 bool cb_wait(pid_t pid);
 bool cb_run_sync(Cmd *cmd);
 bool check_char_is_safe(unsigned char c);
 
-#define cb_cmd_push(cmd, ...) cb__cmd_push(cmd, __VA_ARGS__, NULL)
+#define cb_cmd_push(cmd, ...)                                                  \
+  cb__cmd_push(cmd, (const char *[]){__VA_ARGS__},                             \
+               sizeof((const char *[]){__VA_ARGS__}) / sizeof(const char *))
 #define LIBS(cmd, ...) cb_cmd_push(cmd, __VA_ARGS__)
 #define CFLAGS(cmd, ...) cb_cmd_push(cmd, __VA_ARGS__)
 #define LDFLAGS(cmd, ...) cb_cmd_push(cmd, __VA_ARGS__)
@@ -100,23 +102,19 @@ bool check_char_is_safe(unsigned char c);
 #include <sys/wait.h>
 #include <unistd.h>
 
-void cb__cmd_push(Cmd *cmd, ...) {
-
-  va_list args;
-  va_start(args, cmd);
-  const char *arg = va_arg(args, const char *);
-  while (arg != NULL) {
-    dap(cmd, arg);
-    arg = va_arg(args, const char *);
+void cb__cmd_push(Cmd *cmd, const char **args, size_t args_count) {
+  for (size_t i = 0; i < args_count; ++i) {
+    dap(cmd, args[i]);
   }
-  va_end(args);
 }
 
 pid_t cb_run_async(Cmd *cmd) {
   Cmd_String cmd_string = {0};
   for (size_t i = 0; i < cmd->count; ++i) {
     dapc(&cmd_string, cmd->elements[i], strlen(cmd->elements[i]));
-    dap(&cmd_string, ' ');
+    if (i != cmd->count - 1) {
+      dap(&cmd_string, ' ');
+    }
   }
   dap(&cmd_string, '\0');
 
