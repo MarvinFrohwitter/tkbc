@@ -1,7 +1,10 @@
 #include <assert.h>
+#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+
 #include <libgen.h>
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +14,28 @@
 
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../src/global/tkbc-utils.h"
+
+char *strtolower(char *str) {
+  if (str == NULL) {
+    return NULL;
+  }
+  char *begin_str = str;
+  for (size_t i = 0; str[i] != '\0'; ++i) {
+    str[i] = tolower(str[i]);
+  }
+  return begin_str;
+}
+
+char *strtoupper(char *str) {
+  if (str == NULL) {
+    return NULL;
+  }
+  char *begin_str = str;
+  for (size_t i = 0; str[i] != '\0'; ++i) {
+    str[i] = toupper(str[i]);
+  }
+  return begin_str;
+}
 
 typedef struct {
   char *name;
@@ -22,9 +47,9 @@ typedef struct {
   Dir_Entry *elements;
   size_t count;
   size_t capacity;
-} Dir_Entrys;
+} Dir_Entries;
 
-void free_dir_entrys(Dir_Entrys dir_entrys) {
+void free_dir_entrys(Dir_Entries dir_entrys) {
   for (size_t i = 0; i < dir_entrys.count; ++i) {
     free(dir_entrys.elements[i].name);
     free(dir_entrys.elements[i].full_path);
@@ -32,7 +57,7 @@ void free_dir_entrys(Dir_Entrys dir_entrys) {
   free(dir_entrys.elements);
 }
 
-bool read_dir_impl(const char *path, Dir_Entrys *list) {
+bool read_dir_impl(const char *path, Dir_Entries *list) {
   DIR *dir = opendir(path);
   if (!dir) {
     fprintf(stderr, "Error: Could not open dir %s: %s\n", path,
@@ -85,7 +110,7 @@ bool read_dir_impl(const char *path, Dir_Entrys *list) {
   return true;
 }
 
-bool read_dir(const char *path, Dir_Entrys *list) {
+bool read_dir(const char *path, Dir_Entries *list) {
   if (!path) {
     return false;
   }
@@ -109,7 +134,7 @@ bool read_dir(const char *path, Dir_Entrys *list) {
   return result;
 }
 
-bool read_dir_recursive(const char *path, Dir_Entrys *list) {
+bool read_dir_recursive(const char *path, Dir_Entries *list) {
   bool ok = true;
   ok = read_dir(path, list);
   if (!ok) {
@@ -162,15 +187,19 @@ bool transpile_png_to_h(const char *image_file_path, const char *name,
   *dot = '\0';
 
   Content data = {0};
-  tkbc_dapf(&data, "#define IMAGE_%s_WIDTH %d\n", name, x);
-  tkbc_dapf(&data, "#define IMAGE_%s_HEIGHT %d\n", name, y);
-  tkbc_dapf(&data, "#define IMAGE_%s_FORMAT %s\n", name,
+  char *name_upper = strtoupper(strdup(name));
+  char *name_lower = strtolower(strdup(name));
+  tkbc_dapf(&data, "#define IMAGE_%s_WIDTH %d\n", name_upper, x);
+  tkbc_dapf(&data, "#define IMAGE_%s_HEIGHT %d\n", name_upper, y);
+  tkbc_dapf(&data, "#define IMAGE_%s_FORMAT %s\n", name_upper,
             STR(PIXELFORMAT_UNCOMPRESSED_R8G8B8A8));
 
   tkbc_dapf(&data,
             "\nstatic unsigned char "
-            "image_%s[IMAGE_%s_WIDTH*IMAGE_%s_HEIGHT*%d] = {\n",
-            name, name, name, comp);
+            "asset_image_%s[IMAGE_%s_WIDTH*IMAGE_%s_HEIGHT*%d] = {\n",
+            name_lower, name_upper, name_upper, comp);
+  free(name_upper);
+  free(name_lower);
   *dot = '.';
 
   int line_comp = 15;
@@ -224,6 +253,17 @@ check:
 }
 
 #define BUILD_PATH "build/"
+
+int get_file_type(const char *path) {
+  struct stat statbuf;
+  if (lstat(path, &statbuf) < 0) {
+    fprintf(stderr, "Error: could not get stat for file %s: %s\n", path,
+            strerror(errno));
+    return -1;
+  }
+  return statbuf.st_mode;
+}
+
 int main(int argc, char **argv) {
   int ok = 0;
   const char *program_name = shift(argv, argc);
@@ -232,20 +272,42 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Usage: %s <path> [path..]\n", program_name);
     return 1;
   }
+  bool append = false;
   while (argc > 0) {
-    const char *path = shift(argv, argc);
-    Dir_Entrys dir_entrys = {0};
-    bool ok = read_dir_recursive(path, &dir_entrys);
-    if (!ok) {
-      free_dir_entrys(dir_entrys);
+    char *path = shift(argv, argc);
+    if (strcmp(path, "") == 0) {
+      continue;
+    }
+
+    int file_type = get_file_type(path);
+    if (file_type < 0) {
+      continue;
+    }
+    Dir_Entries entries = {0};
+    if (0) {
+    } else if (S_ISREG(file_type)) {
+      tkbc_dap(&entries, ((Dir_Entry){
+                             .name = strdup(basename(path)),
+                             .full_path = strdup(path),
+                             .type = DT_REG,
+                         }));
+
+      append = true;
+    } else if (S_ISDIR(file_type)) {
+      bool ok = read_dir_recursive(path, &entries);
+      if (!ok) {
+        free_dir_entrys(entries);
+        continue;
+      }
+    } else {
       continue;
     }
 
     Content combined = {0};
-    for (size_t i = 0; i < dir_entrys.count; ++i) {
+    for (size_t i = 0; i < entries.count; ++i) {
       if (0) {
-        if (strstr(dir_entrys.elements[i].full_path, ".h") != 0) {
-          printf("removed: %s\n", dir_entrys.elements[i].full_path);
+        if (strstr(entries.elements[i].full_path, ".h") != 0) {
+          printf("removed: %s\n", entries.elements[i].full_path);
           // int rr = remove(dir_entrys.elements[i].full_path);
           // if (rr < 0) {
           //   printf("ERROR: could not remove %s: %s\n",
@@ -254,31 +316,49 @@ int main(int argc, char **argv) {
         }
       }
 
-      if (strstr(dir_entrys.elements[i].name, ".png") &&
-          *dir_entrys.elements[i].name != '.') {
-        transpile_png_to_h(dir_entrys.elements[i].full_path,
-                           dir_entrys.elements[i].name, &combined);
+      if (strstr(entries.elements[i].name, ".png") &&
+          *entries.elements[i].name != '.') {
+        transpile_png_to_h(entries.elements[i].full_path,
+                           entries.elements[i].name, &combined);
       }
     }
 
     const char *combined_file_name = "combind_assets.h";
-    size_t n = snprintf(NULL, 0, "%s/%s", path, combined_file_name);
+    char *parent_full_path = realpath(path, NULL);
+    parent_full_path = dirname(parent_full_path);
+    size_t n;
+    if (append) {
+      n = snprintf(NULL, 0, "%s/%s", parent_full_path, combined_file_name);
+    } else {
+      n = snprintf(NULL, 0, "%s/%s", path, combined_file_name);
+    }
     if (n < 0) {
       free(combined.elements);
-      free_dir_entrys(dir_entrys);
+      free_dir_entrys(entries);
       continue;
     }
     n += 1;
     char *final_path = malloc(n * sizeof(char));
-    n = snprintf(final_path, n, "%s/%s", path, combined_file_name);
+    if (append) {
+      n = snprintf(final_path, n, "%s/%s", parent_full_path,
+                   combined_file_name);
+    } else {
+      n = snprintf(final_path, n, "%s/%s", path, combined_file_name);
+    }
+    free(parent_full_path);
     if (n < 0) {
       free(final_path);
       free(combined.elements);
-      free_dir_entrys(dir_entrys);
+      free_dir_entrys(entries);
       continue;
     }
 
-    int res = tkbc_write_file(final_path, combined.elements, combined.count);
+    int res = 0;
+    if (append) {
+      res = tkbc_append_file(final_path, combined.elements, combined.count);
+    } else {
+      res = tkbc_write_file(final_path, combined.elements, combined.count);
+    }
     if (res < 0) {
       fprintf(stderr, "ERROR: could not write combined data to file!\n");
     } else {
@@ -286,7 +366,7 @@ int main(int argc, char **argv) {
     }
 
     free(final_path);
-    free_dir_entrys(dir_entrys);
+    free_dir_entrys(entries);
     free(combined.elements);
   }
   return ok;
