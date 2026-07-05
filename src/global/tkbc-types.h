@@ -380,7 +380,6 @@ typedef struct {
 } Move_Action;      // The action that is responsible for positioning the kite.
 
 typedef struct {
-  double starttime; // The time at the start of the frame representation.
 } Wait_Action; // The action that is responsible for blocking a certain time.
 
 typedef Tip_Rotation_Action
@@ -531,6 +530,11 @@ typedef struct {
   bool script_interrupt; // The indication if a script is currently going to be
                          // loaded.
   bool script_finished;  // The indication a script has finished.
+
+  struct {
+    bool is_script_quit;
+    double script_quit_duration;
+  } global_quit;
 
   bool script_loading; // Indicates if the script is loaded that si needed to
                        // functions like scrubbing when the user can not even

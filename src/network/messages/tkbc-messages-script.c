@@ -132,20 +132,6 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
       switch (frame.kind) {
       case KITE_QUIT:
       case KITE_WAIT: {
-        token = lexer_next(lexer);
-        if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
-          script_parse_fail = true;
-          goto script_err;
-        }
-        if (token.kind == PUNCT_SUB) {
-          sign = *(char *)token.content;
-          tkbc_dap(&tmp_buffer, sign);
-          token = lexer_next(lexer);
-        }
-        tkbc_dapc(&tmp_buffer, token.content, token.size);
-        tkbc_dap(&tmp_buffer, 0);
-        action.as_wait.starttime = atof(tmp_buffer.elements);
-        tmp_buffer.count = 0;
       } break;
 
       case KITE_MOVE:

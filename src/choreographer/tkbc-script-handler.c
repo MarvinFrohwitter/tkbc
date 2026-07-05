@@ -306,40 +306,18 @@ void tkbc_reset_frames_internal_data(Frames *frames) {
  * @param env The global state of the application.
  * @param frame The frame the action should the handled for. It also can hold
  * intermediate values.
+ * @return true if a global quit is active fired, otherwise false.
  */
 void tkbc_render_frame(Env *env, Frame *frame) {
   Kite *kite = NULL;
   Frame *env_frame = &env->frames->elements[frame->index];
 
-  // This handles the possibility to quit/ stop a script after a period of time.
-  static struct {
-    bool is_script_quit;
-    double script_quit_timer;
-    double script_quit_duration;
-  } global_quit = {0};
-
-  if (global_quit.script_quit_duration == 0) {
-    global_quit.is_script_quit = false;
-  } else if (global_quit.script_quit_duration < 0) {
-    env->script_finished = true;
-    global_quit.is_script_quit = false;
-    global_quit.script_quit_timer = 0;
-    global_quit.script_quit_duration = 0;
-  } else if (global_quit.script_quit_duration > 0 &&
-             global_quit.is_script_quit) {
-    double current_time = tkbc_get_time();
-    global_quit.script_quit_duration -=
-        current_time - global_quit.script_quit_timer;
-    global_quit.script_quit_timer = current_time;
-  }
-
   assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
   switch (frame->kind) {
   case KITE_QUIT: {
-    if (env->frames->count == 1 && !global_quit.is_script_quit) {
-      global_quit.script_quit_timer = tkbc_get_time();
-      global_quit.script_quit_duration = frame->duration;
-      global_quit.is_script_quit = true;
+    if (env->frames->count == 1 && !env->global_quit.is_script_quit) {
+      env->global_quit.script_quit_duration = frame->duration;
+      env->global_quit.is_script_quit = true;
     }
     if (tkbc_check_finished_frames_count(env) == env->frames->count - 1) {
       frame->finished = true;
@@ -347,18 +325,11 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } /* FALLTHROUGH */
   case KITE_WAIT: {
-    Wait_Action *action = &frame->action.as_wait;
     if (frame->duration <= 0) {
       frame->finished = true;
       frame->duration = 0;
     } else {
-      double current_time = tkbc_get_time();
-      if (action->starttime == 0) {
-        action->starttime = current_time;
-        break;
-      }
-      frame->duration -= current_time - action->starttime;
-      action->starttime = current_time;
+      frame->duration -= tkbc_get_frame_time();
     }
   } break;
 

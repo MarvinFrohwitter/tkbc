@@ -862,9 +862,6 @@ bool tkbc_message_append_script(size_t script_id) {
         switch (frames->elements[k].kind) {
         case KITE_QUIT:
         case KITE_WAIT: {
-          Wait_Action action = frames->elements[k].action.as_wait;
-          space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                     "%lf", action.starttime);
         } break;
         case KITE_MOVE:
         case KITE_MOVE_ADD: {
@@ -1084,7 +1081,7 @@ int main(int argc, char *argv[]) {
   loading = tkbc_popup_message(env->font, "Waiting for server.");
 
   bool sending_receiving = true;
-  { // This is defered to allow window creation, asset loading and env init.
+  { // This is deferred to allow window creation, asset loading and env init.
     client.socket_id = tkbc_client_socket_creation(host, port);
     if (client.socket_id == -1) {
       // Generate a base kite that you can fly. The server doesn't provide you a

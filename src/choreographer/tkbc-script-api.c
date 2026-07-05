@@ -147,6 +147,22 @@ void tkbc_script_update_frames(Env *env) {
     }
   }
 
+  // TODO: Find out why when first execution stops it is a different point than
+  // on the replay when scrolled back to the beginning.
+  //
+  // This handles the possibility to quit/ stop a script after a period of
+  // time.
+  if (env->global_quit.script_quit_duration == 0) {
+    env->global_quit.is_script_quit = false;
+  } else if (env->global_quit.script_quit_duration < 0) {
+    env->script_finished = true;
+    env->global_quit.is_script_quit = false;
+    env->global_quit.script_quit_duration = 0;
+  } else if (env->global_quit.script_quit_duration > 0 &&
+             env->global_quit.is_script_quit) {
+    env->global_quit.script_quit_duration -= tkbc_get_frame_time();
+  }
+
   if (!tkbc_check_finished_frames(env)) {
     return;
   }
@@ -213,7 +229,6 @@ Frame *tkbc__script_wait(Env *env, float duration) {
   }
 
   Wait_Action action;
-  action.starttime = 0;
 
   Frame *frame = tkbc_init_frame(&env->script_creation_space);
   if (!frame) {
@@ -240,7 +255,6 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
   }
 
   Quit_Action action;
-  action.starttime = 0;
 
   Frame *frame = tkbc_init_frame(&env->script_creation_space);
   if (!frame) {
@@ -508,16 +522,10 @@ void tkbc_print_script(FILE *stream, Script *script) {
 
       case KITE_QUIT: {
         fprintf(stream, "      Action-Kind: KITE_QUIT\n");
-        Quit_Action action =
-            script->elements[block].elements[frame].action.as_quit;
-        fprintf(stream, "        Time:%fs)\n", (float)action.starttime);
       } break;
 
       case KITE_WAIT: {
         fprintf(stream, "      Action-Kind: KITE_WAIT\n");
-        Wait_Action action =
-            script->elements[block].elements[frame].action.as_wait;
-        fprintf(stream, "        Time:%fs)\n", (float)action.starttime);
       } break;
 
       case KITE_MOVE: {

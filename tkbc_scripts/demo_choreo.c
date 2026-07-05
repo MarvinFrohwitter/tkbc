@@ -9,6 +9,7 @@ Id zero = 0;
 Id one = 1;
 
 void bicycle_start(Env *env, Kite_Ids ki) {
+
   int bottom_padding = kite.height;
 
   SET(
