@@ -1,6 +1,6 @@
+#include "raylib.h"
 #include <assert.h>
 #include <math.h>
-#include "raylib.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -311,9 +311,36 @@ void tkbc_render_frame(Env *env, Frame *frame) {
   Kite *kite = NULL;
   Frame *env_frame = &env->frames->elements[frame->index];
 
+  // This handles the possibility to quit/ stop a script after a period of time.
+  static struct {
+    bool is_script_quit;
+    double script_quit_timer;
+    double script_quit_duration;
+  } global_quit = {0};
+
+  if (global_quit.script_quit_duration == 0) {
+    global_quit.is_script_quit = false;
+  } else if (global_quit.script_quit_duration < 0) {
+    env->script_finished = true;
+    global_quit.is_script_quit = false;
+    global_quit.script_quit_timer = 0;
+    global_quit.script_quit_duration = 0;
+  } else if (global_quit.script_quit_duration > 0 &&
+             global_quit.is_script_quit) {
+    double current_time = tkbc_get_time();
+    global_quit.script_quit_duration -=
+        current_time - global_quit.script_quit_timer;
+    global_quit.script_quit_timer = current_time;
+  }
+
   assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
   switch (frame->kind) {
   case KITE_QUIT: {
+    if (env->frames->count == 1 && !global_quit.is_script_quit) {
+      global_quit.script_quit_timer = tkbc_get_time();
+      global_quit.script_quit_duration = frame->duration;
+      global_quit.is_script_quit = true;
+    }
     if (tkbc_check_finished_frames_count(env) == env->frames->count - 1) {
       frame->finished = true;
       break;
@@ -326,6 +353,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       frame->duration = 0;
     } else {
       double current_time = tkbc_get_time();
+      if (action->starttime == 0) {
+        action->starttime = current_time;
+        break;
+      }
       frame->duration -= current_time - action->starttime;
       action->starttime = current_time;
     }
@@ -517,29 +548,6 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
   default:
     assert(0 && "UNREACHABLE tkbc_render_frame()");
-  }
-}
-
-/**
- * @brief The function can be used to refresh the time stamp saved in a frame
- * action.
- *
- * @param frames The frames for which the saved time should be updated.
- */
-void tkbc_patch_frames_current_time(Frames *frames) {
-
-  for (size_t i = 0; i < frames->count; ++i) {
-    Frame *frame = &frames->elements[i];
-    assert(ACTION_KIND_COUNT == 9 &&
-           "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
-    switch (frame->kind) {
-    case KITE_QUIT:
-    case KITE_WAIT: {
-      frame->action.as_wait.starttime = tkbc_get_time();
-    } break;
-    default: {
-    }
-    }
   }
 }
 

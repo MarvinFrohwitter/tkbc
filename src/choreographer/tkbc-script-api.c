@@ -163,8 +163,6 @@ void tkbc_script_update_frames(Env *env) {
   assert(env->frames->frames_index + 1 < env->script->count);
   env->frames = &env->script->elements[env->frames->frames_index + 1];
 
-  tkbc_patch_frames_current_time(env->frames);
-
   //
   // TODO: Add is_scrubed to every script so that the positions don't have to
   // be computed again after visiting the script once. Maybe just scrub left
@@ -215,7 +213,7 @@ Frame *tkbc__script_wait(Env *env, float duration) {
   }
 
   Wait_Action action;
-  action.starttime = tkbc_get_time();
+  action.starttime = 0;
 
   Frame *frame = tkbc_init_frame(&env->script_creation_space);
   if (!frame) {
@@ -242,7 +240,7 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
   }
 
   Quit_Action action;
-  action.starttime = tkbc_get_time();
+  action.starttime = 0;
 
   Frame *frame = tkbc_init_frame(&env->script_creation_space);
   if (!frame) {
