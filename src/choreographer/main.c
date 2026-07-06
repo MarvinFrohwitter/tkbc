@@ -7,6 +7,17 @@
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 
+// This order is needed to resolve name collisions with windows.
+#include "../../external/space/space.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define _WINUSER_
+#define _WINGDI_
+#define _IMM_
+#define _WINCON_
+#include <windows.h>
+#endif
+
 #define SPACE_IMPLEMENTATION
 #include "../../external/space/space.h"
 #undef SPACE_IMPLEMENTATION

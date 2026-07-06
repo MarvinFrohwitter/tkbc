@@ -47,8 +47,12 @@
 
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
 #ifdef _WIN32
+
+#ifndef SPACE_DO_NOT_INCLUDE_WINDOWS_H_NOW
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#endif
+
 #else
 #undef SPACE_ALLOC_METHOD
 #define SPACE_ALLOC_METHOD -1

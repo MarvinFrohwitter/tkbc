@@ -85,6 +85,7 @@ void define_opt(Cmd *cmd, Define_Opts opts) {
     CFLAGS(cmd, "-DSPACE_ALLOC_METHOD=(SPACE_METHOD_MALLOC|SPACE_METHOD_"
                 "VIRTUAL_ALLOC)");
     CFLAGS(cmd, "-DSPACE_METHOD_DEFAULT=SPACE_METHOD_VIRTUAL_ALLOC");
+    CFLAGS(cmd, "-DSPACE_DO_NOT_INCLUDE_WINDOWS_H_NOW");
   }
 
   if (opts.space_alloc_method_mmap) {
