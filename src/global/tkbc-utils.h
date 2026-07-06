@@ -30,6 +30,18 @@ typedef struct {
   size_t capacity;
 } Content; // A representation of a file content.
 
+typedef struct {
+  char *name;
+  char *full_path;
+  char type;
+} Dir_Entry;
+
+typedef struct {
+  Dir_Entry *elements;
+  size_t count;
+  size_t capacity;
+} Dir_Entries;
+
 #define STR2(literal) #literal
 #define STR(macro_literal) STR2(macro_literal)
 #define shift(array, size) (assert(0 < (size)), (size)--, *(array)++)
@@ -191,7 +203,7 @@ int tkbc_get_screen_height(void);
 int tkbc_get_screen_width(void);
 
 char *tkbc_generate_file_name_with_time_stamp(const char *prefix,
-                                                    const char *postfix);
+                                              const char *postfix);
 double tkbc_get_time(void);
 void tkbc_make_frame_time(double target_dt);
 float tkbc_get_frame_time(void);
@@ -211,6 +223,8 @@ Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size,
 float tkbc_clamp(float z, float a, float b);
 bool tkbc_float_equals_epsilon(float x, float y, float epsilon);
 int tkbc_max(int x, int y);
+char *tkbc_strtolower(char *str);
+char *tkbc_strtoupper(char *str);
 
 #endif // TKBC_UTILS_H_
 
@@ -625,7 +639,7 @@ int tkbc_get_screen_width(void) {
 
 // TODO: Add signature docs.
 char *tkbc_generate_file_name_with_time_stamp(const char *prefix,
-                                                    const char *postfix) {
+                                              const char *postfix) {
   const time_t current_time = time(NULL);
   if (current_time == (time_t)-1) {
     tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
@@ -1028,5 +1042,43 @@ bool tkbc_float_equals_epsilon(float x, float y, float epsilon) {
  * @return The bigger one of those.
  */
 int tkbc_max(int x, int y) { return x > y ? x : y; }
+
+/**
+ * @brief This function lowercase the given string in place if a char in the
+ * string can't be lowercase or it has no lowercase equivalent that it stays the
+ * same.
+ *
+ * @param str The string that should be lowercase.
+ * @return NULL if str was NULL, otherwise the string in lowercase.
+ */
+char *tkbc_strtolower(char *str) {
+  if (str == NULL) {
+    return NULL;
+  }
+  char *begin_str = str;
+  for (size_t i = 0; str[i] != '\0'; ++i) {
+    str[i] = tolower(str[i]);
+  }
+  return begin_str;
+}
+
+/**
+ * @brief This function uppercase the given string in place if a char in the
+ * string can't be uppercase or it has no uppercase equivalent that it stays the
+ * same.
+ *
+ * @param str The string that should be uppercase.
+ * @return NULL if str was NULL, otherwise the string in uppercase.
+ */
+char *tkbc_strtoupper(char *str) {
+  if (str == NULL) {
+    return NULL;
+  }
+  char *begin_str = str;
+  for (size_t i = 0; str[i] != '\0'; ++i) {
+    str[i] = toupper(str[i]);
+  }
+  return begin_str;
+}
 
 #endif // TKBC_UTILS_IMPLEMENTATION

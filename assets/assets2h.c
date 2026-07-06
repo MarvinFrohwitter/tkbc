@@ -15,40 +15,6 @@
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../src/global/tkbc-utils.h"
 
-char *strtolower(char *str) {
-  if (str == NULL) {
-    return NULL;
-  }
-  char *begin_str = str;
-  for (size_t i = 0; str[i] != '\0'; ++i) {
-    str[i] = tolower(str[i]);
-  }
-  return begin_str;
-}
-
-char *strtoupper(char *str) {
-  if (str == NULL) {
-    return NULL;
-  }
-  char *begin_str = str;
-  for (size_t i = 0; str[i] != '\0'; ++i) {
-    str[i] = toupper(str[i]);
-  }
-  return begin_str;
-}
-
-typedef struct {
-  char *name;
-  char *full_path;
-  char type;
-} Dir_Entry;
-
-typedef struct {
-  Dir_Entry *elements;
-  size_t count;
-  size_t capacity;
-} Dir_Entries;
-
 void free_dir_entrys(Dir_Entries dir_entrys) {
   for (size_t i = 0; i < dir_entrys.count; ++i) {
     free(dir_entrys.elements[i].name);
@@ -187,8 +153,8 @@ bool transpile_png_to_h(const char *image_file_path, const char *name,
   *dot = '\0';
 
   Content data = {0};
-  char *name_upper = strtoupper(strdup(name));
-  char *name_lower = strtolower(strdup(name));
+  char *name_upper = tkbc_strtoupper(strdup(name));
+  char *name_lower = tkbc_strtolower(strdup(name));
   tkbc_dapf(&data, "#define IMAGE_%s_WIDTH %d\n", name_upper, x);
   tkbc_dapf(&data, "#define IMAGE_%s_HEIGHT %d\n", name_upper, y);
   tkbc_dapf(&data, "#define IMAGE_%s_FORMAT %s\n", name_upper,
@@ -326,7 +292,7 @@ int main(int argc, char **argv) {
     const char *combined_file_name = "combind_assets.h";
     char *parent_full_path = realpath(path, NULL);
     parent_full_path = dirname(parent_full_path);
-    size_t n;
+    int n;
     if (append) {
       n = snprintf(NULL, 0, "%s/%s", parent_full_path, combined_file_name);
     } else {
