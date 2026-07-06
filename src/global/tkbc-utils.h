@@ -2,6 +2,7 @@
 #define TKBC_UTILS_H_
 
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -11,6 +12,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include <dirent.h>
+#include <libgen.h>
+#include <sys/types.h>
 
 #ifdef INCLUDE_RAYLIB
 #include "raylib.h"
@@ -41,6 +46,8 @@ typedef struct {
   size_t count;
   size_t capacity;
 } Dir_Entries;
+#define TKBC_DT_DIR 4
+#define TKBC_DT_REG 8
 
 #define STR2(literal) #literal
 #define STR(macro_literal) STR2(macro_literal)
@@ -225,6 +232,11 @@ bool tkbc_float_equals_epsilon(float x, float y, float epsilon);
 int tkbc_max(int x, int y);
 char *tkbc_strtolower(char *str);
 char *tkbc_strtoupper(char *str);
+
+void free_dir_entrys(Dir_Entries dir_entrys);
+bool read_dir_impl(const char *path, Dir_Entries *list);
+bool read_dir(const char *path, Dir_Entries *list);
+bool read_dir_recursive(const char *path, Dir_Entries *list);
 
 #endif // TKBC_UTILS_H_
 
@@ -1079,6 +1091,217 @@ char *tkbc_strtoupper(char *str) {
     str[i] = toupper(str[i]);
   }
   return begin_str;
+}
+
+void free_dir_entrys(Dir_Entries dir_entrys) {
+  for (size_t i = 0; i < dir_entrys.count; ++i) {
+    free(dir_entrys.elements[i].name);
+    free(dir_entrys.elements[i].full_path);
+  }
+  free(dir_entrys.elements);
+}
+
+bool read_dir_impl(const char *path, Dir_Entries *list) {
+  char *d_name;
+#ifdef _WIN32
+  WIN32_FIND_DATAA lpFindFileData = {0};
+  HANDLE dir = FindFirstFile(path, &lpFindFileData);
+  if (dir == INVALID_HANDLE_VALUE) {
+    fprintf(stderr, "Error: Could not open dir %s: %ld\n", path,
+            GetLastError());
+    return false;
+  }
+  d_name = lpFindFileData.cFileName;
+  goto read_entrys;
+#else
+  DIR *dir = opendir(path);
+  if (!dir) {
+    fprintf(stderr, "Error: Could not open dir %s: %s\n", path,
+            strerror(errno));
+    return false;
+  }
+#endif
+
+  for (;;) {
+#ifdef _WIN32
+    if (FindNextFile(dir, &lpFindFileData) == 0) {
+      DWORD error_code = GetLastError();
+      if (error_code == ERROR_NO_MORE_FILES) {
+        break;
+      } else {
+        printf("Error: Could not find next file in %s: %ld\n", path,
+               error_code);
+        BOOL ok = FindClose(dir);
+        if (ok == 0) {
+          printf("Error: Could not close dir %s: %ld\n", path, GetLastError());
+        }
+        return false;
+      }
+    }
+    d_name = lpFindFileData.cFileName;
+
+#else
+    errno = 0;
+    struct dirent *entry = readdir(dir);
+    if (entry == NULL && errno == 0) {
+      break;
+    }
+    // There should no error occur because EBADF can not happen.
+    assert(errno == 0);
+    d_name = entry->d_name;
+    goto read_entrys; // TO remove compiler warning about unused label.
+#endif
+
+  read_entrys:
+    if (strcmp(d_name, ".") == 0) {
+      continue;
+    }
+    if (strcmp(d_name, "..") == 0) {
+      continue;
+    }
+
+#ifdef _WIN32
+    const DWORD nBufferLength = MAX_PATH;
+    char real_path_buf[nBufferLength];
+    DWORD ok = GetFullPathName(path, nBufferLength, real_path_buf, NULL);
+    if (ok == 0) {
+      return false;
+    }
+
+    char *real_path = strdup(real_path_buf);
+#else
+    char *real_path = realpath(path, NULL);
+#endif
+
+#ifdef _WIN32
+    int ret = snprintf(NULL, 0, "%s\\%s", real_path, d_name);
+#else
+    int ret = snprintf(NULL, 0, "%s/%s", real_path, d_name);
+#endif
+    if (ret < 0) {
+      free(real_path);
+      return false;
+    }
+    ret += 1;
+    char *full_path = malloc(sizeof(char) * ret);
+#ifdef _WIN32
+    ret = snprintf(full_path, ret, "%s\\%s", real_path, d_name);
+#else
+    ret = snprintf(full_path, ret, "%s/%s", real_path, d_name);
+#endif
+    free(real_path);
+    if (ret < 0) {
+      return false;
+    }
+
+    char d_type = 0;
+#ifdef _WIN32
+    if (lpFindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+      d_type = TKBC_DT_DIR;
+    } else if (lpFindFileData.dwFileAttributes & FILE_ATTRIBUTE_NORMAL) {
+      d_type = TKBC_DT_REG;
+    } else {
+      return false;
+    }
+
+#else
+    d_type = entry->d_type;
+#endif
+
+    tkbc_dap(list, ((Dir_Entry){
+                       .name = strdup(d_name),
+                       .full_path = full_path,
+                       .type = d_type,
+                   }));
+  }
+
+#ifdef _WIN32
+  BOOL ok = FindClose(dir);
+  if (ok == 0) {
+    printf("Error: Could not close dir %s: %ld\n", path, GetLastError());
+    return false;
+  }
+#else
+  int ok = closedir(dir);
+  if (ok < 0) {
+    printf("Error: Could not close dir %s: %s\n", path, strerror(errno));
+    return false;
+  }
+#endif
+
+  return true;
+}
+
+bool read_dir(const char *path, Dir_Entries *list) {
+  if (!path) {
+    return false;
+  }
+  bool result = read_dir_impl(path, list);
+  if (result) {
+
+#ifdef _WIN32
+    const DWORD nBufferLength = MAX_PATH;
+    char real_path[nBufferLength];
+    DWORD ok = GetFullPathName(path, nBufferLength, real_path, NULL);
+    if (ok == 0) {
+      return false;
+    }
+    char *parent_full_path = strdup(real_path);
+#else
+    char *parent_full_path = realpath(path, NULL);
+#endif
+
+    tkbc_dap(list, ((Dir_Entry){
+                       .name = strdup("."),
+                       .full_path = strdup(parent_full_path),
+                       .type = TKBC_DT_DIR,
+                   }));
+
+#ifdef _WIN32
+    char *filename;
+    GetFullPathName(parent_full_path, nBufferLength, real_path, &filename);
+    if (filename != NULL) {
+      *(filename) = '\0';
+    }
+    parent_full_path = strdup(real_path);
+#else
+    parent_full_path = dirname(parent_full_path);
+#endif
+
+    tkbc_dap(list, ((Dir_Entry){
+                       .name = strdup(".."),
+                       .full_path = parent_full_path,
+                       .type = TKBC_DT_DIR,
+                   }));
+  }
+  return result;
+}
+
+bool read_dir_recursive(const char *path, Dir_Entries *list) {
+  bool ok = true;
+  ok = read_dir(path, list);
+  if (!ok) {
+    return false;
+  }
+
+  for (size_t i = 0; i < list->count; ++i) {
+    if (list->elements[i].type != TKBC_DT_DIR) {
+      continue;
+    }
+    if (strcmp(list->elements[i].name, ".") == 0) {
+      continue;
+    }
+    if (strcmp(list->elements[i].name, "..") == 0) {
+      continue;
+    }
+
+    ok = read_dir_impl(list->elements[i].full_path, list);
+    if (!ok) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 #endif // TKBC_UTILS_IMPLEMENTATION
