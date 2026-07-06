@@ -1067,14 +1067,14 @@ method_rerun:
   case SPACE_METHOD_VIRTUAL_ALLOC:
     planet = VirtualAllocEx(GetCurrentProcess(), NULL, sizeof(*planet),
                             MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    if (!INV_HANDLE(planet)) {
+    if (planet != NULL) {
       memset(planet, 0, sizeof(*planet));
       planet->capacity = size_in_bytes;
       planet->count = 0;
       planet->elements =
           VirtualAllocEx(GetCurrentProcess(), NULL, planet->capacity,
                          MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-      if (INV_HANDLE(planet->elements)) {
+      if (planet->elements == NULL) {
         VirtualFreeEx(GetCurrentProcess(), (LPVOID)planet, sizeof(*planet),
                       MEM_RELEASE);
         return NULL;
@@ -1834,7 +1834,7 @@ SPACEDEF bool space_init_capacity_in_count_plantes(Space *space,
       ids = VirtualAllocEx(GetCurrentProcess(), NULL, size_to_alloc,
                            MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
-      if (INV_HANDLE(ids)) {
+      if (ids == NULL) {
         return false;
       }
       break;
