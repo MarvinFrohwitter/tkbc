@@ -7,7 +7,6 @@
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
 
-#define SPACEDEF inline
 #define SPACE_IMPLEMENTATION
 #include "../../external/space/space.h"
 #undef SPACE_IMPLEMENTATION

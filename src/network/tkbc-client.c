@@ -7,7 +7,6 @@
 #define MAX_BUFFER_CAPACITY 1024 * 1024
 #define BUFFER_CAPACITY 1024 * 1024
 
-#define SPACEDEF inline
 #include "tkbc-servers-common.h"
 
 #define SPACE_IMPLEMENTATION

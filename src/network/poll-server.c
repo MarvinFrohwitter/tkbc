@@ -1,4 +1,3 @@
-#define SPACEDEF inline
 #include "tkbc-servers-common.h"
 
 #define SPACE_IMPLEMENTATION

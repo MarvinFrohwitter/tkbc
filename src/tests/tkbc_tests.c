@@ -1,4 +1,3 @@
-#define SPACEDEF inline
 #define SPACE_IMPLEMENTATION
 #include "../../external/space/space.h"
 #undef SPACE_IMPLEMENTATION
