@@ -25,7 +25,7 @@ Test init_frame(void) {
   void *frame_before = frame;
   cassert_ptr_eq(frame, frame_before);
 
-  Space space = {0};
+  Space space = {.alloc_method = SPACE_METHOD_MALLOC};
   frame = tkbc_init_frame(&space);
   cassert_ptr_neq(frame, NULL); // To ensure the allocation is valid, otherwise
                                 // the next test is pointless.
@@ -143,7 +143,7 @@ Test contains_id(void) {
 
 Test deep_copy_frame(void) {
   Test test = cassert_init_test("tkbc_deep_copy_frame()");
-  Space space = {0};
+  Space space = {.alloc_method = SPACE_METHOD_MALLOC};
   Frame *frame = tkbc_init_frame(&space);
   frame->kind = KITE_WAIT;
   Kite_Ids kite_ids = tkbc_indexs_range(0, 8);
@@ -205,7 +205,7 @@ Test deep_copy_frames(void) {
       ((Kite_Position){
           .kite_id = 2, .position.x = 150, .position.y = 250, .angle = 180}));
 
-  Space space = {0};
+  Space space = {.alloc_method = SPACE_METHOD_MALLOC};
   Frames new_frames = tkbc_deep_copy_frames(&space, frames);
 
   cassert_ptr_neq(frames, &new_frames);
@@ -282,7 +282,7 @@ Test deep_copy_script(void) {
 
   cassert_dap(&script, frames);
 
-  Space space = {0};
+  Space space = {.alloc_method = SPACE_METHOD_MALLOC};
   Script new_script = tkbc_deep_copy_script(&space, &script);
   cassert_ptr_neq(&script, &new_script);
   cassert_int_eq(script.count, new_script.count);
