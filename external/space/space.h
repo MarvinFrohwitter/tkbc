@@ -1292,7 +1292,9 @@ SPACEDEF void space_reset_planet_and_zero(Planet *planet) {
  * otherwise.
  */
 SPACEDEF bool space_reset_planet_id(Space *space, size_t id) {
-  for (Planet *planet = space->sun; planet; planet = planet->next) {
+  size_t i = 0;
+  for (Planet *planet = space->sun; planet && i < space->planet_count;
+       planet = planet->next, ++i) {
     if (planet->id == id) {
       space_reset_planet(planet);
       return true;
@@ -1312,7 +1314,9 @@ SPACEDEF bool space_reset_planet_id(Space *space, size_t id) {
  * @return true if the planet was found and reset, false otherwise.
  */
 SPACEDEF bool space_reset_planet_and_zero_id(Space *space, size_t id) {
-  for (Planet *planet = space->sun; planet; planet = planet->next) {
+  size_t i = 0;
+  for (Planet *planet = space->sun; planet && i < space->planet_count;
+       planet = planet->next, ++i) {
     if (planet->id == id) {
       space_reset_planet_and_zero(planet);
       return true;
@@ -1333,8 +1337,10 @@ SPACEDEF bool space_reset_planet_and_zero_id(Space *space, size_t id) {
  * @param space Pointer to the Space structure to reset.
  */
 SPACEDEF void space_reset_space(Space *space) {
-  for (Planet *p = space->sun; p; p = p->next) {
-    space_reset_planet(p);
+  size_t i = 0;
+  for (Planet *planet = space->sun; planet && i < space->planet_count;
+       planet = planet->next, ++i) {
+    space_reset_planet(planet);
   }
 }
 
@@ -1351,8 +1357,10 @@ SPACEDEF void space_reset_space(Space *space) {
  * @param space Pointer to the Space structure to reset and zero.
  */
 SPACEDEF void space_reset_space_and_zero(Space *space) {
-  for (Planet *p = space->sun; p; p = p->next) {
-    space_reset_planet_and_zero(p);
+  size_t i = 0;
+  for (Planet *planet = space->sun; planet && i < space->planet_count;
+       planet = planet->next, ++i) {
+    space_reset_planet_and_zero(planet);
   }
 }
 
@@ -1390,17 +1398,17 @@ SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
     space->sun->count = size_in_bytes;
     space->planet_count++;
     *planet_id = space->sun->id;
-    space->sun->next = NULL;
-    space->sun->prev = NULL;
+    space->sun->next = space->sun;
+    space->sun->prev = space->sun;
     return space->sun->elements;
   }
 
   Planet *p = space->sun;
-  Planet *prev = space->sun;
-  while (p) {
-    // This is slow finding the end of the linked list.
-    // TODO: Maybe find the end by storing it in sun->prev.
+  Planet *prev = space->sun->prev;
+  for (size_t i = 0; p && i < space->planet_count; ++i) {
     if (force_new_planet) {
+      break;
+
       prev = p;
       p = p->next;
       continue;
@@ -1444,9 +1452,10 @@ SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
   *planet_id = p->id;
 
   p->prev = prev;
-  p->next = NULL;
+  p->next = space->sun;
   prev->next = p;
-  return prev->next->elements;
+  space->sun->prev = p;
+  return p->elements;
 }
 
 /**
@@ -1959,10 +1968,12 @@ SPACEDEF size_t space_find_planet_id_from_ptr(Space *space, void *ptr) {
     return 0;
   }
 
-  for (Planet *p = space->sun; p; p = p->next) {
-    if ((char *)p->elements <= (char *)ptr &&
-        (char *)p->elements + p->capacity >= (char *)ptr) {
-      return p->id;
+  size_t i = 0;
+  for (Planet *planet = space->sun; planet && i < space->planet_count;
+       planet = planet->next, ++i) {
+    if ((char *)planet->elements <= (char *)ptr &&
+        (char *)planet->elements + planet->capacity >= (char *)ptr) {
+      return planet->id;
     }
   }
 
@@ -1992,10 +2003,12 @@ SPACEDEF Planet *space_find_planet_from_ptr(Space *space, void *ptr) {
     return NULL;
   }
 
-  for (Planet *p = space->sun; p; p = p->next) {
-    if ((char *)p->elements <= (char *)ptr &&
-        (char *)p->elements + p->capacity >= (char *)ptr) {
-      return p;
+  size_t i = 0;
+  for (Planet *planet = space->sun; planet && i < space->planet_count;
+       planet = planet->next, ++i) {
+    if ((char *)planet->elements <= (char *)ptr &&
+        (char *)planet->elements + planet->capacity >= (char *)ptr) {
+      return planet;
     }
   }
 
@@ -2054,16 +2067,17 @@ SPACEDEF bool space_report_allocations(Space *space, Space_Report *report) {
     return false;
   }
   report->planet_count = space->planet_count;
-  Planet *p = space->sun;
-  while (p) {
-    if (report->allocated_capacity + p->capacity > SIZE_MAX ||
-        report->allocated_count + p->count > SIZE_MAX) {
+
+  size_t i = 0;
+  for (Planet *planet = space->sun; planet && i < space->planet_count;
+       planet = planet->next, ++i) {
+    if (report->allocated_capacity + planet->capacity > SIZE_MAX ||
+        report->allocated_count + planet->count > SIZE_MAX) {
       return false;
     }
 
-    report->allocated_capacity += p->capacity;
-    report->allocated_count += p->count;
-    p = p->next;
+    report->allocated_capacity += planet->capacity;
+    report->allocated_count += planet->count;
   }
 
   return true;
