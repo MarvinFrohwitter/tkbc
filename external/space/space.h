@@ -1218,11 +1218,13 @@ method_rerun2:
  * @param space Pointer to the Space structure to free.
  */
 SPACEDEF void space_free_space(Space *space) {
-  while (space->sun) {
+  size_t amount = space->planet_count;
+  for (size_t i = 0; i < amount; ++i) {
     space_free_planet(space, space->sun);
   }
   assert(space->planet_count == 0);
-  assert(space->sun == NULL);
+  // This ensures that even when calling mmap the freed value is NULL.
+  space->sun = NULL;
 }
 
 /**
@@ -1237,11 +1239,13 @@ SPACEDEF void space_free_space(Space *space) {
  * @param space Pointer to the Space structure.
  */
 SPACEDEF void space_free_space_internals_without_freeing_data(Space *space) {
-  while (space->sun) {
+  size_t amount = space->planet_count;
+  for (size_t i = 0; i < amount; ++i) {
     space_free_planet_optional_freeing_data(space, space->sun, false);
   }
   assert(space->planet_count == 0);
-  assert(space->sun == NULL);
+  // This ensures that even when calling mmap the freed value is NULL.
+  space->sun = NULL;
 }
 
 /**
