@@ -1111,7 +1111,6 @@ bool read_dir_impl(const char *path, Dir_Entries *list) {
             GetLastError());
     return false;
   }
-  d_name = lpFindFileData.cFileName;
   goto read_entrys;
 #else
   DIR *dir = opendir(path);
@@ -1138,8 +1137,8 @@ bool read_dir_impl(const char *path, Dir_Entries *list) {
         return false;
       }
     }
+  read_entrys:
     d_name = lpFindFileData.cFileName;
-
 #else
     errno = 0;
     struct dirent *entry = readdir(dir);
@@ -1149,10 +1148,8 @@ bool read_dir_impl(const char *path, Dir_Entries *list) {
     // There should no error occur because EBADF can not happen.
     assert(errno == 0);
     d_name = entry->d_name;
-    goto read_entrys; // TO remove compiler warning about unused label.
 #endif
 
-  read_entrys:
     if (strcmp(d_name, ".") == 0) {
       continue;
     }
