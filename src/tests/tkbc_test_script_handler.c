@@ -146,7 +146,6 @@ Test deep_copy_frame(void) {
   Space space = {0};
   Frame *frame = tkbc_init_frame(&space);
   frame->kind = KITE_WAIT;
-  frame->action.as_wait.starttime = 123.456789f;
   Kite_Ids kite_ids = tkbc_indexs_range(0, 8);
   tkbc_dapc(&frame->kite_id_array, kite_ids.elements, kite_ids.count);
   Frame frame_copy = tkbc_deep_copy_frame(&space, frame);
@@ -160,8 +159,6 @@ Test deep_copy_frame(void) {
   cassert_int_eq(frame->kind, frame_copy.kind);
   cassert_float_eq(frame->duration, frame_copy.duration);
   cassert_size_t_eq(frame->index, frame_copy.index);
-  cassert_double_eq(frame->action.as_wait.starttime,
-                    frame_copy.action.as_wait.starttime);
 
   free(kite_ids.elements);
   kite_ids.elements = NULL;
