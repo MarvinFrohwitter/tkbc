@@ -683,7 +683,8 @@ char *tkbc_generate_file_name_with_time_stamp(const char *prefix,
 
 /**
  * @brief The function is a wrapper for the GetTime() that is not available
- * in the server computation.
+ * in the server computation, note that the GetTime() function calculate the
+ * time since InitWindow() and the alternative uses CLOCK_MONOTONIC.
  *
  * @return The time since the program has initialized.
  */
