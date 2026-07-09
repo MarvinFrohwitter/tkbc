@@ -276,7 +276,7 @@ void sending_script_handler(void) {
   tkbc__script_input(env);
 
 #ifndef RELEASE
-  tkbc_debug_print_and_export_all_scripts(NULL, env);
+  tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
 #endif // RELEASE
   tkbc_message_script();
 
@@ -1101,7 +1101,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (tkbc_load_keymaps_from_file(&env->keymaps, ".tkbc-keymaps")) {
+  if (tkbc_load_keymaps_from_file(&env->keymaps, env->tkbc_keymaps_path)) {
     tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
   }
   SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
@@ -1147,7 +1147,7 @@ int main(int argc, char *argv[]) {
           env->scripts_parsed = true;
 
 #ifndef RELEASE
-          tkbc_debug_print_and_export_all_scripts(NULL, env);
+          tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
 #endif // RELEASE
         }
 

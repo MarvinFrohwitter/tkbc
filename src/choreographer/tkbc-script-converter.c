@@ -31,13 +31,13 @@ void tkbc_print_kites(Content *buffer, Kite_Ids ids) {
  * file.
  *
  * @param script A memory representation of a script.
- * @param filename The file name where the script should be saved to.
+ * @param filepath The file path where the script should be saved to.
  * @return 0 If the saving and serialization of the file has succeeded. 1 if
  * writing of the header failed and -1 if the writing of the main program has
  * failed.
  */
 int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
-                                                 const char *filename) {
+                                                 const char *filepath) {
   int ok = 0;
   Kite_Ids ids = {0};
   Content out = {0};
@@ -135,11 +135,11 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
 
   char buf[32];
   snprintf(buf, sizeof(buf), "KITES %zu\n", ids.count);
-  int err = tkbc_write_file(filename, buf, strlen(buf));
+  int err = tkbc_write_file(filepath, buf, strlen(buf));
   if (err) {
     check_return(-err);
   }
-  err = tkbc_append_file(filename, out.elements, out.count);
+  err = tkbc_append_file(filepath, out.elements, out.count);
   check_return(err);
 
 check:
@@ -155,18 +155,30 @@ check:
  * name was specified.
  *
  * @param env The global state of the application.
+ * @param path The path where the scripts should be exported to.
  * @return 0 If the saving and serialization of all the files has succeeded. If
  * an error occurred the positive "script_id" of the first failing script is
  * returned, if writing the header of that script has failed and the negative
  * "-scirpt_id" will be returned, if writing the main program has failed.
  * The first initial KITES count in the script is considered to be the header.
  */
-int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env) {
+int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env,
+                                                      const char *path) {
+#ifdef _WIN32
+  char separator = '\\';
+#else
+  char separator = '/';
+#endif
+
+  tkbc_make_dir_recursive_if_not_existis(path);
+
   int err = 0;
   size_t id = 1;
   for (size_t i = 0; i < env->scripts.count; ++i) {
     assert(env->scripts.elements[i].name);
-    const char *buf = space_tprintf("%s.kite", env->scripts.elements[i].name);
+    space_reset_tspace();
+    const char *buf = space_tprintf("%s%c%s.kite", path, separator,
+                                    env->scripts.elements[i].name);
     err = tkbc_export_script_to_dot_kite_file_from_mem(
         &env->scripts.elements[i], buf);
 

@@ -632,13 +632,15 @@ void tkbc_print_all_scripts(FILE *stream, Env *env) {
  * @param stream The stream where the output of the debug print will end up,
  * if NULL is provided the print will be omitted.
  * @param env The global state of the application.
+ * @param path The directory where the scripts should be exported.
  */
-void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env) {
+void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env,
+                                             const char *path) {
   for (size_t i = 0; i < env->scripts.count; ++i) {
     if (stream) {
       tkbc_print_script(stream, &env->scripts.elements[i]);
     }
-    int ret = tkbc_export_all_scripts_to_dot_kite_file_from_mem(env);
+    int ret = tkbc_export_all_scripts_to_dot_kite_file_from_mem(env, path);
     assert(ret == 0 && "ERROR: Not all the scripts are correctly exported.");
     (void)ret;
   }

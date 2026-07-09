@@ -493,6 +493,8 @@ typedef struct {
 } Scrollbar;
 
 typedef struct {
+  const char *tkbc_dir;          // The dir where all metadata is saved.
+  const char *tkbc_keymaps_path; // The file path where the keymaps are stored.
   Kite *vanilla_kite;      // A representation of all the default kite values.
   Kite_States *kite_array; // The kites that are generated for the current
                            // session of the application.

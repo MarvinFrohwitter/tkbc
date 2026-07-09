@@ -69,7 +69,8 @@ int main(void) {
   if (!env) {
     return 1;
   }
-  if (tkbc_load_keymaps_from_file(&env->keymaps, ".tkbc-keymaps")) {
+
+  if (tkbc_load_keymaps_from_file(&env->keymaps, env->tkbc_keymaps_path)) {
     tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
   }
   SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
@@ -86,7 +87,7 @@ int main(void) {
       env->scripts_parsed = true;
 
 #ifndef RELEASE
-      tkbc_debug_print_and_export_all_scripts(NULL, env);
+      tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
 #endif // RELEASE
     }
 

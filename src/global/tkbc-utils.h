@@ -15,6 +15,7 @@
 
 #include <dirent.h>
 #include <libgen.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #ifdef INCLUDE_RAYLIB
@@ -237,6 +238,8 @@ void free_dir_entrys(Dir_Entries dir_entrys);
 bool read_dir_impl(const char *path, Dir_Entries *list);
 bool read_dir(const char *path, Dir_Entries *list);
 bool read_dir_recursive(const char *path, Dir_Entries *list);
+bool tkbc_make_dir_if_not_existis(const char *path);
+bool tkbc_make_dir_recursive_if_not_existis(const char *path);
 
 #endif // TKBC_UTILS_H_
 
@@ -1093,6 +1096,11 @@ char *tkbc_strtoupper(char *str) {
   return begin_str;
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param dir_entrys [TODO:parameter]
+ */
 void free_dir_entrys(Dir_Entries dir_entrys) {
   for (size_t i = 0; i < dir_entrys.count; ++i) {
     free(dir_entrys.elements[i].name);
@@ -1101,6 +1109,13 @@ void free_dir_entrys(Dir_Entries dir_entrys) {
   free(dir_entrys.elements);
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param path [TODO:parameter]
+ * @param list [TODO:parameter]
+ * @return [TODO:return]
+ */
 bool read_dir_impl(const char *path, Dir_Entries *list) {
   char *d_name;
 #ifdef _WIN32
@@ -1297,6 +1312,69 @@ bool read_dir_recursive(const char *path, Dir_Entries *list) {
   }
 
   return true;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param path [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_make_dir_if_not_existis(const char *path) {
+#ifdef _WIN32
+#include <direct.h>
+  int ok = _mkdir(path);
+#else
+  int ok = mkdir(path, 0755);
+#endif
+  if (ok < 0) {
+    if (errno == EEXIST) {
+      tkbc_fprintf(stderr, "INFO", "The given path `%s` already exist.\n",
+                   path);
+    } else {
+      tkbc_fprintf(stderr, "ERROR", "Failed to create directory: %s\n",
+                   strerror(errno));
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param path [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_make_dir_recursive_if_not_existis(const char *path) {
+  bool ok = true;
+#ifdef _WIN32
+  char separator = '\\';
+#else
+  char separator = '/';
+  if (strcmp(path, "/") == 0) {
+    return tkbc_make_dir_if_not_existis(path);
+  }
+#endif
+
+  char *copy = strdup(path);
+  char *next = strchr(copy, separator);
+  while (true) {
+    if (next == NULL) {
+      ok = tkbc_make_dir_if_not_existis(copy);
+      break;
+    }
+    *next = '\0';
+    ok = tkbc_make_dir_if_not_existis(copy);
+    *next = separator;
+    if (!ok) {
+      break;
+    }
+    next = strchr(next + 1, separator);
+  }
+
+  free(copy);
+  return ok;
 }
 
 #endif // TKBC_UTILS_IMPLEMENTATION

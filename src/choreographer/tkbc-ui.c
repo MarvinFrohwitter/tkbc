@@ -1788,7 +1788,7 @@ void tkbc_ui_keymaps(Env *env) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
         CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
       DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      tkbc_load_keymaps_from_file(&env->keymaps, ".tkbc-keymaps");
+      tkbc_load_keymaps_from_file(&env->keymaps, env->tkbc_keymaps_path);
       tkbc_setup_keymaps_strs(&env->keymaps);
       SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
     }
@@ -1835,7 +1835,8 @@ void tkbc_ui_keymaps(Env *env) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
         CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
       DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      tkbc_save_keymaps_to_file(env->keymaps, ".tkbc-keymaps");
+      tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
+      tkbc_save_keymaps_to_file(env->keymaps, env->tkbc_keymaps_path);
     }
   }
   const char *save = "SAVE";

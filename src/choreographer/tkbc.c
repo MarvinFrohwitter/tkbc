@@ -1,7 +1,7 @@
+#include "raylib.h"
 #include <assert.h>
 #include <errno.h>
 #include <math.h>
-#include "raylib.h"
 #include <raymath.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -60,6 +60,16 @@ Env *tkbc_init_env(void) {
   env->window_height = tkbc_get_screen_height();
   env->script_finished = true;
   env->fps = TARGET_FPS;
+
+#define TKBC_DIR "tkbc"
+#define KEYMAPS_FILE ".tkbc-keymaps"
+
+  env->tkbc_dir = TKBC_DIR;
+#ifdef _WIN32
+  env->tkbc_keymaps_path = TKBC_DIR "\\" KEYMAPS_FILE;
+#else
+  env->tkbc_keymaps_path = TKBC_DIR "/" KEYMAPS_FILE;
+#endif
 
   // const char *font_name = "iosevka-regular.ttf";
   // const char *font_name = "GreatVibes-Regular.ttf";
