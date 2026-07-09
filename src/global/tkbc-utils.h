@@ -1233,45 +1233,43 @@ bool read_dir(const char *path, Dir_Entries *list) {
   if (!path) {
     return false;
   }
-  bool result = read_dir_impl(path, list);
-  if (result) {
 
 #ifdef _WIN32
-    const DWORD nBufferLength = MAX_PATH;
-    char real_path[nBufferLength];
-    DWORD ok = GetFullPathName(path, nBufferLength, real_path, NULL);
-    if (ok == 0) {
-      return false;
-    }
-    char *parent_full_path = strdup(real_path);
-#else
-    char *parent_full_path = realpath(path, NULL);
-#endif
-
-    tkbc_dap(list, ((Dir_Entry){
-                       .name = strdup("."),
-                       .full_path = strdup(parent_full_path),
-                       .type = TKBC_DT_DIR,
-                   }));
-
-#ifdef _WIN32
-    char *filename;
-    GetFullPathName(parent_full_path, nBufferLength, real_path, &filename);
-    if (filename != NULL) {
-      *(filename) = '\0';
-    }
-    parent_full_path = strdup(real_path);
-#else
-    parent_full_path = dirname(parent_full_path);
-#endif
-
-    tkbc_dap(list, ((Dir_Entry){
-                       .name = strdup(".."),
-                       .full_path = parent_full_path,
-                       .type = TKBC_DT_DIR,
-                   }));
+  const DWORD nBufferLength = MAX_PATH;
+  char real_path[nBufferLength];
+  DWORD ok = GetFullPathName(path, nBufferLength, real_path, NULL);
+  if (ok == 0) {
+    return false;
   }
-  return result;
+  char *parent_full_path = strdup(real_path);
+#else
+  char *parent_full_path = realpath(path, NULL);
+#endif
+
+  tkbc_dap(list, ((Dir_Entry){
+                     .name = strdup("."),
+                     .full_path = strdup(parent_full_path),
+                     .type = TKBC_DT_DIR,
+                 }));
+
+#ifdef _WIN32
+  char *filename;
+  GetFullPathName(parent_full_path, nBufferLength, real_path, &filename);
+  if (filename != NULL) {
+    *(filename) = '\0';
+  }
+  parent_full_path = strdup(real_path);
+#else
+  parent_full_path = dirname(parent_full_path);
+#endif
+
+  tkbc_dap(list, ((Dir_Entry){
+                     .name = strdup(".."),
+                     .full_path = parent_full_path,
+                     .type = TKBC_DT_DIR,
+                 }));
+
+  return read_dir_impl(path, list);
 }
 
 bool read_dir_recursive(const char *path, Dir_Entries *list) {

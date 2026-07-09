@@ -179,6 +179,8 @@ void tkbc_append_kite_image_pannels() {
  * leading edge, and other predefined kite images.
  */
 void append_assets(void) {
+  // NOTE: This is needed when loading assets directly from files.
+  // GetApplicationDirectory();
 
   // This loading order has to be the exact same as in the
   // Asset_Kite_Design_Kind enum to correlate the place.
