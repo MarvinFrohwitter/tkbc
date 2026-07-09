@@ -657,7 +657,14 @@ int tkbc_get_screen_width(void) {
   exit(0);
 }
 
-// TODO: Add signature docs.
+/**
+ * @brief The function generates a file name with a time stamp between the
+ * prefix and the postfix.
+ *
+ * @param prefix The prefix for the file name.
+ * @param postfix The postfix for the file name.
+ * @return A pointer to the generated file name on the heap or NULL on failure.
+ */
 char *tkbc_generate_file_name_with_time_stamp(const char *prefix,
                                               const char *postfix) {
   const time_t current_time = time(NULL);
@@ -1103,9 +1110,9 @@ char *tkbc_strtoupper(char *str) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function frees the memory allocated for the directory entries.
  *
- * @param dir_entrys [TODO:parameter]
+ * @param dir_entrys The directory entries to free.
  */
 void free_dir_entrys(Dir_Entries dir_entrys) {
   for (size_t i = 0; i < dir_entrys.count; ++i) {
@@ -1116,11 +1123,12 @@ void free_dir_entrys(Dir_Entries dir_entrys) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function reads a directory and populates the list parameter with
+ * its entries.
  *
- * @param path [TODO:parameter]
- * @param list [TODO:parameter]
- * @return [TODO:return]
+ * @param path The path to the directory to read.
+ * @param list The list to populate with the directory entries.
+ * @return True if successful, otherwise false.
  */
 bool read_dir_impl(const char *path, Dir_Entries *list) {
   char *d_name;
@@ -1250,6 +1258,14 @@ bool read_dir_impl(const char *path, Dir_Entries *list) {
   return true;
 }
 
+/**
+ * @brief The function reads a directory and populates a list with its entries
+ * including "." and "..".
+ *
+ * @param path The path to the directory to read.
+ * @param list The list to populate with the directory entries.
+ * @return True if successful, otherwise false.
+ */
 bool read_dir(const char *path, Dir_Entries *list) {
   if (!path) {
     return false;
@@ -1293,6 +1309,13 @@ bool read_dir(const char *path, Dir_Entries *list) {
   return read_dir_impl(path, list);
 }
 
+/**
+ * @brief The function reads a directory and all its subdirectories recursively.
+ *
+ * @param path The path to the directory to read.
+ * @param list The list to populate with the directory entries.
+ * @return True if successful, otherwise false.
+ */
 bool read_dir_recursive(const char *path, Dir_Entries *list) {
   bool ok = true;
   ok = read_dir(path, list);
@@ -1321,10 +1344,11 @@ bool read_dir_recursive(const char *path, Dir_Entries *list) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function creates a directory if it does not already exist.
  *
- * @param path [TODO:parameter]
- * @return [TODO:return]
+ * @param path The path of the directory to create.
+ * @return True if successful or if the directory already exists, otherwise
+ * false.
  */
 bool tkbc_make_dir_if_not_existis(const char *path) {
 #ifdef _WIN32
@@ -1347,10 +1371,11 @@ bool tkbc_make_dir_if_not_existis(const char *path) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function creates a directory and all its parent directories if
+ * they do not already exist.
  *
- * @param path [TODO:parameter]
- * @return [TODO:return]
+ * @param path The path of the directory to create.
+ * @return True if successful, otherwise false.
  */
 bool tkbc_make_dir_recursive_if_not_existis(const char *path) {
   bool ok = true;
@@ -1384,10 +1409,11 @@ bool tkbc_make_dir_recursive_if_not_existis(const char *path) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function determines the file type of the given path.
  *
- * @param file_path [TODO:parameter]
- * @return [TODO:return]
+ * @param file_path The path to the file to check.
+ * @return TKBC_DT_DIR if it is a directory, TKBC_DT_REG if it is a regular
+ * file, otherwise TKBC_DT_UNKNOWN.
  */
 char tkbc_get_file_type(const char *file_path) {
 #ifdef _WIN32
@@ -1428,10 +1454,10 @@ char tkbc_get_file_type(const char *file_path) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function removes a file or an empty directory.
  *
- * @param path [TODO:parameter]
- * @return [TODO:return]
+ * @param path The path to remove.
+ * @return True if successful, otherwise false.
  */
 bool tkbc_remove(const char *path) {
   bool ok = true;
@@ -1468,10 +1494,10 @@ bool tkbc_remove(const char *path) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function removes a directory and all its contents recursively.
  *
- * @param path [TODO:parameter]
- * @return [TODO:return]
+ * @param path The path to remove.
+ * @return True if successful, otherwise false.
  */
 bool tkbc_remove_recursive(const char *path) {
   Dir_Entries list = {0};
