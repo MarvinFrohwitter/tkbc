@@ -130,7 +130,7 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   security_attributes.nLength = sizeof(SECURITY_ATTRIBUTES);
 
   if (!CreatePipe(&rpipe, &wpipe, &security_attributes, 0)) {
-    tkbc_fprintf(stderr, "ERROR", "Creating the pipe has failed with:%d\n",
+    tkbc_fprintf(stderr, "ERROR", "Creating the pipe has failed with:%lu\n",
                  GetLastError());
     free(env->ffmpeg);
     env->ffmpeg = NULL;
@@ -139,7 +139,7 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
 
   if (!SetHandleInformation(wpipe, HANDLE_FLAG_INHERIT, 0)) {
     tkbc_fprintf(stderr, "ERROR",
-                 "The write pipe could not be set to HANDLE_FLAG_INHERIT:%d\n",
+                 "The write pipe could not be set to HANDLE_FLAG_INHERIT:%lu\n",
                  GetLastError());
 
     CloseHandle(wpipe);
@@ -157,7 +157,7 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   startup_info.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
   if (startup_info.hStdOutput == INVALID_HANDLE_VALUE) {
     tkbc_fprintf(stderr, "ERROR",
-                 "Could not get STD_OUTPUT_HANDLE for ffmpeg: %d\n",
+                 "Could not get STD_OUTPUT_HANDLE for ffmpeg: %lu\n",
                  GetLastError());
     CloseHandle(wpipe);
     CloseHandle(rpipe);
@@ -168,7 +168,7 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
   startup_info.hStdError = GetStdHandle(STD_ERROR_HANDLE);
   if (startup_info.hStdError == INVALID_HANDLE_VALUE) {
     tkbc_fprintf(stderr, "ERROR",
-                 "Could not get STD_ERROR_HANDLE for ffmpeg: %d\n",
+                 "Could not get STD_ERROR_HANDLE for ffmpeg: %lu\n",
                  GetLastError());
     CloseHandle(wpipe);
     CloseHandle(rpipe);
@@ -200,7 +200,7 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
     if (!CreateProcess(NULL, ffmpeg_cmd, NULL, NULL, TRUE, 0, NULL, NULL,
                        &startup_info, &process_information)) {
       tkbc_fprintf(stderr, "ERROR",
-                   "Creation of the child process was not possible:%d\n",
+                   "Creation of the child process was not possible:%lu\n",
                    GetLastError());
       CloseHandle(wpipe);
       CloseHandle(rpipe);
@@ -221,7 +221,7 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
     if (!CreateProcess(NULL, ffmpeg_cmd, NULL, NULL, TRUE, 0, NULL, NULL,
                        &startup_info, &process_information)) {
       tkbc_fprintf(stderr, "ERROR",
-                   "Creation of the child process was not possible:%d\n",
+                   "Creation of the child process was not possible:%lu\n",
                    GetLastError());
       CloseHandle(wpipe);
       CloseHandle(rpipe);
@@ -256,7 +256,7 @@ bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
   BOOL close_status = CloseHandle(env->ffmpeg->pipe);
   if (close_status == 0) {
     tkbc_fprintf(stderr, "ERROR",
-                 "The ffmpeg_end() function could not close the pipe: %d: "
+                 "The ffmpeg_end() function could not close the pipe: %lu: "
                  "Error code: %d\n",
                  env->ffmpeg->pipe, GetLastError());
   }
@@ -286,7 +286,7 @@ bool tkbc_ffmpeg_wait(Process process, bool is_kill_foreced) {
   bool ok = true;
   if (WaitForSingleObject(process.pid, INFINITE) == WAIT_FAILED) {
     tkbc_fprintf(stderr, "ERROR",
-                 "Waiting on process %d has failed: Error code:%d\n",
+                 "Waiting on process %d has failed: Error code:%lu\n",
                  process.pid, GetLastError());
     check_return(false);
   }
@@ -294,8 +294,8 @@ bool tkbc_ffmpeg_wait(Process process, bool is_kill_foreced) {
   DWORD status;
   if (GetExitCodeProcess(process.pid, &status) == 0) {
     tkbc_fprintf(stderr, "ERROR",
-                 "Could not get exit code for %d! Error code:%d\n", process.pid,
-                 GetLastError());
+                 "Could not get exit code for %d! Error code:%lu\n",
+                 process.pid, GetLastError());
     check_return(false);
   }
 
@@ -330,7 +330,7 @@ int tkbc_ffmpeg_write_image(Env *env) {
                      (uint32_t *)image.data + image.width * y,
                      sizeof(uint32_t) * image.width, &amount, NULL)) {
         tkbc_fprintf(stderr, "ERROR",
-                     "Could not write to the pipe: Error code: %d\n",
+                     "Could not write to the pipe: Error code: %lu\n",
                      GetLastError());
         check_return(-1);
       }

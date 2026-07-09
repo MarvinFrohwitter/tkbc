@@ -47,6 +47,8 @@ typedef struct {
   size_t count;
   size_t capacity;
 } Dir_Entries;
+
+#define TKBC_DT_UNKNOWN 0
 #define TKBC_DT_DIR 4
 #define TKBC_DT_REG 8
 
@@ -240,6 +242,9 @@ bool read_dir(const char *path, Dir_Entries *list);
 bool read_dir_recursive(const char *path, Dir_Entries *list);
 bool tkbc_make_dir_if_not_existis(const char *path);
 bool tkbc_make_dir_recursive_if_not_existis(const char *path);
+char tkbc_get_file_type(const char *file_path);
+bool tkbc_remove(const char *path);
+bool tkbc_remove_recursive(const char *path);
 
 #endif // TKBC_UTILS_H_
 
@@ -1122,7 +1127,7 @@ bool read_dir_impl(const char *path, Dir_Entries *list) {
   WIN32_FIND_DATAA lpFindFileData = {0};
   HANDLE dir = FindFirstFile(path, &lpFindFileData);
   if (dir == INVALID_HANDLE_VALUE) {
-    fprintf(stderr, "Error: Could not open dir %s: %ld\n", path,
+    fprintf(stderr, "Error: Could not open dir %s: %lu\n", path,
             GetLastError());
     return false;
   }
@@ -1143,11 +1148,11 @@ bool read_dir_impl(const char *path, Dir_Entries *list) {
       if (error_code == ERROR_NO_MORE_FILES) {
         break;
       } else {
-        printf("Error: Could not find next file in %s: %ld\n", path,
+        printf("Error: Could not find next file in %s: %lu\n", path,
                error_code);
         BOOL ok = FindClose(dir);
         if (ok == 0) {
-          printf("Error: Could not close dir %s: %ld\n", path, GetLastError());
+          printf("Error: Could not close dir %s: %lu\n", path, GetLastError());
         }
         return false;
       }
@@ -1230,7 +1235,7 @@ bool read_dir_impl(const char *path, Dir_Entries *list) {
 #ifdef _WIN32
   BOOL ok = FindClose(dir);
   if (ok == 0) {
-    printf("Error: Could not close dir %s: %ld\n", path, GetLastError());
+    printf("Error: Could not close dir %s: %lu\n", path, GetLastError());
     return false;
   }
 #else
@@ -1374,6 +1379,119 @@ bool tkbc_make_dir_recursive_if_not_existis(const char *path) {
   }
 
   free(copy);
+  return ok;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param file_path [TODO:parameter]
+ * @return [TODO:return]
+ */
+char tkbc_get_file_type(const char *file_path) {
+#ifdef _WIN32
+  DWORD attributes = GetFileAttributes(file_path);
+
+  if (attributes == INVALID_FILE_ATTRIBUTES) {
+    tkbc_fprintf(stderr, "ERROR",
+                 "Failed to get file information for %s: %lu\n", file_path,
+                 GetLastError());
+    return TKBC_DT_UNKNOWN;
+  }
+
+  if (attributes & FILE_ATTRIBUTE_DIRECTORY) {
+    return TKBC_DT_DIR;
+  }
+
+  if (attributes & FILE_ATTRIBUTE_NORMAL ||
+      !(attributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_DEVICE))) {
+    return TKBC_DT_REG;
+  }
+
+#else
+
+  struct stat statbuf;
+  if (lstat(file_path, &statbuf) < 0) {
+    tkbc_fprintf(stderr, "ERROR", "Failed to get file information for %s: %s\n",
+                 file_path, strerror(errno));
+    return TKBC_DT_UNKNOWN;
+  }
+  if (S_ISDIR(statbuf.st_mode)) {
+    return TKBC_DT_DIR;
+  }
+  if (S_ISREG(statbuf.st_mode)) {
+    return TKBC_DT_REG;
+  }
+#endif
+  return TKBC_DT_UNKNOWN;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param path [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_remove(const char *path) {
+  bool ok = true;
+#ifdef _WIN32
+  char type = tkbc_get_file_type(path);
+  switch (type) {
+  case TKBC_DT_DIR:
+    if (RemoveDirectory(path) == 0) {
+      tkbc_fprintf(stderr, "ERROR", "Failed to remove %s: %lu\n", path,
+                   GetLastError());
+      ok = false;
+    }
+    break;
+  case TKBC_DT_REG:
+    if (DeleteFile(path) == 0) {
+      tkbc_fprintf(stderr, "ERROR", "Failed to remove %s: %lu\n", path,
+                   GetLastError());
+      ok = false;
+    }
+    break;
+  default:
+    assert("tkbc_remove_dir_recursive: Unsupported file type");
+    ok = false;
+  }
+
+#else
+  if (remove(path) < 0) {
+    tkbc_fprintf(stderr, "ERROR", "Failed to remove %s: %s\n", path,
+                 strerror(errno));
+    ok = false;
+  }
+#endif
+  return ok;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param path [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_remove_recursive(const char *path) {
+  Dir_Entries list = {0};
+  bool ok = true;
+  ok = read_dir_recursive(path, &list);
+  if (!ok) {
+    free(list.elements);
+    return ok;
+  }
+
+  for (size_t k = list.count; k > 0; --k) {
+    size_t index = k - 1;
+    if (strcmp(list.elements[index].name, "..") == 0) {
+      continue;
+    }
+    if (!tkbc_remove(list.elements[index].full_path)) {
+      ok = false;
+    }
+  }
+
+  free(list.elements);
   return ok;
 }
 
