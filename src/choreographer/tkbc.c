@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <math.h>
-#include <raymath.h>
+#include "raymath.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>

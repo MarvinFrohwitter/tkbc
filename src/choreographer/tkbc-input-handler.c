@@ -5,7 +5,7 @@
 #include "tkbc.h"
 #include <math.h>
 #include "raylib.h"
-#include <raymath.h>
+#include "raymath.h"
 
 // ========================== KEYBOARD INPUT =================================
 
