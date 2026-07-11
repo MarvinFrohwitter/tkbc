@@ -157,7 +157,7 @@ Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image,
 void tkbc_dispatch_colorizer_mode(Env *env, Image image,
                                   Rectangle collision_rec, float scale) {
 
-  if (tkbc_check_key(KEY_LEFT_CONTROL, MODE_DOWN) &&
+  if (tkbc_check_key(KEY_LEFT_SHIFT, MODE_DOWN) &&
       IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
     tkbc_colorizer(env, image, collision_rec, scale, SELECT_COLOR);
   } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -309,7 +309,7 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
       }
 
       if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
-        // THis is not a kite design.
+        // This is not a kite design.
         continue;
       }
 
