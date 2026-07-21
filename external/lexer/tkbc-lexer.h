@@ -437,7 +437,7 @@ LEXDEF Token lexer_invalid_token(Lexer *lexer) {
   Token token;
   token.kind = INVALID;
   token.size = 1;
-  token.content = (char*)&lexer->content[lexer->position];
+  token.content = (char *)&lexer->content[lexer->position];
   return token;
 }
 
@@ -1113,7 +1113,7 @@ BASICLEXDEF Token lexer_next(Lexer *lexer) {
     return lexer_eof_token(lexer);
   }
 
-  token.content = (char*)&lexer->content[lexer->position];
+  token.content = (char *)&lexer->content[lexer->position];
 
   // Check for null terminator
   if (lexer_char_is(lexer, '\0')) {
@@ -1335,7 +1335,7 @@ LEXDEF void lexer_trace_token(Lexer *lexer, Token *token) {
   }
 
   lexer->position = lexer->next_start_position;
-  token->content = (char*)&lexer->content[lexer->next_start_position];
+  token->content = (char *)&lexer->content[lexer->next_start_position];
 
   token->kind = ERROR;
 }
@@ -1446,7 +1446,7 @@ handle:
   Token token;
   token.kind = ERROR;
   token.size = strlen(final_token);
-  token.content = (char*)&lexer->content[preserve_lexer_posion];
+  token.content = (char *)&lexer->content[preserve_lexer_posion];
 
   /* Free the allocated memory for the individual parts of the token string.
    */
@@ -1757,5 +1757,3 @@ LEXDEF const char *lexer_kind_to_str(Kind kind) {
 }
 
 #endif // LEXER_IMPLEMENTATION
-
-
