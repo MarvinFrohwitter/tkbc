@@ -1103,12 +1103,12 @@ BASICLEXDEF Token lexer_next(Lexer *lexer) {
     return token;
   }
 
+  lexer_trim_left(lexer);
   lexer->isstrlit = 0;
   lexer->next_start_position = lexer->position;
   lexer->column_count =
       &lexer->content[lexer->position] - lexer->line_start + 1;
 
-  lexer_trim_left(lexer);
   if (lexer->position >= lexer->content_length) {
     return lexer_eof_token(lexer);
   }
