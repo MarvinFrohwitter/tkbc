@@ -270,7 +270,13 @@ bool tkbc_remove_recursive(const char *path);
  */
 int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
   int ret = 0;
+
 #ifdef TKBC_LOGGING
+
+  if (level == NULL) {
+    goto no_prefix;
+  }
+
 #ifndef TKBC_LOGGING_ERROR
   if (strncmp(level, "ERROR", 5) == 0) {
     return ret;
@@ -292,6 +298,7 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
   }
 #endif // TKBC_LOGGING_MESSAGEHANDLER
 
+no_prefix:
   va_list args;
   va_start(args, fmt);
   if (vsnprintf(NULL, 0, fmt, args) == 0) {

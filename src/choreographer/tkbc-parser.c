@@ -182,7 +182,8 @@ void tkbc_script_parser(Env *env) {
     case ERROR:
     case INVALID:
     default:
-      tkbc_fprintf(stderr, "ERROR", "Invalid token: %s\n",
+      tkbc_fprintf(stderr, "ERROR", "%s:%llu:%llu: invalid token: %s\n",
+                   l->file_name, l->line_count, l->column_count,
                    lexer_token_to_cstr(l, &t));
     }
   }
@@ -252,10 +253,10 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
       int number = atoi(lexer_token_to_cstr(lexer, &t));
       tkbc_dap(dest_kis, number);
       if (!tkbc_parsed_kis_is_in_env(env, number)) {
-        tkbc_fprintf(stderr, "ERROR",
-                     "The given kites in the listing are invalid: "
-                     "Position:%llu:%ld\n",
-                     lexer->line_count, (t.content - lexer->content));
+        tkbc_fprintf(
+            stderr, NULL,
+            "%s:%llu:%llu: the given kites in the listing are invalid\n",
+            lexer->file_name, lexer->line_count, lexer->column_count);
         return false;
       }
       t = lexer_next(lexer);
