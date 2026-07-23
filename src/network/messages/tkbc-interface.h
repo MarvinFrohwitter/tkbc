@@ -116,7 +116,7 @@ typedef enum {
  * MESSAGE_SCRIPT:script_id:script->count:
  * [frames->index:frames->count:
  * [frame->index:frame->finished:frame->kind:
- *   {quit->starttime|wait->starttime|move->x:move->y|rotation->angle|tip_rotation->tip:tip_rotation->angle}:
+ *   {move->x:move->y|rotation->angle|tip_rotation->tip:tip_rotation->angle}:
  * frame->duraction{:kite_ids->count:({ids,}^*id)}?:
  * ]
  * ]\r\n
