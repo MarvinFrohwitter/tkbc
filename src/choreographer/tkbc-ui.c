@@ -694,6 +694,7 @@ bool tkbc_ui_script_menu(Env *env) {
     DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
 
     tkbc_unload_script(env);
+    tkbc_change_visibility_to_non_script_kites(env);
     env->script_menu_mouse_interaction_box = -1;
     env->script_menu_interaction = false;
     env->new_script_selected = true;
@@ -732,6 +733,10 @@ bool tkbc_ui_script_menu(Env *env) {
 
       // TODO: Display an icon on the left of the selection that does not reset
       // it if clicked.
+
+      // TODO: No kite selection happens in offline mode the is_avtive has to
+      // change, Visibility is incorrect.
+
       tkbc_load_script_id(
           env,
           env->scripts.elements[env->script_menu_mouse_interaction_box]

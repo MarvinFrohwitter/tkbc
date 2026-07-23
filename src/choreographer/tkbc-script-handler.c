@@ -700,6 +700,63 @@ size_t tkbc_check_finished_frames_count(Env *env) {
 }
 
 /**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ */
+void tkbc_change_visibility_to_non_script_kites(Env *env) {
+  // Enable the normal client kites.
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    Kite_State *kite_state = &env->kite_array->elements[i];
+    kite_state->is_active = false;
+    if (!kite_state->is_script_kite) {
+      kite_state->is_active = true;
+    }
+  }
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param script [TODO:parameter]
+ */
+void tkbc_change_visibility_to_script_kites(Env *env, Script *script) {
+
+  // TODO: Find a better way to do it reliable.
+  // Generate kites if needed, if a script needs more kites than there are
+  // currently registered.
+
+  Kite_Ids ids = {0};
+  for (size_t i = 0; i < script->count; ++i) {
+    for (size_t j = 0; j < script->elements[i].count; ++j) {
+      Kite_Ids *kite_id_array = &script->elements[i].elements[j].kite_id_array;
+
+      for (size_t k = 0; k < kite_id_array->count; ++k) {
+        Id id = kite_id_array->elements[k];
+        if (!tkbc_contains_id(ids, id)) {
+          tkbc_dap(&ids, id);
+        }
+      }
+    }
+  }
+
+  //
+  // Activate the kites that belong to the script.
+  for (size_t i = 0; i < env->kite_array->count; ++i) {
+    env->kite_array->elements[i].is_active = false;
+
+    for (size_t j = 0; j < ids.count; ++j) {
+      if (ids.elements[j] == env->kite_array->elements[i].kite_id) {
+        env->kite_array->elements[i].is_active = true;
+        break;
+      }
+    }
+  }
+  free(ids.elements);
+}
+
+/**
  * @brief The function switches to the next available script. It loads the views
  * script and frames in the env. And sets the kite_frame_positions.
 
@@ -757,6 +814,8 @@ bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh) {
   }
   env->script_finished = false;
   env->script_loading = true;
+
+  tkbc_change_visibility_to_script_kites(env, env->script);
   return true;
 }
 

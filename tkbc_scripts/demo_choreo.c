@@ -28,27 +28,27 @@ void bicycle_start(Env *env, Kite_Ids ki) {
   SET(
 
       KITE_MOVE_ADD(ID(zero), 2 * kite.width, -1.5 * kite.width, move_duration),
-      KITE_ROTATION_ADD(tkbc_indexs_append(0), -270, rotation_duration)
+      KITE_ROTATION_ADD(tkbc_indexs_append(zero), -270, rotation_duration)
 
   );
   SET(
 
       KITE_MOVE_ADD(ID(one), -2 * kite.width, -1.5 * kite.width, move_duration),
-      KITE_ROTATION_ADD(tkbc_indexs_append(1), 270, rotation_duration)
+      KITE_ROTATION_ADD(tkbc_indexs_append(one), 270, rotation_duration)
 
   );
   SET(
 
       KITE_MOVE_ADD(ID(one), -(-2 * kite.width), 1.5 * kite.width,
                     move_duration),
-      KITE_ROTATION_ADD(tkbc_indexs_append(1), -315, rotation_duration)
+      KITE_ROTATION_ADD(tkbc_indexs_append(one), -315, rotation_duration)
 
   );
   SET(
 
       KITE_MOVE_ADD(ID(zero), -(2 * kite.width), 1.5 * kite.width,
                     move_duration),
-      KITE_ROTATION_ADD(tkbc_indexs_append(0), 315, rotation_duration)
+      KITE_ROTATION_ADD(tkbc_indexs_append(zero), 315, rotation_duration)
 
   );
   SET(KITE_WAIT(wait_time));
@@ -549,12 +549,14 @@ void choreo(Env *env, Kite_Ids ki) {
                                  (Kite_Config){
                                      .kite_id = zero,
                                      .body_color = RED,
-                                     .top_color = kite.top_color,
+                                     // .top_color = kite.top_color,
+                                     .top_color = WHITE,
                                  },
                                  (Kite_Config){
                                      .kite_id = one,
                                      .body_color = BLUE,
-                                     .top_color = kite.top_color,
+                                     // .top_color = kite.top_color,
+                                     .top_color = WHITE,
                                  });
   assert(ok);
   (void)ok;

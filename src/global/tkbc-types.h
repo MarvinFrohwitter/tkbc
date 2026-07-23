@@ -525,8 +525,6 @@ typedef struct {
                                      // frames in the current script.
   size_t server_script_id; // Representation of the current script the server
                            // executes.
-  size_t server_script_kite_max_count; // Represents the maximum kites that are
-                                       // part of a complete script.
   bool scripts_parsed; // If the server has parsed all send scripts.
 
   bool new_script_selected; // Representation if a user has selected a new

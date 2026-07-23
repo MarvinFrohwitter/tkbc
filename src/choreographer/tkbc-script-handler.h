@@ -29,6 +29,10 @@ void tkbc_patch_script_kite_positions(Env *env, Script *script, Space *space);
 void tkbc_patch_frames_kite_positions(Env *env, Frames *frames, Space *space);
 bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
+
+void tkbc_change_visibility_to_non_script_kites(Env *env);
+void tkbc_change_visibility_to_script_kites(Env *env, Script *script);
+
 void tkbc_load_next_script(Env *env);
 bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh);
 void tkbc_unload_script(Env *env);

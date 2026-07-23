@@ -569,7 +569,6 @@ bool received_message_handler(Message *message) {
     case MESSAGE_SCRIPT_FINISHED: {
       env->script_finished = true;
       env->server_script_id = 0;
-      env->server_script_kite_max_count = 0;
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_FINISHED\n");
     } break;
@@ -1145,6 +1144,14 @@ int main(int argc, char *argv[]) {
           env->script_setup = false;
           tkbc__script_input(env);
           env->scripts_parsed = true;
+
+          // HACK disabling the default activeness just for offline is wrong.
+          for (size_t k = 0; k < env->kite_array->count; ++k) {
+            if (env->kite_array->elements[k].kite_id == (size_t)client.kite_id) {
+              continue;
+            }
+            env->kite_array->elements[k].is_active = false;
+          }
 
 #ifndef RELEASE
           tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
