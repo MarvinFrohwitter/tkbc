@@ -147,9 +147,6 @@ void tkbc_script_update_frames(Env *env) {
     }
   }
 
-  // TODO: Find out why when first execution stops it is a different point than
-  // on the replay when scrolled back to the beginning.
-  //
   // This handles the possibility to quit/ stop a script after a period of
   // time.
   if (env->global_quit.script_quit_duration == 0) {
@@ -235,6 +232,7 @@ Frame *tkbc__script_wait(Env *env, float duration) {
     return NULL;
   }
   frame->duration = duration;
+  frame->original_duration = duration;
   frame->kind = KITE_WAIT;
   frame->action.as_wait = action;
   return frame;
@@ -261,6 +259,7 @@ Frame *tkbc__script_frames_quit(Env *env, float duration) {
     return NULL;
   }
   frame->duration = duration;
+  frame->original_duration = duration;
   frame->kind = KITE_QUIT;
   frame->action.as_quit = action;
   return frame;
@@ -300,6 +299,7 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
   }
 
   frame->duration = duration;
+  frame->original_duration = duration;
   frame->kind = kind;
   frame->action = raw_action;
   return frame;

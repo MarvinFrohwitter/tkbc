@@ -433,7 +433,10 @@ typedef struct {
   Kite_Ids kite_id_array; // The collection of kite_ids that should be
                           // part of the performed action.
   Index index;            // The index of the current frame in the
-  float duration;   // The time in seconds it should take to perform an action.
+  float duration;         // The time in seconds it should take to perform an
+                          // action. This field is decremented during playback.
+  float original_duration; // The unmodified duration, used to restore
+                           // duration on rewind/scrub.
   Action action;    // The action the frame should be responsible for.
   Action_Kind kind; // A representation of the kind of the action pointer.
   bool finished;    // Represents the state of the currently handled frame.

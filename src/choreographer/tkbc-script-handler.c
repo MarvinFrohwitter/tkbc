@@ -198,6 +198,7 @@ Frames tkbc_deep_copy_frames(Space *space, Frames *frames) {
 Frame tkbc_deep_copy_frame(Space *space, Frame *frame) {
   Frame f = {0};
   f.duration = frame->duration;
+  f.original_duration = frame->original_duration;
   f.finished = frame->finished;
   f.kind = frame->kind;
   f.index = frame->index;
@@ -747,6 +748,7 @@ bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh) {
     // load without setting any position but clear alle the saved positions
     // start a fresh play.
     assert(env->script);
+    tkbc_restore_script_frame_states(env);
     for (size_t i = 0; i < env->script->count; ++i) {
       env->script->elements[i].kite_frame_positions.count = 0;
     }
@@ -1074,6 +1076,7 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
  */
 void tkbc_execute_scrub_slide(Env *env, bool drag_left) {
   env->script_finished = true;
+  // TODO: Allow scrubbing to a specific location index at once.
 
   // The indexes are assumed in order and at the corresponding index.
   // This is needed to avoid a down cast of size_t to long or int that can
@@ -1088,10 +1091,31 @@ void tkbc_execute_scrub_slide(Env *env, bool drag_left) {
     }
   }
 
-  for (size_t i = 0; i < env->frames->count; ++i) {
-    env->frames->elements[i].finished = false;
-  }
+  tkbc_restore_script_frame_states(env);
   tkbc_set_kite_positions_from_kite_frames_positions(env);
+}
+
+/**
+ * @brief Restores all frame durations and finished flags across the entire
+ * script so that a replay from the beginning uses the original timing.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_restore_script_frame_states(Env *env) {
+  if (!env->script) {
+    return;
+  }
+
+  for (size_t i = 0; i < env->script->count; ++i) {
+    Frames *frames = &env->script->elements[i];
+    for (size_t j = 0; j < frames->count; ++j) {
+      frames->elements[j].duration = frames->elements[j].original_duration;
+      frames->elements[j].finished = false;
+    }
+  }
+
+  env->global_quit.is_script_quit = false;
+  env->global_quit.script_quit_duration = 0;
 }
 
 /**

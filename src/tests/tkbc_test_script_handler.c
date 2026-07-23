@@ -158,6 +158,7 @@ Test deep_copy_frame(void) {
   cassert_bool_eq(frame->finished, frame_copy.finished);
   cassert_int_eq(frame->kind, frame_copy.kind);
   cassert_float_eq(frame->duration, frame_copy.duration);
+  cassert_float_eq(frame->original_duration, frame_copy.original_duration);
   cassert_size_t_eq(frame->index, frame_copy.index);
 
   free(kite_ids.elements);
