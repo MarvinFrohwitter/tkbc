@@ -1,6 +1,11 @@
 // name of the program caller
 // TODO check for atoi, atol, atoll for 0 as failure. Maybe use strtol instead.
 //
+//// The script execution in the server is slow and skips display in kites
+/// introduced her.
+// b1bb5ff @ fix: The script can now stop at any quit position even after
+// rewinding it is still the same timing.
+//
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
@@ -760,8 +765,8 @@ void tkbc_client_input_handler_kite(void) {
   if (env->server_script_id != 0) {
 
     { ///////////////////////////////////////////////////////////////////////
-      // Kite_State *kite_state = tkbc_get_kite_state_by_id(env, client.kite_id);
-      // if (!kite_state) {
+      // Kite_State *kite_state = tkbc_get_kite_state_by_id(env,
+      // client.kite_id); if (!kite_state) {
       //   return;
       // }
       // kite_state->is_kite_input_handler_active = false;
