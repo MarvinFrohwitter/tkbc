@@ -15,14 +15,14 @@ void team_function_demonstration(Env *env, Kite_Ids ki) {
   SET(KITE_MOVE_ADD(ki, 0, 300, 5), KITE_WAIT(1.5), KITE_QUIT(7));
 
   tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
-  tkbc_register_frames(env, tkbc_script_wait(wait_time));
+  SET(KITE_WAIT(wait_time));
   // tkbc_script_team_ball(env, ki, position, offset, ball_radius,
   // move_duration);
 
-  tkbc_register_frames(env, tkbc_script_wait(wait_time));
+  SET(KITE_WAIT(wait_time));
 
   tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
-  tkbc_register_frames(env, tkbc_script_wait(wait_time));
+  SET(KITE_WAIT(wait_time));
 
   tkbc_script_team_box_left(env, ki, 300, move_duration, rotation_duration);
   tkbc_script_team_box_right(env, ki, 300, move_duration, rotation_duration);

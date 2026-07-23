@@ -407,15 +407,16 @@ typedef union { // The collection of all the possible actions that can be used
 } Action;
 
 typedef enum {
-  KITE_ACTION,
-  KITE_QUIT,
-  KITE_WAIT,
-  KITE_MOVE,
-  KITE_MOVE_ADD,
-  KITE_ROTATION,
-  KITE_ROTATION_ADD,
-  KITE_TIP_ROTATION,
-  KITE_TIP_ROTATION_ADD,
+  ACTION_KIND_NULL,
+  ACTION_KITE_QUIT,
+  ACTION_KITE_WAIT,
+  ACTION_KITE_MOVE,
+  ACTION_KITE_MOVE_ADD,
+  ACTION_KITE_ROTATION,
+  ACTION_KITE_ROTATION_ADD,
+  ACTION_KITE_TIP_ROTATION,
+  ACTION_KITE_TIP_ROTATION_ADD,
+
   ACTION_KIND_COUNT,
 } Action_Kind; // A named listing of all the available action kinds.
 

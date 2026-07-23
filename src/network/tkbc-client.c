@@ -859,23 +859,23 @@ bool tkbc_message_append_script(size_t script_id) {
         static_assert(ACTION_KIND_COUNT == 9,
                       "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
         switch (frames->elements[k].kind) {
-        case KITE_QUIT:
-        case KITE_WAIT: {
+        case ACTION_KITE_QUIT:
+        case ACTION_KITE_WAIT: {
         } break;
-        case KITE_MOVE:
-        case KITE_MOVE_ADD: {
+        case ACTION_KITE_MOVE:
+        case ACTION_KITE_MOVE_ADD: {
           Move_Action action = frames->elements[k].action.as_move;
           space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                      "%f:%f", action.position.x, action.position.y);
         } break;
-        case KITE_ROTATION:
-        case KITE_ROTATION_ADD: {
+        case ACTION_KITE_ROTATION:
+        case ACTION_KITE_ROTATION_ADD: {
           Rotation_Action action = frames->elements[k].action.as_rotation;
           space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                      "%f", action.angle);
         } break;
-        case KITE_TIP_ROTATION:
-        case KITE_TIP_ROTATION_ADD: {
+        case ACTION_KITE_TIP_ROTATION:
+        case ACTION_KITE_TIP_ROTATION_ADD: {
           Tip_Rotation_Action action =
               frames->elements[k].action.as_tip_rotation;
           space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,

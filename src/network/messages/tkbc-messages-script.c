@@ -130,12 +130,12 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
       static_assert(ACTION_KIND_COUNT == 9,
                     "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
       switch (frame.kind) {
-      case KITE_QUIT:
-      case KITE_WAIT: {
+      case ACTION_KITE_QUIT:
+      case ACTION_KITE_WAIT: {
       } break;
 
-      case KITE_MOVE:
-      case KITE_MOVE_ADD: {
+      case ACTION_KITE_MOVE:
+      case ACTION_KITE_MOVE_ADD: {
         token = lexer_next(lexer);
         if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
           script_parse_fail = true;
@@ -173,8 +173,8 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
         tmp_buffer.count = 0;
       } break;
 
-      case KITE_ROTATION:
-      case KITE_ROTATION_ADD: {
+      case ACTION_KITE_ROTATION:
+      case ACTION_KITE_ROTATION_ADD: {
         token = lexer_next(lexer);
         if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
           script_parse_fail = true;
@@ -191,8 +191,8 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
         tmp_buffer.count = 0;
       } break;
 
-      case KITE_TIP_ROTATION:
-      case KITE_TIP_ROTATION_ADD: {
+      case ACTION_KITE_TIP_ROTATION:
+      case ACTION_KITE_TIP_ROTATION_ADD: {
         token = lexer_next(lexer);
         if (token.kind != NUMBER) {
           script_parse_fail = true;
@@ -243,7 +243,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
       frame.duration = atof(lexer_token_to_cstr(lexer, &token));
 
       // These tow have no kites attached.
-      if (frame.kind != KITE_WAIT && frame.kind != KITE_QUIT) {
+      if (frame.kind != ACTION_KITE_WAIT && frame.kind != ACTION_KITE_QUIT) {
         token = lexer_next(lexer);
         if (token.kind != PUNCT_COLON) {
           script_parse_fail = true;

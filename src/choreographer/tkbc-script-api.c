@@ -20,7 +20,7 @@
 void tkbc__script_begin(Env *env) {
   env->script_interrupt = true;
   env->script_setup = true;
-  tkbc_register_frames(env, tkbc_script_wait(0));
+  SET(KITE_WAIT(0));
 }
 
 /**
@@ -213,59 +213,6 @@ bool tkbc_script_finished(Env *env) { return env->script_finished; }
 // ========================== SCRIPT HANDLER API =============================
 
 /**
- * @brief The function is wrapped by a macro! The call creates an action frame
- * that blocks the script execution by the specified time.
- *
- * @param env The global state of the application.
- * @param duration The time a frame should block/expand.
- * @return The new created wait action frame.
- */
-Frame *tkbc__script_wait(Env *env, float duration) {
-  if (!env->script_setup) {
-    return NULL;
-  }
-
-  Wait_Action action;
-
-  Frame *frame = tkbc_init_frame(&env->script_creation_space);
-  if (!frame) {
-    return NULL;
-  }
-  frame->duration = duration;
-  frame->original_duration = duration;
-  frame->kind = KITE_WAIT;
-  frame->action.as_wait = action;
-  return frame;
-}
-
-/**
- * @brief The function is wrapped by a macro! The function that quits all the
- * current registered frames after the duration. It can be inserted as a
- * normal frame into a block that should be quit after a some duration time.
- *
- * @param duration The time in seconds after all the frames will quit.
- * @return The frame that is constructed to represent the force quit
- * frame-block frame.
- */
-Frame *tkbc__script_frames_quit(Env *env, float duration) {
-  if (!env->script_setup) {
-    return NULL;
-  }
-
-  Quit_Action action;
-
-  Frame *frame = tkbc_init_frame(&env->script_creation_space);
-  if (!frame) {
-    return NULL;
-  }
-  frame->duration = duration;
-  frame->original_duration = duration;
-  frame->kind = KITE_QUIT;
-  frame->action.as_quit = action;
-  return frame;
-}
-
-/**
  * @brief The function creates a new frame and fills in all the given
  * parameters. It handles all the provided actions. The returned frame can be
  * passed into the register function.
@@ -291,11 +238,14 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
   if (!frame) {
     return NULL;
   }
-  space_dapc(&env->script_creation_space, &frame->kite_id_array,
-             kite_ids.elements, kite_ids.count);
 
-  if (kite_ids.script_id_append) {
-    frame->kite_id_array.script_id_append = true;
+  if (kind != ACTION_KITE_QUIT && kind != ACTION_KITE_WAIT) {
+    space_dapc(&env->script_creation_space, &frame->kite_id_array,
+               kite_ids.elements, kite_ids.count);
+
+    if (kite_ids.script_id_append) {
+      frame->kite_id_array.script_id_append = true;
+    }
   }
 
   frame->duration = duration;
@@ -360,7 +310,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
     // Patching frames
     Frame *frame = &frames->elements[i];
     frame->index = i;
-    if (frame->kind == KITE_WAIT || frame->kind == KITE_QUIT) {
+    if (frame->kind == ACTION_KITE_WAIT || frame->kind == ACTION_KITE_QUIT) {
       continue;
     }
 
@@ -520,15 +470,15 @@ void tkbc_print_script(FILE *stream, Script *script) {
       int kind = script->elements[block].elements[frame].kind;
       switch (kind) {
 
-      case KITE_QUIT: {
+      case ACTION_KITE_QUIT: {
         fprintf(stream, "      Action-Kind: KITE_QUIT\n");
       } break;
 
-      case KITE_WAIT: {
+      case ACTION_KITE_WAIT: {
         fprintf(stream, "      Action-Kind: KITE_WAIT\n");
       } break;
 
-      case KITE_MOVE: {
+      case ACTION_KITE_MOVE: {
         fprintf(stream, "      Action-Kind: Kite_Move\n");
         Move_Action action =
             script->elements[block].elements[frame].action.as_move;
@@ -536,7 +486,7 @@ void tkbc_print_script(FILE *stream, Script *script) {
                 action.position.y);
       } break;
 
-      case KITE_MOVE_ADD: {
+      case ACTION_KITE_MOVE_ADD: {
         fprintf(stream, "      Action-Kind: KITE_MOVE_ADD\n");
         Move_Add_Action action =
             script->elements[block].elements[frame].action.as_move_add;
@@ -544,21 +494,21 @@ void tkbc_print_script(FILE *stream, Script *script) {
                 action.position.y);
       } break;
 
-      case KITE_ROTATION: {
+      case ACTION_KITE_ROTATION: {
         fprintf(stream, "      Action-Kind: KITE_ROTATION\n");
         Rotation_Action action =
             script->elements[block].elements[frame].action.as_rotation;
         fprintf(stream, "        Angle:%f\n", action.angle);
       } break;
 
-      case KITE_ROTATION_ADD: {
+      case ACTION_KITE_ROTATION_ADD: {
         fprintf(stream, "      Action-Kind: KITE_ROTATION_ADD\n");
         Rotation_Add_Action action =
             script->elements[block].elements[frame].action.as_rotation_add;
         fprintf(stream, "        Angle:%f\n", action.angle);
       } break;
 
-      case KITE_TIP_ROTATION: {
+      case ACTION_KITE_TIP_ROTATION: {
         fprintf(stream, "      Action-Kind: KITE_TIP_ROTATION\n");
         Tip_Rotation_Action action =
             script->elements[block].elements[frame].action.as_tip_rotation;
@@ -567,7 +517,7 @@ void tkbc_print_script(FILE *stream, Script *script) {
                 action.tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
       } break;
 
-      case KITE_TIP_ROTATION_ADD: {
+      case ACTION_KITE_TIP_ROTATION_ADD: {
         fprintf(stream, "      Action-Kind: KITE_TIP_ROTATION_ADD\n");
         Tip_Rotation_Add_Action action =
             script->elements[block].elements[frame].action.as_tip_rotation_add;

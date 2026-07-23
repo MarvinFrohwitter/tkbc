@@ -101,35 +101,35 @@ void tkbc_script_parser(Env *env) {
         }
         break;
       } else if (strncmp("MOVE", t.content, t.size) == 0) {
-        if (!tkbc_parse_move(env, l, KITE_MOVE, ki, brace, &tmp_buffer)) {
+        if (!tkbc_parse_move(env, l, ACTION_KITE_MOVE, ki, brace, &tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_move(env, l, KITE_MOVE_ADD, ki, brace, &tmp_buffer)) {
+        if (!tkbc_parse_move(env, l, ACTION_KITE_MOVE_ADD, ki, brace, &tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("ROTATION", t.content, t.size) == 0) {
-        if (!tkbc_parse_rotation(env, l, KITE_ROTATION, ki, brace,
+        if (!tkbc_parse_rotation(env, l, ACTION_KITE_ROTATION, ki, brace,
                                  &tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("ROTATION_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_rotation(env, l, KITE_ROTATION_ADD, ki, brace,
+        if (!tkbc_parse_rotation(env, l, ACTION_KITE_ROTATION_ADD, ki, brace,
                                  &tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("TIP_ROTATION", t.content, t.size) == 0) {
-        if (!tkbc_parse_tip_rotation(env, l, KITE_TIP_ROTATION, ki, brace,
+        if (!tkbc_parse_tip_rotation(env, l, ACTION_KITE_TIP_ROTATION, ki, brace,
                                      &tmp_buffer)) {
           goto err;
         }
         break;
       } else if (strncmp("TIP_ROTATION_ADD", t.content, t.size) == 0) {
-        if (!tkbc_parse_tip_rotation(env, l, KITE_TIP_ROTATION_ADD, ki, brace,
+        if (!tkbc_parse_tip_rotation(env, l, ACTION_KITE_TIP_ROTATION_ADD, ki, brace,
                                      &tmp_buffer)) {
           goto err;
         }
@@ -144,7 +144,6 @@ void tkbc_script_parser(Env *env) {
                     *frame);
         } else {
           SET(KITE_WAIT(duration));
-          tkbc_register_frames(env, tkbc_script_wait(duration));
         }
         break;
       } else if (strncmp("QUIT", t.content, t.size) == 0) {
@@ -312,14 +311,14 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki,
     return false;
   }
 
-  if (kind == KITE_MOVE_ADD) {
+  if (kind == ACTION_KITE_MOVE_ADD) {
     if (brace) {
       frame = KITE_MOVE_ADD(kis, x, y, duration);
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
     } else {
       SET(KITE_MOVE_ADD(kis, x, y, duration));
     }
-  } else if (kind == KITE_MOVE) {
+  } else if (kind == ACTION_KITE_MOVE) {
     if (brace) {
       frame = KITE_MOVE(kis, x, y, duration);
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
@@ -372,14 +371,14 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki,
     return false;
   }
 
-  if (kind == KITE_ROTATION_ADD) {
+  if (kind == ACTION_KITE_ROTATION_ADD) {
     if (brace) {
       frame = KITE_ROTATION_ADD(kis, angle, duration);
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
     } else {
       SET(KITE_ROTATION_ADD(kis, angle, duration));
     }
-  } else if (kind == KITE_ROTATION) {
+  } else if (kind == ACTION_KITE_ROTATION) {
     if (brace) {
       frame = KITE_ROTATION(kis, angle, duration);
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
@@ -446,14 +445,14 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind,
     return false;
   }
 
-  if (kind == KITE_TIP_ROTATION_ADD) {
+  if (kind == ACTION_KITE_TIP_ROTATION_ADD) {
     if (brace) {
       frame = KITE_TIP_ROTATION_ADD(kis, angle, tip, duration);
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
     } else {
       SET(KITE_TIP_ROTATION_ADD(kis, angle, tip, duration));
     }
-  } else if (kind == KITE_TIP_ROTATION) {
+  } else if (kind == ACTION_KITE_TIP_ROTATION) {
     if (brace) {
       frame = KITE_TIP_ROTATION(kis, angle, tip, duration);
       space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);

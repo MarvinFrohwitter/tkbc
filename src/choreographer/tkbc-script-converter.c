@@ -61,15 +61,15 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
       }
 
       switch (f->kind) {
-      case KITE_QUIT: {
+      case ACTION_KITE_QUIT: {
         tkbc_dapf(&out, "QUIT");
       } break;
 
-      case KITE_WAIT: {
+      case ACTION_KITE_WAIT: {
         tkbc_dapf(&out, "WAIT");
       } break;
 
-      case KITE_MOVE: {
+      case ACTION_KITE_MOVE: {
         Move_Action action = f->action.as_move;
         tkbc_dapf(&out, "MOVE ");
         tkbc_print_kites(&out, f->kite_id_array);
@@ -77,7 +77,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
 
       } break;
 
-      case KITE_MOVE_ADD: {
+      case ACTION_KITE_MOVE_ADD: {
         Move_Add_Action action = f->action.as_move_add;
         tkbc_dapf(&out, "MOVE_ADD ");
         tkbc_print_kites(&out, f->kite_id_array);
@@ -85,7 +85,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
 
       } break;
 
-      case KITE_ROTATION: {
+      case ACTION_KITE_ROTATION: {
         Rotation_Action action = f->action.as_rotation;
         tkbc_dapf(&out, "ROTATION ");
         tkbc_print_kites(&out, f->kite_id_array);
@@ -93,7 +93,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
 
       } break;
 
-      case KITE_ROTATION_ADD: {
+      case ACTION_KITE_ROTATION_ADD: {
         Rotation_Add_Action action = f->action.as_rotation_add;
         tkbc_dapf(&out, "ROTATION_ADD ");
         tkbc_print_kites(&out, f->kite_id_array);
@@ -101,7 +101,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
 
       } break;
 
-      case KITE_TIP_ROTATION: {
+      case ACTION_KITE_TIP_ROTATION: {
         Tip_Rotation_Action action = f->action.as_tip_rotation;
         tkbc_dapf(&out, "TIP_ROTATION ");
         tkbc_print_kites(&out, f->kite_id_array);
@@ -110,7 +110,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script,
 
       } break;
 
-      case KITE_TIP_ROTATION_ADD: {
+      case ACTION_KITE_TIP_ROTATION_ADD: {
         Tip_Rotation_Add_Action action = f->action.as_tip_rotation_add;
         tkbc_dapf(&out, "TIP_ROTATION_ADD ");
         tkbc_print_kites(&out, f->kite_id_array);

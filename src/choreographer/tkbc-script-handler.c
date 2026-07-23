@@ -315,7 +315,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
   assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
   switch (frame->kind) {
-  case KITE_QUIT: {
+  case ACTION_KITE_QUIT: {
     if (env->frames->count == 1 && !env->global_quit.is_script_quit) {
       env->global_quit.script_quit_duration = frame->duration;
       env->global_quit.is_script_quit = true;
@@ -325,7 +325,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       break;
     }
   } /* FALLTHROUGH */
-  case KITE_WAIT: {
+  case ACTION_KITE_WAIT: {
     if (frame->duration <= 0) {
       frame->finished = true;
       frame->duration = 0;
@@ -334,7 +334,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
 
-  case KITE_MOVE_ADD: {
+  case ACTION_KITE_MOVE_ADD: {
     Move_Add_Action *action = &frame->action.as_move_add;
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -365,7 +365,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
   } break;
 
-  case KITE_MOVE: {
+  case ACTION_KITE_MOVE: {
     Move_Action *action = &frame->action.as_move;
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -397,7 +397,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
 
-  case KITE_ROTATION_ADD: {
+  case ACTION_KITE_ROTATION_ADD: {
     Rotation_Action *action = &frame->action.as_rotation_add;
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -422,7 +422,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
 
-  case KITE_ROTATION: {
+  case ACTION_KITE_ROTATION: {
     Rotation_Action *action = &frame->action.as_rotation;
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -457,7 +457,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
 
-  case KITE_TIP_ROTATION_ADD: {
+  case ACTION_KITE_TIP_ROTATION_ADD: {
     Tip_Rotation_Action *action = &frame->action.as_tip_rotation_add;
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -483,7 +483,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
     }
   } break;
 
-  case KITE_TIP_ROTATION: {
+  case ACTION_KITE_TIP_ROTATION: {
     Tip_Rotation_Action *action = &frame->action.as_tip_rotation;
 
     for (size_t i = 0; i < env_frame->kite_id_array.count; ++i) {
@@ -570,8 +570,8 @@ void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script,
 
       assert(frames->elements);
       for (size_t j = 0; j < frames->count; ++j) {
-        if (frames->elements[j].kind == KITE_WAIT ||
-            frames->elements[j].kind == KITE_QUIT) {
+        if (frames->elements[j].kind == ACTION_KITE_WAIT ||
+            frames->elements[j].kind == ACTION_KITE_QUIT) {
           continue;
         }
         Kite_Ids *ids = &frames->elements[j].kite_id_array;
@@ -1303,8 +1303,8 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
 float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action,
                             float duration) {
   switch (kind) {
-  case KITE_ROTATION:
-  case KITE_ROTATION_ADD:
+  case ACTION_KITE_ROTATION:
+  case ACTION_KITE_ROTATION_ADD:
     if (action.as_rotation.angle != 0 || duration <= 0) {
       return action.as_rotation.angle;
     }
@@ -1335,8 +1335,8 @@ float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action,
       }
     }
 
-  case KITE_TIP_ROTATION:
-  case KITE_TIP_ROTATION_ADD:
+  case ACTION_KITE_TIP_ROTATION:
+  case ACTION_KITE_TIP_ROTATION_ADD:
     if (action.as_tip_rotation.angle != 0 || duration <= 0) {
       return action.as_tip_rotation.angle;
     }

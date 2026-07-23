@@ -59,7 +59,7 @@ void rotation_checkup_call(Env *env, Kite_Ids ki) {
   SET(KITE_MOVE_ADD(ki, 0, -300, 5), KITE_WAIT(1.5), KITE_QUIT(7));
 
   tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
-  tkbc_register_frames(env, tkbc_script_wait(wait_time));
+  SET(KITE_WAIT(wait_time));
   rotation_checkup(env, ki);
   tkbc_script_end();
 }

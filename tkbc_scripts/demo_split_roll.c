@@ -18,7 +18,7 @@ void split_roll_demonstration(Env *env, Kite_Ids ki) {
 
   );
 
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
 
   tkbc_script_team_roll_split_up(env, ki, ODD, 2, 0, 360, 1);
 
@@ -29,7 +29,7 @@ void split_roll_demonstration(Env *env, Kite_Ids ki) {
 
   );
 
-  tkbc_register_frames(env, tkbc_script_wait(1));
+  SET(KITE_WAIT(1));
 
   tkbc_script_team_roll_split_up(env, ki, EVEN, 2, 0, 360, 1);
 
