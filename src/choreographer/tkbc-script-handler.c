@@ -723,9 +723,7 @@ void tkbc_change_visibility_to_non_script_kites(Env *env) {
  */
 void tkbc_change_visibility_to_script_kites(Env *env, Script *script) {
 
-  // TODO: Find a better way to do it reliable.
-  // Generate kites if needed, if a script needs more kites than there are
-  // currently registered.
+  // TODO: Find a better way to do it reliable. And faster!!!
 
   Kite_Ids ids = {0};
   for (size_t i = 0; i < script->count; ++i) {
@@ -816,6 +814,10 @@ bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh) {
   env->script_loading = true;
 
   tkbc_change_visibility_to_script_kites(env, env->script);
+  // This is especially for offline mode. In online the script id should not be
+  // found because no scripts are loaded in the client, and therefore we should
+  // not reach this statement.
+  env->server_script_id = env->script->script_id;
   return true;
 }
 

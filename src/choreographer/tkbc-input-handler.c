@@ -2,10 +2,10 @@
 #include "../global/tkbc-utils.h"
 #include "tkbc-keymaps.h"
 
-#include "tkbc.h"
-#include <math.h>
 #include "raylib.h"
 #include "raymath.h"
+#include "tkbc.h"
+#include <math.h>
 
 // ========================== KEYBOARD INPUT =================================
 
@@ -166,70 +166,23 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
  */
 void tkbc_input_handler_kite_array(Env *env) {
   // To only handle 9 kites controllable by the keyboard.
+  int max_contolling = 9;
   assert(env->kite_array != NULL);
-  for (size_t i = 1; i <= 9; ++i) {
-    if (!IsKeyPressed(i + 48) || env->kite_array->count < i) {
+
+  for (size_t i = 0; max_contolling >= 0 && i < env->kite_array->count; ++i) {
+    Kite_State *s = &env->kite_array->elements[i];
+    if (!s->is_active) {
       continue;
     }
 
-    env->kite_array->elements[i - 1].is_kite_input_handler_active =
-        !env->kite_array->elements[i - 1].is_kite_input_handler_active;
-
-    if (env->frames == NULL) {
+    if (IsKeyPressed(9 - --max_contolling + 48)) {
+      s->is_kite_input_handler_active = !s->is_kite_input_handler_active;
+    }
+    if (!s->is_kite_input_handler_active) {
       continue;
     }
 
-    for (size_t j = 0; j < env->frames->count; ++j) {
-      Frame *frame = &env->frames->elements[j];
-      if (!frame->kite_id_array.count) {
-        continue;
-      }
-
-      bool contains = false;
-      size_t k = 0;
-      for (; k < frame->kite_id_array.count; ++k) {
-        if (i - 1 == frame->kite_id_array.elements[k]) {
-          contains = true;
-          break;
-        }
-      }
-
-      if (!contains) {
-        tkbc_dap(&frame->kite_id_array, i - 1);
-        continue;
-      }
-
-      Kite_Ids new_kite_index_array = {0};
-      if (k != 0) {
-        tkbc_dapc(&new_kite_index_array, frame->kite_id_array.elements, k);
-      }
-      if (k + 1 < frame->kite_id_array.count) {
-        tkbc_dapc(&new_kite_index_array, &frame->kite_id_array.elements[k + 1],
-                  frame->kite_id_array.count - 1 - k);
-      }
-
-      if (new_kite_index_array.count == 0) {
-        // If there are no kites left in the frame
-        // for the cases KITE_MOVE, KITE_ROTATION, KITE_TIP_ROTATION
-        frame->finished = true;
-        continue;
-      }
-
-      // If there are kites left in the frame
-      frame->kite_id_array.count = 0;
-      tkbc_dapc(&frame->kite_id_array, new_kite_index_array.elements,
-                new_kite_index_array.count);
-      // TODO: use maybe a space allocation in here
-      free(new_kite_index_array.elements);
-      new_kite_index_array.elements = NULL;
-    }
-  }
-
-  // To handle all of the kites currently registered in the kite array.
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].is_active) {
-      tkbc_input_handler(env->keymaps, &env->kite_array->elements[i]);
-    }
+    tkbc_input_handler(env->keymaps, s);
   }
 }
 

@@ -431,14 +431,14 @@ typedef struct {
 } Kite_Ids;              // A dynamic array that can hold kite_ids.
 
 typedef struct {
-  Kite_Ids kite_id_array; // The collection of kite_ids that should be
-                          // part of the performed action.
-  Index index;            // The index of the current frame in the
-  float duration;         // The time in seconds it should take to perform an
-                          // action. This field is decremented during playback.
+  Kite_Ids kite_id_array;  // The collection of kite_ids that should be
+                           // part of the performed action.
+  Index index;             // The index of the current frame in the
+  float duration;          // The time in seconds it should take to perform an
+                           // action. This field is decremented during playback.
   float original_duration; // The unmodified duration, used to restore
                            // duration on rewind/scrub.
-  Action action;    // The action the frame should be responsible for.
+  Action action;           // The action the frame should be responsible for.
   Action_Kind kind; // A representation of the kind of the action pointer.
   bool finished;    // Represents the state of the currently handled frame.
 } Frame;            // Combined action for the kites that are listed in the
@@ -499,7 +499,9 @@ typedef struct {
 typedef struct {
   const char *tkbc_dir;          // The dir where all metadata is saved.
   const char *tkbc_keymaps_path; // The file path where the keymaps are stored.
-  Kite *vanilla_kite;      // A representation of all the default kite values.
+  Kite *vanilla_kite; // A representation of all the default kite values.
+
+  // TODO: Remove the pointer this can be stored by value.
   Kite_States *kite_array; // The kites that are generated for the current
                            // session of the application.
   size_t kite_id_counter;  // The identifier counter for the kite.
@@ -525,7 +527,7 @@ typedef struct {
                                      // frames in the current script.
   size_t server_script_id; // Representation of the current script the server
                            // executes.
-  bool scripts_parsed; // If the server has parsed all send scripts.
+  bool scripts_parsed;     // If the server has parsed all send scripts.
 
   bool new_script_selected; // Representation if a user has selected a new
                             // script in the UI.

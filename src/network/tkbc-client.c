@@ -760,38 +760,30 @@ void tkbc_client_input_handler_kite(void) {
   if (env->server_script_id != 0) {
 
     { ///////////////////////////////////////////////////////////////////////
-      Kite_State *kite_state = tkbc_get_kite_state_by_id(env, client.kite_id);
-      if (!kite_state) {
-        return;
-      }
-      kite_state->is_kite_input_handler_active = false;
+      // Kite_State *kite_state = tkbc_get_kite_state_by_id(env, client.kite_id);
+      // if (!kite_state) {
+      //   return;
+      // }
+      // kite_state->is_kite_input_handler_active = false;
     } ///////////////////////////////////////////////////////////////////////
 
-    int max_contolling_counter = 9;
-    for (size_t i = 0;
-         max_contolling_counter >= 0 && i < env->kite_array->count; ++i) {
-      if (env->kite_array->elements[i].is_active) {
-        max_contolling_counter--;
-        Id kite_id = env->kite_array->elements[i].kite_id;
-        Kite_State *kite_state = tkbc_get_kite_state_by_id(env, kite_id);
-        if (!kite_state) {
-          continue;
-        }
+    int max_contolling = 9;
+    for (size_t i = 0; max_contolling >= 0 && i < env->kite_array->count; ++i) {
+      Kite_State *s = &env->kite_array->elements[i];
+      if (!s->is_active) {
+        continue;
+      }
 
-        if (IsKeyPressed(9 - max_contolling_counter + 48)) {
-          kite_state->is_kite_input_handler_active =
-              !kite_state->is_kite_input_handler_active;
-        }
-        if (!kite_state->is_kite_input_handler_active) {
-          continue;
-        }
-        if (!tkbc_update_kites_input_handling_for_message_single_kite_update(
-                kite_state)) {
-          continue;
-        }
+      if (IsKeyPressed(9 - --max_contolling + 48)) {
+        s->is_kite_input_handler_active = !s->is_kite_input_handler_active;
+      }
+      if (!s->is_kite_input_handler_active) {
+        continue;
+      }
+      if (!tkbc_update_kites_input_handling_for_message_single_kite_update(s)) {
+        continue;
       }
     }
-
   } else {
 
     ///////////////////////////////////////////////////////////
@@ -1147,7 +1139,8 @@ int main(int argc, char *argv[]) {
 
           // HACK disabling the default activeness just for offline is wrong.
           for (size_t k = 0; k < env->kite_array->count; ++k) {
-            if (env->kite_array->elements[k].kite_id == (size_t)client.kite_id) {
+            if (env->kite_array->elements[k].kite_id ==
+                (size_t)client.kite_id) {
               continue;
             }
             env->kite_array->elements[k].is_active = false;
@@ -1187,6 +1180,7 @@ int main(int argc, char *argv[]) {
       tkbc_input_sound_handler(env);
       tkbc_client_input_handler_kite();
       if (client.socket_id == -1) {
+        // tkbc_input_handler_kite_array(env);
         tkbc_input_handler_script(env);
       } else {
         tkbc_client_input_handler_script();
