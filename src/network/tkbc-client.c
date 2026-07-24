@@ -58,6 +58,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <signal.h>
 #include <sys/socket.h>
 #endif
@@ -164,6 +165,19 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
     int option = 1;
     int sso = setsockopt(client_socket, SOL_SOCKET, SO_REUSEADDR,
                          (char *)&option, sizeof(option));
+    if (sso == -1) {
+#ifdef _WIN32
+      tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+#else
+      tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+#endif
+    }
+
+    //
+    // Set TCP_NODELAY
+    int nodelay = 1;
+    sso = setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY,
+                        (char *)&nodelay, sizeof(nodelay));
     if (sso == -1) {
 #ifdef _WIN32
       tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());

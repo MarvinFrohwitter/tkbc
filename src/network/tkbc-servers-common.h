@@ -39,6 +39,7 @@ typedef int SOCKLEN;
 
 #else
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 typedef socklen_t SOCKLEN;
@@ -170,6 +171,17 @@ static inline int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   int option = 1;
   int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
                        sizeof(option));
+  if (sso == -1) {
+#ifdef _WIN32
+    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+#else
+    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+#endif
+  }
+
+  int nodelay = 1;
+  sso = setsockopt(socket_id, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay,
+                   sizeof(nodelay));
   if (sso == -1) {
 #ifdef _WIN32
     tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());

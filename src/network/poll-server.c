@@ -24,6 +24,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <poll.h>
 #include <signal.h>
 #include <sys/socket.h>
@@ -467,6 +468,13 @@ bool tkbc_server_accept(void) {
       closesocket(client_socket_id);
       return false;
     }
+
+    int nodelay = 1;
+    int sso = setsockopt(client_socket_id, IPPROTO_TCP, TCP_NODELAY,
+                         (char *)&nodelay, sizeof(nodelay));
+    if (sso == -1) {
+      tkbc_fprintf(stderr, "ERROR", "%d\n", WSAGetLastError());
+    }
 #else
     // Set the socket to non-blocking
     int flags = fcntl(client_socket_id, F_GETFL, 0);
@@ -479,10 +487,17 @@ bool tkbc_server_accept(void) {
     }
     flags = fcntl(client_socket_id, F_SETFL, flags | O_NONBLOCK);
     if (flags == -1) {
-      tkbc_fprintf(stderr, "ERROR", "Could not get socket flags: %s\n",
+      tkbc_fprintf(stderr, "ERROR", "Could not set the non-blocking: %s\n",
                    strerror(errno));
       close(client_socket_id);
       return false;
+    }
+
+    int nodelay = 1;
+    int sso = setsockopt(client_socket_id, IPPROTO_TCP, TCP_NODELAY, &nodelay,
+                         sizeof(nodelay));
+    if (sso == -1) {
+      tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
     }
 #endif // _WIN32
 
