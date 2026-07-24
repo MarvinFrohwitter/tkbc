@@ -876,26 +876,19 @@ bool tkbc_message_append_script(size_t script_id) {
     if (env->scripts.elements[i].script_id != script_id) {
       continue;
     }
-    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-               "%zu:", script_id);
-
     Script *script = &env->scripts.elements[i];
     space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-               "%zu:", script->count);
+               "%zu:%zu:", script_id, script->count);
+
     for (size_t j = 0; j < script->count; ++j) {
       Frames *frames = &script->elements[j];
       space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                 "%zu:", frames->frames_index);
-      space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                 "%zu:", frames->count);
+                 "%zu:%zu:", frames->frames_index, frames->count);
 
       for (size_t k = 0; k < frames->count; ++k) {
         space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                   "%zu:", frames->elements[k].index);
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                   "%d:", frames->elements[k].finished);
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                   "%d:", frames->elements[k].kind);
+                   "%zu:%d:%d:", frames->elements[k].index,
+                   frames->elements[k].finished, frames->elements[k].kind);
 
         static_assert(ACTION_KIND_COUNT == 9,
                       "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
@@ -929,22 +922,20 @@ bool tkbc_message_append_script(size_t script_id) {
         }
 
         space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                   ":%f", frames->elements[k].duration);
+                   ":%f:", frames->elements[k].duration);
 
         Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
         if (kite_ids->count) {
           space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                     ":%zu:(", kite_ids->count);
+                     "%zu:(", kite_ids->count);
           for (size_t id = 0; id < kite_ids->count; ++id) {
             space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                        "%zu,", kite_ids->elements[id]);
           }
           client.send_msg_buffer.count--;
           space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                     ")");
+                     "):");
         }
-
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, ":");
       }
     }
     return true;
