@@ -1053,8 +1053,9 @@ method_rerun:
       memset(planet, 0, sizeof(*planet));
       planet->capacity = size_in_bytes;
       planet->count = 0;
-      planet->elements = mmap(NULL, planet->capacity, PROT_READ | PROT_WRITE,
-                              MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+      planet->elements =
+          mmap(NULL, planet->capacity, PROT_READ | PROT_WRITE,
+               MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
       if (planet->elements == MAP_FAILED) {
         munmap(planet, sizeof(*planet));
         return NULL;
@@ -1077,7 +1078,7 @@ method_rerun:
       planet->count = 0;
       planet->elements =
           VirtualAllocEx(GetCurrentProcess(), NULL, planet->capacity,
-                         MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+                         MEM_RESERVE, PAGE_READWRITE);
       if (planet->elements == NULL) {
         VirtualFreeEx(GetCurrentProcess(), (LPVOID)planet, sizeof(*planet),
                       MEM_RELEASE);
