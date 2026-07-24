@@ -295,32 +295,80 @@ void sending_script_handler(void) {
 
 /**
  * @brief The function sends all the messages in the send_message_queue to the
- * server. The send_message_queue is reset in every case after the call.
+ * server.
  *
- * @return True if all the messages in the message buffer are send to the server
- * and the message buffer is cleared, otherwise false if an error has occurred.
+ * @return The amount send to the client socket, 0 if not data was send, -1 if
+ * an error occurred or -11 if the error was EAGAIN.
  */
-bool send_message_handler(void) {
+bool send_message_send_handler() {
   bool ok = true;
-  if (client.send_msg_buffer.count) {
-    // NOTE: this assumes the whole message buffer could be send in one go.
-    ssize_t n = send(client.socket_id, client.send_msg_buffer.elements,
-                     client.send_msg_buffer.count, 0);
+  if (client.send_msg_buffer.count == 0) {
+    check_return(true);
+  }
 
-    if (n == 0) {
-      tkbc_fprintf(stderr, "ERROR", "No bytes where send to the server!\n");
+  size_t length = BUFFER_CAPACITY;
+  size_t diff = (client.send_msg_buffer.count - client.send_msg_buffer.i);
+  size_t amount = diff < length ? diff : length;
+
+  ssize_t n = send(client.socket_id,
+                   client.send_msg_buffer.elements + client.send_msg_buffer.i,
+                   amount, 0);
+
+  if (n < 0) {
+#ifdef _WIN32
+    int err_errno = WSAGetLastError();
+    if (err_errno != WSAEWOULDBLOCK) {
+      tkbc_fprintf(stderr, "ERROR", "Could not broadcast message: %.*s\n",
+                   (int)client.send_msg_buffer.count,
+                   client.send_msg_buffer.elements);
+      tkbc_fprintf(stderr, "ERROR", "Write: %d\n", err_errno);
+      check_return(false);
+    } else {
       check_return(false);
     }
-    if (n == -1) {
-      space_dap(&client.send_msg_buffer_space, &client.send_msg_buffer, 0);
-      tkbc_fprintf(stderr, "ERROR", "Could not broadcast message: %s\n",
+#else
+    if (errno != EAGAIN) {
+      tkbc_fprintf(stderr, "ERROR", "Could not broadcast message: %.*s\n",
+                   (int)client.send_msg_buffer.count,
                    client.send_msg_buffer.elements);
       tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+
+      tkbc_fprintf(stderr, "ERROR", "Write: %s\n", strerror(errno));
+      check_return(false);
+    } else {
       check_return(false);
     }
+#endif // _WIN32
   }
+
+  if (n == 0) {
+    tkbc_fprintf(stderr, "ERROR", "No bytes where send to the server!\n");
+    ok = false;
+  }
+
+  assert(n != -1);
+  if ((size_t)n == client.send_msg_buffer.count - client.send_msg_buffer.i) {
+    client.send_msg_buffer.count = 0;
+    client.send_msg_buffer.i = 0;
+  } else {
+    client.send_msg_buffer.i += n;
+  }
+
+  if (client.send_msg_buffer.count == 0 &&
+      client.send_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
+    tkbc_fprintf(stderr, "INFO",
+                 "realloced send_msg_buffer: old capacity: %zu\n",
+                 client.send_msg_buffer.capacity);
+
+    Planet *planet = space_find_planet_from_ptr(
+        &client.send_msg_buffer_space, client.send_msg_buffer.elements);
+    space_free_planet(&client.send_msg_buffer_space, planet);
+
+    client.send_msg_buffer.elements = NULL;
+    client.send_msg_buffer.capacity = 0;
+  }
+
 check:
-  client.send_msg_buffer.count = 0;
   return ok;
 }
 
@@ -1072,7 +1120,7 @@ int main(int argc, char *argv[]) {
       tkbc_popup_message(env->font, "The server has disconnected!");
   loading = tkbc_popup_message(env->font, "Waiting for server.");
 
-  bool sending_receiving = true;
+  int sending_receiving = true;
   { // This is deferred to allow window creation, asset loading and env init.
     client.socket_id = tkbc_client_socket_creation(host, port);
     if (client.socket_id == -1) {
@@ -1106,7 +1154,7 @@ int main(int argc, char *argv[]) {
       if (!message_queue_handler()) {
         disconnect.active = true;
       }
-      sending_receiving = send_message_handler();
+      sending_receiving = send_message_send_handler();
     }
 
     BeginDrawing();

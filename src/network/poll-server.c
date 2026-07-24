@@ -41,7 +41,7 @@
 #include "../choreographer/tkbc.h"
 
 #define MAX_BUFFER_CAPACITY 1024 * 1024
-#define BUFFER_CAPACITY 512 * 1024
+#define BUFFER_CAPACITY 1024 * 1024
 static int server_socket;
 static int clients_visited = 0;
 Env *env = {0};
