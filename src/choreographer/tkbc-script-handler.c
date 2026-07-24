@@ -700,14 +700,16 @@ size_t tkbc_check_finished_frames_count(Env *env) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function enables all the non script kites visibility and disables
+ * the rest of them.
  *
- * @param env [TODO:parameter]
+ * @param env The global state of the application.
  */
 void tkbc_change_visibility_to_non_script_kites(Env *env) {
   // Enable the normal client kites.
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     Kite_State *kite_state = &env->kite_array->elements[i];
+    kite_state->is_kite_input_handler_active = false;
     kite_state->is_active = false;
     if (!kite_state->is_script_kite) {
       kite_state->is_active = true;
@@ -716,10 +718,11 @@ void tkbc_change_visibility_to_non_script_kites(Env *env) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function enables all the kites visibility that belong to a script
+ * and disables all others.
  *
- * @param env [TODO:parameter]
- * @param script [TODO:parameter]
+ * @param env The global state of the application.
+ * @param script The script where the belonging kites should be toggled on.
  */
 void tkbc_change_visibility_to_script_kites(Env *env, Script *script) {
 
@@ -743,6 +746,7 @@ void tkbc_change_visibility_to_script_kites(Env *env, Script *script) {
   // Activate the kites that belong to the script.
   for (size_t i = 0; i < env->kite_array->count; ++i) {
     env->kite_array->elements[i].is_active = false;
+    env->kite_array->elements[i].is_kite_input_handler_active = false;
 
     for (size_t j = 0; j < ids.count; ++j) {
       if (ids.elements[j] == env->kite_array->elements[i].kite_id) {
