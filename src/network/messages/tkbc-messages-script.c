@@ -241,6 +241,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
         goto script_err;
       }
       frame.duration = atof(lexer_token_to_cstr(lexer, &token));
+      frame.original_duration = frame.duration;
 
       // These tow have no kites attached.
       if (frame.kind != ACTION_KITE_WAIT && frame.kind != ACTION_KITE_QUIT) {

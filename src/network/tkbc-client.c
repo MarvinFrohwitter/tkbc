@@ -1,10 +1,7 @@
 // name of the program caller
 // TODO check for atoi, atol, atoll for 0 as failure. Maybe use strtol instead.
 //
-//// The script execution in the server is slow and skips display in kites
-/// introduced her.
-// b1bb5ff @ fix: The script can now stop at any quit position even after
-// rewinding it is still the same timing.
+//// The script execution in the server is slow
 //
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
