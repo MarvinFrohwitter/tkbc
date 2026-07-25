@@ -167,10 +167,8 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
 void tkbc_input_handler_kite_array(Env *env) {
   // To only handle 9 kites controllable by the keyboard.
   int max_contolling = 9;
-  assert(env->kite_array != NULL);
-
-  for (size_t i = 0; max_contolling >= 0 && i < env->kite_array->count; ++i) {
-    Kite_State *s = &env->kite_array->elements[i];
+  for (size_t i = 0; max_contolling >= 0 && i < env->kite_array.count; ++i) {
+    Kite_State *s = &env->kite_array.elements[i];
     if (!s->is_active) {
       continue;
     }

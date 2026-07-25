@@ -89,14 +89,14 @@ void tkbc_script_parser(Env *env) {
         t = lexer_next(l);
         if (t.kind == NUMBER) {
           size_t kite_number = strtoul(lexer_token_to_cstr(l, &t), NULL, 10);
-          if (env->kite_array->count >= kite_number) {
+          if (env->kite_array.count >= kite_number) {
             ki = tkbc_indexs_generate(kite_number);
             for (size_t i = 0; i < ki.count; ++i) {
-              ki.elements[i] = env->kite_array->elements[i].kite_id;
+              ki.elements[i] = env->kite_array.elements[i].kite_id;
             }
             break;
           }
-          kite_number -= env->kite_array->count;
+          kite_number -= env->kite_array.count;
           ki = tkbc_kite_array_generate(env, kite_number);
         }
         break;
@@ -212,8 +212,8 @@ void tkbc_script_parser(Env *env) {
  * @return True if the given kite indies are valid, otherwise false.
  */
 bool tkbc_parsed_kis_is_in_env(Env *env, Index index) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].kite_id == index) {
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    if (env->kite_array.elements[i].kite_id == index) {
       return true;
     }
   }

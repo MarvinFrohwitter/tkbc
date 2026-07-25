@@ -176,8 +176,8 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
     //
     // Set TCP_NODELAY
     int nodelay = 1;
-    sso = setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY,
-                        (char *)&nodelay, sizeof(nodelay));
+    sso = setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay,
+                     sizeof(nodelay));
     if (sso == -1) {
 #ifdef _WIN32
       tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
@@ -275,7 +275,7 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y,
                                   is_reversed, is_active, is_script_kite);
 
   state.kite_id = kite_id;
-  tkbc_dap(env->kite_array, state);
+  tkbc_dap(&env->kite_array, state);
 }
 
 /**
@@ -286,7 +286,7 @@ void sending_script_handler(void) {
   if (!env->script_setup) {
     return;
   }
-  size_t prev_kite_array_count = env->kite_array->count;
+  size_t prev_kite_array_count = env->kite_array.count;
   // For detection if the begin and end is called correctly.
   env->script_setup = false;
   tkbc__script_input(env);
@@ -296,14 +296,14 @@ void sending_script_handler(void) {
 #endif // RELEASE
   tkbc_message_script();
 
-  if (prev_kite_array_count != env->kite_array->count) {
+  if (prev_kite_array_count != env->kite_array.count) {
     // Remove kites that are just generated for sending a script.
-    assert(env->kite_array->count > prev_kite_array_count);
-    for (size_t i = prev_kite_array_count; i < env->kite_array->count; ++i) {
-      free(env->kite_array->elements[i].kite);
-      env->kite_array->elements[i].kite = NULL;
+    assert(env->kite_array.count > prev_kite_array_count);
+    for (size_t i = prev_kite_array_count; i < env->kite_array.count; ++i) {
+      free(env->kite_array.elements[i].kite);
+      env->kite_array.elements[i].kite = NULL;
     }
-    env->kite_array->count = prev_kite_array_count;
+    env->kite_array.count = prev_kite_array_count;
   }
 }
 
@@ -648,7 +648,7 @@ bool received_message_handler(Message *message) {
         check_return(false);
       }
 
-      tkbc_remove_kite_from_list(env->kite_array, kite_id);
+      tkbc_remove_kite_from_list(&env->kite_array, kite_id);
 
       tkbc_fprintf(stderr, "MESSAGEHANDLER", "CLIENT_DISCONNET\n");
     } break;
@@ -832,8 +832,8 @@ void tkbc_client_input_handler_kite(void) {
     } ///////////////////////////////////////////////////////////////////////
 
     int max_contolling = 9;
-    for (size_t i = 0; max_contolling >= 0 && i < env->kite_array->count; ++i) {
-      Kite_State *s = &env->kite_array->elements[i];
+    for (size_t i = 0; max_contolling >= 0 && i < env->kite_array.count; ++i) {
+      Kite_State *s = &env->kite_array.elements[i];
       if (!s->is_active) {
         continue;
       }
@@ -997,7 +997,7 @@ check:
  * extension other files are ignored.
  */
 void tkbc_client_file_handler(void) {
-  size_t prev_kite_array_count = env->kite_array->count;
+  size_t prev_kite_array_count = env->kite_array.count;
 
   tkbc_file_handler(env);
   if (client.socket_id == -1) {
@@ -1011,15 +1011,15 @@ void tkbc_client_file_handler(void) {
     tkbc_message_script();
   }
 
-  if (prev_kite_array_count != env->kite_array->count) {
+  if (prev_kite_array_count != env->kite_array.count) {
     // Remove kites that are just generated for sending a script.
-    assert(env->kite_array->count > prev_kite_array_count);
-    for (size_t i = prev_kite_array_count; i < env->kite_array->count; ++i) {
-      free(env->kite_array->elements[i].kite);
-      env->kite_array->elements[i].kite = NULL;
+    assert(env->kite_array.count > prev_kite_array_count);
+    for (size_t i = prev_kite_array_count; i < env->kite_array.count; ++i) {
+      free(env->kite_array.elements[i].kite);
+      env->kite_array.elements[i].kite = NULL;
     }
 
-    env->kite_array->count = prev_kite_array_count;
+    env->kite_array.count = prev_kite_array_count;
   }
 }
 
@@ -1137,7 +1137,7 @@ int main(int argc, char *argv[]) {
       client.kite_id = s.kite_id;
       s.is_kite_input_handler_active = true;
       client_kite = *s.kite;
-      tkbc_dap(env->kite_array, s);
+      tkbc_dap(&env->kite_array, s);
       sending_receiving = false;
       loading.active = false;
     } else {
@@ -1193,12 +1193,12 @@ int main(int argc, char *argv[]) {
           env->scripts_parsed = true;
 
           // HACK disabling the default activeness just for offline is wrong.
-          for (size_t k = 0; k < env->kite_array->count; ++k) {
-            if (env->kite_array->elements[k].kite_id ==
+          for (size_t k = 0; k < env->kite_array.count; ++k) {
+            if (env->kite_array.elements[k].kite_id ==
                 (size_t)client.kite_id) {
               continue;
             }
-            env->kite_array->elements[k].is_active = false;
+            env->kite_array.elements[k].is_active = false;
           }
 
 #ifndef RELEASE

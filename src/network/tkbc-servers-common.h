@@ -294,9 +294,9 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
 static inline bool tkbc_message_append_clientkite(size_t client_id,
                                                   Message *message,
                                                   Space *space) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (client_id == env->kite_array->elements[i].kite_id) {
-      Kite_State *kite_state = &env->kite_array->elements[i];
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    if (client_id == env->kite_array.elements[i].kite_id) {
+      Kite_State *kite_state = &env->kite_array.elements[i];
       tkbc_message_append_kite(kite_state, message, space);
       return true;
     }

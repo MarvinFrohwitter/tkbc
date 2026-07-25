@@ -329,12 +329,12 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
 
   // Post parsing
   size_t kite_count = possible_new_kis.count;
-  size_t prev_count = env->kite_array->count;
+  size_t prev_count = env->kite_array.count;
   Kite_Ids kite_ids = tkbc_kite_array_generate(env, kite_count);
 
-  for (size_t i = prev_count; i < env->kite_array->count; ++i) {
-    env->kite_array->elements[i].is_active = false;
-    env->kite_array->elements[i].is_script_kite = true;
+  for (size_t i = prev_count; i < env->kite_array.count; ++i) {
+    env->kite_array.elements[i].is_active = false;
+    env->kite_array.elements[i].is_script_kite = true;
   }
 
   tkbc_remap_script_kite_id_arrays_to_kite_ids(scb_script, kite_ids);

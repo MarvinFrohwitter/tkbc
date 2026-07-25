@@ -113,8 +113,8 @@ Client *tkbc_get_client_by_fd(int fd) {
  */
 Kite_State *tkbc_check_for_orphan_kite_states(bool *orphan) {
   Kite_State *state = NULL;
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    state = &env->kite_array->elements[i];
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    state = &env->kite_array.elements[i];
     if (state->is_script_kite) {
       continue;
     }
@@ -239,7 +239,7 @@ bool tkbc_remove_fd_unorderd(int fd) {
  */
 int tkbc_remove_connection(Client client, bool retry) {
   if (!retry) {
-    if (!tkbc_remove_kite_from_list(env->kite_array, client.kite_id)) {
+    if (!tkbc_remove_kite_from_list(&env->kite_array, client.kite_id)) {
       tkbc_fprintf(stderr, "INFO",
                    "Client:" CLIENT_FMT
                    ":Kite could not be removed: not found.\n",
@@ -373,18 +373,18 @@ check:
  */
 void tkbc_message_clientkites(Message *t_message, bool overwrite_is_active) {
   size_t active_count = 0;
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].is_active) {
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    if (env->kite_array.elements[i].is_active) {
       active_count++;
     }
   }
   if (overwrite_is_active) {
-    active_count = env->kite_array->count;
+    active_count = env->kite_array.count;
   }
 
   space_tdapf(t_message, "%d:%zu:", MESSAGE_CLIENTKITES, active_count);
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    Kite_State *kite_state = &env->kite_array->elements[i];
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    Kite_State *kite_state = &env->kite_array.elements[i];
     if (!kite_state->is_active && !overwrite_is_active) {
       continue;
     }
@@ -437,7 +437,7 @@ void tkbc_client_prolog(Client *client) {
   if (!tkbc_script_finished(env) || env->script != NULL) {
     kite_state.is_active = false;
   }
-  tkbc_dap(env->kite_array, kite_state);
+  tkbc_dap(&env->kite_array, kite_state);
 }
 
 /**
@@ -749,7 +749,7 @@ void tkbc_socket_handling(void) {
         bool orphan;
         Kite_State *s = tkbc_check_for_orphan_kite_states(&orphan);
         if (orphan) {
-          tkbc_remove_kite_from_list(env->kite_array, s->kite_id);
+          tkbc_remove_kite_from_list(&env->kite_array, s->kite_id);
         }
         tkbc_remove_fd_unorderd(fd);
         tkbc_close(fd);
@@ -973,7 +973,7 @@ bool tkbc_received_message_handler(Client *client) {
     } break;
     case MESSAGE_KITES_POSITIONS_RESET: {
       // All parsing is already done above.
-      tkbc_kite_array_start_position(env->kite_array, env->window_width,
+      tkbc_kite_array_start_position(&env->kite_array, env->window_width,
                                      env->window_height);
 
       tkbc_message_clientkites_write_to_all_send_msg_buffers(true);
@@ -1257,8 +1257,8 @@ bool tkbc_base_execution(void) {
       tkbc_write_to_all_send_msg_buffers(t_message);
       tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 
-      for (size_t i = 0; i < env->kite_array->count; ++i) {
-        Kite_State *kite_state = &env->kite_array->elements[i];
+      for (size_t i = 0; i < env->kite_array.count; ++i) {
+        Kite_State *kite_state = &env->kite_array.elements[i];
         kite_state->is_active = !kite_state->is_active;
       }
     }

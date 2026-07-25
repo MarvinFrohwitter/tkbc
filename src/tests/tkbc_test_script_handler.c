@@ -49,10 +49,10 @@ Test get_kite_by_id(void) {
   kite_state1.kite_id = 1;
   Kite_State kite_state2 = tkbc_init_kite();
   kite_state2.kite_id = 2;
-  tkbc_dap(env->kite_array, kite_state0);
-  tkbc_dap(env->kite_array, kite_state1);
-  tkbc_dap(env->kite_array, kite_state2);
-  cassert_size_t_eq(env->kite_array->count, 3);
+  tkbc_dap(&env->kite_array, kite_state0);
+  tkbc_dap(&env->kite_array, kite_state1);
+  tkbc_dap(&env->kite_array, kite_state2);
+  cassert_size_t_eq(env->kite_array.count, 3);
 
   Kite *kite = tkbc_get_kite_by_id(env, 0);
   cassert_ptr_eq(kite_state0.kite, kite);
@@ -80,10 +80,10 @@ Test get_kite_state_by_id(void) {
   kite_state1.kite_id = 1;
   Kite_State kite_state2 = tkbc_init_kite();
   kite_state2.kite_id = 2;
-  tkbc_dap(env->kite_array, kite_state0);
-  tkbc_dap(env->kite_array, kite_state1);
-  tkbc_dap(env->kite_array, kite_state2);
-  cassert_size_t_eq(env->kite_array->count, 3);
+  tkbc_dap(&env->kite_array, kite_state0);
+  tkbc_dap(&env->kite_array, kite_state1);
+  tkbc_dap(&env->kite_array, kite_state2);
+  cassert_size_t_eq(env->kite_array.count, 3);
 
   Kite_State *ret_kite_state = tkbc_get_kite_state_by_id(env, 0);
   cassert_ptr_neq(&kite_state0, ret_kite_state);
@@ -145,7 +145,7 @@ Test deep_copy_frame(void) {
   Test test = cassert_init_test("tkbc_deep_copy_frame()");
   Space space = {.alloc_method = SPACE_METHOD_MALLOC};
   Frame *frame = tkbc_init_frame(&space);
-  frame->kind = KITE_WAIT;
+  frame->kind = ACTION_KITE_WAIT;
   Kite_Ids kite_ids = tkbc_indexs_range(0, 8);
   tkbc_dapc(&frame->kite_id_array, kite_ids.elements, kite_ids.count);
   Frame frame_copy = tkbc_deep_copy_frame(&space, frame);
@@ -194,7 +194,7 @@ Test deep_copy_frames(void) {
   memset(frame, 0, sizeof(*frame));
 
   frame->kite_id_array = tkbc_indexs_range(1, 3);
-  frame->kind = KITE_MOVE;
+  frame->kind = ACTION_KITE_MOVE;
   frame->action.as_move.position = (Vector2){.x = 300, .y = 400};
   cassert_dap(frames, *frame);
   cassert_dap(
@@ -268,7 +268,7 @@ Test deep_copy_script(void) {
   Frame frame = {0};
 
   frame.kite_id_array = tkbc_indexs_range(0, 3);
-  frame.kind = KITE_MOVE;
+  frame.kind = ACTION_KITE_MOVE;
   frame.action.as_move.position = (Vector2){.x = 300, .y = 400};
   cassert_dap(&frames, frame);
 
@@ -319,7 +319,7 @@ Test destroy_frames_internal_data(void) {
   Frame frame = {0};
 
   frame.kite_id_array = tkbc_indexs_range(0, 3);
-  frame.kind = KITE_MOVE;
+  frame.kind = ACTION_KITE_MOVE;
   frame.action.as_move.position = (Vector2){.x = 300, .y = 400};
   cassert_dap(&frames, frame);
 
@@ -373,7 +373,7 @@ Test reset_frames_internal_data(void) {
   Frame frame = {0};
 
   frame.kite_id_array = tkbc_indexs_range(0, 3);
-  frame.kind = KITE_MOVE;
+  frame.kind = ACTION_KITE_MOVE;
   frame.action.as_move.position = (Vector2){.x = 300, .y = 400};
   cassert_dap(&frames, frame);
 

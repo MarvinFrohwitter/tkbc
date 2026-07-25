@@ -758,10 +758,10 @@ bool tkbc_ui_script_menu(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_display_kite_information(Env *env) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].is_active &&
-        env->kite_array->elements[i].is_kite_input_handler_active) {
-      tkbc_display_kite_information_speeds(env, &env->kite_array->elements[i]);
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    if (env->kite_array.elements[i].is_active &&
+        env->kite_array.elements[i].is_kite_input_handler_active) {
+      tkbc_display_kite_information_speeds(env, &env->kite_array.elements[i]);
       return;
     }
   }
@@ -1427,9 +1427,9 @@ key_skip:
  * @param color The new color that should be assigned.
  */
 void tkbc_set_color_for_selected_kites(Env *env, Color color) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].is_kite_input_handler_active) {
-      env->kite_array->elements[i].kite->body_color = color;
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    if (env->kite_array.elements[i].is_kite_input_handler_active) {
+      env->kite_array.elements[i].kite->body_color = color;
     }
   }
 }
@@ -1450,11 +1450,11 @@ void tkbc_set_color_for_selected_kites(Env *env, Color color) {
 void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
                                          ssize_t texture_id,
                                          bool is_texture_new) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].is_kite_input_handler_active) {
-      tkbc_set_kite_texture(env->kite_array->elements[i].kite, kite_texture);
-      env->kite_array->elements[i].kite->texture_id = texture_id;
-      env->kite_array->elements[i].kite->is_texture_new = is_texture_new;
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    if (env->kite_array.elements[i].is_kite_input_handler_active) {
+      tkbc_set_kite_texture(env->kite_array.elements[i].kite, kite_texture);
+      env->kite_array.elements[i].kite->texture_id = texture_id;
+      env->kite_array.elements[i].kite->is_texture_new = is_texture_new;
     }
   }
 }
@@ -1499,8 +1499,8 @@ void tkbc_ui_timeline(Env *env, size_t frames_index,
   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
     // @Speed This should not be handled like this.
     bool is_at_least_one_acitv = false;
-    for (size_t i = 0; i < env->kite_array->count; ++i) {
-      if (env->kite_array->elements[i].is_kite_input_handler_active) {
+    for (size_t i = 0; i < env->kite_array.count; ++i) {
+      if (env->kite_array.elements[i].is_kite_input_handler_active) {
         is_at_least_one_acitv = true;
         break;
       }

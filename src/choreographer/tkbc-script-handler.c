@@ -40,9 +40,9 @@ Frame *tkbc_init_frame(Space *space) {
  * @return A pointer to the requested kite or NULL if the kite doesn't exist.
  */
 Kite *tkbc_get_kite_by_id(Env *env, size_t id) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].kite_id == id) {
-      return env->kite_array->elements[i].kite;
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    if (env->kite_array.elements[i].kite_id == id) {
+      return env->kite_array.elements[i].kite;
     }
   }
   return NULL;
@@ -57,9 +57,9 @@ Kite *tkbc_get_kite_by_id(Env *env, size_t id) {
  * @return A pointer to the requested kite or NULL if the kite doesn't exist.
  */
 Kite_State *tkbc_get_kite_state_by_id(Env *env, size_t id) {
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    if (env->kite_array->elements[i].kite_id == id) {
-      return &env->kite_array->elements[i];
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    if (env->kite_array.elements[i].kite_id == id) {
+      return &env->kite_array.elements[i];
     }
   }
   return NULL;
@@ -125,10 +125,10 @@ bool tkbc_contains_id(Kite_Ids kite_ids, size_t id) {
  * @return [TODO:return]
  */
 bool tkbc_find_first_active_script_kite(Env *env, Id *id) {
-  for (size_t k = 0; k < env->kite_array->count; ++k) {
-    if (env->kite_array->elements[k].is_active &&
-        env->kite_array->elements[k].is_script_kite) {
-      *id = env->kite_array->elements[k].kite_id;
+  for (size_t k = 0; k < env->kite_array.count; ++k) {
+    if (env->kite_array.elements[k].is_active &&
+        env->kite_array.elements[k].is_script_kite) {
+      *id = env->kite_array.elements[k].kite_id;
       return true;
     }
   }
@@ -707,8 +707,8 @@ size_t tkbc_check_finished_frames_count(Env *env) {
  */
 void tkbc_change_visibility_to_non_script_kites(Env *env) {
   // Enable the normal client kites.
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    Kite_State *kite_state = &env->kite_array->elements[i];
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    Kite_State *kite_state = &env->kite_array.elements[i];
     kite_state->is_kite_input_handler_active = false;
     kite_state->is_active = false;
     if (!kite_state->is_script_kite) {
@@ -744,13 +744,13 @@ void tkbc_change_visibility_to_script_kites(Env *env, Script *script) {
 
   //
   // Activate the kites that belong to the script.
-  for (size_t i = 0; i < env->kite_array->count; ++i) {
-    env->kite_array->elements[i].is_active = false;
-    env->kite_array->elements[i].is_kite_input_handler_active = false;
+  for (size_t i = 0; i < env->kite_array.count; ++i) {
+    env->kite_array.elements[i].is_active = false;
+    env->kite_array.elements[i].is_kite_input_handler_active = false;
 
     for (size_t j = 0; j < ids.count; ++j) {
-      if (ids.elements[j] == env->kite_array->elements[i].kite_id) {
-        env->kite_array->elements[i].is_active = true;
+      if (ids.elements[j] == env->kite_array.elements[i].kite_id) {
+        env->kite_array.elements[i].is_active = true;
         break;
       }
     }
@@ -1076,7 +1076,7 @@ void tkbc_input_handler_script(Env *env) {
   // KEY_ENTER
   if (tkbc_check_keymaps_full(env->keymaps, KMH_SET_KITES_TO_START_POSITION,
                               KEY_MAP_CHECK_KEY_PRESSED)) {
-    tkbc_kite_array_start_position(env->kite_array, env->window_width,
+    tkbc_kite_array_start_position(&env->kite_array, env->window_width,
                                    env->window_height);
   }
 

@@ -42,15 +42,6 @@ Env *tkbc_init_env(void) {
   }
   memset(env->vanilla_kite, 0, sizeof(*env->vanilla_kite));
 
-  env->kite_array = malloc(sizeof(*env->kite_array));
-  if (env->kite_array == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    free(env->vanilla_kite);
-    free(env);
-    return NULL;
-  }
-  memset(env->kite_array, 0, sizeof(*env->kite_array));
-
   tkbc_init_keymaps_defaults(&env->keymaps);
 
   tkbc_set_kite_defaults(env->vanilla_kite, true);
@@ -91,8 +82,6 @@ Env *tkbc_init_env(void) {
   env->color_picker_input_text = calloc(10, sizeof(char));
   if (env->color_picker_input_text == NULL) {
     tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-
-    free(env->kite_array);
     free(env->vanilla_kite);
     free(env);
     return NULL;
@@ -174,7 +163,7 @@ void tkbc_destroy_env(Env *env) {
   env->script_file_name = NULL;
   free(env->vanilla_kite);
   env->vanilla_kite = NULL;
-  tkbc_destroy_kite_array(env->kite_array);
+  tkbc_destroy_kite_array(&env->kite_array);
 
   if (env->needs_font_free) {
     UnloadFont(env->font);
@@ -215,8 +204,6 @@ void tkbc_destroy_kite_array(Kite_States *kite_states) {
   }
   free(kite_states->elements);
   kite_states->elements = NULL;
-  free(kite_states);
-  kite_states = NULL;
 }
 
 /**
@@ -716,10 +703,10 @@ void tkbc_draw_kite(Kite_State *state) {
  *
  * @param kite_states The given kite array.
  */
-void tkbc_draw_kite_array(Kite_States *kite_states) {
-  for (size_t i = 0; i < kite_states->count; ++i) {
-    if (kite_states->elements[i].is_active) {
-      tkbc_draw_kite(&kite_states->elements[i]);
+void tkbc_draw_kite_array(Kite_States kite_states) {
+  for (size_t i = 0; i < kite_states.count; ++i) {
+    if (kite_states.elements[i].is_active) {
+      tkbc_draw_kite(&kite_states.elements[i]);
     }
   }
 }
@@ -751,8 +738,8 @@ void tkbc_update_kites_for_resize_window(Env *env) {
   }
 
   if (env->window_width != width || env->window_height != height) {
-    for (size_t i = 0; i < env->kite_array->count; ++i) {
-      Kite *kite = env->kite_array->elements[i].kite;
+    for (size_t i = 0; i < env->kite_array.count; ++i) {
+      Kite *kite = env->kite_array.elements[i].kite;
       kite->center.x = kite->center.x / (float)env->window_width * (float)width;
       kite->center.y =
           kite->center.y / (float)env->window_height * (float)height;

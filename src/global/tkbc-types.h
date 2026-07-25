@@ -496,8 +496,7 @@ typedef struct {
   const char *tkbc_keymaps_path; // The file path where the keymaps are stored.
   Kite *vanilla_kite; // A representation of all the default kite values.
 
-  // TODO: Remove the pointer this can be stored by value.
-  Kite_States *kite_array; // The kites that are generated for the current
+  Kite_States kite_array; // The kites that are generated for the current
                            // session of the application.
   size_t kite_id_counter;  // The identifier counter for the kite.
 

@@ -45,8 +45,7 @@ void tkbc_set_script_name(Script *script, const char *name) {
  */
 bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config,
                           ...) {
-  if (kis.count == 0 || !env || !env->kite_array ||
-      env->kite_array->count == 0) {
+  if (kis.count == 0 || !env || env->kite_array.count == 0) {
     assert(false && "ERROR: Something unexpected happened");
   }
 
@@ -402,19 +401,18 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
   }
   Kite_Ids ids = {0};
   for (size_t i = 0; i < kite_count; ++i) {
-    tkbc_dap(env->kite_array, tkbc_init_kite());
+    tkbc_dap(&env->kite_array, tkbc_init_kite());
     // The id starts from 0.
     assert(env->kite_id_counter < CLIENT_BASE_ID);
     Id next_kite_id = env->kite_id_counter++;
-    env->kite_array->elements[env->kite_array->count - 1].kite_id =
-        next_kite_id;
-    env->kite_array->elements[env->kite_array->count - 1].kite->body_color =
+    env->kite_array.elements[env->kite_array.count - 1].kite_id = next_kite_id;
+    env->kite_array.elements[env->kite_array.count - 1].kite->body_color =
         tkbc_get_random_color();
 
     tkbc_dap(&ids, next_kite_id);
   }
 
-  tkbc_kite_array_start_position(env->kite_array, env->window_width,
+  tkbc_kite_array_start_position(&env->kite_array, env->window_width,
                                  env->window_height);
   return ids;
 }

@@ -108,7 +108,7 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
 // ========================== KITE DISPLAY ===================================
 
 void tkbc_draw_kite(Kite_State *state);
-void tkbc_draw_kite_array(Kite_States *kite_states);
+void tkbc_draw_kite_array(Kite_States kite_states);
 void tkbc_update_kites_for_resize_window(Env *env);
 
 bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture);

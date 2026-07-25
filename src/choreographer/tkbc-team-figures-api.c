@@ -510,7 +510,7 @@ bool tkbc_script_team_mountain(Env *env, Kite_Ids kite_index_array,
                                float v_padding, float h_padding,
                                float move_duration, float rotation_duration) {
 
-  assert(env->kite_array->count > 0 && "No kites in the kite array!");
+  assert(env->kite_array.count > 0 && "No kites in the kite array!");
   Kite *kite = env->vanilla_kite;
 
   float full_kite_width = kite->width + kite->spread;
@@ -585,7 +585,7 @@ bool tkbc_script_team_valley(Env *env, Kite_Ids kite_index_array,
                              float h_padding, float move_duration,
                              float rotation_duration) {
 
-  assert(env->kite_array->count > 0 && "No kites in the kite array!");
+  assert(env->kite_array.count > 0 && "No kites in the kite array!");
   Kite *kite = env->vanilla_kite;
 
   float full_kite_width = kite->width + kite->spread;
@@ -664,7 +664,7 @@ bool tkbc_script_team_arc(Env *env, Kite_Ids kite_index_array, Vector2 position,
                           float rotation_duration) {
   float start_angle = angle;
 
-  assert(env->kite_array->count > 0 && "No kites in the kite array!");
+  assert(env->kite_array.count > 0 && "No kites in the kite array!");
   Kite *kite = env->vanilla_kite;
 
   float full_kite_width = kite->width + kite->spread;
@@ -754,7 +754,7 @@ bool tkbc_script_team_mouth(Env *env, Kite_Ids kite_index_array,
   angle = -angle;
   float start_angle = angle;
 
-  assert(env->kite_array->count > 0 && "No kites in the kite array!");
+  assert(env->kite_array.count > 0 && "No kites in the kite array!");
   Kite *kite = env->vanilla_kite;
 
   float full_kite_width = kite->width + kite->spread;
@@ -864,7 +864,7 @@ bool tkbc_script_team_grid(Env *env, Kite_Ids kite_index_array,
                            float h_padding, size_t rows, size_t columns,
                            float move_duration) {
 
-  assert(env->kite_array->count > 0 && "No kites in the kite array!");
+  assert(env->kite_array.count > 0 && "No kites in the kite array!");
   Kite *kite = env->vanilla_kite;
 
   float full_kite_width = kite->width + kite->spread;
