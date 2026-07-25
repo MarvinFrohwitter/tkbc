@@ -159,6 +159,10 @@ void tkbc_dispatch_colorizer_mode(Env *env, Image image,
     return;
   }
 
+  if (!CheckCollisionPointRec(GetMousePosition(), collision_rec)) {
+    return;
+  }
+
   if (tkbc_check_key(KEY_LEFT_SHIFT, MODE_DOWN) &&
       IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
     tkbc_colorizer(env, image, collision_rec, scale, SELECT_COLOR);
