@@ -650,11 +650,6 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
 void tkbc_draw_kite(Kite_State *state) {
   assert(state);
   assert(state->kite);
-  assert(state->kite->kite_texture_normal.width ==
-         state->kite->kite_texture_flipped.width);
-  assert(state->kite->kite_texture_normal.height ==
-         state->kite->kite_texture_flipped.height);
-
   { // Clamping to the viewport
     size_t window_padding = state->kite->width > state->kite->height
                                 ? state->kite->width / 2
@@ -672,20 +667,28 @@ void tkbc_draw_kite(Kite_State *state) {
 
   if (ColorIsEqual(state->kite->body_color, BLANK)) {
     /* texture kite */
-    float scale = state->kite->width / state->kite->kite_texture_normal.width;
-    float len_to_center =
-        (scale * state->kite->kite_texture_normal.width) / 2.0f;
+    float scale = state->kite->width / state->kite->texture.normal.width;
+    float len_to_center = (scale * state->kite->texture.normal.width) / 2.0f;
     len_to_center = floorf(len_to_center);
     float phi = (PI * (state->kite->angle) / 180);
     Vector2 position = state->kite->center;
     position.x -= len_to_center * cosf(phi);
     position.y += len_to_center * sinf(phi);
     if (state->is_kite_reversed) {
-      DrawTextureEx(state->kite->kite_texture_flipped, position,
-                    -state->kite->angle, scale, WHITE);
+
+      Texture texture = state->kite->texture.normal;
+      Rectangle source = {0, 0, -texture.width, texture.height};
+      Rectangle dest = {
+          position.x,
+          position.y,
+          texture.width * scale,
+          texture.height * scale,
+      };
+      DrawTexturePro(state->kite->texture.normal, source, dest, (Vector2){0},
+                     -state->kite->angle, WHITE);
     } else {
-      DrawTextureEx(state->kite->kite_texture_normal, position,
-                    -state->kite->angle, scale, WHITE);
+      DrawTextureEx(state->kite->texture.normal, position, -state->kite->angle,
+                    scale, WHITE);
     }
   } else {
     /* color kite */
@@ -793,10 +796,6 @@ bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture) {
   if (!kite_texture) {
     return false;
   }
-
-  kite->kite_texture_normal = kite_texture->normal;
-  kite->kite_texture_flipped = kite_texture->flipped;
-
-  return IsTextureValid(kite->kite_texture_normal) &&
-         IsTextureValid(kite->kite_texture_flipped);
+  kite->texture.normal = kite_texture->normal;
+  return IsTextureValid(kite->texture.normal);
 }

@@ -83,12 +83,10 @@ typedef enum {
 
 typedef struct {
   Image normal;
-  Image flipped;
 } Kite_Image;
 
 typedef struct {
   Texture2D normal;
-  Texture2D flipped;
 } Kite_Texture;
 
 typedef struct {
@@ -272,13 +270,10 @@ typedef struct {
 } Kite_Position;    // The combined position and rotation angle.
 
 typedef struct {
-  Texture2D kite_texture_normal; // The kite body texture that is used in when
-                                 // normal flying mode is active.
-  Texture2D
-      kite_texture_flipped; // The kite body texture that is used when the kite
-                            // has flipped and flies per default reverse.
-  ssize_t texture_id; // The number that identifies the kite texture in the
-                      // global kite_textures.
+  Kite_Texture texture; // The kite body texture that is used in when
+                        // normal flying mode is active.
+  ssize_t texture_id;   // The number that identifies the kite texture in the
+                        // global kite_textures.
 
   bool is_texture_new; // Indicates if the texture is currently newly created.
 

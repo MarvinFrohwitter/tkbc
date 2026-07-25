@@ -95,7 +95,7 @@ bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config,
     }
 
   configure:
-    static_assert(184 == sizeof(Kite),
+    static_assert(168 == sizeof(Kite),
                   "Possible more config options in the KITE");
     state->kite->body_color = config.body_color;
     state->kite->top_color = config.top_color;

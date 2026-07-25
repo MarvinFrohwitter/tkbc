@@ -34,12 +34,8 @@ Id tkbc_append_kite_image(unsigned char *data, int width, int height,
   };
 
   image_normal = ImageCopy(image_normal);
-  Image image_flipped = ImageCopy(image_normal);
-  ImageFlipHorizontal(&image_flipped);
-
   Kite_Image kite_image = (Kite_Image){
       .normal = image_normal,
-      .flipped = image_flipped,
   };
 
   space_dap(&assets.space, &assets,
@@ -225,13 +221,9 @@ void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image,
 
   tkbc_get_asset_kite_design(asset->id).as.kite_texture = (Kite_Texture){
       .normal = LoadTextureFromImage(kite_image.normal),
-      .flipped = LoadTextureFromImage(kite_image.flipped),
   };
-
   GenTextureMipmaps(
       &tkbc_get_asset_kite_design(asset->id).as.kite_texture.normal);
-  GenTextureMipmaps(
-      &tkbc_get_asset_kite_design(asset->id).as.kite_texture.flipped);
 }
 
 /**
@@ -256,10 +248,6 @@ void tkbc_load_assets(void) {
       tkbc_fprintf(stderr, "ERROR", "Could not load normal kite image: %zu.\n",
                    i);
     }
-    if (!IsImageValid(tkbc_get_asset_kite_design(i).as.kite_image.flipped)) {
-      tkbc_fprintf(stderr, "ERROR", "Could not load flipped kite image: %zu.\n",
-                   i);
-    }
 
     if (tkbc_get_asset_kite_design(i).id >= IMAGE_PANNEL_PARTS_BEGIN &&
         tkbc_get_asset_kite_design(i).id <= IMAGE_PANNEL_PARTS_END) {
@@ -273,11 +261,6 @@ void tkbc_load_assets(void) {
     if (!IsTextureValid(tkbc_get_asset_kite_design(i).as.kite_texture.normal)) {
       tkbc_fprintf(stderr, "ERROR",
                    "Could not load normal kite texture: %zu.\n", i);
-    }
-    if (!IsTextureValid(
-            tkbc_get_asset_kite_design(i).as.kite_texture.flipped)) {
-      tkbc_fprintf(stderr, "ERROR",
-                   "Could not load flipped kite texture: %zu.\n", i);
     }
   }
 }
@@ -294,11 +277,9 @@ void tkbc_assets_destroy(void) {
       break;
     case ASSETS_KITE_DESIGN:
       UnloadImage(tkbc_get_asset_kite_design(i).as.kite_image.normal);
-      UnloadImage(tkbc_get_asset_kite_design(i).as.kite_image.flipped);
 
 #ifndef TKBC_SERVER
       UnloadTexture(tkbc_get_asset_kite_design(i).as.kite_texture.normal);
-      UnloadTexture(tkbc_get_asset_kite_design(i).as.kite_texture.flipped);
 #endif
       break;
     case ASSETS_KIND_COUNT:

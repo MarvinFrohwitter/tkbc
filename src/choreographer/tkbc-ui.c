@@ -96,7 +96,6 @@ void tkbc_draw_ui(Env *env) {
 void tkbc_update_kite_texture(Kite_Texture kite_texture,
                               Kite_Image kite_image) {
   UpdateTexture(kite_texture.normal, kite_image.normal.data);
-  UpdateTexture(kite_texture.flipped, kite_image.flipped.data);
 }
 
 /**
@@ -110,7 +109,6 @@ void tkbc_update_kite_texture(Kite_Texture kite_texture,
 void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
                                   Color replace) {
   ImageColorReplace(&kite_image->normal, old, replace);
-  ImageColorReplace(&kite_image->flipped, old, replace);
 }
 
 /**
@@ -246,11 +244,6 @@ void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p,
   // For the normal
   unsigned char *ptr = tkbc_get_position_in_image(kite_image.normal, p.x, p.y);
   SetPixelColor(ptr, replace, kite_image.normal.format);
-
-  // For the flipped
-  p.x = kite_image.flipped.width - p.x;
-  ptr = tkbc_get_position_in_image(kite_image.flipped, p.x, p.y);
-  SetPixelColor(ptr, replace, kite_image.flipped.format);
 }
 
 /**
@@ -1170,22 +1163,15 @@ key_skip:
 
           Image a =
               tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
-          Image b = tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
+          Image b =
+              tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.kite_image.normal;
           bool same = tkbc_is_same_image(a, b);
 
           if (!same) {
             UnloadImage(tkbc_get_asset_kite_design(KITE_COLORIZER)
                             .as.kite_image.normal);
-            UnloadImage(tkbc_get_asset_kite_design(KITE_COLORIZER)
-                            .as.kite_image.flipped);
-
             tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal =
                 ImageCopy(b);
-            Image flipped = ImageCopy(b);
-            ImageFlipHorizontal(&flipped);
-            tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.flipped =
-                flipped;
-
             tkbc_update_kite_texture(
                 tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
                 tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image);
