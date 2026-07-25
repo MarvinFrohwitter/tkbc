@@ -155,7 +155,7 @@ Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image,
 void tkbc_dispatch_colorizer_mode(Env *env, Image image,
                                   Rectangle collision_rec, float scale) {
 
-  if (env->color_picker_window_picking) {
+  if (tkbc_check_key(KEY_LEFT_CONTROL, MODE_DOWN)) {
     return;
   }
 
