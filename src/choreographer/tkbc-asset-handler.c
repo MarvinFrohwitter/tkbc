@@ -344,3 +344,20 @@ Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width,
 #endif
   return id;
 }
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param image [TODO:parameter]
+ * @param id [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_image_already_exitst_in_assets(Image image, Id *id) {
+  for (size_t i = KITE_COLORIZER + 1; i < assets.count; ++i) {
+    if (tkbc_is_same_image(image, assets.elements[i].as.image)) {
+      *id = assets.elements[i].id;
+      return true;
+    }
+  }
+  return false;
+}

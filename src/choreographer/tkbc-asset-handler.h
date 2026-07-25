@@ -22,6 +22,7 @@ Asset *tkbc_find_asset_from_id(Id id);
 size_t tkbc_get_current_kite_design_count();
 Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width,
                                            int height, int format);
+bool tkbc_image_already_exitst_in_assets(Image image, Id *id);
 
 #define tkbc_get_asset_image(kind)                                             \
   assets.elements[(assert(assets.count > 0),                                   \
