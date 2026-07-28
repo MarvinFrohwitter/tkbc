@@ -77,20 +77,48 @@ struct Planet {
   size_t count;
   size_t capacity;
   size_t id;
+}; // 48 Bytes
 
-  Planet *prev;
-  Planet *next;
-};
+typedef struct Big_Planet Big_Planet;
+struct Big_Planet {
+  Planet planet;
+  Big_Planet *prev;
+  Big_Planet *next;
+}; // 48 Bytes
 
+// MEMORY layout operations
+#define SPACE_MEM_DOUBLE_LINKED_LIST (0x10)
+#define SPACE_MEM_DYNAMIC_ARRAY (0x20)
+#define SPACE_MEM_STUCT_OF_ARRAYs (0x40)
 typedef struct {
-  Planet *sun;
-  size_t planet_count;
+  union {
+    Big_Planet *sun;
+
+    struct {
+      union {
+        Planet *elements;
+
+        struct {
+          void **elements;
+
+          size_t *planet_counts;
+          size_t *planet_capacitys;
+          size_t *planet_ids;
+        } SOA;
+      };
+
+      size_t capacity;
+    };
+  };
+
+  size_t count;
+
   size_t id_counter;
-
   unsigned char alloc_method;
-} Space;
+  unsigned char memory_layout;
+} Space; // 64 Bytes
 
-SPACEDECL Planet *space_init_planet(Space *space, size_t size_in_bytes);
+SPACEDECL Big_Planet *space_init_big_planet(Space *space, size_t size_in_bytes);
 SPACEDECL void space_free_planet(Space *space, Planet *planet);
 SPACEDECL void space_free_planet_optional_freeing_data(Space *space,
                                                        Planet *planet,
@@ -149,6 +177,10 @@ SPACEDECL bool space_init_capacity_in_count_plantes(Space *space,
                                                     size_t count);
 SPACEDECL size_t space_find_planet_id_from_ptr(Space *space, void *ptr);
 SPACEDECL Planet *space_find_planet_from_ptr(Space *space, void *ptr);
+
+SPACEDECL Big_Planet *space_find_big_planet_from_planet(Space *space,
+                                                        Planet *planet);
+
 SPACEDECL bool space_try_to_expand_in_place(Space *space, void *ptr,
                                             size_t old_size, size_t new_size,
                                             size_t *planet_id);
@@ -1018,8 +1050,8 @@ SPACEDEF void *space_memmove(Space *space, const void *buf, size_t n) {
  * bytes.
  * @return Pointer to the newly created Planet, or NULL on allocation failure.
  */
-SPACEDEF Planet *space_init_planet(Space *space, size_t size_in_bytes) {
-  Planet *planet = NULL;
+SPACEDEF Big_Planet *space_init_big_planet(Space *space, size_t size_in_bytes) {
+  Big_Planet *big_planet = NULL;
 method_rerun:
   switch (space->alloc_method) {
   case 0:
@@ -1027,68 +1059,68 @@ method_rerun:
     goto method_rerun;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
   case SPACE_METHOD_MALLOC:
-    planet = malloc(sizeof(*planet));
-    if (planet) {
-      memset(planet, 0, sizeof(*planet));
-      planet->capacity = size_in_bytes;
-      planet->count = 0;
-      planet->elements = malloc(planet->capacity);
-      if (!planet->elements) {
-        free(planet);
+    big_planet = malloc(sizeof(*big_planet));
+    if (big_planet) {
+      memset(big_planet, 0, sizeof(*big_planet));
+      big_planet->planet.capacity = size_in_bytes;
+      big_planet->planet.count = 0;
+      big_planet->planet.elements = malloc(big_planet->planet.capacity);
+      if (!big_planet->planet.elements) {
+        free(big_planet);
         return NULL;
       }
 
       // The '1+' is needed because 0 is an invalid id and
       // space_find_planet_id_from_ptr() returns 0 if it could not be found.
       // This allows to use size_t and still return an error value.
-      planet->id = 1 + space->id_counter++;
+      big_planet->planet.id = 1 + space->id_counter++;
     }
     break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
   case SPACE_METHOD_MMAP:
-    planet = mmap(NULL, sizeof(*planet), PROT_READ | PROT_WRITE,
-                  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (planet != MAP_FAILED) {
-      memset(planet, 0, sizeof(*planet));
-      planet->capacity = size_in_bytes;
-      planet->count = 0;
-      planet->elements =
-          mmap(NULL, planet->capacity, PROT_READ | PROT_WRITE,
+    big_planet = mmap(NULL, sizeof(*big_planet), PROT_READ | PROT_WRITE,
+                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (big_planet != MAP_FAILED) {
+      memset(big_planet, 0, sizeof(*big_planet));
+      big_planet->planet.capacity = size_in_bytes;
+      big_planet->planet.count = 0;
+      big_planet->planet.elements =
+          mmap(NULL, big_planet->planet.capacity, PROT_READ | PROT_WRITE,
                MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
-      if (planet->elements == MAP_FAILED) {
-        munmap(planet, sizeof(*planet));
+      if (big_planet->planet.elements == MAP_FAILED) {
+        munmap(big_planet, sizeof(*big_planet));
         return NULL;
       }
 
       // The '1+' is needed because 0 is an invalid id and
       // space_find_planet_id_from_ptr() returns 0 if it could not be found.
       // This allows to use size_t and still return an error value.
-      planet->id = 1 + space->id_counter++;
+      big_planet->planet.id = 1 + space->id_counter++;
     }
     break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
   case SPACE_METHOD_VIRTUAL_ALLOC:
-    planet = VirtualAllocEx(GetCurrentProcess(), NULL, sizeof(*planet),
-                            MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    if (planet != NULL) {
-      memset(planet, 0, sizeof(*planet));
-      planet->capacity = size_in_bytes;
-      planet->count = 0;
-      planet->elements =
-          VirtualAllocEx(GetCurrentProcess(), NULL, planet->capacity,
+    big_planet = VirtualAllocEx(GetCurrentProcess(), NULL, sizeof(*big_planet),
+                                MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (big_planet != NULL) {
+      memset(big_planet, 0, sizeof(*big_planet));
+      big_planet->planet.capacity = size_in_bytes;
+      big_planet->planet.count = 0;
+      big_planet->planet.elements =
+          VirtualAllocEx(GetCurrentProcess(), NULL, big_planet->planet.capacity,
                          MEM_RESERVE, PAGE_READWRITE);
-      if (planet->elements == NULL) {
-        VirtualFreeEx(GetCurrentProcess(), (LPVOID)planet, sizeof(*planet),
-                      MEM_RELEASE);
+      if (big_planet->planet.elements == NULL) {
+        VirtualFreeEx(GetCurrentProcess(), (LPVOID)big_planet,
+                      sizeof(*big_planet), MEM_RELEASE);
         return NULL;
       }
 
       // The '1+' is needed because 0 is an invalid id and
       // space_find_planet_id_from_ptr() returns 0 if it could not be found.
       // This allows to use size_t and still return an error value.
-      planet->id = 1 + space->id_counter++;
+      big_planet->planet.id = 1 + space->id_counter++;
     }
 
     break;
@@ -1097,7 +1129,7 @@ method_rerun:
     assert(false && "UNREACHABLE: This allocation method is not supported");
   }
 
-  return planet;
+  return big_planet;
 }
 
 /**
@@ -1111,6 +1143,7 @@ method_rerun:
  * @param planet Pointer to the Planet to free.
  */
 SPACEDEF void space_free_planet(Space *space, Planet *planet) {
+
   space_free_planet_optional_freeing_data(space, planet, true);
 }
 
@@ -1131,20 +1164,23 @@ SPACEDEF void space_free_planet(Space *space, Planet *planet) {
 SPACEDEF void space_free_planet_optional_freeing_data(Space *space,
                                                       Planet *planet,
                                                       bool free_data) {
+
   if (!planet || !space || !space->sun) {
     return;
   }
 
-  if (space->sun == planet) {
-    space->sun = planet->next;
+  Big_Planet *big_planet = space_find_big_planet_from_planet(space, planet);
+
+  if (space->sun == big_planet) {
+    space->sun = big_planet->next;
   }
 
-  if (planet->prev) {
-    planet->prev->next = planet->next;
+  if (big_planet->prev) {
+    big_planet->prev->next = big_planet->next;
   }
 
-  if (planet->next) {
-    planet->next->prev = planet->prev;
+  if (big_planet->next) {
+    big_planet->next->prev = big_planet->prev;
   }
 
   if (free_data) {
@@ -1155,31 +1191,31 @@ SPACEDEF void space_free_planet_optional_freeing_data(Space *space,
       goto method_rerun1;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
     case SPACE_METHOD_MALLOC:
-      free(planet->elements);
+      free(big_planet->planet.elements);
       break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
     case SPACE_METHOD_MMAP:
-      munmap(planet->elements, planet->capacity);
+      munmap(big_planet->planet.elements, big_planet->planet.capacity);
       break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
     case SPACE_METHOD_VIRTUAL_ALLOC:
-      VirtualFreeEx(GetCurrentProcess(), (LPVOID)planet->elements,
-                    planet->capacity, MEM_RELEASE);
+      VirtualFreeEx(GetCurrentProcess(), (LPVOID)big_planet->planet.elements,
+                    big_planet->planet.capacity, MEM_RELEASE);
       break;
 #endif
     default:
       assert(false && "UNREACHABLE: This allocation method is not supported");
     }
 
-    planet->elements = NULL;
+    big_planet->planet.elements = NULL;
   }
-  planet->count = 0;
-  planet->capacity = 0;
-  planet->next = NULL;
-  planet->prev = NULL;
-  planet->id = 0;
+  big_planet->planet.count = 0;
+  big_planet->planet.capacity = 0;
+  big_planet->next = NULL;
+  big_planet->prev = NULL;
+  big_planet->planet.id = 0;
 
 method_rerun2:
   switch (space->alloc_method) {
@@ -1188,25 +1224,25 @@ method_rerun2:
     goto method_rerun2;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
   case SPACE_METHOD_MALLOC:
-    free(planet);
+    free(big_planet);
     break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
   case SPACE_METHOD_MMAP:
-    munmap(planet, sizeof(*planet));
+    munmap(big_planet, sizeof(*big_planet));
     break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
   case SPACE_METHOD_VIRTUAL_ALLOC:
-    VirtualFreeEx(GetCurrentProcess(), (LPVOID)planet, sizeof(*planet),
+    VirtualFreeEx(GetCurrentProcess(), (LPVOID)big_planet, sizeof(*big_planet),
                   MEM_RELEASE);
     break;
 #endif
   default:
     assert(false && "UNREACHABLE: This allocation method is not supported");
   }
-  planet = NULL;
-  space->planet_count--;
+  big_planet = NULL;
+  space->count--;
 }
 
 /**
@@ -1219,11 +1255,11 @@ method_rerun2:
  * @param space Pointer to the Space structure to free.
  */
 SPACEDEF void space_free_space(Space *space) {
-  size_t amount = space->planet_count;
+  size_t amount = space->count;
   for (size_t i = 0; i < amount; ++i) {
-    space_free_planet(space, space->sun);
+    space_free_planet(space, &space->sun->planet);
   }
-  assert(space->planet_count == 0);
+  assert(space->count == 0);
   // This ensures that even when calling mmap the freed value is NULL.
   space->sun = NULL;
 }
@@ -1240,11 +1276,11 @@ SPACEDEF void space_free_space(Space *space) {
  * @param space Pointer to the Space structure.
  */
 SPACEDEF void space_free_space_internals_without_freeing_data(Space *space) {
-  size_t amount = space->planet_count;
+  size_t amount = space->count;
   for (size_t i = 0; i < amount; ++i) {
-    space_free_planet_optional_freeing_data(space, space->sun, false);
+    space_free_planet_optional_freeing_data(space, &space->sun->planet, false);
   }
-  assert(space->planet_count == 0);
+  assert(space->count == 0);
   // This ensures that even when calling mmap the freed value is NULL.
   space->sun = NULL;
 }
@@ -1298,10 +1334,10 @@ SPACEDEF void space_reset_planet_and_zero(Planet *planet) {
  */
 SPACEDEF bool space_reset_planet_id(Space *space, size_t id) {
   size_t i = 0;
-  for (Planet *planet = space->sun; planet && i < space->planet_count;
-       planet = planet->next, ++i) {
-    if (planet->id == id) {
-      space_reset_planet(planet);
+  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+       big_planet = big_planet->next, ++i) {
+    if (big_planet->planet.id == id) {
+      space_reset_planet(&big_planet->planet);
       return true;
     }
   }
@@ -1320,10 +1356,10 @@ SPACEDEF bool space_reset_planet_id(Space *space, size_t id) {
  */
 SPACEDEF bool space_reset_planet_and_zero_id(Space *space, size_t id) {
   size_t i = 0;
-  for (Planet *planet = space->sun; planet && i < space->planet_count;
-       planet = planet->next, ++i) {
-    if (planet->id == id) {
-      space_reset_planet_and_zero(planet);
+  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+       big_planet = big_planet->next, ++i) {
+    if (big_planet->planet.id == id) {
+      space_reset_planet_and_zero(&big_planet->planet);
       return true;
     }
   }
@@ -1343,9 +1379,9 @@ SPACEDEF bool space_reset_planet_and_zero_id(Space *space, size_t id) {
  */
 SPACEDEF void space_reset_space(Space *space) {
   size_t i = 0;
-  for (Planet *planet = space->sun; planet && i < space->planet_count;
-       planet = planet->next, ++i) {
-    space_reset_planet(planet);
+  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+       big_planet = big_planet->next, ++i) {
+    space_reset_planet(&big_planet->planet);
   }
 }
 
@@ -1363,9 +1399,9 @@ SPACEDEF void space_reset_space(Space *space) {
  */
 SPACEDEF void space_reset_space_and_zero(Space *space) {
   size_t i = 0;
-  for (Planet *planet = space->sun; planet && i < space->planet_count;
-       planet = planet->next, ++i) {
-    space_reset_planet_and_zero(planet);
+  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+       big_planet = big_planet->next, ++i) {
+    space_reset_planet_and_zero(&big_planet->planet);
   }
 }
 
@@ -1394,35 +1430,17 @@ SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
     return NULL;
   }
 
-  if (!space->planet_count) {
-    space->sun = space_init_planet(space, size_in_bytes);
-    if (!space->sun) {
-      *planet_id = 0;
-      return NULL;
-    }
-    space->sun->count = size_in_bytes;
-    space->planet_count++;
-    *planet_id = space->sun->id;
-    space->sun->next = space->sun;
-    space->sun->prev = space->sun;
-    return space->sun->elements;
-  }
-
-  Planet *p = space->sun;
-  Planet *prev = space->sun->prev;
-  for (size_t i = 0; p && i < space->planet_count; ++i) {
+  Big_Planet *big_planet = space->sun;
+  Big_Planet *_prev = space->count == 0 ? space->sun : space->sun->prev;
+  for (size_t i = 0; big_planet && i < space->count; ++i) {
     if (force_new_planet) {
       break;
-
-      prev = p;
-      p = p->next;
-      continue;
     }
 
-    size_t align_pcount = space_align_power2(8, p->count);
-    if (align_pcount + size_in_bytes > p->capacity) {
-      prev = p;
-      p = p->next;
+    size_t align_pcount = space_align_power2(8, big_planet->planet.count);
+    if (align_pcount + size_in_bytes > big_planet->planet.capacity) {
+      _prev = big_planet;
+      big_planet = big_planet->next;
       continue;
     }
 
@@ -1436,31 +1454,39 @@ SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
     // reference by setting it to NULL.
     //
     // Marvin Frohwitter 01.12.2025
-    assert(p->elements &&
+    assert(big_planet->planet.elements &&
            "ERROR:SPACE: Memory inside a space was freed or set to NULL"
            "by an external call outside the space api!");
 
-    p->count = align_pcount;
-    void *place = &((char *)p->elements)[p->count];
-    p->count += size_in_bytes;
-    *planet_id = p->id;
+    big_planet->planet.count = align_pcount;
+    void *place =
+        &((char *)big_planet->planet.elements)[big_planet->planet.count];
+    big_planet->planet.count += size_in_bytes;
+    *planet_id = big_planet->planet.id;
     return place;
   }
 
-  p = space_init_planet(space, size_in_bytes);
-  if (!p) {
+  big_planet = space_init_big_planet(space, size_in_bytes);
+  if (!big_planet) {
     *planet_id = 0;
     return NULL;
   }
-  p->count = size_in_bytes;
-  space->planet_count++;
-  *planet_id = p->id;
 
-  p->prev = prev;
-  p->next = space->sun;
-  prev->next = p;
-  space->sun->prev = p;
-  return p->elements;
+  big_planet->planet.count = size_in_bytes;
+  *planet_id = big_planet->planet.id;
+
+  if (space->count == 0) {
+    space->sun = big_planet;
+    _prev = space->sun;
+  }
+
+  big_planet->prev = _prev;
+  big_planet->next = space->sun;
+  _prev->next = big_planet;
+  space->sun->prev = big_planet;
+
+  space->count++;
+  return big_planet->planet.elements;
 }
 
 /**
@@ -1966,19 +1992,20 @@ SPACEDEF size_t space_find_planet_id_from_ptr(Space *space, void *ptr) {
   if (!ptr || !space) {
     return 0;
   }
-  if (!space->planet_count) {
+  if (!space->count) {
     return 0;
   }
-  if (!space->sun || !space->sun->elements) {
+  if (!space->sun || !space->sun->planet.elements) {
     return 0;
   }
 
   size_t i = 0;
-  for (Planet *planet = space->sun; planet && i < space->planet_count;
-       planet = planet->next, ++i) {
-    if ((char *)planet->elements <= (char *)ptr &&
-        (char *)planet->elements + planet->capacity >= (char *)ptr) {
-      return planet->id;
+  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+       big_planet = big_planet->next, ++i) {
+    if ((char *)big_planet->planet.elements <= (char *)ptr &&
+        (char *)big_planet->planet.elements + big_planet->planet.capacity >=
+            (char *)ptr) {
+      return big_planet->planet.id;
     }
   }
 
@@ -2001,19 +2028,55 @@ SPACEDEF Planet *space_find_planet_from_ptr(Space *space, void *ptr) {
   if (!ptr || !space) {
     return NULL;
   }
-  if (!space->planet_count) {
+  if (!space->count) {
     return NULL;
   }
-  if (!space->sun || !space->sun->elements) {
+  if (!space->sun || !space->sun->planet.elements) {
     return NULL;
   }
 
   size_t i = 0;
-  for (Planet *planet = space->sun; planet && i < space->planet_count;
-       planet = planet->next, ++i) {
-    if ((char *)planet->elements <= (char *)ptr &&
-        (char *)planet->elements + planet->capacity >= (char *)ptr) {
-      return planet;
+  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+       big_planet = big_planet->next, ++i) {
+    if ((char *)big_planet->planet.elements <= (char *)ptr &&
+        (char *)big_planet->planet.elements + big_planet->planet.capacity >=
+            (char *)ptr) {
+      return &big_planet->planet;
+    }
+  }
+
+  return NULL;
+}
+
+/**
+ * @brief Looks up and returns the Big_Planet structure containing a pointer.
+ *
+ * This function searches through all big_planets in the space to find which one
+ * contains the given planet. Returns NULL if the pointer is not found.
+ *
+ *
+ * @param space Pointer to the Space structure to search.
+ * @param planet The planet where the meta data is searched for.
+ * @return Pointer to the Big_Planet structure containing the Planet, or NULL
+ * if not found.
+ */
+SPACEDECL Big_Planet *space_find_big_planet_from_planet(Space *space,
+                                                        Planet *planet) {
+  if (!planet || !space) {
+    return NULL;
+  }
+  if (!space->count) {
+    return NULL;
+  }
+  if (!space->sun || !space->sun->planet.elements) {
+    return NULL;
+  }
+
+  size_t i = 0;
+  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+       big_planet = big_planet->next, ++i) {
+    if (planet->id == big_planet->planet.id) {
+      return big_planet;
     }
   }
 
@@ -2071,18 +2134,18 @@ SPACEDEF bool space_report_allocations(Space *space, Space_Report *report) {
   if (!space) {
     return false;
   }
-  report->planet_count = space->planet_count;
+  report->planet_count = space->count;
 
   size_t i = 0;
-  for (Planet *planet = space->sun; planet && i < space->planet_count;
-       planet = planet->next, ++i) {
-    if (report->allocated_capacity + planet->capacity > SIZE_MAX ||
-        report->allocated_count + planet->count > SIZE_MAX) {
+  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+       big_planet = big_planet->next, ++i) {
+    if (report->allocated_capacity + big_planet->planet.capacity > SIZE_MAX ||
+        report->allocated_count + big_planet->planet.count > SIZE_MAX) {
       return false;
     }
 
-    report->allocated_capacity += planet->capacity;
-    report->allocated_count += planet->count;
+    report->allocated_capacity += big_planet->planet.capacity;
+    report->allocated_count += big_planet->planet.count;
   }
 
   return true;
