@@ -92,22 +92,27 @@ struct Big_Planet {
 }; // 48 Bytes
 
 // MEMORY layout operations
-#define SPACE_MEM_DOUBLE_LINKED_LIST (0x10)
-#define SPACE_MEM_DYNAMIC_ARRAY (0x20)
-#define SPACE_MEM_STUCT_OF_ARRAYS (0x40)
+#define SPACE_MEMORY_DOUBLE_LINKED_LIST (0x10)
+#define SPACE_MEMORY_DYNAMIC_ARRAY (0x20)
+#define SPACE_MEMORY_STUCT_OF_ARRAYS (0x40)
 
+// #define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEMORY_DYNAMIC_ARRAY
 #ifndef SPACE_MEMORY_LAYOUT_METHOD
-#define SPACE_MEMORY_LAYOUT_METHOD (SPACE_MEM_DOUBLE_LINKED_LIST)
+#define SPACE_MEMORY_LAYOUT_METHOD (SPACE_MEMORY_DOUBLE_LINKED_LIST)
+// #define SPACE_MEMORY_LAYOUT_METHOD (SPACE_MEMORY_DYNAMIC_ARRAY)
+
+/* #define SPACE_MEMORY_LAYOUT_METHOD (SPACE_MEMORY_DOUBLE_LINKED_LIST |
+ * SPACE_MEMORY_DYNAMIC_ARRAY | SPACE_MEMORY_STUCT_OF_ARRAYS) */
+
 #endif
 
 #ifndef SPACE_MEMORY_LAYOUT_METHOD_DEFAULT
-#if 0
-#elif SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_DOUBLE_LINKED_LIST
-#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEM_DOUBLE_LINKED_LIST
-#elif SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_DYNAMIC_ARRAY
-#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEM_DYNAMIC_ARRAY
-#elif SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_STUCT_OF_ARRAYS
-#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEM_STUCT_OF_ARRAYS
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEMORY_DOUBLE_LINKED_LIST
+#elif SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEMORY_DYNAMIC_ARRAY
+#elif SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEMORY_STUCT_OF_ARRAYS
 #else
 #define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT -1
 #endif
@@ -146,7 +151,8 @@ typedef struct {
   unsigned char memory_layout;
 } Space; // 64 Bytes
 
-SPACEDECL Big_Planet *space_init_big_planet(Space *space, size_t size_in_bytes);
+SPACEDECL bool space_init_planet(Space *space, size_t size_in_bytes,
+                                 Planet *planet);
 SPACEDECL void space_free_planet(Space *space, Planet *planet);
 SPACEDECL void space_free_planet_optional_freeing_data(Space *space,
                                                        Planet *planet,
@@ -1064,108 +1070,217 @@ SPACEDEF void *space_memmove(Space *space, const void *buf, size_t n) {
   return ptr;
 }
 
-/**
- * @brief Creates and initializes a new planet memory area with the specified
- * capacity.
- *
- * A planet is a memory area that can hold multiple allocations. This function
- * allocates a new planet structure and allocates memory for its data buffer
- * with the specified capacity. The planet is assigned a unique ID that can be
- * used to identify allocations from this planet.
- *
- * @param space Pointer to the Space structure that will contain this planet.
- * @param size_in_bytes The initial capacity of the planet's data buffer in
- * bytes.
- * @return Pointer to the newly created Planet, or NULL on allocation failure.
- */
-SPACEDEF Big_Planet *space_init_big_planet(Space *space, size_t size_in_bytes) {
-  Big_Planet *big_planet = NULL;
-method_rerun:
+/////////////////////////////////////////////////////////////////////////
+
+static inline void space__free_memory(Space *space, void *buffer,
+                                      size_t size_in_bytes) {
+
+layout_rerun:
   switch (space->alloc_method) {
   case 0:
     space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-    goto method_rerun;
+    goto layout_rerun;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
   case SPACE_METHOD_MALLOC:
-    big_planet = malloc(sizeof(*big_planet));
-    if (big_planet) {
-      memset(big_planet, 0, sizeof(*big_planet));
-      big_planet->planet.capacity = size_in_bytes;
-      big_planet->planet.count = 0;
-      big_planet->planet.elements = malloc(big_planet->planet.capacity);
-      if (!big_planet->planet.elements) {
-        free(big_planet);
-        return NULL;
-      }
+    free(buffer);
+    break;
+#endif
+#if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
+  case SPACE_METHOD_MMAP:
+    munmap(buffer, size_in_bytes);
+    break;
+#endif
+#if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
+  case SPACE_METHOD_VIRTUAL_ALLOC:
+    VirtualFreeEx(GetCurrentProcess(), (LPVOID)buffer, size_in_bytes,
+                  MEM_RELEASE);
+    break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This allocation method is not supported");
+  }
+}
 
-      // The '1+' is needed because 0 is an invalid id and
-      // space_find_planet_id_from_ptr() returns 0 if it could not be found.
-      // This allows to use size_t and still return an error value.
-      big_planet->planet.id = 1 + space->id_counter++;
+static inline void *space__alloc_memory(Space *space, size_t size_in_bytes) {
+  void *result = NULL;
+rerun:
+  switch (space->alloc_method) {
+  case 0:
+    space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
+    goto rerun;
+#if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
+  case SPACE_METHOD_MALLOC:
+    result = malloc(size_in_bytes);
+    if (!result) {
+      return NULL;
     }
     break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
   case SPACE_METHOD_MMAP:
-    big_planet = mmap(NULL, sizeof(*big_planet), PROT_READ | PROT_WRITE,
-                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (big_planet != MAP_FAILED) {
-      memset(big_planet, 0, sizeof(*big_planet));
-      big_planet->planet.capacity = size_in_bytes;
-      big_planet->planet.count = 0;
-      big_planet->planet.elements =
-          mmap(NULL, big_planet->planet.capacity, PROT_READ | PROT_WRITE,
-               MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
-      if (big_planet->planet.elements == MAP_FAILED) {
-        munmap(big_planet, sizeof(*big_planet));
-        return NULL;
-      }
-
-      // The '1+' is needed because 0 is an invalid id and
-      // space_find_planet_id_from_ptr() returns 0 if it could not be found.
-      // This allows to use size_t and still return an error value.
-      big_planet->planet.id = 1 + space->id_counter++;
+    result = mmap(NULL, size_in_bytes, PROT_READ | PROT_WRITE,
+                  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (result == MAP_FAILED) {
+      return NULL;
     }
     break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
   case SPACE_METHOD_VIRTUAL_ALLOC:
-    big_planet = VirtualAllocEx(GetCurrentProcess(), NULL, sizeof(*big_planet),
-                                MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    if (big_planet != NULL) {
-      memset(big_planet, 0, sizeof(*big_planet));
-      big_planet->planet.capacity = size_in_bytes;
-      big_planet->planet.count = 0;
-      big_planet->planet.elements =
-          VirtualAllocEx(GetCurrentProcess(), NULL, big_planet->planet.capacity,
-                         MEM_RESERVE, PAGE_READWRITE);
-      if (big_planet->planet.elements == NULL) {
-        VirtualFreeEx(GetCurrentProcess(), (LPVOID)big_planet,
-                      sizeof(*big_planet), MEM_RELEASE);
-        return NULL;
-      }
+    result = VirtualAllocEx(GetCurrentProcess(), NULL, size_in_bytes,
+                            MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
-      // The '1+' is needed because 0 is an invalid id and
-      // space_find_planet_id_from_ptr() returns 0 if it could not be found.
-      // This allows to use size_t and still return an error value.
-      big_planet->planet.id = 1 + space->id_counter++;
+    if (result == NULL) {
+      return NULL;
     }
+    break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This allocation method is not supported");
+  }
+  return result;
+}
+
+static inline void *space__copy_buffer_to_heap(Space *space, void *buffer,
+                                               size_t size_in_bytes) {
+  void *result = space__alloc_memory(space, size_in_bytes);
+  if (result == NULL) {
+    return NULL;
+  }
+  return memcpy(result, buffer, size_in_bytes);
+}
+
+static inline void *space_realloc_memory(Space *space, void *buffer,
+                                         size_t old_size_in_bytes,
+                                         size_t new_size_in_bytes) {
+
+  if (!buffer || !space || old_size_in_bytes == 0) {
+    return NULL;
+  }
+
+  void *result = NULL;
+rerun:
+  switch (space->alloc_method) {
+  case 0:
+    space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
+    goto rerun;
+#if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
+  case SPACE_METHOD_MALLOC:
+    result = realloc(buffer, new_size_in_bytes);
+    break;
+#endif
+#if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
+  case SPACE_METHOD_MMAP:
+    if (new_size_in_bytes == 0) {
+      munmap(buffer, old_size_in_bytes);
+      return NULL;
+    }
+    if (old_size_in_bytes > new_size_in_bytes) {
+      return buffer;
+    }
+
+    result = mmap(NULL, new_size_in_bytes, PROT_READ | PROT_WRITE,
+                  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (result == MAP_FAILED) {
+      return NULL;
+    }
+    memcpy(result, buffer, old_size_in_bytes);
+    munmap(buffer, old_size_in_bytes);
+    break;
+#endif
+#if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
+  case SPACE_METHOD_VIRTUAL_ALLOC:
+    if (new_size_in_bytes == 0) {
+      VirtualFreeEx(GetCurrentProcess(), (LPVOID)buffer, old_size_in_bytes,
+                    MEM_RELEASE);
+      return NULL;
+    }
+    if (old_size_in_bytes > new_size_in_bytes) {
+      return buffer;
+    }
+
+    result = VirtualAllocEx(GetCurrentProcess(), NULL, new_size_in_bytes,
+                            MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+    if (result == NULL) {
+      return NULL;
+    }
+    memcpy(result, buffer, old_size_in_bytes);
+    VirtualFreeEx(GetCurrentProcess(), (LPVOID)buffer, old_size_in_bytes,
+                  MEM_RELEASE);
 
     break;
 #endif
   default:
     assert(false && "UNREACHABLE: This allocation method is not supported");
   }
+  return result;
+}
 
-  return big_planet;
+static inline bool space__os_dap_planet(Space *space, Planet planet) {
+  if (!space) {
+    return false;
+  }
+
+  if (space->capacity <= space->count) {
+    size_t old_capacity = space->capacity;
+    space->capacity =
+        space->capacity == 0 ? SPACE_DAP_CAP : space->capacity * 2;
+
+    space->elements = space_realloc_memory(
+        space, space->elements, sizeof(*space->elements) * old_capacity,
+        sizeof(*space->elements) * space->capacity);
+
+    if (space->elements == NULL) {
+      return false;
+    }
+  }
+
+  space->elements[space->count++] = planet;
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Creates and initializes a new planet memory area with the specified
+ * capacity.
+ *
+ * A planet is a memory area that can hold multiple allocations. This function
+ * allocates new memory for its data buffer
+ * with the specified capacity. The planet is assigned a unique ID that can be
+ * used to identify allocations from this planet.
+ *
+ * @param space Pointer to the Space structure that will contain this planet.
+ * @param size_in_bytes The initial capacity of the planet's data buffer in
+ * @param planet The structure to fill.
+ * bytes.
+ * @return True if the allocation has succeeded, otherwise false.
+ */
+SPACEDEF bool space_init_planet(Space *space, size_t size_in_bytes,
+                                Planet *planet) {
+
+  planet->id = 0;
+  planet->count = 0;
+  planet->capacity = size_in_bytes;
+  planet->elements = space__alloc_memory(space, size_in_bytes);
+  if (!planet->elements) {
+    return false;
+  }
+
+  // The '1+' is needed because 0 is an invalid id and
+  // space_find_planet_id_from_ptr() returns 0 if it could not be found.
+  // This allows to use size_t and still return an error value.
+  planet->id = 1 + space->id_counter++;
+  return true;
 }
 
 /**
  * @brief Frees a planet and all its allocated data from the space.
  *
- * This function removes the planet from the space's linked list and frees both
- * the planet structure and its data buffer. All allocations within this planet
- * become invalid after this call.
+ * This function removes the planet from the space's linked list and frees
+ * both the planet structure and its data buffer. All allocations within this
+ * planet become invalid after this call.
  *
  * @param space Pointer to the Space structure containing the planet.
  * @param planet Pointer to the Planet to free.
@@ -1179,10 +1294,12 @@ SPACEDEF void space_free_planet(Space *space, Planet *planet) {
  * @brief Frees a planet with control over whether to free the underlying data
  * buffer.
  *
- * This function removes the planet from the space's linked list. The free_data
- * parameter controls whether the planet's data buffer is also freed. When
- * false, only the planet structure is freed, leaving the data buffer allocated
- * - useful for scenarios where the caller wants to take ownership of the data.
+ * This function removes the planet from the space's linked list. The
+ * free_data parameter controls whether the planet's data buffer is also
+ * freed. When false, only the planet structure is freed, leaving the data
+ * buffer allocated
+ * - useful for scenarios where the caller wants to take ownership of the
+ * data.
  *
  * @param space Pointer to the Space structure containing the planet.
  * @param planet Pointer to the Planet to free.
@@ -1193,103 +1310,143 @@ SPACEDEF void space_free_planet_optional_freeing_data(Space *space,
                                                       Planet *planet,
                                                       bool free_data) {
 
-  if (!planet || !space || !space->sun) {
+  if (!planet || !space) {
     return;
   }
 
-  Big_Planet *big_planet = space_find_big_planet_from_planet(space, planet);
-
-  if (space->sun == big_planet) {
-    space->sun = big_planet->next;
-  }
-
-  if (big_planet->prev) {
-    big_planet->prev->next = big_planet->next;
-  }
-
-  if (big_planet->next) {
-    big_planet->next->prev = big_planet->prev;
-  }
-
-  if (free_data) {
-  method_rerun1:
-    switch (space->alloc_method) {
-    case 0:
-      space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-      goto method_rerun1;
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-    case SPACE_METHOD_MALLOC:
-      free(big_planet->planet.elements);
-      break;
-#endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
-    case SPACE_METHOD_MMAP:
-      munmap(big_planet->planet.elements, big_planet->planet.capacity);
-      break;
-#endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
-    case SPACE_METHOD_VIRTUAL_ALLOC:
-      VirtualFreeEx(GetCurrentProcess(), (LPVOID)big_planet->planet.elements,
-                    big_planet->planet.capacity, MEM_RELEASE);
-      break;
-#endif
-    default:
-      assert(false && "UNREACHABLE: This allocation method is not supported");
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    if (!space->sun) {
+      return;
     }
 
-    big_planet->planet.elements = NULL;
-  }
-  big_planet->planet.count = 0;
-  big_planet->planet.capacity = 0;
-  big_planet->next = NULL;
-  big_planet->prev = NULL;
-  big_planet->planet.id = 0;
+    Big_Planet *big_planet = space_find_big_planet_from_planet(space, planet);
+    if (space->sun == big_planet) {
+      space->sun = big_planet->next;
+    }
+    if (big_planet->prev) {
+      big_planet->prev->next = big_planet->next;
+    }
+    if (big_planet->next) {
+      big_planet->next->prev = big_planet->prev;
+    }
 
-method_rerun2:
-  switch (space->alloc_method) {
-  case 0:
-    space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-    goto method_rerun2;
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-  case SPACE_METHOD_MALLOC:
-    free(big_planet);
-    break;
+    if (free_data) {
+      space__free_memory(space, big_planet->planet.elements,
+                         big_planet->planet.capacity);
+
+      big_planet->planet.elements = NULL;
+    }
+    big_planet->planet.count = 0;
+    big_planet->planet.capacity = 0;
+    big_planet->next = NULL;
+    big_planet->prev = NULL;
+    big_planet->planet.id = 0;
+
+  } break;
 #endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
-  case SPACE_METHOD_MMAP:
-    munmap(big_planet, sizeof(*big_planet));
-    break;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    if (!space->elements) {
+      return;
+    }
+
+    if (free_data) {
+      space__free_memory(space, planet->elements, planet->capacity);
+      planet->elements = NULL;
+    }
+
+    planet->count = 0;
+    planet->capacity = 0;
+    planet->id = 0;
+    if (space->count == 1) {
+      space__free_memory(space, space->elements, space->capacity);
+    } else {
+      bool found = false;
+      for (size_t i = 0; i < space->count; ++i) {
+        if (space->elements[i].id == planet->id) {
+          memmove(&space->elements[i], &space->elements[i + 1],
+                  (space->count - i - 1) * sizeof(*space->elements));
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        return;
+      }
+    }
+
+  } break;
 #endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
-  case SPACE_METHOD_VIRTUAL_ALLOC:
-    VirtualFreeEx(GetCurrentProcess(), (LPVOID)big_planet, sizeof(*big_planet),
-                  MEM_RELEASE);
-    break;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    if (!space->planet_elements) {
+      return;
+    }
+    assert(false && "This memory layout is not supported");
+  } break;
 #endif
   default:
-    assert(false && "UNREACHABLE: This allocation method is not supported");
+    assert(false && "UNREACHABLE: This memory layout is not supported");
   }
-  big_planet = NULL;
+
   space->count--;
 }
 
 /**
  * @brief Frees all planets in the space and releases all allocated memory.
  *
- * This function iterates through all planets in the space, freeing each planet
- * and its data buffer. After this call, all memory managed by the space is
- * released and the space is left in an empty state with zero planets.
+ * This function iterates through all planets in the space, freeing each
+ * planet and its data buffer. After this call, all memory managed by the
+ * space is released and the space is left in an empty state with zero
+ * planets.
  *
  * @param space Pointer to the Space structure to free.
  */
 SPACEDEF void space_free_space(Space *space) {
-  size_t amount = space->count;
-  for (size_t i = 0; i < amount; ++i) {
-    space_free_planet(space, &space->sun->planet);
+  if (!space) {
+    return;
   }
-  assert(space->count == 0);
-  // This ensures that even when calling mmap the freed value is NULL.
-  space->sun = NULL;
+  size_t amount = space->count;
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    for (size_t i = 0; i < amount; ++i) {
+      space_free_planet(space, &space->sun->planet);
+    }
+    assert(space->count == 0);
+    // This ensures that even when calling mmap the freed value is NULL.
+    space->sun = NULL;
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    for (size_t i = 0; i < amount; ++i) {
+      space_free_planet(space, &space->elements[i]);
+    }
+    assert(space->count == 0);
+    // This ensures that even when calling mmap the freed value is NULL.
+    space->elements = NULL;
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
+  }
 }
 
 /**
@@ -1305,30 +1462,59 @@ SPACEDEF void space_free_space(Space *space) {
  */
 SPACEDEF void space_free_space_internals_without_freeing_data(Space *space) {
   size_t amount = space->count;
-  for (size_t i = 0; i < amount; ++i) {
-    space_free_planet_optional_freeing_data(space, &space->sun->planet, false);
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    for (size_t i = 0; i < amount; ++i) {
+      space_free_planet_optional_freeing_data(space, &space->sun->planet,
+                                              false);
+    }
+    assert(space->count == 0);
+    // This ensures that even when calling mmap the freed value is NULL.
+    space->sun = NULL;
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    for (size_t i = 0; i < amount; ++i) {
+      space_free_planet_optional_freeing_data(space, &space->elements[i],
+                                              false);
+    }
+    assert(space->count == 0);
+    // This ensures that even when calling mmap the freed value is NULL.
+    space->elements = NULL;
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
   }
-  assert(space->count == 0);
-  // This ensures that even when calling mmap the freed value is NULL.
-  space->sun = NULL;
 }
 
 /**
- * @brief Resets a planet's used count to zero, making all its memory available
- * for reuse.
+ * @brief Resets a planet's used count to zero, making all its memory
+ * available for reuse.
  *
  * This function resets the planet's internal counter to zero without freeing
- * any memory. All previously allocated data in the planet becomes inaccessible
- * but the memory remains allocated. This is useful for reusing a planet's
- * capacity without the overhead of reallocation.
+ * any memory. All previously allocated data in the planet becomes
+ * inaccessible but the memory remains allocated. This is useful for reusing a
+ * planet's capacity without the overhead of reallocation.
  *
  * @param planet Pointer to the Planet to reset.
  */
 SPACEDEF void space_reset_planet(Planet *planet) { planet->count = 0; }
 
 /**
- * @brief Resets a planet and zeros out all its memory, passing ownership to the
- * caller.
+ * @brief Resets a planet and zeros out all its memory, passing ownership to
+ * the caller.
  *
  * WARNING: This function zeros all memory in the planet and sets internal
  * pointers to NULL so that memory ownership is effectively transferred to the
@@ -1361,14 +1547,43 @@ SPACEDEF void space_reset_planet_and_zero(Planet *planet) {
  * otherwise.
  */
 SPACEDEF bool space_reset_planet_id(Space *space, size_t id) {
-  size_t i = 0;
-  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-       big_planet = big_planet->next, ++i) {
-    if (big_planet->planet.id == id) {
-      space_reset_planet(&big_planet->planet);
-      return true;
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    size_t i = 0;
+    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+         big_planet = big_planet->next, ++i) {
+      if (big_planet->planet.id == id) {
+        space_reset_planet(&big_planet->planet);
+        return true;
+      }
     }
+
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    for (size_t i = 0; i < space->count; ++i) {
+      if (space->elements[i].id == id) {
+        space_reset_planet(&space->elements[i]);
+        return true;
+      }
+    }
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
   }
+
   return false;
 }
 
@@ -1383,14 +1598,43 @@ SPACEDEF bool space_reset_planet_id(Space *space, size_t id) {
  * @return true if the planet was found and reset, false otherwise.
  */
 SPACEDEF bool space_reset_planet_and_zero_id(Space *space, size_t id) {
-  size_t i = 0;
-  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-       big_planet = big_planet->next, ++i) {
-    if (big_planet->planet.id == id) {
-      space_reset_planet_and_zero(&big_planet->planet);
-      return true;
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    size_t i = 0;
+    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+         big_planet = big_planet->next, ++i) {
+      if (big_planet->planet.id == id) {
+        space_reset_planet_and_zero(&big_planet->planet);
+        return true;
+      }
     }
+
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    for (size_t i = 0; i < space->count; ++i) {
+      if (space->elements[i].id == id) {
+        space_reset_planet_and_zero(&space->elements[i]);
+        return true;
+      }
+    }
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
   }
+
   return false;
 }
 
@@ -1398,18 +1642,45 @@ SPACEDEF bool space_reset_planet_and_zero_id(Space *space, size_t id) {
  * @brief Resets all planets in the space, making all memory available for
  * reuse.
  *
- * This function iterates through all planets in the space and resets each one's
- * used count to zero. This makes all previously allocated memory in all planets
- * available for new allocations without freeing and reallocating. The data in
- * the planets is not cleared but becomes inaccessible until overwritten.
+ * This function iterates through all planets in the space and resets each
+ * one's used count to zero. This makes all previously allocated memory in all
+ * planets available for new allocations without freeing and reallocating. The
+ * data in the planets is not cleared but becomes inaccessible until
+ * overwritten.
  *
  * @param space Pointer to the Space structure to reset.
  */
 SPACEDEF void space_reset_space(Space *space) {
-  size_t i = 0;
-  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-       big_planet = big_planet->next, ++i) {
-    space_reset_planet(&big_planet->planet);
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    size_t i = 0;
+    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+         big_planet = big_planet->next, ++i) {
+      space_reset_planet(&big_planet->planet);
+    }
+
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    for (size_t i = 0; i < space->count; ++i) {
+      space_reset_planet(&space->elements[i]);
+    }
+
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
   }
 }
 
@@ -1419,45 +1690,49 @@ SPACEDEF void space_reset_space(Space *space) {
  * WARNING: This function zeros all memory in all planets and sets internal
  * pointers to NULL so that memory ownership is effectively transferred to the
  * caller. After calling this function, the caller is responsible for freeing
- * all data that was previously managed by the space. This is useful for taking
- * snapshots or when you need to manually manage the memory lifecycle of all
- * allocations.
+ * all data that was previously managed by the space. This is useful for
+ * taking snapshots or when you need to manually manage the memory lifecycle
+ * of all allocations.
  *
  * @param space Pointer to the Space structure to reset and zero.
  */
 SPACEDEF void space_reset_space_and_zero(Space *space) {
-  size_t i = 0;
-  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-       big_planet = big_planet->next, ++i) {
-    space_reset_planet_and_zero(&big_planet->planet);
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    size_t i = 0;
+    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+         big_planet = big_planet->next, ++i) {
+      space_reset_planet_and_zero(&big_planet->planet);
+    }
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    for (size_t i = 0; i < space->count; ++i) {
+      space_reset_planet_and_zero(&space->elements[i]);
+    }
+
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
   }
 }
 
-/**
- * @brief Core allocation function that allocates memory and optionally returns
- * the planet ID.
- *
- * This is the main internal allocation function that handles memory allocation
- * from the space. It searches existing planets for sufficient free space, and
- * if found, allocates from there. If force_new_planet is true or no existing
- * planet has enough space, a new planet is created. The planet ID is useful for
- * tracking which planet an allocation came from.
- *
- * @param space Pointer to the Space structure.
- * @param size_in_bytes The number of bytes to allocate.
- * @param planet_id Pointer to store the ID of the planet where memory was
- * allocated; this value is set to 0 on failure.
- * @param force_new_planet If true, always allocates in a new planet; if false,
- *                         attempts to use existing planet space first.
- * @return Pointer to the allocated memory, or NULL on failure.
- */
-SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
-                                    size_t *planet_id, bool force_new_planet) {
-  if (!space) {
-    *planet_id = 0;
-    return NULL;
-  }
+static inline void *space__dll_alloc(Space *space, size_t size_in_bytes,
+                                     size_t *planet_id, bool force_new_planet) {
 
+  *planet_id = 0;
   Big_Planet *big_planet = space->sun;
   Big_Planet *_prev = space->count == 0 ? space->sun : space->sun->prev;
   for (size_t i = 0; big_planet && i < space->count; ++i) {
@@ -1494,36 +1769,14 @@ SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
     return place;
   }
 
-  big_planet = space_init_big_planet(space, size_in_bytes);
+  Big_Planet temp_bp = {0};
+  big_planet = space__copy_buffer_to_heap(space, &temp_bp, sizeof(temp_bp));
   if (!big_planet) {
-    *planet_id = 0;
     return NULL;
   }
-
-layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-    goto layout_rerun;
-#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_DOUBLE_LINKED_LIST
-  case SPACE_MEM_DOUBLE_LINKED_LIST: {
-
-  } break;
-#endif
-#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_DYNAMIC_ARRAY
-  case SPACE_MEM_DYNAMIC_ARRAY: {
-
-    assert(false && "This memory layout is not supported");
-  } break;
-#endif
-#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_STUCT_OF_ARRAYS
-  case SPACE_MEM_STUCT_OF_ARRAYS: {
-
-    assert(false && "This memory layout is not supported");
-  } break;
-#endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
+  if (!space_init_planet(space, size_in_bytes, &big_planet->planet)) {
+    space__free_memory(space, big_planet, sizeof(*big_planet));
+    return NULL;
   }
 
   big_planet->planet.count = size_in_bytes;
@@ -1541,6 +1794,109 @@ layout_rerun:
 
   space->count++;
   return big_planet->planet.elements;
+}
+
+static inline void *space__da_alloc(Space *space, size_t size_in_bytes,
+                                    size_t *planet_id, bool force_new_planet) {
+
+  *planet_id = 0;
+  for (size_t i = 0; i < space->count; ++i) {
+    Planet *planet = &space->elements[i];
+    if (force_new_planet) {
+      break;
+    }
+
+    size_t align_pcount = space_align_power2(8, planet->count);
+    if (align_pcount + size_in_bytes > planet->capacity) {
+      continue;
+    }
+
+    // TODO: Think about handling this by deleting the planet chunk in
+    // between. We can't get the original pointer at this point anyway.
+    // Recovery is outside the traditional behavior of this lib, which is
+    // freeing the complete space at once and be sure that every allocated
+    // memory is freed.
+    //
+    // We can't distinguish between an actual free call or destroying our
+    // reference by setting it to NULL.
+    //
+    // Marvin Frohwitter 01.12.2025
+    assert(planet->elements &&
+           "ERROR:SPACE: Memory inside a space was freed or set to NULL"
+           "by an external call outside the space api!");
+
+    planet->count = align_pcount;
+    void *place = &((char *)planet->elements)[planet->count];
+    planet->count += size_in_bytes;
+    *planet_id = planet->id;
+    return place;
+  }
+
+  Planet p;
+  if (!space_init_planet(space, size_in_bytes, &p)) {
+    return NULL;
+  }
+  p.count = size_in_bytes;
+  *planet_id = p.id;
+
+  if (!space__os_dap_planet(space, p)) {
+    space__free_memory(space, p.elements, p.capacity);
+    return NULL;
+  }
+
+  return p.elements;
+}
+
+/**
+ * @brief Core allocation function that allocates memory and optionally
+ * returns the planet ID.
+ *
+ * This is the main internal allocation function that handles memory
+ * allocation from the space. It searches existing planets for sufficient free
+ * space, and if found, allocates from there. If force_new_planet is true or
+ * no existing planet has enough space, a new planet is created. The planet ID
+ * is useful for tracking which planet an allocation came from.
+ *
+ * @param space Pointer to the Space structure.
+ * @param size_in_bytes The number of bytes to allocate.
+ * @param planet_id Pointer to store the ID of the planet where memory was
+ * allocated; this value is set to 0 on failure.
+ * @param force_new_planet If true, always allocates in a new planet; if
+ * false, attempts to use existing planet space first.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
+SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
+                                    size_t *planet_id, bool force_new_planet) {
+  if (!space) {
+    *planet_id = 0;
+    return NULL;
+  }
+
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    return space__dll_alloc(space, size_in_bytes, planet_id, force_new_planet);
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    return space__da_alloc(space, size_in_bytes, planet_id, force_new_planet);
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
+  }
+
+  return NULL;
 }
 
 /**
@@ -1575,7 +1931,8 @@ SPACEDEF void *space_malloc_planetid_force_new_planet(Space *space,
  * @param nmemb Number of elements to allocate.
  * @param size Size of each element in bytes.
  * @param planet_id Pointer to store the ID of the newly created planet.
- * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
+ * @return Pointer to the allocated zero-initialized memory, or NULL on
+ * failure.
  */
 SPACEDEF void *space_calloc_planetid_force_new_planet(Space *space,
                                                       size_t nmemb, size_t size,
@@ -1612,7 +1969,7 @@ SPACEDEF void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
     if (ptr) {
       // This is need if the this function shrinks the size to 0 and then the
       // caller wants to realloc a lager pointer. In the mean time another
-      // allocation has taken the plant and a new planet was allocated to
+      // allocation has taken the planet and a new planet was allocated to
       // provided the requested space.
       if (old_size) {
         memcpy(new_ptr, ptr, old_size > new_size ? new_size : old_size);
@@ -1623,7 +1980,8 @@ SPACEDEF void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
 }
 
 /**
- * @brief Allocates memory in the space and returns the planet ID for tracking.
+ * @brief Allocates memory in the space and returns the planet ID for
+ * tracking.
  *
  * This function allocates memory from the space, attempting to use existing
  * planet capacity first before creating new planets. The returned planet ID
@@ -1642,8 +2000,8 @@ SPACEDEF void *space_malloc_planetid(Space *space, size_t size_in_bytes,
 }
 
 /**
- * @brief Allocates a zero-initialized array in the space and returns the planet
- * ID.
+ * @brief Allocates a zero-initialized array in the space and returns the
+ * planet ID.
  *
  * This function allocates an array of nmemb elements, each of the specified
  * size, from the space. All bytes are initialized to zero. This is useful for
@@ -1655,7 +2013,8 @@ SPACEDEF void *space_malloc_planetid(Space *space, size_t size_in_bytes,
  * @param size Size of each element in bytes.
  * @param planet_id Pointer to store the ID of the planet where memory was
  * allocated; this value is set to 0 on failure.
- * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
+ * @return Pointer to the allocated zero-initialized memory, or NULL on
+ * failure.
  */
 SPACEDEF void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
                                      size_t *planet_id) {
@@ -1670,10 +2029,11 @@ SPACEDEF void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
 /**
  * @brief Changes the size of an existing allocation, potentially moving it.
  *
- * This function attempts to resize an existing allocation to a new size. If the
- * current allocation is at the end of a planet with enough free space following
- * it, it may be expanded in place. Otherwise, a new allocation is made and the
- * old data is copied. This is similar to the standard realloc function.
+ * This function attempts to resize an existing allocation to a new size. If
+ * the current allocation is at the end of a planet with enough free space
+ * following it, it may be expanded in place. Otherwise, a new allocation is
+ * made and the old data is copied. This is similar to the standard realloc
+ * function.
  *
  * @param space Pointer to the Space structure.
  * @param ptr Pointer to the existing memory to resize.
@@ -1717,7 +2077,7 @@ SPACEDEF void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
     if (ptr) {
       // This is need if the this function shrinks the size to 0 and then the
       // caller wants to realloc a lager pointer. In the mean time another
-      // allocation has taken the plant and a new planet was allocated to
+      // allocation has taken the planet and a new planet was allocated to
       // provided the requested space.
       if (old_size) {
         if (ptr == new_ptr) {
@@ -1732,7 +2092,8 @@ SPACEDEF void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
 }
 
 /**
- * @brief Allocates memory in a newly created planet, isolating the allocation.
+ * @brief Allocates memory in a newly created planet, isolating the
+ * allocation.
  *
  * This function always creates a new planet for the allocation rather than
  * using available space in existing planets. This ensures the allocation is
@@ -1752,14 +2113,16 @@ SPACEDEF void *space_malloc_force_new_planet(Space *space,
 /**
  * @brief Allocates a zero-initialized array in a newly created planet.
  *
- * This function allocates an array of nmemb elements in a new planet, with all
- * bytes initialized to zero. This is useful for allocating arrays or structures
- * that need to start in a zeroed state while keeping the allocation isolated.
+ * This function allocates an array of nmemb elements in a new planet, with
+ * all bytes initialized to zero. This is useful for allocating arrays or
+ * structures that need to start in a zeroed state while keeping the
+ * allocation isolated.
  *
  * @param space Pointer to the Space structure.
  * @param nmemb Number of elements to allocate.
  * @param size Size of each element in bytes.
- * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
+ * @return Pointer to the allocated zero-initialized memory, or NULL on
+ * failure.
  */
 SPACEDEF void *space_calloc_force_new_planet(Space *space, size_t nmemb,
                                              size_t size) {
@@ -1792,9 +2155,9 @@ SPACEDEF void *space_realloc_force_new_planet(Space *space, void *ptr,
 /**
  * @brief Allocates raw memory from the space allocator.
  *
- * This is the primary allocation function for the space allocator. It searches
- * existing planets for available space and uses that first, creating a new
- * planet only when necessary. The allocated memory is uninitialized and
+ * This is the primary allocation function for the space allocator. It
+ * searches existing planets for available space and uses that first, creating
+ * a new planet only when necessary. The allocated memory is uninitialized and
  * contains garbage values, similar to the standard malloc function.
  *
  * @param space Pointer to the Space structure.
@@ -1811,13 +2174,14 @@ SPACEDEF void *space_malloc(Space *space, size_t size_in_bytes) {
  *
  * This function allocates an array of nmemb elements, each of the specified
  * size, from the space allocator. All bytes are initialized to zero. This is
- * useful for allocating arrays, structures, or any data that needs to start in
- * a cleared state.
+ * useful for allocating arrays, structures, or any data that needs to start
+ * in a cleared state.
  *
  * @param space Pointer to the Space structure.
  * @param nmemb Number of elements to allocate.
  * @param size Size of each element in bytes.
- * @return Pointer to the allocated zero-initialized memory, or NULL on failure.
+ * @return Pointer to the allocated zero-initialized memory, or NULL on
+ * failure.
  */
 SPACEDEF void *space_calloc(Space *space, size_t nmemb, size_t size) {
   size_t id;
@@ -1827,10 +2191,11 @@ SPACEDEF void *space_calloc(Space *space, size_t nmemb, size_t size) {
 /**
  * @brief Resizes an existing allocation within the space.
  *
- * This function changes the size of a previously allocated memory block. If the
- * current allocation is at the end of a planet with enough free space, it may
- * be expanded in place without copying. Otherwise, new memory is allocated and
- * the old data is copied over. This behaves similarly to the standard realloc.
+ * This function changes the size of a previously allocated memory block. If
+ * the current allocation is at the end of a planet with enough free space, it
+ * may be expanded in place without copying. Otherwise, new memory is
+ * allocated and the old data is copied over. This behaves similarly to the
+ * standard realloc.
  *
  * @param space Pointer to the Space structure.
  * @param ptr Pointer to the existing memory to resize.
@@ -1847,11 +2212,11 @@ SPACEDEF void *space_realloc(Space *space, void *ptr, size_t old_size,
 /**
  * @brief Pre-allocates a planet with the specified capacity in the space.
  *
- * This function creates a new planet with enough space for the specified number
- * of bytes, then immediately resets it to make the memory available for use.
- * This is useful for preparing the space with a known capacity before
- * performing multiple allocations, which can improve performance by reducing
- * reallocation.
+ * This function creates a new planet with enough space for the specified
+ * number of bytes, then immediately resets it to make the memory available
+ * for use. This is useful for preparing the space with a known capacity
+ * before performing multiple allocations, which can improve performance by
+ * reducing reallocation.
  *
  * @param space Pointer to the Space structure.
  * @param size_in_bytes The capacity to pre-allocate in bytes.
@@ -1874,9 +2239,10 @@ SPACEDEF bool space_init_capacity(Space *space, size_t size_in_bytes) {
  * @brief Pre-allocates multiple planets with the specified capacity.
  *
  * This function creates multiple planets, each with the specified capacity,
- * then immediately resets them to make all the memory available. This is useful
- * for preparing the space with a known number of planet before performing
- * multiple allocations, which can improve performance by reducing reallocation.
+ * then immediately resets them to make all the memory available. This is
+ * useful for preparing the space with a known number of planet before
+ * performing multiple allocations, which can improve performance by reducing
+ * reallocation.
  *
  * @param space Pointer to the Space structure.
  * @param size_in_bytes The capacity for each planet in bytes.
@@ -1905,125 +2271,26 @@ SPACEDEF bool space_init_capacity_in_count_plantes(Space *space,
   } else {
     void *ids = NULL;
     size_t size_to_alloc = sizeof(*(size_t *)ids) * count;
-  method_rerun1:
-    switch (space->alloc_method) {
-    case 0:
-      space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-      goto method_rerun1;
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-    case SPACE_METHOD_MALLOC:
-      ids = malloc(size_to_alloc);
-      if (!ids) {
-        return false;
-      }
-      break;
-#endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
-    case SPACE_METHOD_MMAP:
-      ids = mmap(NULL, size_to_alloc, PROT_READ | PROT_WRITE,
-                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-      if (ids == MAP_FAILED) {
-        return false;
-      }
-      break;
-#endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
-    case SPACE_METHOD_VIRTUAL_ALLOC:
-      ids = VirtualAllocEx(GetCurrentProcess(), NULL, size_to_alloc,
-                           MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
-      if (ids == NULL) {
-        return false;
-      }
-      break;
-#endif
-    default:
-      assert(false && "UNREACHABLE: This allocation method is not supported");
+    ids = space__alloc_memory(space, size_to_alloc);
+    if (ids == NULL) {
+      return false;
     }
 
     for (size_t i = 0; i < count; ++i) {
       if (!space_malloc_planetid(space, size_in_bytes, &((size_t *)ids)[i])) {
-      method_rerun2:
-        switch (space->alloc_method) {
-        case 0:
-          space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-          goto method_rerun2;
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-        case SPACE_METHOD_MALLOC:
-          free(ids);
-          return false;
-#endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
-        case SPACE_METHOD_MMAP:
-          munmap(ids, size_to_alloc);
-          return false;
-#endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
-        case SPACE_METHOD_VIRTUAL_ALLOC:
-          VirtualFreeEx(GetCurrentProcess(), (LPVOID)ids, size_to_alloc,
-                        MEM_RELEASE);
-          return false;
-#endif
-        default:
-          assert(false &&
-                 "UNREACHABLE: This allocation method is not supported");
-        }
+        space__free_memory(space, ids, size_to_alloc);
+        return false;
       }
     }
     for (size_t i = 0; i < count; ++i) {
       if (!space_reset_planet_id(space, ((size_t *)ids)[i])) {
-      method_rerun3:
-        switch (space->alloc_method) {
-        case 0:
-          space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-          goto method_rerun3;
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-        case SPACE_METHOD_MALLOC:
-          free(ids);
-          return false;
-#endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
-        case SPACE_METHOD_MMAP:
-          munmap(ids, size_to_alloc);
-          return false;
-#endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
-        case SPACE_METHOD_VIRTUAL_ALLOC:
-          VirtualFreeEx(GetCurrentProcess(), (LPVOID)ids, size_to_alloc,
-                        MEM_RELEASE);
-          return false;
-#endif
-        default:
-          assert(false &&
-                 "UNREACHABLE: This allocation method is not supported");
-        }
+        space__free_memory(space, ids, size_to_alloc);
+        return false;
       }
     }
 
-  method_rerun4:
-    switch (space->alloc_method) {
-    case 0:
-      space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-      goto method_rerun4;
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-    case SPACE_METHOD_MALLOC:
-      free(ids);
-      break;
-#endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
-    case SPACE_METHOD_MMAP:
-      munmap(ids, size_to_alloc);
-      break;
-#endif
-#if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
-    case SPACE_METHOD_VIRTUAL_ALLOC:
-      VirtualFreeEx(GetCurrentProcess(), (LPVOID)ids, size_to_alloc,
-                    MEM_RELEASE);
-      break;
-#endif
-    default:
-      assert(false && "UNREACHABLE: This allocation method is not supported");
-    }
+    space__free_memory(space, ids, size_to_alloc);
   }
 
   return true;
@@ -2033,9 +2300,9 @@ SPACEDEF bool space_init_capacity_in_count_plantes(Space *space,
  * @brief Looks up which planet a pointer belongs to and returns its ID.
  *
  * This function searches through all planets in the space to find which one
- * contains the given pointer. It checks if the pointer falls within the memory
- * range of any planet's data buffer. Returns 0 if the pointer is not found
- * in any planet.
+ * contains the given pointer. It checks if the pointer falls within the
+ * memory range of any planet's data buffer. Returns 0 if the pointer is not
+ * found in any planet.
  *
  * @param space Pointer to the Space structure to search.
  * @param ptr Pointer to the memory address to find the planet for.
@@ -2049,18 +2316,52 @@ SPACEDEF size_t space_find_planet_id_from_ptr(Space *space, void *ptr) {
   if (!space->count) {
     return 0;
   }
-  if (!space->sun || !space->sun->planet.elements) {
-    return 0;
-  }
 
-  size_t i = 0;
-  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-       big_planet = big_planet->next, ++i) {
-    if ((char *)big_planet->planet.elements <= (char *)ptr &&
-        (char *)big_planet->planet.elements + big_planet->planet.capacity >=
-            (char *)ptr) {
-      return big_planet->planet.id;
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    if (!space->sun || !space->sun->planet.elements) {
+      return 0;
     }
+
+    size_t i = 0;
+    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+         big_planet = big_planet->next, ++i) {
+      if ((char *)big_planet->planet.elements <= (char *)ptr &&
+          (char *)big_planet->planet.elements + big_planet->planet.capacity >=
+              (char *)ptr) {
+        return big_planet->planet.id;
+      }
+    }
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    if (!space->elements) {
+      return 0;
+    }
+
+    for (size_t i = 0; i < space->count; ++i) {
+      if ((char *)space->elements[i].elements <= (char *)ptr &&
+          (char *)space->elements[i].elements + space->elements[i].capacity >=
+              (char *)ptr) {
+        return space->elements[i].id;
+      }
+    }
+
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
   }
 
   return 0;
@@ -2070,8 +2371,9 @@ SPACEDEF size_t space_find_planet_id_from_ptr(Space *space, void *ptr) {
  * @brief Looks up and returns the planet structure containing a pointer.
  *
  * This function searches through all planets in the space to find which one
- * contains the given pointer. It checks if the pointer falls within the memory
- * range of any planet's data buffer. Returns NULL if the pointer is not found.
+ * contains the given pointer. It checks if the pointer falls within the
+ * memory range of any planet's data buffer. Returns NULL if the pointer is
+ * not found.
  *
  * @param space Pointer to the Space structure to search.
  * @param ptr Pointer to the memory address to find the planet for.
@@ -2085,18 +2387,52 @@ SPACEDEF Planet *space_find_planet_from_ptr(Space *space, void *ptr) {
   if (!space->count) {
     return NULL;
   }
-  if (!space->sun || !space->sun->planet.elements) {
-    return NULL;
-  }
 
-  size_t i = 0;
-  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-       big_planet = big_planet->next, ++i) {
-    if ((char *)big_planet->planet.elements <= (char *)ptr &&
-        (char *)big_planet->planet.elements + big_planet->planet.capacity >=
-            (char *)ptr) {
-      return &big_planet->planet;
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    if (!space->sun || !space->sun->planet.elements) {
+      return NULL;
     }
+
+    size_t i = 0;
+    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+         big_planet = big_planet->next, ++i) {
+      if ((char *)big_planet->planet.elements <= (char *)ptr &&
+          (char *)big_planet->planet.elements + big_planet->planet.capacity >=
+              (char *)ptr) {
+        return &big_planet->planet;
+      }
+    }
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    if (!space->elements) {
+      return NULL;
+    }
+
+    for (size_t i = 0; i < space->count; ++i) {
+      if ((char *)space->elements[i].elements <= (char *)ptr &&
+          (char *)space->elements[i].elements + space->elements[i].capacity >=
+              (char *)ptr) {
+        return &space->elements[i];
+      }
+    }
+
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
   }
 
   return NULL;
@@ -2105,8 +2441,8 @@ SPACEDEF Planet *space_find_planet_from_ptr(Space *space, void *ptr) {
 /**
  * @brief Looks up and returns the Big_Planet structure containing a pointer.
  *
- * This function searches through all big_planets in the space to find which one
- * contains the given planet. Returns NULL if the pointer is not found.
+ * This function searches through all big_planets in the space to find which
+ * one contains the given planet. Returns NULL if the pointer is not found.
  *
  *
  * @param space Pointer to the Space structure to search.
@@ -2116,9 +2452,14 @@ SPACEDEF Planet *space_find_planet_from_ptr(Space *space, void *ptr) {
  */
 SPACEDECL Big_Planet *space_find_big_planet_from_planet(Space *space,
                                                         Planet *planet) {
+
   if (!planet || !space) {
     return NULL;
   }
+  if (space->memory_layout != SPACE_MEMORY_DOUBLE_LINKED_LIST) {
+    return NULL;
+  }
+
   if (!space->count) {
     return NULL;
   }
@@ -2142,8 +2483,9 @@ SPACEDECL Big_Planet *space_find_big_planet_from_planet(Space *space,
  *
  * This function checks if an existing allocation can be extended without
  * reallocating and moving the data. It succeeds only if the pointer is at
- * the end of a planet's used memory and there is enough free capacity following
- * it. This is more efficient than a full reallocation when possible.
+ * the end of a planet's used memory and there is enough free capacity
+ * following it. This is more efficient than a full reallocation when
+ * possible.
  *
  * @param space Pointer to the Space structure.
  * @param ptr Pointer to the existing memory to expand.
@@ -2173,16 +2515,16 @@ SPACEDEF bool space_try_to_expand_in_place(Space *space, void *ptr,
 /**
  * @brief Gathers statistics about current memory usage in the space.
  *
- * This function collects information about all planets in the space, including
- * the total number of planets, the total allocated capacity across all planets,
- * and the total used memory (count). This is useful for debugging, logging,
- * or implementing memory usage tracking.
+ * This function collects information about all planets in the space,
+ * including the total number of planets, the total allocated capacity across
+ * all planets, and the total used memory (count). This is useful for
+ * debugging, logging, or implementing memory usage tracking.
  *
  * @param space Pointer to the Space structure to report on.
  * @param report Pointer to the Space_Report structure that will be filled
  *               with the current memory statistics.
- * @return true if the report was successfully generated; false if space is NULL
- *         or if the statistics would overflow.
+ * @return true if the report was successfully generated; false if space is
+ * NULL or if the statistics would overflow.
  */
 SPACEDEF bool space_report_allocations(Space *space, Space_Report *report) {
   if (!space) {
@@ -2190,16 +2532,47 @@ SPACEDEF bool space_report_allocations(Space *space, Space_Report *report) {
   }
   report->planet_count = space->count;
 
-  size_t i = 0;
-  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-       big_planet = big_planet->next, ++i) {
-    if (report->allocated_capacity + big_planet->planet.capacity > SIZE_MAX ||
-        report->allocated_count + big_planet->planet.count > SIZE_MAX) {
-      return false;
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+    size_t i = 0;
+    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
+         big_planet = big_planet->next, ++i) {
+      if (report->allocated_capacity + big_planet->planet.capacity > SIZE_MAX ||
+          report->allocated_count + big_planet->planet.count > SIZE_MAX) {
+        return false;
+      }
+
+      report->allocated_capacity += big_planet->planet.capacity;
+      report->allocated_count += big_planet->planet.count;
+    }
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
+  case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    for (size_t i = 0; i < space->count; ++i) {
+      if (report->allocated_capacity + space->elements[i].capacity > SIZE_MAX ||
+          report->allocated_count + space->elements[i].count > SIZE_MAX) {
+        return false;
+      }
+
+      report->allocated_capacity += space->elements[i].capacity;
+      report->allocated_count += space->elements[i].count;
     }
 
-    report->allocated_capacity += big_planet->planet.capacity;
-    report->allocated_count += big_planet->planet.count;
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
+  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
   }
 
   return true;
@@ -2230,8 +2603,9 @@ SPACEDEF size_t space_align(size_t alignment, size_t value) {
  * operations.
  *
  * This function efficiently rounds up the value to the next multiple of a
- * power-of-two alignment using bitwise AND. This is faster than division-based
- * alignment for power-of-two values. The alignment must be a power of 2.
+ * power-of-two alignment using bitwise AND. This is faster than
+ * division-based alignment for power-of-two values. The alignment must be a
+ * power of 2.
  *
  * @param alignment The power-of-two alignment boundary to use.
  * @param value The value to align.
