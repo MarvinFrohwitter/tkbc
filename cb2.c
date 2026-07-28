@@ -90,7 +90,7 @@ void define_opt(Cmd *cmd, Define_Opts opts) {
 
   if (opts.space_alloc_method_mmap) {
     CFLAGS(cmd, "-DSPACE_ALLOC_METHOD=(SPACE_METHOD_MALLOC|SPACE_METHOD_MMAP)");
-    CFLAGS(cmd, "-DSPACE_METHOD_DEFAULT=SPACE_METHOD_MMAP");
+    CFLAGS(cmd, "-DSPACE_ALLOC_METHOD_DEFAULT=SPACE_METHOD_MMAP");
   }
 
   if (opts.print_operation_and_description) {

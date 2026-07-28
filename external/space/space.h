@@ -19,21 +19,21 @@
 // #define SPACE_ALLOC_METHOD (SPACE_METHOD_MALLOC | SPACE_METHOD_VIRTUAL_ALLOC)
 #endif
 
-#ifndef SPACE_METHOD_DEFAULT
+#ifndef SPACE_ALLOC_METHOD_DEFAULT
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-#define SPACE_METHOD_DEFAULT SPACE_METHOD_MALLOC
+#define SPACE_ALLOC_METHOD_DEFAULT SPACE_METHOD_MALLOC
 #elif SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
-#define SPACE_METHOD_DEFAULT SPACE_METHOD_MMAP
+#define SPACE_ALLOC_METHOD_DEFAULT SPACE_METHOD_MMAP
 #elif SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
 #ifdef _WIN32
-#define SPACE_METHOD_DEFAULT SPACE_METHOD_VIRTUAL_ALLOC
+#define SPACE_ALLOC_METHOD_DEFAULT SPACE_METHOD_VIRTUAL_ALLOC
 #else
 #define SPACE_ALLOC_METHOD -1
 #endif
 #else
-#define SPACE_METHOD_DEFAULT -1
+#define SPACE_ALLOC_METHOD_DEFAULT -1
 #endif
-#endif // SPACE_METHOD_DEFAULT
+#endif // SPACE_ALLOC_METHOD_DEFAULT
 //
 //
 //
@@ -60,7 +60,12 @@
 #endif
 
 #ifndef SPACE_ALLOC_METHOD
-#error "No specified alloc method"
+#error "No valid alloc method"
+#endif
+
+#if (SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP) &&                                \
+    (SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC)
+#warning "Are you sure you are on Windows and POSIX at the same time?"
 #endif
 
 #ifndef SPACEDECL
@@ -89,7 +94,31 @@ struct Big_Planet {
 // MEMORY layout operations
 #define SPACE_MEM_DOUBLE_LINKED_LIST (0x10)
 #define SPACE_MEM_DYNAMIC_ARRAY (0x20)
-#define SPACE_MEM_STUCT_OF_ARRAYs (0x40)
+#define SPACE_MEM_STUCT_OF_ARRAYS (0x40)
+
+#ifndef SPACE_MEMORY_LAYOUT_METHOD
+#define SPACE_MEMORY_LAYOUT_METHOD (SPACE_MEM_DOUBLE_LINKED_LIST)
+#endif
+
+#ifndef SPACE_MEMORY_LAYOUT_METHOD_DEFAULT
+#if 0
+#elif SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_DOUBLE_LINKED_LIST
+#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEM_DOUBLE_LINKED_LIST
+#elif SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_DYNAMIC_ARRAY
+#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEM_DYNAMIC_ARRAY
+#elif SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_STUCT_OF_ARRAYS
+#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEM_STUCT_OF_ARRAYS
+#else
+#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT -1
+#endif
+#endif
+
+#ifndef SPACE_MEMORY_LAYOUT_METHOD
+#error "No valid memory layout method"
+#endif
+
+typedef void void_t;
+
 typedef struct {
   union {
     Big_Planet *sun;
@@ -99,12 +128,11 @@ typedef struct {
         Planet *elements;
 
         struct {
-          void **elements;
-
+          void_t **planet_elements;
           size_t *planet_counts;
           size_t *planet_capacitys;
           size_t *planet_ids;
-        } SOA;
+        };
       };
 
       size_t capacity;
@@ -1055,7 +1083,7 @@ SPACEDEF Big_Planet *space_init_big_planet(Space *space, size_t size_in_bytes) {
 method_rerun:
   switch (space->alloc_method) {
   case 0:
-    space->alloc_method = SPACE_METHOD_DEFAULT;
+    space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
     goto method_rerun;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
   case SPACE_METHOD_MALLOC:
@@ -1187,7 +1215,7 @@ SPACEDEF void space_free_planet_optional_freeing_data(Space *space,
   method_rerun1:
     switch (space->alloc_method) {
     case 0:
-      space->alloc_method = SPACE_METHOD_DEFAULT;
+      space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
       goto method_rerun1;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
     case SPACE_METHOD_MALLOC:
@@ -1220,7 +1248,7 @@ SPACEDEF void space_free_planet_optional_freeing_data(Space *space,
 method_rerun2:
   switch (space->alloc_method) {
   case 0:
-    space->alloc_method = SPACE_METHOD_DEFAULT;
+    space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
     goto method_rerun2;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
   case SPACE_METHOD_MALLOC:
@@ -1470,6 +1498,32 @@ SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
   if (!big_planet) {
     *planet_id = 0;
     return NULL;
+  }
+
+layout_rerun:
+  switch (space->memory_layout) {
+  case 0:
+    space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
+    goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_DOUBLE_LINKED_LIST
+  case SPACE_MEM_DOUBLE_LINKED_LIST: {
+
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_DYNAMIC_ARRAY
+  case SPACE_MEM_DYNAMIC_ARRAY: {
+
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEM_STUCT_OF_ARRAYS
+  case SPACE_MEM_STUCT_OF_ARRAYS: {
+
+    assert(false && "This memory layout is not supported");
+  } break;
+#endif
+  default:
+    assert(false && "UNREACHABLE: This memory layout is not supported");
   }
 
   big_planet->planet.count = size_in_bytes;
@@ -1854,7 +1908,7 @@ SPACEDEF bool space_init_capacity_in_count_plantes(Space *space,
   method_rerun1:
     switch (space->alloc_method) {
     case 0:
-      space->alloc_method = SPACE_METHOD_DEFAULT;
+      space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
       goto method_rerun1;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
     case SPACE_METHOD_MALLOC:
@@ -1892,7 +1946,7 @@ SPACEDEF bool space_init_capacity_in_count_plantes(Space *space,
       method_rerun2:
         switch (space->alloc_method) {
         case 0:
-          space->alloc_method = SPACE_METHOD_DEFAULT;
+          space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
           goto method_rerun2;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
         case SPACE_METHOD_MALLOC:
@@ -1921,7 +1975,7 @@ SPACEDEF bool space_init_capacity_in_count_plantes(Space *space,
       method_rerun3:
         switch (space->alloc_method) {
         case 0:
-          space->alloc_method = SPACE_METHOD_DEFAULT;
+          space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
           goto method_rerun3;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
         case SPACE_METHOD_MALLOC:
@@ -1949,7 +2003,7 @@ SPACEDEF bool space_init_capacity_in_count_plantes(Space *space,
   method_rerun4:
     switch (space->alloc_method) {
     case 0:
-      space->alloc_method = SPACE_METHOD_DEFAULT;
+      space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
       goto method_rerun4;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
     case SPACE_METHOD_MALLOC:
