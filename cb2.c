@@ -292,21 +292,23 @@ typedef struct {
 
 #define first_o(cmd, ...) first_o_opt(cmd, ((OS_Opts){__VA_ARGS__}))
 void first_o_opt(Cmd *cmd, OS_Opts os) {
-  cb_cmd_push(cmd, CC);
   if (0) {
   } else if (os.LINUX) {
+    cb_cmd_push(cmd, CC);
     include(cmd, .raylib = true, .LINUX = true);
     define(cmd, .space_decl = true, .space_def = true,
            .space_alloc_method_mmap = true);
+    cflags(cmd);
   } else if (os.WINDOWS) {
+    cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
     include(cmd, .raylib = true, .WINDOWS = true);
     define(cmd, .space_decl = true, .space_def = true,
            .space_alloc_method_virtual_alloc = true);
+    cflags(cmd, .WINDOWS = true);
   } else {
     exit(EXIT_FAILURE);
   }
 
-  cflags(cmd); // TODO Think about windows cflags(cmd, .WINDOWS = true);
   cb_cmd_push(cmd, "-c");
   cb_cmd_push(cmd, "-o", BUILD_PATH "first.o");
   cb_cmd_push(cmd, SCRIPT_PATH "first.c");
