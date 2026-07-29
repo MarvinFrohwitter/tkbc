@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include "rlgl.h"
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
@@ -38,6 +39,19 @@ struct Process {
 #include "tkbc-ffmpeg.h"
 #include "tkbc-keymaps.h"
 
+void tkbc_take_screenshot(const char *path) {
+  Image image = LoadImageFromScreen();
+  ExportImage(image, path); // WARNING: Module required: rtextures
+  UnloadImage(image);
+
+  if (FileExists(path))
+    tkbc_fprintf(stderr, "WARNING",
+                 "SYSTEM: [%s] Screenshot taken successfully", path);
+  else
+    tkbc_fprintf(stderr, "WARNING",
+                 "SYSTEM: [%s] Screenshot could not be saved", path);
+}
+
 /**
  * @brief The function controls the keyboard input of the start and stop video
  * capturing.
@@ -67,7 +81,7 @@ void tkbc_ffmpeg_handler(Env *env) {
     } else {
 
       tkbc_fprintf(stderr, "INFO", "File: %s\n", file_name);
-      TakeScreenshot(file_name);
+      tkbc_take_screenshot(file_name);
       free(file_name);
     }
   }
@@ -369,7 +383,7 @@ int tkbc_ffmpeg_write_image(Env *env) {
     }
 
   check:
-    UnloadImage(image); // This is very important otherwise it is memory leak.
+    UnloadImage(image);
     return ok;
   }
   return 1;
@@ -639,7 +653,7 @@ int tkbc_ffmpeg_write_image(Env *env) {
     }
 
   check:
-    UnloadImage(image); // This is very important otherwise it is memory leak.
+    UnloadImage(image);
     return ok;
   }
   return 1;
