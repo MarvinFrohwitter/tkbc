@@ -225,7 +225,7 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
     snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
              "ffmpeg -loglevel verbose -y -f rawvideo -pix_fmt rgba -s %s -r "
              "%s -i pipe:0 -c:v libx264 -vb  2500k -c:a aac -ab 200k -pix_fmt "
-             "yuv420p %s",
+             "yuv420p \"%s\"",
              resolution, fps, output_file_path);
 
     tkbc_fprintf(stderr, "INFO", "%s %s\n", "[CMD]", ffmpeg_cmd);
@@ -245,8 +245,8 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
     char ffmpeg_cmd[512] = {0};
     snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
              "ffmpeg -loglevel verbose -y -f rawvideo -pix_fmt rgba -s %s -r "
-             "%s -i pipe:0 -i %s -c:v libx264 -vb 2500k -c:a aac -ab 200k "
-             "-pix_fmt yuv420p %s",
+             "%s -i pipe:0 -i \"%s\" -c:v libx264 -vb 2500k -c:a aac -ab 200k "
+             "-pix_fmt yuv420p \"%s\"",
              resolution, fps, env->sound_file_name, output_file_path);
 
     tkbc_fprintf(stderr, "INFO", "%s %s\n", "[CMD]", ffmpeg_cmd);
