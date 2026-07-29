@@ -40,6 +40,11 @@ struct Process {
 #include "tkbc-keymaps.h"
 
 void tkbc_take_screenshot(const char *path) {
+  if (IsWindowMinimized() || IsWindowHidden()) {
+    tkbc_fprintf(stderr, "WARNING",
+                 "SYSTEM: Cannot take screenshot while window is minimized or hidden");
+    return;
+  }
   Image image = LoadImageFromScreen();
   ExportImage(image, path); // WARNING: Module required: rtextures
   UnloadImage(image);
@@ -367,6 +372,9 @@ check:
  */
 int tkbc_ffmpeg_write_image(Env *env) {
   if (env->rendering) {
+    if (IsWindowMinimized() || IsWindowHidden()) {
+      return 1;
+    }
     int ok = 0;
     Image image = LoadImageFromScreen();
     ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
@@ -638,6 +646,9 @@ bool tkbc_ffmpeg_wait(Process process, bool is_kill_foreced) {
  */
 int tkbc_ffmpeg_write_image(Env *env) {
   if (env->rendering) {
+    if (IsWindowMinimized() || IsWindowHidden()) {
+      return 1;
+    }
     int ok = 0;
     Image image = LoadImageFromScreen();
     ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);

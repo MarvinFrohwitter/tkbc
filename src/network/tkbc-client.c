@@ -1103,11 +1103,9 @@ int main(int argc, char *argv[]) {
 
   SetTraceLogLevel(LOG_NONE);
 #ifdef _WIN32
-  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT |
-                 FLAG_WINDOW_MINIMIZED | FLAG_WINDOW_MAXIMIZED);
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
 #else
-  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT |
-                 FLAG_WINDOW_MINIMIZED | FLAG_WINDOW_MAXIMIZED);
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
 #endif
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
   SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -1194,8 +1192,7 @@ int main(int argc, char *argv[]) {
 
           // HACK disabling the default activeness just for offline is wrong.
           for (size_t k = 0; k < env->kite_array.count; ++k) {
-            if (env->kite_array.elements[k].kite_id ==
-                (size_t)client.kite_id) {
+            if (env->kite_array.elements[k].kite_id == (size_t)client.kite_id) {
               continue;
             }
             env->kite_array.elements[k].is_active = false;
