@@ -683,7 +683,12 @@ char *tkbc_generate_file_name_with_time_stamp(const char *prefix,
   size_t time_string_len = 26;
   char *time_string = ctime(&current_time);
   time_string = strdup(time_string);
-  time_string[24] = '\0'; // This is to remove the '\n' from the time_string.
+  time_string[24] = '\0';
+  // For Windows file names with ':' are not allowed.
+  for (char *c = time_string; *c; c++) {
+    if (*c == ':')
+      *c = '-';
+  }
   size_t size = strlen(prefix) + time_string_len - 1 + strlen(postfix);
   char *mem = malloc(size * sizeof(char));
   if (!mem) {
