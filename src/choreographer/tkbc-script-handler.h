@@ -21,6 +21,7 @@ Script tkbc_deep_copy_script(Space *space, Script *script);
 void tkbc_destroy_frames_internal_data(Frames *frames);
 void tkbc_reset_frames_internal_data(Frames *frames);
 void tkbc_render_frame(Env *env, Frame *frame);
+void tkbc_patch_combined_move_tip_frames(Env *env);
 
 void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script,
                                                   Kite_Ids kite_ids);

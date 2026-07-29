@@ -30,29 +30,22 @@ tkbc_script_input {
 
   //////////////////////////////////////////////////////////////////////
   //
-  // BUG At the moment KITE_MOVE_ADD() and KITE_TIP_ROTATION_ADD() can't be
-  //     called in the same SET(), because they internally uses not the same
-  //     reposition function and the TIP location computation messes with moving
-  //     the kite first.
-  //     So basically the KITE_MOVE_ADD can overshoot and don't terminate,
-  //     because the TIP computation moves the kite as well.
+  // Combined KITE_MOVE_ADD and KITE_TIP_ROTATION_ADD in the same SET().
+  // The combined final position is computed at block start: the tip rotation
+  // center displacement is added to the move offset, and the MOVE_ADD handles
+  // the full center animation while the tip rotation only affects the angle.
   //
-  //     The solution would be to check for move and tip rotations explicitly.
-  //     An compute the combined endposition up front and patch the potions
-  //     where the kite should move to.
-  //
-  // Tho the workaround for now is to just call the normal rotation an move to
-  // the correct position manually.
-  //
-  // tkbc_script_begin(); SET(
-  //     KITE_MOVE_ADD(ID(zero), -kite.width, 0, rotation_duration),
-  //     KITE_MOVE_ADD(ID(one), kite.width, 0, rotation_duration),
+  tkbc_script_begin("Combind tip rotation and move adding");
+  SET(
 
-  //     KITE_TIP_ROTATION_ADD(ID(zero), 180, LEFT_TIP, rotation_duration),
-  //     KITE_TIP_ROTATION_ADD(ID(one), 180, LEFT_TIP, rotation_duration)
+      KITE_MOVE_ADD(ID(zero), -kite.width, 0, rotation_duration),
+      KITE_MOVE_ADD(ID(one), kite.width, 0, rotation_duration),
 
-  // );
-  // tkbc_script_end();
+      KITE_TIP_ROTATION_ADD(ID(zero), 180, LEFT_TIP, rotation_duration),
+      KITE_TIP_ROTATION_ADD(ID(one), 180, LEFT_TIP, rotation_duration)
+
+  );
+  tkbc_script_end();
   //////////////////////////////////////////////////////////////////////
 
   free(ki.elements);

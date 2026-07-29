@@ -299,6 +299,28 @@ void tkbc_reset_frames_internal_data(Frames *frames) {
 }
 
 /**
+ * @brief Checks if the given kite has a move frame (MOVE or MOVE_ADD) in the
+ * current block.
+ *
+ * @param env The global state of the application.
+ * @param kite_id The id of the kite to check.
+ * @return True if a move frame exists for this kite, otherwise false.
+ */
+static bool tkbc_kite_has_move_in_block(Env *env, Id kite_id) {
+  for (size_t i = 0; i < env->frames->count; ++i) {
+    Frame *f = &env->frames->elements[i];
+    if (f->kind == ACTION_KITE_MOVE || f->kind == ACTION_KITE_MOVE_ADD) {
+      for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+        if (f->kite_id_array.elements[j] == kite_id) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * @brief The function supports all the action kinds that are defined. It can be
  * used to calculate the given frame and its action. For kite actions the new
  * state of the kite results and the internal action values related to time and
@@ -464,8 +486,17 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       Id id = env_frame->kite_id_array.elements[i];
       kite = tkbc_get_kite_by_id_unwrap(env, id);
 
-      float d = tkbc_script_rotate_tip(kite, action->tip, action->angle,
-                                       frame->duration, true);
+      // When combined with a move frame, use angle-only rotation so the
+      // move handles the full center animation without interference.
+      bool has_move = tkbc_kite_has_move_in_block(env, id);
+
+      float d;
+      if (has_move) {
+        d = tkbc_script_rotate(kite, action->angle, frame->duration, true);
+      } else {
+        d = tkbc_script_rotate_tip(kite, action->tip, action->angle,
+                                   frame->duration, true);
+      }
       if (action->angle == 0) {
         frame->duration -= tkbc_get_frame_time();
         if (frame->duration <= 0) {
@@ -477,8 +508,11 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       int result = fabsf((kite->old_angle + action->angle) - kite->angle) <= d;
       if (result) {
         frame->finished = true;
-        // Enable for setting the correct angle precision.
-        tkbc_script_rotate_tip(kite, action->tip, action->angle, 0, true);
+        if (has_move) {
+          tkbc_script_rotate(kite, action->angle, 0, true);
+        } else {
+          tkbc_script_rotate_tip(kite, action->tip, action->angle, 0, true);
+        }
       }
     }
   } break;
@@ -490,10 +524,18 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       Id id = env_frame->kite_id_array.elements[i];
       kite = tkbc_get_kite_by_id_unwrap(env, id);
 
+      bool has_move = tkbc_kite_has_move_in_block(env, id);
       float intermediate_angle = tkbc_check_angle_zero(
           kite, frame->kind, *(Action *)action, frame->duration);
-      float d = tkbc_script_rotate_tip(kite, action->tip, intermediate_angle,
-                                       frame->duration, false);
+
+      float d;
+      if (has_move) {
+        d = tkbc_script_rotate(kite, intermediate_angle, frame->duration,
+                               false);
+      } else {
+        d = tkbc_script_rotate_tip(kite, action->tip, intermediate_angle,
+                                   frame->duration, false);
+      }
 
       if (action->angle == 0) {
         if (frame->duration > 0) {
@@ -512,8 +554,12 @@ void tkbc_render_frame(Env *env, Frame *frame) {
                          fabsf(fmodf(kite->angle, 360))) <= d;
       if (result) {
         frame->finished = true;
-        // Enable for setting the correct angle precision.
-        tkbc_script_rotate_tip(kite, action->tip, intermediate_angle, 0, false);
+        if (has_move) {
+          tkbc_script_rotate(kite, intermediate_angle, 0, false);
+        } else {
+          tkbc_script_rotate_tip(kite, action->tip, intermediate_angle, 0,
+                                 false);
+        }
       }
     }
   } break;
@@ -1354,17 +1400,80 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
 }
 
 /**
- * @brief The function computes the intermediate angle that represents the
- * difference to zero from the current kite angle and respects the sign of the
- * 0 angle. The intermediate angle is returned and the action stays
- * unmodified.
+ * @brief Detects kites that have both a move frame (MOVE or MOVE_ADD) and a
+ * tip rotation frame (TIP_ROTATION or TIP_ROTATION_ADD) in the current block.
+ * For MOVE_ADD, the destination is patched to the combined final position (tip
+ * rotation final center + move offset). For MOVE (absolute), no patching is
+ * needed since the absolute target already accounts for the final position.
+ * In both cases the tip rotation will use angle-only in the render function,
+ * preventing the infinite loop where both actions fight over kite->center.
  *
- * @param kite The kite the intermediate angel should be calculated for.
- * @param kind The action kind.
- * @param action The frame action that is a rotation variant.
- * @param duration The current frame duration.
- * @return The intermediate angle that represents the distance to 0.
+ * @param env The global state of the application.
  */
+void tkbc_patch_combined_move_tip_frames(Env *env) {
+  Frames *frames = env->frames;
+  if (!frames) {
+    return;
+  }
+
+  for (size_t k = 0; k < frames->kite_frame_positions.count; ++k) {
+    Id kite_id = frames->kite_frame_positions.elements[k].kite_id;
+
+    Frame *move_frame = NULL;
+    Frame *tip_frame = NULL;
+
+    for (size_t i = 0; i < frames->count; ++i) {
+      Frame *frame = &frames->elements[i];
+      for (size_t j = 0; j < frame->kite_id_array.count; ++j) {
+        if (frame->kite_id_array.elements[j] == kite_id) {
+          if (frame->kind == ACTION_KITE_MOVE ||
+              frame->kind == ACTION_KITE_MOVE_ADD) {
+            move_frame = frame;
+          } else if (frame->kind == ACTION_KITE_TIP_ROTATION ||
+                     frame->kind == ACTION_KITE_TIP_ROTATION_ADD) {
+            tip_frame = frame;
+          }
+        }
+      }
+    }
+
+    if (!move_frame || !tip_frame) {
+      continue;
+    }
+
+    Kite *kite = tkbc_get_kite_by_id(env, kite_id);
+    if (!kite) {
+      continue;
+    }
+
+    Tip_Rotation_Action *tip_action = &tip_frame->action.as_tip_rotation;
+
+    Vector2 saved_center = kite->center;
+    float saved_angle = kite->angle;
+
+    kite->center = kite->old_center;
+    kite->angle = kite->old_angle;
+    tkbc_kite_update_internal(kite);
+
+    float final_tip_angle = tip_frame->kind == ACTION_KITE_TIP_ROTATION_ADD
+                                ? kite->old_angle + tip_action->angle
+                                : tip_action->angle;
+    tkbc_tip_rotation(kite, &kite->old_center, final_tip_angle,
+                      tip_action->tip);
+
+    // Only patch MOVE_ADD (relative); MOVE (absolute) is already the target.
+    if (move_frame->kind == ACTION_KITE_MOVE_ADD) {
+      Move_Add_Action *move_action = &move_frame->action.as_move_add;
+      Vector2 combined = Vector2Add(kite->center, move_action->position);
+      move_action->position = Vector2Subtract(combined, kite->old_center);
+    }
+
+    kite->center = saved_center;
+    kite->angle = saved_angle;
+    tkbc_kite_update_internal(kite);
+  }
+}
+
 float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action,
                             float duration) {
   switch (kind) {
