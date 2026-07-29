@@ -50,13 +50,23 @@ void tkbc_ffmpeg_handler(Env *env) {
   if (tkbc_check_keymaps_full(env->keymaps, KMH_TAKE_SCREENSHOT,
                               KEY_MAP_CHECK_KEY_PRESSED)) {
 
-    char *file_name =
-        tkbc_generate_file_name_with_time_stamp("Choreo Picture - ", ".png");
+    tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
+    const char *prefix =
+        space_tprintf("%s%s", env->tkbc_dir, "Choreo Picture - ");
+    if (!prefix) {
+      goto err_screenshot;
+    }
+
+    char *file_name = tkbc_generate_file_name_with_time_stamp(prefix, ".png");
+    space_reset_tspace();
     if (file_name == NULL) {
+    err_screenshot:
       tkbc_fprintf(
           stderr, "ERROR",
           "No file name for screenshot can be allocated. Screenshot abort.\n");
     } else {
+
+      tkbc_fprintf(stderr, "INFO", "File: %s\n", file_name);
       TakeScreenshot(file_name);
       free(file_name);
     }
@@ -77,10 +87,19 @@ void tkbc_ffmpeg_handler(Env *env) {
                                      KEY_MAP_CHECK_KEY_PRESSED)) {
     if (!env->rendering) {
 
+      tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
+      const char *prefix =
+          space_tprintf("%s%s", env->tkbc_dir, "Choreo Video - ");
+      if (!prefix) {
+        goto err_video;
+      }
       char *output_file_path =
-          tkbc_generate_file_name_with_time_stamp("Choreo Video - ", ".mp4");
+          tkbc_generate_file_name_with_time_stamp(prefix, ".mp4");
+      space_reset_tspace();
 
+      tkbc_fprintf(stderr, "INFO", "File: %s\n", output_file_path);
       if (output_file_path == NULL) {
+      err_video:
         tkbc_fprintf(stderr, "ERROR",
                      "No file name for screencast can be allocated. Screencast "
                      "abort.\n");

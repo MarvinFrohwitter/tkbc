@@ -164,12 +164,6 @@ check:
  */
 int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env,
                                                       const char *path) {
-#ifdef _WIN32
-  char separator = '\\';
-#else
-  char separator = '/';
-#endif
-
   tkbc_make_dir_recursive_if_not_existis(path);
 
   int err = 0;
@@ -177,8 +171,8 @@ int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env,
   for (size_t i = 0; i < env->scripts.count; ++i) {
     assert(env->scripts.elements[i].name);
     space_reset_tspace();
-    const char *buf = space_tprintf("%s%c%s.kite", path, separator,
-                                    env->scripts.elements[i].name);
+    const char *buf =
+        space_tprintf("%s%s.kite", path, env->scripts.elements[i].name);
     err = tkbc_export_script_to_dot_kite_file_from_mem(
         &env->scripts.elements[i], buf);
 

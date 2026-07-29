@@ -1,6 +1,11 @@
 #ifndef TKBC_TYPES_H_
 #define TKBC_TYPES_H_
 
+#define TKBC_LOGGING
+#define TKBC_LOGGING_ERROR
+#define TKBC_LOGGING_INFO
+#define TKBC_LOGGING_WARNING
+
 #include "../../external/space/space.h"
 #include "raylib.h"
 #include <assert.h>

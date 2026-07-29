@@ -54,11 +54,11 @@ Env *tkbc_init_env(void) {
 
 #define TKBC_DIR "tkbc"
 #define KEYMAPS_FILE ".tkbc-keymaps"
-
-  env->tkbc_dir = TKBC_DIR;
 #ifdef _WIN32
+  env->tkbc_dir = TKBC_DIR "\\";
   env->tkbc_keymaps_path = TKBC_DIR "\\" KEYMAPS_FILE;
 #else
+  env->tkbc_dir = TKBC_DIR "/";
   env->tkbc_keymaps_path = TKBC_DIR "/" KEYMAPS_FILE;
 #endif
 
