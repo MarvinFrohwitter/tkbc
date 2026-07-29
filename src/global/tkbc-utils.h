@@ -684,8 +684,11 @@ char *tkbc_generate_file_name_with_time_stamp(const char *prefix,
   char *time_string = ctime(&current_time);
   time_string = strdup(time_string);
   time_string[24] = '\0'; // This is to remove the '\n' from the time_string.
-  size_t size = strlen(prefix) + time_string_len + strlen(postfix);
+  size_t size = strlen(prefix) + time_string_len - 2 + strlen(postfix);
   char *mem = malloc(size * sizeof(char));
+  if (!mem) {
+    return NULL;
+  }
   int ret = snprintf(mem, size, "%s%s%s", prefix, time_string, postfix);
   free(time_string);
   if (ret != (int)size) {

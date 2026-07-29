@@ -52,8 +52,14 @@ void tkbc_ffmpeg_handler(Env *env) {
 
     char *file_name =
         tkbc_generate_file_name_with_time_stamp("Choreo Picture - ", ".png");
-    TakeScreenshot(file_name);
-    free(file_name);
+    if (file_name == NULL) {
+      tkbc_fprintf(
+          stderr, "ERROR",
+          "No file name for screenshot can be allocated. Screenshot abort.\n");
+    } else {
+      TakeScreenshot(file_name);
+      free(file_name);
+    }
   }
 
   //
@@ -73,6 +79,13 @@ void tkbc_ffmpeg_handler(Env *env) {
 
       char *output_file_path =
           tkbc_generate_file_name_with_time_stamp("Choreo Video - ", ".mp4");
+
+      if (output_file_path == NULL) {
+        tkbc_fprintf(stderr, "ERROR",
+                     "No file name for screencast can be allocated. Screencast "
+                     "abort.\n");
+        return;
+      }
 
       if (!tkbc_ffmpeg_create_proc(env, output_file_path)) {
         env->recording = false;
