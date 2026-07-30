@@ -77,8 +77,8 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y,
 
   Asset *asset = tkbc_find_asset_from_id(texture_id);
   assert(asset != NULL);
-  Kite_Texture *kite_texture =
-      &tkbc_get_asset_kite_design(asset->id).as.kite_texture;
+  assert(asset->type == ASSETS_KITE_DESIGN);
+  Kite_Texture *kite_texture = &asset->as.kite_texture;
   assert(kite_texture != NULL);
   tkbc_set_kite_texture(state->kite, kite_texture);
 #endif
@@ -135,7 +135,7 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id,
 
   Asset *found = tkbc_find_asset_from_id(texture_id);
   if (!found && texture_id != -1) {
-    texture_id = KITE_COLORIZER;
+    texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
     ok = 2;
   }
 
@@ -509,7 +509,7 @@ inline bool tkbc_error_handling_of_received_message_handler(
   char *rn = tkbc_find_rn_in_message_from_position(message, lexer->position);
   if (rn != NULL) {
     *reset = true;
-    size_t jump_length = rn + 2 - (char*)&lexer->content[lexer->position];
+    size_t jump_length = rn + 2 - (char *)&lexer->content[lexer->position];
     //
     // This assumes no logging is needed it destroys the correctness of a line
     // and character reporting.

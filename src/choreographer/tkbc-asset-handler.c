@@ -6,12 +6,29 @@
 #include <stdio.h>
 
 extern Assets assets;
-static size_t gloabl_asset_id_factory = 0;
 
 #include "../../assets/combind_assets.h"
 #include "tkbc-asset-handler.h"
 
 // Save and load kite designs from config files.
+
+static inline Id tkbc_generate_uuid_for_asset(void) {
+  static size_t global_asset_id_factory = 0;
+
+  // This is so that all base assets that are not send have the same texture id.
+  static size_t first_base_assets = ASSET_KITE_DESIGN_COUNT;
+  if (first_base_assets-- > 0) {
+    return global_asset_id_factory++;
+  }
+  return global_asset_id_factory++;
+
+  union {
+    double d;
+    Id i;
+  } result = {.d = tkbc_get_time()};
+  result.i += global_asset_id_factory++;
+  return result.i;
+}
 
 /**
  * @brief The function appends a new kite image to the global kite_images
@@ -38,14 +55,15 @@ Id tkbc_append_kite_image(unsigned char *data, int width, int height,
       .normal = image_normal,
   };
 
+  Id id = tkbc_generate_uuid_for_asset();
   space_dap(&assets.space, &assets,
             ((Asset){
                 .type = ASSETS_KITE_DESIGN,
                 .as.kite_image = kite_image,
-                .id = gloabl_asset_id_factory,
+                .id = id,
             }));
 
-  return gloabl_asset_id_factory++;
+  return id;
 }
 
 /**
@@ -70,14 +88,15 @@ Id tkbc_append_asset_image(unsigned char *data, int width, int height,
 
   image = ImageCopy(image);
 
+  Id id = tkbc_generate_uuid_for_asset();
   space_dap(&assets.space, &assets,
             ((Asset){
                 .type = ASSETS_IMAGE,
                 .as.image = image,
-                .id = gloabl_asset_id_factory,
+                .id = id,
             }));
 
-  return gloabl_asset_id_factory++;
+  return id;
 }
 
 /**
@@ -199,7 +218,7 @@ void append_assets(void) {
 
   tkbc_append_kite_image_pannels();
 
-  Image colorizer_image = tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
+  Image colorizer_image = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
   tkbc_append_kite_image(colorizer_image.data, colorizer_image.width,
                          colorizer_image.height, colorizer_image.format);
 }
@@ -219,11 +238,11 @@ void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image,
     return;
   }
 
-  tkbc_get_asset_kite_design(asset->id).as.kite_texture = (Kite_Texture){
+  assert(asset->type == ASSETS_KITE_DESIGN);
+  asset->as.kite_texture = (Kite_Texture){
       .normal = LoadTextureFromImage(kite_image.normal),
   };
-  GenTextureMipmaps(
-      &tkbc_get_asset_kite_design(asset->id).as.kite_texture.normal);
+  GenTextureMipmaps(&asset->as.kite_texture.normal);
 }
 
 /**
@@ -238,27 +257,28 @@ void tkbc_load_assets(void) {
   for (size_t i = 0; i < assets.count; ++i) {
 
     if (assets.elements[i].type == ASSETS_IMAGE) {
-      if (!IsImageValid(tkbc_get_asset_image(i).as.image)) {
+      if (!IsImageValid(_tkbc_get_asset_image(i).as.image)) {
         tkbc_fprintf(stderr, "ERROR", "Could not load image asset: %zu.\n", i);
       }
       continue;
     }
 
-    if (!IsImageValid(tkbc_get_asset_kite_design(i).as.kite_image.normal)) {
+    if (!IsImageValid(_tkbc_get_asset_kite_design(i).as.kite_image.normal)) {
       tkbc_fprintf(stderr, "ERROR", "Could not load normal kite image: %zu.\n",
                    i);
     }
 
-    if (tkbc_get_asset_kite_design(i).id >= IMAGE_PANNEL_PARTS_BEGIN &&
-        tkbc_get_asset_kite_design(i).id <= IMAGE_PANNEL_PARTS_END) {
+    if (_tkbc_get_asset_kite_design(i).id >= IMAGE_PANNEL_PARTS_BEGIN &&
+        _tkbc_get_asset_kite_design(i).id <= IMAGE_PANNEL_PARTS_END) {
       continue;
     }
 
     tkbc_load_kite_texture_from_kite_image(
-        tkbc_get_asset_kite_design(i).as.kite_image,
-        tkbc_get_asset_kite_design(i).id);
+        _tkbc_get_asset_kite_design(i).as.kite_image,
+        _tkbc_get_asset_kite_design(i).id);
 
-    if (!IsTextureValid(tkbc_get_asset_kite_design(i).as.kite_texture.normal)) {
+    if (!IsTextureValid(
+            _tkbc_get_asset_kite_design(i).as.kite_texture.normal)) {
       tkbc_fprintf(stderr, "ERROR",
                    "Could not load normal kite texture: %zu.\n", i);
     }
@@ -273,13 +293,13 @@ void tkbc_assets_destroy(void) {
   for (size_t i = 0; i < assets.count; ++i) {
     switch (assets.elements[i].type) {
     case ASSETS_IMAGE:
-      UnloadImage(tkbc_get_asset_image(i).as.image);
+      UnloadImage(_tkbc_get_asset_image(i).as.image);
       break;
     case ASSETS_KITE_DESIGN:
-      UnloadImage(tkbc_get_asset_kite_design(i).as.kite_image.normal);
+      UnloadImage(_tkbc_get_asset_kite_design(i).as.kite_image.normal);
 
 #ifndef TKBC_SERVER
-      UnloadTexture(tkbc_get_asset_kite_design(i).as.kite_texture.normal);
+      UnloadTexture(_tkbc_get_asset_kite_design(i).as.kite_texture.normal);
 #endif
       break;
     case ASSETS_KIND_COUNT:
@@ -338,7 +358,7 @@ Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width,
   // passed to the server compilations as well.
 #ifndef TKBC_SERVER
   Kite_Image kite_image =
-      tkbc_get_asset_kite_design(assets.count - 1).as.kite_image;
+      _tkbc_get_asset_kite_design(assets.count - 1).as.kite_image;
 
   tkbc_load_kite_texture_from_kite_image(kite_image, id);
 #endif

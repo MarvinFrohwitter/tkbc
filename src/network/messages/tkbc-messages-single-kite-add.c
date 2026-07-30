@@ -50,7 +50,7 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client,
     space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
                "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID, kite_id);
 
-    texture_id = KITE_COLORIZER;
+    texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
   }
 
   if (texture_id == -1) {

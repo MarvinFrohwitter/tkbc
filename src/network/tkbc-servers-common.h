@@ -267,10 +267,9 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
     // NOTE: This is not nasally the KITE_COLORIZER position.
     assert(assets.count != 0);
 
-    Asset *asset = &tkbc_get_asset_kite_design(assets.count - 1);
+    Asset *asset = &_tkbc_get_asset_kite_design(assets.count - 1);
 
-    Kite_Image *kite_image =
-        &tkbc_get_asset_kite_design(asset->id).as.kite_image;
+    Kite_Image *kite_image = &asset->as.kite_image;
     tkbc_message_append_image_data(space, message, kite_image->normal,
                                    asset->id);
     kite_state->kite->is_texture_new = false;

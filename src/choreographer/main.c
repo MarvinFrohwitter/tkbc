@@ -60,7 +60,7 @@ int main(void) {
   SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
   SetTargetFPS(TARGET_FPS);
   tkbc_load_assets();
-  SetWindowIcon(tkbc_get_asset_image(LOGO).as.image);
+  SetWindowIcon(_tkbc_get_asset_image(LOGO).as.image);
 
   srand(time(NULL));
   Env *env = tkbc_init_env();

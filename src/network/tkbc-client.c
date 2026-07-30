@@ -570,7 +570,7 @@ bool received_message_handler(Message *message) {
           space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
                      "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID, kite_id);
 
-          texture_id = KITE_COLORIZER;
+          texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
         }
 
         if (texture_id == -1 && texture_data) {
@@ -694,7 +694,7 @@ check:
 bool message_queue_handler() {
   if (client.recv_msg_buffer.count == 0 &&
       client.recv_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
-    tkbc_fprintf(stderr, "INFO", "realloced message: old capacity: %zu",
+    tkbc_fprintf(stderr, "INFO", "realloced message: old capacity: %zu\n",
                  client.recv_msg_buffer.capacity);
 
     Planet *planet = space_find_planet_from_ptr(
@@ -1111,7 +1111,7 @@ int main(int argc, char *argv[]) {
   SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
   SetTargetFPS(TARGET_FPS);
   tkbc_load_assets();
-  SetWindowIcon(tkbc_get_asset_image(LOGO).as.image);
+  SetWindowIcon(_tkbc_get_asset_image(LOGO).as.image);
 
   srand(time(NULL));
   env = tkbc_init_env();

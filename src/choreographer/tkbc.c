@@ -135,7 +135,7 @@ Kite_State tkbc_init_kite(void) {
   assert(assets.count);
 
   tkbc_set_kite_texture(state.kite,
-                        &tkbc_get_asset_kite_design(IMAGE_1).as.kite_texture);
+                        &_tkbc_get_asset_kite_design(IMAGE_1).as.kite_texture);
 #endif
 
   return state;
@@ -414,7 +414,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
     tkbc_set_kite_internals(kite, fly_speed, turn_speed, body_color, top_color,
                             overlap, inner_space, spread, width, height, angle,
                             center, scale);
-    kite->texture_id = IMAGE_1;
+    kite->texture_id = _tkbc_get_asset_kite_design(IMAGE_1).id;
 
   } else {
     center = kite->center;
