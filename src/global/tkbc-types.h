@@ -502,8 +502,8 @@ typedef struct {
   Kite *vanilla_kite; // A representation of all the default kite values.
 
   Kite_States kite_array; // The kites that are generated for the current
-                           // session of the application.
-  size_t kite_id_counter;  // The identifier counter for the kite.
+                          // session of the application.
+  size_t kite_id_counter; // The identifier counter for the kite.
 
   // NOTE: These views can be invalidated by pushing into scripts manually use
   //  tkbc_add_script() instead.
