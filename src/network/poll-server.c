@@ -1119,6 +1119,7 @@ int main(int argc, char *argv[]) {
   }
 #endif // _WIN32
 
+  append_assets();
   srand(time(NULL));
   env = tkbc_init_env();
   if (!env) {
@@ -1133,8 +1134,6 @@ int main(int argc, char *argv[]) {
       .revents = 0,
   };
   tkbc_dap(&fds, server_fd);
-
-  append_assets();
 
   for (;;) {
     //
