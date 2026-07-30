@@ -1,8 +1,6 @@
 // name of the program caller
 // TODO check for atoi, atol, atoll for 0 as failure. Maybe use strtol instead.
 //
-//// The script execution in the server is slow
-//
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
