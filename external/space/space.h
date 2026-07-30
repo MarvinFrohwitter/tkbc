@@ -1394,6 +1394,7 @@ layout_rerun:
 
     if (space->count == 1) {
       space__free_memory(space, space->elements, space->capacity);
+      space->elements = NULL;
     } else {
       bool found = false;
       for (size_t i = 0; i < space->count; ++i) {
@@ -1645,6 +1646,7 @@ layout_rerun:
         return true;
       }
     }
+    assert(i == space->count);
 
   } break;
 #endif
@@ -1695,6 +1697,7 @@ layout_rerun:
          big_planet = big_planet->next, ++i) {
       space_reset_planet(&big_planet->planet);
     }
+    assert(i == space->count);
 
   } break;
 #endif
@@ -1741,6 +1744,7 @@ layout_rerun:
          big_planet = big_planet->next, ++i) {
       space_reset_planet_and_zero(&big_planet->planet);
     }
+    assert(i == space->count);
   } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
@@ -2375,6 +2379,7 @@ layout_rerun:
         return big_planet->planet.id;
       }
     }
+    assert(i == space->count);
   } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
@@ -2446,6 +2451,7 @@ layout_rerun:
         return &big_planet->planet;
       }
     }
+    assert(i == space->count);
   } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
@@ -2589,6 +2595,7 @@ layout_rerun:
       report->allocated_capacity += big_planet->planet.capacity;
       report->allocated_count += big_planet->planet.count;
     }
+    assert(i == space->count);
   } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
@@ -2655,7 +2662,7 @@ SPACEDEF size_t space_align_power2(size_t alignment, size_t value) {
   if (alignment == 0) {
     return value;
   }
-  assert(alignment % 2 == 0 && "INCORRECT ALLIMENT VALUE");
+  assert((alignment & (alignment - 1)) == 0 && "INCORRECT ALLIMENT VALUE");
   return (value + alignment - 1) & ~(alignment - 1);
 }
 
