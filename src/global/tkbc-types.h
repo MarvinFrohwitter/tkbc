@@ -470,6 +470,8 @@ typedef struct {
                     // the number of collection elements of the array type.
   Id script_id; // The number of the loaded script starting from 1, 0 no script.
   const char *name; // The name of the script.
+
+  Space space;
 } Script; // A dynamic array collection that combined multiple frames to a
           // single kite draw representation.
 
