@@ -123,7 +123,7 @@ void tkbc__script_end(Env *env) {
 
   if (!env->scratch_buf_script.name) {
     tkbc_set_script_name(&env->scratch_buf_script,
-                         space_printf(&env->script_creation_space,
+                         space_printf(&env->scratch_buf_script.space,
                                       "Script: %zu", env->script_id_counter));
   }
 
@@ -236,13 +236,13 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
     return NULL;
   }
 
-  Frame *frame = tkbc_init_frame(&env->script_creation_space);
+  Frame *frame = tkbc_init_frame(&env->scratch_buf_script.space);
   if (!frame) {
     return NULL;
   }
 
   if (kind != ACTION_KITE_QUIT && kind != ACTION_KITE_WAIT) {
-    space_dapc(&env->script_creation_space, &frame->kite_id_array,
+    space_dapc(&env->scratch_buf_script.space, &frame->kite_id_array,
                kite_ids.elements, kite_ids.count);
 
     if (kite_ids.script_id_append) {
@@ -271,16 +271,16 @@ void tkbc__register_frames(Env *env, ...) {
   va_start(args, env);
   Frame *frame = va_arg(args, Frame *);
   while (frame != NULL) {
-    Frame f = tkbc_deep_copy_frame(&env->script_creation_space, frame);
-    space_dap(&env->script_creation_space, &env->scratch_buf_frames, f);
+    Frame f = tkbc_deep_copy_frame(&env->scratch_buf_script.space, frame);
+    space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, f);
 
     if (frame->kite_id_array.script_id_append) {
       frame->kite_id_array.script_id_append = false;
-      space_reset_space(&env->id_space);
+      space_reset_space(&env->_id_space);
     }
     // This allows the user to create a frame ptr manually and pass it and not
-    // use the provided script API that uses the space buffer..
-    if (!space_find_planet_from_ptr(&env->script_creation_space, frame)) {
+    // use the provided script API that uses the space buffer.
+    if (!space_find_planet_from_ptr(&env->scratch_buf_script.space, frame)) {
       free(frame);
     }
     frame = va_arg(args, Frame *);
@@ -328,10 +328,11 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
       state->is_script_kite = true;
     }
   }
-  tkbc_patch_frames_kite_positions(env, frames, &env->script_creation_space);
+  tkbc_patch_frames_kite_positions(env, frames, &env->scratch_buf_script.space);
   Frames copy_frames =
-      tkbc_deep_copy_frames(&env->script_creation_space, frames);
-  space_dap(&env->script_creation_space, &env->scratch_buf_script, copy_frames);
+      tkbc_deep_copy_frames(&env->scratch_buf_script.space, frames);
+  space_dap(&env->scratch_buf_script.space, &env->scratch_buf_script,
+            copy_frames);
   tkbc_reset_frames_internal_data(frames);
 
   assert((int)env->scratch_buf_script.count - 1 >= 0);

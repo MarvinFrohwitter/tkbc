@@ -509,11 +509,11 @@ typedef struct {
 
   // NOTE: These views can be invalidated by pushing into scripts manually use
   //  tkbc_add_script() instead.
-  Frames *frames;      // A view of the current active drawable frames.
-  Script *script;      // A view of all the frames that should be
-                       // executed in a script.
-  Scripts scripts;     // The collection of all the parsed scripts.
-  Space scripts_space; // The final allocation place for all scripts.
+  Frames *frames;       // A view of the current active drawable frames.
+  Script *script;       // A view of all the frames that should be
+                        // executed in a script.
+  Scripts scripts;      // The collection of all the parsed scripts.
+  Space _scripts_space; // The final allocation place for all scripts.
 
   size_t script_id_counter; // This is a counter that keeps track of the
                             // script id/names that are generated if there is
@@ -551,13 +551,10 @@ typedef struct {
   size_t window_width;  // The window width of the application.
   size_t window_height; // The window height of the application.
 
-  Space id_space;              // A temporal allocation buffer for script ids.
-  Space script_creation_space; // A temporal allocation buffer for constructing
-                               // scripts before they are moved toe the final
-                               // destination scripts_space.
-  Frames scratch_buf_frames;   // A buffer that can be used to construct frames.
-  Script scratch_buf_script;   // A buffer that can be used to
-                               // construct a script.
+  Space _id_space;           // A temporal allocation buffer for script ids.
+  Frames scratch_buf_frames; // A buffer that can be used to construct frames.
+  Script scratch_buf_script; // A buffer that can be used to
+                             // construct a script.
 
   // -------FFMPEG-------
   Sound sound;           // The current loaded sound.

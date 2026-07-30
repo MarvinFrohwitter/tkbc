@@ -56,14 +56,16 @@ bool tkbc_script_team_roll_two_diffrent_angle(
                             position.y, duration_1);
       if (frame == NULL)
         return false;
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     {
       frame =
           KITE_ROTATION_ADD(ID(kite_index_array.elements[0]), 1, duration_1);
       if (frame == NULL)
         return false;
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
 
     position = (Vector2){
@@ -76,14 +78,16 @@ bool tkbc_script_team_roll_two_diffrent_angle(
                             position.y, duration_2);
       if (frame == NULL)
         return false;
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     {
       frame =
           KITE_ROTATION_ADD(ID(kite_index_array.elements[1]), 1, duration_2);
       if (frame == NULL)
         return false;
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
   }
@@ -129,7 +133,7 @@ bool tkbc_script_team_roll_split_up(Env *env, Kite_Ids kite_index_array,
                                 position.y, duration);
           if (frame == NULL)
             return false;
-          space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+          space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                     *frame);
         }
         {
@@ -137,7 +141,7 @@ bool tkbc_script_team_roll_split_up(Env *env, Kite_Ids kite_index_array,
               KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), 1, duration);
           if (frame == NULL)
             return false;
-          space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+          space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                     *frame);
         }
       } else {
@@ -150,7 +154,7 @@ bool tkbc_script_team_roll_split_up(Env *env, Kite_Ids kite_index_array,
                                 position.y, duration);
           if (frame == NULL)
             return false;
-          space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+          space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                     *frame);
         }
         {
@@ -158,7 +162,7 @@ bool tkbc_script_team_roll_split_up(Env *env, Kite_Ids kite_index_array,
               KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), -1, duration);
           if (frame == NULL)
             return false;
-          space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+          space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                     *frame);
         }
       }
@@ -208,7 +212,7 @@ bool tkbc_script_team_roll_split_down(Env *env, Kite_Ids kite_index_array,
                               position.y, duration);
         if (frame == NULL)
           return false;
-        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                   *frame);
       }
       {
@@ -216,7 +220,7 @@ bool tkbc_script_team_roll_split_down(Env *env, Kite_Ids kite_index_array,
             KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), sign, duration);
         if (frame == NULL)
           return false;
-        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                   *frame);
       }
     }
@@ -260,7 +264,7 @@ bool tkbc_script_team_roll_up_anti_clockwise(Env *env,
                               position.y, duration);
         if (frame == NULL)
           return false;
-        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                   *frame);
       }
       {
@@ -268,7 +272,7 @@ bool tkbc_script_team_roll_up_anti_clockwise(Env *env,
             KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), 1, duration);
         if (frame == NULL)
           return false;
-        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                   *frame);
       }
     }
@@ -310,7 +314,7 @@ bool tkbc_script_team_roll_up_clockwise(Env *env, Kite_Ids kite_index_array,
                               position.y, duration);
         if (frame == NULL)
           return false;
-        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                   *frame);
       }
       {
@@ -318,7 +322,7 @@ bool tkbc_script_team_roll_up_clockwise(Env *env, Kite_Ids kite_index_array,
             KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), -1, duration);
         if (frame == NULL)
           return false;
-        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                   *frame);
       }
     }
@@ -362,7 +366,7 @@ bool tkbc_script_team_roll_down_anti_clockwise(Env *env,
                               position.y, duration);
         if (frame == NULL)
           return false;
-        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                   *frame);
       }
       {
@@ -370,7 +374,7 @@ bool tkbc_script_team_roll_down_anti_clockwise(Env *env,
             KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), 1, duration);
         if (frame == NULL)
           return false;
-        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                   *frame);
       }
     }
@@ -413,7 +417,7 @@ bool tkbc_script_team_roll_down_clockwise(Env *env, Kite_Ids kite_index_array,
                               position.y, duration);
         if (frame == NULL)
           return false;
-        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                   *frame);
       }
       {
@@ -421,7 +425,7 @@ bool tkbc_script_team_roll_down_clockwise(Env *env, Kite_Ids kite_index_array,
             KITE_ROTATION_ADD(ID(kite_index_array.elements[i]), -1, duration);
         if (frame == NULL)
           return false;
-        space_dap(&env->script_creation_space, &env->scratch_buf_frames,
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
                   *frame);
       }
     }
@@ -474,14 +478,16 @@ bool tkbc_script_team_ball(Env *env, Kite_Ids kite_index_array,
                         move_duration);
       if (frame == NULL)
         return false;
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     {
       frame = KITE_ROTATION(ID(kite_index_array.elements[i]), deg_angle,
                             rotation_duration);
       if (frame == NULL)
         return false;
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
   }
 
@@ -541,14 +547,16 @@ bool tkbc_script_team_mountain(Env *env, Kite_Ids kite_index_array,
                         move_duration);
       if (frame == NULL)
         return false;
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     {
       frame =
           KITE_ROTATION(ID(kite_index_array.elements[i]), 0, rotation_duration);
       if (frame == NULL)
         return false;
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
 
     if (column + 1 == columns / 2.0) {
@@ -617,7 +625,8 @@ bool tkbc_script_team_valley(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     {
       frame =
@@ -625,7 +634,8 @@ bool tkbc_script_team_valley(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
 
     if (column + 1 == columns / 2.0) {
@@ -700,7 +710,8 @@ bool tkbc_script_team_arc(Env *env, Kite_Ids kite_index_array, Vector2 position,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     if (column + 1 == (columns + 1) / 2) {
       angle = 0;
@@ -711,7 +722,8 @@ bool tkbc_script_team_arc(Env *env, Kite_Ids kite_index_array, Vector2 position,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
 
     if (column + 1 == columns / 2.0) {
@@ -790,7 +802,8 @@ bool tkbc_script_team_mouth(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     if (column + 1 == (columns + 1) / 2) {
       angle = 0;
@@ -801,7 +814,8 @@ bool tkbc_script_team_mouth(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
 
     if (column + 1 == columns / 2.0) {
@@ -891,7 +905,8 @@ bool tkbc_script_team_grid(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
   }
 
@@ -1022,7 +1037,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
                                 rotation_duration);
       if (frame == NULL)
         return false;
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
 
       if (i < 0) {
         break;
@@ -1032,7 +1048,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
                                 rotation_duration);
       if (frame == NULL)
         return false;
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1042,7 +1059,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1052,7 +1070,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1062,7 +1081,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1072,7 +1092,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1082,7 +1103,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1092,7 +1114,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1102,7 +1125,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1112,7 +1136,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1122,7 +1147,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1132,7 +1158,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1142,7 +1169,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1152,7 +1180,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1162,7 +1191,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1172,7 +1202,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
   } break;
@@ -1183,7 +1214,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1193,7 +1225,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1203,7 +1236,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1212,7 +1246,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1222,7 +1257,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1232,7 +1268,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1242,7 +1279,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1252,7 +1290,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1262,7 +1301,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1272,7 +1312,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1282,7 +1323,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1291,7 +1333,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1301,7 +1344,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1311,7 +1355,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
 
@@ -1321,7 +1366,7 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
       if (i < 0) {
         break;
       }
@@ -1331,7 +1376,7 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->script_creation_space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
   } break;

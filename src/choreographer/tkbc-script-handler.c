@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../../external/space/space.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 #include "tkbc-keymaps.h"
@@ -858,7 +859,7 @@ bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh) {
       env->script->elements[i].kite_frame_positions.count = 0;
     }
 
-    tkbc_patch_script_kite_positions(env, env->script, &env->scripts_space);
+    tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
   }
   env->script_finished = false;
   env->script_loading = true;
@@ -896,18 +897,14 @@ void tkbc_unload_script(Env *env) {
  * @return True if the unloading was successful, otherwise false.
  */
 bool tkbc_unload_script_from_memory(Env *env, size_t script_id) {
-  // This will potentially not clean up everything because the resetting of the
-  // kite frame positions for example can cause reallocation so to fix that the
-  // space has to be per script basis.
-  // TODO: Make the space per script and not for all scripts.
-
   for (size_t i = 0; i < env->scripts.count; ++i) {
     if (script_id == env->scripts.elements[i].script_id) {
+      space_free_space(&env->scripts.elements[i].space);
 
       memmove(&env->scripts.elements[i], &env->scripts.elements[i + 1],
               sizeof(*env->scripts.elements) * (env->scripts.count - i - 1));
-      env->scripts.count -= 1;
 
+      env->scripts.count -= 1;
       return true;
     }
   }
@@ -1042,57 +1039,36 @@ void tkbc_add_script(Env *env, Script script) {
 
 #define threshold_max_scripts_in_memory 10
   if (env->scripts.count >= threshold_max_scripts_in_memory) {
-    Planet *p = space_find_planet_from_ptr(&env->scripts_space,
-                                           env->scripts.elements->elements);
-
+    Script *first_script = &env->scripts.elements[0];
     // NOTE: this is actually slow because every other script just be moved
     // over in the array.
-    tkbc_unload_script_from_memory(env, env->scripts.elements[0].script_id);
-    space_free_planet(&env->scripts_space, p);
+    tkbc_unload_script_from_memory(env, first_script->script_id);
   }
 
-  size_t bytes_count = tkbc_calculate_script_byte_size_allocated(script);
-  bytes_count = 0;
-  { // TODO: REMOVE: HACK
-    Space s = {0};
-    // Just for speed one allocation, that assumes that scripts can fit in 1M.
-    space_init_capacity(&s, 1024 * 1024);
-    tkbc_deep_copy_script(&s, &script);
-    assert(s.sun);
+  // size_t bytes_count = tkbc_calculate_script_byte_size_allocated(script);
+
+  {
+    Script s_copy = {0};
     Space_Report report = {0};
-    assert(space_report_allocations(&s, &report));
-    bytes_count = report.allocated_count;
-    space_free_space(&s);
+    if (space_report_allocations(&env->scratch_buf_script.space, &report)) {
+      space_init_capacity(&s_copy.space, report.allocated_count);
+    }
+    s_copy = tkbc_deep_copy_script(&s_copy.space, &script);
+    space_dap(&env->_scripts_space, &env->scripts, s_copy);
+
+    // Rest the scratch buffers they got invalidated by resetting the space.
+    memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));
+    // Rest only the rest of the fields and not the space inside of the
+    // scratch_buf_script script to preserve memory for reuse.
+    {
+      env->scratch_buf_script.elements = NULL;
+      env->scratch_buf_script.count = 0;
+      env->scratch_buf_script.capacity = 0;
+      env->scratch_buf_script.script_id = 0;
+      env->scratch_buf_script.name = NULL;
+      space_reset_space(&env->scratch_buf_script.space);
+    }
   }
-
-  size_t planet_id = 0;
-  void *ptr = space_malloc_planetid_force_new_planet(&env->scripts_space,
-                                                     bytes_count, &planet_id);
-  assert(ptr && "malloc has failed!");
-  (void)ptr;
-  space_reset_planet_id(&env->scripts_space, planet_id);
-
-  Script s_copy = tkbc_deep_copy_script(&env->scripts_space, &script);
-  space_ndap(&env->scripts_space, &env->scripts, s_copy);
-  space_reset_space(&env->script_creation_space);
-
-  // TODO: Remove
-  // Huge hack !!!!
-  // This ensures that no other allocation goes into the same planet. And a
-  // script is always contained in one Planet.
-  // Consider even if the allocation size is computed correctly eventually to
-  // keep this hack just in case the ensure scripts can always be freed by
-  // freeing the corresponding Planet.
-  //
-  // Marvin Frohwitter 12.02.2026
-  //
-  // NOTE: This messes with the internals of the space allocator.
-  Planet *p = space_find_planet_from_ptr(&env->scripts_space, s_copy.elements);
-  p->count = p->capacity;
-
-  // Rest the scratch buffers they got invalidated by resetting the space.
-  memset(&env->scratch_buf_script, 0, sizeof(env->scratch_buf_script));
-  memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));
 
   if (is_script) {
     if (!tkbc_load_script_id(env, script_id, false)) {

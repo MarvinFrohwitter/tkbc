@@ -26,7 +26,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
   Token token;
   Content tmp_buffer = {0};
   bool script_parse_fail = false;
-  Space *scb_space = &env->script_creation_space;
+  Space *scb_space = &env->scratch_buf_script.space;
   Script *scb_script = &env->scratch_buf_script;
   Frames *scb_frames = &env->scratch_buf_frames;
   Frame frame = {0};

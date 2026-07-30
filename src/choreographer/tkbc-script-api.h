@@ -27,7 +27,7 @@ bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config,
   do {                                                                         \
     tkbc__script_begin(env);                                                   \
     const char *tmp =                                                          \
-        space_vstrcat(&env->script_creation_space, NULL, ##__VA_ARGS__);       \
+        space_vstrcat(&env->scratch_buf_script.space, NULL, ##__VA_ARGS__);       \
     tkbc_set_script_name(&env->scratch_buf_script, tmp);                       \
   } while (0)
 
@@ -95,7 +95,7 @@ void tkbc_register_frames_array(Env *env, Frames *frames);
 
 Kite_Ids tkbc__indexs_append(Space *space, ...);
 #define tkbc_indexs_append(...)                                                \
-  tkbc__indexs_append(&env->id_space, __VA_ARGS__, UINT_MAX)
+  tkbc__indexs_append(&env->_id_space, __VA_ARGS__, UINT_MAX)
 #define ID(...) tkbc_indexs_append(__VA_ARGS__)
 
 Kite_Ids tkbc_indexs_range(int start, int end);

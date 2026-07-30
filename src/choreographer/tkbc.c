@@ -99,7 +99,7 @@ Env *tkbc_init_env(void) {
 #define SCIRPT_CREATION_INIT_SIZE (1024 * 1024)
 
   // space_init_capacity(&env->id_space, SCIRPT_CREATION_INIT_SIZE);
-  space_init_capacity(&env->script_creation_space,
+  space_init_capacity(&env->scratch_buf_script.space,
                       SCIRPT_CREATION_INIT_SIZE * 30);
   return env;
 }
@@ -168,9 +168,9 @@ void tkbc_destroy_env(Env *env) {
   if (env->needs_font_free) {
     UnloadFont(env->font);
   }
-  space_free_space(&env->id_space);
-  space_free_space(&env->script_creation_space);
-  space_free_space(&env->scripts_space);
+  space_free_space(&env->_id_space);
+  space_free_space(&env->scratch_buf_script.space);
+  space_free_space(&env->_scripts_space);
   space_free_tspace();
   env->scratch_buf_script.name = NULL;
 
