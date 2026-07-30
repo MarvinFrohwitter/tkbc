@@ -96,13 +96,14 @@ struct Big_Planet {
 #define SPACE_MEMORY_DYNAMIC_ARRAY (0x20)
 #define SPACE_MEMORY_STUCT_OF_ARRAYS (0x40)
 
-// #define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEMORY_DYNAMIC_ARRAY
-#ifndef SPACE_MEMORY_LAYOUT_METHOD
-#define SPACE_MEMORY_LAYOUT_METHOD (SPACE_MEMORY_DOUBLE_LINKED_LIST)
-// #define SPACE_MEMORY_LAYOUT_METHOD (SPACE_MEMORY_DYNAMIC_ARRAY)
+#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEMORY_DYNAMIC_ARRAY
 
-/* #define SPACE_MEMORY_LAYOUT_METHOD (SPACE_MEMORY_DOUBLE_LINKED_LIST |
- * SPACE_MEMORY_DYNAMIC_ARRAY | SPACE_MEMORY_STUCT_OF_ARRAYS) */
+#ifndef SPACE_MEMORY_LAYOUT_METHOD
+// #define SPACE_MEMORY_LAYOUT_METHOD (SPACE_MEMORY_DOUBLE_LINKED_LIST)
+
+#define SPACE_MEMORY_LAYOUT_METHOD                                             \
+  (SPACE_MEMORY_DOUBLE_LINKED_LIST | SPACE_MEMORY_DYNAMIC_ARRAY |              \
+   SPACE_MEMORY_STUCT_OF_ARRAYS)
 
 #endif
 
@@ -164,8 +165,8 @@ SPACEDECL void space_reset_planet(Planet *planet);
 SPACEDECL bool space_reset_planet_id(Space *space, size_t id);
 
 // WARNING: Dangerous to use:
-// These functions sets the pointer to NULL so memory ownership is passed to the
-// caller. That means the caller should free the allocated data.
+// These functions sets the pointer to NULL so memory ownership is passed to
+// the caller. That means the caller should free the allocated data.
 SPACEDECL void space_reset_planet_and_zero(Planet *planet);
 SPACEDECL bool space_reset_planet_and_zero_id(Space *space, size_t id);
 SPACEDECL void space_reset_space_and_zero(Space *space);
@@ -485,8 +486,8 @@ SPACEDEF Space *space_get_tspace(void) {
  *
  * This internal function determines if a pointer points to the most recently
  * allocated memory block within a planet. This is useful for operations like
- * in-place reallocation or string concatenation that can modify memory directly
- * if the pointer is at the end of the used space.
+ * in-place reallocation or string concatenation that can modify memory
+ * directly if the pointer is at the end of the used space.
  *
  * @param p Pointer to the Planet to check.
  * @param ptr The pointer to verify.
@@ -593,10 +594,10 @@ SPACEDEF void *space_printf(Space *space, const char *fmt, ...) {
 /**
  * @brief Concatenates multiple buffers with explicit lengths in the space.
  *
- * This is a variadic helper function that takes pointers to buffers followed by
- * their lengths. It attempts to append subsequent buffers to the first buffer
- * in-place if there is sufficient capacity, otherwise it allocates new memory.
- * This is used by the space_vcat macro.
+ * This is a variadic helper function that takes pointers to buffers followed
+ * by their lengths. It attempts to append subsequent buffers to the first
+ * buffer in-place if there is sufficient capacity, otherwise it allocates new
+ * memory. This is used by the space_vcat macro.
  *
  * @param space Pointer to the Space structure used for allocation.
  * @return Pointer to the concatenated buffer, or NULL on failure.
@@ -692,8 +693,8 @@ alloc: {}
  * This is a variadic helper function that takes null-terminated string
  * pointers. It calculates string lengths automatically using strlen. It
  * attempts to append subsequent strings to the first string in-place if there
- * is sufficient capacity in the planet, otherwise it allocates new memory. This
- * is used by the space_vstrcat macro.
+ * is sufficient capacity in the planet, otherwise it allocates new memory.
+ * This is used by the space_vstrcat macro.
  *
  * @param space Pointer to the Space structure used for allocation.
  * @param first The first null-terminated string to concatenate.
@@ -971,8 +972,8 @@ SPACEDEF void *space_strncpy(Space *space, const char *buf, size_t n) {
  *
  * @param space Pointer to the Space structure used for allocation.
  * @param buf The null-terminated string to copy.
- * @return Pointer to the null terminator of the newly allocated string, or NULL
- * on failure.
+ * @return Pointer to the null terminator of the newly allocated string, or
+ * NULL on failure.
  */
 SPACEDEF void *space_stpcpy(Space *space, const char *buf) {
   if (!space || !buf) {
@@ -1047,10 +1048,10 @@ SPACEDEF void *space_memcpy(Space *space, const void *buf, size_t n) {
  * @brief Allocates memory in the space and copies bytes, handling overlapping
  * regions.
  *
- * This function allocates the specified number of bytes in the space and copies
- * the given memory content into the newly allocated buffer. Unlike memcpy,
- * this function correctly handles cases where the source and destination
- * memory regions overlap.
+ * This function allocates the specified number of bytes in the space and
+ * copies the given memory content into the newly allocated buffer. Unlike
+ * memcpy, this function correctly handles cases where the source and
+ * destination memory regions overlap.
  *
  * @param space Pointer to the Space structure used for allocation.
  * @param buf Pointer to the memory to copy.
@@ -1154,7 +1155,7 @@ static inline void *space_realloc_memory(Space *space, void *buffer,
                                          size_t old_size_in_bytes,
                                          size_t new_size_in_bytes) {
 
-  if (!buffer || !space || old_size_in_bytes == 0) {
+  if (!space) {
     return NULL;
   }
 
@@ -1361,9 +1362,6 @@ layout_rerun:
       planet->elements = NULL;
     }
 
-    planet->count = 0;
-    planet->capacity = 0;
-    planet->id = 0;
     if (space->count == 1) {
       space__free_memory(space, space->elements, space->capacity);
     } else {
@@ -1376,6 +1374,8 @@ layout_rerun:
           break;
         }
       }
+      // Do not zero the planet because they point at the next planet after
+      // memmove(). The next planet values would be changed.
 
       if (!found) {
         return;
@@ -1431,8 +1431,9 @@ layout_rerun:
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
   case SPACE_MEMORY_DYNAMIC_ARRAY: {
+    // This is broken.
     for (size_t i = 0; i < amount; ++i) {
-      space_free_planet(space, &space->elements[i]);
+      space_free_planet(space, &space->elements[0]);
     }
     assert(space->count == 0);
     // This ensures that even when calling mmap the freed value is NULL.
@@ -1481,7 +1482,7 @@ layout_rerun:
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
   case SPACE_MEMORY_DYNAMIC_ARRAY: {
     for (size_t i = 0; i < amount; ++i) {
-      space_free_planet_optional_freeing_data(space, &space->elements[i],
+      space_free_planet_optional_freeing_data(space, &space->elements[0],
                                               false);
     }
     assert(space->count == 0);
