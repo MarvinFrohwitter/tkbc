@@ -53,6 +53,9 @@ typedef struct {
   bool space_alloc_method_virtual_alloc;
   bool space_alloc_method_mmap;
 
+  bool space_memory_layout_method_dll;
+  bool space_memory_layout_method_da;
+
   bool print_operation_and_description;
   bool short_log;
 } Define_Opts;
@@ -91,6 +94,16 @@ void define_opt(Cmd *cmd, Define_Opts opts) {
   if (opts.space_alloc_method_mmap) {
     CFLAGS(cmd, "-DSPACE_ALLOC_METHOD=(SPACE_METHOD_MALLOC|SPACE_METHOD_MMAP)");
     CFLAGS(cmd, "-DSPACE_ALLOC_METHOD_DEFAULT=SPACE_METHOD_MMAP");
+  }
+
+  if (0) {
+  } else if (opts.space_memory_layout_method_dll) {
+    CFLAGS(
+        cmd,
+        "-DSPACE_MEMORY_LAYOUT_METHOD_DEFAULT=SPACE_MEMORY_DOUBLE_LINKED_LIST");
+  } else if (opts.space_memory_layout_method_da) {
+    CFLAGS(cmd,
+           "-DSPACE_MEMORY_LAYOUT_METHOD_DEFAULT=SPACE_MEMORY_DYNAMIC_ARRAY");
   }
 
   if (opts.print_operation_and_description) {
@@ -297,13 +310,15 @@ void first_o_opt(Cmd *cmd, OS_Opts os) {
     cb_cmd_push(cmd, CC);
     include(cmd, .raylib = true, .LINUX = true);
     define(cmd, .space_decl = true, .space_def = true,
-           .space_alloc_method_mmap = true);
+           .space_alloc_method_mmap = true,
+           .space_memory_layout_method_da = true);
     cflags(cmd);
   } else if (os.WINDOWS) {
     cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
     include(cmd, .raylib = true, .WINDOWS = true);
     define(cmd, .space_decl = true, .space_def = true,
-           .space_alloc_method_virtual_alloc = true);
+           .space_alloc_method_virtual_alloc = true,
+           .space_memory_layout_method_da = true);
     cflags(cmd, .WINDOWS = true);
   } else {
     exit(EXIT_FAILURE);
@@ -328,7 +343,8 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
     cflags(cmd);
     define(cmd, .include_raylib = true);
     define(cmd, .space_decl = true, .space_def = true,
-           .space_alloc_method_mmap = true);
+           .space_alloc_method_mmap = true,
+           .space_memory_layout_method_da = true);
     cb_cmd_push(cmd, "-o", BUILD_PATH "tkbc");
   } else if (os.WINDOWS) {
     first_o(cmd, .WINDOWS = true);
@@ -336,7 +352,8 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
     include(cmd, .raylib = true, .WINDOWS = true);
     define(cmd, .include_raylib = true, .release = true, .ndebug = false);
     define(cmd, .space_decl = true, .space_def = true,
-           .space_alloc_method_virtual_alloc = true);
+           .space_alloc_method_virtual_alloc = true,
+           .space_memory_layout_method_da = true);
     cflags(cmd, .WINDOWS = true);
     cb_cmd_push(cmd, "-o", BUILD_PATH "tkbc-win64");
   } else {
@@ -368,7 +385,8 @@ void client_opt(Cmd *cmd, OS_Opts os) {
     cflags(cmd);
     define(cmd, .include_raylib = true);
     define(cmd, .space_decl = true, .space_def = true,
-           .space_alloc_method_mmap = true);
+           .space_alloc_method_mmap = true,
+           .space_memory_layout_method_da = true);
     cb_cmd_push(cmd, "-o", BUILD_PATH "client");
   } else if (os.WINDOWS) {
     first_o(cmd, .WINDOWS = true);
@@ -377,7 +395,8 @@ void client_opt(Cmd *cmd, OS_Opts os) {
     cflags(cmd, .WINDOWS = true);
     define(cmd, .include_raylib = true, .release = true, .ndebug = false);
     define(cmd, .space_decl = true, .space_def = true,
-           .space_alloc_method_virtual_alloc = true);
+           .space_alloc_method_virtual_alloc = true,
+           .space_memory_layout_method_da = true);
     cb_cmd_push(cmd, "-o", BUILD_PATH "client-win64");
   } else {
     exit(EXIT_FAILURE);
@@ -407,7 +426,8 @@ void server_opt(Cmd *cmd, OS_Opts os) {
     cflags(cmd);
     define(cmd, .include_raylib = true, .tkbc_server = true);
     define(cmd, .space_decl = true, .space_def = true,
-           .space_alloc_method_mmap = true);
+           .space_alloc_method_mmap = true,
+           .space_memory_layout_method_da = true);
     cb_cmd_push(cmd, "-o", BUILD_PATH "server");
   } else if (os.WINDOWS) {
     cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
@@ -415,7 +435,8 @@ void server_opt(Cmd *cmd, OS_Opts os) {
     cflags(cmd, .WINDOWS = true);
     define(cmd, .include_raylib = true, .tkbc_server = true, .release = true);
     define(cmd, .space_decl = true, .space_def = true,
-           .space_alloc_method_virtual_alloc = true);
+           .space_alloc_method_virtual_alloc = true,
+           .space_memory_layout_method_da = true);
     cb_cmd_push(cmd, "-o", BUILD_PATH "server-win64");
   } else {
     exit(EXIT_FAILURE);
@@ -448,7 +469,8 @@ void tests_opt(Cmd *cmd, Tests_Opts opts) {
   include(cmd, .raylib = true, .LINUX = true);
   cflags(cmd, .sanitize = true);
   define(cmd, .space_decl = true, .space_def = true,
-         .space_alloc_method_mmap = true);
+         .space_alloc_method_mmap = true,
+         .space_memory_layout_method_da = true);
   if (0) {
   } else if (opts.normal) {
     define(cmd, .include_raylib = true, .tkbc_server = true);
