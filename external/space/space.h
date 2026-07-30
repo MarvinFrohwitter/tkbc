@@ -96,7 +96,7 @@ struct Big_Planet {
 #define SPACE_MEMORY_DYNAMIC_ARRAY (0x20)
 #define SPACE_MEMORY_STUCT_OF_ARRAYS (0x40)
 
-#define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEMORY_DYNAMIC_ARRAY
+// #define SPACE_MEMORY_LAYOUT_METHOD_DEFAULT SPACE_MEMORY_DYNAMIC_ARRAY
 
 #ifndef SPACE_MEMORY_LAYOUT_METHOD
 // #define SPACE_MEMORY_LAYOUT_METHOD (SPACE_MEMORY_DOUBLE_LINKED_LIST)
@@ -1177,7 +1177,16 @@ rerun:
       return NULL;
     }
     if (old_size_in_bytes > new_size_in_bytes) {
-      return buffer;
+      result = mmap(NULL, new_size_in_bytes, PROT_READ | PROT_WRITE,
+                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+      if (result == MAP_FAILED) {
+        return NULL;
+      }
+      if (new_size_in_bytes > 0 && buffer) {
+        memcpy(result, buffer, new_size_in_bytes);
+      }
+      munmap(buffer, old_size_in_bytes);
+      return result;
     }
 
     result = mmap(NULL, new_size_in_bytes, PROT_READ | PROT_WRITE,
@@ -1185,8 +1194,11 @@ rerun:
     if (result == MAP_FAILED) {
       return NULL;
     }
-    memcpy(result, buffer, old_size_in_bytes);
-    munmap(buffer, old_size_in_bytes);
+
+    if (old_size_in_bytes > 0 && buffer) {
+      memcpy(result, buffer, old_size_in_bytes);
+      munmap(buffer, old_size_in_bytes);
+    }
     break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
@@ -1197,7 +1209,17 @@ rerun:
       return NULL;
     }
     if (old_size_in_bytes > new_size_in_bytes) {
-      return buffer;
+      result = VirtualAllocEx(GetCurrentProcess(), NULL, new_size_in_bytes,
+                              MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+      if (result == NULL) {
+        return NULL;
+      }
+      if (new_size_in_bytes > 0 && buffer) {
+        memcpy(result, buffer, new_size_in_bytes);
+      }
+      VirtualFreeEx(GetCurrentProcess(), (LPVOID)buffer, old_size_in_bytes,
+                    MEM_RELEASE);
+      return result;
     }
 
     result = VirtualAllocEx(GetCurrentProcess(), NULL, new_size_in_bytes,
@@ -1206,7 +1228,9 @@ rerun:
     if (result == NULL) {
       return NULL;
     }
-    memcpy(result, buffer, old_size_in_bytes);
+    if (old_size_in_bytes > 0 && buffer) {
+      memcpy(result, buffer, old_size_in_bytes);
+    }
     VirtualFreeEx(GetCurrentProcess(), (LPVOID)buffer, old_size_in_bytes,
                   MEM_RELEASE);
 
@@ -1327,6 +1351,9 @@ layout_rerun:
     }
 
     Big_Planet *big_planet = space_find_big_planet_from_planet(space, planet);
+    if (!big_planet) {
+      return;
+    }
     if (space->sun == big_planet) {
       space->sun = big_planet->next;
     }
@@ -1348,6 +1375,9 @@ layout_rerun:
     big_planet->next = NULL;
     big_planet->prev = NULL;
     big_planet->planet.id = 0;
+
+    space__free_memory(space, big_planet, sizeof(*big_planet));
+    big_planet = NULL;
 
   } break;
 #endif
@@ -1563,6 +1593,7 @@ layout_rerun:
         return true;
       }
     }
+    assert(i == space->count);
 
   } break;
 #endif
@@ -2071,6 +2102,12 @@ SPACEDEF void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
     return ptr;
   }
 
+  Planet *old_p = space_find_planet_from_ptr(space, ptr);
+  if (old_p && space__is_ptr_last_allocation_in_planet(old_p, ptr, old_size)) {
+    // Prevent holes if the allocation was not possible in place.
+    old_p->count -= old_size;
+  }
+
   char *new_ptr = space_malloc_planetid(space, new_size, planet_id);
   if (new_ptr) {
     // This is to ensure memcpy() does not copy from NULL, this is undefended
@@ -2476,6 +2513,7 @@ SPACEDECL Big_Planet *space_find_big_planet_from_planet(Space *space,
     }
   }
 
+  assert(i == space->count);
   return NULL;
 }
 
