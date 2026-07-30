@@ -241,7 +241,11 @@ bool read_dir_impl(const char *path, Dir_Entries *list);
 bool read_dir(const char *path, Dir_Entries *list);
 bool read_dir_recursive(const char *path, Dir_Entries *list);
 bool tkbc_make_dir_if_not_existis(const char *path);
+bool tkbc__make_dir_if_not_existis_internal(const char *path, bool report_err,
+                                            bool report_exists);
 bool tkbc_make_dir_recursive_if_not_existis(const char *path);
+bool tkbc__make_dir_recursive_if_not_existis_internal(const char *path,
+                                                      bool report_err);
 char tkbc_get_file_type(const char *file_path);
 bool tkbc_remove(const char *path);
 bool tkbc_remove_recursive(const char *path);
@@ -1366,6 +1370,21 @@ bool read_dir_recursive(const char *path, Dir_Entries *list) {
  * false.
  */
 bool tkbc_make_dir_if_not_existis(const char *path) {
+  return tkbc__make_dir_if_not_existis_internal(path, true, true);
+}
+
+/**
+ * @brief The function creates a directory if it does not already exist.
+ *
+ * @param path The path of the directory to create.
+ * @param report_err If errors should be reported.
+ * @param report_exists If the error that the path already exists should be
+ * reported.
+ * @return True if successful or if the directory already exists, otherwise
+ * false.
+ */
+bool tkbc__make_dir_if_not_existis_internal(const char *path, bool report_err,
+                                            bool report_exists) {
 #ifdef _WIN32
 #include <direct.h>
   int ok = _mkdir(path);
@@ -1374,11 +1393,15 @@ bool tkbc_make_dir_if_not_existis(const char *path) {
 #endif
   if (ok < 0) {
     if (errno == EEXIST) {
-      tkbc_fprintf(stderr, "INFO", "The given path `%s` already exist.\n",
-                   path);
+      if (report_err && report_exists) {
+        tkbc_fprintf(stderr, "INFO", "The given path `%s` already exist.\n",
+                     path);
+      }
     } else {
-      tkbc_fprintf(stderr, "ERROR", "Failed to create directory: %s\n",
-                   strerror(errno));
+      if (report_err) {
+        tkbc_fprintf(stderr, "ERROR", "Failed to create directory: %s\n",
+                     strerror(errno));
+      }
       return false;
     }
   }
@@ -1393,13 +1416,26 @@ bool tkbc_make_dir_if_not_existis(const char *path) {
  * @return True if successful, otherwise false.
  */
 bool tkbc_make_dir_recursive_if_not_existis(const char *path) {
+  return tkbc__make_dir_recursive_if_not_existis_internal(path, true);
+}
+
+/**
+ * @brief The function creates a directory and all its parent directories if
+ * they do not already exist.
+ *
+ * @param path The path of the directory to create.
+ * @param report_err If errors should be reported.
+ * @return True if successful, otherwise false.
+ */
+bool tkbc__make_dir_recursive_if_not_existis_internal(const char *path,
+                                                      bool report_err) {
   bool ok = true;
 #ifdef _WIN32
   char separator = '\\';
 #else
   char separator = '/';
   if (strcmp(path, "/") == 0) {
-    return tkbc_make_dir_if_not_existis(path);
+    return tkbc__make_dir_if_not_existis_internal(path, report_err, true);
   }
 #endif
 
@@ -1407,11 +1443,11 @@ bool tkbc_make_dir_recursive_if_not_existis(const char *path) {
   char *next = strchr(copy, separator);
   while (true) {
     if (next == NULL) {
-      ok = tkbc_make_dir_if_not_existis(copy);
+      ok = tkbc__make_dir_if_not_existis_internal(copy, report_err, true);
       break;
     }
     *next = '\0';
-    ok = tkbc_make_dir_if_not_existis(copy);
+    ok = tkbc__make_dir_if_not_existis_internal(copy, report_err, false);
     *next = separator;
     if (!ok) {
       break;
