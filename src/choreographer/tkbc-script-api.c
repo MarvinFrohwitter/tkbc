@@ -119,7 +119,7 @@ void tkbc__script_end(Env *env) {
   env->script_setup = false;
 
   assert(env->scratch_buf_script.count > 0);
-  env->scratch_buf_script.script_id = env->script_id_counter++;
+  env->scratch_buf_script.script_id = env->script_id_counter++ + 1;
 
   if (!env->scratch_buf_script.name) {
     tkbc_set_script_name(&env->scratch_buf_script,
