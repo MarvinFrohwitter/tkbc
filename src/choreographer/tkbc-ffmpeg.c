@@ -39,6 +39,12 @@ struct Process {
 #include "tkbc-ffmpeg.h"
 #include "tkbc-keymaps.h"
 
+/**
+ * @brief The function captures the current screen into an image and exports
+ * it to the given file path.
+ *
+ * @param path The file path where the screenshot should be saved.
+ */
 void tkbc_take_screenshot(const char *path) {
   if (IsWindowMinimized() || IsWindowHidden()) {
     tkbc_fprintf(stderr, "WARNING",

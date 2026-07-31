@@ -119,11 +119,12 @@ bool tkbc_contains_id(Kite_Ids kite_ids, size_t id) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function searches the kite array for the first active script kite
+ * and stores its kite id.
  *
- * @param env [TODO:parameter]
- * @param id [TODO:parameter]
- * @return [TODO:return]
+ * @param env The environment that holds the kite array.
+ * @param id A pointer where the kite id of the found kite gets stored.
+ * @return Returns true if an active script kite was found, otherwise false.
  */
 bool tkbc_find_first_active_script_kite(Env *env, Id *id) {
   for (size_t k = 0; k < env->kite_array.count; ++k) {
@@ -1450,6 +1451,17 @@ void tkbc_patch_combined_move_tip_frames(Env *env) {
   }
 }
 
+/**
+ * @brief The function resolves a zero angle to a concrete rotation value. This
+ * is needed to determine the actual rotation direction when a frame with a
+ * duration and an angle of zero is used for a kite rotation.
+ *
+ * @param kite The kite that is going to be rotated.
+ * @param kind The kind of the rotation action.
+ * @param action The action that contains the rotation to resolve.
+ * @param duration The duration of the rotation frame.
+ * @return The resolved rotation angle that should be used for the kite.
+ */
 float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action,
                             float duration) {
   switch (kind) {

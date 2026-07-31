@@ -204,10 +204,11 @@ bool tkbc_remove_client_by_fd(int fd) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function can be used to remove a pollfd specified by the fd from
+ * the poll descriptor array in an unordered way.
  *
- * @param fd [TODO:parameter]
- * @return [TODO:return]
+ * @param fd The file descriptor of the pollfd structure that should be removed.
+ * @return Returns true if the pollfd was found and removed, otherwise false.
  */
 bool tkbc_remove_fd_unorderd(int fd) {
   for (size_t i = 0; i < fds.count; ++i) {
@@ -1056,6 +1057,12 @@ check:
   return ok;
 }
 
+/**
+ * @brief The function is the handler for the registered termination signals
+ * and terminates the program immediately on a signal.
+ *
+ * @param signal The signal number that was received.
+ */
 void signalhandler(int signal) {
   (void)signal;
   abort();

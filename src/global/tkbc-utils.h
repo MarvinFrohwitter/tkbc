@@ -1016,6 +1016,15 @@ Color tkbc_uint32_t_to_color(uint32_t color) {
   return c;
 }
 
+/**
+ * @brief The function returns a pointer to the pixel at the given position in
+ * the image.
+ *
+ * @param image The image that contains the pixel data.
+ * @param x The x coordinate of the pixel.
+ * @param y The y coordinate of the pixel.
+ * @return A pointer to the color data of the pixel at the given position.
+ */
 unsigned char *tkbc_get_position_in_image(Image image, int x, int y) {
   assert(image.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
   return &((unsigned char *)image.data)[(x + y * (int)image.width) * 4];

@@ -8,11 +8,13 @@
 #include <stdbool.h>
 
 /**
- * @brief [TODO:description]
+ * @brief The function verifies the hello message by comparing the received
+ * greeting with the expected protocol greeting.
  *
- * @param lexer [TODO:parameter]
- * @param greeting [TODO:parameter]
- * @return [TODO:return]
+ * @param lexer The lexer that is used to read the message tokens.
+ * @param greeting The expected greeting string that the received hello message
+ * gets compared to.
+ * @return Returns true if the greeting matches, otherwise false.
  */
 bool tkbc_messages_hello_verification(Lexer *lexer, const char *greeting) {
   Token token;

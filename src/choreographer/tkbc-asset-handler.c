@@ -12,6 +12,11 @@ extern Assets assets;
 
 // Save and load kite designs from config files.
 
+/**
+ * @brief The function generates a unique id for a new asset.
+ *
+ * @return The generated unique asset id.
+ */
 static inline Id tkbc_generate_uuid_for_asset(void) {
   static size_t global_asset_id_factory = 0;
 
@@ -366,11 +371,13 @@ Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width,
 }
 
 /**
- * @brief [TODO:description]
+ * @brief The function checks if an asset with the same image data already
+ * exists in the assets.
  *
- * @param image [TODO:parameter]
- * @param id [TODO:parameter]
- * @return [TODO:return]
+ * @param image The image that gets searched for in the assets.
+ * @param id A pointer where the id of the found asset gets stored.
+ * @return Returns true if an asset with the same image was found, otherwise
+ * false.
  */
 bool tkbc_image_already_exitst_in_assets(Image image, Id *id) {
   for (size_t i = KITE_COLORIZER + 1; i < assets.count; ++i) {

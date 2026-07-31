@@ -10,10 +10,11 @@
 extern Assets assets;
 
 /**
- * @brief [TODO:description]
+ * @brief The function parses image data out of the send texture message and
+ * appends it as a new kite image and kite texture asset if it does not exist.
  *
- * @param lexer [TODO:parameter]
- * @return [TODO:return]
+ * @param lexer The lexer that is used to read the message tokens.
+ * @return Returns true if the image was parsed successfully, otherwise false.
  */
 bool tkbc_messages_send_texture(Lexer *lexer) {
   size_t width, height, format;

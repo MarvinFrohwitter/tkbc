@@ -10,10 +10,12 @@
 extern Client client;
 
 /**
- * @brief [TODO:description]
+ * @brief The function parses the script meta data message that contains the
+ * script id, the frames count and the frames index and updates the server
+ * script values in the environment.
  *
- * @param lexer [TODO:parameter]
- * @return [TODO:return]
+ * @param lexer The lexer that is used to read the message tokens.
+ * @return Returns true if the message was parsed successfully, otherwise false.
  */
 bool tkbc_messages_script_meta_data(Lexer *lexer) {
   Token token;

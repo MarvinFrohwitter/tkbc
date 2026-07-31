@@ -10,11 +10,13 @@
 #include <stdbool.h>
 
 /**
- * @brief [TODO:description]
+ * @brief The function parses a texture id out of the given message, looks up
+ * the texture asset and appends the kite image data as a MESSAGE_SEND_TEXTURE
+ * to the client send buffer.
  *
- * @param lexer [TODO:parameter]
- * @param client [TODO:parameter]
- * @return [TODO:return]
+ * @param lexer The lexer that is used to read the message tokens.
+ * @param client The client that the texture data gets send to.
+ * @return Returns true if the texture was found and send, otherwise false.
  */
 bool tkbc_messages_get_texture(Lexer *lexer, Client *client) {
   Token token;

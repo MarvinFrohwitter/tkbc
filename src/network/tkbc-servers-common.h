@@ -222,6 +222,15 @@ static inline int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
   return socket_id;
 }
 
+/**
+ * @brief The function appends the pixel data of the given image to a message.
+ *
+ * @param space The space that is used for the message buffer.
+ * @param message The Message struct that should contain the serialized image
+ * data.
+ * @param image The image whose pixel data should be appended.
+ * @param id The id that is serialized in front of the image data.
+ */
 static inline void tkbc_message_append_image_data(Space *space,
                                                   Message *message, Image image,
                                                   Id id) {
