@@ -1725,7 +1725,7 @@ key_change_skip: {}
   Vector2 text_size = {0};
   int font_size = 18;
 
-  const char *str;
+  const char *str = "null";
   switch (iteration) {
   case BOX_KEY:
     str = env->keymaps.elements[cur_major_box].key_str;
