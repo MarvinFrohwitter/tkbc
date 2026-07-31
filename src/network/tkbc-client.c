@@ -819,7 +819,7 @@ static bool tkbc_update_kites_input_handling_for_message_single_kite_update(
  * send_message_queue.
  */
 void tkbc_client_input_handler_kite(void) {
-  if (env->server_script_id != 0) {
+  if (env->server_script_id != 0 || env->script) {
 
     { ///////////////////////////////////////////////////////////////////////
       // Kite_State *kite_state = tkbc_get_kite_state_by_id(env,

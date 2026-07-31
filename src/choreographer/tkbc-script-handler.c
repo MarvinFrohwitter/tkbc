@@ -866,10 +866,6 @@ bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh) {
   env->script_loading = true;
 
   tkbc_change_visibility_to_script_kites(env, env->script);
-  // This is especially for offline mode. In online the script id should not be
-  // found because no scripts are loaded in the client, and therefore we should
-  // not reach this statement.
-  env->server_script_id = env->script->script_id;
   return true;
 }
 
