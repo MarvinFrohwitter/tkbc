@@ -162,6 +162,7 @@ void include_opt(Cmd *cmd, Include_Opts opts) {
 typedef struct {
   bool math;
   bool raylib;
+  bool raylib_memory;
   bool X11;
 
   bool LINUX;
@@ -175,27 +176,33 @@ void libs_opt(Cmd *cmd, Libs_Opts opts) {
   if (opts.math) {
     LIBS(cmd, "-lm");
   }
-  if (opts.raylib) {
-    if (0) {
-    } else if (opts.LINUX) {
+  if (0) {
+  } else if (opts.LINUX) {
+    if (opts.raylib) {
       LDFLAGS(cmd, "-L", RAYLIB_PATH_LINUX "lib/");
-      LIBS(cmd, "-l:libraylib.a");
-      if (opts.X11) {
-        LIBS(cmd, "-lX11");
+      if (opts.raylib_memory) {
+        LIBS(cmd, "-l:libraylib_memory.a");
+      } else {
+        LIBS(cmd, "-l:libraylib.a");
       }
-    } else if (opts.WINDOWS) {
+    }
+    if (opts.X11) {
+      LIBS(cmd, "-lX11");
+    }
+  } else if (opts.WINDOWS) {
+    if (opts.raylib) {
       LDFLAGS(cmd, "-L", RAYLIB_PATH_WINDOWS "lib/");
       // Linking order is important because of collisions.
       LIBS(cmd, "-l:libraylib.a");
-      LIBS(cmd, "-lwinmm");
-      LIBS(cmd, "-lgdi32");
-
-      if (opts.network) {
-        LIBS(cmd, "-lws2_32");
-      }
-    } else {
-      exit(EXIT_FAILURE);
     }
+    LIBS(cmd, "-lwinmm");
+    LIBS(cmd, "-lgdi32");
+
+    if (opts.network) {
+      LIBS(cmd, "-lws2_32");
+    }
+  } else {
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -446,7 +453,9 @@ void server_opt(Cmd *cmd, OS_Opts os) {
 
   if (0) {
   } else if (os.LINUX) {
-    libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
+    // TODO: Strip raylib dependency for the server completely.
+    libs(cmd, .raylib = true, .raylib_memory = true, .math = true,
+         .LINUX = true);
   } else if (os.WINDOWS) {
     libs(cmd, .raylib = true, .WINDOWS = true, .network = true);
   } else {
@@ -485,7 +494,7 @@ void tests_opt(Cmd *cmd, Tests_Opts opts) {
   cb_cmd_push(cmd, "-o", BUILD_PATH "tests");
   cb_cmd_push(cmd, TESTS_PATH "tkbc_tests.c");
   files_for_test(cmd);
-  libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
+  libs(cmd, .raylib = true, .raylib_memory = true, .math = true, .LINUX = true);
 
   if (!cb_run_sync(cmd))
     exit(EXIT_FAILURE);

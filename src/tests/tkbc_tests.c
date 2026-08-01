@@ -13,6 +13,7 @@
 #define CASSERT_IMPLEMENTATION
 #include "../../external/cassert/cassert.h"
 
+#include "../choreographer/tkbc-asset-handler.h"
 Assets assets = {0};
 Env *env = {0};
 
@@ -25,6 +26,7 @@ Env *env = {0};
  * @return 0 on success.
  */
 int main(void) {
+  append_assets();
   cassert_tests {
     tkbc_test_geometrics(&tests);
     tkbc_test_script_handler(&tests);
@@ -37,5 +39,6 @@ int main(void) {
 #endif // SHORT_LOG
 
   cassert_free_tests(&tests);
+  tkbc_assets_destroy();
   return 0;
 }

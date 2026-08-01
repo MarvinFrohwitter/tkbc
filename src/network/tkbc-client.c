@@ -1279,6 +1279,7 @@ int main(int argc, char *argv[]) {
 
   tkbc_sound_destroy(env->sound);
   tkbc_destroy_env(env);
+  tkbc_assets_destroy();
 
   space_free_tspace();
   space_free_space(&assets.space);
