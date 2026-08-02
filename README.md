@@ -440,14 +440,14 @@ END
 | ---------------------------------- | ----------------------------------------------------------------- |
 | `KEY_1 KEY_9`                      | Toggles the selection of a kite.                                  |
 | `KEY_ESCAPE`                       | Change key mappings.                                              |
-| `KEY_BACKSPACE`                    | Quits the Program.                                                |
 | `KEY_B`                            | Take a Screenshot.                                                |
 | `KEY_V`                            | Begin recording the screen.                                       |
 | `SHIFT + KEY_V`                    | End recording the screen.                                         |
 | `KEY_ENTER`                        | Set all kites in start position angle 0.                          |
-| `KEY_X`                            | Rotate all selected kites angle 0.                                |
-| `[KEY_H \| KEY_L] + KEY_T`         | Rotate all selected kites at the tip clockwise.                   |
-| `[KEY_H \| KEY_L] + SHIFT + KEY_T` | Rotate all selected kites at the tip anticlockwise.               |
+| `KEY_H + KEY_T`                    | Rotate all selected kites at the left tip clockwise.              |
+| `KEY_L + KEY_T`                    | Rotate all selected kites at the right tip clockwise.             |
+| `SHIFT + KEY_H + KEY_T`            | Rotate all selected kites at the left tip anticlockwise.          |
+| `SHIFT + KEY_L + KEY_T`            | Rotate all selected kites at the right tip anticlockwise.         |
 | `KEY_F`                            | Switches between a fixed and a smooth rotation (toggle).          |
 | `KEY_A`                            | Moves the selected kites by the set speed to the left.            |
 | `KEY_S`                            | Moves the selected kites by the set speed to the down.            |
@@ -458,7 +458,7 @@ END
 | `KEY_O`                            | Increase the turn speed.                                          |
 | `SHIFT + KEY_O`                    | Reduce the turn speed.                                            |
 | `KEY_SPACE`                        | Toggles the interruption that controls the execution of a script. |
-| `KEY_TAB`                          | Switches to the next loaded script.                               |
+| `KEY_TAB`                          | Switches to the next loaded script (menu).                        |
 | `KEY_N`                            | Plays the currently loaded sound.                                 |
 | `SHIFT + KEY_N`                    | Stops the current sound track.                                    |
 | `KEY_M`                            | Pauses the current sound track.                                   |
