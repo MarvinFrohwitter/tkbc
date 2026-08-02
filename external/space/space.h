@@ -1394,7 +1394,7 @@ layout_rerun:
     } else {
       bool found = false;
       for (size_t i = 0; i < space->count; ++i) {
-        if (space->elements[i].id == planet->id) {
+        if (space->elements[i].id == planet->id && i + 1 < space->count) {
           memmove(&space->elements[i], &space->elements[i + 1],
                   (space->count - i - 1) * sizeof(*space->elements));
           found = true;
