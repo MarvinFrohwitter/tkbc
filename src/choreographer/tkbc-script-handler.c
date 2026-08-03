@@ -323,6 +323,68 @@ static bool tkbc_kite_has_move_in_block(Env *env, Id kite_id) {
 }
 
 /**
+ * @brief Checks if the given kite has a tip rotation frame (TIP_ROTATION or
+ * TIP_ROTATION_ADD) in the current block.
+ *
+ * @param env The global state of the application.
+ * @param kite_id The id of the kite to check.
+ * @return The tip rotation frame for the kite or NULL if none exists.
+ */
+static Frame *tkbc_kite_tip_rotation_in_block(Env *env, Id kite_id) {
+  for (size_t i = 0; i < env->frames->count; ++i) {
+    Frame *f = &env->frames->elements[i];
+    if (f->kind == ACTION_KITE_TIP_ROTATION ||
+        f->kind == ACTION_KITE_TIP_ROTATION_ADD) {
+      for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+        if (f->kite_id_array.elements[j] == kite_id) {
+          return f;
+        }
+      }
+    }
+  }
+  return NULL;
+}
+
+/**
+ * @brief Computes the destination of a MOVE_ADD action that is combined with a
+ * tip rotation frame in the same block. A tip rotation moves the kite center
+ * around the tip, so the move destination has to account for that center
+ * displacement. This prevents the infinite loop where the move and the tip
+ * rotation fight over kite->center without modifying the frame action.
+ *
+ * @param kite The kite that is moved.
+ * @param tip_frame The tip rotation frame of the kite in the current block.
+ * @param offset The original MOVE_ADD offset.
+ * @return The combined destination of the move.
+ */
+static Vector2 tkbc_combined_move_destination(Kite *kite, Frame *tip_frame,
+                                              Vector2 offset) {
+  Tip_Rotation_Action *tip_action = &tip_frame->action.as_tip_rotation;
+
+  Vector2 saved_center = kite->center;
+  float saved_angle = kite->angle;
+
+  // Provided the old position, because the kite center moves as a circle
+  // around the old fixed position.
+  kite->center = kite->old_center;
+  kite->angle = kite->old_angle;
+  tkbc_kite_update_internal(kite);
+
+  float final_tip_angle = tip_frame->kind == ACTION_KITE_TIP_ROTATION_ADD
+                              ? kite->old_angle + tip_action->angle
+                              : tip_action->angle;
+  tkbc_tip_rotation(kite, &kite->old_center, final_tip_angle, tip_action->tip);
+
+  Vector2 destination = Vector2Add(kite->center, offset);
+
+  kite->center = saved_center;
+  kite->angle = saved_angle;
+  tkbc_kite_update_internal(kite);
+
+  return destination;
+}
+
+/**
  * @brief The function supports all the action kinds that are defined. It can be
  * used to calculate the given frame and its action. For kite actions the new
  * state of the kite results and the internal action values related to time and
@@ -366,9 +428,14 @@ void tkbc_render_frame(Env *env, Frame *frame) {
       kite = tkbc_get_kite_by_id_unwrap(env, id);
 
       Vector2 dest_position = Vector2Add(kite->old_center, action->position);
+      Frame *tip_frame = tkbc_kite_tip_rotation_in_block(env, id);
+      if (tip_frame) {
+        dest_position = tkbc_combined_move_destination(kite, tip_frame,
+                                                       action->position);
+      }
       Vector2 d = tkbc_script_move(kite, dest_position, frame->duration);
 
-      if (Vector2Equals(action->position, Vector2Zero())) {
+      if (Vector2Equals(dest_position, kite->old_center)) {
         frame->duration -= tkbc_get_frame_time();
         if (frame->duration <= 0) {
           frame->finished = true;
@@ -376,10 +443,8 @@ void tkbc_render_frame(Env *env, Frame *frame) {
         continue;
       }
 
-      int res = fabsf(Vector2Add(kite->old_center, action->position).x -
-                      kite->center.x) <= d.x &&
-                fabsf(Vector2Add(kite->old_center, action->position).y -
-                      kite->center.y) <= d.y;
+      int res = fabsf(dest_position.x - kite->center.x) <= d.x &&
+                fabsf(dest_position.y - kite->center.y) <= d.y;
 
       if (res) {
         frame->finished = true;
@@ -1372,81 +1437,6 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
     tkbc_tip_rotation(kite, NULL, kite->angle + ds, tip);
   }
   return fabsf(ds);
-}
-
-/**
- * @brief Detects kites that have both a move frame (MOVE or MOVE_ADD) and a
- * tip rotation frame (TIP_ROTATION or TIP_ROTATION_ADD) in the current block.
- * For MOVE_ADD, the destination is patched to the combined final position (tip
- * rotation final center + move offset). For MOVE (absolute), no patching is
- * needed since the absolute target already accounts for the final position.
- * In both cases the tip rotation will use angle-only in the render function,
- * preventing the infinite loop where both actions fight over kite->center.
- *
- * @param env The global state of the application.
- */
-void tkbc_patch_combined_move_tip_frames(Env *env) {
-  Frames *frames = env->frames;
-  if (!frames) {
-    return;
-  }
-
-  for (size_t k = 0; k < frames->kite_frame_positions.count; ++k) {
-    Id kite_id = frames->kite_frame_positions.elements[k].kite_id;
-
-    Frame *move_frame = NULL;
-    Frame *tip_frame = NULL;
-
-    for (size_t i = 0; i < frames->count; ++i) {
-      Frame *frame = &frames->elements[i];
-      for (size_t j = 0; j < frame->kite_id_array.count; ++j) {
-        if (frame->kite_id_array.elements[j] == kite_id) {
-          if (frame->kind == ACTION_KITE_MOVE ||
-              frame->kind == ACTION_KITE_MOVE_ADD) {
-            move_frame = frame;
-          } else if (frame->kind == ACTION_KITE_TIP_ROTATION ||
-                     frame->kind == ACTION_KITE_TIP_ROTATION_ADD) {
-            tip_frame = frame;
-          }
-        }
-      }
-    }
-
-    if (!move_frame || !tip_frame) {
-      continue;
-    }
-
-    Kite *kite = tkbc_get_kite_by_id(env, kite_id);
-    if (!kite) {
-      continue;
-    }
-
-    Tip_Rotation_Action *tip_action = &tip_frame->action.as_tip_rotation;
-
-    Vector2 saved_center = kite->center;
-    float saved_angle = kite->angle;
-
-    kite->center = kite->old_center;
-    kite->angle = kite->old_angle;
-    tkbc_kite_update_internal(kite);
-
-    float final_tip_angle = tip_frame->kind == ACTION_KITE_TIP_ROTATION_ADD
-                                ? kite->old_angle + tip_action->angle
-                                : tip_action->angle;
-    tkbc_tip_rotation(kite, &kite->old_center, final_tip_angle,
-                      tip_action->tip);
-
-    // Only patch MOVE_ADD (relative); MOVE (absolute) is already the target.
-    if (move_frame->kind == ACTION_KITE_MOVE_ADD) {
-      Move_Add_Action *move_action = &move_frame->action.as_move_add;
-      Vector2 combined = Vector2Add(kite->center, move_action->position);
-      move_action->position = Vector2Subtract(combined, kite->old_center);
-    }
-
-    kite->center = saved_center;
-    kite->angle = saved_angle;
-    tkbc_kite_update_internal(kite);
-  }
 }
 
 /**

@@ -183,19 +183,11 @@ void change_90(Env *env) {
 
   SET(
 
-      // TODO: Do the tip rotation instead, when it is working.
-      // Turn in adaption
-      // KITE_MOVE_ADD(ID(zero), -kite.width, 0, rotation_duration),
-      // KITE_MOVE_ADD(ID(one), kite.width, 0, rotation_duration),
+      KITE_MOVE_ADD(ID(zero), kite.width / 2.0, 0, rotation_duration),
+      KITE_MOVE_ADD(ID(one), -kite.width / 2.0, 0, rotation_duration),
 
-      // KITE_TIP_ROTATION_ADD(ID(zero), 180, LEFT_TIP, rotation_duration),
-      // KITE_TIP_ROTATION_ADD(ID(one), 180, LEFT_TIP, rotation_duration)
-
-      KITE_MOVE_ADD(ID(zero), -kite.width / 2, 0, rotation_duration),
-      KITE_MOVE_ADD(ID(one), kite.width / 2, 0, rotation_duration),
-
-      KITE_ROTATION_ADD(ID(zero), 180, rotation_duration),
-      KITE_ROTATION_ADD(ID(one), 180, rotation_duration)
+      KITE_TIP_ROTATION_ADD(ID(zero), 180, LEFT_TIP, rotation_duration),
+      KITE_TIP_ROTATION_ADD(ID(one), 180, LEFT_TIP, rotation_duration)
 
   );
 

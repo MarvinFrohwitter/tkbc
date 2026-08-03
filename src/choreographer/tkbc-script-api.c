@@ -195,12 +195,6 @@ void tkbc_script_update_frames(Env *env) {
     env->frames->kite_frame_positions.elements[i].angle = kite->angle;
     env->frames->kite_frame_positions.elements[i].position = kite->center;
   }
-
-  // Patch combined move + tip rotation frames (all MOVE/MOVE_ADD and
-  // TIP_ROTATION/TIP_ROTATION_ADD combos) so the move destination accounts
-  // for the tip rotation's center displacement, preventing an infinite loop
-  // where both fight over kite->center.
-  tkbc_patch_combined_move_tip_frames(env);
 }
 
 /**
