@@ -222,19 +222,21 @@ void edges_turn_in(Env *env) {
 
   SET(
 
-      // TODO: Do the tip rotation instead, when it is working.
-      // Turn in adaption
-      // KITE_MOVE_ADD(ID(zero), -kite.width, 0, rotation_duration),
-      // KITE_MOVE_ADD(ID(one), kite.width, 0, rotation_duration),
+      // slided_revers_tip_turn_in
+      KITE_MOVE_ADD(ID(zero), 0, kite.width / 2.0, rotation_duration),
+      KITE_MOVE_ADD(ID(one), 0, -kite.width / 2.0, rotation_duration),
 
-      // KITE_TIP_ROTATION_ADD(ID(zero), 180, RIGHT_TIP, rotation_duration),
-      // KITE_TIP_ROTATION_ADD(ID(one), 180, RIGHT_TIP, rotation_duration)
+      KITE_TIP_ROTATION_ADD(ID(zero), 180, RIGHT_TIP, rotation_duration),
+      KITE_TIP_ROTATION_ADD(ID(one), 180, RIGHT_TIP, rotation_duration)
 
-      KITE_MOVE_ADD(ID(zero), 0, -kite.width / 2, rotation_duration),
-      KITE_MOVE_ADD(ID(one), 0, kite.width / 2, rotation_duration),
+      // This is the boring version just a slided_tip_turn_in
+      // This was the original but now discovered cooler is the above.
 
-      KITE_ROTATION_ADD(ID(zero), -180, rotation_duration),
-      KITE_ROTATION_ADD(ID(one), -180, rotation_duration)
+      // KITE_MOVE_ADD(ID(zero), 0, kite.width / 2.0, rotation_duration),
+      // KITE_MOVE_ADD(ID(one), 0, -kite.width / 2.0, rotation_duration),
+
+      // KITE_TIP_ROTATION_ADD(ID(zero), -180, RIGHT_TIP, rotation_duration),
+      // KITE_TIP_ROTATION_ADD(ID(one), -180, RIGHT_TIP, rotation_duration)
 
   );
   SET(
@@ -500,19 +502,19 @@ void corner_turn_out(Env *env, Kite_Ids ki) {
 // }
 
 void to_center_slide_in(Env *env) {
-  SET(
+  // SET(
 
-      // KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.width / 2, 4 * kite.width
-      // - kite.width / 2, move_duration), KITE_MOVE_ADD(ID(one), -4 *
-      // kite.width + kite.width / 2, -4 * kite.width + kite.width / 2,
-      // move_duration)
+  //     KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.width / 2,
+  //                   4 * kite.width - kite.width / 2, move_duration),
+  //     KITE_MOVE_ADD(ID(one), -4 * kite.width + kite.width / 2,
+  //                   -4 * kite.width + kite.width / 2, move_duration);
 
-      KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.height,
-                    4 * kite.width - kite.height, move_duration),
-      KITE_MOVE_ADD(ID(one), -4 * kite.width + kite.height,
-                    -4 * kite.width + kite.height, move_duration)
+  //     KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.height,
+  //                   4 * kite.width - kite.height, move_duration),
+  //     KITE_MOVE_ADD(ID(one), -4 * kite.width + kite.height,
+  //                   -4 * kite.width + kite.height, move_duration)
 
-  );
+  // );
 
   SET(
 
