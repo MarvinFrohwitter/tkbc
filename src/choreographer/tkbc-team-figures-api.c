@@ -39,12 +39,21 @@ bool tkbc_script_team_roll_two_diffrent_angle(
   assert(kite_index_array.count == 2);
 
   Frame *frame = NULL;
-  const float duration_1 = move_duration_1 / (end_angle_1 - begin_angle_1);
-  const float duration_2 = move_duration_2 / (end_angle_2 - begin_angle_2);
+
+  float first = (float)end_angle_1 - begin_angle_1;
+  float second = (float)end_angle_2 - begin_angle_2;
+  first = fabsf(fmodf(first, 360));
+  second = fabsf(fmodf(second, 360));
+
+  begin_angle_1 = fabsf(fmodf(begin_angle_1, 360));
+  begin_angle_2 = fabsf(fmodf(begin_angle_2, 360));
+
+  const float duration_1 = move_duration_1 / first;
+  const float duration_2 = move_duration_2 / second;
   Vector2 position;
 
-  assert((end_angle_1 - begin_angle_1) == (end_angle_2 - begin_angle_2));
-  for (size_t deg = 0; deg < (end_angle_1 - begin_angle_1); ++deg) {
+  assert(first == second);
+  for (size_t deg = 0; deg < first; ++deg) {
     tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
     position = (Vector2){
         .x = radius * cosf(PI * (deg + begin_angle_1) / 180),
@@ -1366,7 +1375,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
       if (i < 0) {
         break;
       }
@@ -1376,7 +1386,8 @@ bool tkbc_script_team_split_box_up(Env *env, Kite_Ids kite_index_array,
       if (frame == NULL)
         return false;
 
-      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
+      space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames,
+                *frame);
     }
     tkbc_register_frames_array(env, &env->scratch_buf_frames);
   } break;

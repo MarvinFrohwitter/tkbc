@@ -1,5 +1,6 @@
 #include "../src/choreographer/tkbc-script-api.h"
 #include "../src/choreographer/tkbc-team-figures-api.h"
+#include <math.h>
 
 static Kite kite;
 static float wait_time = 0.5;
@@ -471,71 +472,41 @@ void corner_turn_out(Env *env, Kite_Ids ki) {
   SET(KITE_WAIT(wait_time));
 }
 
-// The actual center move correct position.
-// void to_center_slide_in(Env *env) {
-//   SET(
+void to_center_slide_in(Env *env) {
 
-//       KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.width / 2,
-//                     4 * kite.width - kite.width / 2, move_duration),
+  SET(
 
-//       KITE_MOVE_ADD(ID(one), -4 * kite.width + kite.width / 2,
-//                     -4 * kite.width + kite.width / 2, move_duration)
+      KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.height / 2,
+                    2 * kite.width + kite.height, move_duration),
+      KITE_MOVE_ADD(ID(one), -(4 * kite.width + kite.height / 2),
+                    -(3 * kite.width + kite.width / 2), move_duration)
 
-//   );
+  );
 
-//   SET(
+  SET(
 
-//       KITE_MOVE_ADD(ID(zero), kite.width + kite.width / 2 + kite.height / 2,
-//                     -kite.width - kite.width / 2 - kite.height / 2,
-//                     move_duration),
-//       KITE_MOVE_ADD(ID(one), -kite.width - kite.width / 2 - kite.height / 2,
-//                     kite.width + kite.width / 2 + kite.height / 2,
-//                     move_duration)
+      KITE_MOVE_ADD(ID(zero), kite.width + kite.height / 2,
+                    -kite.width - kite.height / 2, move_duration),
+      KITE_MOVE_ADD(ID(one), -kite.width - kite.height / 2,
+                    kite.width + kite.height / 2, move_duration)
 
-//   );
-// }
+  );
+}
+
+void pair_change_90(Env *env, Kite_Ids ki) {
+  tkbc_script_team_roll_two_diffrent_angle(env, ki, 1.3, 180 + 45, 45, 45,
+                                           180 + 45, rotation_duration,
+                                           rotation_duration);
+}
 
 // void pair_change_90(Env *env, Kite_Ids ki) {
-//   tkbc_script_team_roll_two_diffrent_angle(
-//       env, ki, 1.3, 405, 585, 225, 405, rotation_duration,
-//       rotation_duration);
+//   SET(
+
+//       KITE_TIP_ROTATION_ADD(ID(zero), 90, LEFT_TIP, rotation_duration),
+//       KITE_TIP_ROTATION_ADD(ID(one), 90, LEFT_TIP, rotation_duration)
+
+//   );
 // }
-
-void to_center_slide_in(Env *env) {
-  // SET(
-
-  //     KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.width / 2,
-  //                   4 * kite.width - kite.width / 2, move_duration),
-  //     KITE_MOVE_ADD(ID(one), -4 * kite.width + kite.width / 2,
-  //                   -4 * kite.width + kite.width / 2, move_duration);
-
-  //     KITE_MOVE_ADD(ID(zero), 4 * kite.width - kite.height,
-  //                   4 * kite.width - kite.height, move_duration),
-  //     KITE_MOVE_ADD(ID(one), -4 * kite.width + kite.height,
-  //                   -4 * kite.width + kite.height, move_duration)
-
-  // );
-
-  SET(
-
-      KITE_MOVE_ADD(ID(zero), kite.width + kite.width / 2 + kite.height / 2,
-                    -kite.width - kite.width / 2 - kite.height / 2,
-                    move_duration),
-      KITE_MOVE_ADD(ID(one), -kite.width - kite.width / 2 - kite.height / 2,
-                    kite.width + kite.width / 2 + kite.height / 2,
-                    move_duration)
-
-  );
-}
-
-void pair_change_90(Env *env) {
-  SET(
-
-      KITE_TIP_ROTATION_ADD(ID(zero), 90, LEFT_TIP, rotation_duration),
-      KITE_TIP_ROTATION_ADD(ID(one), 90, LEFT_TIP, rotation_duration)
-
-  );
-}
 
 void choreo(Env *env, Kite_Ids ki) {
   kite = *env->vanilla_kite;
@@ -582,7 +553,7 @@ void choreo(Env *env, Kite_Ids ki) {
   corner_turn_out(env, ki);
 
   to_center_slide_in(env);
-  // pair_change_90(env);
+  pair_change_90(env, ki);
   SET(KITE_WAIT(wait_time));
   tkbc_script_end();
 }
