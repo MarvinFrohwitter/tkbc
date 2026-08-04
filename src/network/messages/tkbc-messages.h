@@ -13,12 +13,10 @@ bool tkbc_messages_send_texture_id(Env *env, Lexer *lexer, Client *client);
 bool tkbc_messages_get_texture_id(Lexer *lexer, Client *client);
 bool tkbc_messages_script_meta_data(Lexer *lexer);
 
-bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client,
-                                   Kite *client_kite);
+bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client, Kite *client_kite);
 
-bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client,
-                          bool *script_alleady_there_parsing_skip);
+bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_alleady_there_parsing_skip);
 bool tkbc_messages_script_next(Lexer *lexer);
 bool tkbc_messages_script_scrub(Lexer *lexer);
 
-#endif // TKBC_MESSAGES_H
+#endif  // TKBC_MESSAGES_H

@@ -18,15 +18,11 @@ Key_Map tkbc_hash_to_keymap(Key_Maps keymaps, int hash);
 bool tkbc_check_key(int key, Key_Mode mode);
 bool tkbc_check_keymap(Key_Map keymap, Key_Map_Check_Config cfg, int kso);
 bool tkbc_check_keymap_full(Key_Map keymap, Key_Map_Check_Config cfg);
-bool tkbc_check_keymaps(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg,
-                        int kso);
-bool tkbc_check_keymaps_full(Key_Maps keymaps, int hash,
-                             Key_Map_Check_Config cfg);
+bool tkbc_check_keymaps(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg, int kso);
+bool tkbc_check_keymaps_full(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg);
 
-#define KEY_CONFIG(value_key, value_mode_key, value_selection_key)             \
-  ((Key_Map_Check_Config){.key = (value_key),                                  \
-                          .mod_key = (value_mode_key),                         \
-                          .selection_key = (value_selection_key)})
+#define KEY_CONFIG(value_key, value_mode_key, value_selection_key)                                                     \
+    ((Key_Map_Check_Config){.key = (value_key), .mod_key = (value_mode_key), .selection_key = (value_selection_key)})
 #define VA_KEY_CONFIG(...) ((Key_Map_Check_Config){__VA_ARGS__})
 
 /*-------------- DEFAULT CONFIGS -------------------------------------------*/
@@ -58,13 +54,13 @@ static const Key_Map_Check_Config KEY_MAP_CHECK_RELEASED = {
 static const Key_Map_Check_Config KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN = {
     .key = MODE_PRESSED,
     .mod_key = MODE_DOWN,
-    .selection_key = MODE_DOWN, // Don't care for default behavior
+    .selection_key = MODE_DOWN,  // Don't care for default behavior
 };
 
 static const Key_Map_Check_Config KEY_MAP_CHECK_KEY_PRESSED = {
     .key = MODE_PRESSED,
-    .mod_key = MODE_DOWN,       // Don't care for default behavior
-    .selection_key = MODE_DOWN, // Don't care for default behavior
+    .mod_key = MODE_DOWN,        // Don't care for default behavior
+    .selection_key = MODE_DOWN,  // Don't care for default behavior
 };
 
-#endif // TKBC_KEYMAPS_H
+#endif  // TKBC_KEYMAPS_H

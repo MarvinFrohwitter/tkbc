@@ -25,83 +25,82 @@ extern Assets assets;
  * @return The new allocated Env.
  */
 Env *tkbc_init_env(void) {
-  Env *env = malloc(sizeof(*env));
-  if (env == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return NULL;
-  }
-  // This is very important to zero init the complete struct.
-  // Most of the computation relies on zero initialization.
-  memset(env, 0, sizeof(*env));
+    Env *env = malloc(sizeof(*env));
+    if (env == NULL) {
+        tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+        return NULL;
+    }
+    // This is very important to zero init the complete struct.
+    // Most of the computation relies on zero initialization.
+    memset(env, 0, sizeof(*env));
 
-  env->vanilla_kite = malloc(sizeof(*env->vanilla_kite));
-  if (env->vanilla_kite == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    free(env);
-    return NULL;
-  }
-  memset(env->vanilla_kite, 0, sizeof(*env->vanilla_kite));
+    env->vanilla_kite = malloc(sizeof(*env->vanilla_kite));
+    if (env->vanilla_kite == NULL) {
+        tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+        free(env);
+        return NULL;
+    }
+    memset(env->vanilla_kite, 0, sizeof(*env->vanilla_kite));
 
-  tkbc_init_keymaps_defaults(&env->keymaps);
+    tkbc_init_keymaps_defaults(&env->keymaps);
 
-  tkbc_set_kite_defaults(env->vanilla_kite, true);
-  env->kite_id_counter = 0;
-  env->script_setup = true;
-  env->window_width = tkbc_get_screen_width();
-  env->window_height = tkbc_get_screen_height();
-  env->script_finished = true;
-  env->fps = TARGET_FPS;
+    tkbc_set_kite_defaults(env->vanilla_kite, true);
+    env->kite_id_counter = 0;
+    env->script_setup = true;
+    env->window_width = tkbc_get_screen_width();
+    env->window_height = tkbc_get_screen_height();
+    env->script_finished = true;
+    env->fps = TARGET_FPS;
 
 #define TKBC_DIR "tkbc"
 #define KEYMAPS_FILE ".tkbc-keymaps"
 #ifdef _WIN32
-  env->tkbc_dir = TKBC_DIR "\\";
-  env->tkbc_keymaps_path = TKBC_DIR "\\" KEYMAPS_FILE;
+    env->tkbc_dir = TKBC_DIR "\\";
+    env->tkbc_keymaps_path = TKBC_DIR "\\" KEYMAPS_FILE;
 #else
-  env->tkbc_dir = TKBC_DIR "/";
-  env->tkbc_keymaps_path = TKBC_DIR "/" KEYMAPS_FILE;
+    env->tkbc_dir = TKBC_DIR "/";
+    env->tkbc_keymaps_path = TKBC_DIR "/" KEYMAPS_FILE;
 #endif
 
-  // const char *font_name = "iosevka-regular.ttf";
-  // const char *font_name = "GreatVibes-Regular.ttf";
+    // const char *font_name = "iosevka-regular.ttf";
+    // const char *font_name = "GreatVibes-Regular.ttf";
 #ifndef TKBC_SERVER
-  const char *font_name = "";
-  env->font = LoadFont(font_name);
+    const char *font_name = "";
+    env->font = LoadFont(font_name);
 #endif
-  if (!IsFontValid(env->font)) {
-    env->font = GetFontDefault();
-    env->needs_font_free = true;
-  }
+    if (!IsFontValid(env->font)) {
+        env->font = GetFontDefault();
+        env->needs_font_free = true;
+    }
 #ifdef TKBC_SERVER
-  env->font = GetFontDefault();
+    env->font = GetFontDefault();
 #endif
 
-  env->box_height = 80;
-  env->keymaps_interaction_rec_number = -1;
+    env->box_height = 80;
+    env->keymaps_interaction_rec_number = -1;
 
-  env->color_picker_input_text = calloc(10, sizeof(char));
-  if (env->color_picker_input_text == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    free(env->vanilla_kite);
-    free(env);
-    return NULL;
-  }
+    env->color_picker_input_text = calloc(10, sizeof(char));
+    if (env->color_picker_input_text == NULL) {
+        tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+        free(env->vanilla_kite);
+        free(env);
+        return NULL;
+    }
 
-  env->max_favorite_colors = 4;
-  for (size_t i = 0; i < env->max_favorite_colors; i++) {
-    tkbc_dap(&env->favorite_colors, BLANK);
-  }
+    env->max_favorite_colors = 4;
+    for (size_t i = 0; i < env->max_favorite_colors; i++) {
+        tkbc_dap(&env->favorite_colors, BLANK);
+    }
 
-  env->last_selected_color = tkbc_uint32_t_to_color(0x008080FF);
-  env->color_picker_input_text[0] = '#';
+    env->last_selected_color = tkbc_uint32_t_to_color(0x008080FF);
+    env->color_picker_input_text[0] = '#';
 
 #define estimated_script_count 10
 #define SCIRPT_CREATION_INIT_SIZE (1024 * 1024)
 
-  // space_init_capacity(&env->id_space, SCIRPT_CREATION_INIT_SIZE);
-  space_init_capacity(&env->scratch_buf_script.space,
-                      SCIRPT_CREATION_INIT_SIZE * 30);
-  return env;
+    // space_init_capacity(&env->id_space, SCIRPT_CREATION_INIT_SIZE);
+    space_init_capacity(&env->scratch_buf_script.space, SCIRPT_CREATION_INIT_SIZE * 30);
+    return env;
 }
 
 /**
@@ -111,34 +110,30 @@ Env *tkbc_init_env(void) {
  * @return state The new allocated state.
  */
 Kite_State tkbc_init_kite(void) {
-  Kite_State state = {0};
-  state.kite = malloc(sizeof(*state.kite));
-  if (state.kite == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    abort();
-  }
-  memset(state.kite, 0, sizeof(*state.kite));
+    Kite_State state = {0};
+    state.kite = malloc(sizeof(*state.kite));
+    if (state.kite == NULL) {
+        tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+        abort();
+    }
+    memset(state.kite, 0, sizeof(*state.kite));
 
-  tkbc_set_kite_state_defaults(&state);
-  tkbc_set_kite_defaults(state.kite, true);
+    tkbc_set_kite_state_defaults(&state);
+    tkbc_set_kite_defaults(state.kite, true);
 
-  int viewport_padding = state.kite->width > state.kite->height
-                             ? state.kite->width / 2
-                             : state.kite->height;
+    int viewport_padding = state.kite->width > state.kite->height ? state.kite->width / 2 : state.kite->height;
 
-  Vector2 start_pos = {.y = tkbc_get_screen_height() - 2 * viewport_padding,
-                       .x = state.kite->center.x};
-  tkbc_kite_update_position(state.kite, &start_pos);
+    Vector2 start_pos = {.y = tkbc_get_screen_height() - 2 * viewport_padding, .x = state.kite->center.x};
+    tkbc_kite_update_position(state.kite, &start_pos);
 
-  // NOTE: For the server this should be ignored, thus no textures were loaded.
+    // NOTE: For the server this should be ignored, thus no textures were loaded.
 #ifndef TKBC_SERVER
-  assert(assets.count);
+    assert(assets.count);
 
-  tkbc_set_kite_texture(state.kite,
-                        &_tkbc_get_asset_kite_design(IMAGE_1).as.kite_texture);
+    tkbc_set_kite_texture(state.kite, &_tkbc_get_asset_kite_design(IMAGE_1).as.kite_texture);
 #endif
 
-  return state;
+    return state;
 }
 
 /**
@@ -148,34 +143,34 @@ Kite_State tkbc_init_kite(void) {
  */
 void tkbc_destroy_env(Env *env) {
 
-  if (env->keymaps.elements) {
-    free(env->keymaps.elements);
-    env->keymaps.elements = NULL;
-  }
+    if (env->keymaps.elements) {
+        free(env->keymaps.elements);
+        env->keymaps.elements = NULL;
+    }
 
-  free(env->color_picker_input_text);
-  env->color_picker_input_text = NULL;
-  free(env->favorite_colors.elements);
-  env->favorite_colors.elements = NULL;
-  free(env->sound_file_name);
-  env->sound_file_name = NULL;
-  free(env->script_file_name);
-  env->script_file_name = NULL;
-  free(env->vanilla_kite);
-  env->vanilla_kite = NULL;
-  tkbc_destroy_kite_array(&env->kite_array);
+    free(env->color_picker_input_text);
+    env->color_picker_input_text = NULL;
+    free(env->favorite_colors.elements);
+    env->favorite_colors.elements = NULL;
+    free(env->sound_file_name);
+    env->sound_file_name = NULL;
+    free(env->script_file_name);
+    env->script_file_name = NULL;
+    free(env->vanilla_kite);
+    env->vanilla_kite = NULL;
+    tkbc_destroy_kite_array(&env->kite_array);
 
-  if (env->needs_font_free) {
-    UnloadFont(env->font);
-  }
-  space_free_space(&env->_id_space);
-  space_free_space(&env->scratch_buf_script.space);
-  space_free_space(&env->_scripts_space);
-  space_free_tspace();
-  env->scratch_buf_script.name = NULL;
+    if (env->needs_font_free) {
+        UnloadFont(env->font);
+    }
+    space_free_space(&env->_id_space);
+    space_free_space(&env->scratch_buf_script.space);
+    space_free_space(&env->_scripts_space);
+    space_free_tspace();
+    env->scratch_buf_script.name = NULL;
 
-  free(env);
-  env = NULL;
+    free(env);
+    env = NULL;
 }
 
 /**
@@ -184,9 +179,9 @@ void tkbc_destroy_env(Env *env) {
  * @param state The current state of a kite.
  */
 void tkbc_destroy_kite(Kite_State *state) {
-  free(state->kite);
-  state->kite = NULL;
-  state = NULL;
+    free(state->kite);
+    state->kite = NULL;
+    state = NULL;
 }
 
 /**
@@ -196,12 +191,12 @@ void tkbc_destroy_kite(Kite_State *state) {
  * @param kite_states The given kite array.
  */
 void tkbc_destroy_kite_array(Kite_States *kite_states) {
-  for (size_t i = 0; i < kite_states->count; ++i) {
-    free(kite_states->elements[i].kite);
-    kite_states->elements[i].kite = NULL;
-  }
-  free(kite_states->elements);
-  kite_states->elements = NULL;
+    for (size_t i = 0; i < kite_states->count; ++i) {
+        free(kite_states->elements[i].kite);
+        kite_states->elements[i].kite = NULL;
+    }
+    free(kite_states->elements);
+    kite_states->elements = NULL;
 }
 
 /**
@@ -214,21 +209,21 @@ void tkbc_destroy_kite_array(Kite_States *kite_states) {
  * @return True if the kite is removed successfully, otherwise false.
  */
 bool tkbc_remove_kite_from_list(Kite_States *kite_array, size_t kite_id) {
-  if (kite_array == NULL) {
-    return false;
-  }
-  for (size_t i = 0; i < kite_array->count; ++i) {
-    if (kite_array->elements[i].kite_id == kite_id) {
-      Kite_State ks_temp = kite_array->elements[i];
-      kite_array->elements[i] = kite_array->elements[kite_array->count - 1];
-      kite_array->elements[kite_array->count - 1] = ks_temp;
-      free(kite_array->elements[kite_array->count - 1].kite);
-      kite_array->elements[kite_array->count - 1].kite = NULL;
-      kite_array->count -= 1;
-      return true;
+    if (kite_array == NULL) {
+        return false;
     }
-  }
-  return false;
+    for (size_t i = 0; i < kite_array->count; ++i) {
+        if (kite_array->elements[i].kite_id == kite_id) {
+            Kite_State ks_temp = kite_array->elements[i];
+            kite_array->elements[i] = kite_array->elements[kite_array->count - 1];
+            kite_array->elements[kite_array->count - 1] = ks_temp;
+            free(kite_array->elements[kite_array->count - 1].kite);
+            kite_array->elements[kite_array->count - 1].kite = NULL;
+            kite_array->count -= 1;
+            return true;
+        }
+    }
+    return false;
 }
 /**
  * @brief The function computes the spaced start positions for the kite_array
@@ -238,30 +233,27 @@ bool tkbc_remove_kite_from_list(Kite_States *kite_array, size_t kite_id) {
  * @param window_width The width of the window.
  * @param window_height The height of the window.
  */
-void tkbc_kite_array_start_position(Kite_States *kite_states,
-                                    size_t window_width, size_t window_height) {
+void tkbc_kite_array_start_position(Kite_States *kite_states, size_t window_width, size_t window_height) {
 
-  assert(kite_states->count > 0);
+    assert(kite_states->count > 0);
 
-  float kite_width = kite_states->elements[0].kite->width;
-  float kite_height = kite_states->elements[0].kite->height;
-  float viewport_padding =
-      kite_width > kite_height ? kite_width / 2.0f : kite_height;
+    float kite_width = kite_states->elements[0].kite->width;
+    float kite_height = kite_states->elements[0].kite->height;
+    float viewport_padding = kite_width > kite_height ? kite_width / 2.0f : kite_height;
 
-  size_t count = tkbc_get_active_kite_count(kite_states);
+    size_t count = tkbc_get_active_kite_count(kite_states);
 
-  Vector2 start_pos = {.x = window_width / 2.0f - count * kite_width +
-                            kite_width / 2.0f,
-                       .y = window_height - 2 * viewport_padding};
+    Vector2 start_pos = {.x = window_width / 2.0f - count * kite_width + kite_width / 2.0f,
+                         .y = window_height - 2 * viewport_padding};
 
-  for (size_t i = 0; i < kite_states->count; ++i) {
-    if (kite_states->elements[i].is_active) {
-      tkbc_set_kite_state_defaults(&kite_states->elements[i]);
-      tkbc_set_kite_defaults(kite_states->elements[i].kite, false);
-      tkbc_center_rotation(kite_states->elements[i].kite, &start_pos, 0);
-      start_pos.x += 2 * kite_width;
+    for (size_t i = 0; i < kite_states->count; ++i) {
+        if (kite_states->elements[i].is_active) {
+            tkbc_set_kite_state_defaults(&kite_states->elements[i]);
+            tkbc_set_kite_defaults(kite_states->elements[i].kite, false);
+            tkbc_center_rotation(kite_states->elements[i].kite, &start_pos, 0);
+            start_pos.x += 2 * kite_width;
+        }
     }
-  }
 }
 
 /**
@@ -270,59 +262,57 @@ void tkbc_kite_array_start_position(Kite_States *kite_states,
  * @param env The global state of the application.
  */
 void tkbc_file_handler(Env *env) {
-  bool issound = false;
+    bool issound = false;
 
-  if (IsFileDropped()) {
-    FilePathList file_path_list = LoadDroppedFiles();
-    if (file_path_list.count == 0) {
-      return;
-    }
-    char *file_path;
-    for (size_t i = 0; i < file_path_list.count && i < 1; ++i) {
-      file_path = file_path_list.paths[i];
-      tkbc_fprintf(stderr, "INFO", "FILE: PATH: %s\n", file_path);
-      const char *extension = GetFileExtension(file_path);
-      if (extension == NULL) {
-        continue;
-      }
+    if (IsFileDropped()) {
+        FilePathList file_path_list = LoadDroppedFiles();
+        if (file_path_list.count == 0) {
+            return;
+        }
+        char *file_path;
+        for (size_t i = 0; i < file_path_list.count && i < 1; ++i) {
+            file_path = file_path_list.paths[i];
+            tkbc_fprintf(stderr, "INFO", "FILE: PATH: %s\n", file_path);
+            const char *extension = GetFileExtension(file_path);
+            if (extension == NULL) {
+                continue;
+            }
 
-      if (strcmp(extension, ".kite") == 0) {
-        if (env->script_file_name != NULL) {
-          free(env->script_file_name);
-          env->script_file_name = NULL;
+            if (strcmp(extension, ".kite") == 0) {
+                if (env->script_file_name != NULL) {
+                    free(env->script_file_name);
+                    env->script_file_name = NULL;
+                }
+                env->script_file_name = strdup(file_path);
+                if (env->script_file_name == NULL) {
+                    tkbc_fprintf(stderr, "ERROR", "The allocation has failed in: %s: %d: %s\n", __FILE__, __LINE__,
+                                 strerror(errno));
+                }
+                tkbc_script_parser(env);
+            } else {
+                if (IsSoundValid(env->sound)) {
+                    StopSound(env->sound);
+                    UnloadSound(env->sound);
+                }
+                issound = true;
+                env->sound = LoadSound(file_path);
+            }
         }
-        env->script_file_name = strdup(file_path);
-        if (env->script_file_name == NULL) {
-          tkbc_fprintf(stderr, "ERROR",
-                       "The allocation has failed in: %s: %d: %s\n", __FILE__,
-                       __LINE__, strerror(errno));
+        if (issound) {
+            // Checks drag and dropped audio files.
+            if (env->sound_file_name != NULL) {
+                free(env->sound_file_name);
+                env->sound_file_name = NULL;
+            }
+            env->sound_file_name = strdup(file_path);
+            if (env->sound_file_name == NULL) {
+                tkbc_fprintf(stderr, "ERROR", "The allocation has failed in: %s: %d: %s\n", __FILE__, __LINE__,
+                             strerror(errno));
+            }
         }
-        tkbc_script_parser(env);
-      } else {
-        if (IsSoundValid(env->sound)) {
-          StopSound(env->sound);
-          UnloadSound(env->sound);
-        }
-        issound = true;
-        env->sound = LoadSound(file_path);
-      }
-    }
-    if (issound) {
-      // Checks drag and dropped audio files.
-      if (env->sound_file_name != NULL) {
-        free(env->sound_file_name);
-        env->sound_file_name = NULL;
-      }
-      env->sound_file_name = strdup(file_path);
-      if (env->sound_file_name == NULL) {
-        tkbc_fprintf(stderr, "ERROR",
-                     "The allocation has failed in: %s: %d: %s\n", __FILE__,
-                     __LINE__, strerror(errno));
-      }
-    }
 
-    UnloadDroppedFiles(file_path_list);
-  }
+        UnloadDroppedFiles(file_path_list);
+    }
 }
 
 /**
@@ -344,37 +334,35 @@ void tkbc_file_handler(Env *env) {
  * @param center The center position of the kite.
  * @param scale The scale factor for the kite.
  */
-void tkbc_set_kite_internals(Kite *kite, float fly_speed, float turn_speed,
-                             Color body_color, Color top_color, float overlap,
-                             float inner_space, float spread, float width,
-                             float height, float angle, Vector2 center,
-                             float scale) {
-  kite->center = center;
+void tkbc_set_kite_internals(Kite *kite, float fly_speed, float turn_speed, Color body_color, Color top_color,
+                             float overlap, float inner_space, float spread, float width, float height, float angle,
+                             Vector2 center, float scale) {
+    kite->center = center;
 
-  kite->fly_speed = fly_speed;
-  kite->turn_speed = turn_speed;
-  kite->body_color = body_color;
-  kite->top_color = top_color;
+    kite->fly_speed = fly_speed;
+    kite->turn_speed = turn_speed;
+    kite->body_color = body_color;
+    kite->top_color = top_color;
 
-  kite->overlap = overlap;
-  kite->inner_space = inner_space;
-  kite->spread = spread;
+    kite->overlap = overlap;
+    kite->inner_space = inner_space;
+    kite->spread = spread;
 
-  kite->width = width;
-  kite->height = height;
-  kite->scale = scale;
+    kite->width = width;
+    kite->height = height;
+    kite->scale = scale;
 
-  kite->overlap *= kite->scale;
-  kite->inner_space *= kite->scale;
-  kite->spread *= kite->scale;
-  kite->width *= kite->scale * 2;
+    kite->overlap *= kite->scale;
+    kite->inner_space *= kite->scale;
+    kite->spread *= kite->scale;
+    kite->width *= kite->scale * 2;
 
-  kite->angle = 0;
-  tkbc_kite_update_internal(kite);
+    kite->angle = 0;
+    tkbc_kite_update_internal(kite);
 
-  // The computation is correct because of the previous given angle = 0.
-  kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
-  kite->angle = angle;
+    // The computation is correct because of the previous given angle = 0.
+    kite->height = fabsf(kite->left.v1.y - kite->left.v2.y);
+    kite->angle = angle;
 }
 
 /**
@@ -386,43 +374,41 @@ void tkbc_set_kite_internals(Kite *kite, float fly_speed, float turn_speed,
  * generator or as a reset of the values.
  */
 void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
-  if (is_generated) {
-    kite->center.x = tkbc_get_screen_width() / 2.0f;
-    kite->center.y = tkbc_get_screen_height() / 2.0f;
-  }
+    if (is_generated) {
+        kite->center.x = tkbc_get_screen_width() / 2.0f;
+        kite->center.y = tkbc_get_screen_height() / 2.0f;
+    }
 
-  float fly_speed = 30;
-  float turn_speed = 30;
-  Color top_color = DARKGRAY;
-  Color body_color = TEAL;
-  float overlap = 8.0f;
-  float inner_space = 20.f;
+    float fly_speed = 30;
+    float turn_speed = 30;
+    Color top_color = DARKGRAY;
+    Color body_color = TEAL;
+    float overlap = 8.0f;
+    float inner_space = 20.f;
 
-  float spread = 0.2f;
+    float spread = 0.2f;
 
-  float width = 20.0f;
-  float height = 0.0f;
-  float scale = 3.7f;
-  float angle = 0;
+    float width = 20.0f;
+    float height = 0.0f;
+    float scale = 3.7f;
+    float angle = 0;
 
-  Vector2 center;
-  if (is_generated) {
-    center.x = tkbc_get_screen_width() / 2.0f;
-    center.y = tkbc_get_screen_height() / 2.0f;
-    tkbc_set_kite_internals(kite, fly_speed, turn_speed, body_color, top_color,
-                            overlap, inner_space, spread, width, height, angle,
-                            center, scale);
-    kite->texture_id = _tkbc_get_asset_kite_design(IMAGE_1).id;
+    Vector2 center;
+    if (is_generated) {
+        center.x = tkbc_get_screen_width() / 2.0f;
+        center.y = tkbc_get_screen_height() / 2.0f;
+        tkbc_set_kite_internals(kite, fly_speed, turn_speed, body_color, top_color, overlap, inner_space, spread, width,
+                                height, angle, center, scale);
+        kite->texture_id = _tkbc_get_asset_kite_design(IMAGE_1).id;
 
-  } else {
-    center = kite->center;
-    tkbc_set_kite_internals(kite, fly_speed, turn_speed, kite->body_color,
-                            top_color, overlap, inner_space, spread, width,
-                            height, angle, center, scale);
-  }
+    } else {
+        center = kite->center;
+        tkbc_set_kite_internals(kite, fly_speed, turn_speed, kite->body_color, top_color, overlap, inner_space, spread,
+                                width, height, angle, center, scale);
+    }
 
-  kite->old_center = kite->center;
-  kite->old_angle = kite->angle;
+    kite->old_center = kite->center;
+    kite->old_angle = kite->angle;
 }
 
 /**
@@ -433,15 +419,15 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
  */
 void tkbc_set_kite_state_defaults(Kite_State *state) {
 
-  state->is_active = true;
-  state->is_kite_input_handler_active = false;
-  state->fly_velocity = 10;
-  state->turn_velocity = 10;
-  state->is_center_rotation = false;
-  state->is_fixed_rotation = false;
-  state->interrupt_movement = false;
-  state->interrupt_smoothness = false;
-  state->is_mouse_control = true;
+    state->is_active = true;
+    state->is_kite_input_handler_active = false;
+    state->fly_velocity = 10;
+    state->turn_velocity = 10;
+    state->is_center_rotation = false;
+    state->is_fixed_rotation = false;
+    state->interrupt_movement = false;
+    state->interrupt_smoothness = false;
+    state->is_mouse_control = true;
 }
 
 // ===========================================================================
@@ -458,7 +444,7 @@ void tkbc_set_kite_state_defaults(Kite_State *state) {
  */
 void tkbc_kite_update_internal(Kite *kite) {
 
-  tkbc_center_rotation(kite, NULL, kite->angle);
+    tkbc_center_rotation(kite, NULL, kite->angle);
 }
 
 /**
@@ -469,10 +455,9 @@ void tkbc_kite_update_internal(Kite *kite) {
  * @param scale The new scale factor for the kite.
  */
 void tkbc_kite_update_scale(Kite *kite, float scale) {
-  tkbc_set_kite_internals(kite, kite->fly_speed, kite->turn_speed,
-                          kite->body_color, kite->top_color, kite->overlap,
-                          kite->inner_space, kite->spread, kite->width,
-                          kite->height, kite->angle, kite->center, scale);
+    tkbc_set_kite_internals(kite, kite->fly_speed, kite->turn_speed, kite->body_color, kite->top_color, kite->overlap,
+                            kite->inner_space, kite->spread, kite->width, kite->height, kite->angle, kite->center,
+                            scale);
 }
 
 /**
@@ -486,7 +471,7 @@ void tkbc_kite_update_scale(Kite *kite, float scale) {
  * edge or NULL for internal center position of the kite structure.
  */
 void tkbc_kite_update_position(Kite *kite, Vector2 *position) {
-  tkbc_center_rotation(kite, position, kite->angle);
+    tkbc_center_rotation(kite, position, kite->angle);
 }
 
 /**
@@ -499,7 +484,7 @@ void tkbc_kite_update_position(Kite *kite, Vector2 *position) {
  * given rotation.
  */
 void tkbc_kite_update_angle(Kite *kite, float center_deg_rotation) {
-  tkbc_center_rotation(kite, NULL, center_deg_rotation);
+    tkbc_center_rotation(kite, NULL, center_deg_rotation);
 }
 
 /**
@@ -514,59 +499,58 @@ void tkbc_kite_update_angle(Kite *kite, float center_deg_rotation) {
  * @param center_deg_rotation The rotation of the kite that is set to the
  * given rotation.
  */
-void tkbc_center_rotation(Kite *kite, Vector2 *position,
-                          float center_deg_rotation) {
-  Vector2 pos = {0};
-  if (position != NULL) {
-    pos.x = position->x;
-    pos.y = position->y;
-  } else {
-    pos.x = kite->center.x;
-    pos.y = kite->center.y;
-  }
+void tkbc_center_rotation(Kite *kite, Vector2 *position, float center_deg_rotation) {
+    Vector2 pos = {0};
+    if (position != NULL) {
+        pos.x = position->x;
+        pos.y = position->y;
+    } else {
+        pos.x = kite->center.x;
+        pos.y = kite->center.y;
+    }
 
-  kite->center.x = pos.x;
-  kite->center.y = pos.y;
+    kite->center.x = pos.x;
+    kite->center.y = pos.y;
 
-  kite->angle = center_deg_rotation;
-  float cw = kite->width / 2.0f;
-  float is = kite->inner_space;
-  float o = kite->overlap;
-  float_t length = cw + kite->spread;
-  length = floorf(length);
+    kite->angle = center_deg_rotation;
+    float cw = kite->width / 2.0f;
+    float is = kite->inner_space;
+    float o = kite->overlap;
+    float_t length = cw + kite->spread;
+    length = floorf(length);
 
-  // The difference between the angle 0 and the default downward interpolation
-  float angle = 42;
-  float bl_angle = (PI * (360 - (90 - angle)) / 180);
-  float br_angle = (PI * (360 + (90 - angle)) / 180);
-  float phi = (PI * (kite->angle) / 180);
+    // The difference between the angle 0 and the default downward interpolation
+    float angle = 42;
+    float bl_angle = (PI * (360 - (90 - angle)) / 180);
+    float br_angle = (PI * (360 + (90 - angle)) / 180);
+    float phi = (PI * (kite->angle) / 180);
 
-  float cosphi = cosf(phi);
-  float sinphi = sinf(phi);
+    float cosphi = cosf(phi);
+    float sinphi = sinf(phi);
 
-  // LEFT Triangle
-  kite->left.v1.x = pos.x - cw * cosphi;
-  kite->left.v1.y = pos.y + cw * sinphi;
-  kite->left.v2.x = pos.x - is * cosf((phi - bl_angle));
-  kite->left.v2.y = pos.y + is * sinf((phi - bl_angle));
-  kite->left.v3.x = pos.x + o * cosphi;
-  kite->left.v3.y = pos.y - o * sinphi;
+    // LEFT Triangle
+    kite->left.v1.x = pos.x - cw * cosphi;
+    kite->left.v1.y = pos.y + cw * sinphi;
+    kite->left.v2.x = pos.x - is * cosf((phi - bl_angle));
+    kite->left.v2.y = pos.y + is * sinf((phi - bl_angle));
+    kite->left.v3.x = pos.x + o * cosphi;
+    kite->left.v3.y = pos.y - o * sinphi;
 
-  // RIGHT Triangle
-  kite->right.v1.x = pos.x - o * cosphi;
-  kite->right.v1.y = pos.y + o * sinphi;
-  kite->right.v2.x = pos.x + is * cosf((phi - br_angle));
-  kite->right.v2.y = pos.y - is * sinf((phi - br_angle));
-  kite->right.v3.x = pos.x + cw * cosphi;
-  kite->right.v3.y = pos.y - cw * sinphi;
+    // RIGHT Triangle
+    kite->right.v1.x = pos.x - o * cosphi;
+    kite->right.v1.y = pos.y + o * sinphi;
+    kite->right.v2.x = pos.x + is * cosf((phi - br_angle));
+    kite->right.v2.y = pos.y - is * sinf((phi - br_angle));
+    kite->right.v3.x = pos.x + cw * cosphi;
+    kite->right.v3.y = pos.y - cw * sinphi;
 
-  // Just an random suitable height and width that fits the scaling and
-  // spread. k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
-  kite->rec.height = 3 * PI * kite->spread;
-  // kite->rec.height = 2 * PI * logf(kite->scale);
-  kite->rec.width = 2 * length;
-  kite->rec.x = pos.x - length * cosphi;
-  kite->rec.y = pos.y + length * sinphi;
+    // Just an random suitable height and width that fits the scaling and
+    // spread. k->rec.height = 2 * PI * PI * logf(k->spread * k->spread);
+    kite->rec.height = 3 * PI * kite->spread;
+    // kite->rec.height = 2 * PI * logf(kite->scale);
+    kite->rec.width = 2 * length;
+    kite->rec.x = pos.x - length * cosphi;
+    kite->rec.y = pos.y + length * sinphi;
 }
 
 /**
@@ -580,46 +564,43 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position,
  * angle.
  * @param tip The tip chosen, left or right, where the kite is turning around.
  */
-void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
-                       TIP tip) {
+void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation, TIP tip) {
 
-  if (position != NULL) {
-    tkbc_kite_update_position(kite, position);
-  }
+    if (position != NULL) {
+        tkbc_kite_update_position(kite, position);
+    }
 
-  float_t length = (kite->width / 2.f + kite->spread);
-  length = floorf(length);
-  float phi = (PI * (tip_deg_rotation) / 180);
+    float_t length = (kite->width / 2.f + kite->spread);
+    length = floorf(length);
+    float phi = (PI * (tip_deg_rotation) / 180);
 
-  Vector2 pos = {0};
-  switch (tip) {
-  case LEFT_TIP: {
+    Vector2 pos = {0};
+    switch (tip) {
+    case LEFT_TIP: {
 
-    // Move the rotation position to the left tip.
-    pos.x = kite->left.v1.x;
-    pos.y = kite->left.v1.y;
-    // Then rotate.
-    pos.x += length * cosf(phi);
-    pos.y -= length * sinf(phi);
+        // Move the rotation position to the left tip.
+        pos.x = kite->left.v1.x;
+        pos.y = kite->left.v1.y;
+        // Then rotate.
+        pos.x += length * cosf(phi);
+        pos.y -= length * sinf(phi);
 
-  } break;
-  case RIGHT_TIP: {
+    } break;
+    case RIGHT_TIP: {
 
-    // Move the rotation position to the right tip.
-    pos.x = kite->right.v3.x;
-    pos.y = kite->right.v3.y;
-    // Then rotate.
-    pos.x -= length * cosf(phi);
-    pos.y += length * sinf(phi);
+        // Move the rotation position to the right tip.
+        pos.x = kite->right.v3.x;
+        pos.y = kite->right.v3.y;
+        // Then rotate.
+        pos.x -= length * cosf(phi);
+        pos.y += length * sinf(phi);
 
-  } break;
-  default:
-    assert(0 && "The chosen TIP is not valid!");
-    break;
-  }
+    } break;
+    default: assert(0 && "The chosen TIP is not valid!"); break;
+    }
 
-  // Just compute a center rotation instead at the new shifted position.
-  tkbc_center_rotation(kite, &pos, tip_deg_rotation);
+    // Just compute a center rotation instead at the new shifted position.
+    tkbc_center_rotation(kite, &pos, tip_deg_rotation);
 }
 
 // ===========================================================================
@@ -633,66 +614,55 @@ void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
  * drawn.
  */
 void tkbc_draw_kite(Kite_State *state) {
-  assert(state);
-  assert(state->kite);
-  { // Clamping to the viewport
-    size_t window_padding = state->kite->width > state->kite->height
-                                ? state->kite->width / 2
-                                : state->kite->height;
-    Vector2 window = {
-        tkbc_get_screen_width() - window_padding,
-        tkbc_get_screen_height() - window_padding,
-    };
-    state->kite->center.y =
-        tkbc_clamp(state->kite->center.y, window_padding, window.y);
-    state->kite->center.x =
-        tkbc_clamp(state->kite->center.x, window_padding, window.x);
-    tkbc_kite_update_internal(state->kite);
-  }
-
-  if (ColorIsEqual(state->kite->body_color, BLANK)) {
-    /* texture kite */
-    float scale = state->kite->width / state->kite->texture.normal.width;
-    float len_to_center = (scale * state->kite->texture.normal.width) / 2.0f;
-    len_to_center = floorf(len_to_center);
-    float phi = (PI * (state->kite->angle) / 180);
-    Vector2 position = state->kite->center;
-    position.x -= len_to_center * cosf(phi);
-    position.y += len_to_center * sinf(phi);
-    if (state->is_kite_reversed) {
-
-      Texture texture = state->kite->texture.normal;
-      Rectangle source = {0, 0, -texture.width, texture.height};
-      Rectangle dest = {
-          position.x,
-          position.y,
-          texture.width * scale,
-          texture.height * scale,
-      };
-      DrawTexturePro(state->kite->texture.normal, source, dest, (Vector2){0},
-                     -state->kite->angle, WHITE);
-    } else {
-      DrawTextureEx(state->kite->texture.normal, position, -state->kite->angle,
-                    scale, WHITE);
+    assert(state);
+    assert(state->kite);
+    {  // Clamping to the viewport
+        size_t window_padding = state->kite->width > state->kite->height ? state->kite->width / 2 : state->kite->height;
+        Vector2 window = {
+            tkbc_get_screen_width() - window_padding,
+            tkbc_get_screen_height() - window_padding,
+        };
+        state->kite->center.y = tkbc_clamp(state->kite->center.y, window_padding, window.y);
+        state->kite->center.x = tkbc_clamp(state->kite->center.x, window_padding, window.x);
+        tkbc_kite_update_internal(state->kite);
     }
-  } else {
-    /* color kite */
-    Vector2 origin = {0};
-    // Draw a color-filled triangle (vertex in counter-clockwise order!)
-    DrawTriangle(state->kite->left.v1, state->kite->left.v2,
-                 state->kite->left.v3, WHITE);
-    DrawTriangle(state->kite->right.v1, state->kite->right.v2,
-                 state->kite->right.v3, WHITE);
-    DrawRectanglePro(state->kite->rec, origin, -state->kite->angle, WHITE);
 
-    DrawTriangle(state->kite->left.v1, state->kite->left.v2,
-                 state->kite->left.v3, state->kite->body_color);
-    DrawTriangle(state->kite->right.v1, state->kite->right.v2,
-                 state->kite->right.v3, state->kite->body_color);
+    if (ColorIsEqual(state->kite->body_color, BLANK)) {
+        /* texture kite */
+        float scale = state->kite->width / state->kite->texture.normal.width;
+        float len_to_center = (scale * state->kite->texture.normal.width) / 2.0f;
+        len_to_center = floorf(len_to_center);
+        float phi = (PI * (state->kite->angle) / 180);
+        Vector2 position = state->kite->center;
+        position.x -= len_to_center * cosf(phi);
+        position.y += len_to_center * sinf(phi);
+        if (state->is_kite_reversed) {
 
-    DrawRectanglePro(state->kite->rec, origin, -state->kite->angle,
-                     state->kite->top_color);
-  }
+            Texture texture = state->kite->texture.normal;
+            Rectangle source = {0, 0, -texture.width, texture.height};
+            Rectangle dest = {
+                position.x,
+                position.y,
+                texture.width * scale,
+                texture.height * scale,
+            };
+            DrawTexturePro(state->kite->texture.normal, source, dest, (Vector2){0}, -state->kite->angle, WHITE);
+        } else {
+            DrawTextureEx(state->kite->texture.normal, position, -state->kite->angle, scale, WHITE);
+        }
+    } else {
+        /* color kite */
+        Vector2 origin = {0};
+        // Draw a color-filled triangle (vertex in counter-clockwise order!)
+        DrawTriangle(state->kite->left.v1, state->kite->left.v2, state->kite->left.v3, WHITE);
+        DrawTriangle(state->kite->right.v1, state->kite->right.v2, state->kite->right.v3, WHITE);
+        DrawRectanglePro(state->kite->rec, origin, -state->kite->angle, WHITE);
+
+        DrawTriangle(state->kite->left.v1, state->kite->left.v2, state->kite->left.v3, state->kite->body_color);
+        DrawTriangle(state->kite->right.v1, state->kite->right.v2, state->kite->right.v3, state->kite->body_color);
+
+        DrawRectanglePro(state->kite->rec, origin, -state->kite->angle, state->kite->top_color);
+    }
 }
 
 /**
@@ -702,11 +672,11 @@ void tkbc_draw_kite(Kite_State *state) {
  * @param kite_states The given kite array.
  */
 void tkbc_draw_kite_array(Kite_States kite_states) {
-  for (size_t i = 0; i < kite_states.count; ++i) {
-    if (kite_states.elements[i].is_active) {
-      tkbc_draw_kite(&kite_states.elements[i]);
+    for (size_t i = 0; i < kite_states.count; ++i) {
+        if (kite_states.elements[i].is_active) {
+            tkbc_draw_kite(&kite_states.elements[i]);
+        }
     }
-  }
 }
 
 /**
@@ -718,38 +688,35 @@ void tkbc_draw_kite_array(Kite_States kite_states) {
  * @param env The global state of the application.
  */
 void tkbc_update_kites_for_resize_window(Env *env) {
-  if (!env->script_finished) {
-    return;
-  }
+    if (!env->script_finished) {
+        return;
+    }
 
-  size_t width = tkbc_get_screen_width();
-  size_t height = tkbc_get_screen_height();
+    size_t width = tkbc_get_screen_width();
+    size_t height = tkbc_get_screen_height();
 
-  if (width == 0 || height == 0) {
-    return;
-  }
+    if (width == 0 || height == 0) {
+        return;
+    }
 
-  if (env->window_width == 0 || env->window_height == 0) {
+    if (env->window_width == 0 || env->window_height == 0) {
+        env->window_width = width;
+        env->window_height = height;
+        return;
+    }
+
+    if (env->window_width != width || env->window_height != height) {
+        for (size_t i = 0; i < env->kite_array.count; ++i) {
+            Kite *kite = env->kite_array.elements[i].kite;
+            kite->center.x = kite->center.x / (float) env->window_width * (float) width;
+            kite->center.y = kite->center.y / (float) env->window_height * (float) height;
+            kite->old_center.x = kite->old_center.x / (float) env->window_width * (float) width;
+            kite->old_center.y = kite->old_center.y / (float) env->window_height * (float) height;
+            tkbc_kite_update_internal(kite);
+        }
+    }
     env->window_width = width;
     env->window_height = height;
-    return;
-  }
-
-  if (env->window_width != width || env->window_height != height) {
-    for (size_t i = 0; i < env->kite_array.count; ++i) {
-      Kite *kite = env->kite_array.elements[i].kite;
-      kite->center.x = kite->center.x / (float)env->window_width * (float)width;
-      kite->center.y =
-          kite->center.y / (float)env->window_height * (float)height;
-      kite->old_center.x =
-          kite->old_center.x / (float)env->window_width * (float)width;
-      kite->old_center.y =
-          kite->old_center.y / (float)env->window_height * (float)height;
-      tkbc_kite_update_internal(kite);
-    }
-  }
-  env->window_width = width;
-  env->window_height = height;
 }
 
 /**
@@ -758,14 +725,12 @@ void tkbc_update_kites_for_resize_window(Env *env) {
  * @return color definition from raylib.
  */
 Color tkbc_get_random_color(void) {
-  Color colors[] = {
-      LIGHTGRAY, GRAY,  DARKGRAY,  YELLOW,  GOLD,   ORANGE,
-      PINK,      RED,   MAROON,    GREEN,   LIME,   DARKGREEN,
-      SKYBLUE,   BLUE,  DARKBLUE,  PURPLE,  VIOLET, DARKPURPLE,
-      BEIGE,     BROWN, DARKBROWN, MAGENTA, TEAL,
-  };
+    Color colors[] = {
+        LIGHTGRAY, GRAY, DARKGRAY, YELLOW, GOLD,   ORANGE,     PINK,  RED,   MAROON,    GREEN,   LIME, DARKGREEN,
+        SKYBLUE,   BLUE, DARKBLUE, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN, MAGENTA, TEAL,
+    };
 
-  return colors[rand() % ARRAY_LENGTH(colors)];
+    return colors[rand() % ARRAY_LENGTH(colors)];
 }
 
 /**
@@ -778,9 +743,9 @@ Color tkbc_get_random_color(void) {
  * @return True if the loaded textures are valid, otherwise false.
  */
 bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture) {
-  if (!kite_texture) {
-    return false;
-  }
-  kite->texture.normal = kite_texture->normal;
-  return IsTextureValid(kite->texture.normal);
+    if (!kite_texture) {
+        return false;
+    }
+    kite->texture.normal = kite_texture->normal;
+    return IsTextureValid(kite->texture.normal);
 }

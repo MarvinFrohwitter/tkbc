@@ -15,618 +15,606 @@
 // ========================== TKBC KITE TYPES ================================
 // ===========================================================================
 
-typedef size_t Index; // NOTE: Check for clang compiler issue in project.
-typedef size_t Id;    // NOTE: Check for clang compiler issue in project.
+typedef size_t Index;  // NOTE: Check for clang compiler issue in project.
+typedef size_t Id;     // NOTE: Check for clang compiler issue in project.
 
 typedef enum {
-  LOGO = 0,
+    LOGO = 0,
 
-  KITE_DEFAULT_DESIGNS_BEGIN,
-  IMAGE_1 = KITE_DEFAULT_DESIGNS_BEGIN,
-  IMAGE_2,
-  IMAGE_3,
-  IMAGE_4,
-  KITE_DEFAULT_DESIGNS_END = IMAGE_4,
+    KITE_DEFAULT_DESIGNS_BEGIN,
+    IMAGE_1 = KITE_DEFAULT_DESIGNS_BEGIN,
+    IMAGE_2,
+    IMAGE_3,
+    IMAGE_4,
+    KITE_DEFAULT_DESIGNS_END = IMAGE_4,
 
-  IMAGE_PANNEL_PARTS_BEGIN,
-  IMAGE_SKELETON = IMAGE_PANNEL_PARTS_BEGIN,
-  IMAGE_FILLED_PANEL,
-  IMAGE_SKELETON_LEADINGEDGE,
-  IMAGE_LEADINGEDGE,
-  IMAGE_GAZE,
+    IMAGE_PANNEL_PARTS_BEGIN,
+    IMAGE_SKELETON = IMAGE_PANNEL_PARTS_BEGIN,
+    IMAGE_FILLED_PANEL,
+    IMAGE_SKELETON_LEADINGEDGE,
+    IMAGE_LEADINGEDGE,
+    IMAGE_GAZE,
 
-  IMAGE_LEFT_02_1,
-  IMAGE_LEFT_03_1,
-  IMAGE_LEFT_04_1,
-  IMAGE_LEFT_05_1,
-  IMAGE_LEFT_06_1,
-  IMAGE_LEFT_07_1,
-  IMAGE_LEFT_08_1,
-  IMAGE_LEFT_09_1,
-  IMAGE_LEFT_10_1,
-  IMAGE_LEFT_11_1,
-  IMAGE_LEFT_12_1,
-  IMAGE_LEFT_13_1,
-  IMAGE_LEFT_14_1,
-  IMAGE_LEFT_15_1,
-  IMAGE_LEFT_16_1,
+    IMAGE_LEFT_02_1,
+    IMAGE_LEFT_03_1,
+    IMAGE_LEFT_04_1,
+    IMAGE_LEFT_05_1,
+    IMAGE_LEFT_06_1,
+    IMAGE_LEFT_07_1,
+    IMAGE_LEFT_08_1,
+    IMAGE_LEFT_09_1,
+    IMAGE_LEFT_10_1,
+    IMAGE_LEFT_11_1,
+    IMAGE_LEFT_12_1,
+    IMAGE_LEFT_13_1,
+    IMAGE_LEFT_14_1,
+    IMAGE_LEFT_15_1,
+    IMAGE_LEFT_16_1,
 
-  IMAGE_RIGHT_02_2,
-  IMAGE_RIGHT_03_2,
-  IMAGE_RIGHT_04_2,
-  IMAGE_RIGHT_05_2,
-  IMAGE_RIGHT_06_2,
-  IMAGE_RIGHT_07_2,
-  IMAGE_RIGHT_08_2,
-  IMAGE_RIGHT_09_2,
-  IMAGE_RIGHT_10_2,
-  IMAGE_RIGHT_11_2,
-  IMAGE_RIGHT_12_2,
-  IMAGE_RIGHT_13_2,
-  IMAGE_RIGHT_14_2,
-  IMAGE_RIGHT_15_2,
-  IMAGE_RIGHT_16_2,
+    IMAGE_RIGHT_02_2,
+    IMAGE_RIGHT_03_2,
+    IMAGE_RIGHT_04_2,
+    IMAGE_RIGHT_05_2,
+    IMAGE_RIGHT_06_2,
+    IMAGE_RIGHT_07_2,
+    IMAGE_RIGHT_08_2,
+    IMAGE_RIGHT_09_2,
+    IMAGE_RIGHT_10_2,
+    IMAGE_RIGHT_11_2,
+    IMAGE_RIGHT_12_2,
+    IMAGE_RIGHT_13_2,
+    IMAGE_RIGHT_14_2,
+    IMAGE_RIGHT_15_2,
+    IMAGE_RIGHT_16_2,
 
-  IMAGE_MIDDLE_06,
-  IMAGE_MIDDLE_10,
-  IMAGE_MIDDLE_13,
+    IMAGE_MIDDLE_06,
+    IMAGE_MIDDLE_10,
+    IMAGE_MIDDLE_13,
 
-  IMAGE_PANNEL_PARTS_END = IMAGE_MIDDLE_13,
+    IMAGE_PANNEL_PARTS_END = IMAGE_MIDDLE_13,
 
-  KITE_COLORIZER,
+    KITE_COLORIZER,
 
-  // --- New generated kite designs from the colorizer.
+    // --- New generated kite designs from the colorizer.
 
-  ASSET_KITE_DESIGN_COUNT,
+    ASSET_KITE_DESIGN_COUNT,
 } Asset_Id_Kind;
 
 typedef enum {
-  ASSETS_IMAGE,
-  ASSETS_KITE_DESIGN,
-  ASSETS_KIND_COUNT,
+    ASSETS_IMAGE,
+    ASSETS_KITE_DESIGN,
+    ASSETS_KIND_COUNT,
 } Assets_Kind;
 
 typedef struct {
-  Image normal;
+    Image normal;
 } Kite_Image;
 
 typedef struct {
-  Texture2D normal;
+    Texture2D normal;
 } Kite_Texture;
 
 typedef struct {
-  Assets_Kind type;
-  Id id;
+    Assets_Kind type;
+    Id id;
 
-  union {
-    Image image;
+    union {
+        Image image;
 
-    struct {
-      Kite_Image kite_image;
-      Kite_Texture kite_texture;
-    };
-  } as;
+        struct {
+            Kite_Image kite_image;
+            Kite_Texture kite_texture;
+        };
+    } as;
 
 } Asset;
 
 typedef struct {
-  Asset *elements;
-  size_t count;
-  size_t capacity;
+    Asset *elements;
+    size_t count;
+    size_t capacity;
 
-  Space space;
+    Space space;
 } Assets;
 
 typedef enum {
-  SINGLE_PIXEL,
-  SELECT_COLOR,
-  SELECT_PANEL,
+    SINGLE_PIXEL,
+    SELECT_COLOR,
+    SELECT_PANEL,
 } Colorizer_Mode;
 
 typedef enum {
-  KEY = (1 << 0),
-  MOD_KEY = (1 << 1),
-  SELECTION_KEY = (1 << 2),
+    KEY = (1 << 0),
+    MOD_KEY = (1 << 1),
+    SELECTION_KEY = (1 << 2),
 
-  KEY_MODE_STORAGE_OPTION_COUNT = 3,
+    KEY_MODE_STORAGE_OPTION_COUNT = 3,
 } Key_Mode_Storage_Option;
 static_assert(KEY_MODE_STORAGE_OPTION_COUNT == 3, "Amount has changed");
 
 typedef enum {
-  MODE_NULL = 0,
-  MODE_DOWN,
-  MODE_PRESSED,
-  MODE_UP,
-  MODE_RELEASED,
+    MODE_NULL = 0,
+    MODE_DOWN,
+    MODE_PRESSED,
+    MODE_UP,
+    MODE_RELEASED,
 } Key_Mode;
 
 typedef struct {
-  Key_Mode key;
-  Key_Mode mod_key;
-  Key_Mode selection_key;
+    Key_Mode key;
+    Key_Mode mod_key;
+    Key_Mode selection_key;
 
-  bool is_or;
+    bool is_or;
 } Key_Map_Check_Config;
 
 typedef struct {
-  const char *description;
-  const char *mod_key_str;
-  const char *selection_key_str;
-  const char *key_str;
-  int mod_key;
-  int selection_key;
-  int key;
-  int hash;
+    const char *description;
+    const char *mod_key_str;
+    const char *selection_key_str;
+    const char *key_str;
+    int mod_key;
+    int selection_key;
+    int key;
+    int hash;
 } Key_Map;
 
 typedef struct KeyMaps {
-  Key_Map *elements;
-  size_t count;
-  size_t capacity;
+    Key_Map *elements;
+    size_t count;
+    size_t capacity;
 } Key_Maps;
 
 typedef enum {
-  KMH_CHANGE_KEY_MAPPINGS = 1000,
-  KMH_QUIT_PROGRAM,
-  KMH_TAKE_SCREENSHOT,
-  KMH_BEGIN_RECORDING,
-  KMH_END_RECORDING,
+    KMH_CHANGE_KEY_MAPPINGS = 1000,
+    KMH_QUIT_PROGRAM,
+    KMH_TAKE_SCREENSHOT,
+    KMH_BEGIN_RECORDING,
+    KMH_END_RECORDING,
 
-  KMH_SET_KITES_TO_START_POSITION,
-  KMH_ROTATE_KITES_ANGLE_ZERO,
+    KMH_SET_KITES_TO_START_POSITION,
+    KMH_ROTATE_KITES_ANGLE_ZERO,
 
-  KMH_ROTATE_KITES_CENTER_CLOCKWISE,
-  KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE,
+    KMH_ROTATE_KITES_CENTER_CLOCKWISE,
+    KMH_ROTATE_KITES_CENTER_ANTICLOCKWISE,
 
-  KMH_ROTATE_KITES_LEFT_TIP_CLOCKWISE,
-  KMH_ROTATE_KITES_RIGHT_TIP_CLOCKWISE,
+    KMH_ROTATE_KITES_LEFT_TIP_CLOCKWISE,
+    KMH_ROTATE_KITES_RIGHT_TIP_CLOCKWISE,
 
-  KMH_ROTATE_KITES_LEFT_TIP_ANTICLOCKWISE,
-  KMH_ROTATE_KITES_RIGHT_TIP_ANTICLOCKWISE,
+    KMH_ROTATE_KITES_LEFT_TIP_ANTICLOCKWISE,
+    KMH_ROTATE_KITES_RIGHT_TIP_ANTICLOCKWISE,
 
-  // KMH_ROTATE_KITES_CIRCLE_CLOCKWISE,
-  // KMH_ROTATE_KITES_CIRCLE_ANTICLOCKWISE,
+    // KMH_ROTATE_KITES_CIRCLE_CLOCKWISE,
+    // KMH_ROTATE_KITES_CIRCLE_ANTICLOCKWISE,
 
-  KMH_TOGGLE_FIXED,
+    KMH_TOGGLE_FIXED,
 
-  KMH_MOVES_KITES_LEFT,
-  KMH_MOVES_KITES_DOWN,
-  KMH_MOVES_KITES_UP,
-  KMH_MOVES_KITES_RIGHT,
+    KMH_MOVES_KITES_LEFT,
+    KMH_MOVES_KITES_DOWN,
+    KMH_MOVES_KITES_UP,
+    KMH_MOVES_KITES_RIGHT,
 
-  KMH_INCREASE_FLY_SPEED,
-  KMH_REDUCE_FLY_SPEED,
-  KMH_INCREASE_TURN_SPEED,
-  KMH_REDUCE_TURN_SPEED,
+    KMH_INCREASE_FLY_SPEED,
+    KMH_REDUCE_FLY_SPEED,
+    KMH_INCREASE_TURN_SPEED,
+    KMH_REDUCE_TURN_SPEED,
 
-  KMH_TOGGLE_SCRIPT_EXECUTION,
-  KMH_SWITCHES_NEXT_SCRIPT,
+    KMH_TOGGLE_SCRIPT_EXECUTION,
+    KMH_SWITCHES_NEXT_SCRIPT,
 
-  KMH_PLAYS_SOUND,
-  KMH_STOPS_SOUND,
-  KMH_PAUSES_SOUND,
-  KMH_RESUMES_SOUND,
+    KMH_PLAYS_SOUND,
+    KMH_STOPS_SOUND,
+    KMH_PAUSES_SOUND,
+    KMH_RESUMES_SOUND,
 
-  KMH_SWITCH_MOUSE_CONTOL_MOVEMENT,
-  KMH_LOCK_KITE_TIP,
-  KMH_LOCK_KITE_ANGLE,
-  KMH_SNAP_KITE_ANGLE,
+    KMH_SWITCH_MOUSE_CONTOL_MOVEMENT,
+    KMH_LOCK_KITE_TIP,
+    KMH_LOCK_KITE_ANGLE,
+    KMH_SNAP_KITE_ANGLE,
 
-  KMH_MOVES_KITES_TOWARDS_MOUSE,
-  KMH_MOVES_KITES_AWAY_MOUSE,
-  KMH_MOVES_KITES_LEFT_AROUND_MOUSE,
-  KMH_MOVES_KITES_RIGHT_AROUND_MOUSE,
+    KMH_MOVES_KITES_TOWARDS_MOUSE,
+    KMH_MOVES_KITES_AWAY_MOUSE,
+    KMH_MOVES_KITES_LEFT_AROUND_MOUSE,
+    KMH_MOVES_KITES_RIGHT_AROUND_MOUSE,
 
-  KMH_KEY_KP_8,
-  KMH_KEY_KP_9,
-  KMH_KEY_KP_6,
-  KMH_KEY_KP_3,
-  KMH_KEY_KP_2,
-  KMH_KEY_KP_7,
-  KMH_KEY_KP_4,
-  KMH_KEY_KP_1,
+    KMH_KEY_KP_8,
+    KMH_KEY_KP_9,
+    KMH_KEY_KP_6,
+    KMH_KEY_KP_3,
+    KMH_KEY_KP_2,
+    KMH_KEY_KP_7,
+    KMH_KEY_KP_4,
+    KMH_KEY_KP_1,
 
-  KMH_KEY_KP_5,
+    KMH_KEY_KP_5,
 
-  KMH_KEY_REVERS_MOUSE_FOLLOW,
+    KMH_KEY_REVERS_MOUSE_FOLLOW,
 
-  KMH_COUNT,
+    KMH_COUNT,
 } Key_Map_Hash;
 
 typedef enum {
-  BOX_INVALID = -1,
+    BOX_INVALID = -1,
 
-  // The order of the items correspond to the display in the key maps menu.
-  BOX_MOD_KEY = 0,
-  BOX_SELECTION_KEY = 1,
-  BOX_KEY = 2,
+    // The order of the items correspond to the display in the key maps menu.
+    BOX_MOD_KEY = 0,
+    BOX_SELECTION_KEY = 1,
+    BOX_KEY = 2,
 } Key_Box;
 
 typedef enum {
-  LEFT_TIP = 1 << 0,
-  RIGHT_TIP = 1 << 1,
-} TIP; // The left and right tip of the leading edge.
-typedef enum {
-  LEFT,
-  RIGHT
-} DIRECTION; // The Direction where the figure starts.
-typedef enum {
-  ODD,
-  EVEN
-} ODD_EVEN; // The kite group that is split default convention up or left.
+    LEFT_TIP = 1 << 0,
+    RIGHT_TIP = 1 << 1,
+} TIP;                                   // The left and right tip of the leading edge.
+typedef enum { LEFT, RIGHT } DIRECTION;  // The Direction where the figure starts.
+typedef enum { ODD, EVEN } ODD_EVEN;     // The kite group that is split default convention up or left.
 
-typedef struct { // A representation for an internal kite geometric.
-  Vector2 v1;
-  Vector2 v2;
-  Vector2 v3;
+typedef struct {  // A representation for an internal kite geometric.
+    Vector2 v1;
+    Vector2 v2;
+    Vector2 v3;
 } Triangle;
 
 typedef struct {
-  Id kite_id; // The universal id that is associated with exactly one kite.
-  Color body_color; // The color that is set for the kite body.
-  Color top_color;  // The color that is set for the leading edge.
-} Kite_Config; // A structure that can bundle some kite configuration options.
+    Id kite_id;        // The universal id that is associated with exactly one kite.
+    Color body_color;  // The color that is set for the kite body.
+    Color top_color;   // The color that is set for the leading edge.
+} Kite_Config;         // A structure that can bundle some kite configuration options.
 
 typedef struct {
-  Id kite_id;       // The universal id that is associated with one kite.
-  Vector2 position; // The position that is located at the center of the top
-                    // leading edge.
-  float angle;      // The rotation is in degrees around the center position.
-} Kite_Position;    // The combined position and rotation angle.
+    Id kite_id;        // The universal id that is associated with one kite.
+    Vector2 position;  // The position that is located at the center of the top
+                       // leading edge.
+    float angle;       // The rotation is in degrees around the center position.
+} Kite_Position;       // The combined position and rotation angle.
 
 typedef struct {
-  Kite_Texture texture; // The kite body texture that is used in when
-                        // normal flying mode is active.
-  ssize_t texture_id;   // The number that identifies the kite texture in the
-                        // global kite_textures.
+    Kite_Texture texture;  // The kite body texture that is used in when
+                           // normal flying mode is active.
+    ssize_t texture_id;    // The number that identifies the kite texture in the
+                           // global kite_textures.
 
-  bool is_texture_new; // Indicates if the texture is currently newly created.
+    bool is_texture_new;  // Indicates if the texture is currently newly created.
 
-  float old_angle; // The rotation angle before the frame interpolation has
-                   // stated.
-  Vector2
-      old_center; // The old position before the frame interpolation has stated.
+    float old_angle;     // The rotation angle before the frame interpolation has
+                         // stated.
+    Vector2 old_center;  // The old position before the frame interpolation has stated.
 
-  // -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
 
-  float angle;    // The rotation is in degrees around the center position.
-  Vector2 center; // The center position that is located at the center of
-                  // the top leading edge.
+    float angle;     // The rotation is in degrees around the center position.
+    Vector2 center;  // The center position that is located at the center of
+                     // the top leading edge.
 
-  Color body_color; // The color that is set for the kite body.
-  Triangle left;    // The left Triangle that forms the kite body.
-  Triangle right;   // The right Triangle that forms the kite body.
+    Color body_color;  // The color that is set for the kite body.
+    Triangle left;     // The left Triangle that forms the kite body.
+    Triangle right;    // The right Triangle that forms the kite body.
 
-  float overlap;     // The overlap between the center position and the inner
-                     // triangle tip.
-  float inner_space; // The distance between the bottom two tips. Calculated as
-                     // the length of the center position and the corresponding
-                     // tip.
+    float overlap;      // The overlap between the center position and the inner
+                        // triangle tip.
+    float inner_space;  // The distance between the bottom two tips. Calculated as
+                        // the length of the center position and the corresponding
+                        // tip.
 
-  Color top_color; // The color that is set for the leading edge.
-  Rectangle rec;   // The leading edge.
-  float spread;    // The overlap of the top leading edge to the side.
+    Color top_color;  // The color that is set for the leading edge.
+    Rectangle rec;    // The leading edge.
+    float spread;     // The overlap of the top leading edge to the side.
 
-  float width;  // The width is dependent on the scale.
-  float height; // The height is dependent on the scale.
-  float scale;  // The scale is recommended to set between 0 and 10.
+    float width;   // The width is dependent on the scale.
+    float height;  // The height is dependent on the scale.
+    float scale;   // The scale is recommended to set between 0 and 10.
 
-  float fly_speed;  // Kite movement speed set from 0 to 100.
-  float turn_speed; // Kite turn speed set from 0 to 100.
-} Kite;             // The kite internal geometric design.
-
-typedef struct {
-  Kite *kite;     // The kite that holds its geometric and positioning stats.
-  size_t kite_id; // The unique universal identifier for the kite.
-
-  bool is_script_kite;
-
-  bool is_active;                    // If the kite should be drawn.
-  bool is_kite_input_handler_active; // Representation of a manual user control
-                                     // selection.
-
-  float fly_velocity;  // The base fly speed that holds the current combined
-                       // value with the delta time and the variable fly_speed
-                       // that is stored in the kite itself.
-  float turn_velocity; // The base turn speed that holds the current combined
-                       // value with the delta time and the variable turn_speed
-                       // that is stored in the kite itself.
-  int selected_tips;   // It represents if the kite leading edge angle can be
-                       // freely mode with the rotation.
-  bool is_fixed_rotation; // The representation of the turn variant smooth or in
-                          // fixed angle steps.
-  bool is_center_rotation;   // The representation of the active center rotation
-                             // variant.
-  bool interrupt_movement;   // The ability of the kite to move in user control.
-  bool interrupt_smoothness; // The ability if the kite to turn smooth in user
-                             // control.
-  bool is_mouse_control;     // The indication if the kite follows the mouse
-                             // position.
-  bool is_mouse_in_dead_zone; // A space between the mouse and the kite that is
-                              // not reachable by moving forward with the kite.
-  bool is_snapping_to_angle;  // Represents if the kite snaps to the nearest 45
-                              // degrees angle.
-  bool is_angle_locked;       // It represents if the kite leading edge angle is
-                        // calculated by the mouse position or it holds the
-                        // current angle, (in mouse control mode).
-  bool is_tip_locked;    // It represents if the kite leading edge angle can be
-                         // freely mode with the rotation.
-  bool is_rotating;      // Indicates if the kite currently rotates around
-                         // the center.
-  bool is_kite_reversed; // indicates if the kite faces away from the mouse.
-} Kite_State;            // The current parametrized state of one kite.
+    float fly_speed;   // Kite movement speed set from 0 to 100.
+    float turn_speed;  // Kite turn speed set from 0 to 100.
+} Kite;                // The kite internal geometric design.
 
 typedef struct {
-  Kite_State *elements; // The dynamic array collection for all generated kites.
-  size_t count;         // The amount of elements in the array.
-  size_t capacity; // The complete allocated space for the array represented as
-                   // the number of collection elements of the array type.
-} Kite_States; // The dynamic array that can hold kites and its corresponding
-               // state.
+    Kite *kite;      // The kite that holds its geometric and positioning stats.
+    size_t kite_id;  // The unique universal identifier for the kite.
+
+    bool is_script_kite;
+
+    bool is_active;                     // If the kite should be drawn.
+    bool is_kite_input_handler_active;  // Representation of a manual user control
+                                        // selection.
+
+    float fly_velocity;          // The base fly speed that holds the current combined
+                                 // value with the delta time and the variable fly_speed
+                                 // that is stored in the kite itself.
+    float turn_velocity;         // The base turn speed that holds the current combined
+                                 // value with the delta time and the variable turn_speed
+                                 // that is stored in the kite itself.
+    int selected_tips;           // It represents if the kite leading edge angle can be
+                                 // freely mode with the rotation.
+    bool is_fixed_rotation;      // The representation of the turn variant smooth or in
+                                 // fixed angle steps.
+    bool is_center_rotation;     // The representation of the active center rotation
+                                 // variant.
+    bool interrupt_movement;     // The ability of the kite to move in user control.
+    bool interrupt_smoothness;   // The ability if the kite to turn smooth in user
+                                 // control.
+    bool is_mouse_control;       // The indication if the kite follows the mouse
+                                 // position.
+    bool is_mouse_in_dead_zone;  // A space between the mouse and the kite that is
+                                 // not reachable by moving forward with the kite.
+    bool is_snapping_to_angle;   // Represents if the kite snaps to the nearest 45
+                                 // degrees angle.
+    bool is_angle_locked;        // It represents if the kite leading edge angle is
+                                 // calculated by the mouse position or it holds the
+                                 // current angle, (in mouse control mode).
+    bool is_tip_locked;          // It represents if the kite leading edge angle can be
+                                 // freely mode with the rotation.
+    bool is_rotating;            // Indicates if the kite currently rotates around
+                                 // the center.
+    bool is_kite_reversed;       // indicates if the kite faces away from the mouse.
+} Kite_State;                    // The current parametrized state of one kite.
 
 typedef struct {
-  float angle;         // The rotation angle the tip turn should have.
-  TIP tip;             // The tip of the leading edge.
-} Tip_Rotation_Action; // The action that is responsible for rotating the kite
-                       // on one of the tips.
+    Kite_State *elements;  // The dynamic array collection for all generated kites.
+    size_t count;          // The amount of elements in the array.
+    size_t capacity;       // The complete allocated space for the array represented as
+                           // the number of collection elements of the array type.
+} Kite_States;             // The dynamic array that can hold kites and its corresponding
+                           // state.
 
 typedef struct {
-  float angle;     // The rotation angle the center turn should have.
-} Rotation_Action; // The action that is responsible for rotating the kite at
-                   // the center.
+    float angle;        // The rotation angle the tip turn should have.
+    TIP tip;            // The tip of the leading edge.
+} Tip_Rotation_Action;  // The action that is responsible for rotating the kite
+                        // on one of the tips.
 
 typedef struct {
-  Vector2 position; // The new position the move action should have.
-} Move_Action;      // The action that is responsible for positioning the kite.
+    float angle;    // The rotation angle the center turn should have.
+} Rotation_Action;  // The action that is responsible for rotating the kite at
+                    // the center.
 
 typedef struct {
-} Wait_Action; // The action that is responsible for blocking a certain time.
+    Vector2 position;  // The new position the move action should have.
+} Move_Action;         // The action that is responsible for positioning the kite.
 
-typedef Tip_Rotation_Action
-    Tip_Rotation_Add_Action; // The action that performs a addition to the
-                             // current angle of the tip rotation.
-typedef Rotation_Action Rotation_Add_Action; // The action that adds an angle to
-                                             // the current rotation angle.
-typedef Move_Action
-    Move_Add_Action; // The action that adds a vector to the current position.
-typedef Wait_Action Quit_Action; // The action that is responsible for force
-                                 // quitting a frame after the specified time.
+typedef struct {
+} Wait_Action;  // The action that is responsible for blocking a certain time.
 
-typedef union { // The collection of all the possible actions that can be used
-                // in a script.
-  Tip_Rotation_Action as_tip_rotation;
-  Rotation_Action as_rotation;
-  Move_Action as_move;
+typedef Tip_Rotation_Action Tip_Rotation_Add_Action;  // The action that performs a addition to the
+                                                      // current angle of the tip rotation.
+typedef Rotation_Action Rotation_Add_Action;          // The action that adds an angle to
+                                                      // the current rotation angle.
+typedef Move_Action Move_Add_Action;                  // The action that adds a vector to the current position.
+typedef Wait_Action Quit_Action;                      // The action that is responsible for force
+                                                      // quitting a frame after the specified time.
 
-  Tip_Rotation_Add_Action as_tip_rotation_add;
-  Rotation_Add_Action as_rotation_add;
-  Move_Add_Action as_move_add;
+typedef union {  // The collection of all the possible actions that can be used
+                 // in a script.
+    Tip_Rotation_Action as_tip_rotation;
+    Rotation_Action as_rotation;
+    Move_Action as_move;
 
-  Wait_Action as_wait;
-  Quit_Action as_quit;
+    Tip_Rotation_Add_Action as_tip_rotation_add;
+    Rotation_Add_Action as_rotation_add;
+    Move_Add_Action as_move_add;
+
+    Wait_Action as_wait;
+    Quit_Action as_quit;
 } Action;
 
 typedef enum {
-  ACTION_KIND_NULL,
-  ACTION_KITE_QUIT,
-  ACTION_KITE_WAIT,
-  ACTION_KITE_MOVE,
-  ACTION_KITE_MOVE_ADD,
-  ACTION_KITE_ROTATION,
-  ACTION_KITE_ROTATION_ADD,
-  ACTION_KITE_TIP_ROTATION,
-  ACTION_KITE_TIP_ROTATION_ADD,
+    ACTION_KIND_NULL,
+    ACTION_KITE_QUIT,
+    ACTION_KITE_WAIT,
+    ACTION_KITE_MOVE,
+    ACTION_KITE_MOVE_ADD,
+    ACTION_KITE_ROTATION,
+    ACTION_KITE_ROTATION_ADD,
+    ACTION_KITE_TIP_ROTATION,
+    ACTION_KITE_TIP_ROTATION_ADD,
 
-  ACTION_KIND_COUNT,
-} Action_Kind; // A named listing of all the available action kinds.
-
-typedef struct {
-  Id *elements;    // The dynamic array collection for all kite indices.
-  size_t count;    // The amount of elements in the array.
-  size_t capacity; // The complete allocated space for the array represented as
-                   // the number of collection elements of the array type.
-
-  bool script_id_append; // Checks if the ids are heap allocated by the
-                         // tkbc__indexs_append() method.
-} Kite_Ids;              // A dynamic array that can hold kite_ids.
+    ACTION_KIND_COUNT,
+} Action_Kind;  // A named listing of all the available action kinds.
 
 typedef struct {
-  Kite_Ids kite_id_array;  // The collection of kite_ids that should be
-                           // part of the performed action.
-  Index index;             // The index of the current frame in the
-  float duration;          // The time in seconds it should take to perform an
-                           // action. This field is decremented during playback.
-  float original_duration; // The unmodified duration, used to restore
-                           // duration on rewind/scrub.
-  Action action;           // The action the frame should be responsible for.
-  Action_Kind kind; // A representation of the kind of the action pointer.
-  bool finished;    // Represents the state of the currently handled frame.
-} Frame;            // Combined action for the kites that are listed in the
-                    // kite_id_array.
+    Id *elements;     // The dynamic array collection for all kite indices.
+    size_t count;     // The amount of elements in the array.
+    size_t capacity;  // The complete allocated space for the array represented as
+                      // the number of collection elements of the array type.
+
+    bool script_id_append;  // Checks if the ids are heap allocated by the
+                            // tkbc__indexs_append() method.
+} Kite_Ids;                 // A dynamic array that can hold kite_ids.
 
 typedef struct {
-  Kite_Position
-      *elements;   // The dynamic array collection for all kite positions.
-  size_t count;    // The amount of elements in the array.
-  size_t capacity; // The complete allocated space for the array represented as
-                   // the number of collection elements of the array type.
-} Kite_Positions;  // The dynamic array of kite positions.
+    Kite_Ids kite_id_array;   // The collection of kite_ids that should be
+                              // part of the performed action.
+    Index index;              // The index of the current frame in the
+    float duration;           // The time in seconds it should take to perform an
+                              // action. This field is decremented during playback.
+    float original_duration;  // The unmodified duration, used to restore
+                              // duration on rewind/scrub.
+    Action action;            // The action the frame should be responsible for.
+    Action_Kind kind;         // A representation of the kind of the action pointer.
+    bool finished;            // Represents the state of the currently handled frame.
+} Frame;                      // Combined action for the kites that are listed in the
+                              // kite_id_array.
 
 typedef struct {
-  Frame *elements; // The dynamic array collection for all frames in the script.
-  size_t count;    // The amount of elements in the array.
-  size_t capacity; // The complete allocated space for the array represented as
-                   // the number of collection elements of the array type.
-  Index frames_index; // The index in the script array after registration.
-  Kite_Positions kite_frame_positions; // The start position of the kite in the
-                                       // current frame.
-} Frames; // A dynamic array collection that holds the type frame.
+    Kite_Position *elements;  // The dynamic array collection for all kite positions.
+    size_t count;             // The amount of elements in the array.
+    size_t capacity;          // The complete allocated space for the array represented as
+                              // the number of collection elements of the array type.
+} Kite_Positions;             // The dynamic array of kite positions.
 
 typedef struct {
-  Frames *elements; // The dynamic array collection for all combined frames as a
-                    // script.
-  size_t count;     // The amount of elements in the array.
-  size_t capacity;  // The complete allocated space for the array represented as
-                    // the number of collection elements of the array type.
-  Id script_id; // The number of the loaded script starting from 1, 0 no script.
-  const char *name; // The name of the script.
-
-  Space space;
-} Script; // A dynamic array collection that combined multiple frames to a
-          // single kite draw representation.
+    Frame *elements;                      // The dynamic array collection for all frames in the script.
+    size_t count;                         // The amount of elements in the array.
+    size_t capacity;                      // The complete allocated space for the array represented as
+                                          // the number of collection elements of the array type.
+    Index frames_index;                   // The index in the script array after registration.
+    Kite_Positions kite_frame_positions;  // The start position of the kite in the
+                                          // current frame.
+} Frames;                                 // A dynamic array collection that holds the type frame.
 
 typedef struct {
-  Script *elements; // The dynamic array collection for all combined scripts.
-  size_t count;     // The amount of elements in the array.
-  size_t capacity;  // The complete allocated space for the array represented as
-                    // the number of collection elements of the array type.
-} Scripts; // A dynamic array collection that combined multiple scripts.
+    Frames *elements;  // The dynamic array collection for all combined frames as a
+                       // script.
+    size_t count;      // The amount of elements in the array.
+    size_t capacity;   // The complete allocated space for the array represented as
+                       // the number of collection elements of the array type.
+    Id script_id;      // The number of the loaded script starting from 1, 0 no script.
+    const char *name;  // The name of the script.
+
+    Space space;
+} Script;  // A dynamic array collection that combined multiple frames to a
+           // single kite draw representation.
+
+typedef struct {
+    Script *elements;  // The dynamic array collection for all combined scripts.
+    size_t count;      // The amount of elements in the array.
+    size_t capacity;   // The complete allocated space for the array represented as
+                       // the number of collection elements of the array type.
+} Scripts;             // A dynamic array collection that combined multiple scripts.
 
 typedef struct Process Process;
 
 typedef struct {
-  Color *elements; // The dynamic array collection for Colors.
-  size_t count;    // The amount of elements in the array.
-  size_t capacity; // The complete allocated space for the array represented as
-                   // the number of collection elements of the array type.
-} Colors;          // A dynamic array collection that holds the type Color.
+    Color *elements;  // The dynamic array collection for Colors.
+    size_t count;     // The amount of elements in the array.
+    size_t capacity;  // The complete allocated space for the array represented as
+                      // the number of collection elements of the array type.
+} Colors;             // A dynamic array collection that holds the type Color.
 
 typedef struct {
-  Rectangle base;            // The base of the scrollbar..
-  Rectangle inner_scrollbar; // The indicator inside the scrollbar.
-  bool interaction;          // Checks if the scrollbar is currently
-                             // moved.
+    Rectangle base;             // The base of the scrollbar..
+    Rectangle inner_scrollbar;  // The indicator inside the scrollbar.
+    bool interaction;           // Checks if the scrollbar is currently
+                                // moved.
 } Scrollbar;
 
 typedef struct {
-  const char *tkbc_dir;          // The dir where all metadata is saved.
-  const char *tkbc_keymaps_path; // The file path where the keymaps are stored.
-  Kite *vanilla_kite; // A representation of all the default kite values.
+    const char *tkbc_dir;           // The dir where all metadata is saved.
+    const char *tkbc_keymaps_path;  // The file path where the keymaps are stored.
+    Kite *vanilla_kite;             // A representation of all the default kite values.
 
-  Kite_States kite_array; // The kites that are generated for the current
-                          // session of the application.
-  size_t kite_id_counter; // The identifier counter for the kite.
+    Kite_States kite_array;  // The kites that are generated for the current
+                             // session of the application.
+    size_t kite_id_counter;  // The identifier counter for the kite.
 
-  // NOTE: These views can be invalidated by pushing into scripts manually use
-  //  tkbc_add_script() instead.
-  Frames *frames;       // A view of the current active drawable frames.
-  Script *script;       // A view of all the frames that should be
-                        // executed in a script.
-  Scripts scripts;      // The collection of all the parsed scripts.
-  Space _scripts_space; // The final allocation place for all scripts.
+    // NOTE: These views can be invalidated by pushing into scripts manually use
+    //  tkbc_add_script() instead.
+    Frames *frames;        // A view of the current active drawable frames.
+    Script *script;        // A view of all the frames that should be
+                           // executed in a script.
+    Scripts scripts;       // The collection of all the parsed scripts.
+    Space _scripts_space;  // The final allocation place for all scripts.
 
-  size_t script_id_counter; // This is a counter that keeps track of the
-                            // script id/names that are generated if there is
-                            // no name provided.
-  char *script_file_name;   // The name of the script file '.kite'.
+    size_t script_id_counter;  // This is a counter that keeps track of the
+                               // script id/names that are generated if there is
+                               // no name provided.
+    char *script_file_name;    // The name of the script file '.kite'.
 
-  size_t send_scripts; // Represents the amount of scripts that where send to
-                       // the peer partner starts; with 1.
-  size_t server_script_frames_index; // Represents of the index of the frames
-                                     // the server is currently executing.
-  size_t server_script_frames_count; // Representation of the amount of
-                                     // frames in the current script.
-  size_t server_script_id; // Representation of the current script the server
-                           // executes.
-  bool scripts_parsed;     // If the server has parsed all send scripts.
+    size_t send_scripts;                // Represents the amount of scripts that where send to
+                                        // the peer partner starts; with 1.
+    size_t server_script_frames_index;  // Represents of the index of the frames
+                                        // the server is currently executing.
+    size_t server_script_frames_count;  // Representation of the amount of
+                                        // frames in the current script.
+    size_t server_script_id;            // Representation of the current script the server
+                                        // executes.
+    bool scripts_parsed;                // If the server has parsed all send scripts.
 
-  bool new_script_selected; // Representation if a user has selected a new
-                            // script in the UI.
+    bool new_script_selected;  // Representation if a user has selected a new
+                               // script in the UI.
 
-  bool script_setup;     // The indication if the initial setup run is executed.
-  bool script_interrupt; // The indication if a script is currently going to be
-                         // loaded.
-  bool script_finished;  // The indication a script has finished.
+    bool script_setup;      // The indication if the initial setup run is executed.
+    bool script_interrupt;  // The indication if a script is currently going to be
+                            // loaded.
+    bool script_finished;   // The indication a script has finished.
 
-  struct {
-    bool is_script_quit;
-    double script_quit_duration;
-  } global_quit;
+    struct {
+        bool is_script_quit;
+        double script_quit_duration;
+    } global_quit;
 
-  bool script_loading; // Indicates if the script is loaded that si needed to
-                       // functions like scrubbing when the user can not even
-                       // see the script.
+    bool script_loading;  // Indicates if the script is loaded that si needed to
+                          // functions like scrubbing when the user can not even
+                          // see the script.
 
-  int fps;              // The fps of the application.
-  size_t window_width;  // The window width of the application.
-  size_t window_height; // The window height of the application.
+    int fps;               // The fps of the application.
+    size_t window_width;   // The window width of the application.
+    size_t window_height;  // The window height of the application.
 
-  Space _id_space;           // A temporal allocation buffer for script ids.
-  Frames scratch_buf_frames; // A buffer that can be used to construct frames.
-  Script scratch_buf_script; // A buffer that can be used to
-                             // construct a script.
+    Space _id_space;            // A temporal allocation buffer for script ids.
+    Frames scratch_buf_frames;  // A buffer that can be used to construct frames.
+    Script scratch_buf_script;  // A buffer that can be used to
+                                // construct a script.
 
-  // -------FFMPEG-------
-  Sound sound;           // The current loaded sound.
-  Process *ffmpeg;       // The pipe and pid of the ffmpeg subprocess.
-  char *sound_file_name; // The name of the sound file that should be included
-                         // in the rendered video.
-  bool recording;        // The state if the recording of the window.
-  bool rendering;        // The state of the rendering ffmpeg process
+    // -------FFMPEG-------
+    Sound sound;            // The current loaded sound.
+    Process *ffmpeg;        // The pipe and pid of the ffmpeg subprocess.
+    char *sound_file_name;  // The name of the sound file that should be included
+                            // in the rendered video.
+    bool recording;         // The state if the recording of the window.
+    bool rendering;         // The state of the rendering ffmpeg process
 
-  // ------Font------
-  Font font;            // The current font to use.
-  bool needs_font_free; // Indication if the font freeing has to be handled
-                        // separately.
+    // ------Font------
+    Font font;             // The current font to use.
+    bool needs_font_free;  // Indication if the font freeing has to be handled
+                           // separately.
 
-  // -------UI-------
-  Scrollbar keymaps_scrollbar;
-  bool keymaps_interaction; // The status if the keymaps are currently edited.
-  bool keymaps_mouse_interaction;         // Checks if a keymap was clicked.
-  Key_Box keymaps_interaction_rec_number; // Represents the box number by kind.
+    // -------UI-------
+    Scrollbar keymaps_scrollbar;
+    bool keymaps_interaction;                // The status if the keymaps are currently edited.
+    bool keymaps_mouse_interaction;          // Checks if a keymap was clicked.
+    Key_Box keymaps_interaction_rec_number;  // Represents the box number by kind.
 
-  size_t box_height; // The height of one box that contains a keymap description
-  size_t screen_items; // The amount of keymaps that can currently be displayed.
-  size_t keymaps_mouse_interaction_box; // The id of the box the is clicked.
-  size_t keymaps_top_interaction_box; // The id the current first displayed box.
-  Rectangle keymaps_base; // The base bounding box of the keymaps settings.
-  Key_Maps keymaps;       // The current keymaps
+    size_t box_height;                     // The height of one box that contains a keymap description
+    size_t screen_items;                   // The amount of keymaps that can currently be displayed.
+    size_t keymaps_mouse_interaction_box;  // The id of the box the is clicked.
+    size_t keymaps_top_interaction_box;    // The id the current first displayed box.
+    Rectangle keymaps_base;                // The base bounding box of the keymaps settings.
+    Key_Maps keymaps;                      // The current keymaps
 
-  bool timeline_hoverover;      // The status if the mouse is currently of the
-                                // timeline.
-  bool timeline_interaction;    // The status if the user controls the timeline.
-  Rectangle timeline_base;      // The rectangle that is below the slider.
-  Rectangle timeline_front;     // The rectangle that represents the slider.
-  float timeline_segment_width; // The width of a single frame in the timeline.
-  float timeline_segments_width; // The width of all the finished frames in the
-                                 // timeline.
-  size_t timeline_segments; // The amount of frames that the timeline displays.
+    bool timeline_hoverover;        // The status if the mouse is currently of the
+                                    // timeline.
+    bool timeline_interaction;      // The status if the user controls the timeline.
+    Rectangle timeline_base;        // The rectangle that is below the slider.
+    Rectangle timeline_front;       // The rectangle that represents the slider.
+    float timeline_segment_width;   // The width of a single frame in the timeline.
+    float timeline_segments_width;  // The width of all the finished frames in the
+                                    // timeline.
+    size_t timeline_segments;       // The amount of frames that the timeline displays.
 
-  bool colorizer; // If the colorizer was selected.
+    bool colorizer;  // If the colorizer was selected.
 
-  Rectangle
-      color_picker_base; // The base bounding box of the color selection menu.
-  char *color_picker_input_text; // The base bounding box of the color
-                                 // selection menu.
-  bool color_picker_interaction; // The status if the color picker is currently
-                                 // in use.
-  bool color_picker_window_picking; // Denotes if the color is picked from the
-                                    // complete screen.
-  bool color_picker_input_mouse_interaction; // Checks if the input box is
-                                             // clicked.
-  bool color_picker_display_designs; // If the color pallet or the designs are
-                                     // displayed.
-  Color last_selected_color; // The color that is displayed in the box below the
-                             // input.
+    Rectangle color_picker_base;                // The base bounding box of the color selection menu.
+    char *color_picker_input_text;              // The base bounding box of the color
+                                                // selection menu.
+    bool color_picker_interaction;              // The status if the color picker is currently
+                                                // in use.
+    bool color_picker_window_picking;           // Denotes if the color is picked from the
+                                                // complete screen.
+    bool color_picker_input_mouse_interaction;  // Checks if the input box is
+                                                // clicked.
+    bool color_picker_display_designs;          // If the color pallet or the designs are
+                                                // displayed.
+    Color last_selected_color;                  // The color that is displayed in the box below the
+                                                // input.
 
-  size_t max_favorite_colors; // The maximum of favorite colors slots that are
-                              // generates in the color picker.
-  size_t current_favorite_colors_index; // The current next free slot of the
-                                        // favorite_colors slots.
-  Colors favorite_colors; // The current storage that holds the data for the
-                          // color_picker favorite color circles.
+    size_t max_favorite_colors;            // The maximum of favorite colors slots that are
+                                           // generates in the color picker.
+    size_t current_favorite_colors_index;  // The current next free slot of the
+                                           // favorite_colors slots.
+    Colors favorite_colors;                // The current storage that holds the data for the
+                                           // color_picker favorite color circles.
 
-  bool script_menu_interaction; // The status if the menu that displays all the
-                                // available scripts is currently displays.
-  Rectangle
-      script_menu_base; // The bounding box of the complete script menu portion.
-  Scrollbar script_menu_scrollbar; // The side scrollbar of the script menu.
-  ssize_t script_menu_mouse_interaction_box; // The id of the box it is clicked.
-  size_t script_menu_top_interaction_box; // The id the current first displayed
-                                          // box.
-  bool script_menu_mouse_interaction; // Indicates if a box of the script menu
-                                      // is activated.
+    bool script_menu_interaction;               // The status if the menu that displays all the
+                                                // available scripts is currently displays.
+    Rectangle script_menu_base;                 // The bounding box of the complete script menu portion.
+    Scrollbar script_menu_scrollbar;            // The side scrollbar of the script menu.
+    ssize_t script_menu_mouse_interaction_box;  // The id of the box it is clicked.
+    size_t script_menu_top_interaction_box;     // The id the current first displayed
+                                                // box.
+    bool script_menu_mouse_interaction;         // Indicates if a box of the script menu
+                                                // is activated.
 
-} Env; // The global state of the application.
+} Env;  // The global state of the application.
 
-#endif // TKBC_TYPES_H_
+#endif  // TKBC_TYPES_H_

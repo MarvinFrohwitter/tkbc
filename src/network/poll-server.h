@@ -4,9 +4,9 @@
 #include <stddef.h>
 
 typedef struct {
-  struct pollfd *elements;
-  size_t count;
-  size_t capacity;
+    struct pollfd *elements;
+    size_t count;
+    size_t capacity;
 } FDs;
 
 struct pollfd *tkbc_get_pollfd_by_fd(int fd);
@@ -23,8 +23,7 @@ void tkbc_remove_connection_retry(Client client);
 void tkbc_server_shutdown_client(Client client, bool force);
 void tkbc_message_hello_write_to_send_msg_buffer(Client *client);
 bool tkbc_message_kiteadd_write_to_all_send_msg_buffers(size_t client_index);
-void tkbc_message_clientkites_write_to_send_msg_buffer(
-    Client *client, bool overwrite_is_active);
+void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client, bool overwrite_is_active);
 void tkbc_client_prolog(Client *client);
 bool tkbc_server_accept(void);
 bool tkbc_sockets_read(Client *client);
@@ -37,13 +36,11 @@ bool tkbc_close(int __fd);
 bool tkbc_base_execution(void);
 
 void tkbc_message_clientkites(Message *t_message, bool overwrite_is_active);
-void tkbc_message_clientkites_write_to_all_send_msg_buffers(
-    bool overwrite_is_active);
-void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(
-    size_t script_id, size_t script_count, size_t frames_index);
-bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
-    size_t client_id, int fd);
+void tkbc_message_clientkites_write_to_all_send_msg_buffers(bool overwrite_is_active);
+void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(size_t script_id, size_t script_count,
+                                                                 size_t frames_index);
+bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(size_t client_id, int fd);
 void tkbc_message_kites_write_to_all_send_msg_buffers(void);
 bool tkbc_received_message_handler(Client *client);
 void exit_handler();
-#endif // TKBC_POLL_SERVER_H
+#endif  // TKBC_POLL_SERVER_H

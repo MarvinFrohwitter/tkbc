@@ -17,20 +17,19 @@ extern Assets assets;
  * @return Returns true if the image was parsed successfully, otherwise false.
  */
 bool tkbc_messages_send_texture(Lexer *lexer) {
-  size_t width, height, format;
-  Space *data_space = space_get_tspace();
-  unsigned char *data = NULL;
-  size_t texture_id;
+    size_t width, height, format;
+    Space *data_space = space_get_tspace();
+    unsigned char *data = NULL;
+    size_t texture_id;
 
-  if (!tkbc_parse_image(lexer, data_space, &data, &width, &height, &format,
-                        &texture_id)) {
-    return false;
-  }
+    if (!tkbc_parse_image(lexer, data_space, &data, &width, &height, &format, &texture_id)) {
+        return false;
+    }
 
-  Asset *asset = tkbc_find_asset_from_id(texture_id);
-  if (!asset) {
-    tkbc_append_kite_image_and_kite_texture(data, width, height, format);
-  }
-  space_reset_tspace();
-  return true;
+    Asset *asset = tkbc_find_asset_from_id(texture_id);
+    if (!asset) {
+        tkbc_append_kite_image_and_kite_texture(data, width, height, format);
+    }
+    space_reset_tspace();
+    return true;
 }

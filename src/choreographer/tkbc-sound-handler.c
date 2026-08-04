@@ -1,8 +1,8 @@
 // ========================== Sound Handler ==================================
 
 #include "../global/tkbc-types.h"
-#include "tkbc-keymaps.h"
 #include "raylib.h"
+#include "tkbc-keymaps.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -14,10 +14,10 @@
  * @return The on the stack allocated sound.
  */
 void tkbc_init_sound(size_t master_volume) {
-  InitAudioDevice();
-  if (IsAudioDeviceReady()) {
-    SetMasterVolume(master_volume);
-  }
+    InitAudioDevice();
+    if (IsAudioDeviceReady()) {
+        SetMasterVolume(master_volume);
+    }
 }
 
 /**
@@ -26,9 +26,9 @@ void tkbc_init_sound(size_t master_volume) {
  * @param sound The representation of the current loaded sound.
  */
 void tkbc_sound_destroy(Sound sound) {
-  StopSound(sound);
-  UnloadSound(sound);
-  CloseAudioDevice();
+    StopSound(sound);
+    UnloadSound(sound);
+    CloseAudioDevice();
 }
 
 /**
@@ -37,24 +37,20 @@ void tkbc_sound_destroy(Sound sound) {
  * @param env The environment that holds the current state of the application.
  */
 void tkbc_input_sound_handler(Env *env) {
-  // Handles current loaded sound file.
-  // KEY_N && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
-  if (tkbc_check_keymaps_full(env->keymaps, KMH_STOPS_SOUND,
-                              KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {
-    StopSound(env->sound);
-    // KEY_N
-  } else if (tkbc_check_keymaps_full(env->keymaps, KMH_PLAYS_SOUND,
-                                     KEY_MAP_CHECK_KEY_PRESSED)) {
-    PlaySound(env->sound);
-  }
+    // Handles current loaded sound file.
+    // KEY_N && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+    if (tkbc_check_keymaps_full(env->keymaps, KMH_STOPS_SOUND, KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {
+        StopSound(env->sound);
+        // KEY_N
+    } else if (tkbc_check_keymaps_full(env->keymaps, KMH_PLAYS_SOUND, KEY_MAP_CHECK_KEY_PRESSED)) {
+        PlaySound(env->sound);
+    }
 
-  // KEY_M && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
-  if (tkbc_check_keymaps_full(env->keymaps, KMH_RESUMES_SOUND,
-                              KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {
-    ResumeSound(env->sound);
-    // KEY_M
-  } else if (tkbc_check_keymaps_full(env->keymaps, KMH_PAUSES_SOUND,
-                                     KEY_MAP_CHECK_KEY_PRESSED)) {
-    PauseSound(env->sound);
-  }
+    // KEY_M && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+    if (tkbc_check_keymaps_full(env->keymaps, KMH_RESUMES_SOUND, KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {
+        ResumeSound(env->sound);
+        // KEY_M
+    } else if (tkbc_check_keymaps_full(env->keymaps, KMH_PAUSES_SOUND, KEY_MAP_CHECK_KEY_PRESSED)) {
+        PauseSound(env->sound);
+    }
 }

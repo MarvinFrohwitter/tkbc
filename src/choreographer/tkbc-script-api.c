@@ -18,9 +18,9 @@
  * @param env The global state of the application.
  */
 void tkbc__script_begin(Env *env) {
-  env->script_interrupt = true;
-  env->script_setup = true;
-  SET(KITE_WAIT(0));
+    env->script_interrupt = true;
+    env->script_setup = true;
+    SET(KITE_WAIT(0));
 }
 
 /**
@@ -30,7 +30,7 @@ void tkbc__script_begin(Env *env) {
  * @param name The new name for the script.
  */
 void tkbc_set_script_name(Script *script, const char *name) {
-  script->name = name;
+    script->name = name;
 }
 
 /**
@@ -43,65 +43,63 @@ void tkbc_set_script_name(Script *script, const char *name) {
  * @return True if the configurations are applied successfully, otherwise false
  * and the kite_ids that failed are set so UINT_MAX.
  */
-bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config,
-                          ...) {
-  if (kis.count == 0 || !env || env->kite_array.count == 0) {
-    assert(false && "ERROR: Something unexpected happened");
-  }
-
-  Kite_Config config = first_config;
-  bool ok = true;
-  Kite_State *state;
-  va_list args;
-  va_start(args, first_config);
-
-  state = tkbc_get_kite_state_by_id(env, first_config.kite_id);
-  if (!state) {
-    ok = false;
-    bool found = false;
-    for (size_t j = 0; j < kis.count; ++j) {
-      if (kis.elements[j] == first_config.kite_id) {
-        kis.elements[j] = UINT_MAX;
-        found = true;
-        break;
-      }
+bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config, ...) {
+    if (kis.count == 0 || !env || env->kite_array.count == 0) {
+        assert(false && "ERROR: Something unexpected happened");
     }
-    if (!found) {
-      assert(false && "The give config id was not present in the kite_ids");
-    }
-  }
 
-  size_t i = 0;
-  goto configure;
-  for (; i < kis.count; ++i) {
-    config = va_arg(args, Kite_Config);
+    Kite_Config config = first_config;
+    bool ok = true;
+    Kite_State *state;
+    va_list args;
+    va_start(args, first_config);
 
-    state = tkbc_get_kite_state_by_id(env, config.kite_id);
+    state = tkbc_get_kite_state_by_id(env, first_config.kite_id);
     if (!state) {
-      ok = false;
-      bool found = false;
-      for (size_t j = 0; j < kis.count; ++j) {
-        if (kis.elements[j] == config.kite_id) {
-          kis.elements[j] = UINT_MAX;
-          found = true;
-          break;
+        ok = false;
+        bool found = false;
+        for (size_t j = 0; j < kis.count; ++j) {
+            if (kis.elements[j] == first_config.kite_id) {
+                kis.elements[j] = UINT_MAX;
+                found = true;
+                break;
+            }
         }
-      }
-      if (!found) {
-        assert(false && "The give config id was not present in the kite_ids");
-      }
-      continue;
+        if (!found) {
+            assert(false && "The give config id was not present in the kite_ids");
+        }
     }
 
-  configure:
-    static_assert(168 == sizeof(Kite),
-                  "Possible more config options in the KITE");
-    state->kite->body_color = config.body_color;
-    state->kite->top_color = config.top_color;
-  }
+    size_t i = 0;
+    goto configure;
+    for (; i < kis.count; ++i) {
+        config = va_arg(args, Kite_Config);
 
-  va_end(args);
-  return ok;
+        state = tkbc_get_kite_state_by_id(env, config.kite_id);
+        if (!state) {
+            ok = false;
+            bool found = false;
+            for (size_t j = 0; j < kis.count; ++j) {
+                if (kis.elements[j] == config.kite_id) {
+                    kis.elements[j] = UINT_MAX;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                assert(false && "The give config id was not present in the kite_ids");
+            }
+            continue;
+        }
+
+    configure:
+        static_assert(168 == sizeof(Kite), "Possible more config options in the KITE");
+        state->kite->body_color = config.body_color;
+        state->kite->top_color = config.top_color;
+    }
+
+    va_end(args);
+    return ok;
 }
 
 /**
@@ -110,24 +108,23 @@ bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config,
  * @param env The global state of the application.
  */
 void tkbc__script_end(Env *env) {
-  env->script_interrupt = false;
+    env->script_interrupt = false;
 
-  // To ensure the script begin is called.
-  if (!env->script_setup) {
-    return;
-  }
-  env->script_setup = false;
+    // To ensure the script begin is called.
+    if (!env->script_setup) {
+        return;
+    }
+    env->script_setup = false;
 
-  assert(env->scratch_buf_script.count > 0);
-  env->scratch_buf_script.script_id = env->script_id_counter++ + 1;
+    assert(env->scratch_buf_script.count > 0);
+    env->scratch_buf_script.script_id = env->script_id_counter++ + 1;
 
-  if (!env->scratch_buf_script.name) {
-    tkbc_set_script_name(&env->scratch_buf_script,
-                         space_printf(&env->scratch_buf_script.space,
-                                      "Script: %zu", env->script_id_counter));
-  }
+    if (!env->scratch_buf_script.name) {
+        tkbc_set_script_name(&env->scratch_buf_script,
+                             space_printf(&env->scratch_buf_script.space, "Script: %zu", env->script_id_counter));
+    }
 
-  tkbc_add_script(env, env->scratch_buf_script);
+    tkbc_add_script(env, env->scratch_buf_script);
 }
 
 /**
@@ -138,63 +135,62 @@ void tkbc__script_end(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_script_update_frames(Env *env) {
-  for (size_t i = 0; i < env->frames->count; ++i) {
-    Frame *frame = &env->frames->elements[i];
-    assert(frame != NULL);
-    if (!frame->finished) {
-      tkbc_render_frame(env, frame);
-    }
-  }
-
-  // This handles the possibility to quit/ stop a script after a period of
-  // time.
-  if (env->global_quit.script_quit_duration == 0) {
-    env->global_quit.is_script_quit = false;
-  } else if (env->global_quit.script_quit_duration < 0) {
-    env->script_finished = true;
-    env->global_quit.is_script_quit = false;
-    env->global_quit.script_quit_duration = 0;
-  } else if (env->global_quit.script_quit_duration > 0 &&
-             env->global_quit.is_script_quit) {
-    env->global_quit.script_quit_duration -= tkbc_get_frame_time();
-  }
-
-  if (!tkbc_check_finished_frames(env)) {
-    return;
-  }
-
-  if (env->frames->frames_index + 1 >= env->script->count) {
-    env->script_finished = true;
-    tkbc_fprintf(stderr, "INFO", "The script has finished successfully.\n");
-    return;
-  }
-
-  // Overflow protection is just in case the finish detection fails or the
-  // manual timeline interaction triggers a state that disables the previous
-  // checks.
-  assert(env->frames->frames_index + 1 < env->script->count);
-  env->frames = &env->script->elements[env->frames->frames_index + 1];
-
-  //
-  // TODO: Add is_scrubed to every script so that the positions don't have to
-  // be computed again after visiting the script once. Maybe just scrub left
-  // can be implemented. Keep in mind if the scripts will be stored to the
-  // disk, that feature is not yet implemented, it has to recompute the
-  // positions in case the storing does not include the positions. Marvin
-  // Frohwitter 25.06.2025
-  for (size_t i = 0; i < env->frames->kite_frame_positions.count; ++i) {
-    Id id = env->frames->kite_frame_positions.elements[i].kite_id;
-    Kite *kite = tkbc_get_kite_by_id(env, id);
-    if (!kite) {
-      assert(0 && "Inconsistent kite_array!");
+    for (size_t i = 0; i < env->frames->count; ++i) {
+        Frame *frame = &env->frames->elements[i];
+        assert(frame != NULL);
+        if (!frame->finished) {
+            tkbc_render_frame(env, frame);
+        }
     }
 
-    kite->old_angle = kite->angle;
-    kite->old_center = kite->center;
+    // This handles the possibility to quit/ stop a script after a period of
+    // time.
+    if (env->global_quit.script_quit_duration == 0) {
+        env->global_quit.is_script_quit = false;
+    } else if (env->global_quit.script_quit_duration < 0) {
+        env->script_finished = true;
+        env->global_quit.is_script_quit = false;
+        env->global_quit.script_quit_duration = 0;
+    } else if (env->global_quit.script_quit_duration > 0 && env->global_quit.is_script_quit) {
+        env->global_quit.script_quit_duration -= tkbc_get_frame_time();
+    }
 
-    env->frames->kite_frame_positions.elements[i].angle = kite->angle;
-    env->frames->kite_frame_positions.elements[i].position = kite->center;
-  }
+    if (!tkbc_check_finished_frames(env)) {
+        return;
+    }
+
+    if (env->frames->frames_index + 1 >= env->script->count) {
+        env->script_finished = true;
+        tkbc_fprintf(stderr, "INFO", "The script has finished successfully.\n");
+        return;
+    }
+
+    // Overflow protection is just in case the finish detection fails or the
+    // manual timeline interaction triggers a state that disables the previous
+    // checks.
+    assert(env->frames->frames_index + 1 < env->script->count);
+    env->frames = &env->script->elements[env->frames->frames_index + 1];
+
+    //
+    // TODO: Add is_scrubed to every script so that the positions don't have to
+    // be computed again after visiting the script once. Maybe just scrub left
+    // can be implemented. Keep in mind if the scripts will be stored to the
+    // disk, that feature is not yet implemented, it has to recompute the
+    // positions in case the storing does not include the positions. Marvin
+    // Frohwitter 25.06.2025
+    for (size_t i = 0; i < env->frames->kite_frame_positions.count; ++i) {
+        Id id = env->frames->kite_frame_positions.elements[i].kite_id;
+        Kite *kite = tkbc_get_kite_by_id(env, id);
+        if (!kite) {
+            assert(0 && "Inconsistent kite_array!");
+        }
+
+        kite->old_angle = kite->angle;
+        kite->old_center = kite->center;
+
+        env->frames->kite_frame_positions.elements[i].angle = kite->angle;
+        env->frames->kite_frame_positions.elements[i].position = kite->center;
+    }
 }
 
 /**
@@ -204,7 +200,9 @@ void tkbc_script_update_frames(Env *env) {
  * @param env The global state of the application.
  * @return True if the script has finished successfully, otherwise false.
  */
-bool tkbc_script_finished(Env *env) { return env->script_finished; }
+bool tkbc_script_finished(Env *env) {
+    return env->script_finished;
+}
 
 // ========================== SCRIPT HANDLER API =============================
 
@@ -224,31 +222,29 @@ bool tkbc_script_finished(Env *env) { return env->script_finished; }
  * if the frame could not be allocated or the call has happen outside a script
  * declaration.
  */
-Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
-                            Action raw_action, float duration) {
-  if (!env->script_setup) {
-    return NULL;
-  }
-
-  Frame *frame = tkbc_init_frame(&env->scratch_buf_script.space);
-  if (!frame) {
-    return NULL;
-  }
-
-  if (kind != ACTION_KITE_QUIT && kind != ACTION_KITE_WAIT) {
-    space_dapc(&env->scratch_buf_script.space, &frame->kite_id_array,
-               kite_ids.elements, kite_ids.count);
-
-    if (kite_ids.script_id_append) {
-      frame->kite_id_array.script_id_append = true;
+Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids, Action raw_action, float duration) {
+    if (!env->script_setup) {
+        return NULL;
     }
-  }
 
-  frame->duration = duration;
-  frame->original_duration = duration;
-  frame->kind = kind;
-  frame->action = raw_action;
-  return frame;
+    Frame *frame = tkbc_init_frame(&env->scratch_buf_script.space);
+    if (!frame) {
+        return NULL;
+    }
+
+    if (kind != ACTION_KITE_QUIT && kind != ACTION_KITE_WAIT) {
+        space_dapc(&env->scratch_buf_script.space, &frame->kite_id_array, kite_ids.elements, kite_ids.count);
+
+        if (kite_ids.script_id_append) {
+            frame->kite_id_array.script_id_append = true;
+        }
+    }
+
+    frame->duration = duration;
+    frame->original_duration = duration;
+    frame->kind = kind;
+    frame->action = raw_action;
+    return frame;
 }
 
 /**
@@ -259,28 +255,28 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids,
  * @param env The environment that holds the current state of the application.
  */
 void tkbc__register_frames(Env *env, ...) {
-  tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
+    tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
 
-  va_list args;
-  va_start(args, env);
-  Frame *frame = va_arg(args, Frame *);
-  while (frame != NULL) {
-    Frame f = tkbc_deep_copy_frame(&env->scratch_buf_script.space, frame);
-    space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, f);
+    va_list args;
+    va_start(args, env);
+    Frame *frame = va_arg(args, Frame *);
+    while (frame != NULL) {
+        Frame f = tkbc_deep_copy_frame(&env->scratch_buf_script.space, frame);
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, f);
 
-    if (frame->kite_id_array.script_id_append) {
-      frame->kite_id_array.script_id_append = false;
-      space_reset_space(&env->_id_space);
+        if (frame->kite_id_array.script_id_append) {
+            frame->kite_id_array.script_id_append = false;
+            space_reset_space(&env->_id_space);
+        }
+        // This allows the user to create a frame ptr manually and pass it and not
+        // use the provided script API that uses the space buffer.
+        if (!space_find_planet_from_ptr(&env->scratch_buf_script.space, frame)) {
+            free(frame);
+        }
+        frame = va_arg(args, Frame *);
     }
-    // This allows the user to create a frame ptr manually and pass it and not
-    // use the provided script API that uses the space buffer.
-    if (!space_find_planet_from_ptr(&env->scratch_buf_script.space, frame)) {
-      free(frame);
-    }
-    frame = va_arg(args, Frame *);
-  }
-  va_end(args);
-  tkbc_register_frames_array(env, &env->scratch_buf_frames);
+    va_end(args);
+    tkbc_register_frames_array(env, &env->scratch_buf_frames);
 }
 
 /**
@@ -293,49 +289,46 @@ void tkbc__register_frames(Env *env, ...) {
  * script.
  */
 void tkbc_register_frames_array(Env *env, Frames *frames) {
-  assert(frames != NULL);
-  if (frames->count == 0) {
-    return;
-  }
-  bool isscratch = false;
-  if (&env->scratch_buf_frames == frames) {
-    isscratch = true;
-  }
-
-  for (size_t i = 0; i < frames->count; ++i) {
-    // Patching frames
-    Frame *frame = &frames->elements[i];
-    frame->index = i;
-    if (frame->kind == ACTION_KITE_WAIT || frame->kind == ACTION_KITE_QUIT) {
-      continue;
+    assert(frames != NULL);
+    if (frames->count == 0) {
+        return;
+    }
+    bool isscratch = false;
+    if (&env->scratch_buf_frames == frames) {
+        isscratch = true;
     }
 
-    for (size_t j = 0; j < frame->kite_id_array.count; ++j) {
-      Kite_State *state =
-          tkbc_get_kite_state_by_id(env, frame->kite_id_array.elements[j]);
-      assert(state);
-      if (!state) {
-        continue;
-      }
-      state->kite->old_angle = state->kite->angle;
-      state->kite->old_center = state->kite->center;
-      state->is_script_kite = true;
+    for (size_t i = 0; i < frames->count; ++i) {
+        // Patching frames
+        Frame *frame = &frames->elements[i];
+        frame->index = i;
+        if (frame->kind == ACTION_KITE_WAIT || frame->kind == ACTION_KITE_QUIT) {
+            continue;
+        }
+
+        for (size_t j = 0; j < frame->kite_id_array.count; ++j) {
+            Kite_State *state = tkbc_get_kite_state_by_id(env, frame->kite_id_array.elements[j]);
+            assert(state);
+            if (!state) {
+                continue;
+            }
+            state->kite->old_angle = state->kite->angle;
+            state->kite->old_center = state->kite->center;
+            state->is_script_kite = true;
+        }
     }
-  }
-  tkbc_patch_frames_kite_positions(env, frames, &env->scratch_buf_script.space);
-  Frames copy_frames =
-      tkbc_deep_copy_frames(&env->scratch_buf_script.space, frames);
-  space_dap(&env->scratch_buf_script.space, &env->scratch_buf_script,
-            copy_frames);
-  tkbc_reset_frames_internal_data(frames);
+    tkbc_patch_frames_kite_positions(env, frames, &env->scratch_buf_script.space);
+    Frames copy_frames = tkbc_deep_copy_frames(&env->scratch_buf_script.space, frames);
+    space_dap(&env->scratch_buf_script.space, &env->scratch_buf_script, copy_frames);
+    tkbc_reset_frames_internal_data(frames);
 
-  assert((int)env->scratch_buf_script.count - 1 >= 0);
-  env->scratch_buf_script.elements[env->scratch_buf_script.count - 1]
-      .frames_index = env->scratch_buf_script.count - 1;
+    assert((int) env->scratch_buf_script.count - 1 >= 0);
+    env->scratch_buf_script.elements[env->scratch_buf_script.count - 1].frames_index =
+        env->scratch_buf_script.count - 1;
 
-  if (!isscratch) {
-    tkbc_destroy_frames_internal_data(frames);
-  }
+    if (!isscratch) {
+        tkbc_destroy_frames_internal_data(frames);
+    }
 }
 
 /**
@@ -347,26 +340,26 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
  * @return The dynamic array list of kite indices.
  */
 Kite_Ids tkbc__indexs_append(Space *space, ...) {
-  Kite_Ids ki = {0};
+    Kite_Ids ki = {0};
 
-  va_list args;
-  va_start(args, space);
-  for (;;) {
-    // NOTE:(compiler) clang 18.1.8 has a compiler bug that can not use size_t
-    // or equivalent unsigned long int in variadic functions. It is related to
-    // compiler caching. So the option is to just use unsigned int instead.
-    // unsigned int index = va_arg(args, unsigned int);
-    Index index = va_arg(args, size_t);
-    if (UINT_MAX != index) {
-      space_dap(space, &ki, index);
-    } else {
-      break;
+    va_list args;
+    va_start(args, space);
+    for (;;) {
+        // NOTE:(compiler) clang 18.1.8 has a compiler bug that can not use size_t
+        // or equivalent unsigned long int in variadic functions. It is related to
+        // compiler caching. So the option is to just use unsigned int instead.
+        // unsigned int index = va_arg(args, unsigned int);
+        Index index = va_arg(args, size_t);
+        if (UINT_MAX != index) {
+            space_dap(space, &ki, index);
+        } else {
+            break;
+        }
     }
-  }
-  va_end(args);
+    va_end(args);
 
-  ki.script_id_append = true;
-  return ki;
+    ki.script_id_append = true;
+    return ki;
 }
 
 /**
@@ -377,11 +370,11 @@ Kite_Ids tkbc__indexs_append(Space *space, ...) {
  * @return The list of generated indexes form the given range.
  */
 Kite_Ids tkbc_indexs_range(int start, int end) {
-  Kite_Ids ki = {0};
-  for (; start < end; ++start) {
-    tkbc_dap(&ki, start);
-  }
-  return ki;
+    Kite_Ids ki = {0};
+    for (; start < end; ++start) {
+        tkbc_dap(&ki, start);
+    }
+    return ki;
 }
 
 /**
@@ -394,25 +387,23 @@ Kite_Ids tkbc_indexs_range(int start, int end) {
  * @return The kite indies that are appended to the kite array.
  */
 Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
-  if (kite_count <= 0) {
-    return (Kite_Ids){0};
-  }
-  Kite_Ids ids = {0};
-  for (size_t i = 0; i < kite_count; ++i) {
-    tkbc_dap(&env->kite_array, tkbc_init_kite());
-    // The id starts from 0.
-    assert(env->kite_id_counter < CLIENT_BASE_ID);
-    Id next_kite_id = env->kite_id_counter++;
-    env->kite_array.elements[env->kite_array.count - 1].kite_id = next_kite_id;
-    env->kite_array.elements[env->kite_array.count - 1].kite->body_color =
-        tkbc_get_random_color();
+    if (kite_count <= 0) {
+        return (Kite_Ids){0};
+    }
+    Kite_Ids ids = {0};
+    for (size_t i = 0; i < kite_count; ++i) {
+        tkbc_dap(&env->kite_array, tkbc_init_kite());
+        // The id starts from 0.
+        assert(env->kite_id_counter < CLIENT_BASE_ID);
+        Id next_kite_id = env->kite_id_counter++;
+        env->kite_array.elements[env->kite_array.count - 1].kite_id = next_kite_id;
+        env->kite_array.elements[env->kite_array.count - 1].kite->body_color = tkbc_get_random_color();
 
-    tkbc_dap(&ids, next_kite_id);
-  }
+        tkbc_dap(&ids, next_kite_id);
+    }
 
-  tkbc_kite_array_start_position(&env->kite_array, env->window_width,
-                                 env->window_height);
-  return ids;
+    tkbc_kite_array_start_position(&env->kite_array, env->window_width, env->window_height);
+    return ids;
 }
 
 /**
@@ -424,131 +415,104 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
  * @param script The pointer to the script that should be printed.
  */
 void tkbc_print_script(FILE *stream, Script *script) {
-  if (!stream) {
-    return;
-  }
+    if (!stream) {
+        return;
+    }
 
-  fprintf(stream, "Script: %zu\n", script->script_id);
-  for (size_t block = 0; block < script->count; ++block) {
-    fprintf(stream, "  Block-Index: %zu\n",
-            script->elements[block].frames_index);
+    fprintf(stream, "Script: %zu\n", script->script_id);
+    for (size_t block = 0; block < script->count; ++block) {
+        fprintf(stream, "  Block-Index: %zu\n", script->elements[block].frames_index);
 
-    fprintf(stream, "    Kite-Frames:\n");
-    for (size_t frame = 0; frame < script->elements[block].count; ++frame) {
-      fprintf(stream, "      {\n");
-      fprintf(stream, "      Index:%zu\n",
-              script->elements[block].elements[frame].index);
+        fprintf(stream, "    Kite-Frames:\n");
+        for (size_t frame = 0; frame < script->elements[block].count; ++frame) {
+            fprintf(stream, "      {\n");
+            fprintf(stream, "      Index:%zu\n", script->elements[block].elements[frame].index);
 
-      if (script->elements[block].elements[frame].kite_id_array.count) {
-        fprintf(
-            stream, "      Kite-Ids: [%zu",
-            script->elements[block].elements[frame].kite_id_array.elements[0]);
+            if (script->elements[block].elements[frame].kite_id_array.count) {
+                fprintf(stream, "      Kite-Ids: [%zu",
+                        script->elements[block].elements[frame].kite_id_array.elements[0]);
 
-        for (size_t index = 1;
-             index <
-             script->elements[block].elements[frame].kite_id_array.count;
-             ++index) {
-          fprintf(stream, ", %zu",
-                  script->elements[block]
-                      .elements[frame]
-                      .kite_id_array.elements[index]);
+                for (size_t index = 1; index < script->elements[block].elements[frame].kite_id_array.count; ++index) {
+                    fprintf(stream, ", %zu", script->elements[block].elements[frame].kite_id_array.elements[index]);
+                }
+            } else {
+                fprintf(stream, "      Kite-Indies: [");
+            }
+            fprintf(stream, "]\n");
+
+            fprintf(stream, "      Duration:%fs\n", script->elements[block].elements[frame].duration);
+            fprintf(stream, "      Finished:%s\n", script->elements[block].elements[frame].finished ? "TRUE" : "FALSE");
+            int kind = script->elements[block].elements[frame].kind;
+            switch (kind) {
+
+            case ACTION_KITE_QUIT: {
+                fprintf(stream, "      Action-Kind: KITE_QUIT\n");
+            } break;
+
+            case ACTION_KITE_WAIT: {
+                fprintf(stream, "      Action-Kind: KITE_WAIT\n");
+            } break;
+
+            case ACTION_KITE_MOVE: {
+                fprintf(stream, "      Action-Kind: Kite_Move\n");
+                Move_Action action = script->elements[block].elements[frame].action.as_move;
+                fprintf(stream, "        Position:(%f,%f)\n", action.position.x, action.position.y);
+            } break;
+
+            case ACTION_KITE_MOVE_ADD: {
+                fprintf(stream, "      Action-Kind: KITE_MOVE_ADD\n");
+                Move_Add_Action action = script->elements[block].elements[frame].action.as_move_add;
+                fprintf(stream, "        Position:(%f,%f)\n", action.position.x, action.position.y);
+            } break;
+
+            case ACTION_KITE_ROTATION: {
+                fprintf(stream, "      Action-Kind: KITE_ROTATION\n");
+                Rotation_Action action = script->elements[block].elements[frame].action.as_rotation;
+                fprintf(stream, "        Angle:%f\n", action.angle);
+            } break;
+
+            case ACTION_KITE_ROTATION_ADD: {
+                fprintf(stream, "      Action-Kind: KITE_ROTATION_ADD\n");
+                Rotation_Add_Action action = script->elements[block].elements[frame].action.as_rotation_add;
+                fprintf(stream, "        Angle:%f\n", action.angle);
+            } break;
+
+            case ACTION_KITE_TIP_ROTATION: {
+                fprintf(stream, "      Action-Kind: KITE_TIP_ROTATION\n");
+                Tip_Rotation_Action action = script->elements[block].elements[frame].action.as_tip_rotation;
+                fprintf(stream, "        Angle:%f\n", action.angle);
+                fprintf(stream, "        Tip:%s\n", action.tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
+            } break;
+
+            case ACTION_KITE_TIP_ROTATION_ADD: {
+                fprintf(stream, "      Action-Kind: KITE_TIP_ROTATION_ADD\n");
+                Tip_Rotation_Add_Action action = script->elements[block].elements[frame].action.as_tip_rotation_add;
+                fprintf(stream, "        Angle:%f\n", action.angle);
+                fprintf(stream, "        Tip:%s\n", action.tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
+            } break;
+
+            default: {
+                assert("UNREACHABLE tkbc_print_scipt");
+            }
+            }
+
+            fprintf(stream, "      }\n");
         }
-      } else {
-        fprintf(stream, "      Kite-Indies: [");
-      }
-      fprintf(stream, "]\n");
 
-      fprintf(stream, "      Duration:%fs\n",
-              script->elements[block].elements[frame].duration);
-      fprintf(stream, "      Finished:%s\n",
-              script->elements[block].elements[frame].finished ? "TRUE"
-                                                               : "FALSE");
-      int kind = script->elements[block].elements[frame].kind;
-      switch (kind) {
+        fprintf(stream, "    Kite-Frame-Positions:\n");
+        fprintf(stream, "    {\n");
+        for (size_t kite_frame_poition = 0; kite_frame_poition < script->elements[block].kite_frame_positions.count;
+             ++kite_frame_poition) {
 
-      case ACTION_KITE_QUIT: {
-        fprintf(stream, "      Action-Kind: KITE_QUIT\n");
-      } break;
-
-      case ACTION_KITE_WAIT: {
-        fprintf(stream, "      Action-Kind: KITE_WAIT\n");
-      } break;
-
-      case ACTION_KITE_MOVE: {
-        fprintf(stream, "      Action-Kind: Kite_Move\n");
-        Move_Action action =
-            script->elements[block].elements[frame].action.as_move;
-        fprintf(stream, "        Position:(%f,%f)\n", action.position.x,
-                action.position.y);
-      } break;
-
-      case ACTION_KITE_MOVE_ADD: {
-        fprintf(stream, "      Action-Kind: KITE_MOVE_ADD\n");
-        Move_Add_Action action =
-            script->elements[block].elements[frame].action.as_move_add;
-        fprintf(stream, "        Position:(%f,%f)\n", action.position.x,
-                action.position.y);
-      } break;
-
-      case ACTION_KITE_ROTATION: {
-        fprintf(stream, "      Action-Kind: KITE_ROTATION\n");
-        Rotation_Action action =
-            script->elements[block].elements[frame].action.as_rotation;
-        fprintf(stream, "        Angle:%f\n", action.angle);
-      } break;
-
-      case ACTION_KITE_ROTATION_ADD: {
-        fprintf(stream, "      Action-Kind: KITE_ROTATION_ADD\n");
-        Rotation_Add_Action action =
-            script->elements[block].elements[frame].action.as_rotation_add;
-        fprintf(stream, "        Angle:%f\n", action.angle);
-      } break;
-
-      case ACTION_KITE_TIP_ROTATION: {
-        fprintf(stream, "      Action-Kind: KITE_TIP_ROTATION\n");
-        Tip_Rotation_Action action =
-            script->elements[block].elements[frame].action.as_tip_rotation;
-        fprintf(stream, "        Angle:%f\n", action.angle);
-        fprintf(stream, "        Tip:%s\n",
-                action.tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
-      } break;
-
-      case ACTION_KITE_TIP_ROTATION_ADD: {
-        fprintf(stream, "      Action-Kind: KITE_TIP_ROTATION_ADD\n");
-        Tip_Rotation_Add_Action action =
-            script->elements[block].elements[frame].action.as_tip_rotation_add;
-        fprintf(stream, "        Angle:%f\n", action.angle);
-        fprintf(stream, "        Tip:%s\n",
-                action.tip == LEFT_TIP ? "LEFT_TIP" : "RIGHT_TIP");
-      } break;
-
-      default: {
-        assert("UNREACHABLE tkbc_print_scipt");
-      }
-      }
-
-      fprintf(stream, "      }\n");
+            fprintf(stream, "      {\n");
+            Kite_Position *kp = &script->elements[block].kite_frame_positions.elements[kite_frame_poition];
+            fprintf(stream, "      Kite:%zu\n", kp->kite_id);
+            fprintf(stream, "      Angle:%f\n", kp->angle);
+            fprintf(stream, "      Position:(%f,%f)\n", kp->position.x, kp->position.y);
+            fprintf(stream, "      }\n");
+        }
+        fprintf(stream, "    }\n");
     }
-
-    fprintf(stream, "    Kite-Frame-Positions:\n");
-    fprintf(stream, "    {\n");
-    for (size_t kite_frame_poition = 0;
-         kite_frame_poition <
-         script->elements[block].kite_frame_positions.count;
-         ++kite_frame_poition) {
-
-      fprintf(stream, "      {\n");
-      Kite_Position *kp =
-          &script->elements[block]
-               .kite_frame_positions.elements[kite_frame_poition];
-      fprintf(stream, "      Kite:%zu\n", kp->kite_id);
-      fprintf(stream, "      Angle:%f\n", kp->angle);
-      fprintf(stream, "      Position:(%f,%f)\n", kp->position.x,
-              kp->position.y);
-      fprintf(stream, "      }\n");
-    }
-    fprintf(stream, "    }\n");
-  }
 }
 
 /**
@@ -560,12 +524,12 @@ void tkbc_print_script(FILE *stream, Script *script) {
  * @param env The global state of the application.
  */
 void tkbc_print_all_scripts(FILE *stream, Env *env) {
-  if (!stream) {
-    return;
-  }
-  for (size_t i = 0; i < env->scripts.count; ++i) {
-    tkbc_print_script(stream, &env->scripts.elements[i]);
-  }
+    if (!stream) {
+        return;
+    }
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        tkbc_print_script(stream, &env->scripts.elements[i]);
+    }
 }
 
 /**
@@ -580,14 +544,13 @@ void tkbc_print_all_scripts(FILE *stream, Env *env) {
  * @param env The global state of the application.
  * @param path The directory where the scripts should be exported.
  */
-void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env,
-                                             const char *path) {
-  for (size_t i = 0; i < env->scripts.count; ++i) {
-    if (stream) {
-      tkbc_print_script(stream, &env->scripts.elements[i]);
+void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env, const char *path) {
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        if (stream) {
+            tkbc_print_script(stream, &env->scripts.elements[i]);
+        }
+        int ret = tkbc_export_all_scripts_to_dot_kite_file_from_mem(env, path);
+        assert(ret == 0 && "ERROR: Not all the scripts are correctly exported.");
+        (void) ret;
     }
-    int ret = tkbc_export_all_scripts_to_dot_kite_file_from_mem(env, path);
-    assert(ret == 0 && "ERROR: Not all the scripts are correctly exported.");
-    (void)ret;
-  }
 }

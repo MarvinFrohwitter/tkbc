@@ -13,4 +13,4 @@ void tkbc_init_sound(size_t master_volume);
 void tkbc_sound_destroy(Sound sound);
 void tkbc_input_sound_handler(Env *env);
 
-#endif // TKBC_SOUND_H_
+#endif  // TKBC_SOUND_H_

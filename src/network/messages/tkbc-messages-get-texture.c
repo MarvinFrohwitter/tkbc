@@ -19,36 +19,34 @@
  * @return Returns true if the texture was found and send, otherwise false.
  */
 bool tkbc_messages_get_texture(Lexer *lexer, Client *client) {
-  Token token;
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER) {
-    return false;
-  }
-  ssize_t texture_id = atoll(lexer_token_to_cstr(lexer, &token));
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COLON) {
-    return false;
-  }
+    Token token;
+    token = lexer_next(lexer);
+    if (token.kind != NUMBER) {
+        return false;
+    }
+    ssize_t texture_id = atoll(lexer_token_to_cstr(lexer, &token));
+    token = lexer_next(lexer);
+    if (token.kind != PUNCT_COLON) {
+        return false;
+    }
 
-  Asset *asset = tkbc_find_asset_from_id(texture_id);
-  if (asset == NULL) {
-    // Can not provide texture.
-    return false;
-  }
-  assert(asset->type == ASSETS_KITE_DESIGN);
-  Kite_Image *kite_image = &asset->as.kite_image;
-  if (kite_image == NULL) {
-    // Can not provide texture.
-    return false;
-  }
+    Asset *asset = tkbc_find_asset_from_id(texture_id);
+    if (asset == NULL) {
+        // Can not provide texture.
+        return false;
+    }
+    assert(asset->type == ASSETS_KITE_DESIGN);
+    Kite_Image *kite_image = &asset->as.kite_image;
+    if (kite_image == NULL) {
+        // Can not provide texture.
+        return false;
+    }
 
-  space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
-             "%d:", MESSAGE_SEND_TEXTURE);
+    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:", MESSAGE_SEND_TEXTURE);
 
-  tkbc_message_append_image_data(&client->send_msg_buffer_space,
-                                 &client->send_msg_buffer, kite_image->normal,
-                                 asset->id);
+    tkbc_message_append_image_data(&client->send_msg_buffer_space, &client->send_msg_buffer, kite_image->normal,
+                                   asset->id);
 
-  space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "\r\n");
-  return true;
+    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "\r\n");
+    return true;
 }

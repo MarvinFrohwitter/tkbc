@@ -59,16 +59,14 @@ static Key_Map default_keymaps[] = {
     },
 
     {
-        .description =
-            "Rotate all selected kites at the left tip anticlockwise.",
+        .description = "Rotate all selected kites at the left tip anticlockwise.",
         .mod_key = KEY_LEFT_SHIFT,
         .selection_key = KEY_H,
         .key = KEY_T,
         .hash = KMH_ROTATE_KITES_LEFT_TIP_ANTICLOCKWISE,
     },
     {
-        .description =
-            "Rotate all selected kites at the right tip anticlockwise.",
+        .description = "Rotate all selected kites at the right tip anticlockwise.",
         .mod_key = KEY_LEFT_SHIFT,
         .selection_key = KEY_L,
         .key = KEY_T,
@@ -94,8 +92,7 @@ static Key_Map default_keymaps[] = {
     //
 
     {
-        .description =
-            "Switches between a fixed and a smooth rotation (toggle).",
+        .description = "Switches between a fixed and a smooth rotation (toggle).",
         .key = KEY_F,
         .hash = KMH_TOGGLE_FIXED,
     },
@@ -151,8 +148,7 @@ static Key_Map default_keymaps[] = {
     },
 
     {
-        .description =
-            "Toggles the interruption that controls the execution of a script.",
+        .description = "Toggles the interruption that controls the execution of a script.",
         .key = KEY_SPACE,
         .hash = KMH_TOGGLE_SCRIPT_EXECUTION,
     },
@@ -222,26 +218,22 @@ static Key_Map default_keymaps[] = {
     },
 
     {
-        .description =
-            "Moves the selected kites by the set speed towards the mouse.",
+        .description = "Moves the selected kites by the set speed towards the mouse.",
         .key = KEY_W,
         .hash = KMH_MOVES_KITES_TOWARDS_MOUSE,
     },
     {
-        .description =
-            "Moves the selected kites by the set speed left to the mouse.",
+        .description = "Moves the selected kites by the set speed left to the mouse.",
         .key = KEY_D,
         .hash = KMH_MOVES_KITES_LEFT_AROUND_MOUSE,
     },
     {
-        .description =
-            "Moves the selected kites by the set speed away from the mouse.",
+        .description = "Moves the selected kites by the set speed away from the mouse.",
         .key = KEY_S,
         .hash = KMH_MOVES_KITES_AWAY_MOUSE,
     },
     {
-        .description =
-            "Moves the selected kites by the set speed right to the mouse.",
+        .description = "Moves the selected kites by the set speed right to the mouse.",
         .key = KEY_A,
         .hash = KMH_MOVES_KITES_RIGHT_AROUND_MOUSE,
     },

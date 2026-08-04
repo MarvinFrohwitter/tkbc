@@ -8,8 +8,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-size_t tkbc_append_kite_image(unsigned char *data, int width, int height,
-                              int format);
+size_t tkbc_append_kite_image(unsigned char *data, int width, int height, int format);
 
 #ifndef TKBC_SERVER
 void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, Id asset_id);
@@ -20,20 +19,16 @@ void append_assets(void);
 void tkbc_assets_destroy(void);
 Asset *tkbc_find_asset_from_id(Id id);
 size_t tkbc_get_current_kite_design_count();
-Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width,
-                                           int height, int format);
+Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width, int height, int format);
 bool tkbc_image_already_exitst_in_assets(Image image, Id *id);
 
-#define _tkbc_get_asset_image(kind)                                            \
-  assets.elements[(assert(assets.count > 0),                                   \
-                   assert(assets.elements[kind].type == ASSETS_IMAGE), kind)]
+#define _tkbc_get_asset_image(kind)                                                                                    \
+    assets.elements[(assert(assets.count > 0), assert(assets.elements[kind].type == ASSETS_IMAGE), kind)]
 
-#define _tkbc_get_asset_kite_design(enum_kind)                                 \
-  assets.elements[(                                                            \
-      assert(assets.count > 0),                                                \
-      assert(assets.elements[(enum_kind)].type == ASSETS_KITE_DESIGN),         \
-      (enum_kind))]
+#define _tkbc_get_asset_kite_design(enum_kind)                                                                         \
+    assets.elements[(assert(assets.count > 0), assert(assets.elements[(enum_kind)].type == ASSETS_KITE_DESIGN),        \
+                     (enum_kind))]
 
 #define _tkbc_get_asset(kind) assets.elements[(assert(assets.count > 0), kind)]
 
-#endif // TKBC_ASSET_HANDLER_H_
+#endif  // TKBC_ASSET_HANDLER_H_

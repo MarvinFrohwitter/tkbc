@@ -22,8 +22,7 @@ void tkbc_destroy_frames_internal_data(Frames *frames);
 void tkbc_reset_frames_internal_data(Frames *frames);
 void tkbc_render_frame(Env *env, Frame *frame);
 
-void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script,
-                                                  Kite_Ids kite_ids);
+void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script, Kite_Ids kite_ids);
 
 void tkbc_patch_script_kite_positions(Env *env, Script *script, Space *space);
 void tkbc_patch_frames_kite_positions(Env *env, Frames *frames, Space *space);
@@ -56,9 +55,7 @@ void tkbc_scrub_frames(Env *env);
 
 Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration);
 float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding);
-float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration,
-                             bool adding);
-float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action,
-                            float duration);
+float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration, bool adding);
+float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action, float duration);
 
-#endif // TKBC_SCRIPT_HANDLER_H_
+#endif  // TKBC_SCRIPT_HANDLER_H_

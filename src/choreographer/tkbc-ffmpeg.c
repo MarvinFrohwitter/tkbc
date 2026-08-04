@@ -16,8 +16,8 @@
 #include <windows.h>
 
 struct Process {
-  HANDLE pipe; // The pipe the ffmpeg process receives data through.
-  HANDLE pid;  // The process number the ffmpeg child process gets.
+    HANDLE pipe;  // The pipe the ffmpeg process receives data through.
+    HANDLE pid;   // The process number the ffmpeg child process gets.
 };
 
 #else
@@ -26,10 +26,10 @@ struct Process {
 #include <unistd.h>
 
 struct Process {
-  int pipe;  // The pipe the ffmpeg process receives data through.
-  pid_t pid; // The process number the ffmpeg child process gets.
+    int pipe;   // The pipe the ffmpeg process receives data through.
+    pid_t pid;  // The process number the ffmpeg child process gets.
 };
-#endif // _WIN32
+#endif  // _WIN32
 
 //////////////////////////////////////////////////////////////////////////////
 // The common part.
@@ -46,21 +46,18 @@ struct Process {
  * @param path The file path where the screenshot should be saved.
  */
 void tkbc_take_screenshot(const char *path) {
-  if (IsWindowMinimized() || IsWindowHidden()) {
-    tkbc_fprintf(stderr, "WARNING",
-                 "SYSTEM: Cannot take screenshot while window is minimized or hidden");
-    return;
-  }
-  Image image = LoadImageFromScreen();
-  ExportImage(image, path); // WARNING: Module required: rtextures
-  UnloadImage(image);
+    if (IsWindowMinimized() || IsWindowHidden()) {
+        tkbc_fprintf(stderr, "WARNING", "SYSTEM: Cannot take screenshot while window is minimized or hidden");
+        return;
+    }
+    Image image = LoadImageFromScreen();
+    ExportImage(image, path);  // WARNING: Module required: rtextures
+    UnloadImage(image);
 
-  if (FileExists(path))
-    tkbc_fprintf(stderr, "WARNING",
-                 "SYSTEM: [%s] Screenshot taken successfully", path);
-  else
-    tkbc_fprintf(stderr, "WARNING",
-                 "SYSTEM: [%s] Screenshot could not be saved", path);
+    if (FileExists(path))
+        tkbc_fprintf(stderr, "WARNING", "SYSTEM: [%s] Screenshot taken successfully", path);
+    else
+        tkbc_fprintf(stderr, "WARNING", "SYSTEM: [%s] Screenshot could not be saved", path);
 }
 
 /**
@@ -71,86 +68,78 @@ void tkbc_take_screenshot(const char *path) {
  * @param output_file_path The file path of the output video.
  */
 void tkbc_ffmpeg_handler(Env *env) {
-  // KEY_B
-  if (tkbc_check_keymaps_full(env->keymaps, KMH_TAKE_SCREENSHOT,
-                              KEY_MAP_CHECK_KEY_PRESSED)) {
+    // KEY_B
+    if (tkbc_check_keymaps_full(env->keymaps, KMH_TAKE_SCREENSHOT, KEY_MAP_CHECK_KEY_PRESSED)) {
 
-    tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
-    const char *prefix =
-        space_tprintf("%s%s", env->tkbc_dir, "Choreo Picture - ");
-    if (!prefix) {
-      goto err_screenshot;
+        tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
+        const char *prefix = space_tprintf("%s%s", env->tkbc_dir, "Choreo Picture - ");
+        if (!prefix) {
+            goto err_screenshot;
+        }
+
+        char *file_name = tkbc_generate_file_name_with_time_stamp(prefix, ".png");
+        space_reset_tspace();
+        if (file_name == NULL) {
+        err_screenshot:
+            tkbc_fprintf(stderr, "ERROR", "No file name for screenshot can be allocated. Screenshot abort.\n");
+        } else {
+
+            tkbc_fprintf(stderr, "INFO", "File: %s\n", file_name);
+            tkbc_take_screenshot(file_name);
+            free(file_name);
+        }
     }
 
-    char *file_name = tkbc_generate_file_name_with_time_stamp(prefix, ".png");
-    space_reset_tspace();
-    if (file_name == NULL) {
-    err_screenshot:
-      tkbc_fprintf(
-          stderr, "ERROR",
-          "No file name for screenshot can be allocated. Screenshot abort.\n");
-    } else {
+    //
+    // The handler has to be carefully checked because the same key is used
+    // multiple times and that can cause problems, with reinitializing the
+    // ffmpeg child process where the old one is still running.
+    //
 
-      tkbc_fprintf(stderr, "INFO", "File: %s\n", file_name);
-      tkbc_take_screenshot(file_name);
-      free(file_name);
+    // KEY_V && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+    if (tkbc_check_keymaps_full(env->keymaps, KMH_END_RECORDING, KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {
+        tkbc_ffmpeg_end(env, false);
+
+    } else if (tkbc_check_keymaps_full(env->keymaps, KMH_BEGIN_RECORDING, KEY_MAP_CHECK_KEY_PRESSED)) {
+        if (!env->rendering) {
+
+            tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
+            const char *prefix = space_tprintf("%s%s", env->tkbc_dir, "Choreo Video - ");
+            if (!prefix) {
+                goto err_video;
+            }
+            char *output_file_path = tkbc_generate_file_name_with_time_stamp(prefix, ".mp4");
+            space_reset_tspace();
+
+            tkbc_fprintf(stderr, "INFO", "File: %s\n", output_file_path);
+            if (output_file_path == NULL) {
+            err_video:
+                tkbc_fprintf(stderr, "ERROR",
+                             "No file name for screencast can be allocated. Screencast "
+                             "abort.\n");
+                return;
+            }
+
+            if (!tkbc_ffmpeg_create_proc(env, output_file_path)) {
+                env->recording = false;
+                env->rendering = false;
+            }
+            free(output_file_path);
+            // This ensures that the frame buffer can be setup and remaining
+            // changes can take effect. For example disabling the fps display.
+            // Otherwise the fps display would be visible in the final video for
+            // just one frame. As a result tkbc_ffmpeg_write_image function is
+            // delayed one frame.
+            return;
+        }
     }
-  }
 
-  //
-  // The handler has to be carefully checked because the same key is used
-  // multiple times and that can cause problems, with reinitializing the
-  // ffmpeg child process where the old one is still running.
-  //
-
-  // KEY_V && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
-  if (tkbc_check_keymaps_full(env->keymaps, KMH_END_RECORDING,
-                              KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {
-    tkbc_ffmpeg_end(env, false);
-
-  } else if (tkbc_check_keymaps_full(env->keymaps, KMH_BEGIN_RECORDING,
-                                     KEY_MAP_CHECK_KEY_PRESSED)) {
-    if (!env->rendering) {
-
-      tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
-      const char *prefix =
-          space_tprintf("%s%s", env->tkbc_dir, "Choreo Video - ");
-      if (!prefix) {
-        goto err_video;
-      }
-      char *output_file_path =
-          tkbc_generate_file_name_with_time_stamp(prefix, ".mp4");
-      space_reset_tspace();
-
-      tkbc_fprintf(stderr, "INFO", "File: %s\n", output_file_path);
-      if (output_file_path == NULL) {
-      err_video:
-        tkbc_fprintf(stderr, "ERROR",
-                     "No file name for screencast can be allocated. Screencast "
-                     "abort.\n");
-        return;
-      }
-
-      if (!tkbc_ffmpeg_create_proc(env, output_file_path)) {
-        env->recording = false;
-        env->rendering = false;
-      }
-      free(output_file_path);
-      // This ensures that the frame buffer can be setup and remaining
-      // changes can take effect. For example disabling the fps display.
-      // Otherwise the fps display would be visible in the final video for
-      // just one frame. As a result tkbc_ffmpeg_write_image function is
-      // delayed one frame.
-      return;
+    if (env->rendering) {
+        int err = tkbc_ffmpeg_write_image(env);
+        if (err == -1) {
+            tkbc_ffmpeg_end(env, true);
+        }
     }
-  }
-
-  if (env->rendering) {
-    int err = tkbc_ffmpeg_write_image(env);
-    if (err == -1) {
-      tkbc_ffmpeg_end(env, true);
-    }
-  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -169,131 +158,117 @@ void tkbc_ffmpeg_handler(Env *env) {
  * false.
  */
 bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
-  // _WIN32
-  env->ffmpeg = malloc(sizeof(*env->ffmpeg));
-  if (env->ffmpeg == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return false;
-  }
-  memset(env->ffmpeg, 0, sizeof(*env->ffmpeg));
-  env->recording = true;
-  env->rendering = true;
+    // _WIN32
+    env->ffmpeg = malloc(sizeof(*env->ffmpeg));
+    if (env->ffmpeg == NULL) {
+        tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+        return false;
+    }
+    memset(env->ffmpeg, 0, sizeof(*env->ffmpeg));
+    env->recording = true;
+    env->rendering = true;
 
-  HANDLE wpipe;
-  HANDLE rpipe;
+    HANDLE wpipe;
+    HANDLE rpipe;
 
-  SECURITY_ATTRIBUTES security_attributes = {0};
-  security_attributes.bInheritHandle = TRUE;
-  security_attributes.nLength = sizeof(SECURITY_ATTRIBUTES);
+    SECURITY_ATTRIBUTES security_attributes = {0};
+    security_attributes.bInheritHandle = TRUE;
+    security_attributes.nLength = sizeof(SECURITY_ATTRIBUTES);
 
-  if (!CreatePipe(&rpipe, &wpipe, &security_attributes, 0)) {
-    tkbc_fprintf(stderr, "ERROR", "Creating the pipe has failed with:%lu\n",
-                 GetLastError());
-    free(env->ffmpeg);
-    env->ffmpeg = NULL;
-    return false;
-  }
-
-  if (!SetHandleInformation(wpipe, HANDLE_FLAG_INHERIT, 0)) {
-    tkbc_fprintf(stderr, "ERROR",
-                 "The write pipe could not be set to HANDLE_FLAG_INHERIT:%lu\n",
-                 GetLastError());
-
-    CloseHandle(wpipe);
-    CloseHandle(rpipe);
-    free(env->ffmpeg);
-    env->ffmpeg = NULL;
-    return false;
-  }
-
-  STARTUPINFO startup_info;
-  ZeroMemory(&startup_info, sizeof(startup_info));
-  startup_info.cb = sizeof(STARTUPINFO);
-  startup_info.dwFlags |= STARTF_USESTDHANDLES;
-  startup_info.hStdInput = rpipe;
-  startup_info.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-  if (startup_info.hStdOutput == INVALID_HANDLE_VALUE) {
-    tkbc_fprintf(stderr, "ERROR",
-                 "Could not get STD_OUTPUT_HANDLE for ffmpeg: %lu\n",
-                 GetLastError());
-    CloseHandle(wpipe);
-    CloseHandle(rpipe);
-    free(env->ffmpeg);
-    env->ffmpeg = NULL;
-    return false;
-  }
-  startup_info.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-  if (startup_info.hStdError == INVALID_HANDLE_VALUE) {
-    tkbc_fprintf(stderr, "ERROR",
-                 "Could not get STD_ERROR_HANDLE for ffmpeg: %lu\n",
-                 GetLastError());
-    CloseHandle(wpipe);
-    CloseHandle(rpipe);
-    free(env->ffmpeg);
-    env->ffmpeg = NULL;
-    return false;
-  }
-
-  // Information injection to the cmd.
-  // ---------------------
-  char resolution[32] = {0};
-  snprintf(resolution, sizeof(resolution), "%zux%zu", env->window_width,
-           env->window_height);
-  char fps[32] = {0};
-  snprintf(fps, sizeof(fps), "%d", env->fps);
-  // ---------------------
-
-  PROCESS_INFORMATION process_information;
-  ZeroMemory(&process_information, sizeof(PROCESS_INFORMATION));
-  if (env->sound_file_name == NULL) {
-    char ffmpeg_cmd[512] = {0};
-    snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
-             "ffmpeg -loglevel verbose -y -f rawvideo -pix_fmt rgba -s %s -r "
-             "%s -i pipe:0 -c:v libx264 -vb  2500k -c:a aac -ab 200k -pix_fmt "
-             "yuv420p \"%s\"",
-             resolution, fps, output_file_path);
-
-    tkbc_fprintf(stderr, "INFO", "%s %s\n", "[CMD]", ffmpeg_cmd);
-    if (!CreateProcess(NULL, ffmpeg_cmd, NULL, NULL, TRUE, 0, NULL, NULL,
-                       &startup_info, &process_information)) {
-      tkbc_fprintf(stderr, "ERROR",
-                   "Creation of the child process was not possible:%lu\n",
-                   GetLastError());
-      CloseHandle(wpipe);
-      CloseHandle(rpipe);
-      free(env->ffmpeg);
-      env->ffmpeg = NULL;
-      return false;
+    if (!CreatePipe(&rpipe, &wpipe, &security_attributes, 0)) {
+        tkbc_fprintf(stderr, "ERROR", "Creating the pipe has failed with:%lu\n", GetLastError());
+        free(env->ffmpeg);
+        env->ffmpeg = NULL;
+        return false;
     }
 
-  } else {
-    char ffmpeg_cmd[512] = {0};
-    snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
-             "ffmpeg -loglevel verbose -y -f rawvideo -pix_fmt rgba -s %s -r "
-             "%s -i pipe:0 -i \"%s\" -c:v libx264 -vb 2500k -c:a aac -ab 200k "
-             "-pix_fmt yuv420p \"%s\"",
-             resolution, fps, env->sound_file_name, output_file_path);
+    if (!SetHandleInformation(wpipe, HANDLE_FLAG_INHERIT, 0)) {
+        tkbc_fprintf(stderr, "ERROR", "The write pipe could not be set to HANDLE_FLAG_INHERIT:%lu\n", GetLastError());
 
-    tkbc_fprintf(stderr, "INFO", "%s %s\n", "[CMD]", ffmpeg_cmd);
-    if (!CreateProcess(NULL, ffmpeg_cmd, NULL, NULL, TRUE, 0, NULL, NULL,
-                       &startup_info, &process_information)) {
-      tkbc_fprintf(stderr, "ERROR",
-                   "Creation of the child process was not possible:%lu\n",
-                   GetLastError());
-      CloseHandle(wpipe);
-      CloseHandle(rpipe);
-      free(env->ffmpeg);
-      env->ffmpeg = NULL;
-      return false;
+        CloseHandle(wpipe);
+        CloseHandle(rpipe);
+        free(env->ffmpeg);
+        env->ffmpeg = NULL;
+        return false;
     }
-  }
 
-  CloseHandle(rpipe);
-  CloseHandle(process_information.hThread);
+    STARTUPINFO startup_info;
+    ZeroMemory(&startup_info, sizeof(startup_info));
+    startup_info.cb = sizeof(STARTUPINFO);
+    startup_info.dwFlags |= STARTF_USESTDHANDLES;
+    startup_info.hStdInput = rpipe;
+    startup_info.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (startup_info.hStdOutput == INVALID_HANDLE_VALUE) {
+        tkbc_fprintf(stderr, "ERROR", "Could not get STD_OUTPUT_HANDLE for ffmpeg: %lu\n", GetLastError());
+        CloseHandle(wpipe);
+        CloseHandle(rpipe);
+        free(env->ffmpeg);
+        env->ffmpeg = NULL;
+        return false;
+    }
+    startup_info.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    if (startup_info.hStdError == INVALID_HANDLE_VALUE) {
+        tkbc_fprintf(stderr, "ERROR", "Could not get STD_ERROR_HANDLE for ffmpeg: %lu\n", GetLastError());
+        CloseHandle(wpipe);
+        CloseHandle(rpipe);
+        free(env->ffmpeg);
+        env->ffmpeg = NULL;
+        return false;
+    }
 
-  env->ffmpeg->pipe = wpipe;
-  env->ffmpeg->pid = process_information.hProcess;
-  return true;
+    // Information injection to the cmd.
+    // ---------------------
+    char resolution[32] = {0};
+    snprintf(resolution, sizeof(resolution), "%zux%zu", env->window_width, env->window_height);
+    char fps[32] = {0};
+    snprintf(fps, sizeof(fps), "%d", env->fps);
+    // ---------------------
+
+    PROCESS_INFORMATION process_information;
+    ZeroMemory(&process_information, sizeof(PROCESS_INFORMATION));
+    if (env->sound_file_name == NULL) {
+        char ffmpeg_cmd[512] = {0};
+        snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
+                 "ffmpeg -loglevel verbose -y -f rawvideo -pix_fmt rgba -s %s -r "
+                 "%s -i pipe:0 -c:v libx264 -vb  2500k -c:a aac -ab 200k -pix_fmt "
+                 "yuv420p \"%s\"",
+                 resolution, fps, output_file_path);
+
+        tkbc_fprintf(stderr, "INFO", "%s %s\n", "[CMD]", ffmpeg_cmd);
+        if (!CreateProcess(NULL, ffmpeg_cmd, NULL, NULL, TRUE, 0, NULL, NULL, &startup_info, &process_information)) {
+            tkbc_fprintf(stderr, "ERROR", "Creation of the child process was not possible:%lu\n", GetLastError());
+            CloseHandle(wpipe);
+            CloseHandle(rpipe);
+            free(env->ffmpeg);
+            env->ffmpeg = NULL;
+            return false;
+        }
+
+    } else {
+        char ffmpeg_cmd[512] = {0};
+        snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd),
+                 "ffmpeg -loglevel verbose -y -f rawvideo -pix_fmt rgba -s %s -r "
+                 "%s -i pipe:0 -i \"%s\" -c:v libx264 -vb 2500k -c:a aac -ab 200k "
+                 "-pix_fmt yuv420p \"%s\"",
+                 resolution, fps, env->sound_file_name, output_file_path);
+
+        tkbc_fprintf(stderr, "INFO", "%s %s\n", "[CMD]", ffmpeg_cmd);
+        if (!CreateProcess(NULL, ffmpeg_cmd, NULL, NULL, TRUE, 0, NULL, NULL, &startup_info, &process_information)) {
+            tkbc_fprintf(stderr, "ERROR", "Creation of the child process was not possible:%lu\n", GetLastError());
+            CloseHandle(wpipe);
+            CloseHandle(rpipe);
+            free(env->ffmpeg);
+            env->ffmpeg = NULL;
+            return false;
+        }
+    }
+
+    CloseHandle(rpipe);
+    CloseHandle(process_information.hThread);
+
+    env->ffmpeg->pipe = wpipe;
+    env->ffmpeg->pid = process_information.hProcess;
+    return true;
 }
 
 /**
@@ -305,25 +280,25 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
  * false.
  */
 bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
-  if (!env->rendering) {
-    return true;
-  }
+    if (!env->rendering) {
+        return true;
+    }
 
-  FlushFileBuffers(env->ffmpeg->pipe);
-  BOOL close_status = CloseHandle(env->ffmpeg->pipe);
-  if (close_status == 0) {
-    tkbc_fprintf(stderr, "ERROR",
-                 "The ffmpeg_end() function could not close the pipe: %lu: "
-                 "Error code: %d\n",
-                 env->ffmpeg->pipe, GetLastError());
-  }
+    FlushFileBuffers(env->ffmpeg->pipe);
+    BOOL close_status = CloseHandle(env->ffmpeg->pipe);
+    if (close_status == 0) {
+        tkbc_fprintf(stderr, "ERROR",
+                     "The ffmpeg_end() function could not close the pipe: %lu: "
+                     "Error code: %d\n",
+                     env->ffmpeg->pipe, GetLastError());
+    }
 
-  env->recording = false;
-  bool status = tkbc_ffmpeg_wait(*env->ffmpeg, is_kill_foreced);
-  env->rendering = false;
-  free(env->ffmpeg);
-  env->ffmpeg = NULL;
-  return status;
+    env->recording = false;
+    bool status = tkbc_ffmpeg_wait(*env->ffmpeg, is_kill_foreced);
+    env->rendering = false;
+    free(env->ffmpeg);
+    env->ffmpeg = NULL;
+    return status;
 }
 
 /**
@@ -337,36 +312,31 @@ bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
  * false.
  */
 bool tkbc_ffmpeg_wait(Process process, bool is_kill_foreced) {
-  if (is_kill_foreced) {
-    TerminateProcess(process.pid, 1);
-  }
+    if (is_kill_foreced) {
+        TerminateProcess(process.pid, 1);
+    }
 
-  bool ok = true;
-  if (WaitForSingleObject(process.pid, INFINITE) == WAIT_FAILED) {
-    tkbc_fprintf(stderr, "ERROR",
-                 "Waiting on process %d has failed: Error code:%lu\n",
-                 process.pid, GetLastError());
-    check_return(false);
-  }
+    bool ok = true;
+    if (WaitForSingleObject(process.pid, INFINITE) == WAIT_FAILED) {
+        tkbc_fprintf(stderr, "ERROR", "Waiting on process %d has failed: Error code:%lu\n", process.pid,
+                     GetLastError());
+        check_return(false);
+    }
 
-  DWORD status;
-  if (GetExitCodeProcess(process.pid, &status) == 0) {
-    tkbc_fprintf(stderr, "ERROR",
-                 "Could not get exit code for %d! Error code:%lu\n",
-                 process.pid, GetLastError());
-    check_return(false);
-  }
+    DWORD status;
+    if (GetExitCodeProcess(process.pid, &status) == 0) {
+        tkbc_fprintf(stderr, "ERROR", "Could not get exit code for %d! Error code:%lu\n", process.pid, GetLastError());
+        check_return(false);
+    }
 
-  if (status != 0) {
-    tkbc_fprintf(stderr, "ERROR",
-                 "The exit code of the ffmpeg process %d was: %d!\n",
-                 process.pid, status);
-    check_return(false);
-  }
+    if (status != 0) {
+        tkbc_fprintf(stderr, "ERROR", "The exit code of the ffmpeg process %d was: %d!\n", process.pid, status);
+        check_return(false);
+    }
 
 check:
-  CloseHandle(process.pid);
-  return ok;
+    CloseHandle(process.pid);
+    return ok;
 }
 
 /**
@@ -378,30 +348,27 @@ check:
  * otherwise if an error occurred while sending the image -1 is returned.
  */
 int tkbc_ffmpeg_write_image(Env *env) {
-  if (env->rendering) {
-    if (IsWindowMinimized() || IsWindowHidden()) {
-      return 1;
-    }
-    int ok = 0;
-    Image image = LoadImageFromScreen();
-    ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-    for (int y = 0; y < image.height; ++y) {
-      DWORD amount = 0;
-      if (!WriteFile(env->ffmpeg->pipe,
-                     (uint32_t *)image.data + image.width * y,
-                     sizeof(uint32_t) * image.width, &amount, NULL)) {
-        tkbc_fprintf(stderr, "ERROR",
-                     "Could not write to the pipe: Error code: %lu\n",
-                     GetLastError());
-        check_return(-1);
-      }
-    }
+    if (env->rendering) {
+        if (IsWindowMinimized() || IsWindowHidden()) {
+            return 1;
+        }
+        int ok = 0;
+        Image image = LoadImageFromScreen();
+        ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+        for (int y = 0; y < image.height; ++y) {
+            DWORD amount = 0;
+            if (!WriteFile(env->ffmpeg->pipe, (uint32_t *) image.data + image.width * y, sizeof(uint32_t) * image.width,
+                           &amount, NULL)) {
+                tkbc_fprintf(stderr, "ERROR", "Could not write to the pipe: Error code: %lu\n", GetLastError());
+                check_return(-1);
+            }
+        }
 
-  check:
-    UnloadImage(image);
-    return ok;
-  }
-  return 1;
+    check:
+        UnloadImage(image);
+        return ok;
+    }
+    return 1;
 }
 
 #else
@@ -417,22 +384,21 @@ int tkbc_ffmpeg_write_image(Env *env) {
  * false.
  */
 bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
-  if (!env->rendering) {
-    return true;
-  }
+    if (!env->rendering) {
+        return true;
+    }
 
-  int close_status = close(env->ffmpeg->pipe);
-  if (close_status < 0) {
-    tkbc_fprintf(stderr, "ERROR",
-                 "The ffmpeg_end() function could not close the pipe: %d: %s\n",
-                 env->ffmpeg->pipe, strerror(errno));
-  }
-  env->recording = false;
-  bool status = tkbc_ffmpeg_wait(*env->ffmpeg, is_kill_foreced);
-  env->rendering = false;
-  free(env->ffmpeg);
-  env->ffmpeg = NULL;
-  return status;
+    int close_status = close(env->ffmpeg->pipe);
+    if (close_status < 0) {
+        tkbc_fprintf(stderr, "ERROR", "The ffmpeg_end() function could not close the pipe: %d: %s\n", env->ffmpeg->pipe,
+                     strerror(errno));
+    }
+    env->recording = false;
+    bool status = tkbc_ffmpeg_wait(*env->ffmpeg, is_kill_foreced);
+    env->rendering = false;
+    free(env->ffmpeg);
+    env->ffmpeg = NULL;
+    return status;
 }
 
 /**
@@ -447,160 +413,152 @@ bool tkbc_ffmpeg_end(Env *env, bool is_kill_foreced) {
  * false.
  */
 bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
-  env->ffmpeg = malloc(sizeof(*env->ffmpeg));
-  if (env->ffmpeg == NULL) {
-    tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-    return false;
-  }
-  memset(env->ffmpeg, 0, sizeof(*env->ffmpeg));
+    env->ffmpeg = malloc(sizeof(*env->ffmpeg));
+    if (env->ffmpeg == NULL) {
+        tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+        return false;
+    }
+    memset(env->ffmpeg, 0, sizeof(*env->ffmpeg));
 
-  env->recording = true;
-  env->rendering = true;
-  int fildes[2];
-  int pipe_status = pipe(fildes);
-  if (-1 == pipe_status) {
-    tkbc_fprintf(stderr, "ERROR", "Creating the pipe has failed with:%s\n",
-                 strerror(errno));
-    free(env->ffmpeg);
-    env->ffmpeg = NULL;
-    return false;
-  }
+    env->recording = true;
+    env->rendering = true;
+    int fildes[2];
+    int pipe_status = pipe(fildes);
+    if (-1 == pipe_status) {
+        tkbc_fprintf(stderr, "ERROR", "Creating the pipe has failed with:%s\n", strerror(errno));
+        free(env->ffmpeg);
+        env->ffmpeg = NULL;
+        return false;
+    }
 
-  char resolution[32] = {0};
-  snprintf(resolution, sizeof(resolution), "%zux%zu", env->window_width,
-           env->window_height);
-  char fps[32] = {0};
-  snprintf(fps, sizeof(fps), "%d", env->fps);
+    char resolution[32] = {0};
+    snprintf(resolution, sizeof(resolution), "%zux%zu", env->window_width, env->window_height);
+    char fps[32] = {0};
+    snprintf(fps, sizeof(fps), "%d", env->fps);
 
-  pid_t pid = fork();
-  if (0 > pid) {
-    tkbc_fprintf(stderr, "ERROR", "The fork was not possible:%s\n",
-                 strerror(errno));
+    pid_t pid = fork();
+    if (0 > pid) {
+        tkbc_fprintf(stderr, "ERROR", "The fork was not possible:%s\n", strerror(errno));
+
+        int close_status = close(fildes[0]);
+        if (close_status < 0) {
+            tkbc_fprintf(stderr, "ERROR", "The ffmpeg_end() function could not close the pipe: %d: %s\n", fildes[0],
+                         strerror(errno));
+        }
+        close_status = close(fildes[1]);
+        if (close_status < 0) {
+            tkbc_fprintf(stderr, "ERROR",
+                         "The ffmpeg_end() function could not close the pipe field: "
+                         "%d: %s\n",
+                         fildes[1], strerror(errno));
+        }
+        return false;
+    }
+
+    if (0 == pid) {
+        if (dup2(fildes[0], STDIN_FILENO) < 0) {
+            tkbc_fprintf(stderr, "ERROR", "Could not reopen pipe: %s\n", strerror(errno));
+            exit(1);
+        }
+
+        // Close the write filed so ffmpeg can not write to the pipe back.
+        int close_status = close(fildes[1]);
+        if (close_status < 0) {
+            tkbc_fprintf(stderr, "ERROR",
+                         "The ffmpeg_end() function could not close the pipe field: "
+                         "%d: %s\n",
+                         fildes[1], strerror(errno));
+        }
+
+        int return_code;
+        if (env->sound_file_name == NULL) {
+            const char *ffmpeg_cmd[] = {"ffmpeg",
+                                        "-loglevel",
+                                        "verbose",
+                                        "-y",
+
+                                        "-f",
+                                        "rawvideo",
+                                        "-pix_fmt",
+                                        "rgba",
+                                        "-s",
+                                        resolution,
+                                        "-r",
+                                        fps,
+
+                                        "-i",
+                                        "pipe:0",
+
+                                        "-c:v",
+                                        "libx264",
+                                        "-vb",
+                                        "2500k",
+                                        "-c:a",
+                                        "aac",
+                                        "-ab",
+                                        "200k",
+                                        "-pix_fmt",
+                                        "yuv420p",
+
+                                        output_file_path,
+                                        NULL};
+
+            tkbc_print_cmd(stderr, ffmpeg_cmd);
+            return_code = execvp("ffmpeg", (char *const *) ffmpeg_cmd);
+
+        } else {
+            const char *ffmpeg_cmd[] = {"ffmpeg",
+                                        "-loglevel",
+                                        "verbose",
+                                        "-y",
+
+                                        "-f",
+                                        "rawvideo",
+                                        "-pix_fmt",
+                                        "rgba",
+                                        "-s",
+                                        resolution,
+                                        "-r",
+                                        fps,
+
+                                        "-i",
+                                        "pipe:0",
+                                        "-i",
+                                        env->sound_file_name,
+
+                                        "-c:v",
+                                        "libx264",
+                                        "-vb",
+                                        "2500k",
+                                        "-c:a",
+                                        "aac",
+                                        "-ab",
+                                        "200k",
+                                        "-pix_fmt",
+                                        "yuv420p",
+
+                                        output_file_path,
+                                        NULL};
+
+            tkbc_print_cmd(stderr, ffmpeg_cmd);
+            return_code = execvp("ffmpeg", (char *const *) ffmpeg_cmd);
+        }
+
+        if (return_code < 0) {
+            tkbc_fprintf(stderr, "ERROR", "The execvp has failed with:%s\n", strerror(errno));
+            exit(1);
+        }
+        assert(0 && "UNREACHABLE: Possible bug in kernel or libc!");
+    }
 
     int close_status = close(fildes[0]);
     if (close_status < 0) {
-      tkbc_fprintf(
-          stderr, "ERROR",
-          "The ffmpeg_end() function could not close the pipe: %d: %s\n",
-          fildes[0], strerror(errno));
+        tkbc_fprintf(stderr, "ERROR", "The ffmpeg_end() function could not close the pipe: %d: %s\n", fildes[0],
+                     strerror(errno));
     }
-    close_status = close(fildes[1]);
-    if (close_status < 0) {
-      tkbc_fprintf(stderr, "ERROR",
-                   "The ffmpeg_end() function could not close the pipe field: "
-                   "%d: %s\n",
-                   fildes[1], strerror(errno));
-    }
-    return false;
-  }
-
-  if (0 == pid) {
-    if (dup2(fildes[0], STDIN_FILENO) < 0) {
-      tkbc_fprintf(stderr, "ERROR", "Could not reopen pipe: %s\n",
-                   strerror(errno));
-      exit(1);
-    }
-
-    // Close the write filed so ffmpeg can not write to the pipe back.
-    int close_status = close(fildes[1]);
-    if (close_status < 0) {
-      tkbc_fprintf(stderr, "ERROR",
-                   "The ffmpeg_end() function could not close the pipe field: "
-                   "%d: %s\n",
-                   fildes[1], strerror(errno));
-    }
-
-    int return_code;
-    if (env->sound_file_name == NULL) {
-      const char *ffmpeg_cmd[] = {"ffmpeg",
-                                  "-loglevel",
-                                  "verbose",
-                                  "-y",
-
-                                  "-f",
-                                  "rawvideo",
-                                  "-pix_fmt",
-                                  "rgba",
-                                  "-s",
-                                  resolution,
-                                  "-r",
-                                  fps,
-
-                                  "-i",
-                                  "pipe:0",
-
-                                  "-c:v",
-                                  "libx264",
-                                  "-vb",
-                                  "2500k",
-                                  "-c:a",
-                                  "aac",
-                                  "-ab",
-                                  "200k",
-                                  "-pix_fmt",
-                                  "yuv420p",
-
-                                  output_file_path,
-                                  NULL};
-
-      tkbc_print_cmd(stderr, ffmpeg_cmd);
-      return_code = execvp("ffmpeg", (char *const *)ffmpeg_cmd);
-
-    } else {
-      const char *ffmpeg_cmd[] = {"ffmpeg",
-                                  "-loglevel",
-                                  "verbose",
-                                  "-y",
-
-                                  "-f",
-                                  "rawvideo",
-                                  "-pix_fmt",
-                                  "rgba",
-                                  "-s",
-                                  resolution,
-                                  "-r",
-                                  fps,
-
-                                  "-i",
-                                  "pipe:0",
-                                  "-i",
-                                  env->sound_file_name,
-
-                                  "-c:v",
-                                  "libx264",
-                                  "-vb",
-                                  "2500k",
-                                  "-c:a",
-                                  "aac",
-                                  "-ab",
-                                  "200k",
-                                  "-pix_fmt",
-                                  "yuv420p",
-
-                                  output_file_path,
-                                  NULL};
-
-      tkbc_print_cmd(stderr, ffmpeg_cmd);
-      return_code = execvp("ffmpeg", (char *const *)ffmpeg_cmd);
-    }
-
-    if (return_code < 0) {
-      tkbc_fprintf(stderr, "ERROR", "The execvp has failed with:%s\n",
-                   strerror(errno));
-      exit(1);
-    }
-    assert(0 && "UNREACHABLE: Possible bug in kernel or libc!");
-  }
-
-  int close_status = close(fildes[0]);
-  if (close_status < 0) {
-    tkbc_fprintf(stderr, "ERROR",
-                 "The ffmpeg_end() function could not close the pipe: %d: %s\n",
-                 fildes[0], strerror(errno));
-  }
-  env->ffmpeg->pipe = fildes[1];
-  env->ffmpeg->pid = pid;
-  return true;
+    env->ffmpeg->pipe = fildes[1];
+    env->ffmpeg->pid = pid;
+    return true;
 }
 
 /**
@@ -614,33 +572,30 @@ bool tkbc_ffmpeg_create_proc(Env *env, const char *output_file_path) {
  * false.
  */
 bool tkbc_ffmpeg_wait(Process process, bool is_kill_foreced) {
-  if (is_kill_foreced) {
-    kill(process.pid, SIGKILL);
-  }
+    if (is_kill_foreced) {
+        kill(process.pid, SIGKILL);
+    }
 
-  while (true) {
-    int status = 0;
-    if (0 > waitpid(process.pid, &status, 0)) {
-      tkbc_fprintf(stderr, "ERROR", "Waiting on process %d has failed:%s\n",
-                   process.pid, strerror(errno));
-      return false;
+    while (true) {
+        int status = 0;
+        if (0 > waitpid(process.pid, &status, 0)) {
+            tkbc_fprintf(stderr, "ERROR", "Waiting on process %d has failed:%s\n", process.pid, strerror(errno));
+            return false;
+        }
+        if (WIFEXITED(status)) {
+            int exit_status = WEXITSTATUS(status);
+            if (0 != exit_status) {
+                tkbc_fprintf(stderr, "ERROR", "Process exited with exit code:%d\n", exit_status);
+                return false;
+            }
+            break;
+        }
+        if (WIFSIGNALED(status)) {
+            tkbc_fprintf(stderr, "ERROR", "Process was terminated by:%s\n", strsignal(WTERMSIG(status)));
+            return false;
+        }
     }
-    if (WIFEXITED(status)) {
-      int exit_status = WEXITSTATUS(status);
-      if (0 != exit_status) {
-        tkbc_fprintf(stderr, "ERROR", "Process exited with exit code:%d\n",
-                     exit_status);
-        return false;
-      }
-      break;
-    }
-    if (WIFSIGNALED(status)) {
-      tkbc_fprintf(stderr, "ERROR", "Process was terminated by:%s\n",
-                   strsignal(WTERMSIG(status)));
-      return false;
-    }
-  }
-  return true;
+    return true;
 }
 
 /**
@@ -652,28 +607,26 @@ bool tkbc_ffmpeg_wait(Process process, bool is_kill_foreced) {
  * otherwise if an error occurred while sending the image -1 is returned.
  */
 int tkbc_ffmpeg_write_image(Env *env) {
-  if (env->rendering) {
-    if (IsWindowMinimized() || IsWindowHidden()) {
-      return 1;
-    }
-    int ok = 0;
-    Image image = LoadImageFromScreen();
-    ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-    for (int y = 0; y < image.height; ++y) {
-      int write_status =
-          write(env->ffmpeg->pipe, (uint32_t *)image.data + image.width * y,
-                sizeof(uint32_t) * image.width);
-      if (write_status < 0) {
-        tkbc_fprintf(stderr, "ERROR", "Could not write to the pipe: %s\n",
-                     strerror(errno));
-        check_return(-1);
-      }
-    }
+    if (env->rendering) {
+        if (IsWindowMinimized() || IsWindowHidden()) {
+            return 1;
+        }
+        int ok = 0;
+        Image image = LoadImageFromScreen();
+        ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+        for (int y = 0; y < image.height; ++y) {
+            int write_status =
+                write(env->ffmpeg->pipe, (uint32_t *) image.data + image.width * y, sizeof(uint32_t) * image.width);
+            if (write_status < 0) {
+                tkbc_fprintf(stderr, "ERROR", "Could not write to the pipe: %s\n", strerror(errno));
+                check_return(-1);
+            }
+        }
 
-  check:
-    UnloadImage(image);
-    return ok;
-  }
-  return 1;
+    check:
+        UnloadImage(image);
+        return ok;
+    }
+    return 1;
 }
-#endif // _WIN32
+#endif  // _WIN32

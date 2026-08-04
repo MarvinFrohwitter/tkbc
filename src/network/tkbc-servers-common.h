@@ -43,42 +43,41 @@ typedef int SOCKLEN;
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 typedef socklen_t SOCKLEN;
-#endif //_WIN32
+#endif  //_WIN32
 
 #include "messages/tkbc-interface.h"
 
 typedef struct {
-  char *elements;
-  size_t count;
-  size_t capacity;
-  size_t i;
+    char *elements;
+    size_t count;
+    size_t capacity;
+    size_t i;
 } Message;
 
 typedef struct {
-  ssize_t kite_id;
-  Message send_msg_buffer;
-  Message recv_msg_buffer;
-  Space send_msg_buffer_space;
-  Space recv_msg_buffer_space;
+    ssize_t kite_id;
+    Message send_msg_buffer;
+    Message recv_msg_buffer;
+    Space send_msg_buffer_space;
+    Space recv_msg_buffer_space;
 
-  int socket_id;
-  SOCKADDR_IN client_address;
-  SOCKLEN client_address_length;
+    int socket_id;
+    SOCKADDR_IN client_address;
+    SOCKLEN client_address_length;
 
-  size_t script_amount;
-  bool handshake_passed;
+    size_t script_amount;
+    bool handshake_passed;
 } Client;
 
 typedef struct {
-  Client *elements;
-  size_t count;
-  size_t capacity;
+    Client *elements;
+    size_t count;
+    size_t capacity;
 } Clients;
 
 #define CLIENT_FMT "Index: %zu, Socket: %d, Address: (%s:%hu)"
-#define CLIENT_ARG(c)                                                          \
-  ((c).kite_id), ((c).socket_id), (inet_ntoa((c).client_address.sin_addr)),    \
-      (ntohs((c).client_address.sin_port))
+#define CLIENT_ARG(c)                                                                                                  \
+    ((c).kite_id), ((c).socket_id), (inet_ntoa((c).client_address.sin_addr)), (ntohs((c).client_address.sin_port))
 
 /**
  * @brief The function prints the way the program should be called.
@@ -86,8 +85,8 @@ typedef struct {
  * @param program_name The name of the program that is currently executing.
  */
 static inline void tkbc_server_usage(const char *program_name) {
-  tkbc_fprintf(stderr, "INFO", "Usage:\n");
-  tkbc_fprintf(stderr, "INFO", "      %s <PORT> \n", program_name);
+    tkbc_fprintf(stderr, "INFO", "Usage:\n");
+    tkbc_fprintf(stderr, "INFO", "      %s <PORT> \n", program_name);
 }
 
 /**
@@ -97,19 +96,18 @@ static inline void tkbc_server_usage(const char *program_name) {
  * @param program_name The name of the program that is currently executing.
  * @return True if there are enough arguments, otherwise false.
  */
-static inline bool tkbc_server_commandline_check(int argc,
-                                                 const char *program_name) {
-  if (argc > 1) {
-    tkbc_fprintf(stderr, "ERROR", "Too may arguments.\n");
-    tkbc_server_usage(program_name);
-    exit(1);
-  }
-  if (argc == 0) {
-    tkbc_fprintf(stderr, "ERROR", "No arguments were provided.\n");
-    tkbc_fprintf(stderr, "INFO", "The default port 8080 is used.\n");
-    return false;
-  }
-  return true;
+static inline bool tkbc_server_commandline_check(int argc, const char *program_name) {
+    if (argc > 1) {
+        tkbc_fprintf(stderr, "ERROR", "Too may arguments.\n");
+        tkbc_server_usage(program_name);
+        exit(1);
+    }
+    if (argc == 0) {
+        tkbc_fprintf(stderr, "ERROR", "No arguments were provided.\n");
+        tkbc_fprintf(stderr, "INFO", "The default port 8080 is used.\n");
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -121,21 +119,19 @@ static inline bool tkbc_server_commandline_check(int argc,
  * @return The parsed port as a uint16_t.
  */
 static inline uint16_t tkbc_port_parsing(const char *port_check) {
-  for (size_t i = 0; i < strlen(port_check); ++i) {
-    if (!isdigit(port_check[i])) {
-      tkbc_fprintf(stderr, "ERROR", "The given port [%s] is not valid.\n",
-                   port_check);
-      exit(1);
+    for (size_t i = 0; i < strlen(port_check); ++i) {
+        if (!isdigit(port_check[i])) {
+            tkbc_fprintf(stderr, "ERROR", "The given port [%s] is not valid.\n", port_check);
+            exit(1);
+        }
     }
-  }
-  int port = atoi(port_check);
-  if (port >= 65535 || port <= 0) {
-    tkbc_fprintf(stderr, "ERROR", "The given port [%s] is not valid.\n",
-                 port_check);
-    exit(1);
-  }
+    int port = atoi(port_check);
+    if (port >= 65535 || port <= 0) {
+        tkbc_fprintf(stderr, "ERROR", "The given port [%s] is not valid.\n", port_check);
+        exit(1);
+    }
 
-  return (uint16_t)port;
+    return (uint16_t) port;
 }
 
 /**
@@ -148,78 +144,75 @@ static inline uint16_t tkbc_port_parsing(const char *port_check) {
  */
 static inline int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
 #ifdef _WIN32
-  // MAKEWORD(2, 2) is a version, and wsaData will be filled with initialized
-  // library information.
+    // MAKEWORD(2, 2) is a version, and wsaData will be filled with initialized
+    // library information.
 
-  WSADATA wsaData;
-  if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-    assert(0 && "ERROR: WSAStartup()");
-  } else {
-    tkbc_fprintf(stderr, "INFO", "Initialization of WSAStartup() succeed.\n");
-  }
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        assert(0 && "ERROR: WSAStartup()");
+    } else {
+        tkbc_fprintf(stderr, "INFO", "Initialization of WSAStartup() succeed.\n");
+    }
 #endif
 
-  int socket_id = socket(AF_INET, SOCK_STREAM, 0);
-  if (socket_id == -1) {
+    int socket_id = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_id == -1) {
 #ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+        tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
 #else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
 #endif
-    exit(1);
-  }
-  int option = 1;
-  int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *)&option,
-                       sizeof(option));
-  if (sso == -1) {
+        exit(1);
+    }
+    int option = 1;
+    int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *) &option, sizeof(option));
+    if (sso == -1) {
 #ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+        tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
 #else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
 #endif
-  }
+    }
 
-  int nodelay = 1;
-  sso = setsockopt(socket_id, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay,
-                   sizeof(nodelay));
-  if (sso == -1) {
+    int nodelay = 1;
+    sso = setsockopt(socket_id, IPPROTO_TCP, TCP_NODELAY, (char *) &nodelay, sizeof(nodelay));
+    if (sso == -1) {
 #ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+        tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
 #else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
 #endif
-  }
+    }
 
-  struct sockaddr_in server_addr;
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(port);
-  server_addr.sin_addr.s_addr = addr;
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    server_addr.sin_addr.s_addr = addr;
 
-  int bind_status =
-      bind(socket_id, (struct sockaddr *)&server_addr, sizeof(server_addr));
-  if (bind_status == -1) {
+    int bind_status = bind(socket_id, (struct sockaddr *) &server_addr, sizeof(server_addr));
+    if (bind_status == -1) {
 #ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-    WSACleanup();
+        tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+        WSACleanup();
 #else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
 #endif
-    exit(1);
-  }
+        exit(1);
+    }
 
-  int listen_status = listen(socket_id, SERVER_CONNETCTIONS);
-  if (listen_status == -1) {
+    int listen_status = listen(socket_id, SERVER_CONNETCTIONS);
+    if (listen_status == -1) {
 #ifdef _WIN32
-    tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-    WSACleanup();
+        tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
+        WSACleanup();
 #else
-    tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
 #endif
-    exit(1);
-  }
-  tkbc_fprintf(stderr, "INFO", "%s: %hu\n", "Listening to port", port);
+        exit(1);
+    }
+    tkbc_fprintf(stderr, "INFO", "%s: %hu\n", "Listening to port", port);
 
-  return socket_id;
+    return socket_id;
 }
 
 /**
@@ -231,19 +224,17 @@ static inline int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
  * @param image The image whose pixel data should be appended.
  * @param id The id that is serialized in front of the image data.
  */
-static inline void tkbc_message_append_image_data(Space *space,
-                                                  Message *message, Image image,
-                                                  Id id) {
-  size_t width = image.width;
-  size_t height = image.height;
-  size_t format = image.format;
-  space_dapf(space, message, "%zu:%zu:%zu:%zu:", id, width, height, format);
-  for (size_t y = 0; y < height; y++) {
-    for (size_t x = 0; x < width; x++) {
-      Color c = *(Color *)tkbc_get_position_in_image(image, x, y);
-      space_dapf(space, message, "%u:", *(uint32_t *)&c);
+static inline void tkbc_message_append_image_data(Space *space, Message *message, Image image, Id id) {
+    size_t width = image.width;
+    size_t height = image.height;
+    size_t format = image.format;
+    space_dapf(space, message, "%zu:%zu:%zu:%zu:", id, width, height, format);
+    for (size_t y = 0; y < height; y++) {
+        for (size_t x = 0; x < width; x++) {
+            Color c = *(Color *) tkbc_get_position_in_image(image, x, y);
+            space_dapf(space, message, "%u:", *(uint32_t *) &c);
+        }
     }
-  }
 }
 
 /**
@@ -253,41 +244,38 @@ static inline void tkbc_message_append_image_data(Space *space,
  * @param kite_state The kite state where the information is extracted from.
  * @param message The Message struct that should contain the serialized data.
  */
-static inline void tkbc_message_append_kite(Kite_State *kite_state,
-                                            Message *message, Space *space) {
-  size_t kite_id = kite_state->kite_id;
-  float x = kite_state->kite->center.x;
-  float y = kite_state->kite->center.y;
-  float angle = fmodf(kite_state->kite->angle, 360);
+static inline void tkbc_message_append_kite(Kite_State *kite_state, Message *message, Space *space) {
+    size_t kite_id = kite_state->kite_id;
+    float x = kite_state->kite->center.x;
+    float y = kite_state->kite->center.y;
+    float angle = fmodf(kite_state->kite->angle, 360);
 
-  uint32_t color = tkbc_color_to_uint32_t(kite_state->kite->body_color);
-  ssize_t texture_id = kite_state->kite->texture_id;
+    uint32_t color = tkbc_color_to_uint32_t(kite_state->kite->body_color);
+    ssize_t texture_id = kite_state->kite->texture_id;
 
-  bool is_reversed = kite_state->is_kite_reversed;
-  bool is_active = kite_state->is_active;
-  bool is_script_kite = kite_state->is_script_kite;
+    bool is_reversed = kite_state->is_kite_reversed;
+    bool is_active = kite_state->is_active;
+    bool is_script_kite = kite_state->is_script_kite;
 
-  space_dapf(space, message, "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
+    space_dapf(space, message, "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
 
-  if (texture_id == -1 || kite_state->kite->is_texture_new) {
-    texture_id = -1;
-    space_dapf(space, message, "%zd:", texture_id);
+    if (texture_id == -1 || kite_state->kite->is_texture_new) {
+        texture_id = -1;
+        space_dapf(space, message, "%zd:", texture_id);
 
-    // NOTE: This is not nasally the KITE_COLORIZER position.
-    assert(assets.count != 0);
+        // NOTE: This is not nasally the KITE_COLORIZER position.
+        assert(assets.count != 0);
 
-    Asset *asset = &_tkbc_get_asset_kite_design(assets.count - 1);
+        Asset *asset = &_tkbc_get_asset_kite_design(assets.count - 1);
 
-    Kite_Image *kite_image = &asset->as.kite_image;
-    tkbc_message_append_image_data(space, message, kite_image->normal,
-                                   asset->id);
-    kite_state->kite->is_texture_new = false;
-  } else {
-    space_dapf(space, message, "%zd:", texture_id);
-  }
+        Kite_Image *kite_image = &asset->as.kite_image;
+        tkbc_message_append_image_data(space, message, kite_image->normal, asset->id);
+        kite_state->kite->is_texture_new = false;
+    } else {
+        space_dapf(space, message, "%zd:", texture_id);
+    }
 
-  space_dapf(space, message, "%zu:%zu:%zu:", (size_t)is_reversed,
-             (size_t)is_active, (size_t)is_script_kite);
+    space_dapf(space, message, "%zu:%zu:%zu:", (size_t) is_reversed, (size_t) is_active, (size_t) is_script_kite);
 }
 
 /**
@@ -299,17 +287,15 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state,
  * @return True if the given kite id was found and the data is appended,
  * otherwise false.
  */
-static inline bool tkbc_message_append_clientkite(size_t client_id,
-                                                  Message *message,
-                                                  Space *space) {
-  for (size_t i = 0; i < env->kite_array.count; ++i) {
-    if (client_id == env->kite_array.elements[i].kite_id) {
-      Kite_State *kite_state = &env->kite_array.elements[i];
-      tkbc_message_append_kite(kite_state, message, space);
-      return true;
+static inline bool tkbc_message_append_clientkite(size_t client_id, Message *message, Space *space) {
+    for (size_t i = 0; i < env->kite_array.count; ++i) {
+        if (client_id == env->kite_array.elements[i].kite_id) {
+            Kite_State *kite_state = &env->kite_array.elements[i];
+            tkbc_message_append_kite(kite_state, message, space);
+            return true;
+        }
     }
-  }
-  return false;
+    return false;
 }
 
-#endif // TKBC_SERVERS_COMMON_H
+#endif  // TKBC_SERVERS_COMMON_H

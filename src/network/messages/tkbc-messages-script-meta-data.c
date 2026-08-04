@@ -18,56 +18,54 @@ extern Client client;
  * @return Returns true if the message was parsed successfully, otherwise false.
  */
 bool tkbc_messages_script_meta_data(Lexer *lexer) {
-  Token token;
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER) {
-    return false;
-  }
-
-  env->server_script_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COLON) {
-    return false;
-  }
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER) {
-    return false;
-  }
-
-  env->server_script_frames_count =
-      strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COLON) {
-    return false;
-  }
-  token = lexer_next(lexer);
-  if (token.kind != NUMBER) {
-    return false;
-  }
-
-  env->server_script_frames_index =
-      strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-
-  token = lexer_next(lexer);
-  if (token.kind != PUNCT_COLON) {
-    return false;
-  }
-
-  if (env->server_script_id == 0) {
-    tkbc_unload_script(env);
-    for (size_t i = 0; i < env->kite_array.count; ++i) {
-      Kite_State *kite_state = &env->kite_array.elements[i];
-      if (kite_state->is_script_kite) {
-        kite_state->is_active = false;
-        kite_state->is_kite_input_handler_active = false;
-      } else {
-        kite_state->is_active = true;
-        kite_state->is_kite_input_handler_active = true;
-      }
+    Token token;
+    token = lexer_next(lexer);
+    if (token.kind != NUMBER) {
+        return false;
     }
-  }
 
-  return true;
+    env->server_script_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
+
+    token = lexer_next(lexer);
+    if (token.kind != PUNCT_COLON) {
+        return false;
+    }
+    token = lexer_next(lexer);
+    if (token.kind != NUMBER) {
+        return false;
+    }
+
+    env->server_script_frames_count = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
+
+    token = lexer_next(lexer);
+    if (token.kind != PUNCT_COLON) {
+        return false;
+    }
+    token = lexer_next(lexer);
+    if (token.kind != NUMBER) {
+        return false;
+    }
+
+    env->server_script_frames_index = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
+
+    token = lexer_next(lexer);
+    if (token.kind != PUNCT_COLON) {
+        return false;
+    }
+
+    if (env->server_script_id == 0) {
+        tkbc_unload_script(env);
+        for (size_t i = 0; i < env->kite_array.count; ++i) {
+            Kite_State *kite_state = &env->kite_array.elements[i];
+            if (kite_state->is_script_kite) {
+                kite_state->is_active = false;
+                kite_state->is_kite_input_handler_active = false;
+            } else {
+                kite_state->is_active = true;
+                kite_state->is_kite_input_handler_active = true;
+            }
+        }
+    }
+
+    return true;
 }

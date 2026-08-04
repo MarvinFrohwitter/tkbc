@@ -24,66 +24,64 @@ extern Assets assets;
  * @param env The global state of the application.
  */
 void tkbc_draw_ui(Env *env) {
-  env->window_height = tkbc_get_screen_height();
-  env->window_width = tkbc_get_screen_width();
+    env->window_height = tkbc_get_screen_height();
+    env->window_width = tkbc_get_screen_width();
 
-  if (env->window_width == 0 || env->window_height == 0) {
-    return;
-  }
-
-  // TODO: The script bar is not displayed if another client triggered a script.
-  if ((env->frames || env->server_script_id) &&
-      !(env->script_menu_interaction || env->keymaps_interaction)) {
-    // A script is currently executing.
-
-    if (env->server_script_id) {
-      //
-      // NOTE: This realise on the fact that server_script_id will just be set
-      // on a client and not a no server related client.
-      //
-      // This is in a .c file so a preprocessor macro would just work if it is
-      // passed to the compiler directly. In this case a dependency on a custom
-      // macro form a client reduces the freedom of the client choosing it.
-      //
-      // Marvin Frohwitter 10.08.2025
-
-      tkbc_ui_timeline(env, env->server_script_frames_index,
-                       env->server_script_frames_count);
-    } else {
-      tkbc_ui_timeline(env, env->frames->frames_index, env->script->count);
-    }
-  }
-
-  if (!env->rendering) {
-    Color color = TKBC_UI_TEAL;
-    int fps = GetFPS();
-    if (fps < 25) {
-      color = TKBC_UI_PURPLE;
+    if (env->window_width == 0 || env->window_height == 0) {
+        return;
     }
 
-    char buf[16] = {0};
-    sprintf(buf, "%2i FPS", fps);
-    Vector2 p = {
-        .x = env->window_width / 2.0f,
-        .y = 10,
-    };
-    DrawTextEx(env->font, buf, p, 20, 2, color);
-  }
+    // TODO: The script bar is not displayed if another client triggered a script.
+    if ((env->frames || env->server_script_id) && !(env->script_menu_interaction || env->keymaps_interaction)) {
+        // A script is currently executing.
 
-  if (env->scripts_parsed) {
-    tkbc_ui_script_menu(env);
-  }
+        if (env->server_script_id) {
+            //
+            // NOTE: This realise on the fact that server_script_id will just be set
+            // on a client and not a no server related client.
+            //
+            // This is in a .c file so a preprocessor macro would just work if it is
+            // passed to the compiler directly. In this case a dependency on a custom
+            // macro form a client reduces the freedom of the client choosing it.
+            //
+            // Marvin Frohwitter 10.08.2025
 
-  if (!env->script_menu_interaction) {
-    if (!env->colorizer) {
-      tkbc_ui_keymaps(env);
+            tkbc_ui_timeline(env, env->server_script_frames_index, env->server_script_frames_count);
+        } else {
+            tkbc_ui_timeline(env, env->frames->frames_index, env->script->count);
+        }
     }
-    tkbc_ui_color_picker(env);
-  }
 
-  if (!env->keymaps_interaction && !env->script_menu_interaction) {
-    tkbc_display_kite_information(env);
-  }
+    if (!env->rendering) {
+        Color color = TKBC_UI_TEAL;
+        int fps = GetFPS();
+        if (fps < 25) {
+            color = TKBC_UI_PURPLE;
+        }
+
+        char buf[16] = {0};
+        sprintf(buf, "%2i FPS", fps);
+        Vector2 p = {
+            .x = env->window_width / 2.0f,
+            .y = 10,
+        };
+        DrawTextEx(env->font, buf, p, 20, 2, color);
+    }
+
+    if (env->scripts_parsed) {
+        tkbc_ui_script_menu(env);
+    }
+
+    if (!env->script_menu_interaction) {
+        if (!env->colorizer) {
+            tkbc_ui_keymaps(env);
+        }
+        tkbc_ui_color_picker(env);
+    }
+
+    if (!env->keymaps_interaction && !env->script_menu_interaction) {
+        tkbc_display_kite_information(env);
+    }
 }
 
 /**
@@ -93,9 +91,8 @@ void tkbc_draw_ui(Env *env) {
  * @param kite_texture The texture to update.
  * @param kite_image The image data to upload to the texture.
  */
-void tkbc_update_kite_texture(Kite_Texture kite_texture,
-                              Kite_Image kite_image) {
-  UpdateTexture(kite_texture.normal, kite_image.normal.data);
+void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image) {
+    UpdateTexture(kite_texture.normal, kite_image.normal.data);
 }
 
 /**
@@ -106,9 +103,8 @@ void tkbc_update_kite_texture(Kite_Texture kite_texture,
  * @param old The color to replace.
  * @param replace The new color to use.
  */
-void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
-                                  Color replace) {
-  ImageColorReplace(&kite_image->normal, old, replace);
+void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old, Color replace) {
+    ImageColorReplace(&kite_image->normal, old, replace);
 }
 
 /**
@@ -120,11 +116,10 @@ void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
  * @return Pointer to the newly created kite image.
  */
 Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image, Id *new_id) {
-  Image image = kite_image.normal;
-  *new_id = tkbc_append_kite_image(image.data, image.width, image.height,
-                                   image.format);
+    Image image = kite_image.normal;
+    *new_id = tkbc_append_kite_image(image.data, image.width, image.height, image.format);
 
-  return &_tkbc_get_asset_kite_design(assets.count - 1).as.kite_image;
+    return &_tkbc_get_asset_kite_design(assets.count - 1).as.kite_image;
 }
 
 /**
@@ -135,11 +130,10 @@ Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image, Id *new_id) {
  * @param new_id Pointer to store the new id.
  * @return Pointer to the newly created kite texture.
  */
-Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image,
-                                                       Id *new_id) {
-  Kite_Image *new_kite_image = tkbc_copy_kite_image(kite_image, new_id);
-  tkbc_load_kite_texture_from_kite_image(*new_kite_image, *new_id);
-  return &_tkbc_get_asset_kite_design(assets.count - 1).as.kite_texture;
+Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image, Id *new_id) {
+    Kite_Image *new_kite_image = tkbc_copy_kite_image(kite_image, new_id);
+    tkbc_load_kite_texture_from_kite_image(*new_kite_image, *new_id);
+    return &_tkbc_get_asset_kite_design(assets.count - 1).as.kite_texture;
 }
 
 /**
@@ -152,25 +146,22 @@ Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image,
  * @param collision_rec The bounding rectangle for the colorizer.
  * @param scale The current view scale.
  */
-void tkbc_dispatch_colorizer_mode(Env *env, Image image,
-                                  Rectangle collision_rec, float scale) {
+void tkbc_dispatch_colorizer_mode(Env *env, Image image, Rectangle collision_rec, float scale) {
 
-  if (tkbc_check_key(KEY_LEFT_CONTROL, MODE_DOWN)) {
-    return;
-  }
+    if (tkbc_check_key(KEY_LEFT_CONTROL, MODE_DOWN)) {
+        return;
+    }
+    if (!CheckCollisionPointRec(GetMousePosition(), collision_rec)) {
+        return;
+    }
 
-  if (!CheckCollisionPointRec(GetMousePosition(), collision_rec)) {
-    return;
-  }
-
-  if (tkbc_check_key(KEY_LEFT_SHIFT, MODE_DOWN) &&
-      IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    tkbc_colorizer(env, image, collision_rec, scale, SELECT_COLOR);
-  } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    tkbc_colorizer(env, image, collision_rec, scale, SELECT_PANEL);
-  } else if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-    tkbc_colorizer(env, image, collision_rec, scale, SINGLE_PIXEL);
-  }
+    if (tkbc_check_key(KEY_LEFT_SHIFT, MODE_DOWN) && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        tkbc_colorizer(env, image, collision_rec, scale, SELECT_COLOR);
+    } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        tkbc_colorizer(env, image, collision_rec, scale, SELECT_PANEL);
+    } else if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+        tkbc_colorizer(env, image, collision_rec, scale, SINGLE_PIXEL);
+    }
 }
 
 /**
@@ -182,48 +173,34 @@ void tkbc_dispatch_colorizer_mode(Env *env, Image image,
  * @param view_scale Pointer to store the calculated view scale.
  * @param color_box The rectangle for the color selection box.
  */
-void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
-                       Rectangle color_box) {
-  Vector2 view;
+void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, Rectangle color_box) {
+    Vector2 view;
 
-  Texture2D view_texture =
-      _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture.normal;
+    Texture2D view_texture = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture.normal;
+    *view_scale = (env->window_width - env->color_picker_base.width - env->keymaps_base.width) / view_texture.width;
+    view.x = env->color_picker_base.x - (env->window_width - env->color_picker_base.width) / 2 -
+             *view_scale * view_texture.width / 2;
+    view.y = color_box.y;
 
-  *view_scale = (env->window_width - env->color_picker_base.width -
-                 env->keymaps_base.width) /
-                view_texture.width;
+    view_background->x = view.x;
+    view_background->y = view.y;
+    view_background->width = view_texture.width * *view_scale;
+    view_background->height = view_texture.height * *view_scale;
 
-  view.x = env->color_picker_base.x -
-           (env->window_width - env->color_picker_base.width) / 2 -
-           *view_scale * view_texture.width / 2;
+    if (env->colorizer) {
+        Rectangle shadow = *view_background;
+        tkbc_draw_shadow(shadow, *view_scale);
 
-  view.y = color_box.y;
+        shadow.y -= shadow.height * 0.05;
+        shadow.x -= shadow.width * 0.05;
+        shadow.width *= 1.1;
+        shadow.height *= 1.35;
+        float thick = 3;
+        DrawRectangleRoundedLinesEx(shadow, 0.25, 20, thick, TKBC_UI_BLACK);
 
-  view_background->x = view.x;
-  view_background->y = view.y;
-  view_background->width = view_texture.width * *view_scale;
-  view_background->height = view_texture.height * *view_scale;
-
-  if (env->colorizer) {
-    Rectangle shadow = *view_background;
-    tkbc_draw_shadow(shadow, *view_scale);
-
-    shadow.y -= shadow.height * 0.05;
-    shadow.x -= shadow.width * 0.05;
-    shadow.width *= 1.1;
-    shadow.height *= 1.35;
-    float thick = 3;
-    DrawRectangleRoundedLinesEx(shadow, 0.25, 20, thick, TKBC_UI_BLACK);
-
-    // for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= KITE_COLORIZER; ++i) {
-    //   view_texture = kite_textures.elements[i].normal;
-    //   DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
-    // }
-
-    view_texture =
-        _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture.normal;
-    DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
-  }
+        view_texture = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture.normal;
+        DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
+    }
 }
 
 /**
@@ -234,9 +211,8 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
  * @param replace The color to set at the position.
  */
 void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace) {
-  Kite_Image *kite_image =
-      &_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image;
-  tkbc_set_single_pixel_in_kite_image(*kite_image, p, replace);
+    Kite_Image *kite_image = &_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image;
+    tkbc_set_single_pixel_in_kite_image(*kite_image, p, replace);
 }
 
 /**
@@ -247,11 +223,9 @@ void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace) {
  * @param p The position of the pixel to set.
  * @param replace The color to set at the position.
  */
-void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p,
-                                         Color replace) {
-  // For the normal
-  unsigned char *ptr = tkbc_get_position_in_image(kite_image.normal, p.x, p.y);
-  SetPixelColor(ptr, replace, kite_image.normal.format);
+void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p, Color replace) {
+    unsigned char *ptr = tkbc_get_position_in_image(kite_image.normal, p.x, p.y);
+    SetPixelColor(ptr, replace, kite_image.normal.format);
 }
 
 /**
@@ -265,171 +239,153 @@ void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p,
  * @param rec_scale The scale of the rectangle.
  * @param mode The colorizer mode to use.
  */
-void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
-                    float rec_scale, Colorizer_Mode mode) {
+void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_scale, Colorizer_Mode mode) {
 
-  env->colorizer = true;
-  Vector2 mouse = GetMousePosition();
-  Vector2 p = tkbc_get_position_in_rect(collision_rec, rec_scale, mouse);
+    env->colorizer = true;
+    Vector2 mouse = GetMousePosition();
+    Vector2 p = tkbc_get_position_in_rect(collision_rec, rec_scale, mouse);
 
-  Image filled = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
+    Image filled = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
 
-  assert(filled.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-  assert(
-      filled.width ==
-      _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
-  assert(
-      filled.height ==
-      _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
+    assert(filled.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+    assert(filled.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
+    assert(filled.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
 
-  Color old_color = GetImageColor(image, p.x, p.y);
-  char alpha_threshold = 0;
-  if (old_color.a <= alpha_threshold &&
-      GetImageColor(filled, p.x, p.y).a <= 0) {
-    return;
-  }
-
-  Color replace = env->last_selected_color;
-  switch (mode) {
-  case SINGLE_PIXEL: {
-    tkbc_set_single_pixel_in_kite_image_colorizer(p, replace);
-  } break;
-
-  case SELECT_COLOR: {
-    if (old_color.a <= alpha_threshold) {
-      Image colorizer_image =
-          _tkbc_get_asset_kite_design(KITE_COLORIZER).as.image;
-
-      bool empty_pannel_cliecked = false;
-      for (size_t y = 0; y < (size_t)filled.height; ++y) {
-        for (size_t x = 0; x < (size_t)filled.width; ++x) {
-
-          for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_PANNEL_PARTS_END;
-               ++i) {
-            if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) ||
-                (i == IMAGE_MIDDLE_13) || (i == IMAGE_FILLED_PANEL) ||
-                (i == IMAGE_SKELETON_LEADINGEDGE)) {
-              // Skip the middle once for now.
-              continue;
-            }
-
-            if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
-              // This is not a kite design.
-              continue;
-            }
-            assert(assets.elements[i].type == ASSETS_IMAGE);
-
-            Image panel = _tkbc_get_asset_image(i).as.image;
-            assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-
-            // Checks it the clicked part is inside of the kite.
-            if (!empty_pannel_cliecked) {
-              old_color = GetImageColor(panel, p.x, p.y);
-              if (old_color.a <= alpha_threshold) {
-                continue;
-              }
-              empty_pannel_cliecked = true;
-            }
-
-            assert(panel.width == _tkbc_get_asset_kite_design(KITE_COLORIZER)
-                                      .as.kite_image.normal.width);
-            assert(panel.height == _tkbc_get_asset_kite_design(KITE_COLORIZER)
-                                       .as.kite_image.normal.height);
-
-            // Copy the panel into the KITE_COLORIZER texture
-            Color c = *(Color *)tkbc_get_position_in_image(panel, x, y);
-            if (c.a <= alpha_threshold) {
-              continue;
-            }
-
-            old_color = GetImageColor(panel, p.x, p.y);
-            c = *(Color *)tkbc_get_position_in_image(colorizer_image, x, y);
-            if (c.a > alpha_threshold) {
-              continue;
-            }
-
-            Vector2 pixel = {.x = x, .y = y};
-            tkbc_set_single_pixel_in_kite_image_colorizer(pixel, replace);
-          }
-        }
-      }
-
-    } else {
-      tkbc_update_kite_image_color(
-          &_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image, old_color,
-          replace);
+    Color old_color = GetImageColor(image, p.x, p.y);
+    char alpha_threshold = 0;
+    if (old_color.a <= alpha_threshold && GetImageColor(filled, p.x, p.y).a <= 0) {
+        return;
     }
 
-  } break;
-  case SELECT_PANEL: {
-    for (size_t y = 0; y < (size_t)filled.height; ++y) {
-      for (size_t x = 0; x < (size_t)filled.width; ++x) {
-        for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_PANNEL_PARTS_END;
-             ++i) {
-          if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) ||
-              (i == IMAGE_MIDDLE_13) || (i == IMAGE_FILLED_PANEL) ||
-              (i == IMAGE_SKELETON) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
-            // Skip the middle once for now.
-            continue;
-          }
+    Color replace = env->last_selected_color;
+    switch (mode) {
+    case SINGLE_PIXEL: {
+        tkbc_set_single_pixel_in_kite_image_colorizer(p, replace);
+    } break;
 
-          if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
-            // This is not a kite design.
-            continue;
-          }
+    case SELECT_COLOR: {
+        if (old_color.a <= alpha_threshold) {
+            Image colorizer_image = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.image;
 
-          assert(assets.elements[i].type == ASSETS_IMAGE);
+            bool empty_pannel_cliecked = false;
+            for (size_t y = 0; y < (size_t) filled.height; ++y) {
+                for (size_t x = 0; x < (size_t) filled.width; ++x) {
 
-          Image im = _tkbc_get_asset_image(i).as.image;
-          assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+                    for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_PANNEL_PARTS_END; ++i) {
+                        if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) || (i == IMAGE_MIDDLE_13) ||
+                            (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
+                            // Skip the middle once for now.
+                            continue;
+                        }
 
-          old_color = GetImageColor(im, p.x, p.y);
-          if (old_color.a <= alpha_threshold) {
-            continue;
-          }
-          assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER)
-                                 .as.kite_image.normal.width);
-          assert(im.height == _tkbc_get_asset_kite_design(KITE_COLORIZER)
-                                  .as.kite_image.normal.height);
-          // Copy the panel into the KITE_COLORIZER texture
-          Color c = *(Color *)tkbc_get_position_in_image(im, x, y);
-          if (c.a <= alpha_threshold) {
-            continue;
-          }
+                        if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
+                            // This is not a kite design.
+                            continue;
+                        }
+                        assert(assets.elements[i].type == ASSETS_IMAGE);
 
-          Vector2 pixel = {.x = x, .y = y};
-          tkbc_set_single_pixel_in_kite_image_colorizer(pixel, replace);
+                        Image panel = _tkbc_get_asset_image(i).as.image;
+                        assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+
+                        // Checks it the clicked part is inside of the kite.
+                        if (!empty_pannel_cliecked) {
+                            old_color = GetImageColor(panel, p.x, p.y);
+                            if (old_color.a <= alpha_threshold) {
+                                continue;
+                            }
+                            empty_pannel_cliecked = true;
+                        }
+
+                        assert(panel.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
+                        assert(panel.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
+
+                        // Copy the panel into the KITE_COLORIZER texture
+                        Color c = *(Color *) tkbc_get_position_in_image(panel, x, y);
+                        if (c.a <= alpha_threshold) {
+                            continue;
+                        }
+
+                        old_color = GetImageColor(panel, p.x, p.y);
+                        c = *(Color *) tkbc_get_position_in_image(colorizer_image, x, y);
+                        if (c.a > alpha_threshold) {
+                            continue;
+                        }
+
+                        Vector2 pixel = {.x = x, .y = y};
+                        tkbc_set_single_pixel_in_kite_image_colorizer(pixel, replace);
+                    }
+                }
+            }
+
+        } else {
+            tkbc_update_kite_image_color(&_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image, old_color,
+                                         replace);
         }
-      }
+
+    } break;
+    case SELECT_PANEL: {
+        for (size_t y = 0; y < (size_t) filled.height; ++y) {
+            for (size_t x = 0; x < (size_t) filled.width; ++x) {
+                for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_PANNEL_PARTS_END; ++i) {
+                    if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) || (i == IMAGE_MIDDLE_13) ||
+                        (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
+                        // Skip the middle once for now.
+                        continue;
+                    }
+
+                    if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
+                        // This is not a kite design.
+                        continue;
+                    }
+
+                    assert(assets.elements[i].type == ASSETS_IMAGE);
+
+                    Image im = _tkbc_get_asset_image(i).as.image;
+                    assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+
+                    old_color = GetImageColor(im, p.x, p.y);
+                    if (old_color.a <= alpha_threshold) {
+                        continue;
+                    }
+                    assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
+                    assert(im.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
+                    // Copy the panel into the KITE_COLORIZER texture
+                    Color c = *(Color *) tkbc_get_position_in_image(im, x, y);
+                    if (c.a <= alpha_threshold) {
+                        continue;
+                    }
+
+                    Vector2 pixel = {.x = x, .y = y};
+                    tkbc_set_single_pixel_in_kite_image_colorizer(pixel, replace);
+                }
+            }
+        }
+
+        // Image im = tkbc_get_asset_kite_design(IMAGE_SKELETON).as.image;
+        // assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+        // assert(im.width ==
+        // assets.elements[KITE_COLORIZER].kite_image.normal.width);
+        // assert(im.height ==
+        //        assets.elements[KITE_COLORIZER].kite_image.normal.height);
+        // // Copy the panel into the KITE_COLORIZER texture
+        // for (size_t y = 0; y < (size_t)im.height; ++y) {
+        //   for (size_t x = 0; x < (size_t)im.width; ++x) {
+        //     Color c = *(Color *)tkbc_get_position_in_image(im, x, y);
+        //     if (c.a <= alpha_threshold) {
+        //       continue;
+        //     }
+
+        //     Vector2 pixel = {.x = x, .y = y};
+        //     tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
+        //   }
+        // }
+
+    } break;
+    default: assert(0 && "UNREACHABLE tkbc_colorizer");
     }
 
-    // Image im = tkbc_get_asset_kite_design(IMAGE_SKELETON).as.image;
-    // assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-    // assert(im.width ==
-    // assets.elements[KITE_COLORIZER].kite_image.normal.width);
-    // assert(im.height ==
-    //        assets.elements[KITE_COLORIZER].kite_image.normal.height);
-    // // Copy the panel into the KITE_COLORIZER texture
-    // for (size_t y = 0; y < (size_t)im.height; ++y) {
-    //   for (size_t x = 0; x < (size_t)im.width; ++x) {
-    //     Color c = *(Color *)tkbc_get_position_in_image(im, x, y);
-    //     if (c.a <= alpha_threshold) {
-    //       continue;
-    //     }
-
-    //     Vector2 pixel = {.x = x, .y = y};
-    //     tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
-    //   }
-    // }
-
-  } break;
-  default:
-    assert(0 && "UNREACHABLE tkbc_colorizer");
-  }
-
-  tkbc_update_kite_texture(
-      _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
-      _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image);
+    tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
+                             _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image);
 }
 
 /**
@@ -441,12 +397,11 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
  * @param pos The screen position to convert.
  * @return The position within the scaled rectangle.
  */
-Vector2 tkbc_get_position_in_rect(Rectangle rect, float rectangle_scale,
-                                  Vector2 pos) {
-  return (Vector2){
-      .x = (pos.x - rect.x) * rectangle_scale,
-      .y = (pos.y - rect.y) * rectangle_scale,
-  };
+Vector2 tkbc_get_position_in_rect(Rectangle rect, float rectangle_scale, Vector2 pos) {
+    return (Vector2){
+        .x = (pos.x - rect.x) * rectangle_scale,
+        .y = (pos.y - rect.y) * rectangle_scale,
+    };
 }
 
 /**
@@ -457,17 +412,17 @@ Vector2 tkbc_get_position_in_rect(Rectangle rect, float rectangle_scale,
  * @return The color at the specified position.
  */
 Color tkbc_get_color_from_screen_position(Vector2 position) {
-  int x = (int)position.x;
-  int y = (int)position.y;
+    int x = (int) position.x;
+    int y = (int) position.y;
 
-  Image image = LoadImageFromScreen();
-  if (image.data == NULL) {
-    return (Color){0, 0, 0, 0};
-  }
+    Image image = LoadImageFromScreen();
+    if (image.data == NULL) {
+        return (Color){0, 0, 0, 0};
+    }
 
-  Color color = GetImageColor(image, x, y);
-  UnloadImage(image);
-  return color;
+    Color color = GetImageColor(image, x, y);
+    UnloadImage(image);
+    return color;
 }
 
 /**
@@ -477,28 +432,25 @@ Color tkbc_get_color_from_screen_position(Vector2 position) {
  * @param env The global state of the application.
  */
 void tkbc_ui_post_handler(Env *env) {
-  env->color_picker_window_picking = false;
-  if (env->script_setup) {
-    return;
-  }
-  if (env->script_menu_interaction) {
-    return;
-  }
-  if (!env->color_picker_interaction) {
-    return;
-  }
-  if (env->color_picker_input_mouse_interaction) {
-    return;
-  }
-
-  if (tkbc_check_key(KEY_LEFT_CONTROL, MODE_DOWN) &&
-      IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-    env->color_picker_window_picking = true;
-    Color c = tkbc_get_color_from_screen_position(GetMousePosition());
-    env->last_selected_color = c;
-    tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
-                                     env->last_selected_color);
-  }
+    env->color_picker_window_picking = false;
+    if (env->script_setup) {
+        return;
+    }
+    if (env->script_menu_interaction) {
+        return;
+    }
+    if (!env->color_picker_interaction) {
+        return;
+    }
+    if (env->color_picker_input_mouse_interaction) {
+        return;
+    }
+    if (tkbc_check_key(KEY_LEFT_CONTROL, MODE_DOWN) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        env->color_picker_window_picking = true;
+        Color c = tkbc_get_color_from_screen_position(GetMousePosition());
+        env->last_selected_color = c;
+        tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
+    }
 }
 
 /**
@@ -515,112 +467,103 @@ void tkbc_ui_post_handler(Env *env) {
  * @param top_interaction_box The first item that is displayed currently on the
  * screen, that must not necessary be the first item of the item_count.
  */
-void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
-                    size_t items_count, size_t *top_interaction_box) {
-  //
-  // The scroll_bar handle
-  // -1 for the left out box at the bottom
-  env->screen_items = (env->window_height / env->box_height) - 1;
+void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container, size_t items_count,
+                    size_t *top_interaction_box) {
+    //
+    // The scroll_bar handle
+    // -1 for the left out box at the bottom
+    env->screen_items = (env->window_height / env->box_height) - 1;
 
-  scrollbar->base.width = outer_container.width * 0.025;
-  scrollbar->base.height = env->box_height * env->screen_items;
+    scrollbar->base.width = outer_container.width * 0.025;
+    scrollbar->base.height = env->box_height * env->screen_items;
 
-  scrollbar->base.x =
-      outer_container.x + outer_container.width - scrollbar->base.width;
+    scrollbar->base.x = outer_container.x + outer_container.width - scrollbar->base.width;
 
-  DrawRectangleRounded(scrollbar->base, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
+    DrawRectangleRounded(scrollbar->base, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
 
-  //
-  // The inner scroll_bar handle
-  scrollbar->inner_scrollbar.x =
-      outer_container.x + outer_container.width - scrollbar->base.width;
-  scrollbar->inner_scrollbar.width = scrollbar->base.width;
+    //
+    // The inner scroll_bar handle
+    scrollbar->inner_scrollbar.x = outer_container.x + outer_container.width - scrollbar->base.width;
+    scrollbar->inner_scrollbar.width = scrollbar->base.width;
 
-  size_t minimum_handle_height = (size_t)scrollbar->base.height >> 2;
-  scrollbar->inner_scrollbar.height =
-      minimum_handle_height +
-      scrollbar->base.height / (float)(items_count - env->screen_items + 1);
+    size_t minimum_handle_height = (size_t) scrollbar->base.height >> 2;
+    scrollbar->inner_scrollbar.height =
+        minimum_handle_height + scrollbar->base.height / (float) (items_count - env->screen_items + 1);
 
-  {
-    // Enable the lerping for extra smooth scrolling.
-    // float before = scrollbar->inner_scrollbar.y;
+    {
+        // Enable the lerping for extra smooth scrolling.
+        // float before = scrollbar->inner_scrollbar.y;
 
-    scrollbar->inner_scrollbar.y =
-        (scrollbar->base.height - scrollbar->inner_scrollbar.height) /
-        (items_count - env->screen_items) * *top_interaction_box;
+        scrollbar->inner_scrollbar.y = (scrollbar->base.height - scrollbar->inner_scrollbar.height) /
+                                       (items_count - env->screen_items) * *top_interaction_box;
 
-    // float after = scrollbar->inner_scrollbar.y;
+        // float after = scrollbar->inner_scrollbar.y;
 
-    // scrollbar->inner_scrollbar.y =
-    //     before + (after - before) * tkbc_get_frame_time();
-  }
-
-  if (items_count <= env->screen_items) {
-    scrollbar->inner_scrollbar = scrollbar->base;
-    DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10,
-                         TKBC_UI_DARKPURPLE_ALPHA);
-    return;
-  }
-
-  // This is just needed for window resizing problems. When the list of items
-  // is scrolled to the bottom in a small window and then the window gets
-  // resized to a lager one, the scrollbar should not be outside of the base
-  // scroll container. The list it self may float to the top but that is not a
-  // bug in it self list can handle a scrolloff. Below the list there is
-  // nothing to display so it just empty space there is no need to
-  // recallculate the position of the items for the lager window. --
-  // M.Frohwitter 07.04.2025
-  if (scrollbar->inner_scrollbar.y >
-      scrollbar->base.height - scrollbar->inner_scrollbar.height) {
-    scrollbar->inner_scrollbar.y =
-        scrollbar->base.height - scrollbar->inner_scrollbar.height;
-  }
-
-  DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10,
-                       TKBC_UI_DARKPURPLE_ALPHA);
-
-  if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
-    scrollbar->interaction = false;
-  }
-  if (CheckCollisionPointRec(GetMousePosition(), scrollbar->inner_scrollbar) &&
-      IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    scrollbar->interaction = true;
-  }
-
-  if (CheckCollisionPointRec(GetMousePosition(), scrollbar->base) &&
-      IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-    scrollbar->interaction = true;
-  }
-
-  if (scrollbar->interaction) {
-    Vector2 mouse_pos = GetMousePosition();
-    float offset_height = scrollbar->inner_scrollbar.height / 2;
-    float sb_center_y = scrollbar->inner_scrollbar.y + offset_height;
-
-    if (mouse_pos.y - offset_height > sb_center_y) {
-
-      if (*top_interaction_box < items_count - env->screen_items) {
-        *top_interaction_box += 1;
-      }
-
-    } else if (mouse_pos.y + offset_height < sb_center_y) {
-      if (*top_interaction_box > 0) {
-        *top_interaction_box -= 1;
-      }
+        // scrollbar->inner_scrollbar.y =
+        //     before + (after - before) * tkbc_get_frame_time();
     }
-  }
 
-  if (GetMouseWheelMove()) {
-    if (GetMouseWheelMoveV().y < 0) {
-      if (*top_interaction_box < items_count - env->screen_items) {
-        *top_interaction_box += 1;
-      }
-    } else {
-      if (*top_interaction_box > 0) {
-        *top_interaction_box -= 1;
-      }
+    if (items_count <= env->screen_items) {
+        scrollbar->inner_scrollbar = scrollbar->base;
+        DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+        return;
     }
-  }
+
+    // This is just needed for window resizing problems. When the list of items
+    // is scrolled to the bottom in a small window and then the window gets
+    // resized to a lager one, the scrollbar should not be outside of the base
+    // scroll container. The list it self may float to the top but that is not a
+    // bug in it self list can handle a scrolloff. Below the list there is
+    // nothing to display so it just empty space there is no need to
+    // recallculate the position of the items for the lager window. --
+    // M.Frohwitter 07.04.2025
+    if (scrollbar->inner_scrollbar.y > scrollbar->base.height - scrollbar->inner_scrollbar.height) {
+        scrollbar->inner_scrollbar.y = scrollbar->base.height - scrollbar->inner_scrollbar.height;
+    }
+
+    DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+
+    if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
+        scrollbar->interaction = false;
+    }
+    if (CheckCollisionPointRec(GetMousePosition(), scrollbar->inner_scrollbar) &&
+        IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        scrollbar->interaction = true;
+    }
+
+    if (CheckCollisionPointRec(GetMousePosition(), scrollbar->base) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        scrollbar->interaction = true;
+    }
+
+    if (scrollbar->interaction) {
+        Vector2 mouse_pos = GetMousePosition();
+        float offset_height = scrollbar->inner_scrollbar.height / 2;
+        float sb_center_y = scrollbar->inner_scrollbar.y + offset_height;
+
+        if (mouse_pos.y - offset_height > sb_center_y) {
+
+            if (*top_interaction_box < items_count - env->screen_items) {
+                *top_interaction_box += 1;
+            }
+
+        } else if (mouse_pos.y + offset_height < sb_center_y) {
+            if (*top_interaction_box > 0) {
+                *top_interaction_box -= 1;
+            }
+        }
+    }
+
+    if (GetMouseWheelMove()) {
+        if (GetMouseWheelMoveV().y < 0) {
+            if (*top_interaction_box < items_count - env->screen_items) {
+                *top_interaction_box += 1;
+            }
+        } else {
+            if (*top_interaction_box > 0) {
+                *top_interaction_box -= 1;
+            }
+        }
+    }
 }
 
 /**
@@ -632,197 +575,172 @@ void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
  */
 bool tkbc_ui_script_menu(Env *env) {
 
-  if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS,
-                              KEY_MAP_CHECK_KEY_PRESSED)) {
-    env->script_menu_interaction = false;
-    return true;
-  }
-
-  if (tkbc_check_keymaps_full(env->keymaps, KMH_SWITCHES_NEXT_SCRIPT,
-                              KEY_MAP_CHECK_KEY_PRESSED)) {
-    env->script_menu_interaction = !env->script_menu_interaction;
-    env->script_menu_mouse_interaction = false;
-  }
-
-  if (!env->script_menu_interaction) {
-    return false;
-  }
-
-  env->script_menu_base =
-      (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
-
-  size_t scripts_count = env->scripts.count;
-  float padding = 10;
-  Rectangle script_box = {
-      .x = env->script_menu_base.x + padding,
-      .y = env->script_menu_base.y + padding / 2,
-      .width = env->script_menu_base.width -
-               env->script_menu_scrollbar.base.width - 2 * padding,
-      .height = env->box_height - padding,
-  };
-  Rectangle outer_script_box = {
-      .x = env->script_menu_base.x,
-      .y = env->script_menu_base.y,
-      .width =
-          env->script_menu_base.width - env->script_menu_scrollbar.base.width,
-      .height = env->box_height,
-  };
-
-  tkbc_scrollbar(env, &env->script_menu_scrollbar, env->script_menu_base,
-                 scripts_count, &env->script_menu_top_interaction_box);
-
-  int font_size = 22;
-  Vector2 text_size;
-  Vector2 mouse = GetMousePosition();
-  bool double_click_confirm = false;
-  for (size_t box = env->script_menu_top_interaction_box;
-       box < env->screen_items + env->script_menu_top_interaction_box &&
-       box < scripts_count;
-       ++box) {
-
-    if (CheckCollisionPointRec(mouse, outer_script_box) &&
-        !env->script_menu_mouse_interaction) {
-      DrawRectangleRec(outer_script_box, TKBC_UI_TEAL_ALPHA);
-    }
-    if (env->script_menu_mouse_interaction &&
-        (ssize_t)box == env->script_menu_mouse_interaction_box) {
-      DrawRectangleRec(outer_script_box, TKBC_UI_TEAL_ALPHA);
+    if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED)) {
+        env->script_menu_interaction = false;
+        return true;
     }
 
-    DrawRectangleRounded(script_box, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
-
-    if (CheckCollisionPointRec(mouse, script_box)) {
-      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        env->script_menu_mouse_interaction = true;
-        env->script_menu_mouse_interaction_box = box;
-      }
-
-      if (!env->script_menu_mouse_interaction) {
-        DrawRectangleRounded(script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-      }
+    if (tkbc_check_keymaps_full(env->keymaps, KMH_SWITCHES_NEXT_SCRIPT, KEY_MAP_CHECK_KEY_PRESSED)) {
+        env->script_menu_interaction = !env->script_menu_interaction;
+        env->script_menu_mouse_interaction = false;
     }
 
-    if (env->script_menu_mouse_interaction &&
-        (ssize_t)box == env->script_menu_mouse_interaction_box) {
-
-      DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      static ssize_t is_the_same_box_as_last_double_click = -1;
-      if (is_mouse_double_click(MOUSE_LEFT_BUTTON) &&
-          (ssize_t)box == is_the_same_box_as_last_double_click) {
-        is_the_same_box_as_last_double_click = -1;
-        double_click_confirm = true;
-      } else if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
-        is_the_same_box_as_last_double_click = box;
-      }
+    if (!env->script_menu_interaction) {
+        return false;
     }
 
-    // TODO: Display an icon on the right of the selection that unload the
-    // script form memory. See the TODO for making the space per script.
+    env->script_menu_base = (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
 
-    const char *name = env->scripts.elements[box].name;
-    text_size =
-        tkbc_reduce_str_to_fit_box(env->font, name, &font_size, script_box);
+    size_t scripts_count = env->scripts.count;
+    float padding = 10;
+    Rectangle script_box = {
+        .x = env->script_menu_base.x + padding,
+        .y = env->script_menu_base.y + padding / 2,
+        .width = env->script_menu_base.width - env->script_menu_scrollbar.base.width - 2 * padding,
+        .height = env->box_height - padding,
+    };
+    Rectangle outer_script_box = {
+        .x = env->script_menu_base.x,
+        .y = env->script_menu_base.y,
+        .width = env->script_menu_base.width - env->script_menu_scrollbar.base.width,
+        .height = env->box_height,
+    };
 
+    tkbc_scrollbar(env, &env->script_menu_scrollbar, env->script_menu_base, scripts_count,
+                   &env->script_menu_top_interaction_box);
+
+    int font_size = 22;
+    Vector2 text_size;
+    Vector2 mouse = GetMousePosition();
+    bool double_click_confirm = false;
+    for (size_t box = env->script_menu_top_interaction_box;
+         box < env->screen_items + env->script_menu_top_interaction_box && box < scripts_count; ++box) {
+
+        if (CheckCollisionPointRec(mouse, outer_script_box) && !env->script_menu_mouse_interaction) {
+            DrawRectangleRec(outer_script_box, TKBC_UI_TEAL_ALPHA);
+        }
+        if (env->script_menu_mouse_interaction && (ssize_t) box == env->script_menu_mouse_interaction_box) {
+            DrawRectangleRec(outer_script_box, TKBC_UI_TEAL_ALPHA);
+        }
+
+        DrawRectangleRounded(script_box, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
+
+        if (CheckCollisionPointRec(mouse, script_box)) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                env->script_menu_mouse_interaction = true;
+                env->script_menu_mouse_interaction_box = box;
+            }
+
+            if (!env->script_menu_mouse_interaction) {
+                DrawRectangleRounded(script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+            }
+        }
+
+        if (env->script_menu_mouse_interaction && (ssize_t) box == env->script_menu_mouse_interaction_box) {
+
+            DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+            static ssize_t is_the_same_box_as_last_double_click = -1;
+            if (is_mouse_double_click(MOUSE_LEFT_BUTTON) && (ssize_t) box == is_the_same_box_as_last_double_click) {
+                is_the_same_box_as_last_double_click = -1;
+                double_click_confirm = true;
+            } else if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+                is_the_same_box_as_last_double_click = box;
+            }
+        }
+
+        // TODO: Display an icon on the right of the selection that unload the
+        // script form memory. See the TODO for making the space per script.
+
+        const char *name = env->scripts.elements[box].name;
+        text_size = tkbc_reduce_str_to_fit_box(env->font, name, &font_size, script_box);
+
+        Vector2 p;
+        p.x = script_box.x + script_box.width / 2 - text_size.x / 2,
+        p.y = script_box.y + script_box.height / 2 - text_size.y / 2,
+        DrawTextEx(env->font, name, p, font_size, 2, TKBC_UI_BLACK);
+
+        script_box.y += script_box.height + padding;
+        outer_script_box.y += env->box_height;
+    }
+
+    /* ------------------------- Buttons ------------------------------------- */
+
+    size_t interaction_buttons_count = 3;
+    outer_script_box.width =
+        (outer_script_box.width - (padding * interaction_buttons_count)) / interaction_buttons_count;
+    outer_script_box.height = env->box_height * 0.5;
+    outer_script_box.y = env->box_height * env->screen_items + env->box_height / 2.f;
+
+    /* ------------------------- NO_SCRIPT KEY -------------------------------- */
+    outer_script_box.x += padding + (interaction_buttons_count - 3) * (padding + outer_script_box.width);
+
+    if (CheckCollisionPointRec(mouse, outer_script_box)) {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+    } else {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
+    }
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, outer_script_box)) {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+
+        tkbc_unload_script(env);
+        tkbc_change_visibility_to_non_script_kites(env);
+        env->script_menu_mouse_interaction_box = -1;
+        env->keymaps_interaction = false;
+        env->color_picker_interaction = false;
+        env->script_menu_interaction = false;
+        env->new_script_selected = true;
+    }
+
+    const char *no_script = "NO SCRIPT";
+    text_size = tkbc_reduce_str_to_fit_box(env->font, no_script, &font_size, outer_script_box);
     Vector2 p;
-    p.x = script_box.x + script_box.width / 2 - text_size.x / 2,
-    p.y = script_box.y + script_box.height / 2 - text_size.y / 2,
-    DrawTextEx(env->font, name, p, font_size, 2, TKBC_UI_BLACK);
+    p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
+    p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
+    DrawTextEx(env->font, no_script, p, font_size, 2, TKBC_UI_BLACK);
 
-    script_box.y += script_box.height + padding;
-    outer_script_box.y += env->box_height;
-  }
+    /* ------------------------- Confirm key --------------------------------- */
+    outer_script_box.x += (interaction_buttons_count - 1) * (padding + outer_script_box.width);
 
-  /* ------------------------- Buttons ------------------------------------- */
-
-  size_t interaction_buttons_count = 3;
-  outer_script_box.width =
-      (outer_script_box.width - (padding * interaction_buttons_count)) /
-      interaction_buttons_count;
-  outer_script_box.height = env->box_height * 0.5;
-  outer_script_box.y =
-      env->box_height * env->screen_items + env->box_height / 2.f;
-
-  /* ------------------------- NO_SCRIPT KEY -------------------------------- */
-  outer_script_box.x += padding + (interaction_buttons_count - 3) *
-                                      (padding + outer_script_box.width);
-
-  if (CheckCollisionPointRec(mouse, outer_script_box)) {
-    DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-  } else {
-    DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
-  }
-
-  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-      CheckCollisionPointRec(mouse, outer_script_box)) {
-    DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
-
-    tkbc_unload_script(env);
-    tkbc_change_visibility_to_non_script_kites(env);
-    env->script_menu_mouse_interaction_box = -1;
-    env->keymaps_interaction = false;
-    env->color_picker_interaction = false;
-    env->script_menu_interaction = false;
-    env->new_script_selected = true;
-  }
-
-  const char *no_script = "NO SCRIPT";
-  text_size = tkbc_reduce_str_to_fit_box(env->font, no_script, &font_size,
-                                         outer_script_box);
-  Vector2 p;
-  p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
-  p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
-  DrawTextEx(env->font, no_script, p, font_size, 2, TKBC_UI_BLACK);
-
-  /* ------------------------- Confirm key --------------------------------- */
-  outer_script_box.x +=
-      (interaction_buttons_count - 1) * (padding + outer_script_box.width);
-
-  if (CheckCollisionPointRec(mouse, outer_script_box)) {
-    DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-  } else {
-    DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
-  }
-
-  if (env->script_menu_mouse_interaction) {
-    if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-         CheckCollisionPointRec(mouse, outer_script_box)) ||
-        double_click_confirm) {
-      DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      assert(env->script_menu_mouse_interaction_box != -1);
-      assert(env->scripts.count >=
-             (size_t)env->script_menu_mouse_interaction_box);
-
-      // TODO: Handle false as an persistente loading option.
-      // A script should be completely resettable and you should be able to
-      // restore the current play state.
-
-      // TODO: Display an icon on the left of the selection that does not reset
-      // it if clicked.
-
-      // TODO: No kite selection happens in offline mode the is_avtive has to
-      // change, Visibility is incorrect.
-
-      tkbc_load_script_id(
-          env,
-          env->scripts.elements[env->script_menu_mouse_interaction_box]
-              .script_id,
-          true);
-
-      env->script_menu_interaction = false;
-      env->keymaps_interaction = false;
-      env->color_picker_interaction = false;
-      env->new_script_selected = true;
+    if (CheckCollisionPointRec(mouse, outer_script_box)) {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+    } else {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
     }
-  }
-  const char *confirm = "CONFIRM";
-  text_size = tkbc_reduce_str_to_fit_box(env->font, confirm, &font_size,
-                                         outer_script_box);
 
-  p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
-  p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
-  DrawTextEx(env->font, confirm, p, font_size, 2, TKBC_UI_BLACK);
+    if (env->script_menu_mouse_interaction) {
+        if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, outer_script_box)) ||
+            double_click_confirm) {
+            DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+            assert(env->script_menu_mouse_interaction_box != -1);
+            assert(env->scripts.count >= (size_t) env->script_menu_mouse_interaction_box);
 
-  return false;
+            // TODO: Handle false as an persistente loading option.
+            // A script should be completely resettable and you should be able to
+            // restore the current play state.
+
+            // TODO: Display an icon on the left of the selection that does not reset
+            // it if clicked.
+
+            // TODO: No kite selection happens in offline mode the is_avtive has to
+            // change, Visibility is incorrect.
+
+            tkbc_load_script_id(env, env->scripts.elements[env->script_menu_mouse_interaction_box].script_id, true);
+
+            env->script_menu_interaction = false;
+            env->keymaps_interaction = false;
+            env->color_picker_interaction = false;
+            env->new_script_selected = true;
+        }
+    }
+    const char *confirm = "CONFIRM";
+    text_size = tkbc_reduce_str_to_fit_box(env->font, confirm, &font_size, outer_script_box);
+
+    p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
+    p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
+    DrawTextEx(env->font, confirm, p, font_size, 2, TKBC_UI_BLACK);
+
+    return false;
 }
 
 /**
@@ -832,13 +750,12 @@ bool tkbc_ui_script_menu(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_display_kite_information(Env *env) {
-  for (size_t i = 0; i < env->kite_array.count; ++i) {
-    if (env->kite_array.elements[i].is_active &&
-        env->kite_array.elements[i].is_kite_input_handler_active) {
-      tkbc_display_kite_information_speeds(env, &env->kite_array.elements[i]);
-      return;
+    for (size_t i = 0; i < env->kite_array.count; ++i) {
+        if (env->kite_array.elements[i].is_active && env->kite_array.elements[i].is_kite_input_handler_active) {
+            tkbc_display_kite_information_speeds(env, &env->kite_array.elements[i]);
+            return;
+        }
     }
-  }
 }
 
 /**
@@ -856,11 +773,10 @@ void tkbc_display_kite_information(Env *env) {
  * @param kite_state The kite state to display information for.
  */
 void tkbc_display_kite_information_speeds(Env *env, Kite_State *kite_state) {
-  char buf[64] = {0};
-  sprintf(buf, "Turn Speed: %.0f \t Fly Speed: %.0f",
-          kite_state->kite->turn_speed, kite_state->kite->fly_speed);
-  Vector2 pos = {10, 10};
-  DrawTextEx(env->font, buf, pos, 20, 2, TKBC_UI_TEAL);
+    char buf[64] = {0};
+    sprintf(buf, "Turn Speed: %.0f \t Fly Speed: %.0f", kite_state->kite->turn_speed, kite_state->kite->fly_speed);
+    Vector2 pos = {10, 10};
+    DrawTextEx(env->font, buf, pos, 20, 2, TKBC_UI_TEAL);
 }
 
 /**
@@ -879,7 +795,7 @@ void tkbc_display_kite_information_speeds(Env *env, Kite_State *kite_state) {
  * false.
  */
 bool is_key_valid_part_of_hex_number(int key) {
-  return (key >= KEY_ZERO && key <= KEY_NINE) || (key >= KEY_A && key <= KEY_F);
+    return (key >= KEY_ZERO && key <= KEY_NINE) || (key >= KEY_A && key <= KEY_F);
 }
 
 /**
@@ -897,8 +813,7 @@ bool is_key_valid_part_of_hex_number(int key) {
  * @param color The color to convert to hex string.
  */
 void tkbc_set_input_text_to_hex_color(char **text, Color color) {
-  snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X",
-           tkbc_color_to_uint32_t(color));
+    snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X", tkbc_color_to_uint32_t(color));
 }
 
 /**
@@ -909,102 +824,97 @@ void tkbc_set_input_text_to_hex_color(char **text, Color color) {
  * @param original_scale The scale factor for the shadow.
  */
 void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
-  static float opacities[] = {0.08f,  0.089f, 0.098f, 0.107f, 0.116f, 0.125f,
-                              0.134f, 0.143f, 0.152f, 0.161f, 0.170f, 0.179f,
-                              0.188f, 0.197f, 0.206f, 0.215f, 0.224f, 0.233f,
-                              0.242f, 0.251f, 0.260f, 0.269f, 0.278f, 0.287f,
-                              0.296f, 0.305f, 0.314f, 0.323f, 0.332f, 0.35f};
+    static float opacities[] = {0.08f,  0.089f, 0.098f, 0.107f, 0.116f, 0.125f, 0.134f, 0.143f, 0.152f, 0.161f,
+                                0.170f, 0.179f, 0.188f, 0.197f, 0.206f, 0.215f, 0.224f, 0.233f, 0.242f, 0.251f,
+                                0.260f, 0.269f, 0.278f, 0.287f, 0.296f, 0.305f, 0.314f, 0.323f, 0.332f, 0.35f};
 
-  Rectangle orig_shadow = shadow;
-  shadow.y += shadow.height / 8;
-  shadow.x -= shadow.width * 0.03;
-  shadow.width *= 1.06;
-  shadow.height *= 1.06;
+    Rectangle orig_shadow = shadow;
+    shadow.y += shadow.height / 8;
+    shadow.x -= shadow.width * 0.03;
+    shadow.width *= 1.06;
+    shadow.height *= 1.06;
 
-  for (size_t i = 0; i < 3; ++i) {
-    DrawRectangleRounded(shadow, 0.15f, 20, ColorAlpha(BLACK, opacities[i]));
-    shadow.y += shadow.height * 0.06;
-    shadow.x += shadow.width * 0.015;
-    shadow.width *= 0.97;
-    shadow.height *= 0.97;
-  }
+    for (size_t i = 0; i < 3; ++i) {
+        DrawRectangleRounded(shadow, 0.15f, 20, ColorAlpha(BLACK, opacities[i]));
+        shadow.y += shadow.height * 0.06;
+        shadow.x += shadow.width * 0.015;
+        shadow.width *= 0.97;
+        shadow.height *= 0.97;
+    }
 
-  Rectangle floor = orig_shadow;
-  float old_floor_height = floor.height;
-  floor.height *= 0.3;
-  floor.y += old_floor_height - floor.height / 2;
-  float old_floor_width = floor.width;
-  floor.width *= 0.9;
-  floor.x -= (floor.width - old_floor_width) / 2;
+    Rectangle floor = orig_shadow;
+    float old_floor_height = floor.height;
+    floor.height *= 0.3;
+    floor.y += old_floor_height - floor.height / 2;
+    float old_floor_width = floor.width;
+    floor.width *= 0.9;
+    floor.x -= (floor.width - old_floor_width) / 2;
 
-  Color c = {20, 20, 20, 255};
-  Color topLeft = TKBC_UI_GRAY_ALPHA;
-  Color bottomRight = TKBC_UI_WHITE_ALPHA;
-  Color bottomLeft = ColorAlpha(c, 0.6f);
-  Color topRight = ColorAlpha(c, 0.9f);
-  DrawRectangleGradientEx(floor, topLeft, bottomLeft, topRight, bottomRight);
+    Color c = {20, 20, 20, 255};
+    Color topLeft = TKBC_UI_GRAY_ALPHA;
+    Color bottomRight = TKBC_UI_WHITE_ALPHA;
+    Color bottomLeft = ColorAlpha(c, 0.6f);
+    Color topRight = ColorAlpha(c, 0.9f);
+    DrawRectangleGradientEx(floor, topLeft, bottomLeft, topRight, bottomRight);
 
-  {
+    {
 
-    float thickness = 5;
-    Vector2 p1, c2, c3, p4;
-    p1.x = floor.x;
-    p1.y = floor.y + floor.height - thickness / 2.0f;
-    p4.x = floor.x + floor.width;
-    p4.y = floor.y + thickness / 2.0f;
-    c2.x = floor.x + floor.width / 2.0f;
-    c2.y = floor.y + floor.height;
-    c3.x = floor.x + floor.width / 2.0f;
-    c3.y = floor.y;
-    DrawSplineSegmentBezierCubic(p1, c2, c3, p4, thickness,
-                                 ColorAlpha(TEAL, ALPHA_RATIO));
+        float thickness = 5;
+        Vector2 p1, c2, c3, p4;
+        p1.x = floor.x;
+        p1.y = floor.y + floor.height - thickness / 2.0f;
+        p4.x = floor.x + floor.width;
+        p4.y = floor.y + thickness / 2.0f;
+        c2.x = floor.x + floor.width / 2.0f;
+        c2.y = floor.y + floor.height;
+        c3.x = floor.x + floor.width / 2.0f;
+        c3.y = floor.y;
+        DrawSplineSegmentBezierCubic(p1, c2, c3, p4, thickness, ColorAlpha(TEAL, ALPHA_RATIO));
 
-    p1.x = floor.x;
-    p1.y = floor.y + floor.height / 2.0f;
-    p4.x = floor.x + floor.width / 2.0f;
-    p4.y = floor.y + thickness / 2.0f;
+        p1.x = floor.x;
+        p1.y = floor.y + floor.height / 2.0f;
+        p4.x = floor.x + floor.width / 2.0f;
+        p4.y = floor.y + thickness / 2.0f;
 
-    c2.x = floor.x + floor.width / 4.0f;
-    c2.y = floor.y + floor.height / 2.0f;
+        c2.x = floor.x + floor.width / 4.0f;
+        c2.y = floor.y + floor.height / 2.0f;
 
-    c3.x = floor.x + floor.width / 4.0f;
-    c3.y = floor.y;
+        c3.x = floor.x + floor.width / 4.0f;
+        c3.y = floor.y;
 
-    DrawSplineSegmentBezierCubic(p1, c2, c3, p4, thickness,
-                                 ColorAlpha(TEAL, ALPHA_RATIO));
+        DrawSplineSegmentBezierCubic(p1, c2, c3, p4, thickness, ColorAlpha(TEAL, ALPHA_RATIO));
 
-    p1.x = floor.x + floor.width / 2.0f;
-    p1.y = floor.y + floor.height - thickness / 2.0f;
+        p1.x = floor.x + floor.width / 2.0f;
+        p1.y = floor.y + floor.height - thickness / 2.0f;
 
-    p4.x = floor.x + floor.width;
-    p4.y = floor.y + floor.height / 2.0f;
+        p4.x = floor.x + floor.width;
+        p4.y = floor.y + floor.height / 2.0f;
 
-    c2.x = floor.x + floor.width / 4.0f + floor.width / 2.0f;
-    c2.y = floor.y + floor.height;
+        c2.x = floor.x + floor.width / 4.0f + floor.width / 2.0f;
+        c2.y = floor.y + floor.height;
 
-    c3.x = floor.x + floor.width / 4.0f + floor.width / 2.0f;
-    c3.y = floor.y + floor.height / 2.0f;
+        c3.x = floor.x + floor.width / 4.0f + floor.width / 2.0f;
+        c3.y = floor.y + floor.height / 2.0f;
 
-    DrawSplineSegmentBezierCubic(p1, c2, c3, p4, thickness,
-                                 ColorAlpha(TEAL, ALPHA_RATIO));
-  }
+        DrawSplineSegmentBezierCubic(p1, c2, c3, p4, thickness, ColorAlpha(TEAL, ALPHA_RATIO));
+    }
 
-  float radius = floor.height * 0.4;
-  Vector2 displayment_top_center = {
-      .x = orig_shadow.x + orig_shadow.width / 2.0f,
-      .y = orig_shadow.y - floor.height / 2,
-  };
+    float radius = floor.height * 0.4;
+    Vector2 displayment_top_center = {
+        .x = orig_shadow.x + orig_shadow.width / 2.0f,
+        .y = orig_shadow.y - floor.height / 2,
+    };
 
-  Kite k = {0};
-  tkbc_set_kite_defaults(&k, false);
+    Kite k = {0};
+    tkbc_set_kite_defaults(&k, false);
 
-  tkbc_kite_update_scale(&k, original_scale * 2.08);
+    tkbc_kite_update_scale(&k, original_scale * 2.08);
 
-  tkbc_kite_update_position(&k, &displayment_top_center);
+    tkbc_kite_update_position(&k, &displayment_top_center);
 
-  DrawCircleGradient(k.left.v2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
+    DrawCircleGradient(k.left.v2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
 
-  DrawCircleGradient(k.right.v2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
+    DrawCircleGradient(k.right.v2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
 }
 
 /**
@@ -1014,18 +924,17 @@ void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
  * @return The hex color key that is down or 0 if no color key is down.
  */
 KeyboardKey tkbc_is_hex_color_key_down() {
-  static KeyboardKey keys[] = {
-      KEY_ZERO, KEY_ONE,   KEY_TWO,   KEY_THREE, KEY_FOUR, KEY_FIVE,
-      KEY_SIX,  KEY_SEVEN, KEY_EIGHT, KEY_NINE,  KEY_A,    KEY_B,
-      KEY_C,    KEY_D,     KEY_E,     KEY_F,
-  };
+    static KeyboardKey keys[] = {
+        KEY_ZERO,  KEY_ONE,  KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE, KEY_SIX, KEY_SEVEN,
+        KEY_EIGHT, KEY_NINE, KEY_A,   KEY_B,     KEY_C,    KEY_D,    KEY_E,   KEY_F,
+    };
 
-  for (KeyboardKey key = 0; key < ARRAY_LENGTH(keys); ++key) {
-    if (IsKeyPressedRepeat(keys[key]) || IsKeyPressed(keys[key])) {
-      return keys[key];
+    for (KeyboardKey key = 0; key < ARRAY_LENGTH(keys); ++key) {
+        if (IsKeyPressedRepeat(keys[key]) || IsKeyPressed(keys[key])) {
+            return keys[key];
+        }
     }
-  }
-  return KEY_NULL;
+    return KEY_NULL;
 }
 
 /**
@@ -1035,481 +944,431 @@ KeyboardKey tkbc_is_hex_color_key_down() {
  * @param env The global state of the application.
  */
 void tkbc_ui_color_picker(Env *env) {
-  if (env->script_setup) {
-    return;
-  }
-
-  // KEY_ESCAPE
-  if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS,
-                              KEY_MAP_CHECK_KEY_PRESSED)) {
-    env->colorizer = false;
-  }
-  if (!env->color_picker_interaction) {
-    return;
-  }
-
-  float color_picker_width = env->window_width * 0.2;
-  env->color_picker_base =
-      (Rectangle){env->window_width - color_picker_width, 0, color_picker_width,
-                  env->window_height};
-  // DrawRectangleRec(env->color_picker_base, TKBC_UI_GRAY_ALPHA);
-
-  int padding = 10;
-  int font_size = 22;
-  const char *description = "Enter a hex color code.";
-  Vector2 text_size = MeasureTextEx(env->font, description, font_size, 2);
-  float description_height = text_size.y + padding;
-
-  Rectangle input_box;
-  input_box.height = env->box_height * 0.5;
-  input_box.width = env->color_picker_base.width * 0.8;
-  input_box.x = env->color_picker_base.x + env->color_picker_base.width / 2 -
-                input_box.width / 2;
-  input_box.y = padding + description_height;
-
-  Vector2 p;
-  p.x = input_box.x;
-  p.y = env->color_picker_base.y + padding;
-  DrawTextEx(env->font, description, p, font_size, 2, TKBC_UI_BLACK);
-
-  DrawRectangleRounded(input_box, 1, 20, WHITE);
-
-  size_t char_amount = strlen(env->color_picker_input_text);
-
-  Vector2 mouse = GetMousePosition();
-  if (CheckCollisionPointRec(mouse, input_box) &&
-      IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-    env->color_picker_input_mouse_interaction = true;
-  }
-
-  if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
-    env->color_picker_input_mouse_interaction = false;
-    goto key_skip;
-  }
-
-  if (!env->color_picker_input_mouse_interaction) {
-    goto key_skip;
-  }
-
-  // For slow and fast key repetition detection.
-  if (IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) {
-    if (char_amount > 1) {
-      env->color_picker_input_text[char_amount - 1] = '\0';
-    }
-  }
-  KeyboardKey key = tkbc_is_hex_color_key_down();
-  if (key != KEY_NULL) {
-    if (char_amount > HEX_COLOR_LENGTH) {
-      goto key_skip;
-    }
-    env->color_picker_input_text[char_amount] = key;
-  }
-
-key_skip:
-  text_size =
-      MeasureTextEx(env->font, env->color_picker_input_text, font_size, 4);
-  p.x = input_box.x + padding;
-  p.y = input_box.y + input_box.height / 2 - text_size.y / 2;
-  DrawTextEx(env->font, env->color_picker_input_text, p, font_size, 4,
-             TKBC_UI_GRAY);
-
-  if (env->color_picker_input_text[1] == '\0') {
-    const char *shadow_text = "  008080FF";
-    text_size = MeasureTextEx(env->font, shadow_text, font_size, 4);
-
-    Vector2 p;
-    p.x = input_box.x + padding;
-    p.y = input_box.y + input_box.height / 2 - text_size.y / 2;
-    DrawTextEx(env->font, shadow_text, p, font_size, 2, TKBC_UI_LIGHTGRAY);
-    // Rest so the cursor does not add the text_size, when the shadow text is
-    // displayed.
-    text_size = MeasureTextEx(env->font, "#", font_size, 4);
-  }
-
-  Rectangle cursor = input_box;
-  cursor.width = 2;
-  cursor.height = input_box.height * 0.9;
-  cursor.y = input_box.y + input_box.height / 2 - cursor.height / 2;
-
-  int padding_from_letter = 1;
-  cursor.x = input_box.x + padding + text_size.x + padding_from_letter;
-  DrawRectangleRec(cursor, TKBC_UI_BLACK);
-
-  if (strlen(env->color_picker_input_text) == HEX_COLOR_LENGTH + 1) {
-    env->last_selected_color = tkbc_uint32_t_to_color(
-        strtoull(env->color_picker_input_text + 1, NULL, 16));
-  }
-
-  Rectangle color_box;
-  color_box.height = env->box_height;
-  color_box.width = input_box.width;
-  color_box.x = input_box.x;
-  color_box.y = padding + input_box.y + input_box.height;
-  // This is for allowing correct displayment of the alpha.
-  DrawRectangleRounded(color_box, 1, 20, WHITE);
-  DrawRectangleRounded(color_box, 1, 20, env->last_selected_color);
-  DrawRectangleRoundedLinesEx(color_box, 1, 20, 1, BLACK);
-
-  if (CheckCollisionPointRec(mouse, color_box) &&
-      IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-    env->color_picker_input_mouse_interaction = false;
-    tkbc_set_color_for_selected_kites(env, env->last_selected_color);
-
-    env->favorite_colors.elements[env->current_favorite_colors_index++ %
-                                  env->favorite_colors.count] =
-        env->last_selected_color;
-    tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
-                                     env->last_selected_color);
-  }
-
-  float color_circle_radius = color_box.height / 2;
-  float left_circle_center =
-      env->color_picker_base.x + color_circle_radius + padding;
-
-  Vector2 color_circle = {
-      .x = left_circle_center,
-      .y = color_box.y + color_box.height + padding,
-  };
-
-  // Handle favorite colors circles.
-  color_circle.y += 2 * color_circle_radius + padding;
-  for (size_t i = 0; i < env->favorite_colors.count; i++) {
-    if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius) &&
-        IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-      env->last_selected_color = env->favorite_colors.elements[i];
-      tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
-                                       env->last_selected_color);
-      tkbc_set_color_for_selected_kites(env, env->last_selected_color);
+    if (env->script_setup) {
+        return;
     }
 
-    DrawCircleV(color_circle, color_circle_radius, WHITE);
-    DrawCircleV(color_circle, color_circle_radius,
-                env->favorite_colors.elements[i]);
-    DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
-    color_circle.x += 2 * color_circle_radius + padding;
-  }
-
-  ////////////////////////////////////////////////////////////////////
-
-  Rectangle forward = {
-      .x = left_circle_center - color_circle_radius,
-      .y = color_circle.y + color_circle_radius + padding +
-           color_circle_radius * 0.5,
-      .width = 4 * color_circle_radius,
-      .height = color_circle_radius,
-  };
-
-  if (CheckCollisionPointRec(mouse, forward)) {
-    if (!env->color_picker_window_picking) {
-      DrawRectangleRounded(forward, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+    // KEY_ESCAPE
+    if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED)) {
+        env->colorizer = false;
     }
-  } else {
-    DrawRectangleRounded(forward, 1, 10, TKBC_UI_TEAL_ALPHA);
-  }
-
-  if (!env->color_picker_window_picking) {
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-        CheckCollisionPointRec(mouse, forward)) {
-      DrawRectangleRounded(forward, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      env->color_picker_display_designs = !env->color_picker_display_designs;
-    }
-  }
-
-  if (env->color_picker_display_designs) {
-    Rectangle colorizer_button = forward;
-    colorizer_button.x += forward.width + padding;
-
-    if (CheckCollisionPointRec(mouse, colorizer_button)) {
-      if (!env->color_picker_window_picking) {
-        DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-      }
-    } else {
-      DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_TEAL_ALPHA);
+    if (!env->color_picker_interaction) {
+        return;
     }
 
-    // Reset the COLORIZER
-    if (!env->color_picker_window_picking) {
-      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-          CheckCollisionPointRec(mouse, colorizer_button)) {
-        DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_PURPLE_ALPHA);
-        if (!env->colorizer) {
-          env->colorizer = true;
-        } else {
+    int padding = 10;
+    int font_size = 22;
+    Rectangle input_box;
+    Vector2 text_size;
+    Vector2 position;
+    {
+        float color_picker_width = env->window_width * 0.2;
+        env->color_picker_base =
+            (Rectangle){env->window_width - color_picker_width, 0, color_picker_width, env->window_height};
+        // DrawRectangleRec(env->color_picker_base, TKBC_UI_GRAY_ALPHA);
 
-          Image a =
-              _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
-          Image b =
-              _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.kite_image.normal;
-          bool same = tkbc_is_same_image(a, b);
+        const char *description = "Enter a hex color code.";
+        text_size = MeasureTextEx(env->font, description, font_size, 2);
+        float description_height = text_size.y + padding;
 
-          if (!same) {
-            UnloadImage(_tkbc_get_asset_kite_design(KITE_COLORIZER)
-                            .as.kite_image.normal);
-            _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal =
-                ImageCopy(b);
-            tkbc_update_kite_texture(
-                _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
-                _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image);
-          }
+        input_box.height = env->box_height * 0.5;
+        input_box.width = env->color_picker_base.width * 0.8;
+        input_box.x = env->color_picker_base.x + env->color_picker_base.width / 2 - input_box.width / 2;
+        input_box.y = padding + description_height;
+
+        position.x = input_box.x;
+        position.y = env->color_picker_base.y + padding;
+        DrawTextEx(env->font, description, position, font_size, 2, TKBC_UI_BLACK);
+        DrawRectangleRounded(input_box, 1, 20, WHITE);
+    }
+
+    Vector2 mouse = GetMousePosition();
+    {
+        if (CheckCollisionPointRec(mouse, input_box) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            env->color_picker_input_mouse_interaction = true;
         }
-      }
+
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
+            env->color_picker_input_mouse_interaction = false;
+            goto key_skip;
+        }
+
+        if (!env->color_picker_input_mouse_interaction) {
+            goto key_skip;
+        }
     }
 
-    const char *colorizer = NULL;
-    if (!env->colorizer) {
-      colorizer = "COLORIZER";
-    } else {
-      colorizer = "RESET";
+    {
+        size_t char_amount = strlen(env->color_picker_input_text);
+        // For slow and fast key repetition detection.
+        if (IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) {
+            if (char_amount > 1) {
+                env->color_picker_input_text[char_amount - 1] = '\0';
+            }
+        }
+        KeyboardKey key = tkbc_is_hex_color_key_down();
+        if (key != KEY_NULL) {
+            if (char_amount > HEX_COLOR_LENGTH) {
+                goto key_skip;
+            }
+            env->color_picker_input_text[char_amount] = key;
+        }
     }
 
-    text_size = tkbc_reduce_str_to_fit_box(env->font, colorizer, &font_size,
-                                           colorizer_button);
-    Vector2 p;
-    p.x = colorizer_button.x + colorizer_button.width * 0.5 - text_size.x * 0.5;
-    p.y =
-        colorizer_button.y + colorizer_button.height * 0.5 - text_size.y * 0.5;
-    DrawTextEx(env->font, colorizer, p, font_size, 2, TKBC_UI_BLACK);
-  }
+    {
+    key_skip:
 
-  const char *designs = NULL;
-  if (env->color_picker_display_designs) {
-    designs = "COLORS";
-  } else {
-    designs = "DESIGNS";
-  }
-  text_size =
-      tkbc_reduce_str_to_fit_box(env->font, designs, &font_size, forward);
+        text_size = MeasureTextEx(env->font, env->color_picker_input_text, font_size, 4);
+        position.x = input_box.x + padding;
+        position.y = input_box.y + input_box.height / 2 - text_size.y / 2;
+        DrawTextEx(env->font, env->color_picker_input_text, position, font_size, 4, TKBC_UI_GRAY);
 
-  p.x = forward.x + forward.width * 0.5 - text_size.x * 0.5;
-  p.y = forward.y + forward.height * 0.5 - text_size.y * 0.5;
-  DrawTextEx(env->font, designs, p, font_size, 2, TKBC_UI_BLACK);
+        if (env->color_picker_input_text[1] == '\0') {
+            const char *shadow_text = "  008080FF";
+            text_size = MeasureTextEx(env->font, shadow_text, font_size, 4);
 
-  Rectangle colorizer_view_background;
+            Vector2 p;
+            p.x = input_box.x + padding;
+            p.y = input_box.y + input_box.height / 2 - text_size.y / 2;
+            DrawTextEx(env->font, shadow_text, p, font_size, 2, TKBC_UI_LIGHTGRAY);
+            // Rest so the cursor does not add the text_size, when the shadow text is
+            // displayed.
+            text_size = MeasureTextEx(env->font, "#", font_size, 4);
+        }
+    }
 
-  float colorizer_view_scale = 1;
-  tkbc_draw_pannels(env, &colorizer_view_background, &colorizer_view_scale,
-                    color_box);
+    tkbc_draw_cursor(input_box, text_size, padding);
 
-  if (env->color_picker_display_designs) {
-    forward.y += forward.height + color_circle_radius * 0.5;
+    {
+        if (strlen(env->color_picker_input_text) == HEX_COLOR_LENGTH + 1) {
+            env->last_selected_color = tkbc_uint32_t_to_color(strtoull(env->color_picker_input_text + 1, NULL, 16));
+        }
+    }
 
-    float remainng_space = env->window_height - forward.y;
+    Rectangle color_box;
+    {
 
-    size_t amount = tkbc_get_current_kite_design_count();
+        color_box.height = env->box_height;
+        color_box.width = input_box.width;
+        color_box.x = input_box.x;
+        color_box.y = padding + input_box.y + input_box.height;
+        // This is for allowing correct displayment of the alpha.
+        DrawRectangleRounded(color_box, 1, 20, WHITE);
+        DrawRectangleRounded(color_box, 1, 20, env->last_selected_color);
+        DrawRectangleRoundedLinesEx(color_box, 1, 20, 1, BLACK);
 
-    float actual_padding = padding * 2;
-    padding = (remainng_space - actual_padding * amount) / (float)amount;
+        if (CheckCollisionPointRec(mouse, color_box) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            env->color_picker_input_mouse_interaction = false;
+            tkbc_set_color_for_selected_kites(env, env->last_selected_color);
+            env->favorite_colors.elements[env->current_favorite_colors_index++ % env->favorite_colors.count] =
+                env->last_selected_color;
+            tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
+        }
+    }
 
-    Vector2 display_position = {
-        .x = forward.x,
-        .y = forward.y,
+    float color_circle_radius = color_box.height / 2;
+    float left_circle_center = env->color_picker_base.x + color_circle_radius + padding;
+
+    Vector2 color_circle;
+    {
+        color_circle.x = left_circle_center;
+        color_circle.y = color_box.y + color_box.height + padding;
+
+        // Handle favorite colors circles.
+        color_circle.y += 2 * color_circle_radius + padding;
+        for (size_t i = 0; i < env->favorite_colors.count; i++) {
+            if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius) &&
+                IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                env->last_selected_color = env->favorite_colors.elements[i];
+                tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
+                tkbc_set_color_for_selected_kites(env, env->last_selected_color);
+            }
+
+            DrawCircleV(color_circle, color_circle_radius, WHITE);
+            DrawCircleV(color_circle, color_circle_radius, env->favorite_colors.elements[i]);
+            DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
+            color_circle.x += 2 * color_circle_radius + padding;
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////
+
+    Rectangle forward = {
+        .x = left_circle_center - color_circle_radius,
+        .y = color_circle.y + color_circle_radius + padding + color_circle_radius * 0.5,
+        .width = 4 * color_circle_radius,
+        .height = color_circle_radius,
     };
 
-    float thick = 3;
-    char alpha_threshold = 0;
-    for (size_t i = 0; i < assets.count; ++i) {
-      if (_tkbc_get_asset(i).type != ASSETS_KITE_DESIGN) {
-        continue;
-      }
-
-      Texture2D t = _tkbc_get_asset_kite_design(i).as.kite_texture.normal;
-      float scale = env->color_picker_base.width * 0.9 / t.width;
-
-      while ((t.height * scale) > (padding - actual_padding)) {
-        scale -= 0.01f;
-      }
-
-      Rectangle shadow;
-      shadow.x = display_position.x;
-      shadow.y = display_position.y;
-      shadow.width = t.width * scale;
-      // shadow.height = t.height * scale - 5 * thick;
-      shadow.height = t.height * scale;
-      tkbc_draw_shadow(shadow, scale);
-      DrawTextureEx(t, display_position, 0, scale, WHITE);
-
-      if (i == KITE_COLORIZER) {
-        shadow.y -= shadow.height * 0.05;
-        shadow.x -= shadow.width * 0.05;
-        shadow.width *= 1.1;
-        shadow.height *= 1.35;
-        DrawRectangleRoundedLinesEx(shadow, 0.25, 20, thick, TKBC_UI_BLACK);
-      }
-
-      Rectangle collision_rectangle = {
-          .x = display_position.x,
-          .y = display_position.y,
-          .width = t.width * scale,
-          .height = t.height * scale,
-      };
-
-      //
-      // Update to the next display position so that continue will work
-      // correctly.
-      //
-      // This can not be done in the for(;; advance) advance part because the
-      // short-circuiting for not kite designs should not increase the
-      // display.
-      display_position.y += padding + actual_padding;
-
-      if (env->color_picker_window_picking) {
-        continue;
-      }
-
-      if (CheckCollisionPointRec(mouse, collision_rectangle)) {
-
-        Image image = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
-        Vector2 p =
-            tkbc_get_position_in_rect(collision_rectangle, 1 / scale, mouse);
-        Color c = GetImageColor(image, p.x, p.y);
-        if (c.a == alpha_threshold) {
-          continue;
+    if (CheckCollisionPointRec(mouse, forward)) {
+        if (!env->color_picker_window_picking) {
+            DrawRectangleRounded(forward, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
         }
-
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-          Image reference = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
-          if (i == KITE_COLORIZER) {
-            Asset a = _tkbc_get_asset_kite_design(KITE_COLORIZER);
-
-            // This is needed because the UUIDs will be random and not the enum
-            // value.
-            Id new_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
-            bool design_already_exists = false;
-            if (tkbc_is_same_image(a.as.kite_image.normal, reference)) {
-              design_already_exists = true;
-            } else {
-              design_already_exists = tkbc_image_already_exitst_in_assets(
-                  a.as.kite_image.normal, &new_id);
-            }
-
-            if (design_already_exists) {
-              Asset *asset = tkbc_find_asset_from_id(new_id);
-              if (!asset) {
-                continue;
-              }
-
-              Kite_Texture kt = asset->as.kite_texture;
-              tkbc_set_texture_for_selected_kites(env, &kt, new_id, true);
-            } else {
-              Kite_Texture *new_kt = tkbc_generate_new_kite_image_and_texture(
-                  a.as.kite_image, &new_id);
-              tkbc_set_texture_for_selected_kites(env, new_kt, new_id, true);
-            }
-
-          } else {
-            tkbc_set_texture_for_selected_kites(
-                env, &_tkbc_get_asset_kite_design(i).as.kite_texture,
-                _tkbc_get_asset_kite_design(i).id, false);
-
-            // Note just for the kites designed by the colorizer
-            // The other ones do not fit because thy are blury and you kinda
-            // want to preserve that. Also thy don't have a skeleton, they are
-            // just perfectly blended.
-            if (i > KITE_COLORIZER &&
-                assets.elements[i].type == ASSETS_KITE_DESIGN) {
-              Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
-              assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-              assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER)
-                                     .as.kite_image.normal.width);
-              assert(im.height == _tkbc_get_asset_kite_design(KITE_COLORIZER)
-                                      .as.kite_image.normal.height);
-
-              // Copy the panel into the KITE_COLORIZER texture
-              for (size_t y = 0; y < (size_t)im.height; ++y) {
-                for (size_t x = 0; x < (size_t)im.width; ++x) {
-                  Vector2 pixel = {.x = x, .y = y};
-                  // This is needed to allow designs with alpha:
-                  // So that loading an already existing design in is properly
-                  // handled.
-                  tkbc_set_single_pixel_in_kite_image_colorizer(pixel, BLANK);
-
-                  Color c = *(Color *)tkbc_get_position_in_image(im, x, y);
-                  if (c.a <= alpha_threshold) {
-                    continue;
-                  }
-
-                  tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
-                }
-              }
-
-              tkbc_update_kite_texture(
-                  _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
-                  _tkbc_get_asset_kite_design(i).as.kite_image);
-            }
-          }
-          tkbc_set_color_for_selected_kites(env, BLANK);
-        }
-      }
-    }
-  }
-
-  if (env->colorizer) {
-    tkbc_dispatch_colorizer_mode(
-        env, _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal,
-        colorizer_view_background, 1 / colorizer_view_scale);
-  }
-
-  if (env->color_picker_display_designs) {
-    return;
-  }
-
-  // Handle default colors circles.
-  color_circle.x = left_circle_center;
-  color_circle.y += 2 * color_circle_radius + padding;
-
-  static Color colors[] = {
-      // LIGHTGRAY,
-      // GRAY,
-      // DARKGRAY,
-      // YELLOW,
-      // GOLD,
-      // ORANGE,
-      // PINK,
-      // RED,
-      // MAROON,
-      // GREEN,
-      // LIME,
-      // DARKGREEN,
-      // SKYBLUE,
-      // BLUE,
-      // DARKBLUE,
-      // PURPLE,
-      // VIOLET,
-      // DARKPURPLE,
-      // BEIGE,
-      // BROWN,
-      // DARKBROWN,
-      // MAGENTA,
-
-      ICAREX_weiß,     ICAREX_hellgrau,   ICAREX_dunkelgrau, ICAREX_schwarz,
-      ICAREX_rot,      ICAREX_orange,     ICAREX_gold,       ICAREX_gelb,
-      ICAREX_grün,     ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
-      ICAREX_slate,    ICAREX_hellblau,   ICAREX_blau,       ICAREX_dunkelblau,
-      ICAREX_plum,     ICAREX_aubergin,   ICAREX_milkalila1, ICAREX_milkalila2,
-      ICAREX_lila,     ICAREX_rasberry,   ICAREX_zartrosa,   ICAREX_brown,
-      ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongrün,   TEAL,
-  };
-
-  for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
-    if (i % 4 == 0) {
-      color_circle.x = left_circle_center;
-      color_circle.y += 2 * color_circle_radius + padding;
     } else {
-      color_circle.x += 2 * color_circle_radius + padding;
+        DrawRectangleRounded(forward, 1, 10, TKBC_UI_TEAL_ALPHA);
     }
-    DrawCircleV(color_circle, color_circle_radius, WHITE);
-    DrawCircleV(color_circle, color_circle_radius, colors[i]);
-    DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
 
-    if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
-      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        env->last_selected_color = colors[i];
-        tkbc_set_input_text_to_hex_color(&env->color_picker_input_text,
-                                         env->last_selected_color);
-        tkbc_set_color_for_selected_kites(env, env->last_selected_color);
-      }
+    if (!env->color_picker_window_picking) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, forward)) {
+            DrawRectangleRounded(forward, 1, 10, TKBC_UI_PURPLE_ALPHA);
+            env->color_picker_display_designs = !env->color_picker_display_designs;
+        }
     }
-  }
+
+    if (env->color_picker_display_designs) {
+        Rectangle colorizer_button = forward;
+        colorizer_button.x += forward.width + padding;
+
+        if (CheckCollisionPointRec(mouse, colorizer_button)) {
+            if (!env->color_picker_window_picking) {
+                DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+            }
+        } else {
+            DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_TEAL_ALPHA);
+        }
+
+        // Reset the COLORIZER
+        if (!env->color_picker_window_picking) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, colorizer_button)) {
+                DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_PURPLE_ALPHA);
+                if (!env->colorizer) {
+                    env->colorizer = true;
+                } else {
+
+                    Image a = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
+                    Image b = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.kite_image.normal;
+                    bool same = tkbc_is_same_image(a, b);
+
+                    if (!same) {
+                        UnloadImage(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal);
+                        _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal = ImageCopy(b);
+                        tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
+                                                 _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image);
+                    }
+                }
+            }
+        }
+        const char *colorizer = NULL;
+        if (!env->colorizer) {
+            colorizer = "COLORIZER";
+        } else {
+            colorizer = "RESET";
+        }
+
+        text_size = tkbc_reduce_str_to_fit_box(env->font, colorizer, &font_size, colorizer_button);
+        Vector2 p;
+        p.x = colorizer_button.x + colorizer_button.width * 0.5 - text_size.x * 0.5;
+        p.y = colorizer_button.y + colorizer_button.height * 0.5 - text_size.y * 0.5;
+        DrawTextEx(env->font, colorizer, p, font_size, 2, TKBC_UI_BLACK);
+    }
+
+    Rectangle colorizer_view_background;
+    float colorizer_view_scale = 1;
+    {
+        const char *designs = NULL;
+        if (env->color_picker_display_designs) {
+            designs = "COLORS";
+        } else {
+            designs = "DESIGNS";
+        }
+        text_size = tkbc_reduce_str_to_fit_box(env->font, designs, &font_size, forward);
+
+        position.x = forward.x + forward.width * 0.5 - text_size.x * 0.5;
+        position.y = forward.y + forward.height * 0.5 - text_size.y * 0.5;
+        DrawTextEx(env->font, designs, position, font_size, 2, TKBC_UI_BLACK);
+
+        tkbc_draw_pannels(env, &colorizer_view_background, &colorizer_view_scale, color_box);
+    }
+
+    if (env->color_picker_display_designs) {
+        forward.y += forward.height + color_circle_radius * 0.5;
+
+        float remainng_space = env->window_height - forward.y;
+
+        size_t amount = tkbc_get_current_kite_design_count();
+
+        float actual_padding = padding * 2;
+        padding = (remainng_space - actual_padding * amount) / (float) amount;
+
+        Vector2 display_position = {
+            .x = forward.x,
+            .y = forward.y,
+        };
+
+        float thick = 3;
+        char alpha_threshold = 0;
+        for (size_t i = 0; i < assets.count; ++i) {
+            if (_tkbc_get_asset(i).type != ASSETS_KITE_DESIGN) {
+                continue;
+            }
+
+            Texture2D t = _tkbc_get_asset_kite_design(i).as.kite_texture.normal;
+            float scale = env->color_picker_base.width * 0.9 / t.width;
+
+            while ((t.height * scale) > (padding - actual_padding)) {
+                scale -= 0.01f;
+            }
+
+            Rectangle shadow;
+            shadow.x = display_position.x;
+            shadow.y = display_position.y;
+            shadow.width = t.width * scale;
+            // shadow.height = t.height * scale - 5 * thick;
+            shadow.height = t.height * scale;
+            tkbc_draw_shadow(shadow, scale);
+            DrawTextureEx(t, display_position, 0, scale, WHITE);
+
+            if (i == KITE_COLORIZER) {
+                shadow.y -= shadow.height * 0.05;
+                shadow.x -= shadow.width * 0.05;
+                shadow.width *= 1.1;
+                shadow.height *= 1.35;
+                DrawRectangleRoundedLinesEx(shadow, 0.25, 20, thick, TKBC_UI_BLACK);
+            }
+
+            Rectangle collision_rectangle = {
+                .x = display_position.x,
+                .y = display_position.y,
+                .width = t.width * scale,
+                .height = t.height * scale,
+            };
+
+            //
+            // Update to the next display position so that continue will work
+            // correctly.
+            //
+            // This can not be done in the for(;; advance) advance part because the
+            // short-circuiting for not kite designs should not increase the
+            // display.
+            display_position.y += padding + actual_padding;
+
+            if (env->color_picker_window_picking) {
+                continue;
+            }
+
+            if (CheckCollisionPointRec(mouse, collision_rectangle)) {
+
+                Image image = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
+                Vector2 p = tkbc_get_position_in_rect(collision_rectangle, 1 / scale, mouse);
+                Color c = GetImageColor(image, p.x, p.y);
+                if (c.a == alpha_threshold) {
+                    continue;
+                }
+
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    Image reference = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
+                    if (i == KITE_COLORIZER) {
+                        Asset a = _tkbc_get_asset_kite_design(KITE_COLORIZER);
+
+                        // This is needed because the UUIDs will be random and not the enum
+                        // value.
+                        Id new_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
+                        bool design_already_exists = false;
+                        if (tkbc_is_same_image(a.as.kite_image.normal, reference)) {
+                            design_already_exists = true;
+                        } else {
+                            design_already_exists =
+                                tkbc_image_already_exitst_in_assets(a.as.kite_image.normal, &new_id);
+                        }
+
+                        if (design_already_exists) {
+                            Asset *asset = tkbc_find_asset_from_id(new_id);
+                            if (!asset) {
+                                continue;
+                            }
+
+                            Kite_Texture kt = asset->as.kite_texture;
+                            tkbc_set_texture_for_selected_kites(env, &kt, new_id, true);
+                        } else {
+                            Kite_Texture *new_kt = tkbc_generate_new_kite_image_and_texture(a.as.kite_image, &new_id);
+                            tkbc_set_texture_for_selected_kites(env, new_kt, new_id, true);
+                        }
+
+                    } else {
+                        tkbc_set_texture_for_selected_kites(env, &_tkbc_get_asset_kite_design(i).as.kite_texture,
+                                                            _tkbc_get_asset_kite_design(i).id, false);
+
+                        // Note just for the kites designed by the colorizer
+                        // The other ones do not fit because thy are blury and you kinda
+                        // want to preserve that. Also thy don't have a skeleton, they are
+                        // just perfectly blended.
+                        if (i > KITE_COLORIZER && assets.elements[i].type == ASSETS_KITE_DESIGN) {
+                            Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
+                            assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+                            assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
+                            assert(im.height ==
+                                   _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
+
+                            // Copy the panel into the KITE_COLORIZER texture
+                            for (size_t y = 0; y < (size_t) im.height; ++y) {
+                                for (size_t x = 0; x < (size_t) im.width; ++x) {
+                                    Vector2 pixel = {.x = x, .y = y};
+                                    // This is needed to allow designs with alpha:
+                                    // So that loading an already existing design in is properly
+                                    // handled.
+                                    tkbc_set_single_pixel_in_kite_image_colorizer(pixel, BLANK);
+
+                                    Color c = *(Color *) tkbc_get_position_in_image(im, x, y);
+                                    if (c.a <= alpha_threshold) {
+                                        continue;
+                                    }
+
+                                    tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
+                                }
+                            }
+
+                            tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
+                                                     _tkbc_get_asset_kite_design(i).as.kite_image);
+                        }
+                    }
+                    tkbc_set_color_for_selected_kites(env, BLANK);
+                }
+            }
+        }
+    }
+
+    if (env->colorizer) {
+        tkbc_dispatch_colorizer_mode(env, _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal,
+                                     colorizer_view_background, 1 / colorizer_view_scale);
+    }
+
+    if (env->color_picker_display_designs) {
+        return;
+    }
+
+    // Handle default colors circles.
+    color_circle.x = left_circle_center;
+    color_circle.y += 2 * color_circle_radius + padding;
+
+    static Color colors[] = {
+        ICAREX_weiß,     ICAREX_hellgrau,   ICAREX_dunkelgrau, ICAREX_schwarz,
+        ICAREX_rot,      ICAREX_orange,     ICAREX_gold,       ICAREX_gelb,
+        ICAREX_grün,     ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
+        ICAREX_slate,    ICAREX_hellblau,   ICAREX_blau,       ICAREX_dunkelblau,
+        ICAREX_plum,     ICAREX_aubergin,   ICAREX_milkalila1, ICAREX_milkalila2,
+        ICAREX_lila,     ICAREX_rasberry,   ICAREX_zartrosa,   ICAREX_brown,
+        ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongrün,   TEAL,
+    };
+
+    for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
+        if (i % 4 == 0) {
+            color_circle.x = left_circle_center;
+            color_circle.y += 2 * color_circle_radius + padding;
+        } else {
+            color_circle.x += 2 * color_circle_radius + padding;
+        }
+        DrawCircleV(color_circle, color_circle_radius, WHITE);
+        DrawCircleV(color_circle, color_circle_radius, colors[i]);
+        DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
+
+        if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                env->last_selected_color = colors[i];
+                tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
+                tkbc_set_color_for_selected_kites(env, env->last_selected_color);
+            }
+        }
+    }
 }
 
 /**
@@ -1520,11 +1379,11 @@ key_skip:
  * @param color The new color that should be assigned.
  */
 void tkbc_set_color_for_selected_kites(Env *env, Color color) {
-  for (size_t i = 0; i < env->kite_array.count; ++i) {
-    if (env->kite_array.elements[i].is_kite_input_handler_active) {
-      env->kite_array.elements[i].kite->body_color = color;
+    for (size_t i = 0; i < env->kite_array.count; ++i) {
+        if (env->kite_array.elements[i].is_kite_input_handler_active) {
+            env->kite_array.elements[i].kite->body_color = color;
+        }
     }
-  }
 }
 
 /**
@@ -1540,16 +1399,15 @@ void tkbc_set_color_for_selected_kites(Env *env, Color color) {
  * @param is_texture_new Describes whenever the texture is newly generated
  * right before.
  */
-void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
-                                         ssize_t texture_id,
+void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture, ssize_t texture_id,
                                          bool is_texture_new) {
-  for (size_t i = 0; i < env->kite_array.count; ++i) {
-    if (env->kite_array.elements[i].is_kite_input_handler_active) {
-      tkbc_set_kite_texture(env->kite_array.elements[i].kite, kite_texture);
-      env->kite_array.elements[i].kite->texture_id = texture_id;
-      env->kite_array.elements[i].kite->is_texture_new = is_texture_new;
+    for (size_t i = 0; i < env->kite_array.count; ++i) {
+        if (env->kite_array.elements[i].is_kite_input_handler_active) {
+            tkbc_set_kite_texture(env->kite_array.elements[i].kite, kite_texture);
+            env->kite_array.elements[i].kite->texture_id = texture_id;
+            env->kite_array.elements[i].kite->is_texture_new = is_texture_new;
+        }
     }
-  }
 }
 
 /**
@@ -1561,82 +1419,77 @@ void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
  * @param frames_index The current frames frames_index.
  * @param frames_index_count The maximum frames that registered.
  */
-void tkbc_ui_timeline(Env *env, size_t frames_index,
-                      size_t frames_index_count) {
-  if (env->script_setup) {
-    return;
-  }
-  if (frames_index_count == 0) {
-    return;
-  }
-
-  float margin = 10;
-  env->timeline_base.width = env->window_width / 2.0f;
-  env->timeline_base.height = env->window_height / 42.0f;
-  env->timeline_base.x = env->timeline_base.width / 2.0f;
-  env->timeline_base.y =
-      env->window_height - env->timeline_base.height - margin;
-
-  env->timeline_front.height = env->timeline_base.height;
-  env->timeline_front.x = env->timeline_base.x;
-  env->timeline_front.y = env->timeline_base.y;
-
-  Vector2 mouse_pos = GetMousePosition();
-  env->timeline_hoverover =
-      CheckCollisionPointRec(mouse_pos, env->timeline_base);
-
-  if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
-    env->timeline_interaction = false;
-  }
-
-  if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    // @Speed This should not be handled like this.
-    bool is_at_least_one_acitv = false;
-    for (size_t i = 0; i < env->kite_array.count; ++i) {
-      if (env->kite_array.elements[i].is_kite_input_handler_active) {
-        is_at_least_one_acitv = true;
-        break;
-      }
+void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count) {
+    if (env->script_setup) {
+        return;
     }
-    if (!is_at_least_one_acitv) {
-      env->timeline_interaction = true;
+    if (frames_index_count == 0) {
+        return;
     }
-  }
 
-  env->timeline_segments = frames_index + 1;
+    float margin = 10;
+    env->timeline_base.width = env->window_width / 2.0f;
+    env->timeline_base.height = env->window_height / 42.0f;
+    env->timeline_base.x = env->timeline_base.width / 2.0f;
+    env->timeline_base.y = env->window_height - env->timeline_base.height - margin;
 
-  assert(frames_index_count != 0);
-  assert(env->timeline_segments <= frames_index_count);
+    env->timeline_front.height = env->timeline_base.height;
+    env->timeline_front.x = env->timeline_base.x;
+    env->timeline_front.y = env->timeline_base.y;
 
-  env->timeline_segment_width =
-      env->timeline_base.width / (float)frames_index_count;
+    Vector2 mouse_pos = GetMousePosition();
+    env->timeline_hoverover = CheckCollisionPointRec(mouse_pos, env->timeline_base);
 
-  env->timeline_segments_width =
-      env->timeline_segment_width * env->timeline_segments;
+    if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
+        env->timeline_interaction = false;
+    }
 
-  if ((mouse_pos.x >= env->timeline_base.x + env->timeline_base.width) ||
-      (env->timeline_segments >= frames_index_count)) {
-    // Just for save UI drawing if the mouse is outside the right bounding box
-    // of the timeline, the alignment should always be filled completely.
-    env->timeline_front.width = env->timeline_base.width;
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        // @Speed This should not be handled like this.
+        bool is_at_least_one_acitv = false;
+        for (size_t i = 0; i < env->kite_array.count; ++i) {
+            if (env->kite_array.elements[i].is_kite_input_handler_active) {
+                is_at_least_one_acitv = true;
+                break;
+            }
+        }
+        if (!is_at_least_one_acitv) {
+            env->timeline_interaction = true;
+        }
+    }
 
-  } else {
-    // If there are frames to display provide a segment in the timeline
-    if (env->timeline_segments > 0) {
-      env->timeline_front.width = env->timeline_segments_width;
+    env->timeline_segments = frames_index + 1;
+
+    assert(frames_index_count != 0);
+    assert(env->timeline_segments <= frames_index_count);
+
+    env->timeline_segment_width = env->timeline_base.width / (float) frames_index_count;
+
+    env->timeline_segments_width = env->timeline_segment_width * env->timeline_segments;
+
+    if ((mouse_pos.x >= env->timeline_base.x + env->timeline_base.width) ||
+        (env->timeline_segments >= frames_index_count)) {
+        // Just for save UI drawing if the mouse is outside the right bounding box
+        // of the timeline, the alignment should always be filled completely.
+        env->timeline_front.width = env->timeline_base.width;
+
     } else {
-      env->timeline_front.width = 0;
+        // If there are frames to display provide a segment in the timeline
+        if (env->timeline_segments > 0) {
+            env->timeline_front.width = env->timeline_segments_width;
+        } else {
+            env->timeline_front.width = 0;
+        }
     }
-  }
 
-  if (env->timeline_hoverover || env->timeline_interaction) {
-    DrawRectangleRec(env->timeline_base, TKBC_UI_GRAY);
-    if (env->rendering) {
-      DrawRectangleRec(env->timeline_front, TKBC_UI_RED);
-    } else {
-      DrawRectangleRec(env->timeline_front, TKBC_UI_TEAL);
+    if (env->timeline_hoverover || env->timeline_interaction) {
+        DrawRectangleRec(env->timeline_base, TKBC_UI_GRAY);
+        if (env->rendering) {
+            DrawRectangleRec(env->timeline_front, TKBC_UI_RED);
+        } else {
+            DrawRectangleRec(env->timeline_front, TKBC_UI_TEAL);
+        }
     }
-  }
 }
 
 /**
@@ -1649,14 +1502,13 @@ void tkbc_ui_timeline(Env *env, size_t frames_index,
  * key.
  * @param key_value The value that the dest_key should be set to.
  */
-void tkbc_set_key_or_delete(int *dest_key, const char **dest_str,
-                            int key_value) {
-  if (key_value == KEY_DELETE) {
-    *dest_key = KEY_NULL;
-  } else {
-    *dest_key = key_value;
-  }
-  *dest_str = tkbc_key_to_str(*dest_key);
+void tkbc_set_key_or_delete(int *dest_key, const char **dest_str, int key_value) {
+    if (key_value == KEY_DELETE) {
+        *dest_key = KEY_NULL;
+    } else {
+        *dest_key = key_value;
+    }
+    *dest_str = tkbc_key_to_str(*dest_key);
 }
 
 /**
@@ -1669,90 +1521,74 @@ void tkbc_set_key_or_delete(int *dest_key, const char **dest_str,
  * @param iteration The number of the key box within a keymap.
  * @param cur_major_box The base rectangle number of a single keymap.
  */
-void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration,
-                       size_t cur_major_box) {
-  DrawRectangleRounded(rectangle, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
+void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration, size_t cur_major_box) {
+    DrawRectangleRounded(rectangle, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
 
-  if (CheckCollisionPointRec(GetMousePosition(), rectangle)) {
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-      env->keymaps_mouse_interaction = true;
-      env->keymaps_mouse_interaction_box = cur_major_box;
-      env->keymaps_interaction_rec_number = iteration;
+    if (CheckCollisionPointRec(GetMousePosition(), rectangle)) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            env->keymaps_mouse_interaction = true;
+            env->keymaps_mouse_interaction_box = cur_major_box;
+            env->keymaps_interaction_rec_number = iteration;
+        }
+
+        if (!env->keymaps_mouse_interaction) {
+            DrawRectangleRounded(rectangle, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+        }
+    }
+
+    if (env->keymaps_mouse_interaction && cur_major_box == env->keymaps_mouse_interaction_box &&
+        env->keymaps_interaction_rec_number == iteration) {
+        DrawRectangleRounded(rectangle, 1, 10, TKBC_UI_PURPLE_ALPHA);
     }
 
     if (!env->keymaps_mouse_interaction) {
-      DrawRectangleRounded(rectangle, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-    }
-  }
-
-  if (env->keymaps_mouse_interaction &&
-      cur_major_box == env->keymaps_mouse_interaction_box &&
-      env->keymaps_interaction_rec_number == iteration) {
-    DrawRectangleRounded(rectangle, 1, 10, TKBC_UI_PURPLE_ALPHA);
-  }
-
-  if (!env->keymaps_mouse_interaction) {
-    goto key_change_skip;
-  }
-
-  int key = GetKeyPressed();
-  if (key == 0) {
-    goto key_change_skip;
-  }
-  // NOTE: This KEY_ESCAPE disables the ability to set KEY_ESCAPE for any
-  // keymap.
-  if (key != KEY_ESCAPE) {
-    Key_Map *km = &env->keymaps.elements[env->keymaps_mouse_interaction_box];
-    switch (env->keymaps_interaction_rec_number) {
-    case BOX_KEY:
-      tkbc_set_key_or_delete(&km->key, &km->key_str, key);
-      break;
-    case BOX_MOD_KEY:
-      tkbc_set_key_or_delete(&km->mod_key, &km->mod_key_str, key);
-      break;
-    case BOX_SELECTION_KEY:
-      tkbc_set_key_or_delete(&km->selection_key, &km->selection_key_str, key);
-      break;
-    default:
-      assert(0 && "UNREACHABLE tkbc_draw_key_box()");
+        goto key_change_skip;
     }
 
-    if (km->hash == KMH_QUIT_PROGRAM) {
-      SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
+    int key = GetKeyPressed();
+    if (key == 0) {
+        goto key_change_skip;
     }
+    // NOTE: This KEY_ESCAPE disables the ability to set KEY_ESCAPE for any
+    // keymap.
+    if (key != KEY_ESCAPE) {
+        Key_Map *km = &env->keymaps.elements[env->keymaps_mouse_interaction_box];
+        switch (env->keymaps_interaction_rec_number) {
+        case BOX_KEY: tkbc_set_key_or_delete(&km->key, &km->key_str, key); break;
+        case BOX_MOD_KEY: tkbc_set_key_or_delete(&km->mod_key, &km->mod_key_str, key); break;
+        case BOX_SELECTION_KEY: tkbc_set_key_or_delete(&km->selection_key, &km->selection_key_str, key); break;
+        default: assert(0 && "UNREACHABLE tkbc_draw_key_box()");
+        }
 
-    env->keymaps_mouse_interaction = false;
-    env->keymaps_interaction_rec_number = -1;
-  }
+        if (km->hash == KMH_QUIT_PROGRAM) {
+            SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
+        }
+
+        env->keymaps_mouse_interaction = false;
+        env->keymaps_interaction_rec_number = -1;
+    }
 
 key_change_skip: {}
-  Vector2 text_size = {0};
-  int font_size = 18;
+    Vector2 text_size = {0};
+    int font_size = 18;
 
-  const char *str = "null";
-  switch (iteration) {
-  case BOX_KEY:
-    str = env->keymaps.elements[cur_major_box].key_str;
-    break;
-  case BOX_MOD_KEY:
-    str = env->keymaps.elements[cur_major_box].mod_key_str;
-    break;
-  case BOX_SELECTION_KEY:
-    str = env->keymaps.elements[cur_major_box].selection_key_str;
-    break;
-  default:
-    assert(0 && "UNREACHABLE tkbc_draw_key_box()");
-  }
+    const char *str = "null";
+    switch (iteration) {
+    case BOX_KEY: str = env->keymaps.elements[cur_major_box].key_str; break;
+    case BOX_MOD_KEY: str = env->keymaps.elements[cur_major_box].mod_key_str; break;
+    case BOX_SELECTION_KEY: str = env->keymaps.elements[cur_major_box].selection_key_str; break;
+    default: assert(0 && "UNREACHABLE tkbc_draw_key_box()");
+    }
 
-  if (strcmp(str, tkbc_key_to_str(KEY_NULL)) == 0) {
-    str = "---";
-  }
+    if (strcmp(str, tkbc_key_to_str(KEY_NULL)) == 0) {
+        str = "---";
+    }
 
-  text_size = tkbc_reduce_str_to_fit_box(env->font, str, &font_size, rectangle);
-  Vector2 p;
-  p.x = rectangle.x + rectangle.width * 0.5 - text_size.x * 0.5;
-  p.y = rectangle.y + rectangle.height * 0.5 - text_size.y * 0.5;
-  DrawTextEx(env->font, str, p, font_size, 2, TKBC_UI_BLACK);
+    text_size = tkbc_reduce_str_to_fit_box(env->font, str, &font_size, rectangle);
+    Vector2 p;
+    p.x = rectangle.x + rectangle.width * 0.5 - text_size.x * 0.5;
+    p.y = rectangle.y + rectangle.height * 0.5 - text_size.y * 0.5;
+    DrawTextEx(env->font, str, p, font_size, 2, TKBC_UI_BLACK);
 }
 
 /**
@@ -1764,170 +1600,161 @@ key_change_skip: {}
  * @param env The global state of the application.
  */
 void tkbc_ui_keymaps(Env *env) {
-  // This will ensure that the settings can always be left regardless to which
-  // keybinding is set. For opening and closing.
-  if (IsKeyPressed(KEY_ESCAPE) &&
-      tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS) != KEY_ESCAPE) {
-    env->keymaps_interaction = false;
-    env->color_picker_interaction = false;
-  }
-  // KEY_ESCAPE
-  if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS,
-                              KEY_MAP_CHECK_KEY_PRESSED)) {
-    env->keymaps_interaction = !env->keymaps_interaction;
-    env->keymaps_mouse_interaction = false;
-    if (env->keymaps_interaction) {
-      env->color_picker_interaction = true;
+    // This will ensure that the settings can always be left regardless to which
+    // keybinding is set. For opening and closing.
+    if (IsKeyPressed(KEY_ESCAPE) && tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS) != KEY_ESCAPE) {
+        env->keymaps_interaction = false;
+        env->color_picker_interaction = false;
+    }
+    // KEY_ESCAPE
+    if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED)) {
+        env->keymaps_interaction = !env->keymaps_interaction;
+        env->keymaps_mouse_interaction = false;
+        if (env->keymaps_interaction) {
+            env->color_picker_interaction = true;
+        } else {
+            env->color_picker_interaction = false;
+        }
+    }
+    if (!env->keymaps_interaction) {
+        return;
+    }
+    env->keymaps_base = (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
+    // DrawRectangleRec(env->keymaps_base, TKBC_UI_GRAY_ALPHA);
+
+    tkbc_scrollbar(env, &env->keymaps_scrollbar, env->keymaps_base, env->keymaps.count,
+                   &env->keymaps_top_interaction_box);
+
+    // The display key bind boxes.
+    int padding = 10;
+    env->keymaps_base.height = env->box_height;
+    env->keymaps_base.width -= env->keymaps_scrollbar.base.width;
+    Vector2 text_size;
+    for (size_t box = env->keymaps_top_interaction_box;
+         box < env->screen_items + env->keymaps_top_interaction_box && box < env->keymaps.count; ++box) {
+
+        static_assert(KEY_MODE_STORAGE_OPTION_COUNT == 3, "Amount has changed");
+        size_t key_box_count = KEY_MODE_STORAGE_OPTION_COUNT;
+        Rectangle key_box = {
+            .x = env->keymaps_base.x + padding,
+            .y = env->keymaps_base.y + env->box_height / 2.0,
+
+            .width = (env->keymaps_base.width - (padding * (key_box_count + 1))) / key_box_count,
+            .height = env->box_height / 2.0 - padding,
+        };
+
+        if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base) && !env->keymaps_mouse_interaction) {
+            DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
+        }
+        if (env->keymaps_mouse_interaction && box == env->keymaps_mouse_interaction_box) {
+            DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
+        }
+
+        int font_size = 22;
+        const char *text = env->keymaps.elements[box].description;
+
+        Vector2 p;
+        p.x = env->keymaps_base.x + padding;
+        p.y = env->keymaps_base.y + padding;
+        Rectangle bounding_box = {
+            .x = p.x,
+            .y = p.y,
+            .width = env->keymaps_base.width,
+            .height = env->box_height,
+        };
+
+        text_size = tkbc_reduce_str_to_fit_box(env->font, text, &font_size, bounding_box);
+        DrawTextEx(env->font, text, p, font_size, 2, TKBC_UI_BLACK);
+
+        for (size_t i = 0; i < key_box_count; ++i) {
+            // BOX_MOD_KEY
+            // BOX_SELECTION_KEY
+            // BOX_KEY
+            tkbc_draw_key_box(env, key_box, i, box);
+
+            key_box.x += key_box.width + padding;
+        }
+
+        env->keymaps_base.y += env->box_height;
+    }
+
+    //
+    // Display of the load, reset and save buttons.
+    size_t interaction_buttons_count = 3;
+    env->keymaps_base.width =
+        (env->keymaps_base.width - (padding * (interaction_buttons_count * 1))) / interaction_buttons_count;
+    env->keymaps_base.height = env->box_height * 0.5;
+    env->keymaps_base.x += padding;
+    env->keymaps_base.y = env->box_height * env->screen_items + env->keymaps_base.height;
+    int font_size = env->keymaps_base.height * 0.75;
+
+    if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+        DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
     } else {
-      env->color_picker_interaction = false;
+        DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_TEAL_ALPHA);
     }
-  }
-  if (!env->keymaps_interaction) {
-    return;
-  }
-  env->keymaps_base =
-      (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
-  // DrawRectangleRec(env->keymaps_base, TKBC_UI_GRAY_ALPHA);
-
-  tkbc_scrollbar(env, &env->keymaps_scrollbar, env->keymaps_base,
-                 env->keymaps.count, &env->keymaps_top_interaction_box);
-
-  // The display key bind boxes.
-  int padding = 10;
-  env->keymaps_base.height = env->box_height;
-  env->keymaps_base.width -= env->keymaps_scrollbar.base.width;
-  Vector2 text_size;
-  for (size_t box = env->keymaps_top_interaction_box;
-       box < env->screen_items + env->keymaps_top_interaction_box &&
-       box < env->keymaps.count;
-       ++box) {
-
-    static_assert(KEY_MODE_STORAGE_OPTION_COUNT == 3, "Amount has changed");
-    size_t key_box_count = KEY_MODE_STORAGE_OPTION_COUNT;
-    Rectangle key_box = {
-        .x = env->keymaps_base.x + padding,
-        .y = env->keymaps_base.y + env->box_height / 2.0,
-
-        .width = (env->keymaps_base.width - (padding * (key_box_count + 1))) /
-                 key_box_count,
-        .height = env->box_height / 2.0 - padding,
-    };
-
-    if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base) &&
-        !env->keymaps_mouse_interaction) {
-      DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
+    if (!env->keymaps_mouse_interaction) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+            DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
+            tkbc_load_keymaps_from_file(&env->keymaps, env->tkbc_keymaps_path);
+            tkbc_setup_keymaps_strs(&env->keymaps);
+            SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
+        }
     }
-    if (env->keymaps_mouse_interaction &&
-        box == env->keymaps_mouse_interaction_box) {
-      DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
-    }
-
-    int font_size = 22;
-    const char *text = env->keymaps.elements[box].description;
+    const char *load = "LOAD";
+    text_size = tkbc_reduce_str_to_fit_box(env->font, load, &font_size, env->keymaps_base);
 
     Vector2 p;
-    p.x = env->keymaps_base.x + padding;
-    p.y = env->keymaps_base.y + padding;
-    Rectangle bounding_box = {
-        .x = p.x,
-        .y = p.y,
-        .width = env->keymaps_base.width,
-        .height = env->box_height,
-    };
+    p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5;
+    p.y = env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5;
+    DrawTextEx(env->font, load, p, font_size, 2, TKBC_UI_BLACK);
 
-    text_size =
-        tkbc_reduce_str_to_fit_box(env->font, text, &font_size, bounding_box);
-    DrawTextEx(env->font, text, p, font_size, 2, TKBC_UI_BLACK);
-
-    for (size_t i = 0; i < key_box_count; ++i) {
-      // BOX_MOD_KEY
-      // BOX_SELECTION_KEY
-      // BOX_KEY
-      tkbc_draw_key_box(env, key_box, i, box);
-
-      key_box.x += key_box.width + padding;
+    env->keymaps_base.x += padding + env->keymaps_base.width;
+    if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+        DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+    } else {
+        DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_TEAL_ALPHA);
     }
-
-    env->keymaps_base.y += env->box_height;
-  }
-
-  //
-  // Display of the load, reset and save buttons.
-  size_t interaction_buttons_count = 3;
-  env->keymaps_base.width =
-      (env->keymaps_base.width - (padding * (interaction_buttons_count * 1))) /
-      interaction_buttons_count;
-  env->keymaps_base.height = env->box_height * 0.5;
-  env->keymaps_base.x += padding;
-  env->keymaps_base.y =
-      env->box_height * env->screen_items + env->keymaps_base.height;
-  int font_size = env->keymaps_base.height * 0.75;
-
-  if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
-    DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-  } else {
-    DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_TEAL_ALPHA);
-  }
-  if (!env->keymaps_mouse_interaction) {
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-        CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
-      DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      tkbc_load_keymaps_from_file(&env->keymaps, env->tkbc_keymaps_path);
-      tkbc_setup_keymaps_strs(&env->keymaps);
-      SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
+    if (!env->keymaps_mouse_interaction) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+            DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
+            tkbc_set_keymaps_defaults(&env->keymaps);
+            SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
+        }
     }
-  }
-  const char *load = "LOAD";
-  text_size = tkbc_reduce_str_to_fit_box(env->font, load, &font_size,
-                                         env->keymaps_base);
+    const char *reset = "RESET";
+    text_size = tkbc_reduce_str_to_fit_box(env->font, reset, &font_size, env->keymaps_base);
+    p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
+    p.y = env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
+    DrawTextEx(env->font, reset, p, font_size, 2, TKBC_UI_BLACK);
 
-  Vector2 p;
-  p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5;
-  p.y =
-      env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5;
-  DrawTextEx(env->font, load, p, font_size, 2, TKBC_UI_BLACK);
-
-  env->keymaps_base.x += padding + env->keymaps_base.width;
-  if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
-    DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-  } else {
-    DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_TEAL_ALPHA);
-  }
-  if (!env->keymaps_mouse_interaction) {
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-        CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
-      DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      tkbc_set_keymaps_defaults(&env->keymaps);
-      SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
+    env->keymaps_base.x += padding + env->keymaps_base.width;
+    if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+        DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+    } else {
+        DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_TEAL_ALPHA);
     }
-  }
-  const char *reset = "RESET";
-  text_size = tkbc_reduce_str_to_fit_box(env->font, reset, &font_size,
-                                         env->keymaps_base);
-  p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
-  p.y =
-      env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
-  DrawTextEx(env->font, reset, p, font_size, 2, TKBC_UI_BLACK);
-
-  env->keymaps_base.x += padding + env->keymaps_base.width;
-  if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
-    DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-  } else {
-    DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_TEAL_ALPHA);
-  }
-  if (!env->keymaps_mouse_interaction) {
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-        CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
-      DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
-      tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
-      tkbc_save_keymaps_to_file(env->keymaps, env->tkbc_keymaps_path);
+    if (!env->keymaps_mouse_interaction) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
+            DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_PURPLE_ALPHA);
+            tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
+            tkbc_save_keymaps_to_file(env->keymaps, env->tkbc_keymaps_path);
+        }
     }
-  }
-  const char *save = "SAVE";
-  text_size = tkbc_reduce_str_to_fit_box(env->font, save, &font_size,
-                                         env->keymaps_base);
-  p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
-  p.y =
-      env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
-  DrawTextEx(env->font, save, p, font_size, 2, TKBC_UI_BLACK);
+    const char *save = "SAVE";
+    text_size = tkbc_reduce_str_to_fit_box(env->font, save, &font_size, env->keymaps_base);
+    p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
+    p.y = env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
+    DrawTextEx(env->font, save, p, font_size, 2, TKBC_UI_BLACK);
+}
+
+void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding) {
+    Rectangle cursor = text_box;
+    cursor.width = 2;
+    cursor.height = text_box.height * 0.9;
+    cursor.y = text_box.y + text_box.height / 2 - cursor.height / 2;
+
+    int padding_from_letter = 1;
+    cursor.x = text_box.x + padding + text_size.x + padding_from_letter;
+    DrawRectangleRec(cursor, TKBC_UI_BLACK);
 }

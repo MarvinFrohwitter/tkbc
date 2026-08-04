@@ -63,12 +63,12 @@ Assets assets = {0};
  * registered one.
  */
 struct pollfd *tkbc_get_pollfd_by_fd(int fd) {
-  for (size_t i = 0; i < fds.count; ++i) {
-    if ((int)fds.elements[i].fd == fd) {
-      return &fds.elements[i];
+    for (size_t i = 0; i < fds.count; ++i) {
+        if ((int) fds.elements[i].fd == fd) {
+            return &fds.elements[i];
+        }
     }
-  }
-  return NULL;
+    return NULL;
 }
 
 /**
@@ -79,12 +79,12 @@ struct pollfd *tkbc_get_pollfd_by_fd(int fd) {
  * @return The found Client if it is available, otherwise NULL.
  */
 Client *tkbc_get_client_by_kite_id(int kite_id) {
-  for (size_t i = 0; i < clients.count; ++i) {
-    if (clients.elements[i].kite_id == kite_id) {
-      return &clients.elements[i];
+    for (size_t i = 0; i < clients.count; ++i) {
+        if (clients.elements[i].kite_id == kite_id) {
+            return &clients.elements[i];
+        }
     }
-  }
-  return NULL;
+    return NULL;
 }
 
 /**
@@ -95,12 +95,12 @@ Client *tkbc_get_client_by_kite_id(int kite_id) {
  * @return The found Client if it is available, otherwise NULL.
  */
 Client *tkbc_get_client_by_fd(int fd) {
-  for (size_t i = 0; i < clients.count; ++i) {
-    if (clients.elements[i].socket_id == fd) {
-      return &clients.elements[i];
+    for (size_t i = 0; i < clients.count; ++i) {
+        if (clients.elements[i].socket_id == fd) {
+            return &clients.elements[i];
+        }
     }
-  }
-  return NULL;
+    return NULL;
 }
 
 /**
@@ -112,22 +112,22 @@ Client *tkbc_get_client_by_fd(int fd) {
  * @return The first orphan Kite_State if one exists, otherwise NULL.
  */
 Kite_State *tkbc_check_for_orphan_kite_states(bool *orphan) {
-  Kite_State *state = NULL;
-  for (size_t i = 0; i < env->kite_array.count; ++i) {
-    state = &env->kite_array.elements[i];
-    if (state->is_script_kite) {
-      continue;
+    Kite_State *state = NULL;
+    for (size_t i = 0; i < env->kite_array.count; ++i) {
+        state = &env->kite_array.elements[i];
+        if (state->is_script_kite) {
+            continue;
+        }
+        Id kite_id = state->kite_id;
+        Client *client = tkbc_get_client_by_kite_id(kite_id);
+        if (client == NULL) {
+            // orphan client found
+            *orphan = true;
+            return state;
+        }
     }
-    Id kite_id = state->kite_id;
-    Client *client = tkbc_get_client_by_kite_id(kite_id);
-    if (client == NULL) {
-      // orphan client found
-      *orphan = true;
-      return state;
-    }
-  }
-  *orphan = false;
-  return NULL;
+    *orphan = false;
+    return NULL;
 }
 
 /**
@@ -138,10 +138,9 @@ Kite_State *tkbc_check_for_orphan_kite_states(bool *orphan) {
  * @param message The message that should be send to the given client.
  */
 void tkbc_write_to_send_msg_buffer(Client *client, Message message) {
-  space_dapc(&client->send_msg_buffer_space, &client->send_msg_buffer,
-             message.elements, message.count);
+    space_dapc(&client->send_msg_buffer_space, &client->send_msg_buffer, message.elements, message.count);
 
-  tkbc_get_pollfd_by_fd(client->socket_id)->events = POLLWRNORM;
+    tkbc_get_pollfd_by_fd(client->socket_id)->events = POLLWRNORM;
 }
 
 /**
@@ -151,9 +150,9 @@ void tkbc_write_to_send_msg_buffer(Client *client, Message message) {
  * @param message The message that should be send to the given clients.
  */
 void tkbc_write_to_all_send_msg_buffers(Message message) {
-  for (size_t i = 0; i < clients.count; ++i) {
-    tkbc_write_to_send_msg_buffer(&clients.elements[i], message);
-  }
+    for (size_t i = 0; i < clients.count; ++i) {
+        tkbc_write_to_send_msg_buffer(&clients.elements[i], message);
+    }
 }
 
 /**
@@ -165,11 +164,11 @@ void tkbc_write_to_all_send_msg_buffers(Message message) {
  * @param fd The file descriptor where the message should not be send to.
  */
 void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd) {
-  for (size_t i = 0; i < clients.count; ++i) {
-    if (clients.elements[i].socket_id != fd) {
-      tkbc_write_to_send_msg_buffer(&clients.elements[i], message);
+    for (size_t i = 0; i < clients.count; ++i) {
+        if (clients.elements[i].socket_id != fd) {
+            tkbc_write_to_send_msg_buffer(&clients.elements[i], message);
+        }
     }
-  }
 }
 
 /**
@@ -182,25 +181,24 @@ void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd) {
  * not found and false is returned
  */
 bool tkbc_remove_client_by_fd(int fd) {
-  for (size_t i = 0; i < clients.count; ++i) {
-    if (clients.elements[i].socket_id == fd) {
-      Client client_tmp = clients.elements[i];
-      space_free_space(&client_tmp.send_msg_buffer_space);
-      space_free_space(&client_tmp.recv_msg_buffer_space);
+    for (size_t i = 0; i < clients.count; ++i) {
+        if (clients.elements[i].socket_id == fd) {
+            Client client_tmp = clients.elements[i];
+            space_free_space(&client_tmp.send_msg_buffer_space);
+            space_free_space(&client_tmp.recv_msg_buffer_space);
 
-      client_tmp.recv_msg_buffer.elements = NULL;
-      client_tmp.send_msg_buffer.elements = NULL;
+            client_tmp.recv_msg_buffer.elements = NULL;
+            client_tmp.send_msg_buffer.elements = NULL;
 
-      tkbc_fprintf(stderr, "INFO", "Removed client:" CLIENT_FMT "\n",
-                   CLIENT_ARG(client_tmp));
+            tkbc_fprintf(stderr, "INFO", "Removed client:" CLIENT_FMT "\n", CLIENT_ARG(client_tmp));
 
-      clients.elements[i] = clients.elements[clients.count - 1];
-      clients.elements[clients.count - 1] = client_tmp;
-      clients.count -= 1;
-      return true;
+            clients.elements[i] = clients.elements[clients.count - 1];
+            clients.elements[clients.count - 1] = client_tmp;
+            clients.count -= 1;
+            return true;
+        }
     }
-  }
-  return false;
+    return false;
 }
 
 /**
@@ -211,16 +209,16 @@ bool tkbc_remove_client_by_fd(int fd) {
  * @return Returns true if the pollfd was found and removed, otherwise false.
  */
 bool tkbc_remove_fd_unorderd(int fd) {
-  for (size_t i = 0; i < fds.count; ++i) {
-    if ((int)fds.elements[i].fd == fd) {
-      typeof(fds.elements[i]) pollfd_tmp = fds.elements[i];
-      fds.elements[i] = fds.elements[fds.count - 1];
-      fds.elements[fds.count - 1] = pollfd_tmp;
-      fds.count -= 1;
-      return true;
+    for (size_t i = 0; i < fds.count; ++i) {
+        if ((int) fds.elements[i].fd == fd) {
+            typeof(fds.elements[i]) pollfd_tmp = fds.elements[i];
+            fds.elements[i] = fds.elements[fds.count - 1];
+            fds.elements[fds.count - 1] = pollfd_tmp;
+            fds.count -= 1;
+            return true;
+        }
     }
-  }
-  return false;
+    return false;
 }
 
 /**
@@ -239,26 +237,22 @@ bool tkbc_remove_fd_unorderd(int fd) {
  * be changed.
  */
 int tkbc_remove_connection(Client client, bool retry) {
-  if (!retry) {
-    if (!tkbc_remove_kite_from_list(&env->kite_array, client.kite_id)) {
-      tkbc_fprintf(stderr, "INFO",
-                   "Client:" CLIENT_FMT
-                   ":Kite could not be removed: not found.\n",
-                   CLIENT_ARG(client));
-      return 1;
+    if (!retry) {
+        if (!tkbc_remove_kite_from_list(&env->kite_array, client.kite_id)) {
+            tkbc_fprintf(stderr, "INFO", "Client:" CLIENT_FMT ":Kite could not be removed: not found.\n",
+                         CLIENT_ARG(client));
+            return 1;
+        }
     }
-  }
 
-  if (!tkbc_remove_client_by_fd(client.socket_id)) {
-    tkbc_fprintf(stderr, "INFO",
-                 "Client:" CLIENT_FMT ": Fd could not be removed.\n",
-                 CLIENT_ARG(client));
-    return -1;
-  }
+    if (!tkbc_remove_client_by_fd(client.socket_id)) {
+        tkbc_fprintf(stderr, "INFO", "Client:" CLIENT_FMT ": Fd could not be removed.\n", CLIENT_ARG(client));
+        return -1;
+    }
 
-  tkbc_remove_fd_unorderd(client.socket_id);
+    tkbc_remove_fd_unorderd(client.socket_id);
 
-  return 0;
+    return 0;
 }
 
 /**
@@ -270,13 +264,11 @@ int tkbc_remove_connection(Client client, bool retry) {
  * @param client The client that should be removed from the server.
  */
 void tkbc_remove_connection_retry(Client client) {
-  if (1 == tkbc_remove_connection(client, false)) {
-    if (0 != tkbc_remove_connection(client, true)) {
-      tkbc_fprintf(stderr, "ERROR",
-                   "Could not remove Client from list:" CLIENT_FMT "\n",
-                   CLIENT_ARG(client));
+    if (1 == tkbc_remove_connection(client, false)) {
+        if (0 != tkbc_remove_connection(client, true)) {
+            tkbc_fprintf(stderr, "ERROR", "Could not remove Client from list:" CLIENT_FMT "\n", CLIENT_ARG(client));
+        }
     }
-  }
 }
 
 /**
@@ -288,19 +280,17 @@ void tkbc_remove_connection_retry(Client client) {
  */
 bool tkbc_close(int __fd) {
 #ifdef _WIN32
-  if (closesocket(__fd) == -1) {
-    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n",
-                 WSAGetLastError());
-    return false;
-  }
+    if (closesocket(__fd) == -1) {
+        tkbc_fprintf(stderr, "ERROR", "Could not close socket: %d\n", WSAGetLastError());
+        return false;
+    }
 #else
-  if (close(__fd) == -1) {
-    tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n",
-                 strerror(errno));
-    return false;
-  }
-#endif // _WIN32
-  return true;
+    if (close(__fd) == -1) {
+        tkbc_fprintf(stderr, "ERROR", "Could not close socket: %s\n", strerror(errno));
+        return false;
+    }
+#endif  // _WIN32
+    return true;
 }
 
 /**
@@ -312,20 +302,18 @@ bool tkbc_close(int __fd) {
  * client immediately is omitted.
  */
 void tkbc_server_shutdown_client(Client client, bool force) {
-  shutdown(client.socket_id, SHUT_WR);
-  for (char b[1024]; recv(client.socket_id, b, sizeof(b), 0) > 0;)
-    ;
+    shutdown(client.socket_id, SHUT_WR);
+    for (char b[1024]; recv(client.socket_id, b, sizeof(b), 0) > 0;);
 
-  tkbc_close(client.socket_id);
+    tkbc_close(client.socket_id);
 
-  if (!force) {
-    space_tdapf(&t_message, "%d:%zu:\r\n", MESSAGE_CLIENT_DISCONNECT,
-                client.kite_id);
-    tkbc_write_to_all_send_msg_buffers_except(t_message, client.socket_id);
-    tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
-  }
+    if (!force) {
+        space_tdapf(&t_message, "%d:%zu:\r\n", MESSAGE_CLIENT_DISCONNECT, client.kite_id);
+        tkbc_write_to_all_send_msg_buffers_except(t_message, client.socket_id);
+        tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+    }
 
-  tkbc_remove_connection_retry(client);
+    tkbc_remove_connection_retry(client);
 }
 
 /**
@@ -335,11 +323,11 @@ void tkbc_server_shutdown_client(Client client, bool force) {
  * @param client The client id where the message should be send to.
  */
 void tkbc_message_hello_write_to_send_msg_buffer(Client *client) {
-  const char quote = '\"';
-  space_tdapf(&t_message, "%d:%c%s" PROTOCOL_VERSION "%c:\r\n", MESSAGE_HELLO,
-              quote, "Hello client from server!", quote);
-  tkbc_write_to_send_msg_buffer(client, t_message);
-  tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+    const char quote = '\"';
+    space_tdapf(&t_message, "%d:%c%s" PROTOCOL_VERSION "%c:\r\n", MESSAGE_HELLO, quote, "Hello client from server!",
+                quote);
+    tkbc_write_to_send_msg_buffer(client, t_message);
+    tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 }
 
 /**
@@ -350,18 +338,17 @@ void tkbc_message_hello_write_to_send_msg_buffer(Client *client) {
  * @return True if id was found and the sending has nor raised any errors.
  */
 bool tkbc_message_kiteadd_write_to_all_send_msg_buffers(size_t client_index) {
-  bool ok = true;
-  space_tdapf(&t_message, "%d:", MESSAGE_SINGLE_KITE_ADD);
-  if (!tkbc_message_append_clientkite(client_index, &t_message,
-                                      space_get_tspace())) {
-    check_return(false);
-  }
-  space_tdapf(&t_message, "\r\n");
-  tkbc_write_to_all_send_msg_buffers(t_message);
+    bool ok = true;
+    space_tdapf(&t_message, "%d:", MESSAGE_SINGLE_KITE_ADD);
+    if (!tkbc_message_append_clientkite(client_index, &t_message, space_get_tspace())) {
+        check_return(false);
+    }
+    space_tdapf(&t_message, "\r\n");
+    tkbc_write_to_all_send_msg_buffers(t_message);
 
 check:
-  tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
-  return ok;
+    tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+    return ok;
 }
 
 /**
@@ -373,35 +360,34 @@ check:
  * is_active and so all kites get treated as active.
  */
 void tkbc_message_clientkites(Message *t_message, bool overwrite_is_active) {
-  size_t active_count = 0;
-  for (size_t i = 0; i < env->kite_array.count; ++i) {
-    if (env->kite_array.elements[i].is_active) {
-      active_count++;
+    size_t active_count = 0;
+    for (size_t i = 0; i < env->kite_array.count; ++i) {
+        if (env->kite_array.elements[i].is_active) {
+            active_count++;
+        }
     }
-  }
-  if (overwrite_is_active) {
-    active_count = env->kite_array.count;
-  }
-
-  space_tdapf(t_message, "%d:%zu:", MESSAGE_CLIENTKITES, active_count);
-  for (size_t i = 0; i < env->kite_array.count; ++i) {
-    Kite_State *kite_state = &env->kite_array.elements[i];
-    if (!kite_state->is_active && !overwrite_is_active) {
-      continue;
+    if (overwrite_is_active) {
+        active_count = env->kite_array.count;
     }
 
-    if (!tkbc_message_append_clientkite(kite_state->kite_id, t_message,
-                                        space_get_tspace())) {
-      Client *client = tkbc_get_client_by_kite_id(kite_state->kite_id);
-      if (client != NULL) {
-        tkbc_server_shutdown_client(*client, false);
-      } else {
-        // This was not a client that was registered, so it has to be a script
-        // kite.
-      }
+    space_tdapf(t_message, "%d:%zu:", MESSAGE_CLIENTKITES, active_count);
+    for (size_t i = 0; i < env->kite_array.count; ++i) {
+        Kite_State *kite_state = &env->kite_array.elements[i];
+        if (!kite_state->is_active && !overwrite_is_active) {
+            continue;
+        }
+
+        if (!tkbc_message_append_clientkite(kite_state->kite_id, t_message, space_get_tspace())) {
+            Client *client = tkbc_get_client_by_kite_id(kite_state->kite_id);
+            if (client != NULL) {
+                tkbc_server_shutdown_client(*client, false);
+            } else {
+                // This was not a client that was registered, so it has to be a script
+                // kite.
+            }
+        }
     }
-  }
-  space_tdapf(t_message, "\r\n");
+    space_tdapf(t_message, "\r\n");
 }
 
 /**
@@ -412,12 +398,11 @@ void tkbc_message_clientkites(Message *t_message, bool overwrite_is_active) {
  * @param overwrite_is_active Via this flag the you can overwrite the check
  * is_active and so all kites get treated as active.
  */
-void tkbc_message_clientkites_write_to_send_msg_buffer(
-    Client *client, bool overwrite_is_active) {
-  tkbc_message_clientkites(&t_message, overwrite_is_active);
-  tkbc_write_to_send_msg_buffer(client, t_message);
+void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client, bool overwrite_is_active) {
+    tkbc_message_clientkites(&t_message, overwrite_is_active);
+    tkbc_write_to_send_msg_buffer(client, t_message);
 
-  tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+    tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 }
 
 /**
@@ -428,17 +413,17 @@ void tkbc_message_clientkites_write_to_send_msg_buffer(
  * @param client The new client that should get a kite associated with.
  */
 void tkbc_client_prolog(Client *client) {
-  tkbc_message_hello_write_to_send_msg_buffer(client);
+    tkbc_message_hello_write_to_send_msg_buffer(client);
 
-  Kite_State kite_state = tkbc_init_kite();
-  kite_state.kite_id = client->kite_id;
-  kite_state.is_active = true;
-  float r = (float)rand() / (float)RAND_MAX;
-  kite_state.kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
-  if (!tkbc_script_finished(env) || env->script != NULL) {
-    kite_state.is_active = false;
-  }
-  tkbc_dap(&env->kite_array, kite_state);
+    Kite_State kite_state = tkbc_init_kite();
+    kite_state.kite_id = client->kite_id;
+    kite_state.is_active = true;
+    float r = (float) rand() / (float) RAND_MAX;
+    kite_state.kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
+    if (!tkbc_script_finished(env) || env->script != NULL) {
+        kite_state.is_active = false;
+    }
+    tkbc_dap(&env->kite_array, kite_state);
 }
 
 /**
@@ -449,91 +434,85 @@ void tkbc_client_prolog(Client *client) {
  */
 bool tkbc_server_accept(void) {
 
-  SOCKADDR_IN client_address;
-  SOCKLEN address_length = sizeof(client_address);
-  int client_socket_id =
-      accept(server_socket, (SOCKADDR *)&client_address, &address_length);
+    SOCKADDR_IN client_address;
+    SOCKLEN address_length = sizeof(client_address);
+    int client_socket_id = accept(server_socket, (SOCKADDR *) &client_address, &address_length);
 
-  if (client_socket_id == -1) {
-    if (errno != EAGAIN) {
-      tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-      return false;
-    }
-  } else {
+    if (client_socket_id == -1) {
+        if (errno != EAGAIN) {
+            tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+            return false;
+        }
+    } else {
 
 #ifdef _WIN32
-    // Set the socket to non-blocking
-    u_long mode = 1; // 1 to enable non-blocking socket
-    if (ioctlsocket(client_socket_id, FIONBIO, &mode) != 0) {
-      tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
-      closesocket(client_socket_id);
-      return false;
-    }
+        // Set the socket to non-blocking
+        u_long mode = 1;  // 1 to enable non-blocking socket
+        if (ioctlsocket(client_socket_id, FIONBIO, &mode) != 0) {
+            tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
+            closesocket(client_socket_id);
+            return false;
+        }
 
-    int nodelay = 1;
-    int sso = setsockopt(client_socket_id, IPPROTO_TCP, TCP_NODELAY,
-                         (char *)&nodelay, sizeof(nodelay));
-    if (sso == -1) {
-      tkbc_fprintf(stderr, "ERROR", "%d\n", WSAGetLastError());
-    }
+        int nodelay = 1;
+        int sso = setsockopt(client_socket_id, IPPROTO_TCP, TCP_NODELAY, (char *) &nodelay, sizeof(nodelay));
+        if (sso == -1) {
+            tkbc_fprintf(stderr, "ERROR", "%d\n", WSAGetLastError());
+        }
 #else
-    // Set the socket to non-blocking
-    int flags = fcntl(client_socket_id, F_GETFL, 0);
+        // Set the socket to non-blocking
+        int flags = fcntl(client_socket_id, F_GETFL, 0);
 
-    if (flags == -1) {
-      tkbc_fprintf(stderr, "ERROR", "Could not get socket flags: %s\n",
-                   strerror(errno));
-      close(client_socket_id);
-      return false;
+        if (flags == -1) {
+            tkbc_fprintf(stderr, "ERROR", "Could not get socket flags: %s\n", strerror(errno));
+            close(client_socket_id);
+            return false;
+        }
+        flags = fcntl(client_socket_id, F_SETFL, flags | O_NONBLOCK);
+        if (flags == -1) {
+            tkbc_fprintf(stderr, "ERROR", "Could not set the non-blocking: %s\n", strerror(errno));
+            close(client_socket_id);
+            return false;
+        }
+
+        int nodelay = 1;
+        int sso = setsockopt(client_socket_id, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay));
+        if (sso == -1) {
+            tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+        }
+#endif  // _WIN32
+
+        clients_visited++;
+        struct pollfd client_fd = {
+            .fd = client_socket_id,
+            .events = POLLRDNORM,
+            .revents = 0,
+        };
+        // This can cause reallocation so it is important to iterate the fds by
+        // index.
+        tkbc_dap(&fds, client_fd);
+
+        // There are up to CLIENT_BASE_IDs possible for the scripts but then there
+        // are conflicts.
+        // To avoid having conflicts with useful ids such as 0,1,2 and so on,
+        // those could be hard-coded in scripts, the client kite ids start hight.
+        static Id counter_not_for_the_scripts_to_remove_confilcts = CLIENT_BASE_ID;
+        Client client = {
+            .kite_id = counter_not_for_the_scripts_to_remove_confilcts++,
+            .socket_id = client_socket_id,
+            .client_address = client_address,
+            .client_address_length = address_length,
+        };
+
+        space_init_capacity(&client.send_msg_buffer_space, BUFFER_CAPACITY);
+        space_init_capacity(&client.recv_msg_buffer_space, BUFFER_CAPACITY);
+
+        tkbc_fprintf(stderr, "INFO", "CLIENT: " CLIENT_FMT " has connected.\n", CLIENT_ARG(client));
+        tkbc_dap(&clients, client);
+
+        tkbc_client_prolog(&clients.elements[clients.count - 1]);
     }
-    flags = fcntl(client_socket_id, F_SETFL, flags | O_NONBLOCK);
-    if (flags == -1) {
-      tkbc_fprintf(stderr, "ERROR", "Could not set the non-blocking: %s\n",
-                   strerror(errno));
-      close(client_socket_id);
-      return false;
-    }
-
-    int nodelay = 1;
-    int sso = setsockopt(client_socket_id, IPPROTO_TCP, TCP_NODELAY, &nodelay,
-                         sizeof(nodelay));
-    if (sso == -1) {
-      tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-    }
-#endif // _WIN32
-
-    clients_visited++;
-    struct pollfd client_fd = {
-        .fd = client_socket_id,
-        .events = POLLRDNORM,
-        .revents = 0,
-    };
-    // This can cause reallocation so it is important to iterate the fds by
-    // index.
-    tkbc_dap(&fds, client_fd);
-
-    // There are up to CLIENT_BASE_IDs possible for the scripts but then there
-    // are conflicts.
-    // To avoid having conflicts with useful ids such as 0,1,2 and so on,
-    // those could be hard-coded in scripts, the client kite ids start hight.
-    static Id counter_not_for_the_scripts_to_remove_confilcts = CLIENT_BASE_ID;
-    Client client = {
-        .kite_id = counter_not_for_the_scripts_to_remove_confilcts++,
-        .socket_id = client_socket_id,
-        .client_address = client_address,
-        .client_address_length = address_length,
-    };
-
-    space_init_capacity(&client.send_msg_buffer_space, BUFFER_CAPACITY);
-    space_init_capacity(&client.recv_msg_buffer_space, BUFFER_CAPACITY);
-
-    tkbc_fprintf(stderr, "INFO", "CLIENT: " CLIENT_FMT " has connected.\n",
-                 CLIENT_ARG(client));
-    tkbc_dap(&clients, client);
-
-    tkbc_client_prolog(&clients.elements[clients.count - 1]);
-  }
-  return true;
+    return true;
 }
 
 /**
@@ -543,76 +522,68 @@ bool tkbc_server_accept(void) {
  * @return True if data was read, otherwise false.
  */
 bool tkbc_sockets_read(Client *client) {
-  Message *recv_buffer = &client->recv_msg_buffer;
-  size_t length = BUFFER_CAPACITY;
+    Message *recv_buffer = &client->recv_msg_buffer;
+    size_t length = BUFFER_CAPACITY;
 
-  if (recv_buffer->count == 0 && recv_buffer->capacity > MAX_BUFFER_CAPACITY) {
-    tkbc_fprintf(stderr, "INFO", "realloced recv_buffer: old capacity: %zu\n",
-                 recv_buffer->capacity);
+    if (recv_buffer->count == 0 && recv_buffer->capacity > MAX_BUFFER_CAPACITY) {
+        tkbc_fprintf(stderr, "INFO", "realloced recv_buffer: old capacity: %zu\n", recv_buffer->capacity);
 
-    Planet *planet = space_find_planet_from_ptr(&client->recv_msg_buffer_space,
-                                                recv_buffer->elements);
-    space_free_planet(&client->recv_msg_buffer_space, planet);
+        Planet *planet = space_find_planet_from_ptr(&client->recv_msg_buffer_space, recv_buffer->elements);
+        space_free_planet(&client->recv_msg_buffer_space, planet);
 
-    recv_buffer->elements = NULL;
-    recv_buffer->capacity = 0;
-  }
-
-  if (recv_buffer->capacity < recv_buffer->count + length) {
-    size_t old_capacity = recv_buffer->capacity;
-    if (recv_buffer->capacity == 0) {
-      recv_buffer->capacity = length;
+        recv_buffer->elements = NULL;
+        recv_buffer->capacity = 0;
     }
 
-    while (recv_buffer->capacity < recv_buffer->count + length) {
-      recv_buffer->capacity += length;
+    if (recv_buffer->capacity < recv_buffer->count + length) {
+        size_t old_capacity = recv_buffer->capacity;
+        if (recv_buffer->capacity == 0) {
+            recv_buffer->capacity = length;
+        }
+
+        while (recv_buffer->capacity < recv_buffer->count + length) {
+            recv_buffer->capacity += length;
+        }
+
+        recv_buffer->elements = space_realloc(&client->recv_msg_buffer_space, recv_buffer->elements,
+                                              sizeof(*recv_buffer->elements) * old_capacity,
+                                              sizeof(*recv_buffer->elements) * recv_buffer->capacity);
+
+        if (recv_buffer->elements == NULL) {
+            fprintf(stderr, "The allocation for the dynamic array has failed in: %s: %d\n", __FILE__, __LINE__);
+            abort();
+        }
     }
 
-    recv_buffer->elements =
-        space_realloc(&client->recv_msg_buffer_space, recv_buffer->elements,
-                      sizeof(*recv_buffer->elements) * old_capacity,
-                      sizeof(*recv_buffer->elements) * recv_buffer->capacity);
+    int n = recv(client->socket_id, client->recv_msg_buffer.elements + client->recv_msg_buffer.count, length, 0);
 
-    if (recv_buffer->elements == NULL) {
-      fprintf(stderr,
-              "The allocation for the dynamic array has failed in: %s: %d\n",
-              __FILE__, __LINE__);
-      abort();
-    }
-  }
-
-  int n = recv(client->socket_id,
-               client->recv_msg_buffer.elements + client->recv_msg_buffer.count,
-               length, 0);
-
-  if (n < 0) {
+    if (n < 0) {
 #ifdef _WIN32
-    int err_errno = WSAGetLastError();
-    if (err_errno != WSAEWOULDBLOCK) {
-      tkbc_fprintf(stderr, "ERROR", "Read: %d\n", err_errno);
-      return false;
-    } else {
-      return true;
-    }
+        int err_errno = WSAGetLastError();
+        if (err_errno != WSAEWOULDBLOCK) {
+            tkbc_fprintf(stderr, "ERROR", "Read: %d\n", err_errno);
+            return false;
+        } else {
+            return true;
+        }
 #else
-    if (errno != EAGAIN) {
-      tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
-      return false;
-    } else {
-      return true;
+        if (errno != EAGAIN) {
+            tkbc_fprintf(stderr, "ERROR", "Read: %s\n", strerror(errno));
+            return false;
+        } else {
+            return true;
+        }
+#endif  // _WIN32
     }
-#endif // _WIN32
-  }
 
-  if (n == 0) {
-    tkbc_fprintf(stderr, "ERROR", "No bytes could be read:" CLIENT_FMT "\n",
-                 CLIENT_ARG(*client));
-    return false;
-  }
+    if (n == 0) {
+        tkbc_fprintf(stderr, "ERROR", "No bytes could be read:" CLIENT_FMT "\n", CLIENT_ARG(*client));
+        return false;
+    }
 
-  assert(n != -1);
-  recv_buffer->count += n;
-  return true;
+    assert(n != -1);
+    recv_buffer->count += n;
+    return true;
 }
 
 /**
@@ -625,60 +596,54 @@ bool tkbc_sockets_read(Client *client) {
  * an error occurred or -11 if the error was EAGAIN.
  */
 int tkbc_socket_write(Client *client) {
-  size_t length = BUFFER_CAPACITY;
-  size_t diff = (client->send_msg_buffer.count - client->send_msg_buffer.i);
-  size_t amount = diff < length ? diff : length;
+    size_t length = BUFFER_CAPACITY;
+    size_t diff = (client->send_msg_buffer.count - client->send_msg_buffer.i);
+    size_t amount = diff < length ? diff : length;
 
-  ssize_t n = send(client->socket_id,
-                   client->send_msg_buffer.elements + client->send_msg_buffer.i,
-                   amount, 0);
+    ssize_t n = send(client->socket_id, client->send_msg_buffer.elements + client->send_msg_buffer.i, amount, 0);
 
-  if (n < 0) {
+    if (n < 0) {
 #ifdef _WIN32
-    int err_errno = WSAGetLastError();
-    if (err_errno != WSAEWOULDBLOCK) {
-      tkbc_fprintf(stderr, "ERROR", "Write: %d\n", err_errno);
-      return -1;
-    } else {
-      return -11;
-    }
+        int err_errno = WSAGetLastError();
+        if (err_errno != WSAEWOULDBLOCK) {
+            tkbc_fprintf(stderr, "ERROR", "Write: %d\n", err_errno);
+            return -1;
+        } else {
+            return -11;
+        }
 #else
-    if (errno != EAGAIN) {
-      tkbc_fprintf(stderr, "ERROR", "Write: %s\n", strerror(errno));
-      return -1;
-    } else {
-      return -11;
+        if (errno != EAGAIN) {
+            tkbc_fprintf(stderr, "ERROR", "Write: %s\n", strerror(errno));
+            return -1;
+        } else {
+            return -11;
+        }
+#endif  // _WIN32
     }
-#endif // _WIN32
-  }
 
-  if (n == 0) {
-    tkbc_fprintf(stderr, "ERROR", "No bytes where written to:" CLIENT_FMT "\n",
-                 CLIENT_ARG(*client));
-  }
+    if (n == 0) {
+        tkbc_fprintf(stderr, "ERROR", "No bytes where written to:" CLIENT_FMT "\n", CLIENT_ARG(*client));
+    }
 
-  assert(n != -1);
-  if ((size_t)n == client->send_msg_buffer.count - client->send_msg_buffer.i) {
-    client->send_msg_buffer.count = 0;
-    client->send_msg_buffer.i = 0;
-  } else {
-    client->send_msg_buffer.i += n;
-  }
+    assert(n != -1);
+    if ((size_t) n == client->send_msg_buffer.count - client->send_msg_buffer.i) {
+        client->send_msg_buffer.count = 0;
+        client->send_msg_buffer.i = 0;
+    } else {
+        client->send_msg_buffer.i += n;
+    }
 
-  if (client->send_msg_buffer.count == 0 &&
-      client->send_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
-    tkbc_fprintf(stderr, "INFO",
-                 "realloced send_msg_buffer: old capacity: %zu\n",
-                 client->send_msg_buffer.capacity);
+    if (client->send_msg_buffer.count == 0 && client->send_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
+        tkbc_fprintf(stderr, "INFO", "realloced send_msg_buffer: old capacity: %zu\n",
+                     client->send_msg_buffer.capacity);
 
-    Planet *planet = space_find_planet_from_ptr(
-        &client->send_msg_buffer_space, client->send_msg_buffer.elements);
-    space_free_planet(&client->send_msg_buffer_space, planet);
+        Planet *planet = space_find_planet_from_ptr(&client->send_msg_buffer_space, client->send_msg_buffer.elements);
+        space_free_planet(&client->send_msg_buffer_space, planet);
 
-    client->send_msg_buffer.elements = NULL;
-    client->send_msg_buffer.capacity = 0;
-  }
-  return n;
+        client->send_msg_buffer.elements = NULL;
+        client->send_msg_buffer.capacity = 0;
+    }
+    return n;
 }
 
 /**
@@ -690,37 +655,35 @@ int tkbc_socket_write(Client *client) {
  * succeeded, otherwise false.
  */
 bool tkbc_server_handle_client(Client *client) {
-  if (!client) {
-    return false;
-  }
-  struct pollfd *pollfd = tkbc_get_pollfd_by_fd(client->socket_id);
-  if (!pollfd) {
-    return false;
-  }
-  int result;
-  switch (pollfd->events) {
-  case POLLRDNORM:
-    result = tkbc_sockets_read(client);
-    // Switch to the next write state.
-    pollfd->events = POLLWRNORM;
-    return result;
-  case POLLWRNORM:
-    if (client->send_msg_buffer.count <= 0) {
-      pollfd->events = POLLRDNORM;
-      return true;
+    if (!client) {
+        return false;
     }
-
-    result = tkbc_socket_write(client);
-    pollfd->events = POLLRDNORM;
-
-    if (result == -1) {
-      return false;
+    struct pollfd *pollfd = tkbc_get_pollfd_by_fd(client->socket_id);
+    if (!pollfd) {
+        return false;
     }
-    return true;
-  default:
-    assert(0 && "UNKNOWN EVENT");
-    return false;
-  }
+    int result;
+    switch (pollfd->events) {
+    case POLLRDNORM:
+        result = tkbc_sockets_read(client);
+        // Switch to the next write state.
+        pollfd->events = POLLWRNORM;
+        return result;
+    case POLLWRNORM:
+        if (client->send_msg_buffer.count <= 0) {
+            pollfd->events = POLLRDNORM;
+            return true;
+        }
+
+        result = tkbc_socket_write(client);
+        pollfd->events = POLLRDNORM;
+
+        if (result == -1) {
+            return false;
+        }
+        return true;
+    default: assert(0 && "UNKNOWN EVENT"); return false;
+    }
 }
 
 /**
@@ -728,42 +691,42 @@ bool tkbc_server_handle_client(Client *client) {
  * data on the sockets after an updates was detected.
  */
 void tkbc_socket_handling(void) {
-  for (ssize_t idx = 0; idx < (ssize_t)fds.count; ++idx) {
-    if (fds.elements[idx].revents == 0) {
-      continue;
-    }
-
-    if ((int)fds.elements[idx].fd == server_socket) {
-      // This can cause realloc so it is important to iterate the fds by
-      // index.
-      tkbc_server_accept();
-    } else {
-      int fd = fds.elements[idx].fd;
-      Client *client = tkbc_get_client_by_fd(fd);
-      if (client == NULL) {
-        //
-        // We lost a client reference somewhere! This is a bug in the server.
-        //
-
-        // Try to remove a kite that has no corresponding client anymore, if
-        // it can be found.
-        bool orphan;
-        Kite_State *s = tkbc_check_for_orphan_kite_states(&orphan);
-        if (orphan) {
-          tkbc_remove_kite_from_list(&env->kite_array, s->kite_id);
+    for (ssize_t idx = 0; idx < (ssize_t) fds.count; ++idx) {
+        if (fds.elements[idx].revents == 0) {
+            continue;
         }
-        tkbc_remove_fd_unorderd(fd);
-        tkbc_close(fd);
-        continue;
-      }
-      bool result = tkbc_server_handle_client(client);
-      if (!result) {
-        tkbc_server_shutdown_client(*client, false);
-        idx--;
-        continue;
-      }
+
+        if ((int) fds.elements[idx].fd == server_socket) {
+            // This can cause realloc so it is important to iterate the fds by
+            // index.
+            tkbc_server_accept();
+        } else {
+            int fd = fds.elements[idx].fd;
+            Client *client = tkbc_get_client_by_fd(fd);
+            if (client == NULL) {
+                //
+                // We lost a client reference somewhere! This is a bug in the server.
+                //
+
+                // Try to remove a kite that has no corresponding client anymore, if
+                // it can be found.
+                bool orphan;
+                Kite_State *s = tkbc_check_for_orphan_kite_states(&orphan);
+                if (orphan) {
+                    tkbc_remove_kite_from_list(&env->kite_array, s->kite_id);
+                }
+                tkbc_remove_fd_unorderd(fd);
+                tkbc_close(fd);
+                continue;
+            }
+            bool result = tkbc_server_handle_client(client);
+            if (!result) {
+                tkbc_server_shutdown_client(*client, false);
+                idx--;
+                continue;
+            }
+        }
     }
-  }
 }
 
 /**
@@ -773,12 +736,11 @@ void tkbc_socket_handling(void) {
  * @param overwrite_is_active Via this flag the you can overwrite the check
  * is_active and so all kites get treated as active.
  */
-void tkbc_message_clientkites_write_to_all_send_msg_buffers(
-    bool overwrite_is_active) {
-  tkbc_message_clientkites(&t_message, overwrite_is_active);
-  tkbc_write_to_all_send_msg_buffers(t_message);
+void tkbc_message_clientkites_write_to_all_send_msg_buffers(bool overwrite_is_active) {
+    tkbc_message_clientkites(&t_message, overwrite_is_active);
+    tkbc_write_to_all_send_msg_buffers(t_message);
 
-  tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+    tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 }
 
 /**
@@ -790,14 +752,13 @@ void tkbc_message_clientkites_write_to_all_send_msg_buffers(
  * @param frames_index The current index of the collection of individual
  * frames in a script.
  */
-void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(
-    size_t script_id, size_t script_count, size_t frames_index) {
+void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(size_t script_id, size_t script_count,
+                                                                 size_t frames_index) {
 
-  space_tdapf(&t_message, "%d:%zu:%zu:%zu:\r\n", MESSAGE_SCRIPT_META_DATA,
-              script_id, script_count, frames_index);
+    space_tdapf(&t_message, "%d:%zu:%zu:%zu:\r\n", MESSAGE_SCRIPT_META_DATA, script_id, script_count, frames_index);
 
-  tkbc_write_to_all_send_msg_buffers(t_message);
-  tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+    tkbc_write_to_all_send_msg_buffers(t_message);
+    tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 }
 
 /**
@@ -809,20 +770,18 @@ void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(
  * @return True if the serialization has finished without errors, otherwise
  * false.
  */
-bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
-    size_t client_id, int fd) {
-  bool ok = true;
-  space_tdapf(&t_message, "%d:", MESSAGE_SINGLE_KITE_UPDATE);
-  if (!tkbc_message_append_clientkite(client_id, &t_message,
-                                      space_get_tspace())) {
-    check_return(false);
-  }
-  space_tdapf(&t_message, "\r\n");
-  tkbc_write_to_all_send_msg_buffers_except(t_message, fd);
+bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(size_t client_id, int fd) {
+    bool ok = true;
+    space_tdapf(&t_message, "%d:", MESSAGE_SINGLE_KITE_UPDATE);
+    if (!tkbc_message_append_clientkite(client_id, &t_message, space_get_tspace())) {
+        check_return(false);
+    }
+    space_tdapf(&t_message, "\r\n");
+    tkbc_write_to_all_send_msg_buffers_except(t_message, fd);
 
 check:
-  tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
-  return ok;
+    tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+    return ok;
 }
 
 /**
@@ -836,225 +795,214 @@ check:
  * an parsing error has occurred.
  */
 bool tkbc_received_message_handler(Client *client) {
-  bool reset = true;
-  Token token;
-  bool ok = true;
-  Message *message = &client->recv_msg_buffer;
-  Lexer *lexer =
-      lexer_new(__FILE__, message->elements, message->count, message->i);
-  if (message->count == 0) {
-    check_return(true);
-  }
-  do {
-    bool script_alleady_there_parsing_skip = false;
-    token = lexer_next(lexer);
-    if (token.kind == EOF_TOKEN) {
-      break;
+    bool reset = true;
+    Token token;
+    bool ok = true;
+    Message *message = &client->recv_msg_buffer;
+    Lexer *lexer = lexer_new(__FILE__, message->elements, message->count, message->i);
+    if (message->count == 0) {
+        check_return(true);
     }
-    if (token.kind == INVALID) {
-      break;
+    do {
+        bool script_alleady_there_parsing_skip = false;
+        token = lexer_next(lexer);
+        if (token.kind == EOF_TOKEN) {
+            break;
+        }
+        if (token.kind == INVALID) {
+            break;
+        }
+        if (token.kind == NULL_TERMINATOR) {
+            // This is '\0' same as EOF in this case.
+            break;
+        }
+        if (token.kind == ERROR) {
+            goto err;
+        }
+
+        if (token.kind != NUMBER) {
+            goto err;
+        }
+
+        int kind = atoi(lexer_token_to_cstr(lexer, &token));
+        size_t digits_count_of_kind = token.size;
+        token = lexer_next(lexer);
+        if (token.kind != PUNCT_COLON) {
+            goto err;
+        }
+
+        if (kind != MESSAGE_HELLO && !client->handshake_passed) {
+            goto err;
+        }
+
+        message->i = lexer->position - digits_count_of_kind - 1;
+        static_assert(MESSAGE_COUNT == 20, "NEW MESSAGE_COUNT WAS INTRODUCED");
+        switch (kind) {
+        case MESSAGE_HELLO: {
+            if (!tkbc_messages_hello_verification(lexer, "\"Hello server from client!" PROTOCOL_VERSION "\"")) {
+                check_return(false);
+            }
+
+            space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:\r\n", MESSAGE_HELLO_PASSED);
+            client->handshake_passed = true;
+
+            tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
+            tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
+        } break;
+        case MESSAGE_SEND_TEXTURE: {
+            if (!tkbc_messages_send_texture(lexer)) {
+                goto err;
+            }
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE\n");
+        } break;
+        case MESSAGE_GET_TEXTURE: {
+            if (!tkbc_messages_get_texture(lexer, client)) {
+                goto err;
+            }
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE\n");
+        } break;
+        case MESSAGE_GET_TEXTURE_ID: {
+            if (!tkbc_messages_get_texture_id(lexer, client)) {
+                goto err;
+            }
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE_ID\n");
+        } break;
+        case MESSAGE_SINGLE_KITE_UPDATE: {
+            size_t kite_id;
+            ssize_t texture_id;
+            size_t texture_width, texture_height, texture_format;
+            Space *data_space = space_get_tspace();
+            unsigned char *texture_data = NULL;
+            float x, y, angle;
+            Color color;
+            bool is_reversed, is_active, is_script_kite;
+
+            if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle, &color, &texture_id, &texture_width,
+                                               &texture_height, &texture_format, data_space, &texture_data,
+                                               &is_reversed, &is_active, &is_script_kite)) {
+
+                space_reset_tspace();
+                goto err;
+            }
+
+            Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
+            if (state == NULL) {
+                check_return(false);  // Disconnect the client.
+            }
+            if (texture_id == -1) {
+                Id id = tkbc_append_kite_image(texture_data, texture_width, texture_height, texture_format);
+                texture_id = id;
+                state->kite->texture_id = texture_id;
+                space_reset_tspace();
+            }
+
+            // TEXTURE lager and Unknown
+
+            Asset *found = tkbc_find_asset_from_id(texture_id);
+            if (!found) {
+                space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_GET_TEXTURE,
+                           texture_id);
+                texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
+                state->kite->texture_id = texture_id;
+            }
+
+            // Consider disconnecting the client if the client is not found by its
+            // kite id. Instead of crashing the complete server.
+            // With a correct client implementation the state should always be
+            // available. No memory corruption on the server side implied.
+            tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id, is_reversed, is_active,
+                                            is_script_kite);
+
+            if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(kite_id, client->socket_id)) {
+                check_return(false);  // Disconnect the client.
+            }
+
+            state->kite->is_texture_new = false;
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
+        } break;
+        case MESSAGE_KITES_POSITIONS_RESET: {
+            // All parsing is already done above.
+            tkbc_kite_array_start_position(&env->kite_array, env->window_width, env->window_height);
+
+            tkbc_message_clientkites_write_to_all_send_msg_buffers(true);
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS_RESET\n");
+        } break;
+        case MESSAGE_SCRIPT: {
+            if (!tkbc_messages_script(env, lexer, client, &script_alleady_there_parsing_skip)) {
+
+                goto err;
+            }
+        } break;
+        case MESSAGE_SCRIPT_AMOUNT: {
+            token = lexer_next(lexer);
+            if (token.kind != NUMBER) {
+                goto err;
+            }
+
+            client->script_amount = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
+            token = lexer_next(lexer);
+            if (token.kind != PUNCT_COLON) {
+                goto err;
+            }
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_AMOUNT\n");
+        } break;
+        case MESSAGE_SCRIPT_TOGGLE: {
+            // The script associated kites don't have to be toggled in visibility,
+            // because you want to be able to pause the script.
+            env->script_finished = !env->script_finished;
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_TOGGLE\n");
+        } break;
+        case MESSAGE_SCRIPT_NEXT: {
+            if (!tkbc_messages_script_next(lexer)) {
+                goto err;
+            }
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_NEXT\n");
+        } break;
+        case MESSAGE_SCRIPT_SCRUB: {
+            if (!tkbc_messages_script_scrub(lexer)) {
+                goto err;
+            }
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_SCRUB\n");
+        } break;
+        default: tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind); goto err;
+        }
+        continue;
+
+    err: {
+        bool rerun =
+            tkbc_error_handling_of_received_message_handler(message, lexer, &reset, !script_alleady_there_parsing_skip);
+        if (rerun) {
+            continue;
+        }
+        break;
     }
-    if (token.kind == NULL_TERMINATOR) {
-      // This is '\0' same as EOF in this case.
-      break;
-    }
-    if (token.kind == ERROR) {
-      goto err;
-    }
-
-    if (token.kind != NUMBER) {
-      goto err;
-    }
-
-    int kind = atoi(lexer_token_to_cstr(lexer, &token));
-    size_t digits_count_of_kind = token.size;
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-      goto err;
-    }
-
-    if (kind != MESSAGE_HELLO && !client->handshake_passed) {
-      goto err;
-    }
-
-    message->i = lexer->position - digits_count_of_kind - 1;
-    static_assert(MESSAGE_COUNT == 20, "NEW MESSAGE_COUNT WAS INTRODUCED");
-    switch (kind) {
-    case MESSAGE_HELLO: {
-      if (!tkbc_messages_hello_verification(
-              lexer, "\"Hello server from client!" PROTOCOL_VERSION "\"")) {
-        check_return(false);
-      }
-
-      space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
-                 "%d:\r\n", MESSAGE_HELLO_PASSED);
-      client->handshake_passed = true;
-
-      tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
-      tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
-    } break;
-    case MESSAGE_SEND_TEXTURE: {
-      if (!tkbc_messages_send_texture(lexer)) {
-        goto err;
-      }
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE\n");
-    } break;
-    case MESSAGE_GET_TEXTURE: {
-      if (!tkbc_messages_get_texture(lexer, client)) {
-        goto err;
-      }
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE\n");
-    } break;
-    case MESSAGE_GET_TEXTURE_ID: {
-      if (!tkbc_messages_get_texture_id(lexer, client)) {
-        goto err;
-      }
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE_ID\n");
-    } break;
-    case MESSAGE_SINGLE_KITE_UPDATE: {
-      size_t kite_id;
-      ssize_t texture_id;
-      size_t texture_width, texture_height, texture_format;
-      Space *data_space = space_get_tspace();
-      unsigned char *texture_data = NULL;
-      float x, y, angle;
-      Color color;
-      bool is_reversed, is_active, is_script_kite;
-
-      if (!tkbc_parse_message_kite_value(
-              lexer, &kite_id, &x, &y, &angle, &color, &texture_id,
-              &texture_width, &texture_height, &texture_format, data_space,
-              &texture_data, &is_reversed, &is_active, &is_script_kite)) {
-
-        space_reset_tspace();
-        goto err;
-      }
-
-      Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
-      if (state == NULL) {
-        check_return(false); // Disconnect the client.
-      }
-      if (texture_id == -1) {
-        Id id = tkbc_append_kite_image(texture_data, texture_width,
-                                       texture_height, texture_format);
-        texture_id = id;
-        state->kite->texture_id = texture_id;
-        space_reset_tspace();
-      }
-
-      // TEXTURE lager and Unknown
-
-      Asset *found = tkbc_find_asset_from_id(texture_id);
-      if (!found) {
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer,
-                   "%d:%zu:\r\n", MESSAGE_GET_TEXTURE, texture_id);
-        texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
-        state->kite->texture_id = texture_id;
-      }
-
-      // Consider disconnecting the client if the client is not found by its
-      // kite id. Instead of crashing the complete server.
-      // With a correct client implementation the state should always be
-      // available. No memory corruption on the server side implied.
-      tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id,
-                                      is_reversed, is_active, is_script_kite);
-
-      if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(
-              kite_id, client->socket_id)) {
-        check_return(false); // Disconnect the client.
-      }
-
-      state->kite->is_texture_new = false;
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
-    } break;
-    case MESSAGE_KITES_POSITIONS_RESET: {
-      // All parsing is already done above.
-      tkbc_kite_array_start_position(&env->kite_array, env->window_width,
-                                     env->window_height);
-
-      tkbc_message_clientkites_write_to_all_send_msg_buffers(true);
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS_RESET\n");
-    } break;
-    case MESSAGE_SCRIPT: {
-      if (!tkbc_messages_script(env, lexer, client,
-                                &script_alleady_there_parsing_skip)) {
-
-        goto err;
-      }
-    } break;
-    case MESSAGE_SCRIPT_AMOUNT: {
-      token = lexer_next(lexer);
-      if (token.kind != NUMBER) {
-        goto err;
-      }
-
-      client->script_amount =
-          strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-      token = lexer_next(lexer);
-      if (token.kind != PUNCT_COLON) {
-        goto err;
-      }
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_AMOUNT\n");
-    } break;
-    case MESSAGE_SCRIPT_TOGGLE: {
-      // The script associated kites don't have to be toggled in visibility,
-      // because you want to be able to pause the script.
-      env->script_finished = !env->script_finished;
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_TOGGLE\n");
-    } break;
-    case MESSAGE_SCRIPT_NEXT: {
-      if (!tkbc_messages_script_next(lexer)) {
-        goto err;
-      }
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_NEXT\n");
-    } break;
-    case MESSAGE_SCRIPT_SCRUB: {
-      if (!tkbc_messages_script_scrub(lexer)) {
-        goto err;
-      }
-
-      tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_SCRUB\n");
-    } break;
-    default:
-      tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind);
-      goto err;
-    }
-    continue;
-
-  err: {
-    bool rerun = tkbc_error_handling_of_received_message_handler(
-        message, lexer, &reset, !script_alleady_there_parsing_skip);
-    if (rerun) {
-      continue;
-    }
-    break;
-  }
-  } while (token.kind != EOF_TOKEN);
+    } while (token.kind != EOF_TOKEN);
 
 check:
-  // No lexer_del() for performant reuse of the message.
-  if (lexer->buffer.elements) {
-    free(lexer->buffer.elements);
-    lexer->buffer.elements = NULL;
-  }
-  free(lexer);
-  lexer = NULL;
+    // No lexer_del() for performant reuse of the message.
+    if (lexer->buffer.elements) {
+        free(lexer->buffer.elements);
+        lexer->buffer.elements = NULL;
+    }
+    free(lexer);
+    lexer = NULL;
 
-  if (reset) {
-    message->count = 0;
-    message->i = 0;
-  }
+    if (reset) {
+        message->count = 0;
+        message->i = 0;
+    }
 
-  return ok;
+    return ok;
 }
 
 /**
@@ -1064,8 +1012,8 @@ check:
  * @param signal The signal number that was received.
  */
 void signalhandler(int signal) {
-  (void)signal;
-  abort();
+    (void) signal;
+    abort();
 }
 
 /**
@@ -1079,133 +1027,128 @@ void signalhandler(int signal) {
  */
 int main(int argc, char *argv[]) {
 #ifndef _WIN32
-  struct sigaction sig_action = {0};
-  sig_action.sa_handler = SIG_IGN;
-  sigaction(SIGPIPE, &sig_action, NULL);
+    struct sigaction sig_action = {0};
+    sig_action.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &sig_action, NULL);
 
-  signal(SIGABRT, signalhandler);
-  signal(SIGINT, signalhandler);
-  signal(SIGTERM, signalhandler);
-#endif // _WIN32
-  tkbc_fprintf(stderr, "INFO", "%s\n", "The server has started.");
+    signal(SIGABRT, signalhandler);
+    signal(SIGINT, signalhandler);
+    signal(SIGTERM, signalhandler);
+#endif  // _WIN32
+    tkbc_fprintf(stderr, "INFO", "%s\n", "The server has started.");
 
-  char *program_name = tkbc_shift_args(&argc, &argv);
-  uint16_t port = 8080;
-  if (tkbc_server_commandline_check(argc, program_name)) {
-    char *port_check = tkbc_shift_args(&argc, &argv);
-    port = tkbc_port_parsing(port_check);
-  }
-  server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
-  tkbc_fprintf(stderr, "INFO", "%s: %d\n", "Server socket", server_socket);
+    char *program_name = tkbc_shift_args(&argc, &argv);
+    uint16_t port = 8080;
+    if (tkbc_server_commandline_check(argc, program_name)) {
+        char *port_check = tkbc_shift_args(&argc, &argv);
+        port = tkbc_port_parsing(port_check);
+    }
+    server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
+    tkbc_fprintf(stderr, "INFO", "%s: %d\n", "Server socket", server_socket);
 
 #ifdef _WIN32
-  // Set the socket to non-blocking
-  u_long mode = 1; // 1 to enable non-blocking socket
-  if (ioctlsocket(server_socket, FIONBIO, &mode) != 0) {
-    tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
-    closesocket(server_socket);
-    WSACleanup();
-    exit(1);
-  }
+    // Set the socket to non-blocking
+    u_long mode = 1;  // 1 to enable non-blocking socket
+    if (ioctlsocket(server_socket, FIONBIO, &mode) != 0) {
+        tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
+        closesocket(server_socket);
+        WSACleanup();
+        exit(1);
+    }
 #else
-  // Set the socket to non-blocking
-  int flags = fcntl(server_socket, F_GETFL, 0);
-  if (flags == -1) {
-    tkbc_fprintf(stderr, "ERROR", "Could not get server socket flags: %s\n",
-                 strerror(errno));
-    close(server_socket);
-    exit(1);
-  }
-  flags = fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
-  if (flags == -1) {
-    tkbc_fprintf(stderr, "ERROR",
-                 "Could not set the server socket to non-blocking: %s\n",
-                 strerror(errno));
-    close(server_socket);
-    exit(1);
-  }
-#endif // _WIN32
-
-  append_assets();
-  srand(time(NULL));
-  env = tkbc_init_env();
-  if (!env) {
-    return 1;
-  }
-  env->window_width = 1920;
-  env->window_height = 1080;
-
-  struct pollfd server_fd = {
-      .fd = server_socket,
-      .events = POLLRDNORM,
-      .revents = 0,
-  };
-  tkbc_dap(&fds, server_fd);
-
-  for (;;) {
-    //
-    // TODO: Set the TARGET_DT to 0.
-    //
-    // The client has to collect the positions before displaying them, if the
-    // server is to fast.
-    //
-    tkbc_make_frame_time(TARGET_DT);
-    if (clients_visited >= SERVER_CONNETCTIONS) {
-      break;
+    // Set the socket to non-blocking
+    int flags = fcntl(server_socket, F_GETFL, 0);
+    if (flags == -1) {
+        tkbc_fprintf(stderr, "ERROR", "Could not get server socket flags: %s\n", strerror(errno));
+        close(server_socket);
+        exit(1);
     }
-
-    int timeout = -1; // Infinite
-    if (!tkbc_script_finished(env) && env->script != NULL) {
-      timeout = 0;
+    flags = fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
+    if (flags == -1) {
+        tkbc_fprintf(stderr, "ERROR", "Could not set the server socket to non-blocking: %s\n", strerror(errno));
+        close(server_socket);
+        exit(1);
     }
-    int poll_err = tkbc_poll(timeout);
-    if (poll_err == -1) {
-      break;
+#endif  // _WIN32
+
+    append_assets();
+    srand(time(NULL));
+    env = tkbc_init_env();
+    if (!env) {
+        return 1;
     }
+    env->window_width = 1920;
+    env->window_height = 1080;
 
-    if (poll_err > 0) {
-      tkbc_socket_handling();
+    struct pollfd server_fd = {
+        .fd = server_socket,
+        .events = POLLRDNORM,
+        .revents = 0,
+    };
+    tkbc_dap(&fds, server_fd);
 
-      //
-      // The second call of socket handling is related to the fact that the
-      // base execution can set a POLLWRNORM for clients so a send call has to
-      // be called and then poll can wait for reading events.
-      {
-        timeout = 0; // immediately return
+    for (;;) {
+        //
+        // TODO: Set the TARGET_DT to 0.
+        //
+        // The client has to collect the positions before displaying them, if the
+        // server is to fast.
+        //
+        tkbc_make_frame_time(TARGET_DT);
+        if (clients_visited >= SERVER_CONNETCTIONS) {
+            break;
+        }
+
+        int timeout = -1;  // Infinite
+        if (!tkbc_script_finished(env) && env->script != NULL) {
+            timeout = 0;
+        }
         int poll_err = tkbc_poll(timeout);
         if (poll_err == -1) {
-          break;
-        } else if (poll_err == 0) {
-          continue;
+            break;
         }
-      }
 
-      if (!tkbc_script_finished(env) && poll_err > 0) {
-        tkbc_socket_handling();
-      }
+        if (poll_err > 0) {
+            tkbc_socket_handling();
+
+            //
+            // The second call of socket handling is related to the fact that the
+            // base execution can set a POLLWRNORM for clients so a send call has to
+            // be called and then poll can wait for reading events.
+            {
+                timeout = 0;  // immediately return
+                int poll_err = tkbc_poll(timeout);
+                if (poll_err == -1) {
+                    break;
+                } else if (poll_err == 0) {
+                    continue;
+                }
+            }
+
+            if (!tkbc_script_finished(env) && poll_err > 0) {
+                tkbc_socket_handling();
+            }
+        }
+
+        // Handle messages
+        for (size_t i = 0; i < clients.count; ++i) {
+            Client *client = &clients.elements[i];
+            //
+            // Messages
+            if (!tkbc_received_message_handler(client)) {
+                if (client->recv_msg_buffer.count && client->recv_msg_buffer.count < INT_MAX) {
+                    tkbc_fprintf(stderr, "MESSAGE", "%.*s", (int) client->recv_msg_buffer.count,
+                                 client->recv_msg_buffer.elements);
+                }
+                tkbc_server_shutdown_client(*client, false);
+            }
+        }
+
+        tkbc_base_execution();
     }
 
-    // Handle messages
-    for (size_t i = 0; i < clients.count; ++i) {
-      Client *client = &clients.elements[i];
-      //
-      // Messages
-      if (!tkbc_received_message_handler(client)) {
-        if (client->recv_msg_buffer.count &&
-            client->recv_msg_buffer.count < INT_MAX) {
-          tkbc_fprintf(stderr, "MESSAGE", "%.*s",
-                       (int)client->recv_msg_buffer.count,
-                       client->recv_msg_buffer.elements);
-        }
-        tkbc_server_shutdown_client(*client, false);
-      }
-    }
-
-    tkbc_base_execution();
-  }
-
-  exit_handler();
-  return 0;
+    exit_handler();
+    return 0;
 }
 
 /**
@@ -1219,19 +1162,18 @@ int main(int argc, char *argv[]) {
 int tkbc_poll(int timeout) {
 
 #ifdef _WIN32
-  int poll_err = WSAPoll(fds.elements, fds.count, timeout);
-  if (poll_err == -1) {
-    tkbc_fprintf(stderr, "ERROR", "The poll has failed:%d\n",
-                 WSAGetLastError());
-  }
+    int poll_err = WSAPoll(fds.elements, fds.count, timeout);
+    if (poll_err == -1) {
+        tkbc_fprintf(stderr, "ERROR", "The poll has failed:%d\n", WSAGetLastError());
+    }
 #else
-  int poll_err = poll(fds.elements, fds.count, timeout);
-  if (poll_err == -1) {
-    tkbc_fprintf(stderr, "ERROR", "The poll has failed:%s\n", strerror(errno));
-  }
-#endif // _WIN32
+    int poll_err = poll(fds.elements, fds.count, timeout);
+    if (poll_err == -1) {
+        tkbc_fprintf(stderr, "ERROR", "The poll has failed:%s\n", strerror(errno));
+    }
+#endif  // _WIN32
 
-  return poll_err;
+    return poll_err;
 }
 
 /**
@@ -1242,36 +1184,36 @@ int tkbc_poll(int timeout) {
  * false.
  */
 bool tkbc_base_execution(void) {
-  if (env->scripts.count <= 0) {
+    if (env->scripts.count <= 0) {
+        return false;
+    }
+
+    if (!tkbc_script_finished(env) && env->script != NULL) {
+        size_t bindex = env->frames->frames_index;
+        tkbc_script_update_frames(env);
+
+        if (env->frames->frames_index != bindex) {
+            bindex = env->frames->frames_index;
+            tkbc_message_script_meta_data_write_to_all_send_msg_buffers(env->script->script_id, env->script->count,
+                                                                        bindex);
+        }
+
+        tkbc_message_clientkites_write_to_all_send_msg_buffers(false);
+
+        if (tkbc_script_finished(env)) {
+            space_tdapf(&t_message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
+            tkbc_write_to_all_send_msg_buffers(t_message);
+            tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+
+            for (size_t i = 0; i < env->kite_array.count; ++i) {
+                Kite_State *kite_state = &env->kite_array.elements[i];
+                kite_state->is_active = !kite_state->is_active;
+            }
+        }
+        return true;
+    }
+
     return false;
-  }
-
-  if (!tkbc_script_finished(env) && env->script != NULL) {
-    size_t bindex = env->frames->frames_index;
-    tkbc_script_update_frames(env);
-
-    if (env->frames->frames_index != bindex) {
-      bindex = env->frames->frames_index;
-      tkbc_message_script_meta_data_write_to_all_send_msg_buffers(
-          env->script->script_id, env->script->count, bindex);
-    }
-
-    tkbc_message_clientkites_write_to_all_send_msg_buffers(false);
-
-    if (tkbc_script_finished(env)) {
-      space_tdapf(&t_message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
-      tkbc_write_to_all_send_msg_buffers(t_message);
-      tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
-
-      for (size_t i = 0; i < env->kite_array.count; ++i) {
-        Kite_State *kite_state = &env->kite_array.elements[i];
-        kite_state->is_active = !kite_state->is_active;
-      }
-    }
-    return true;
-  }
-
-  return false;
 }
 
 /**
@@ -1279,24 +1221,24 @@ bool tkbc_base_execution(void) {
  * called if the server should be shutdown.
  */
 void exit_handler() {
-  tkbc_fprintf(stderr, "INFO", "Closing...\n");
+    tkbc_fprintf(stderr, "INFO", "Closing...\n");
 
-  for (size_t i = 0; i < clients.count; ++i) {
-    tkbc_server_shutdown_client(clients.elements[i], true);
-  }
+    for (size_t i = 0; i < clients.count; ++i) {
+        tkbc_server_shutdown_client(clients.elements[i], true);
+    }
 
-  shutdown(server_socket, SHUT_RDWR);
-  tkbc_close(server_socket);
+    shutdown(server_socket, SHUT_RDWR);
+    tkbc_close(server_socket);
 #ifdef _WIN32
-  WSACleanup();
-#endif // _WIN32
+    WSACleanup();
+#endif  // _WIN32
 
-  free(clients.elements);
-  free(fds.elements);
-  space_free_tspace();
+    free(clients.elements);
+    free(fds.elements);
+    space_free_tspace();
 
-  tkbc_destroy_env(env);
-  tkbc_assets_destroy();
-  space_free_space(&assets.space);
-  exit(EXIT_SUCCESS);
+    tkbc_destroy_env(env);
+    tkbc_assets_destroy();
+    space_free_space(&assets.space);
+    exit(EXIT_SUCCESS);
 }

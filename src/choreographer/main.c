@@ -48,75 +48,73 @@ Assets assets = {0};
  * @return int Returns 0 if no errors occur.
  */
 int main(void) {
-  const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
+    const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
 
 #ifdef _WIN32
-  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
 #else
-  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
 #endif
 
-  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
-  SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-  SetTargetFPS(TARGET_FPS);
-  tkbc_load_assets();
-  SetWindowIcon(_tkbc_get_asset_image(LOGO).as.image);
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
+    SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+    SetTargetFPS(TARGET_FPS);
+    tkbc_load_assets();
+    SetWindowIcon(_tkbc_get_asset_image(LOGO).as.image);
 
-  srand(time(NULL));
-  Env *env = tkbc_init_env();
-  if (!env) {
-    return 1;
-  }
+    srand(time(NULL));
+    Env *env = tkbc_init_env();
+    if (!env) return 1;
 
-  if (tkbc_load_keymaps_from_file(&env->keymaps, env->tkbc_keymaps_path)) {
-    tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
-  }
-  SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
-  tkbc_init_sound(40);
+    if (tkbc_load_keymaps_from_file(&env->keymaps, env->tkbc_keymaps_path)) {
+        tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
+    }
+    SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
+    tkbc_init_sound(40);
 
-  while (!WindowShouldClose()) {
-    BeginDrawing();
-    ClearBackground(SKYBLUE);
+    while (!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(SKYBLUE);
 
-    if (env->script_setup) {
-      // For detection if the begin and end is called correctly.
-      env->script_setup = false;
-      tkbc__script_input(env);
-      env->scripts_parsed = true;
+        if (env->script_setup) {
+            // For detection if the begin and end is called correctly.
+            env->script_setup = false;
+            tkbc__script_input(env);
+            env->scripts_parsed = true;
 
 #ifndef RELEASE
-      tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
-#endif // RELEASE
-    }
+            tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
+#endif  // RELEASE
+        }
 
-    if (!tkbc_script_finished(env)) {
-      tkbc_script_update_frames(env);
-    }
+        if (!tkbc_script_finished(env)) {
+            tkbc_script_update_frames(env);
+        }
 
-    tkbc_update_kites_for_resize_window(env);
-    tkbc_draw_kite_array(env->kite_array);
-    tkbc_draw_ui(env);
-    EndDrawing();
-    tkbc_ui_post_handler(env);
+        tkbc_update_kites_for_resize_window(env);
+        tkbc_draw_kite_array(env->kite_array);
+        tkbc_draw_ui(env);
+        EndDrawing();
+        tkbc_ui_post_handler(env);
 
-    tkbc_file_handler(env);
-    if (!env->keymaps_interaction && !env->script_menu_interaction) {
-      tkbc_input_sound_handler(env);
-      tkbc_input_handler_kite_array(env);
-      tkbc_input_handler_script(env);
-    }
+        tkbc_file_handler(env);
+        if (!env->keymaps_interaction && !env->script_menu_interaction) {
+            tkbc_input_sound_handler(env);
+            tkbc_input_handler_kite_array(env);
+            tkbc_input_handler_script(env);
+        }
 
-    // The end of the current frame has to be executed so ffmpeg gets the full
-    // executed fame.
-    tkbc_ffmpeg_handler(env);
-  };
+        // The end of the current frame has to be executed so ffmpeg gets the full
+        // executed fame.
+        tkbc_ffmpeg_handler(env);
+    };
 
-  tkbc_sound_destroy(env->sound);
-  tkbc_destroy_env(env);
-  tkbc_assets_destroy();
+    tkbc_sound_destroy(env->sound);
+    tkbc_destroy_env(env);
+    tkbc_assets_destroy();
 
-  space_free_tspace();
-  space_free_space(&assets.space);
-  CloseWindow();
-  return 0;
+    space_free_tspace();
+    space_free_space(&assets.space);
+    CloseWindow();
+    return 0;
 }

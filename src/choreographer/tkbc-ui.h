@@ -5,21 +5,18 @@
 
 void tkbc_draw_ui(Env *env);
 Color tkbc_get_color_from_screen_position(Vector2 position);
-Vector2 tkbc_get_position_in_rect(Rectangle rect, float rectangle_scale,
-                                  Vector2 pos);
+Vector2 tkbc_get_position_in_rect(Rectangle rect, float rectangle_scale, Vector2 pos);
 void tkbc_ui_post_handler(Env *env);
 void tkbc_display_kite_information_speeds(Env *env, Kite_State *kite_state);
 void tkbc_display_kite_information(Env *env);
 
-void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container,
-                    size_t items_count, size_t *top_interaction_box);
+void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container, size_t items_count,
+                    size_t *top_interaction_box);
 bool tkbc_ui_script_menu(Env *env);
 void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count);
 
-void tkbc_set_key_or_delete(int *dest_key, const char **dest_str,
-                            int key_value);
-void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration,
-                       size_t cur_major_box);
+void tkbc_set_key_or_delete(int *dest_key, const char **dest_str, int key_value);
+void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration, size_t cur_major_box);
 void tkbc_ui_keymaps(Env *env);
 
 void tkbc_set_input_text_to_hex_color(char **text, Color color);
@@ -27,22 +24,17 @@ void tkbc_set_input_text_to_hex_color(char **text, Color color);
 KeyboardKey tkbc_is_hex_color_key_down();
 void tkbc_ui_color_picker(Env *env);
 void tkbc_set_color_for_selected_kites(Env *env, Color color);
-void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture,
-                                         ssize_t texture_id,
-                                         bool is_texture_new);
+void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture, ssize_t texture_id, bool is_texture_new);
 
 void tkbc_draw_shadow(Rectangle shadow, float original_scale);
 void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image);
-void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old,
-                                  Color replace);
+void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old, Color replace);
 
-void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale,
-                       Rectangle color_box);
+void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, Rectangle color_box);
 
 void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace);
-void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p,
-                                         Color replace);
-void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec,
-                    float rec_scale, Colorizer_Mode mode);
+void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p, Color replace);
+void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_scale, Colorizer_Mode mode);
+void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding);
 
-#endif // TKBC_UI_H
+#endif  // TKBC_UI_H

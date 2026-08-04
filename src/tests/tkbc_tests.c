@@ -26,19 +26,19 @@ Env *env = {0};
  * @return 0 on success.
  */
 int main(void) {
-  append_assets();
-  cassert_tests {
-    tkbc_test_geometrics(&tests);
-    tkbc_test_script_handler(&tests);
-  }
+    append_assets();
+    cassert_tests {
+        tkbc_test_geometrics(&tests);
+        tkbc_test_script_handler(&tests);
+    }
 
 #ifdef SHORT_LOG
-  cassert_short_print_tests(&tests);
+    cassert_short_print_tests(&tests);
 #else
-  cassert_print_tests(&tests);
-#endif // SHORT_LOG
+    cassert_print_tests(&tests);
+#endif  // SHORT_LOG
 
-  cassert_free_tests(&tests);
-  tkbc_assets_destroy();
-  return 0;
+    cassert_free_tests(&tests);
+    tkbc_assets_destroy();
+    return 0;
 }
