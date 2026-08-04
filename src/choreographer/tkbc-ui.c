@@ -759,6 +759,8 @@ bool tkbc_ui_script_menu(Env *env) {
     tkbc_unload_script(env);
     tkbc_change_visibility_to_non_script_kites(env);
     env->script_menu_mouse_interaction_box = -1;
+    env->keymaps_interaction = false;
+    env->color_picker_interaction = false;
     env->script_menu_interaction = false;
     env->new_script_selected = true;
   }
@@ -807,6 +809,8 @@ bool tkbc_ui_script_menu(Env *env) {
           true);
 
       env->script_menu_interaction = false;
+      env->keymaps_interaction = false;
+      env->color_picker_interaction = false;
       env->new_script_selected = true;
     }
   }
