@@ -60,8 +60,6 @@ void tkbc_popup_resize(Popup *popup) {
     popup->option1.y = popup->base.y + popup->base.height - cross_box_size;
     popup->option1.width = option1_box_size;
     popup->option1.height = cross_box_size;
-
-    popup->option1_text = "QUIT";
 }
 
 /**
@@ -92,14 +90,14 @@ bool tkbc_draw_popup(Popup *popup) {
         popup->option1_text = "OK";
     }
 
+    const float spacing = 2;
     int opt1_font_size = popup->option1.height;
     Vector2 opt1_text_size =
-        tkbc_reduce_str_to_fit_box(popup->font, popup->option1_text, &opt1_font_size, popup->option1);
-
+        tkbc_reduce_str_to_fit_box(popup->font, popup->option1_text, &opt1_font_size, spacing, popup->option1);
     Vector2 p = {0};
     p.x = popup->option1.x + popup->option1.width / 2.0 - opt1_text_size.x / 2.0;
     p.y = popup->option1.y + popup->option1.height / 2.0 - opt1_text_size.y / 2.0;
-    DrawTextEx(popup->font, popup->option1_text, p, opt1_font_size, 2, TKBC_UI_BLACK);
+    DrawTextEx(popup->font, popup->option1_text, p, opt1_font_size, spacing, TKBC_UI_BLACK);
 
     DrawRectangleRec(popup->cross, popup->cross_color);
     Vector2 start_pos = {.x = popup->cross.x, .y = popup->cross.y};
@@ -113,9 +111,12 @@ bool tkbc_draw_popup(Popup *popup) {
     end_pos.y = popup->cross.y + popup->cross.height;
     DrawLineEx(start_pos, end_pos, thick, TKBC_UI_BLACK);
 
-    p.x = popup->base.x + popup->base.width / 2.0 - popup->text_width / 2.0;
-    p.y = popup->base.y + popup->base.height / 2.0 - popup->font_size / 2.0;
-    DrawTextEx(popup->font, popup->text, p, popup->font_size, 2, popup->text_color);
+    Vector2 text_size = tkbc_reduce_str_to_fit_box(popup->font, popup->text, &popup->font_size, spacing, popup->base);
+    if (text_size.x) {
+        p.x = popup->base.x + popup->base.width / 2.0 - popup->text_width / 2.0;
+        p.y = popup->base.y + popup->base.height / 2.0 - popup->font_size / 2.0;
+        DrawTextEx(popup->font, popup->text, p, popup->font_size, 2, popup->text_color);
+    }
 
     popup->cross_color = save_cross_color;
     popup->option1_color = save_opiton1_color;
@@ -132,7 +133,14 @@ bool tkbc_draw_popup(Popup *popup) {
  */
 Popup tkbc_popup_message(Font font, const char *message) {
     const int font_size = 30;
-    const Vector2 size = MeasureTextEx(font, message, font_size, 0);
+    Vector2 size = {
+        .x = tkbc_get_screen_width() * 0.25,
+        .y = font_size,
+    };
+    const float spacing = 2;
+    if (message) {
+        size = MeasureTextEx(font, message, font_size, spacing);
+    }
 
     Popup frame = {
         .active = false,

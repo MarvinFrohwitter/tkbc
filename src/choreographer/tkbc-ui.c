@@ -651,13 +651,14 @@ bool tkbc_ui_script_menu(Env *env) {
         // TODO: Display an icon on the right of the selection that unload the
         // script form memory. See the TODO for making the space per script.
 
+        const float spacing = 2;
         const char *name = env->scripts.elements[box].name;
-        text_size = tkbc_reduce_str_to_fit_box(env->font, name, &font_size, script_box);
+        text_size = tkbc_reduce_str_to_fit_box(env->font, name, &font_size, spacing, script_box);
 
         Vector2 p;
         p.x = script_box.x + script_box.width / 2 - text_size.x / 2,
         p.y = script_box.y + script_box.height / 2 - text_size.y / 2,
-        DrawTextEx(env->font, name, p, font_size, 2, TKBC_UI_BLACK);
+        DrawTextEx(env->font, name, p, font_size, spacing, TKBC_UI_BLACK);
 
         script_box.y += script_box.height + padding;
         outer_script_box.y += env->box_height;
@@ -692,12 +693,13 @@ bool tkbc_ui_script_menu(Env *env) {
         env->new_script_selected = true;
     }
 
+    const float spacing = 2;
     const char *no_script = "NO SCRIPT";
-    text_size = tkbc_reduce_str_to_fit_box(env->font, no_script, &font_size, outer_script_box);
+    text_size = tkbc_reduce_str_to_fit_box(env->font, no_script, &font_size, spacing, outer_script_box);
     Vector2 p;
     p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
     p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
-    DrawTextEx(env->font, no_script, p, font_size, 2, TKBC_UI_BLACK);
+    DrawTextEx(env->font, no_script, p, font_size, spacing, TKBC_UI_BLACK);
 
     /* ------------------------- Confirm key --------------------------------- */
     outer_script_box.x += (interaction_buttons_count - 1) * (padding + outer_script_box.width);
@@ -734,11 +736,11 @@ bool tkbc_ui_script_menu(Env *env) {
         }
     }
     const char *confirm = "CONFIRM";
-    text_size = tkbc_reduce_str_to_fit_box(env->font, confirm, &font_size, outer_script_box);
+    text_size = tkbc_reduce_str_to_fit_box(env->font, confirm, &font_size, spacing, outer_script_box);
 
     p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
     p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
-    DrawTextEx(env->font, confirm, p, font_size, 2, TKBC_UI_BLACK);
+    DrawTextEx(env->font, confirm, p, font_size, spacing, TKBC_UI_BLACK);
 
     return false;
 }
@@ -1155,11 +1157,12 @@ void tkbc_ui_color_picker(Env *env) {
             colorizer = "RESET";
         }
 
-        text_size = tkbc_reduce_str_to_fit_box(env->font, colorizer, &font_size, colorizer_button);
+        const float spacing = 2;
+        text_size = tkbc_reduce_str_to_fit_box(env->font, colorizer, &font_size, spacing, colorizer_button);
         Vector2 p;
         p.x = colorizer_button.x + colorizer_button.width * 0.5 - text_size.x * 0.5;
         p.y = colorizer_button.y + colorizer_button.height * 0.5 - text_size.y * 0.5;
-        DrawTextEx(env->font, colorizer, p, font_size, 2, TKBC_UI_BLACK);
+        DrawTextEx(env->font, colorizer, p, font_size, spacing, TKBC_UI_BLACK);
     }
 
     Rectangle colorizer_view_background;
@@ -1171,11 +1174,12 @@ void tkbc_ui_color_picker(Env *env) {
         } else {
             designs = "DESIGNS";
         }
-        text_size = tkbc_reduce_str_to_fit_box(env->font, designs, &font_size, forward);
+        const float spacing = 2;
+        text_size = tkbc_reduce_str_to_fit_box(env->font, designs, &font_size, spacing, forward);
 
         position.x = forward.x + forward.width * 0.5 - text_size.x * 0.5;
         position.y = forward.y + forward.height * 0.5 - text_size.y * 0.5;
-        DrawTextEx(env->font, designs, position, font_size, 2, TKBC_UI_BLACK);
+        DrawTextEx(env->font, designs, position, font_size, spacing, TKBC_UI_BLACK);
 
         tkbc_draw_pannels(env, &colorizer_view_background, &colorizer_view_scale, color_box);
     }
@@ -1584,11 +1588,12 @@ key_change_skip: {}
         str = "---";
     }
 
-    text_size = tkbc_reduce_str_to_fit_box(env->font, str, &font_size, rectangle);
+    const float spacing = 2;
+    text_size = tkbc_reduce_str_to_fit_box(env->font, str, &font_size, spacing, rectangle);
     Vector2 p;
     p.x = rectangle.x + rectangle.width * 0.5 - text_size.x * 0.5;
     p.y = rectangle.y + rectangle.height * 0.5 - text_size.y * 0.5;
-    DrawTextEx(env->font, str, p, font_size, 2, TKBC_UI_BLACK);
+    DrawTextEx(env->font, str, p, font_size, spacing, TKBC_UI_BLACK);
 }
 
 /**
@@ -1663,8 +1668,9 @@ void tkbc_ui_keymaps(Env *env) {
             .height = env->box_height,
         };
 
-        text_size = tkbc_reduce_str_to_fit_box(env->font, text, &font_size, bounding_box);
-        DrawTextEx(env->font, text, p, font_size, 2, TKBC_UI_BLACK);
+        const float spacing = 2;
+        text_size = tkbc_reduce_str_to_fit_box(env->font, text, &font_size, spacing, bounding_box);
+        DrawTextEx(env->font, text, p, font_size, spacing, TKBC_UI_BLACK);
 
         for (size_t i = 0; i < key_box_count; ++i) {
             // BOX_MOD_KEY
@@ -1701,13 +1707,14 @@ void tkbc_ui_keymaps(Env *env) {
             SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
         }
     }
+    const float spacing = 2;
     const char *load = "LOAD";
-    text_size = tkbc_reduce_str_to_fit_box(env->font, load, &font_size, env->keymaps_base);
+    text_size = tkbc_reduce_str_to_fit_box(env->font, load, &font_size, spacing, env->keymaps_base);
 
     Vector2 p;
     p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5;
     p.y = env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5;
-    DrawTextEx(env->font, load, p, font_size, 2, TKBC_UI_BLACK);
+    DrawTextEx(env->font, load, p, font_size, spacing, TKBC_UI_BLACK);
 
     env->keymaps_base.x += padding + env->keymaps_base.width;
     if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
@@ -1723,10 +1730,10 @@ void tkbc_ui_keymaps(Env *env) {
         }
     }
     const char *reset = "RESET";
-    text_size = tkbc_reduce_str_to_fit_box(env->font, reset, &font_size, env->keymaps_base);
+    text_size = tkbc_reduce_str_to_fit_box(env->font, reset, &font_size, spacing, env->keymaps_base);
     p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
     p.y = env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
-    DrawTextEx(env->font, reset, p, font_size, 2, TKBC_UI_BLACK);
+    DrawTextEx(env->font, reset, p, font_size, spacing, TKBC_UI_BLACK);
 
     env->keymaps_base.x += padding + env->keymaps_base.width;
     if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
@@ -1742,10 +1749,10 @@ void tkbc_ui_keymaps(Env *env) {
         }
     }
     const char *save = "SAVE";
-    text_size = tkbc_reduce_str_to_fit_box(env->font, save, &font_size, env->keymaps_base);
+    text_size = tkbc_reduce_str_to_fit_box(env->font, save, &font_size, spacing, env->keymaps_base);
     p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
     p.y = env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
-    DrawTextEx(env->font, save, p, font_size, 2, TKBC_UI_BLACK);
+    DrawTextEx(env->font, save, p, font_size, spacing, TKBC_UI_BLACK);
 }
 
 void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding) {

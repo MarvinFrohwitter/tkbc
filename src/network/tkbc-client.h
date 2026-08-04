@@ -2,6 +2,7 @@
 #define TKBC_CLIENT_H
 
 #include "tkbc-network-common.h"
+#include "../global/tkbc-popup.h"
 #include <stdint.h>
 
 void tkbc_client_usage(const char *program_name);
@@ -19,5 +20,9 @@ bool tkbc_message_append_script(size_t script_id);
 bool tkbc_message_script(void);
 void tkbc_client_file_handler(void);
 void tkbc_client_input_handler_script(void);
+
+bool tkbc_run(Env *env);
+void tkbc_init_online_or_offline_state(Env *env, const char *host, const char *port);
+void tkbc_connection_input(Env *env, Popup *popup, const char **host, const char **port);
 
 #endif  // TKBC_CLIENT_H

@@ -209,7 +209,7 @@ uint32_t tkbc_color_to_uint32_t(Color color);
 Color tkbc_uint32_t_to_color(uint32_t color);
 
 unsigned char *tkbc_get_position_in_image(Image image, int x, int y);
-Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size, Rectangle bounding_box);
+Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size, float spacing, Rectangle bounding_box);
 #endif
 
 float tkbc_clamp(float z, float a, float b);
@@ -977,16 +977,18 @@ unsigned char *tkbc_get_position_in_image(Image image, int x, int y) {
  * @param str The text that should fit in the bounding_box.
  * @param font_size The font size the str has to be displayed at to fit the
  * bounding_box.
+ * @param spacing space between chars.
  * @param bounding_box The rectangle where the text str should fit in.
  * @return The text with and height that fits the bounding_box.
  */
-Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size, Rectangle bounding_box) {
+Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size, float spacing, Rectangle bounding_box) {
     Vector2 text_size = {0};
-
-    text_size = MeasureTextEx(font, str, *font_size, 0);
-    while (text_size.x > bounding_box.width / 2.0 && text_size.y > bounding_box.height / 2.0) {
-        *font_size -= 1;
-        text_size = MeasureTextEx(font, str, *font_size, 2);
+    if (str) {
+        text_size = MeasureTextEx(font, str, *font_size, spacing);
+        while (text_size.x > bounding_box.width / 2.0 && text_size.y > bounding_box.height / 2.0) {
+            *font_size -= 1;
+            text_size = MeasureTextEx(font, str, *font_size, spacing);
+        }
     }
     return text_size;
 }

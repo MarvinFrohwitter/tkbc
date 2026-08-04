@@ -70,12 +70,15 @@
 #include <string.h>
 #include <unistd.h>
 
+Assets assets = {0};
 Env *env = {0};
 Client client = {0};
 Kite client_kite;
-Popup loading = {0};
 
-Assets assets = {0};
+static Popup connection = {0};
+static Popup loading = {0};
+static Popup disconnect = {0};
+static bool sending_receiving = true;
 
 /**
  * @brief The function prints the way the program should be called.
@@ -1030,16 +1033,15 @@ int main(int argc, char *argv[]) {
 
     client.kite_id = -1;
 
-    char *program_name = tkbc_shift_args(&argc, &argv);
     const char *port = "8080";
     const char *host = "127.0.0.1";
+    char *program_name = tkbc_shift_args(&argc, &argv);
     if (tkbc_client_commandline_check(argc, program_name)) {
         host = tkbc_shift_args(&argc, &argv);
         port = tkbc_shift_args(&argc, &argv);
     }
 
     const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
-
     SetTraceLogLevel(LOG_NONE);
 #ifdef _WIN32
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
@@ -1058,30 +1060,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     // The font loading has to happen before creating Popup's.
-    Popup disconnect = tkbc_popup_message(env->font, "The server has disconnected!");
+    connection = tkbc_popup_message(env->font, NULL);
+    connection.active = true;
+    disconnect = tkbc_popup_message(env->font, "The server has disconnected!");
+    disconnect.option1_text = "QUIT";
     loading = tkbc_popup_message(env->font, "Waiting for server.");
-
-    int sending_receiving = true;
-    {  // This is deferred to allow window creation, asset loading and env init.
-        client.socket_id = tkbc_client_socket_creation(host, port);
-        if (client.socket_id == -1) {
-            // Generate a base kite that you can fly. The server doesn't provide you a
-            // kite.
-            Kite_State s = tkbc_init_kite();
-            s.is_active = true;
-            s.kite_id = env->kite_id_counter++;
-            client.kite_id = s.kite_id;
-            s.is_kite_input_handler_active = true;
-            client_kite = *s.kite;
-            tkbc_dap(&env->kite_array, s);
-            sending_receiving = false;
-            loading.active = false;
-        } else {
-            loading.active = true;
-            space_init_capacity(&client.send_msg_buffer_space, BUFFER_CAPACITY);
-            space_init_capacity(&client.recv_msg_buffer_space, BUFFER_CAPACITY);
-        }
-    }
+    loading.option1_text = "QUIT";
 
     if (tkbc_load_keymaps_from_file(&env->keymaps, env->tkbc_keymaps_path)) {
         tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
@@ -1090,77 +1074,31 @@ int main(int argc, char *argv[]) {
     tkbc_init_sound(40);
 
     while (!WindowShouldClose()) {
-
-        if (sending_receiving) {
-            if (!message_queue_handler()) {
-                disconnect.active = true;
-            }
-            sending_receiving = send_message_send_handler();
-        }
-
         BeginDrawing();
         ClearBackground(TKBC_UI_SKYBLUE);
 
-        if (tkbc_check_popup_interaction(&loading)) {
-            break;
-        }
+        if (connection.active) {
+            tkbc_popup_resize(&connection);
+            tkbc_draw_popup(&connection);
+            tkbc_connection_input(env, &connection, &host, &port);
 
-        int interaction = tkbc_check_popup_interaction(&disconnect);
-        if (interaction == 1) {
-            break;
-        } else if (interaction == -1) {
-            disconnect.active = false;
-            loading.active = false;
-        }
-
-        if (loading.active) {
-            tkbc_popup_resize(&loading);
-            tkbc_draw_popup(&loading);
-        } else {
-
-            if (sending_receiving) {
-                sending_script_handler();
-            } else {
-                // Offline Mode.
-                if (env->script_setup) {
-                    // For detection if the begin and end is called correctly.
-                    env->script_setup = false;
-                    tkbc__script_input(env);
-                    env->scripts_parsed = true;
-
-                    // HACK disabling the default activeness just for offline is wrong.
-                    for (size_t k = 0; k < env->kite_array.count; ++k) {
-                        if (env->kite_array.elements[k].kite_id == (size_t) client.kite_id) {
-                            continue;
-                        }
-                        env->kite_array.elements[k].is_active = false;
-                    }
-
-#ifndef RELEASE
-                    tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
-#endif  // RELEASE
-                }
-
-                if (!tkbc_script_finished(env)) {
-                    tkbc_script_update_frames(env);
-                }
+            int ok = tkbc_check_popup_interaction(&connection);
+            if (ok == -1) {
+                break;
+            } else if (ok == 1) {
+                // input confirmed
+                connection.active = false;
+                tkbc_init_online_or_offline_state(env, host, port);
             }
 
-            tkbc_update_kites_for_resize_window(env);
-            tkbc_draw_kite_array(env->kite_array);
-            tkbc_draw_ui(env);
-        }
-
-        if (disconnect.active) {
-            sending_receiving = false;
-            // Clearing for offline continuation.
-            client.send_msg_buffer.count = 0;
-            tkbc_popup_resize(&disconnect);
-            tkbc_draw_popup(&disconnect);
+        } else {
+            if (!tkbc_run(env)) {
+                break;
+            }
         }
 
         EndDrawing();
-        if (disconnect.active || loading.active || client.kite_id == -1) {
+        if (connection.active || disconnect.active || loading.active || client.kite_id == -1) {
             continue;
         }
         tkbc_ui_post_handler(env);
@@ -1182,7 +1120,9 @@ int main(int argc, char *argv[]) {
         tkbc_ffmpeg_handler(env);
     };
 
-    if (client.socket_id != -1) {
+    tkbc_fprintf(stderr, "INFO", "Exiting 3...2...1...\n");
+    if (client.socket_id > 0) {
+        tkbc_fprintf(stderr, "INFO", "UNExiting %d...\n", client.socket_id);
         space_free_space(&client.send_msg_buffer_space);
         space_free_space(&client.recv_msg_buffer_space);
         client.recv_msg_buffer.elements = NULL;
@@ -1224,4 +1164,151 @@ int main(int argc, char *argv[]) {
     CloseWindow();
     tkbc_fprintf(stderr, "INFO", "EXITED SUCCESSFULLY.\n");
     return 0;
+}
+
+bool tkbc_run(Env *env) {
+    if (sending_receiving) {
+        if (!message_queue_handler()) {
+            disconnect.active = true;
+        }
+        sending_receiving = send_message_send_handler();
+    }
+
+    if (tkbc_check_popup_interaction(&loading)) {
+        return false;
+    }
+
+    int interaction = tkbc_check_popup_interaction(&disconnect);
+    if (interaction == 1) {
+        return false;
+    } else if (interaction == -1) {
+        disconnect.active = false;
+        loading.active = false;
+    }
+
+    if (loading.active) {
+        tkbc_popup_resize(&loading);
+        tkbc_draw_popup(&loading);
+    } else {
+
+        if (sending_receiving) {
+            sending_script_handler();
+        } else {
+            // Offline Mode.
+            if (env->script_setup) {
+                // For detection if the begin and end is called correctly.
+                env->script_setup = false;
+                tkbc__script_input(env);
+                env->scripts_parsed = true;
+
+                // HACK disabling the default activeness just for offline is wrong.
+                for (size_t k = 0; k < env->kite_array.count; ++k) {
+                    if (env->kite_array.elements[k].kite_id == (size_t) client.kite_id) {
+                        continue;
+                    }
+                    env->kite_array.elements[k].is_active = false;
+                }
+
+#ifndef RELEASE
+                tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
+#endif  // RELEASE
+            }
+
+            if (!tkbc_script_finished(env)) {
+                tkbc_script_update_frames(env);
+            }
+        }
+
+        tkbc_update_kites_for_resize_window(env);
+        tkbc_draw_kite_array(env->kite_array);
+        tkbc_draw_ui(env);
+    }
+
+    if (disconnect.active) {
+        sending_receiving = false;
+        // Clearing for offline continuation.
+        client.send_msg_buffer.count = 0;
+        tkbc_popup_resize(&disconnect);
+        tkbc_draw_popup(&disconnect);
+    }
+    return true;
+}
+
+void tkbc_init_online_or_offline_state(Env *env, const char *host, const char *port) {
+    // This is deferred to allow window creation, asset loading and env init.
+    client.socket_id = tkbc_client_socket_creation(host, port);
+    if (client.socket_id == -1) {
+        // Generate a base kite that you can fly. The server doesn't provide you a
+        // kite.
+        Kite_State s = tkbc_init_kite();
+        s.is_active = true;
+        s.kite_id = env->kite_id_counter++;
+        client.kite_id = s.kite_id;
+        s.is_kite_input_handler_active = true;
+        client_kite = *s.kite;
+        tkbc_dap(&env->kite_array, s);
+        sending_receiving = false;
+        loading.active = false;
+    } else {
+        loading.active = true;
+        space_init_capacity(&client.send_msg_buffer_space, BUFFER_CAPACITY);
+        space_init_capacity(&client.recv_msg_buffer_space, BUFFER_CAPACITY);
+    }
+}
+
+void tkbc_connection_input(Env *env, Popup *popup, const char **host, const char **port) {
+    int fields_count = 2;
+    float spacing = 2;
+
+    static bool host_input_is_active = true;
+
+    {
+        Rectangle host_input;
+        host_input.height = popup->base.height * 0.25;
+        host_input.y = popup->base.y + popup->base.height / 2 - host_input.height / 2;
+        host_input.width = popup->base.width / (2 * fields_count + 1);
+        host_input.x = popup->base.x + host_input.width;
+        DrawRectangleRec(host_input, TKBC_UI_GRAY);
+
+        const char *input_text = *host;
+        Vector2 text_size = tkbc_reduce_str_to_fit_box(popup->font, input_text, &popup->font_size, spacing, host_input);
+        Vector2 input_text_pos = {
+            .x = host_input.x + spacing,
+            .y = host_input.y + host_input.height / 2 - text_size.y / 2,
+        };
+        DrawTextEx(popup->font, input_text, input_text_pos, text_size.y, spacing, popup->text_color);
+
+        if (CheckCollisionPointRec(GetMousePosition(), host_input) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            host_input_is_active = true;
+        }
+
+        if (host_input_is_active) {
+            tkbc_draw_cursor(host_input, text_size, spacing);
+        }
+    }
+
+    {
+        Rectangle port_input;
+        port_input.height = popup->base.height * 0.25;
+        port_input.y = popup->base.y + popup->base.height / 2 - port_input.height / 2;
+        port_input.width = popup->base.width / (2 * fields_count + 1);
+        port_input.x = popup->base.x + popup->base.width - port_input.width * fields_count;
+        DrawRectangleRec(port_input, TKBC_UI_GRAY);
+
+        const char *input_text = *port;
+        Vector2 text_size = tkbc_reduce_str_to_fit_box(popup->font, input_text, &popup->font_size, spacing, port_input);
+        Vector2 input_text_pos = {
+            .x = port_input.x + spacing,
+            .y = port_input.y + port_input.height / 2 - text_size.y / 2,
+        };
+        DrawTextEx(popup->font, input_text, input_text_pos, text_size.y, spacing, popup->text_color);
+
+        if (CheckCollisionPointRec(GetMousePosition(), port_input) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            host_input_is_active = false;
+        }
+
+        if (!host_input_is_active) {
+            tkbc_draw_cursor(port_input, text_size, spacing);
+        }
+    }
 }
