@@ -23,7 +23,8 @@ first.o-win64: build
 	./cb first.o windows
 
 tkbc: build
-	./cb tkbc
+	./cb client
+	cp ./build/client ./build/tkbc
 
 tkbc-win64: build
 	./cb tkbc windows

@@ -940,6 +940,50 @@ KeyboardKey tkbc_is_hex_color_key_down() {
 }
 
 /**
+ * @brief [TODO:description]
+ *
+ * @return [TODO:return]
+ */
+KeyboardKey tkbc_is_port_number_key_down() {
+    static KeyboardKey keys[] = {
+        KEY_ZERO,   KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE, KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE,
+
+        KEY_PERIOD,
+    };
+
+    for (KeyboardKey key = 0; key < ARRAY_LENGTH(keys); ++key) {
+        if (IsKeyPressedRepeat(keys[key]) || IsKeyPressed(keys[key])) {
+            return keys[key];
+        }
+    }
+    return KEY_NULL;
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @return [TODO:return]
+ */
+KeyboardKey tkbc_is_domain_name_key_down() {
+    static KeyboardKey keys[] = {
+        KEY_ZERO,   KEY_ONE,   KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE, KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE,
+
+        KEY_A,      KEY_B,     KEY_C,   KEY_D,     KEY_E,    KEY_F,    KEY_G,   KEY_H,     KEY_I,     KEY_J,
+        KEY_K,      KEY_L,     KEY_M,   KEY_N,     KEY_O,    KEY_P,    KEY_Q,   KEY_R,     KEY_S,     KEY_T,
+        KEY_U,      KEY_V,     KEY_W,   KEY_X,     KEY_Y,    KEY_Z,
+
+        KEY_PERIOD, KEY_MINUS,
+    };
+
+    for (KeyboardKey key = 0; key < ARRAY_LENGTH(keys); ++key) {
+        if (IsKeyPressedRepeat(keys[key]) || IsKeyPressed(keys[key])) {
+            return keys[key];
+        }
+    }
+    return KEY_NULL;
+}
+
+/**
  * @brief The function manages and displays the color picker where the user
  * can select new colors for the currently selected kites.
  *
