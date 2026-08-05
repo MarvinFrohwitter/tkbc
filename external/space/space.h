@@ -33,7 +33,7 @@
 #else
 #define SPACE_ALLOC_METHOD_DEFAULT -1
 #endif
-#endif // SPACE_ALLOC_METHOD_DEFAULT
+#endif  // SPACE_ALLOC_METHOD_DEFAULT
 //
 //
 //
@@ -63,33 +63,32 @@
 #error "No valid alloc method"
 #endif
 
-#if (SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP) &&                                \
-    (SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC)
+#if (SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP) && (SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC)
 #warning "Are you sure you are on Windows and POSIX at the same time?"
 #endif
 
 #ifndef SPACEDECL
 #define SPACEDECL static inline
-#endif // SPACEDECL
+#endif  // SPACEDECL
 
 #ifndef SPACEDEF
 #define SPACEDEF static inline
-#endif // SPACEDEF
+#endif  // SPACEDEF
 
 typedef struct Planet Planet;
 struct Planet {
-  void *elements;
-  size_t count;
-  size_t capacity;
-  size_t id;
-}; // 48 Bytes
+    void *elements;
+    size_t count;
+    size_t capacity;
+    size_t id;
+};  // 48 Bytes
 
 typedef struct Big_Planet Big_Planet;
 struct Big_Planet {
-  Planet planet;
-  Big_Planet *prev;
-  Big_Planet *next;
-}; // 48 Bytes
+    Planet planet;
+    Big_Planet *prev;
+    Big_Planet *next;
+};  // 48 Bytes
 
 // MEMORY layout operations
 #define SPACE_MEMORY_DOUBLE_LINKED_LIST (0x10)
@@ -97,9 +96,8 @@ struct Big_Planet {
 #define SPACE_MEMORY_STUCT_OF_ARRAYS (0x40)
 
 #ifndef SPACE_MEMORY_LAYOUT_METHOD
-#define SPACE_MEMORY_LAYOUT_METHOD                                             \
-  (SPACE_MEMORY_DOUBLE_LINKED_LIST | SPACE_MEMORY_DYNAMIC_ARRAY |              \
-   SPACE_MEMORY_STUCT_OF_ARRAYS)
+#define SPACE_MEMORY_LAYOUT_METHOD                                                                                     \
+    (SPACE_MEMORY_DOUBLE_LINKED_LIST | SPACE_MEMORY_DYNAMIC_ARRAY | SPACE_MEMORY_STUCT_OF_ARRAYS)
 
 #endif
 
@@ -122,38 +120,35 @@ struct Big_Planet {
 typedef void void_t;
 
 typedef struct {
-  union {
-    Big_Planet *sun;
-
-    struct {
-      union {
-        Planet *elements;
+    union {
+        Big_Planet *sun;
 
         struct {
-          void_t **planet_elements;
-          size_t *planet_counts;
-          size_t *planet_capacitys;
-          size_t *planet_ids;
+            union {
+                Planet *elements;
+
+                struct {
+                    void_t **planet_elements;
+                    size_t *planet_counts;
+                    size_t *planet_capacitys;
+                    size_t *planet_ids;
+                };
+            };
+
+            size_t capacity;
         };
-      };
-
-      size_t capacity;
     };
-  };
 
-  size_t count;
+    size_t count;
 
-  size_t id_counter;
-  unsigned char alloc_method;
-  unsigned char memory_layout;
-} Space; // 64 Bytes
+    size_t id_counter;
+    unsigned char alloc_method;
+    unsigned char memory_layout;
+} Space;  // 64 Bytes
 
-SPACEDECL bool space_init_planet(Space *space, size_t size_in_bytes,
-                                 Planet *planet);
+SPACEDECL bool space_init_planet(Space *space, size_t size_in_bytes, Planet *planet);
 SPACEDECL void space_free_planet(Space *space, Planet *planet);
-SPACEDECL void space_free_planet_optional_freeing_data(Space *space,
-                                                       Planet *planet,
-                                                       bool free_data);
+SPACEDECL void space_free_planet_optional_freeing_data(Space *space, Planet *planet, bool free_data);
 SPACEDECL void space_free_space(Space *space);
 SPACEDECL void space_free_space_internals_without_freeing_data(Space *space);
 
@@ -170,185 +165,143 @@ SPACEDECL void space_reset_space_and_zero(Space *space);
 SPACEDECL void space_reset_space(Space *space);
 SPACEDECL void *space_malloc(Space *space, size_t size_in_bytes);
 SPACEDECL void *space_calloc(Space *space, size_t nmemb, size_t size);
-SPACEDECL void *space_realloc(Space *space, void *ptr, size_t old_size,
-                              size_t new_size);
-SPACEDECL void *space_alloc_planetid(Space *space, size_t size_in_bytes,
-                                     size_t *planet_id, bool force_new_planet);
+SPACEDECL void *space_realloc(Space *space, void *ptr, size_t old_size, size_t new_size);
+SPACEDECL void *space_alloc_planetid(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet);
 
-SPACEDECL void *space_malloc_planetid(Space *space, size_t size_in_bytes,
-                                      size_t *planet_id);
-SPACEDECL void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
-                                      size_t *planet_id);
-SPACEDECL void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
-                                       size_t new_size, size_t *planet_id);
+SPACEDECL void *space_malloc_planetid(Space *space, size_t size_in_bytes, size_t *planet_id);
+SPACEDECL void *space_calloc_planetid(Space *space, size_t nmemb, size_t size, size_t *planet_id);
+SPACEDECL void *space_realloc_planetid(Space *space, void *ptr, size_t old_size, size_t new_size, size_t *planet_id);
 
-SPACEDECL void *space_malloc_force_new_planet(Space *space,
-                                              size_t size_in_bytes);
-SPACEDECL void *space_calloc_force_new_planet(Space *space, size_t nmemb,
-                                              size_t size);
-SPACEDECL void *space_realloc_force_new_planet(Space *space, void *ptr,
-                                               size_t old_size,
-                                               size_t new_size);
+SPACEDECL void *space_malloc_force_new_planet(Space *space, size_t size_in_bytes);
+SPACEDECL void *space_calloc_force_new_planet(Space *space, size_t nmemb, size_t size);
+SPACEDECL void *space_realloc_force_new_planet(Space *space, void *ptr, size_t old_size, size_t new_size);
 
-SPACEDECL void *space_malloc_planetid_force_new_planet(Space *space,
-                                                       size_t size_in_bytes,
-                                                       size_t *planet_id);
-SPACEDECL void *space_calloc_planetid_force_new_planet(Space *space,
-                                                       size_t nmemb,
-                                                       size_t size,
-                                                       size_t *planet_id);
-SPACEDECL void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
-                                                        size_t old_size,
-                                                        size_t new_size,
+SPACEDECL void *space_malloc_planetid_force_new_planet(Space *space, size_t size_in_bytes, size_t *planet_id);
+SPACEDECL void *space_calloc_planetid_force_new_planet(Space *space, size_t nmemb, size_t size, size_t *planet_id);
+SPACEDECL void *space_realloc_planetid_force_new_planet(Space *space, void *ptr, size_t old_size, size_t new_size,
                                                         size_t *planet_id);
 
 SPACEDECL bool space_init_capacity(Space *space, size_t size_in_bytes);
-SPACEDECL bool space_init_capacity_in_count_plantes(Space *space,
-                                                    size_t size_in_bytes,
-                                                    size_t count);
+SPACEDECL bool space_init_capacity_in_count_plantes(Space *space, size_t size_in_bytes, size_t count);
 SPACEDECL size_t space_find_planet_id_from_ptr(Space *space, void *ptr);
 SPACEDECL Planet *space_find_planet_from_ptr(Space *space, void *ptr);
 
-SPACEDECL Big_Planet *space_find_big_planet_from_planet(Space *space,
-                                                        Planet *planet);
+SPACEDECL Big_Planet *space_find_big_planet_from_planet(Space *space, Planet *planet);
 
-SPACEDECL bool space_try_to_expand_in_place(Space *space, void *ptr,
-                                            size_t old_size, size_t new_size,
+SPACEDECL bool space_try_to_expand_in_place(Space *space, void *ptr, size_t old_size, size_t new_size,
                                             size_t *planet_id);
 
 typedef struct {
-  size_t planet_count;
-  size_t allocated_capacity;
-  size_t allocated_count;
+    size_t planet_count;
+    size_t allocated_capacity;
+    size_t allocated_count;
 } Space_Report;
 
 SPACEDECL bool space_report_allocations(Space *space, Space_Report *report);
 
 #define SPACE_DAP_CAP 64
-#define space_dap_impl(space, realloc_function, dynamic_array, element)        \
-  do {                                                                         \
-    if ((dynamic_array)->capacity <= (dynamic_array)->count) {                 \
-      size_t old_capacity = (dynamic_array)->capacity;                         \
-      if ((dynamic_array)->capacity == 0)                                      \
-        (dynamic_array)->capacity = SPACE_DAP_CAP;                             \
-      else                                                                     \
-        (dynamic_array)->capacity = (dynamic_array)->capacity * 2;             \
-                                                                               \
-      (dynamic_array)->elements = realloc_function(                            \
-          (space), (dynamic_array)->elements,                                  \
-          sizeof(*(dynamic_array)->elements) * old_capacity,                   \
-          sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);     \
-                                                                               \
-      if ((dynamic_array)->elements == NULL) {                                 \
-        fprintf(                                                               \
-            stderr,                                                            \
-            "The allocation for the dynamic array has failed in: %s: %d\n",    \
-            __FILE__, __LINE__);                                               \
-        abort();                                                               \
-      }                                                                        \
-    }                                                                          \
-                                                                               \
-    (dynamic_array)->elements[(dynamic_array)->count] = (element);             \
-    (dynamic_array)->count = (dynamic_array)->count + 1;                       \
-  } while (0)
+#define space_dap_impl(space, realloc_function, dynamic_array, element)                                                \
+    do {                                                                                                               \
+        if ((dynamic_array)->capacity <= (dynamic_array)->count) {                                                     \
+            size_t old_capacity = (dynamic_array)->capacity;                                                           \
+            if ((dynamic_array)->capacity == 0)                                                                        \
+                (dynamic_array)->capacity = SPACE_DAP_CAP;                                                             \
+            else                                                                                                       \
+                (dynamic_array)->capacity = (dynamic_array)->capacity * 2;                                             \
+                                                                                                                       \
+            (dynamic_array)->elements = realloc_function(                                                              \
+                (space), (dynamic_array)->elements, sizeof(*(dynamic_array)->elements) * old_capacity,                 \
+                sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);                                       \
+                                                                                                                       \
+            if ((dynamic_array)->elements == NULL) {                                                                   \
+                fprintf(stderr, "The allocation for the dynamic array has failed in: %s: %d\n", __FILE__, __LINE__);   \
+                abort();                                                                                               \
+            }                                                                                                          \
+        }                                                                                                              \
+                                                                                                                       \
+        (dynamic_array)->elements[(dynamic_array)->count] = (element);                                                 \
+        (dynamic_array)->count = (dynamic_array)->count + 1;                                                           \
+    } while (0)
 
-#define space_dapc_impl(space, realloc_function, dynamic_array, new_elements,  \
-                        new_elements_count)                                    \
-  do {                                                                         \
-    if ((new_elements) != NULL) {                                              \
-      if ((dynamic_array)->capacity <                                          \
-          (dynamic_array)->count + new_elements_count) {                       \
-        size_t old_capacity = (dynamic_array)->capacity;                       \
-        if ((dynamic_array)->capacity == 0) {                                  \
-          (dynamic_array)->capacity = SPACE_DAP_CAP;                           \
-        }                                                                      \
-        while ((dynamic_array)->capacity <                                     \
-               (dynamic_array)->count + new_elements_count) {                  \
-          (dynamic_array)->capacity = (dynamic_array)->capacity * 2;           \
-        }                                                                      \
-        (dynamic_array)->elements = realloc_function(                          \
-            (space), (dynamic_array)->elements,                                \
-            sizeof(*(dynamic_array)->elements) * old_capacity,                 \
-            sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);   \
-        if ((dynamic_array)->elements == NULL) {                               \
-          fprintf(                                                             \
-              stderr,                                                          \
-              "The allocation for the dynamic array has failed in: %s: %d\n",  \
-              __FILE__, __LINE__);                                             \
-          abort();                                                             \
-        }                                                                      \
-      }                                                                        \
-      memcpy((dynamic_array)->elements + (dynamic_array)->count,               \
-             (new_elements),                                                   \
-             sizeof(*(dynamic_array)->elements) * (new_elements_count));       \
-      (dynamic_array)->count = (dynamic_array)->count + new_elements_count;    \
-    }                                                                          \
-  } while (0)
+#define space_dapc_impl(space, realloc_function, dynamic_array, new_elements, new_elements_count)                      \
+    do {                                                                                                               \
+        if ((new_elements) != NULL) {                                                                                  \
+            if ((dynamic_array)->capacity < (dynamic_array)->count + new_elements_count) {                             \
+                size_t old_capacity = (dynamic_array)->capacity;                                                       \
+                if ((dynamic_array)->capacity == 0) {                                                                  \
+                    (dynamic_array)->capacity = SPACE_DAP_CAP;                                                         \
+                }                                                                                                      \
+                while ((dynamic_array)->capacity < (dynamic_array)->count + new_elements_count) {                      \
+                    (dynamic_array)->capacity = (dynamic_array)->capacity * 2;                                         \
+                }                                                                                                      \
+                (dynamic_array)->elements = realloc_function(                                                          \
+                    (space), (dynamic_array)->elements, sizeof(*(dynamic_array)->elements) * old_capacity,             \
+                    sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);                                   \
+                if ((dynamic_array)->elements == NULL) {                                                               \
+                    fprintf(stderr, "The allocation for the dynamic array has failed in: %s: %d\n", __FILE__,          \
+                            __LINE__);                                                                                 \
+                    abort();                                                                                           \
+                }                                                                                                      \
+            }                                                                                                          \
+            memcpy((dynamic_array)->elements + (dynamic_array)->count, (new_elements),                                 \
+                   sizeof(*(dynamic_array)->elements) * (new_elements_count));                                         \
+            (dynamic_array)->count = (dynamic_array)->count + new_elements_count;                                      \
+        }                                                                                                              \
+    } while (0)
 
-#define space_dapf_impl(space, realloc_function, dynamic_array, fmt, ...)      \
-  do {                                                                         \
-    int n = snprintf(NULL, 0, (fmt), ##__VA_ARGS__);                           \
-    if (n == -1) {                                                             \
-      assert(0 && "snprintf failed!");                                         \
-    }                                                                          \
-    n += 1;                                                                    \
-    if ((dynamic_array)->capacity < (dynamic_array)->count + n) {              \
-      size_t old_capacity = (dynamic_array)->capacity;                         \
-      if ((dynamic_array)->capacity == 0) {                                    \
-        (dynamic_array)->capacity = SPACE_DAP_CAP;                             \
-      }                                                                        \
-      while ((dynamic_array)->capacity < (dynamic_array)->count + n) {         \
-        (dynamic_array)->capacity = (dynamic_array)->capacity * 2;             \
-      }                                                                        \
-      (dynamic_array)->elements = realloc_function(                            \
-          (space), (dynamic_array)->elements,                                  \
-          sizeof(*(dynamic_array)->elements) * old_capacity,                   \
-          sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);     \
-      if ((dynamic_array)->elements == NULL) {                                 \
-        fprintf(                                                               \
-            stderr,                                                            \
-            "The allocation for the dynamic array has failed in: %s: %d\n",    \
-            __FILE__, __LINE__);                                               \
-        abort();                                                               \
-      }                                                                        \
-    }                                                                          \
-                                                                               \
-    int err = snprintf((dynamic_array)->elements + (dynamic_array)->count, n,  \
-                       (fmt), ##__VA_ARGS__);                                  \
-    if (err == -1) {                                                           \
-      assert(0 && "snprintf failed!");                                         \
-    }                                                                          \
-    (dynamic_array)->count += err;                                             \
-  } while (0)
+#define space_dapf_impl(space, realloc_function, dynamic_array, fmt, ...)                                              \
+    do {                                                                                                               \
+        int n = snprintf(NULL, 0, (fmt), ##__VA_ARGS__);                                                               \
+        if (n == -1) {                                                                                                 \
+            assert(0 && "snprintf failed!");                                                                           \
+        }                                                                                                              \
+        n += 1;                                                                                                        \
+        if ((dynamic_array)->capacity < (dynamic_array)->count + n) {                                                  \
+            size_t old_capacity = (dynamic_array)->capacity;                                                           \
+            if ((dynamic_array)->capacity == 0) {                                                                      \
+                (dynamic_array)->capacity = SPACE_DAP_CAP;                                                             \
+            }                                                                                                          \
+            while ((dynamic_array)->capacity < (dynamic_array)->count + n) {                                           \
+                (dynamic_array)->capacity = (dynamic_array)->capacity * 2;                                             \
+            }                                                                                                          \
+            (dynamic_array)->elements = realloc_function(                                                              \
+                (space), (dynamic_array)->elements, sizeof(*(dynamic_array)->elements) * old_capacity,                 \
+                sizeof(*(dynamic_array)->elements) * (dynamic_array)->capacity);                                       \
+            if ((dynamic_array)->elements == NULL) {                                                                   \
+                fprintf(stderr, "The allocation for the dynamic array has failed in: %s: %d\n", __FILE__, __LINE__);   \
+                abort();                                                                                               \
+            }                                                                                                          \
+        }                                                                                                              \
+                                                                                                                       \
+        int err = snprintf((dynamic_array)->elements + (dynamic_array)->count, n, (fmt), ##__VA_ARGS__);               \
+        if (err == -1) {                                                                                               \
+            assert(0 && "snprintf failed!");                                                                           \
+        }                                                                                                              \
+        (dynamic_array)->count += err;                                                                                 \
+    } while (0)
 
-#define space_dap(space, dynamic_array, element)                               \
-  space_dap_impl(space, space_realloc, dynamic_array, element)
+#define space_dap(space, dynamic_array, element) space_dap_impl(space, space_realloc, dynamic_array, element)
 
-#define space_ndap(space, dynamic_array, element)                              \
-  space_dap_impl(space, space_realloc_force_new_planet, dynamic_array, element)
+#define space_ndap(space, dynamic_array, element)                                                                      \
+    space_dap_impl(space, space_realloc_force_new_planet, dynamic_array, element)
 
-#define space_dapc(space, dynamic_array, new_elements, new_elements_count)     \
-  space_dapc_impl(space, space_realloc, dynamic_array, new_elements,           \
-                  new_elements_count)
+#define space_dapc(space, dynamic_array, new_elements, new_elements_count)                                             \
+    space_dapc_impl(space, space_realloc, dynamic_array, new_elements, new_elements_count)
 
-#define space_ndapc(space, dynamic_array, new_elements, new_elements_count)    \
-  space_dapc_impl(space, space_realloc_force_new_planet, dynamic_array,        \
-                  new_elements, new_elements_count)
+#define space_ndapc(space, dynamic_array, new_elements, new_elements_count)                                            \
+    space_dapc_impl(space, space_realloc_force_new_planet, dynamic_array, new_elements, new_elements_count)
 
-#define space_dapf(space, dynamic_array, fmt, ...)                             \
-  space_dapf_impl(space, space_realloc, dynamic_array, fmt, ##__VA_ARGS__)
+#define space_dapf(space, dynamic_array, fmt, ...)                                                                     \
+    space_dapf_impl(space, space_realloc, dynamic_array, fmt, ##__VA_ARGS__)
 
-#define space_ndapf(space, dynamic_array, fmt, ...)                            \
-  space_dapf_impl(space, space_realloc_force_new_planet, dynamic_array, fmt,   \
-                  ##__VA_ARGS__)
+#define space_ndapf(space, dynamic_array, fmt, ...)                                                                    \
+    space_dapf_impl(space, space_realloc_force_new_planet, dynamic_array, fmt, ##__VA_ARGS__)
 
 SPACEDECL void *space_printf(Space *space, const char *fmt, ...);
 SPACEDECL void *space_snprintf(Space *space, int n, const char *fmt, ...);
 #define space_sprintf(space, fmt, ...) space_printf(space, fmt, ##__VA_ARGS__)
-SPACEDECL void *space_catf(Space *space, const void *first, size_t first_len,
-                           const char *fmt, ...);
-SPACEDECL void *space_strcat(Space *space, const char *first,
-                             const char *second);
+SPACEDECL void *space_catf(Space *space, const void *first, size_t first_len, const char *fmt, ...);
+SPACEDECL void *space_strcat(Space *space, const char *first, const char *second);
 SPACEDECL void *space_strdup(Space *space, const char *buf);
 SPACEDECL void *space_strcpy(Space *space, const char *buf);
 SPACEDECL void *space_strncpy(Space *space, const char *buf, size_t n);
@@ -357,17 +310,14 @@ SPACEDECL void *space_stpncpy(Space *space, const char *buf, size_t n);
 SPACEDECL void *space_memcpy(Space *space, const void *buf, size_t n);
 SPACEDECL void *space_memmove(Space *space, const void *buf, size_t n);
 
-#define space_strcatf(space, first_str, fmt, ...)                              \
-  space_catf(space, first_str, first_str ? strlen(first_str) : 0, (fmt),       \
-             ##__VA_ARGS__)
+#define space_strcatf(space, first_str, fmt, ...)                                                                      \
+    space_catf(space, first_str, first_str ? strlen(first_str) : 0, (fmt), ##__VA_ARGS__)
 SPACEDECL void *space_vstrcat_impl(Space *space, const char *first, ...);
-#define space_vstrcat(space, first, ...)                                       \
-  space_vstrcat_impl(space, first, ##__VA_ARGS__, NULL)
+#define space_vstrcat(space, first, ...) space_vstrcat_impl(space, first, ##__VA_ARGS__, NULL)
 SPACEDECL void *space_vcat_impl(Space *space, ...);
 #define space_vcat(space, ...) space_vcat_impl(space, ##__VA_ARGS__, NULL)
 
-SPACEDECL bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
-                                                       size_t ptr_size);
+SPACEDECL bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr, size_t ptr_size);
 SPACEDECL size_t space_align(size_t alignment, size_t value);
 SPACEDECL size_t space_align_power2(size_t alignment, size_t value);
 
@@ -376,66 +326,45 @@ SPACEDECL Space *space_get_tspace(void);
 
 #define space_free_tspace() space_free_space(space_get_tspace())
 #define space_reset_tspace() space_reset_space(space_get_tspace())
-#define space_tmalloc(size_in_bytes)                                           \
-  space_malloc(space_get_tspace(), size_in_bytes)
+#define space_tmalloc(size_in_bytes) space_malloc(space_get_tspace(), size_in_bytes)
 #define space_tcalloc(nmemb, size) space_calloc(space_get_tspace(), nmemb, size)
-#define space_trealloc(ptr, old_size, new_size)                                \
-  space_realloc(space_get_tspace(), ptr, old_size, new_size)
+#define space_trealloc(ptr, old_size, new_size) space_realloc(space_get_tspace(), ptr, old_size, new_size)
 
-#define space_talloc_planetid(size_in_bytes, planet_id, force_new_planet)      \
-  space_alloc_planetid(space_get_tspace(), size_in_bytes, planet_id,           \
-                       force_new_planet)
-#define space_tmalloc_planetid(size_in_bytes, planet_id)                       \
-  space_malloc_planetid(space_get_tspace(), size_in_bytes, planet_id)
-#define space_tcalloc_planetid(nmemb, size, planet_id)                         \
-  space_calloc_planetid(space_get_tspace(), nmemb, size, planet_id)
-#define space_trealloc_planetid(ptr, old_size, new_size, planet_id)            \
-  space_realloc_planetid(space_get_tspace(), ptr, old_size, new_size, planet_id)
-#define space_tmalloc_force_new_planet(size_in_bytes)                          \
-  space_malloc_force_new_planet(space_get_tspace(), size_in_bytes)
-#define space_tcalloc_force_new_planet(nmemb, size)                            \
-  space_calloc_force_new_planet(space_get_tspace(), nmemb, size)
-#define space_trealloc_force_new_planet(ptr, old_size, new_size)               \
-  space_realloc_force_new_planet(space_get_tspace(), ptr, old_size, new_size)
-#define space_tmalloc_planetid_force_new_planet(size_in_bytes, planet_id)      \
-  space_malloc_planetid_force_new_planet(space_get_tspace(), size_in_bytes,    \
-                                         planet_id)
-#define space_tcalloc_planetid_force_new_planet(nmemb, size, planet_id)        \
-  space_calloc_planetid_force_new_planet(space_get_tspace(), nmemb, size,      \
-                                         planet_id)
-#define space_trealloc_planetid_force_new_planet(ptr, old_size, new_size,      \
-                                                 planet_id)                    \
-  space_realloc_planetid_force_new_planet(space_get_tspace(), ptr, old_size,   \
-                                          new_size, planet_id)
+#define space_talloc_planetid(size_in_bytes, planet_id, force_new_planet)                                              \
+    space_alloc_planetid(space_get_tspace(), size_in_bytes, planet_id, force_new_planet)
+#define space_tmalloc_planetid(size_in_bytes, planet_id)                                                               \
+    space_malloc_planetid(space_get_tspace(), size_in_bytes, planet_id)
+#define space_tcalloc_planetid(nmemb, size, planet_id) space_calloc_planetid(space_get_tspace(), nmemb, size, planet_id)
+#define space_trealloc_planetid(ptr, old_size, new_size, planet_id)                                                    \
+    space_realloc_planetid(space_get_tspace(), ptr, old_size, new_size, planet_id)
+#define space_tmalloc_force_new_planet(size_in_bytes) space_malloc_force_new_planet(space_get_tspace(), size_in_bytes)
+#define space_tcalloc_force_new_planet(nmemb, size) space_calloc_force_new_planet(space_get_tspace(), nmemb, size)
+#define space_trealloc_force_new_planet(ptr, old_size, new_size)                                                       \
+    space_realloc_force_new_planet(space_get_tspace(), ptr, old_size, new_size)
+#define space_tmalloc_planetid_force_new_planet(size_in_bytes, planet_id)                                              \
+    space_malloc_planetid_force_new_planet(space_get_tspace(), size_in_bytes, planet_id)
+#define space_tcalloc_planetid_force_new_planet(nmemb, size, planet_id)                                                \
+    space_calloc_planetid_force_new_planet(space_get_tspace(), nmemb, size, planet_id)
+#define space_trealloc_planetid_force_new_planet(ptr, old_size, new_size, planet_id)                                   \
+    space_realloc_planetid_force_new_planet(space_get_tspace(), ptr, old_size, new_size, planet_id)
 
-#define space_tdap(dynamic_array, element)                                     \
-  space_dap_impl(space_get_tspace(), space_realloc, dynamic_array, element)
-#define space_tndap(dynamic_array, element)                                    \
-  space_dap_impl(space_get_tspace(), space_realloc_force_new_planet,           \
-                 dynamic_array, element)
-#define space_tdapc(dynamic_array, new_elements, new_elements_count)           \
-  space_dapc_impl(space_get_tspace(), space_realloc, dynamic_array,            \
-                  new_elements, new_elements_count)
-#define space_tndapc(dynamic_array, new_elements, new_elements_count)          \
-  space_dapc_impl(space_get_tspace(), space_realloc_force_new_planet,          \
-                  dynamic_array, new_elements, new_elements_count)
-#define space_tdapf(dynamic_array, fmt, ...)                                   \
-  space_dapf_impl(space_get_tspace(), space_realloc, dynamic_array, fmt,       \
-                  ##__VA_ARGS__)
-#define space_tndapf(dynamic_array, fmt, ...)                                  \
-  space_dapf_impl(space_get_tspace(), space_realloc_force_new_planet,          \
-                  dynamic_array, fmt, ##__VA_ARGS__)
+#define space_tdap(dynamic_array, element) space_dap_impl(space_get_tspace(), space_realloc, dynamic_array, element)
+#define space_tndap(dynamic_array, element)                                                                            \
+    space_dap_impl(space_get_tspace(), space_realloc_force_new_planet, dynamic_array, element)
+#define space_tdapc(dynamic_array, new_elements, new_elements_count)                                                   \
+    space_dapc_impl(space_get_tspace(), space_realloc, dynamic_array, new_elements, new_elements_count)
+#define space_tndapc(dynamic_array, new_elements, new_elements_count)                                                  \
+    space_dapc_impl(space_get_tspace(), space_realloc_force_new_planet, dynamic_array, new_elements, new_elements_count)
+#define space_tdapf(dynamic_array, fmt, ...)                                                                           \
+    space_dapf_impl(space_get_tspace(), space_realloc, dynamic_array, fmt, ##__VA_ARGS__)
+#define space_tndapf(dynamic_array, fmt, ...)                                                                          \
+    space_dapf_impl(space_get_tspace(), space_realloc_force_new_planet, dynamic_array, fmt, ##__VA_ARGS__)
 
-#define space_tprintf(fmt, ...)                                                \
-  space_printf(space_get_tspace(), fmt, ##__VA_ARGS__)
-#define space_tsprintf(fmt, ...)                                               \
-  space_sprintf(space_get_tspace(), fmt, ##__VA_ARGS__)
-#define space_tsnprintf(n, fmt, ...)                                           \
-  space_snprintf(space_get_tspace(), n, fmt, ##__VA_ARGS__)
-#define space_tcatf(first, first_len, fmt, ...)                                \
-  space_catf(space_get_tspace(), first, first_len, fmt, ##__VA_ARGS__)
-#define space_tstrcat(first, second)                                           \
-  space_strcat(space_get_tspace(), first, second)
+#define space_tprintf(fmt, ...) space_printf(space_get_tspace(), fmt, ##__VA_ARGS__)
+#define space_tsprintf(fmt, ...) space_sprintf(space_get_tspace(), fmt, ##__VA_ARGS__)
+#define space_tsnprintf(n, fmt, ...) space_snprintf(space_get_tspace(), n, fmt, ##__VA_ARGS__)
+#define space_tcatf(first, first_len, fmt, ...) space_catf(space_get_tspace(), first, first_len, fmt, ##__VA_ARGS__)
+#define space_tstrcat(first, second) space_strcat(space_get_tspace(), first, second)
 #define space_tstrdup(buf) space_strdup(space_get_tspace(), buf)
 #define space_tstrcpy(buf) space_strcpy(space_get_tspace(), buf)
 #define space_tstrncpy(buf, n) space_strncpy(space_get_tspace(), buf, n)
@@ -444,17 +373,14 @@ SPACEDECL Space *space_get_tspace(void);
 #define space_tmemcpy(buf, n) space_memcpy(space_get_tspace(), buf, n)
 #define space_tmemmove(buf, n) space_memmove(space_get_tspace(), buf, n)
 
-#define space_tstrcatf(first_str, fmt, ...)                                    \
-  space_catf(space_get_tspace(), first_str, first_str ? strlen(first_str) : 0, \
-             (fmt), ##__VA_ARGS__)
-#define space_tvstrcat(first, ...)                                             \
-  space_vstrcat_impl(space_get_tspace(), first, ##__VA_ARGS__, NULL)
-#define space_tvcat(...)                                                       \
-  space_vcat_impl(space_get_tspace(), ##__VA_ARGS__, NULL)
+#define space_tstrcatf(first_str, fmt, ...)                                                                            \
+    space_catf(space_get_tspace(), first_str, first_str ? strlen(first_str) : 0, (fmt), ##__VA_ARGS__)
+#define space_tvstrcat(first, ...) space_vstrcat_impl(space_get_tspace(), first, ##__VA_ARGS__, NULL)
+#define space_tvcat(...) space_vcat_impl(space_get_tspace(), ##__VA_ARGS__, NULL)
 
 // ===========================================================================
 
-#endif // SPACE_H_
+#endif  // SPACE_H_
 
 // ===========================================================================
 
@@ -472,8 +398,8 @@ SPACEDECL Space *space_get_tspace(void);
  * @return Pointer to the static temporary Space structure.
  */
 SPACEDEF Space *space_get_tspace(void) {
-  thread_local static Space space = {0};
-  return &space;
+    thread_local static Space space = {0};
+    return &space;
 }
 
 /**
@@ -491,12 +417,11 @@ SPACEDEF Space *space_get_tspace(void) {
  * @return true if ptr is the last allocation in the planet and can be modified
  * in place, false otherwise.
  */
-SPACEDEF bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
-                                                      size_t ptr_size) {
-  if (!p || !ptr || ptr_size > p->count) {
-    return false;
-  }
-  return (char *)p->elements + p->count - ptr_size == ptr;
+SPACEDEF bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr, size_t ptr_size) {
+    if (!p || !ptr || ptr_size > p->count) {
+        return false;
+    }
+    return (char *) p->elements + p->count - ptr_size == ptr;
 }
 
 /**
@@ -514,35 +439,35 @@ SPACEDEF bool space__is_ptr_last_allocation_in_planet(Planet *p, void *ptr,
  * @return Pointer to the allocated formatted string, or NULL on failure.
  */
 SPACEDEF void *space_snprintf(Space *space, int n, const char *fmt, ...) {
-  if (!space || !fmt || n == 0) {
-    return NULL;
-  }
+    if (!space || !fmt || n == 0) {
+        return NULL;
+    }
 
-  va_list args;
-  va_start(args, fmt);
-  int sn = vsnprintf(NULL, 0, fmt, args);
-  va_end(args);
-  if (sn == -1) {
-    return NULL;
-  }
-  if (sn < n) {
-    n = sn;
-  }
-  n += 1;
+    va_list args;
+    va_start(args, fmt);
+    int sn = vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+    if (sn == -1) {
+        return NULL;
+    }
+    if (sn < n) {
+        n = sn;
+    }
+    n += 1;
 
-  char *ptr = space_malloc(space, sizeof(*ptr) * n);
-  if (ptr == NULL) {
-    return NULL;
-  }
+    char *ptr = space_malloc(space, sizeof(*ptr) * n);
+    if (ptr == NULL) {
+        return NULL;
+    }
 
-  va_start(args, fmt);
-  int err = vsnprintf(ptr, n, fmt, args);
-  va_end(args);
-  if (err == -1) {
-    return NULL;
-  }
+    va_start(args, fmt);
+    int err = vsnprintf(ptr, n, fmt, args);
+    va_end(args);
+    if (err == -1) {
+        return NULL;
+    }
 
-  return ptr;
+    return ptr;
 }
 
 /**
@@ -558,33 +483,33 @@ SPACEDEF void *space_snprintf(Space *space, int n, const char *fmt, ...) {
  * @return Pointer to the allocated formatted string, or NULL on failure.
  */
 SPACEDEF void *space_printf(Space *space, const char *fmt, ...) {
-  if (!space || !fmt) {
-    return NULL;
-  }
+    if (!space || !fmt) {
+        return NULL;
+    }
 
-  va_list args;
-  va_start(args, fmt);
-  int n = vsnprintf(NULL, 0, fmt, args);
-  va_end(args);
-  if (n == -1) {
-    return NULL;
-  }
+    va_list args;
+    va_start(args, fmt);
+    int n = vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+    if (n == -1) {
+        return NULL;
+    }
 
-  n += 1;
+    n += 1;
 
-  char *ptr = space_malloc(space, sizeof(*ptr) * n);
-  if (ptr == NULL) {
-    return NULL;
-  }
+    char *ptr = space_malloc(space, sizeof(*ptr) * n);
+    if (ptr == NULL) {
+        return NULL;
+    }
 
-  va_start(args, fmt);
-  int err = vsnprintf(ptr, n, fmt, args);
-  va_end(args);
-  if (err == -1) {
-    return NULL;
-  }
+    va_start(args, fmt);
+    int err = vsnprintf(ptr, n, fmt, args);
+    va_end(args);
+    if (err == -1) {
+        return NULL;
+    }
 
-  return ptr;
+    return ptr;
 }
 
 /**
@@ -599,88 +524,89 @@ SPACEDEF void *space_printf(Space *space, const char *fmt, ...) {
  * @return Pointer to the concatenated buffer, or NULL on failure.
  */
 SPACEDEF void *space_vcat_impl(Space *space, ...) {
-  if (!space) {
-    return NULL;
-  }
+    if (!space) {
+        return NULL;
+    }
 
-  va_list args;
-  va_start(args, space);
-  char *first = va_arg(args, char *);
-  if (first == NULL) {
-    return NULL;
-  }
-  size_t first_len = va_arg(args, size_t);
-  if (first_len == 0) {
-    return NULL;
-  }
-  va_end(args);
-
-  Planet *p = space_find_planet_from_ptr(space, (void *)first);
-  if (p &&
-      space__is_ptr_last_allocation_in_planet(p, (void *)first, first_len)) {
-    size_t save = p->count;
-
+    va_list args;
     va_start(args, space);
-    char *arg = va_arg(args, char *); // The first one
-    size_t arg_len = va_arg(args, size_t);
-    arg = va_arg(args, char *);
-    while (arg != NULL) {
-      arg_len = va_arg(args, size_t);
-
-      if (p->count + arg_len > p->capacity) {
-        // Restore the old allocation size to be consistent with the
-        // space_strcat function.
-        p->count = save;
+    char *first = va_arg(args, char *);
+    if (first == NULL) {
         va_end(args);
-        goto alloc;
-      }
-
-      memcpy(((char *)p->elements) + p->count, arg, arg_len);
-      p->count += arg_len;
-
-      arg = va_arg(args, char *);
+        return NULL;
+    }
+    size_t first_len = va_arg(args, size_t);
+    if (first_len == 0) {
+        va_end(args);
+        return NULL;
     }
     va_end(args);
-    return (void *)first;
-  }
+
+    Planet *p = space_find_planet_from_ptr(space, (void *) first);
+    if (p && space__is_ptr_last_allocation_in_planet(p, (void *) first, first_len)) {
+        size_t save = p->count;
+
+        va_start(args, space);
+        char *arg = va_arg(args, char *);  // The first one
+        size_t arg_len = va_arg(args, size_t);
+        arg = va_arg(args, char *);
+        while (arg != NULL) {
+            arg_len = va_arg(args, size_t);
+
+            if (p->count + arg_len > p->capacity) {
+                // Restore the old allocation size to be consistent with the
+                // space_strcat function.
+                p->count = save;
+                va_end(args);
+                goto alloc;
+            }
+
+            memcpy(((char *) p->elements) + p->count, arg, arg_len);
+            p->count += arg_len;
+
+            arg = va_arg(args, char *);
+        }
+        va_end(args);
+        return (void *) first;
+    }
 
 alloc: {}
-  size_t count = first_len;
-  {
+    size_t count = first_len;
+    {
+        va_start(args, space);
+        first = va_arg(args, char *);
+        first_len = va_arg(args, size_t);
+        char *arg = va_arg(args, char *);
+        while (arg != NULL) {
+            count += va_arg(args, size_t);
+            arg = va_arg(args, char *);
+        }
+        va_end(args);
+    }
+
+    void *ptr = space_malloc(space, count);
+    if (ptr == NULL) {
+        return NULL;
+    }
+    p = space_find_planet_from_ptr(space, ptr);
+    p->count -= count;
+
+    memcpy(ptr, first, first_len);
+    p->count += first_len;
+
     va_start(args, space);
     first = va_arg(args, char *);
     first_len = va_arg(args, size_t);
     char *arg = va_arg(args, char *);
     while (arg != NULL) {
-      count += va_arg(args, size_t);
-      arg = va_arg(args, char *);
+        size_t arg_len = va_arg(args, size_t);
+        memcpy((char *) p->elements + p->count, arg, arg_len);
+        p->count += arg_len;
+        arg = va_arg(args, char *);
     }
     va_end(args);
-  }
 
-  void *ptr = space_malloc(space, count);
-  if (ptr == NULL) {
-    return NULL;
-  }
-  p = space_find_planet_from_ptr(space, ptr);
-  p->count -= count;
-
-  memcpy(ptr, first, first_len);
-  p->count += first_len;
-
-  va_start(args, space);
-  first = va_arg(args, char *);
-  first_len = va_arg(args, size_t);
-  char *arg = va_arg(args, char *);
-  while (arg != NULL) {
-    size_t arg_len = va_arg(args, size_t);
-    memcpy((char *)p->elements + p->count, arg, arg_len);
-    p->count += arg_len;
-    arg = va_arg(args, char *);
-  }
-  va_end(args);
-
-  return ptr;
+    return ptr;
 }
 
 /**
@@ -698,93 +624,91 @@ alloc: {}
  * failure.
  */
 SPACEDEF void *space_vstrcat_impl(Space *space, const char *first, ...) {
-  if (!space) {
-    return NULL;
-  }
-  size_t first_len = first ? strlen(first) : 0;
-  va_list args;
-
-  Planet *p = space_find_planet_from_ptr(space, (void *)first);
-  if (p && space__is_ptr_last_allocation_in_planet(p, (void *)first,
-                                                   first_len + 1)) {
-    size_t save = p->count;
-
-    va_start(args, first);
-    char *arg = va_arg(args, char *);
-
-    // This is needed to ensure the first arg can be part of the va_args.
-    // And the call in va_args does not expand with the previous state of
-    // concatenation.
-    char *place = (char *)first + first_len;
-    char replace = '\0';
-    if (arg) {
-      replace = arg[0];
+    if (!space) {
+        return NULL;
     }
+    size_t first_len = first ? strlen(first) : 0;
+    va_list args;
 
-    while (arg != NULL) {
-      size_t arg_len = strlen(arg);
-      if (p->count + arg_len > p->capacity) {
-        // Restore the old allocation size to be consistent with the
-        // space_strcat function.
-        p->count = save;
+    Planet *p = space_find_planet_from_ptr(space, (void *) first);
+    if (p && space__is_ptr_last_allocation_in_planet(p, (void *) first, first_len + 1)) {
+        size_t save = p->count;
+
+        va_start(args, first);
+        char *arg = va_arg(args, char *);
+
+        // This is needed to ensure the first arg can be part of the va_args.
+        // And the call in va_args does not expand with the previous state of
+        // concatenation.
+        char *place = (char *) first + first_len;
+        char replace = '\0';
+        if (arg) {
+            replace = arg[0];
+        }
+
+        while (arg != NULL) {
+            size_t arg_len = strlen(arg);
+            if (p->count + arg_len > p->capacity) {
+                // Restore the old allocation size to be consistent with the
+                // space_strcat function.
+                p->count = save;
+                va_end(args);
+                goto alloc;
+            }
+            memmove((char *) p->elements + p->count - (first ? 1 : 0), arg, arg_len + 1);
+
+            *place = '\0';
+            p->count += arg_len;
+
+            arg = va_arg(args, char *);
+        }
+        *place = replace;
+
         va_end(args);
-        goto alloc;
-      }
-      memmove((char *)p->elements + p->count - (first ? 1 : 0), arg,
-              arg_len + 1);
-
-      *place = '\0';
-      p->count += arg_len;
-
-      arg = va_arg(args, char *);
+        return (void *) first;
     }
-    *place = replace;
-
-    va_end(args);
-    return (void *)first;
-  }
 
 alloc: {}
-  size_t count = first_len + 1;
-  {
+    size_t count = first_len + 1;
+    {
+        va_start(args, first);
+        char *arg = va_arg(args, char *);
+        while (arg != NULL) {
+            size_t arg_len = strlen(arg);
+            count += arg_len;
+            arg = va_arg(args, char *);
+        }
+        va_end(args);
+    }
+
+    void *ptr = NULL;
+    if (count == 1) {
+        return ptr;
+    } else {
+        ptr = space_malloc(space, count);
+        if (ptr == NULL) {
+            return NULL;
+        }
+        p = space_find_planet_from_ptr(space, ptr);
+        p->count -= count;
+    }
+
+    if (first) {
+        memcpy(ptr, first, first_len + 1);
+        p->count += first_len;
+    }
+
     va_start(args, first);
     char *arg = va_arg(args, char *);
     while (arg != NULL) {
-      size_t arg_len = strlen(arg);
-      count += arg_len;
-      arg = va_arg(args, char *);
+        size_t arg_len = strlen(arg);  // This is slow to compute the length again.
+        memmove((char *) p->elements + p->count, arg, arg_len + 1);
+        p->count += arg_len;
+        arg = va_arg(args, char *);
     }
+    p->count += 1;
     va_end(args);
-  }
-
-  void *ptr = NULL;
-  if (count == 1) {
     return ptr;
-  } else {
-    ptr = space_malloc(space, count);
-    if (ptr == NULL) {
-      return NULL;
-    }
-    p = space_find_planet_from_ptr(space, ptr);
-    p->count -= count;
-  }
-
-  if (first) {
-    memcpy(ptr, first, first_len + 1);
-    p->count += first_len;
-  }
-
-  va_start(args, first);
-  char *arg = va_arg(args, char *);
-  while (arg != NULL) {
-    size_t arg_len = strlen(arg); // This is slow to compute the length again.
-    memmove((char *)p->elements + p->count, arg, arg_len + 1);
-    p->count += arg_len;
-    arg = va_arg(args, char *);
-  }
-  p->count += 1;
-  va_end(args);
-  return ptr;
 }
 
 /**
@@ -801,49 +725,47 @@ alloc: {}
  * @param fmt Format string to create the string to append.
  * @return Pointer to the concatenated buffer, or NULL on failure.
  */
-SPACEDEF void *space_catf(Space *space, const void *first, size_t first_len,
-                          const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  int n = vsnprintf(NULL, 0, fmt, args);
-  if (n == -1) {
-    return NULL;
-  }
-  va_end(args);
-
-  size_t max_count = n + 1;
-  Planet *p = space_find_planet_from_ptr(space, (void *)first);
-  if (p && (p->count + n <= p->capacity) &&
-      space__is_ptr_last_allocation_in_planet(p, (void *)first, first_len)) {
+SPACEDEF void *space_catf(Space *space, const void *first, size_t first_len, const char *fmt, ...) {
+    va_list args;
     va_start(args, fmt);
-    int err = vsnprintf((char *)first + first_len, max_count, fmt, args);
+    int n = vsnprintf(NULL, 0, fmt, args);
     va_end(args);
-    if (err == -1) {
-      return NULL;
+    if (n == -1) {
+        return NULL;
     }
 
-    p->count += err;
-    return (void *)first;
-  }
+    size_t max_count = n + 1;
+    Planet *p = space_find_planet_from_ptr(space, (void *) first);
+    if (p && (p->count + n <= p->capacity) && space__is_ptr_last_allocation_in_planet(p, (void *) first, first_len)) {
+        va_start(args, fmt);
+        int err = vsnprintf((char *) first + first_len, max_count, fmt, args);
+        va_end(args);
+        if (err == -1) {
+            return NULL;
+        }
 
-  size_t combind_size = max_count + first_len;
-  if (combind_size == 1) {
-    return NULL;
-  }
-  void *ptr = space_malloc(space, combind_size);
-  if (ptr == NULL) {
-    return NULL;
-  }
-  if (first) {
-    memcpy(ptr, first, first_len);
-  }
-  va_start(args, fmt);
-  int err = vsnprintf((char *)ptr + first_len, max_count, fmt, args);
-  va_end(args);
-  if (err == -1) {
-    return NULL;
-  }
-  return ptr;
+        p->count += err;
+        return (void *) first;
+    }
+
+    size_t combind_size = max_count + first_len;
+    if (combind_size == 1) {
+        return NULL;
+    }
+    void *ptr = space_malloc(space, combind_size);
+    if (ptr == NULL) {
+        return NULL;
+    }
+    if (first) {
+        memcpy(ptr, first, first_len);
+    }
+    va_start(args, fmt);
+    int err = vsnprintf((char *) ptr + first_len, max_count, fmt, args);
+    va_end(args);
+    if (err == -1) {
+        return NULL;
+    }
+    return ptr;
 }
 
 /**
@@ -860,36 +782,35 @@ SPACEDEF void *space_catf(Space *space, const void *first, size_t first_len,
  * @return Pointer to the concatenated null-terminated string, or NULL on
  * failure.
  */
-SPACEDEF void *space_strcat(Space *space, const char *first,
-                            const char *second) {
-  void *ptr = NULL;
-  if (!space || (!first && !second)) {
+SPACEDEF void *space_strcat(Space *space, const char *first, const char *second) {
+    void *ptr = NULL;
+    if (!space || (!first && !second)) {
+        return ptr;
+    }
+    size_t first_len = first ? strlen(first) : 0;
+    size_t second_len = second ? strlen(second) : 0;
+
+    Planet *p = space_find_planet_from_ptr(space, (void *) first);
+    if (p && (p->count + second_len <= p->capacity) &&
+        space__is_ptr_last_allocation_in_planet(p, (void *) first, first_len)) {
+
+        memmove((char *) first + first_len, second, second_len + 1);
+        p->count += second_len;
+        return (void *) first;
+    }
+
+    int n = first_len + second_len + 1;
+    ptr = space_malloc(space, n);
+    if (ptr == NULL) {
+        return NULL;
+    }
+    if (first) {
+        memcpy(ptr, first, first_len + 1);
+    }
+    if (second) {
+        memmove((char *) ptr + first_len, second, second_len + 1);
+    }
     return ptr;
-  }
-  size_t first_len = first ? strlen(first) : 0;
-  size_t second_len = second ? strlen(second) : 0;
-
-  Planet *p = space_find_planet_from_ptr(space, (void *)first);
-  if (p && (p->count + second_len <= p->capacity) &&
-      space__is_ptr_last_allocation_in_planet(p, (void *)first, first_len)) {
-
-    memmove((char *)first + first_len, second, second_len + 1);
-    p->count += second_len;
-    return (void *)first;
-  }
-
-  int n = first_len + second_len + 1;
-  ptr = space_malloc(space, n);
-  if (ptr == NULL) {
-    return NULL;
-  }
-  if (first) {
-    memcpy(ptr, first, first_len + 1);
-  }
-  if (second) {
-    memmove((char *)ptr + first_len, second, second_len + 1);
-  }
-  return ptr;
 }
 
 /**
@@ -905,11 +826,11 @@ SPACEDEF void *space_strcat(Space *space, const char *first,
  * failure.
  */
 SPACEDEF void *space_strdup(Space *space, const char *buf) {
-  if (!space || !buf) {
-    return NULL;
-  }
-  size_t n = strlen(buf) + 1;
-  return space_memcpy(space, buf, n);
+    if (!space || !buf) {
+        return NULL;
+    }
+    size_t n = strlen(buf) + 1;
+    return space_memcpy(space, buf, n);
 }
 
 /**
@@ -926,11 +847,11 @@ SPACEDEF void *space_strdup(Space *space, const char *buf) {
  * failure.
  */
 SPACEDEF void *space_strcpy(Space *space, const char *buf) {
-  if (!space || !buf) {
-    return NULL;
-  }
-  size_t n = strlen(buf) + 1;
-  return space_memcpy(space, buf, n);
+    if (!space || !buf) {
+        return NULL;
+    }
+    size_t n = strlen(buf) + 1;
+    return space_memcpy(space, buf, n);
 }
 
 /**
@@ -949,12 +870,12 @@ SPACEDEF void *space_strcpy(Space *space, const char *buf) {
  * failure.
  */
 SPACEDEF void *space_strncpy(Space *space, const char *buf, size_t n) {
-  if (!space || !buf || n == 0) {
-    return NULL;
-  }
-  size_t nn = strlen(buf) + 1;
-  size_t len = nn > n ? n : nn;
-  return space_memcpy(space, buf, len);
+    if (!space || !buf || n == 0) {
+        return NULL;
+    }
+    size_t nn = strlen(buf) + 1;
+    size_t len = nn > n ? n : nn;
+    return space_memcpy(space, buf, len);
 }
 
 /**
@@ -972,15 +893,15 @@ SPACEDEF void *space_strncpy(Space *space, const char *buf, size_t n) {
  * NULL on failure.
  */
 SPACEDEF void *space_stpcpy(Space *space, const char *buf) {
-  if (!space || !buf) {
-    return NULL;
-  }
-  size_t n = strlen(buf) + 1;
-  char *result = space_strncpy(space, buf, n);
-  if (!result) {
-    return NULL;
-  }
-  return result + n - 1;
+    if (!space || !buf) {
+        return NULL;
+    }
+    size_t n = strlen(buf) + 1;
+    char *result = space_strncpy(space, buf, n);
+    if (!result) {
+        return NULL;
+    }
+    return result + n - 1;
 }
 
 /**
@@ -999,19 +920,19 @@ SPACEDEF void *space_stpcpy(Space *space, const char *buf) {
  * terminator), or NULL on failure.
  */
 SPACEDEF void *space_stpncpy(Space *space, const char *buf, size_t n) {
-  if (!space || !buf || n == 0) {
-    return NULL;
-  }
-  size_t nn = strlen(buf) + 1;
-  size_t len = nn > n ? n : nn;
-  char *result = space_strncpy(space, buf, len);
-  if (!result) {
-    return NULL;
-  }
-  if (nn > n) {
-    return result + len;
-  }
-  return result + len - 1;
+    if (!space || !buf || n == 0) {
+        return NULL;
+    }
+    size_t nn = strlen(buf) + 1;
+    size_t len = nn > n ? n : nn;
+    char *result = space_strncpy(space, buf, len);
+    if (!result) {
+        return NULL;
+    }
+    if (nn > n) {
+        return result + len;
+    }
+    return result + len - 1;
 }
 
 /**
@@ -1029,15 +950,15 @@ SPACEDEF void *space_stpncpy(Space *space, const char *buf, size_t n) {
  * failure.
  */
 SPACEDEF void *space_memcpy(Space *space, const void *buf, size_t n) {
-  if (!space || !buf || n == 0) {
-    return NULL;
-  }
-  void *ptr = space_malloc(space, n);
-  if (ptr == NULL) {
-    return NULL;
-  }
-  memcpy(ptr, buf, n);
-  return ptr;
+    if (!space || !buf || n == 0) {
+        return NULL;
+    }
+    void *ptr = space_malloc(space, n);
+    if (ptr == NULL) {
+        return NULL;
+    }
+    memcpy(ptr, buf, n);
+    return ptr;
 }
 
 /**
@@ -1056,209 +977,180 @@ SPACEDEF void *space_memcpy(Space *space, const void *buf, size_t n) {
  * failure.
  */
 SPACEDEF void *space_memmove(Space *space, const void *buf, size_t n) {
-  if (!space || !buf || n == 0) {
-    return NULL;
-  }
-  void *ptr = space_malloc(space, n);
-  if (ptr == NULL) {
-    return NULL;
-  }
-  memmove(ptr, buf, n);
-  return ptr;
+    if (!space || !buf || n == 0) {
+        return NULL;
+    }
+    void *ptr = space_malloc(space, n);
+    if (ptr == NULL) {
+        return NULL;
+    }
+    memmove(ptr, buf, n);
+    return ptr;
 }
 
 /////////////////////////////////////////////////////////////////////////
 
-static inline void space__free_memory(Space *space, void *buffer,
-                                      size_t size_in_bytes) {
+static inline void space__free_memory(Space *space, void *buffer, size_t size_in_bytes) {
 
 layout_rerun:
-  switch (space->alloc_method) {
-  case 0:
-    space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->alloc_method) {
+    case 0: space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-  case SPACE_METHOD_MALLOC:
-    free(buffer);
-    break;
+    case SPACE_METHOD_MALLOC: free(buffer); break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
-  case SPACE_METHOD_MMAP:
-    munmap(buffer, size_in_bytes);
-    break;
+    case SPACE_METHOD_MMAP: munmap(buffer, size_in_bytes); break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
-  case SPACE_METHOD_VIRTUAL_ALLOC:
-    VirtualFreeEx(GetCurrentProcess(), (LPVOID)buffer, size_in_bytes,
-                  MEM_RELEASE);
-    break;
+    case SPACE_METHOD_VIRTUAL_ALLOC:
+        VirtualFreeEx(GetCurrentProcess(), (LPVOID) buffer, size_in_bytes, MEM_RELEASE);
+        break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This allocation method is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This allocation method is not supported");
+    }
 }
 
 static inline void *space__alloc_memory(Space *space, size_t size_in_bytes) {
-  void *result = NULL;
+    void *result = NULL;
 rerun:
-  switch (space->alloc_method) {
-  case 0:
-    space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-    goto rerun;
+    switch (space->alloc_method) {
+    case 0: space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT; goto rerun;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-  case SPACE_METHOD_MALLOC:
-    result = malloc(size_in_bytes);
-    if (!result) {
-      return NULL;
-    }
-    break;
+    case SPACE_METHOD_MALLOC:
+        result = malloc(size_in_bytes);
+        if (!result) {
+            return NULL;
+        }
+        break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
-  case SPACE_METHOD_MMAP:
-    result = mmap(NULL, size_in_bytes, PROT_READ | PROT_WRITE,
-                  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (result == MAP_FAILED) {
-      return NULL;
-    }
-    break;
+    case SPACE_METHOD_MMAP:
+        result = mmap(NULL, size_in_bytes, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if (result == MAP_FAILED) {
+            return NULL;
+        }
+        break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
-  case SPACE_METHOD_VIRTUAL_ALLOC:
-    result = VirtualAllocEx(GetCurrentProcess(), NULL, size_in_bytes,
-                            MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    case SPACE_METHOD_VIRTUAL_ALLOC:
+        result = VirtualAllocEx(GetCurrentProcess(), NULL, size_in_bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
-    if (result == NULL) {
-      return NULL;
-    }
-    break;
+        if (result == NULL) {
+            return NULL;
+        }
+        break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This allocation method is not supported");
-  }
-  return result;
+    default: assert(false && "UNREACHABLE: This allocation method is not supported");
+    }
+    return result;
 }
 
-static inline void *space__copy_buffer_to_heap(Space *space, void *buffer,
-                                               size_t size_in_bytes) {
-  void *result = space__alloc_memory(space, size_in_bytes);
-  if (result == NULL) {
-    return NULL;
-  }
-  return memcpy(result, buffer, size_in_bytes);
+static inline void *space__copy_buffer_to_heap(Space *space, void *buffer, size_t size_in_bytes) {
+    void *result = space__alloc_memory(space, size_in_bytes);
+    if (result == NULL) {
+        return NULL;
+    }
+    return memcpy(result, buffer, size_in_bytes);
 }
 
-static inline void *space_realloc_memory(Space *space, void *buffer,
-                                         size_t old_size_in_bytes,
+static inline void *space_realloc_memory(Space *space, void *buffer, size_t old_size_in_bytes,
                                          size_t new_size_in_bytes) {
 
-  if (!space) {
-    return NULL;
-  }
+    if (!space) {
+        return NULL;
+    }
 
-  void *result = NULL;
+    void *result = NULL;
 rerun:
-  switch (space->alloc_method) {
-  case 0:
-    space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT;
-    goto rerun;
+    switch (space->alloc_method) {
+    case 0: space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT; goto rerun;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-  case SPACE_METHOD_MALLOC:
-    result = realloc(buffer, new_size_in_bytes);
-    break;
+    case SPACE_METHOD_MALLOC: result = realloc(buffer, new_size_in_bytes); break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
-  case SPACE_METHOD_MMAP:
-    if (new_size_in_bytes == 0) {
-      munmap(buffer, old_size_in_bytes);
-      return NULL;
-    }
-    if (old_size_in_bytes > new_size_in_bytes) {
-      result = mmap(NULL, new_size_in_bytes, PROT_READ | PROT_WRITE,
-                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-      if (result == MAP_FAILED) {
-        return NULL;
-      }
-      if (new_size_in_bytes > 0 && buffer) {
-        memcpy(result, buffer, new_size_in_bytes);
-      }
-      munmap(buffer, old_size_in_bytes);
-      return result;
-    }
+    case SPACE_METHOD_MMAP:
+        if (new_size_in_bytes == 0) {
+            munmap(buffer, old_size_in_bytes);
+            return NULL;
+        }
+        if (old_size_in_bytes > new_size_in_bytes) {
+            result = mmap(NULL, new_size_in_bytes, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+            if (result == MAP_FAILED) {
+                return NULL;
+            }
+            if (new_size_in_bytes > 0 && buffer) {
+                memcpy(result, buffer, new_size_in_bytes);
+            }
+            munmap(buffer, old_size_in_bytes);
+            return result;
+        }
 
-    result = mmap(NULL, new_size_in_bytes, PROT_READ | PROT_WRITE,
-                  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (result == MAP_FAILED) {
-      return NULL;
-    }
+        result = mmap(NULL, new_size_in_bytes, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if (result == MAP_FAILED) {
+            return NULL;
+        }
 
-    if (old_size_in_bytes > 0 && buffer) {
-      memcpy(result, buffer, old_size_in_bytes);
-      munmap(buffer, old_size_in_bytes);
-    }
-    break;
+        if (old_size_in_bytes > 0 && buffer) {
+            memcpy(result, buffer, old_size_in_bytes);
+            munmap(buffer, old_size_in_bytes);
+        }
+        break;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_VIRTUAL_ALLOC
-  case SPACE_METHOD_VIRTUAL_ALLOC:
-    if (new_size_in_bytes == 0) {
-      VirtualFreeEx(GetCurrentProcess(), (LPVOID)buffer, old_size_in_bytes,
-                    MEM_RELEASE);
-      return NULL;
-    }
-    if (old_size_in_bytes > new_size_in_bytes) {
-      result = VirtualAllocEx(GetCurrentProcess(), NULL, new_size_in_bytes,
-                              MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-      if (result == NULL) {
-        return NULL;
-      }
-      if (new_size_in_bytes > 0 && buffer) {
-        memcpy(result, buffer, new_size_in_bytes);
-      }
-      VirtualFreeEx(GetCurrentProcess(), (LPVOID)buffer, old_size_in_bytes,
-                    MEM_RELEASE);
-      return result;
-    }
+    case SPACE_METHOD_VIRTUAL_ALLOC:
+        if (new_size_in_bytes == 0) {
+            VirtualFreeEx(GetCurrentProcess(), (LPVOID) buffer, old_size_in_bytes, MEM_RELEASE);
+            return NULL;
+        }
+        if (old_size_in_bytes > new_size_in_bytes) {
+            result =
+                VirtualAllocEx(GetCurrentProcess(), NULL, new_size_in_bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            if (result == NULL) {
+                return NULL;
+            }
+            if (new_size_in_bytes > 0 && buffer) {
+                memcpy(result, buffer, new_size_in_bytes);
+            }
+            VirtualFreeEx(GetCurrentProcess(), (LPVOID) buffer, old_size_in_bytes, MEM_RELEASE);
+            return result;
+        }
 
-    result = VirtualAllocEx(GetCurrentProcess(), NULL, new_size_in_bytes,
-                            MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        result = VirtualAllocEx(GetCurrentProcess(), NULL, new_size_in_bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
-    if (result == NULL) {
-      return NULL;
-    }
-    if (old_size_in_bytes > 0 && buffer) {
-      memcpy(result, buffer, old_size_in_bytes);
-    }
-    VirtualFreeEx(GetCurrentProcess(), (LPVOID)buffer, old_size_in_bytes,
-                  MEM_RELEASE);
+        if (result == NULL) {
+            return NULL;
+        }
+        if (old_size_in_bytes > 0 && buffer) {
+            memcpy(result, buffer, old_size_in_bytes);
+        }
+        VirtualFreeEx(GetCurrentProcess(), (LPVOID) buffer, old_size_in_bytes, MEM_RELEASE);
 
-    break;
+        break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This allocation method is not supported");
-  }
-  return result;
+    default: assert(false && "UNREACHABLE: This allocation method is not supported");
+    }
+    return result;
 }
 
 static inline bool space__os_dap_planet(Space *space, Planet planet) {
-  if (!space) {
-    return false;
-  }
-
-  if (space->capacity <= space->count) {
-    size_t old_capacity = space->capacity;
-    space->capacity =
-        space->capacity == 0 ? SPACE_DAP_CAP : space->capacity * 2;
-
-    space->elements = space_realloc_memory(
-        space, space->elements, sizeof(*space->elements) * old_capacity,
-        sizeof(*space->elements) * space->capacity);
-
-    if (space->elements == NULL) {
-      return false;
+    if (!space) {
+        return false;
     }
-  }
 
-  space->elements[space->count++] = planet;
-  return true;
+    if (space->capacity <= space->count) {
+        size_t old_capacity = space->capacity;
+        space->capacity = space->capacity == 0 ? SPACE_DAP_CAP : space->capacity * 2;
+
+        space->elements = space_realloc_memory(space, space->elements, sizeof(*space->elements) * old_capacity,
+                                               sizeof(*space->elements) * space->capacity);
+
+        if (space->elements == NULL) {
+            return false;
+        }
+    }
+
+    space->elements[space->count++] = planet;
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -1278,22 +1170,21 @@ static inline bool space__os_dap_planet(Space *space, Planet planet) {
  * bytes.
  * @return True if the allocation has succeeded, otherwise false.
  */
-SPACEDEF bool space_init_planet(Space *space, size_t size_in_bytes,
-                                Planet *planet) {
+SPACEDEF bool space_init_planet(Space *space, size_t size_in_bytes, Planet *planet) {
 
-  planet->id = 0;
-  planet->count = 0;
-  planet->capacity = size_in_bytes;
-  planet->elements = space__alloc_memory(space, size_in_bytes);
-  if (!planet->elements) {
-    return false;
-  }
+    planet->id = 0;
+    planet->count = 0;
+    planet->capacity = size_in_bytes;
+    planet->elements = space__alloc_memory(space, size_in_bytes);
+    if (!planet->elements) {
+        return false;
+    }
 
-  // The '1+' is needed because 0 is an invalid id and
-  // space_find_planet_id_from_ptr() returns 0 if it could not be found.
-  // This allows to use size_t and still return an error value.
-  planet->id = 1 + space->id_counter++;
-  return true;
+    // The '1+' is needed because 0 is an invalid id and
+    // space_find_planet_id_from_ptr() returns 0 if it could not be found.
+    // This allows to use size_t and still return an error value.
+    planet->id = 1 + space->id_counter++;
+    return true;
 }
 
 /**
@@ -1308,7 +1199,7 @@ SPACEDEF bool space_init_planet(Space *space, size_t size_in_bytes,
  */
 SPACEDEF void space_free_planet(Space *space, Planet *planet) {
 
-  space_free_planet_optional_freeing_data(space, planet, true);
+    space_free_planet_optional_freeing_data(space, planet, true);
 }
 
 /**
@@ -1327,103 +1218,97 @@ SPACEDEF void space_free_planet(Space *space, Planet *planet) {
  * @param free_data If true, frees both the planet structure and its data
  * buffer; if false, only frees the planet structure itself.
  */
-SPACEDEF void space_free_planet_optional_freeing_data(Space *space,
-                                                      Planet *planet,
-                                                      bool free_data) {
+SPACEDEF void space_free_planet_optional_freeing_data(Space *space, Planet *planet, bool free_data) {
 
-  if (!planet || !space) {
-    return;
-  }
+    if (!planet || !space) {
+        return;
+    }
 
 layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    if (!space->sun) {
-      return;
-    }
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        if (!space->sun) {
+            return;
+        }
 
-    Big_Planet *big_planet = space_find_big_planet_from_planet(space, planet);
-    if (!big_planet) {
-      return;
-    }
-    if (space->sun == big_planet) {
-      space->sun = big_planet->next;
-    }
-    if (big_planet->prev) {
-      big_planet->prev->next = big_planet->next;
-    }
-    if (big_planet->next) {
-      big_planet->next->prev = big_planet->prev;
-    }
+        Big_Planet *big_planet = space_find_big_planet_from_planet(space, planet);
+        if (!big_planet) {
+            return;
+        }
+        if (space->sun == big_planet) {
+            space->sun = big_planet->next;
+        }
+        if (big_planet->prev) {
+            big_planet->prev->next = big_planet->next;
+        }
+        if (big_planet->next) {
+            big_planet->next->prev = big_planet->prev;
+        }
 
-    if (free_data) {
-      space__free_memory(space, big_planet->planet.elements,
-                         big_planet->planet.capacity);
+        if (free_data) {
+            space__free_memory(space, big_planet->planet.elements, big_planet->planet.capacity);
 
-      big_planet->planet.elements = NULL;
-    }
-    big_planet->planet.count = 0;
-    big_planet->planet.capacity = 0;
-    big_planet->next = NULL;
-    big_planet->prev = NULL;
-    big_planet->planet.id = 0;
+            big_planet->planet.elements = NULL;
+        }
+        big_planet->planet.count = 0;
+        big_planet->planet.capacity = 0;
+        big_planet->next = NULL;
+        big_planet->prev = NULL;
+        big_planet->planet.id = 0;
 
-    space__free_memory(space, big_planet, sizeof(*big_planet));
-    big_planet = NULL;
+        space__free_memory(space, big_planet, sizeof(*big_planet));
+        big_planet = NULL;
 
-  } break;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    if (!space->elements) {
-      return;
-    }
-
-    if (free_data) {
-      space__free_memory(space, planet->elements, planet->capacity);
-      planet->elements = NULL;
-    }
-
-    if (space->count == 1) {
-      space__free_memory(space, space->elements, space->capacity);
-      space->elements = NULL;
-    } else {
-      bool found = false;
-      for (size_t i = 0; i < space->count; ++i) {
-        if (space->elements[i].id == planet->id && i + 1 < space->count) {
-          memmove(&space->elements[i], &space->elements[i + 1],
-                  (space->count - i - 1) * sizeof(*space->elements));
-          found = true;
-          break;
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        if (!space->elements) {
+            return;
         }
-      }
-      // Do not zero the planet because they point at the next planet after
-      // memmove(). The next planet values would be changed.
 
-      if (!found) {
-        return;
-      }
-    }
+        if (free_data) {
+            space__free_memory(space, planet->elements, planet->capacity);
+            planet->elements = NULL;
+        }
 
-  } break;
+        if (space->count == 1) {
+            space__free_memory(space, space->elements, space->capacity);
+            space->elements = NULL;
+        } else {
+            bool found = false;
+            for (size_t i = 0; i < space->count; ++i) {
+                if (space->elements[i].id == planet->id && i + 1 < space->count) {
+                    memmove(&space->elements[i], &space->elements[i + 1],
+                            (space->count - i - 1) * sizeof(*space->elements));
+                    found = true;
+                    break;
+                }
+            }
+            // Do not zero the planet because they point at the next planet after
+            // memmove(). The next planet values would be changed.
+
+            if (!found) {
+                return;
+            }
+        }
+
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    if (!space->planet_elements) {
-      return;
-    }
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        if (!space->planet_elements) {
+            return;
+        }
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 
-  space->count--;
+    space->count--;
 }
 
 /**
@@ -1437,44 +1322,41 @@ layout_rerun:
  * @param space Pointer to the Space structure to free.
  */
 SPACEDEF void space_free_space(Space *space) {
-  if (!space) {
-    return;
-  }
-  size_t amount = space->count;
-layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
-#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    for (size_t i = 0; i < amount; ++i) {
-      space_free_planet(space, &space->sun->planet);
+    if (!space) {
+        return;
     }
-    assert(space->count == 0);
-    // This ensures that even when calling mmap the freed value is NULL.
-    space->sun = NULL;
-  } break;
+    size_t amount = space->count;
+layout_rerun:
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        for (size_t i = 0; i < amount; ++i) {
+            space_free_planet(space, &space->sun->planet);
+        }
+        assert(space->count == 0);
+        // This ensures that even when calling mmap the freed value is NULL.
+        space->sun = NULL;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    // This is broken.
-    for (size_t i = 0; i < amount; ++i) {
-      space_free_planet(space, &space->elements[0]);
-    }
-    assert(space->count == 0);
-    // This ensures that even when calling mmap the freed value is NULL.
-    space->elements = NULL;
-  } break;
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        // This is broken.
+        for (size_t i = 0; i < amount; ++i) {
+            space_free_planet(space, &space->elements[0]);
+        }
+        assert(space->count == 0);
+        // This ensures that even when calling mmap the freed value is NULL.
+        space->elements = NULL;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 }
 
 /**
@@ -1489,42 +1371,37 @@ layout_rerun:
  * @param space Pointer to the Space structure.
  */
 SPACEDEF void space_free_space_internals_without_freeing_data(Space *space) {
-  size_t amount = space->count;
+    size_t amount = space->count;
 layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    for (size_t i = 0; i < amount; ++i) {
-      space_free_planet_optional_freeing_data(space, &space->sun->planet,
-                                              false);
-    }
-    assert(space->count == 0);
-    // This ensures that even when calling mmap the freed value is NULL.
-    space->sun = NULL;
-  } break;
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        for (size_t i = 0; i < amount; ++i) {
+            space_free_planet_optional_freeing_data(space, &space->sun->planet, false);
+        }
+        assert(space->count == 0);
+        // This ensures that even when calling mmap the freed value is NULL.
+        space->sun = NULL;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    for (size_t i = 0; i < amount; ++i) {
-      space_free_planet_optional_freeing_data(space, &space->elements[0],
-                                              false);
-    }
-    assert(space->count == 0);
-    // This ensures that even when calling mmap the freed value is NULL.
-    space->elements = NULL;
-  } break;
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        for (size_t i = 0; i < amount; ++i) {
+            space_free_planet_optional_freeing_data(space, &space->elements[0], false);
+        }
+        assert(space->count == 0);
+        // This ensures that even when calling mmap the freed value is NULL.
+        space->elements = NULL;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 }
 
 /**
@@ -1538,7 +1415,9 @@ layout_rerun:
  *
  * @param planet Pointer to the Planet to reset.
  */
-SPACEDEF void space_reset_planet(Planet *planet) { planet->count = 0; }
+SPACEDEF void space_reset_planet(Planet *planet) {
+    planet->count = 0;
+}
 
 /**
  * @brief Resets a planet and zeros out all its memory, passing ownership to
@@ -1553,13 +1432,13 @@ SPACEDEF void space_reset_planet(Planet *planet) { planet->count = 0; }
  * @param planet Pointer to the Planet to reset and zero.
  */
 SPACEDEF void space_reset_planet_and_zero(Planet *planet) {
-  if (!planet) {
-    return;
-  }
-  if (planet->elements) {
-    memset(planet->elements, 0, planet->capacity);
-  }
-  planet->count = 0;
+    if (!planet) {
+        return;
+    }
+    if (planet->elements) {
+        memset(planet->elements, 0, planet->capacity);
+    }
+    planet->count = 0;
 }
 
 /**
@@ -1576,44 +1455,40 @@ SPACEDEF void space_reset_planet_and_zero(Planet *planet) {
  */
 SPACEDEF bool space_reset_planet_id(Space *space, size_t id) {
 layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    size_t i = 0;
-    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-         big_planet = big_planet->next, ++i) {
-      if (big_planet->planet.id == id) {
-        space_reset_planet(&big_planet->planet);
-        return true;
-      }
-    }
-    assert(i == space->count);
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        size_t i = 0;
+        for (Big_Planet *big_planet = space->sun; big_planet && i < space->count; big_planet = big_planet->next, ++i) {
+            if (big_planet->planet.id == id) {
+                space_reset_planet(&big_planet->planet);
+                return true;
+            }
+        }
+        assert(i == space->count);
 
-  } break;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    for (size_t i = 0; i < space->count; ++i) {
-      if (space->elements[i].id == id) {
-        space_reset_planet(&space->elements[i]);
-        return true;
-      }
-    }
-  } break;
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        for (size_t i = 0; i < space->count; ++i) {
+            if (space->elements[i].id == id) {
+                space_reset_planet(&space->elements[i]);
+                return true;
+            }
+        }
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 
-  return false;
+    return false;
 }
 
 /**
@@ -1628,44 +1503,40 @@ layout_rerun:
  */
 SPACEDEF bool space_reset_planet_and_zero_id(Space *space, size_t id) {
 layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    size_t i = 0;
-    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-         big_planet = big_planet->next, ++i) {
-      if (big_planet->planet.id == id) {
-        space_reset_planet_and_zero(&big_planet->planet);
-        return true;
-      }
-    }
-    assert(i == space->count);
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        size_t i = 0;
+        for (Big_Planet *big_planet = space->sun; big_planet && i < space->count; big_planet = big_planet->next, ++i) {
+            if (big_planet->planet.id == id) {
+                space_reset_planet_and_zero(&big_planet->planet);
+                return true;
+            }
+        }
+        assert(i == space->count);
 
-  } break;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    for (size_t i = 0; i < space->count; ++i) {
-      if (space->elements[i].id == id) {
-        space_reset_planet_and_zero(&space->elements[i]);
-        return true;
-      }
-    }
-  } break;
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        for (size_t i = 0; i < space->count; ++i) {
+            if (space->elements[i].id == id) {
+                space_reset_planet_and_zero(&space->elements[i]);
+                return true;
+            }
+        }
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 
-  return false;
+    return false;
 }
 
 /**
@@ -1682,37 +1553,33 @@ layout_rerun:
  */
 SPACEDEF void space_reset_space(Space *space) {
 layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    size_t i = 0;
-    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-         big_planet = big_planet->next, ++i) {
-      space_reset_planet(&big_planet->planet);
-    }
-    assert(i == space->count);
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        size_t i = 0;
+        for (Big_Planet *big_planet = space->sun; big_planet && i < space->count; big_planet = big_planet->next, ++i) {
+            space_reset_planet(&big_planet->planet);
+        }
+        assert(i == space->count);
 
-  } break;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    for (size_t i = 0; i < space->count; ++i) {
-      space_reset_planet(&space->elements[i]);
-    }
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        for (size_t i = 0; i < space->count; ++i) {
+            space_reset_planet(&space->elements[i]);
+        }
 
-  } break;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 }
 
 /**
@@ -1729,154 +1596,145 @@ layout_rerun:
  */
 SPACEDEF void space_reset_space_and_zero(Space *space) {
 layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    size_t i = 0;
-    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-         big_planet = big_planet->next, ++i) {
-      space_reset_planet_and_zero(&big_planet->planet);
-    }
-    assert(i == space->count);
-  } break;
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        size_t i = 0;
+        for (Big_Planet *big_planet = space->sun; big_planet && i < space->count; big_planet = big_planet->next, ++i) {
+            space_reset_planet_and_zero(&big_planet->planet);
+        }
+        assert(i == space->count);
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    for (size_t i = 0; i < space->count; ++i) {
-      space_reset_planet_and_zero(&space->elements[i]);
-    }
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        for (size_t i = 0; i < space->count; ++i) {
+            space_reset_planet_and_zero(&space->elements[i]);
+        }
 
-  } break;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 }
 
-static inline void *space__dll_alloc(Space *space, size_t size_in_bytes,
-                                     size_t *planet_id, bool force_new_planet) {
+static inline void *space__dll_alloc(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet) {
 
-  *planet_id = 0;
-  Big_Planet *big_planet = space->sun;
-  Big_Planet *_prev = space->count == 0 ? space->sun : space->sun->prev;
-  for (size_t i = 0; big_planet && i < space->count; ++i) {
-    if (force_new_planet) {
-      break;
+    *planet_id = 0;
+    Big_Planet *big_planet = space->sun;
+    Big_Planet *_prev = space->count == 0 ? space->sun : space->sun->prev;
+    for (size_t i = 0; big_planet && i < space->count; ++i) {
+        if (force_new_planet) {
+            break;
+        }
+
+        size_t align_pcount = space_align_power2(8, big_planet->planet.count);
+        if (align_pcount + size_in_bytes > big_planet->planet.capacity) {
+            _prev = big_planet;
+            big_planet = big_planet->next;
+            continue;
+        }
+
+        // TODO: Think about handling this by deleting the planet chunk in
+        // between. We can't get the original pointer at this point anyway.
+        // Recovery is outside the traditional behavior of this lib, which is
+        // freeing the complete space at once and be sure that every allocated
+        // memory is freed.
+        //
+        // We can't distinguish between an actual free call or destroying our
+        // reference by setting it to NULL.
+        //
+        // Marvin Frohwitter 01.12.2025
+        assert(big_planet->planet.elements && "ERROR:SPACE: Memory inside a space was freed or set to NULL"
+                                              "by an external call outside the space api!");
+
+        big_planet->planet.count = align_pcount;
+        void *place = &((char *) big_planet->planet.elements)[big_planet->planet.count];
+        big_planet->planet.count += size_in_bytes;
+        *planet_id = big_planet->planet.id;
+        return place;
     }
 
-    size_t align_pcount = space_align_power2(8, big_planet->planet.count);
-    if (align_pcount + size_in_bytes > big_planet->planet.capacity) {
-      _prev = big_planet;
-      big_planet = big_planet->next;
-      continue;
+    Big_Planet temp_bp = {0};
+    big_planet = space__copy_buffer_to_heap(space, &temp_bp, sizeof(temp_bp));
+    if (!big_planet) {
+        return NULL;
+    }
+    if (!space_init_planet(space, size_in_bytes, &big_planet->planet)) {
+        space__free_memory(space, big_planet, sizeof(*big_planet));
+        return NULL;
     }
 
-    // TODO: Think about handling this by deleting the planet chunk in
-    // between. We can't get the original pointer at this point anyway.
-    // Recovery is outside the traditional behavior of this lib, which is
-    // freeing the complete space at once and be sure that every allocated
-    // memory is freed.
-    //
-    // We can't distinguish between an actual free call or destroying our
-    // reference by setting it to NULL.
-    //
-    // Marvin Frohwitter 01.12.2025
-    assert(big_planet->planet.elements &&
-           "ERROR:SPACE: Memory inside a space was freed or set to NULL"
-           "by an external call outside the space api!");
-
-    big_planet->planet.count = align_pcount;
-    void *place =
-        &((char *)big_planet->planet.elements)[big_planet->planet.count];
-    big_planet->planet.count += size_in_bytes;
+    big_planet->planet.count = size_in_bytes;
     *planet_id = big_planet->planet.id;
-    return place;
-  }
 
-  Big_Planet temp_bp = {0};
-  big_planet = space__copy_buffer_to_heap(space, &temp_bp, sizeof(temp_bp));
-  if (!big_planet) {
-    return NULL;
-  }
-  if (!space_init_planet(space, size_in_bytes, &big_planet->planet)) {
-    space__free_memory(space, big_planet, sizeof(*big_planet));
-    return NULL;
-  }
+    if (space->count == 0) {
+        space->sun = big_planet;
+        _prev = space->sun;
+    }
 
-  big_planet->planet.count = size_in_bytes;
-  *planet_id = big_planet->planet.id;
+    big_planet->prev = _prev;
+    big_planet->next = space->sun;
+    _prev->next = big_planet;
+    space->sun->prev = big_planet;
 
-  if (space->count == 0) {
-    space->sun = big_planet;
-    _prev = space->sun;
-  }
-
-  big_planet->prev = _prev;
-  big_planet->next = space->sun;
-  _prev->next = big_planet;
-  space->sun->prev = big_planet;
-
-  space->count++;
-  return big_planet->planet.elements;
+    space->count++;
+    return big_planet->planet.elements;
 }
 
-static inline void *space__da_alloc(Space *space, size_t size_in_bytes,
-                                    size_t *planet_id, bool force_new_planet) {
+static inline void *space__da_alloc(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet) {
 
-  *planet_id = 0;
-  for (size_t i = 0; i < space->count; ++i) {
-    Planet *planet = &space->elements[i];
-    if (force_new_planet) {
-      break;
+    *planet_id = 0;
+    for (size_t i = 0; i < space->count; ++i) {
+        Planet *planet = &space->elements[i];
+        if (force_new_planet) {
+            break;
+        }
+
+        size_t align_pcount = space_align_power2(8, planet->count);
+        if (align_pcount + size_in_bytes > planet->capacity) {
+            continue;
+        }
+
+        // TODO: Think about handling this by deleting the planet chunk in
+        // between. We can't get the original pointer at this point anyway.
+        // Recovery is outside the traditional behavior of this lib, which is
+        // freeing the complete space at once and be sure that every allocated
+        // memory is freed.
+        //
+        // We can't distinguish between an actual free call or destroying our
+        // reference by setting it to NULL.
+        //
+        // Marvin Frohwitter 01.12.2025
+        assert(planet->elements && "ERROR:SPACE: Memory inside a space was freed or set to NULL"
+                                   "by an external call outside the space api!");
+
+        planet->count = align_pcount;
+        void *place = &((char *) planet->elements)[planet->count];
+        planet->count += size_in_bytes;
+        *planet_id = planet->id;
+        return place;
     }
 
-    size_t align_pcount = space_align_power2(8, planet->count);
-    if (align_pcount + size_in_bytes > planet->capacity) {
-      continue;
+    Planet p;
+    if (!space_init_planet(space, size_in_bytes, &p)) {
+        return NULL;
+    }
+    p.count = size_in_bytes;
+    *planet_id = p.id;
+
+    if (!space__os_dap_planet(space, p)) {
+        space__free_memory(space, p.elements, p.capacity);
+        return NULL;
     }
 
-    // TODO: Think about handling this by deleting the planet chunk in
-    // between. We can't get the original pointer at this point anyway.
-    // Recovery is outside the traditional behavior of this lib, which is
-    // freeing the complete space at once and be sure that every allocated
-    // memory is freed.
-    //
-    // We can't distinguish between an actual free call or destroying our
-    // reference by setting it to NULL.
-    //
-    // Marvin Frohwitter 01.12.2025
-    assert(planet->elements &&
-           "ERROR:SPACE: Memory inside a space was freed or set to NULL"
-           "by an external call outside the space api!");
-
-    planet->count = align_pcount;
-    void *place = &((char *)planet->elements)[planet->count];
-    planet->count += size_in_bytes;
-    *planet_id = planet->id;
-    return place;
-  }
-
-  Planet p;
-  if (!space_init_planet(space, size_in_bytes, &p)) {
-    return NULL;
-  }
-  p.count = size_in_bytes;
-  *planet_id = p.id;
-
-  if (!space__os_dap_planet(space, p)) {
-    space__free_memory(space, p.elements, p.capacity);
-    return NULL;
-  }
-
-  return p.elements;
+    return p.elements;
 }
 
 /**
@@ -1897,38 +1755,34 @@ static inline void *space__da_alloc(Space *space, size_t size_in_bytes,
  * false, attempts to use existing planet space first.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes,
-                                    size_t *planet_id, bool force_new_planet) {
-  if (!space) {
-    *planet_id = 0;
-    return NULL;
-  }
+SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet) {
+    if (!space) {
+        *planet_id = 0;
+        return NULL;
+    }
 
 layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    return space__dll_alloc(space, size_in_bytes, planet_id, force_new_planet);
-  } break;
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        return space__dll_alloc(space, size_in_bytes, planet_id, force_new_planet);
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    return space__da_alloc(space, size_in_bytes, planet_id, force_new_planet);
-  } break;
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        return space__da_alloc(space, size_in_bytes, planet_id, force_new_planet);
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 
-  return NULL;
+    return NULL;
 }
 
 /**
@@ -1945,10 +1799,8 @@ layout_rerun:
  * @param planet_id Pointer to store the ID of the newly created planet.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_malloc_planetid_force_new_planet(Space *space,
-                                                      size_t size_in_bytes,
-                                                      size_t *planet_id) {
-  return space_alloc_planetid(space, size_in_bytes, planet_id, true);
+SPACEDEF void *space_malloc_planetid_force_new_planet(Space *space, size_t size_in_bytes, size_t *planet_id) {
+    return space_alloc_planetid(space, size_in_bytes, planet_id, true);
 }
 
 /**
@@ -1966,16 +1818,13 @@ SPACEDEF void *space_malloc_planetid_force_new_planet(Space *space,
  * @return Pointer to the allocated zero-initialized memory, or NULL on
  * failure.
  */
-SPACEDEF void *space_calloc_planetid_force_new_planet(Space *space,
-                                                      size_t nmemb, size_t size,
-                                                      size_t *planet_id) {
-  size_t size_in_bytes = nmemb * size;
-  void *ptr =
-      space_malloc_planetid_force_new_planet(space, size_in_bytes, planet_id);
-  if (ptr) {
-    memset(ptr, 0, size_in_bytes);
-  }
-  return ptr;
+SPACEDEF void *space_calloc_planetid_force_new_planet(Space *space, size_t nmemb, size_t size, size_t *planet_id) {
+    size_t size_in_bytes = nmemb * size;
+    void *ptr = space_malloc_planetid_force_new_planet(space, size_in_bytes, planet_id);
+    if (ptr) {
+        memset(ptr, 0, size_in_bytes);
+    }
+    return ptr;
 }
 
 /**
@@ -1988,27 +1837,24 @@ SPACEDEF void *space_calloc_planetid_force_new_planet(Space *space,
  * @param planet_id Pointer to store the ID of the newly created planet.
  * @return Pointer to the reallocated memory, or NULL on failure.
  */
-SPACEDEF void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
-                                                       size_t old_size,
-                                                       size_t new_size,
+SPACEDEF void *space_realloc_planetid_force_new_planet(Space *space, void *ptr, size_t old_size, size_t new_size,
                                                        size_t *planet_id) {
 
-  char *new_ptr =
-      space_malloc_planetid_force_new_planet(space, new_size, planet_id);
-  if (new_ptr) {
-    // This is to ensure memcpy() does not copy from NULL, this is undefended
-    // behavior and a memory corruption.
-    if (ptr) {
-      // This is need if the this function shrinks the size to 0 and then the
-      // caller wants to realloc a lager pointer. In the mean time another
-      // allocation has taken the planet and a new planet was allocated to
-      // provided the requested space.
-      if (old_size) {
-        memcpy(new_ptr, ptr, old_size > new_size ? new_size : old_size);
-      }
+    char *new_ptr = space_malloc_planetid_force_new_planet(space, new_size, planet_id);
+    if (new_ptr) {
+        // This is to ensure memcpy() does not copy from NULL, this is undefended
+        // behavior and a memory corruption.
+        if (ptr) {
+            // This is need if the this function shrinks the size to 0 and then the
+            // caller wants to realloc a lager pointer. In the mean time another
+            // allocation has taken the planet and a new planet was allocated to
+            // provided the requested space.
+            if (old_size) {
+                memcpy(new_ptr, ptr, old_size > new_size ? new_size : old_size);
+            }
+        }
     }
-  }
-  return new_ptr;
+    return new_ptr;
 }
 
 /**
@@ -2026,9 +1872,8 @@ SPACEDEF void *space_realloc_planetid_force_new_planet(Space *space, void *ptr,
  * allocated; this value is set to 0 on failure.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_malloc_planetid(Space *space, size_t size_in_bytes,
-                                     size_t *planet_id) {
-  return space_alloc_planetid(space, size_in_bytes, planet_id, false);
+SPACEDEF void *space_malloc_planetid(Space *space, size_t size_in_bytes, size_t *planet_id) {
+    return space_alloc_planetid(space, size_in_bytes, planet_id, false);
 }
 
 /**
@@ -2048,14 +1893,13 @@ SPACEDEF void *space_malloc_planetid(Space *space, size_t size_in_bytes,
  * @return Pointer to the allocated zero-initialized memory, or NULL on
  * failure.
  */
-SPACEDEF void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
-                                     size_t *planet_id) {
-  size_t size_in_bytes = nmemb * size;
-  void *ptr = space_malloc_planetid(space, size_in_bytes, planet_id);
-  if (ptr) {
-    memset(ptr, 0, size_in_bytes);
-  }
-  return ptr;
+SPACEDEF void *space_calloc_planetid(Space *space, size_t nmemb, size_t size, size_t *planet_id) {
+    size_t size_in_bytes = nmemb * size;
+    void *ptr = space_malloc_planetid(space, size_in_bytes, planet_id);
+    if (ptr) {
+        memset(ptr, 0, size_in_bytes);
+    }
+    return ptr;
 }
 
 /**
@@ -2075,58 +1919,57 @@ SPACEDEF void *space_calloc_planetid(Space *space, size_t nmemb, size_t size,
  * allocated; this value is set to 0 on failure.
  * @return Pointer to the resized memory, or NULL on failure.
  */
-SPACEDEF void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
-                                      size_t new_size, size_t *planet_id) {
-  if (old_size >= new_size) {
-    Planet *p = space_find_planet_from_ptr(space, ptr);
-    if (p) {
-      //
-      // This is needed to ensure just this one allocation is in the planet.
-      // If there is more than just one allocation the shrinking is not
-      // possible, without keeping better track of the resulting holes and in
-      // general the allocator assumes freeing all at once and not partial.
-      //
-      if (p->count == old_size) {
-        // This is needed to achieve the free functionality that realloc
-        // provides.
-        p->count = new_size;
-      }
-      *planet_id = p->id;
-      return ptr;
-    }
-    *planet_id = 0;
-    return NULL;
-  }
-
-  if (space_try_to_expand_in_place(space, ptr, old_size, new_size, planet_id)) {
-    return ptr;
-  }
-
-  Planet *old_p = space_find_planet_from_ptr(space, ptr);
-  if (old_p && space__is_ptr_last_allocation_in_planet(old_p, ptr, old_size)) {
-    // Prevent holes if the allocation was not possible in place.
-    old_p->count -= old_size;
-  }
-
-  char *new_ptr = space_malloc_planetid(space, new_size, planet_id);
-  if (new_ptr) {
-    // This is to ensure memcpy() does not copy from NULL, this is undefended
-    // behavior and a memory corruption.
-    if (ptr) {
-      // This is need if the this function shrinks the size to 0 and then the
-      // caller wants to realloc a lager pointer. In the mean time another
-      // allocation has taken the planet and a new planet was allocated to
-      // provided the requested space.
-      if (old_size) {
-        if (ptr == new_ptr) {
-          memmove(new_ptr, ptr, old_size);
-        } else {
-          memcpy(new_ptr, ptr, old_size);
+SPACEDEF void *space_realloc_planetid(Space *space, void *ptr, size_t old_size, size_t new_size, size_t *planet_id) {
+    if (old_size >= new_size) {
+        Planet *p = space_find_planet_from_ptr(space, ptr);
+        if (p) {
+            //
+            // This is needed to ensure just this one allocation is in the planet.
+            // If there is more than just one allocation the shrinking is not
+            // possible, without keeping better track of the resulting holes and in
+            // general the allocator assumes freeing all at once and not partial.
+            //
+            if (p->count == old_size) {
+                // This is needed to achieve the free functionality that realloc
+                // provides.
+                p->count = new_size;
+            }
+            *planet_id = p->id;
+            return ptr;
         }
-      }
+        *planet_id = 0;
+        return NULL;
     }
-  }
-  return new_ptr;
+
+    if (space_try_to_expand_in_place(space, ptr, old_size, new_size, planet_id)) {
+        return ptr;
+    }
+
+    Planet *old_p = space_find_planet_from_ptr(space, ptr);
+    if (old_p && space__is_ptr_last_allocation_in_planet(old_p, ptr, old_size)) {
+        // Prevent holes if the allocation was not possible in place.
+        old_p->count -= old_size;
+    }
+
+    char *new_ptr = space_malloc_planetid(space, new_size, planet_id);
+    if (new_ptr) {
+        // This is to ensure memcpy() does not copy from NULL, this is undefended
+        // behavior and a memory corruption.
+        if (ptr) {
+            // This is need if the this function shrinks the size to 0 and then the
+            // caller wants to realloc a lager pointer. In the mean time another
+            // allocation has taken the planet and a new planet was allocated to
+            // provided the requested space.
+            if (old_size) {
+                if (ptr == new_ptr) {
+                    memmove(new_ptr, ptr, old_size);
+                } else {
+                    memcpy(new_ptr, ptr, old_size);
+                }
+            }
+        }
+    }
+    return new_ptr;
 }
 
 /**
@@ -2142,10 +1985,9 @@ SPACEDEF void *space_realloc_planetid(Space *space, void *ptr, size_t old_size,
  * @param size_in_bytes The number of bytes to allocate.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_malloc_force_new_planet(Space *space,
-                                             size_t size_in_bytes) {
-  size_t id;
-  return space_malloc_planetid_force_new_planet(space, size_in_bytes, &id);
+SPACEDEF void *space_malloc_force_new_planet(Space *space, size_t size_in_bytes) {
+    size_t id;
+    return space_malloc_planetid_force_new_planet(space, size_in_bytes, &id);
 }
 
 /**
@@ -2162,10 +2004,9 @@ SPACEDEF void *space_malloc_force_new_planet(Space *space,
  * @return Pointer to the allocated zero-initialized memory, or NULL on
  * failure.
  */
-SPACEDEF void *space_calloc_force_new_planet(Space *space, size_t nmemb,
-                                             size_t size) {
-  size_t id;
-  return space_calloc_planetid_force_new_planet(space, nmemb, size, &id);
+SPACEDEF void *space_calloc_force_new_planet(Space *space, size_t nmemb, size_t size) {
+    size_t id;
+    return space_calloc_planetid_force_new_planet(space, nmemb, size, &id);
 }
 
 /**
@@ -2182,12 +2023,9 @@ SPACEDEF void *space_calloc_force_new_planet(Space *space, size_t nmemb,
  * @param new_size The new desired size.
  * @return Pointer to the resized memory, or NULL on failure.
  */
-SPACEDEF void *space_realloc_force_new_planet(Space *space, void *ptr,
-                                              size_t old_size,
-                                              size_t new_size) {
-  size_t id;
-  return space_realloc_planetid_force_new_planet(space, ptr, old_size, new_size,
-                                                 &id);
+SPACEDEF void *space_realloc_force_new_planet(Space *space, void *ptr, size_t old_size, size_t new_size) {
+    size_t id;
+    return space_realloc_planetid_force_new_planet(space, ptr, old_size, new_size, &id);
 }
 
 /**
@@ -2203,8 +2041,8 @@ SPACEDEF void *space_realloc_force_new_planet(Space *space, void *ptr,
  * @return Pointer to the allocated uninitialized memory, or NULL on failure.
  */
 SPACEDEF void *space_malloc(Space *space, size_t size_in_bytes) {
-  size_t id;
-  return space_malloc_planetid(space, size_in_bytes, &id);
+    size_t id;
+    return space_malloc_planetid(space, size_in_bytes, &id);
 }
 
 /**
@@ -2222,8 +2060,8 @@ SPACEDEF void *space_malloc(Space *space, size_t size_in_bytes) {
  * failure.
  */
 SPACEDEF void *space_calloc(Space *space, size_t nmemb, size_t size) {
-  size_t id;
-  return space_calloc_planetid(space, nmemb, size, &id);
+    size_t id;
+    return space_calloc_planetid(space, nmemb, size, &id);
 }
 
 /**
@@ -2241,10 +2079,9 @@ SPACEDEF void *space_calloc(Space *space, size_t nmemb, size_t size) {
  * @param new_size The new desired size.
  * @return Pointer to the resized memory, or NULL on failure.
  */
-SPACEDEF void *space_realloc(Space *space, void *ptr, size_t old_size,
-                             size_t new_size) {
-  size_t id;
-  return space_realloc_planetid(space, ptr, old_size, new_size, &id);
+SPACEDEF void *space_realloc(Space *space, void *ptr, size_t old_size, size_t new_size) {
+    size_t id;
+    return space_realloc_planetid(space, ptr, old_size, new_size, &id);
 }
 
 /**
@@ -2261,16 +2098,16 @@ SPACEDEF void *space_realloc(Space *space, void *ptr, size_t old_size,
  * @return true if capacity was successfully initialized, false otherwise.
  */
 SPACEDEF bool space_init_capacity(Space *space, size_t size_in_bytes) {
-  if (!space || size_in_bytes == 0) {
-    return false;
-  }
+    if (!space || size_in_bytes == 0) {
+        return false;
+    }
 
-  size_t planet_id;
-  if (space_malloc_planetid(space, size_in_bytes, &planet_id)) {
-    space_reset_planet_id(space, planet_id);
-    return true;
-  }
-  return false;
+    size_t planet_id;
+    if (space_malloc_planetid(space, size_in_bytes, &planet_id)) {
+        space_reset_planet_id(space, planet_id);
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -2287,51 +2124,49 @@ SPACEDEF bool space_init_capacity(Space *space, size_t size_in_bytes) {
  * @param count The number of planets to create and initialize.
  * @return true if all planets were successfully initialized, false otherwise.
  */
-SPACEDEF bool space_init_capacity_in_count_plantes(Space *space,
-                                                   size_t size_in_bytes,
-                                                   size_t count) {
-  if (!space || count == 0 || size_in_bytes == 0) {
-    return false;
-  }
-
-  if (count <= 16) {
-    size_t ids[count];
-    for (size_t i = 0; i < count; ++i) {
-      if (!space_malloc_planetid(space, size_in_bytes, &ids[i])) {
+SPACEDEF bool space_init_capacity_in_count_plantes(Space *space, size_t size_in_bytes, size_t count) {
+    if (!space || count == 0 || size_in_bytes == 0) {
         return false;
-      }
-    }
-    for (size_t i = 0; i < count; ++i) {
-      if (!space_reset_planet_id(space, ids[i])) {
-        return false;
-      }
-    }
-  } else {
-    void *ids = NULL;
-    size_t size_to_alloc = sizeof(*(size_t *)ids) * count;
-
-    ids = space__alloc_memory(space, size_to_alloc);
-    if (ids == NULL) {
-      return false;
     }
 
-    for (size_t i = 0; i < count; ++i) {
-      if (!space_malloc_planetid(space, size_in_bytes, &((size_t *)ids)[i])) {
+    if (count <= 16) {
+        size_t ids[count];
+        for (size_t i = 0; i < count; ++i) {
+            if (!space_malloc_planetid(space, size_in_bytes, &ids[i])) {
+                return false;
+            }
+        }
+        for (size_t i = 0; i < count; ++i) {
+            if (!space_reset_planet_id(space, ids[i])) {
+                return false;
+            }
+        }
+    } else {
+        void *ids = NULL;
+        size_t size_to_alloc = sizeof(*(size_t *) ids) * count;
+
+        ids = space__alloc_memory(space, size_to_alloc);
+        if (ids == NULL) {
+            return false;
+        }
+
+        for (size_t i = 0; i < count; ++i) {
+            if (!space_malloc_planetid(space, size_in_bytes, &((size_t *) ids)[i])) {
+                space__free_memory(space, ids, size_to_alloc);
+                return false;
+            }
+        }
+        for (size_t i = 0; i < count; ++i) {
+            if (!space_reset_planet_id(space, ((size_t *) ids)[i])) {
+                space__free_memory(space, ids, size_to_alloc);
+                return false;
+            }
+        }
+
         space__free_memory(space, ids, size_to_alloc);
-        return false;
-      }
-    }
-    for (size_t i = 0; i < count; ++i) {
-      if (!space_reset_planet_id(space, ((size_t *)ids)[i])) {
-        space__free_memory(space, ids, size_to_alloc);
-        return false;
-      }
     }
 
-    space__free_memory(space, ids, size_to_alloc);
-  }
-
-  return true;
+    return true;
 }
 
 /**
@@ -2348,62 +2183,56 @@ SPACEDEF bool space_init_capacity_in_count_plantes(Space *space,
  * found.
  */
 SPACEDEF size_t space_find_planet_id_from_ptr(Space *space, void *ptr) {
-  if (!ptr || !space) {
-    return 0;
-  }
-  if (!space->count) {
-    return 0;
-  }
+    if (!ptr || !space) {
+        return 0;
+    }
+    if (!space->count) {
+        return 0;
+    }
 
 layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    if (!space->sun || !space->sun->planet.elements) {
-      return 0;
-    }
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        if (!space->sun || !space->sun->planet.elements) {
+            return 0;
+        }
 
-    size_t i = 0;
-    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-         big_planet = big_planet->next, ++i) {
-      if ((char *)big_planet->planet.elements <= (char *)ptr &&
-          (char *)big_planet->planet.elements + big_planet->planet.capacity >=
-              (char *)ptr) {
-        return big_planet->planet.id;
-      }
-    }
-    assert(i == space->count);
-  } break;
+        size_t i = 0;
+        for (Big_Planet *big_planet = space->sun; big_planet && i < space->count; big_planet = big_planet->next, ++i) {
+            if ((char *) big_planet->planet.elements <= (char *) ptr &&
+                (char *) big_planet->planet.elements + big_planet->planet.capacity >= (char *) ptr) {
+                return big_planet->planet.id;
+            }
+        }
+        assert(i == space->count);
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    if (!space->elements) {
-      return 0;
-    }
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        if (!space->elements) {
+            return 0;
+        }
 
-    for (size_t i = 0; i < space->count; ++i) {
-      if ((char *)space->elements[i].elements <= (char *)ptr &&
-          (char *)space->elements[i].elements + space->elements[i].capacity >=
-              (char *)ptr) {
-        return space->elements[i].id;
-      }
-    }
+        for (size_t i = 0; i < space->count; ++i) {
+            if ((char *) space->elements[i].elements <= (char *) ptr &&
+                (char *) space->elements[i].elements + space->elements[i].capacity >= (char *) ptr) {
+                return space->elements[i].id;
+            }
+        }
 
-  } break;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 
-  return 0;
+    return 0;
 }
 
 /**
@@ -2420,62 +2249,56 @@ layout_rerun:
  * not found.
  */
 SPACEDEF Planet *space_find_planet_from_ptr(Space *space, void *ptr) {
-  if (!ptr || !space) {
-    return NULL;
-  }
-  if (!space->count) {
-    return NULL;
-  }
+    if (!ptr || !space) {
+        return NULL;
+    }
+    if (!space->count) {
+        return NULL;
+    }
 
 layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    if (!space->sun || !space->sun->planet.elements) {
-      return NULL;
-    }
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        if (!space->sun || !space->sun->planet.elements) {
+            return NULL;
+        }
 
-    size_t i = 0;
-    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-         big_planet = big_planet->next, ++i) {
-      if ((char *)big_planet->planet.elements <= (char *)ptr &&
-          (char *)big_planet->planet.elements + big_planet->planet.capacity >=
-              (char *)ptr) {
-        return &big_planet->planet;
-      }
-    }
-    assert(i == space->count);
-  } break;
+        size_t i = 0;
+        for (Big_Planet *big_planet = space->sun; big_planet && i < space->count; big_planet = big_planet->next, ++i) {
+            if ((char *) big_planet->planet.elements <= (char *) ptr &&
+                (char *) big_planet->planet.elements + big_planet->planet.capacity >= (char *) ptr) {
+                return &big_planet->planet;
+            }
+        }
+        assert(i == space->count);
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    if (!space->elements) {
-      return NULL;
-    }
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        if (!space->elements) {
+            return NULL;
+        }
 
-    for (size_t i = 0; i < space->count; ++i) {
-      if ((char *)space->elements[i].elements <= (char *)ptr &&
-          (char *)space->elements[i].elements + space->elements[i].capacity >=
-              (char *)ptr) {
-        return &space->elements[i];
-      }
-    }
+        for (size_t i = 0; i < space->count; ++i) {
+            if ((char *) space->elements[i].elements <= (char *) ptr &&
+                (char *) space->elements[i].elements + space->elements[i].capacity >= (char *) ptr) {
+                return &space->elements[i];
+            }
+        }
 
-  } break;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 
-  return NULL;
+    return NULL;
 }
 
 /**
@@ -2490,33 +2313,31 @@ layout_rerun:
  * @return Pointer to the Big_Planet structure containing the Planet, or NULL
  * if not found.
  */
-SPACEDECL Big_Planet *space_find_big_planet_from_planet(Space *space,
-                                                        Planet *planet) {
+SPACEDECL Big_Planet *space_find_big_planet_from_planet(Space *space, Planet *planet) {
 
-  if (!planet || !space) {
-    return NULL;
-  }
-  if (space->memory_layout != SPACE_MEMORY_DOUBLE_LINKED_LIST) {
-    return NULL;
-  }
-
-  if (!space->count) {
-    return NULL;
-  }
-  if (!space->sun || !space->sun->planet.elements) {
-    return NULL;
-  }
-
-  size_t i = 0;
-  for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-       big_planet = big_planet->next, ++i) {
-    if (planet->id == big_planet->planet.id) {
-      return big_planet;
+    if (!planet || !space) {
+        return NULL;
     }
-  }
+    if (space->memory_layout != SPACE_MEMORY_DOUBLE_LINKED_LIST) {
+        return NULL;
+    }
 
-  assert(i == space->count);
-  return NULL;
+    if (!space->count) {
+        return NULL;
+    }
+    if (!space->sun || !space->sun->planet.elements) {
+        return NULL;
+    }
+
+    size_t i = 0;
+    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count; big_planet = big_planet->next, ++i) {
+        if (planet->id == big_planet->planet.id) {
+            return big_planet;
+        }
+    }
+
+    assert(i == space->count);
+    return NULL;
 }
 
 /**
@@ -2537,20 +2358,19 @@ SPACEDECL Big_Planet *space_find_big_planet_from_planet(Space *space,
  * @return true if the memory was successfully expanded in place; false
  * otherwise.
  */
-SPACEDEF bool space_try_to_expand_in_place(Space *space, void *ptr,
-                                           size_t old_size, size_t new_size,
+SPACEDEF bool space_try_to_expand_in_place(Space *space, void *ptr, size_t old_size, size_t new_size,
                                            size_t *planet_id) {
 
-  Planet *p = space_find_planet_from_ptr(space, ptr);
-  if (!p || !space__is_ptr_last_allocation_in_planet(p, ptr, old_size) ||
-      (p->count - old_size + new_size > p->capacity)) {
-    *planet_id = 0;
-    return false;
-  }
+    Planet *p = space_find_planet_from_ptr(space, ptr);
+    if (!p || !space__is_ptr_last_allocation_in_planet(p, ptr, old_size) ||
+        (p->count - old_size + new_size > p->capacity)) {
+        *planet_id = 0;
+        return false;
+    }
 
-  p->count = p->count - old_size + new_size;
-  *planet_id = p->id;
-  return true;
+    p->count = p->count - old_size + new_size;
+    *planet_id = p->id;
+    return true;
 }
 
 /**
@@ -2568,56 +2388,52 @@ SPACEDEF bool space_try_to_expand_in_place(Space *space, void *ptr,
  * NULL or if the statistics would overflow.
  */
 SPACEDEF bool space_report_allocations(Space *space, Space_Report *report) {
-  if (!space) {
-    return false;
-  }
-  report->planet_count = space->count;
+    if (!space) {
+        return false;
+    }
+    report->planet_count = space->count;
 
 layout_rerun:
-  switch (space->memory_layout) {
-  case 0:
-    space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT;
-    goto layout_rerun;
+    switch (space->memory_layout) {
+    case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
-  case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-    size_t i = 0;
-    for (Big_Planet *big_planet = space->sun; big_planet && i < space->count;
-         big_planet = big_planet->next, ++i) {
-      if (report->allocated_capacity + big_planet->planet.capacity > SIZE_MAX ||
-          report->allocated_count + big_planet->planet.count > SIZE_MAX) {
-        return false;
-      }
+    case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
+        size_t i = 0;
+        for (Big_Planet *big_planet = space->sun; big_planet && i < space->count; big_planet = big_planet->next, ++i) {
+            if (report->allocated_capacity + big_planet->planet.capacity > SIZE_MAX ||
+                report->allocated_count + big_planet->planet.count > SIZE_MAX) {
+                return false;
+            }
 
-      report->allocated_capacity += big_planet->planet.capacity;
-      report->allocated_count += big_planet->planet.count;
-    }
-    assert(i == space->count);
-  } break;
+            report->allocated_capacity += big_planet->planet.capacity;
+            report->allocated_count += big_planet->planet.count;
+        }
+        assert(i == space->count);
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
-  case SPACE_MEMORY_DYNAMIC_ARRAY: {
-    for (size_t i = 0; i < space->count; ++i) {
-      if (report->allocated_capacity + space->elements[i].capacity > SIZE_MAX ||
-          report->allocated_count + space->elements[i].count > SIZE_MAX) {
-        return false;
-      }
+    case SPACE_MEMORY_DYNAMIC_ARRAY: {
+        for (size_t i = 0; i < space->count; ++i) {
+            if (report->allocated_capacity + space->elements[i].capacity > SIZE_MAX ||
+                report->allocated_count + space->elements[i].count > SIZE_MAX) {
+                return false;
+            }
 
-      report->allocated_capacity += space->elements[i].capacity;
-      report->allocated_count += space->elements[i].count;
-    }
+            report->allocated_capacity += space->elements[i].capacity;
+            report->allocated_count += space->elements[i].count;
+        }
 
-  } break;
+    } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
-  case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-    assert(false && "This memory layout is not supported");
-  } break;
+    case SPACE_MEMORY_STUCT_OF_ARRAYS: {
+        assert(false && "This memory layout is not supported");
+    } break;
 #endif
-  default:
-    assert(false && "UNREACHABLE: This memory layout is not supported");
-  }
+    default: assert(false && "UNREACHABLE: This memory layout is not supported");
+    }
 
-  return true;
+    return true;
 }
 
 /**
@@ -2634,10 +2450,10 @@ layout_rerun:
  * alignment.
  */
 SPACEDEF size_t space_align(size_t alignment, size_t value) {
-  if (alignment == 0) {
-    return value;
-  }
-  return ((value + alignment - 1) / alignment) * alignment;
+    if (alignment == 0) {
+        return value;
+    }
+    return ((value + alignment - 1) / alignment) * alignment;
 }
 
 /**
@@ -2655,11 +2471,11 @@ SPACEDEF size_t space_align(size_t alignment, size_t value) {
  * alignment.
  */
 SPACEDEF size_t space_align_power2(size_t alignment, size_t value) {
-  if (alignment == 0) {
-    return value;
-  }
-  assert((alignment & (alignment - 1)) == 0 && "INCORRECT ALLIMENT VALUE");
-  return (value + alignment - 1) & ~(alignment - 1);
+    if (alignment == 0) {
+        return value;
+    }
+    assert((alignment & (alignment - 1)) == 0 && "INCORRECT ALLIMENT VALUE");
+    return (value + alignment - 1) & ~(alignment - 1);
 }
 
-#endif // SPACE_IMPLEMENTATION
+#endif  // SPACE_IMPLEMENTATION

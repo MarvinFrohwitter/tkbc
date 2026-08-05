@@ -6,7 +6,7 @@
 
 #define TEAL CLITERAL(Color){0, 128, 128, 255} // Teal
 
-#define ICAREX_weiß       CLITERAL(Color){0xFF, 0xFF, 0xFF, 0xFF}
+#define ICAREX_white      CLITERAL(Color){0xFF, 0xFF, 0xFF, 0xFF}
 #define ICAREX_hellgrau   CLITERAL(Color){169,  169,  169,  0xFF}
 #define ICAREX_dunkelgrau CLITERAL(Color){58,   58,   58,   0xFF}
 #define ICAREX_schwarz    CLITERAL(Color){0,    0,    0,    0xFF}
@@ -15,7 +15,7 @@
 #define ICAREX_gold       CLITERAL(Color){204,  153,  0,    0xFF}
 #define ICAREX_gelb       CLITERAL(Color){255,  204,  50,   0xFF}
 
-#define ICAREX_grün       CLITERAL(Color){0,    128,  0,    0xFF}
+#define ICAREX_green       CLITERAL(Color){0,    128,  0,    0xFF}
 #define ICAREX_cedar      CLITERAL(Color){60,   179,  113,  0xFF}
 
 #define ICAREX_teal       CLITERAL(Color){0,    153,  153,  0xFF}
@@ -38,7 +38,7 @@
 
 #define ICAREX_neongelb   CLITERAL(Color){199,  255,  0,    0xFF}
 #define ICAREX_neonorange CLITERAL(Color){255,  65,   0,    0xFF}
-#define ICAREX_neongrün   CLITERAL(Color){0,    255,  0,    0xFF}
+#define ICAREX_neongreen   CLITERAL(Color){0,    255,  0,    0xFF}
 
 
 #define TKBC_UI_WHITE ColorBrightness(WHITE, 0)

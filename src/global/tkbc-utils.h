@@ -657,6 +657,10 @@ char *tkbc_generate_file_name_with_time_stamp(const char *prefix, const char *po
     size_t time_string_len = 26;
     char *time_string = ctime(&current_time);
     time_string = strdup(time_string);
+    if (!time_string) {
+        tkbc_fprintf(stderr, "ERROR", "Could not allocated final time string.\n");
+        return NULL;
+    }
     time_string[24] = '\0';
     // For Windows file names with ':' are not allowed.
     for (char *c = time_string; *c; c++) {
@@ -1160,8 +1164,16 @@ bool read_dir_impl(const char *path, Dir_Entries *list) {
         }
 
         char *real_path = strdup(real_path_buf);
+        if (!real_path) {
+            fprintf(stderr, "Error: Could not alloc realpath.\n");
+            return false;
+        }
 #else
         char *real_path = realpath(path, NULL);
+        if (!real_path) {
+            fprintf(stderr, "Error: realpath failed: %s\n", strerror(errno));
+            return false;
+        }
 #endif
 
 #ifdef _WIN32
@@ -1175,6 +1187,11 @@ bool read_dir_impl(const char *path, Dir_Entries *list) {
         }
         ret += 1;
         char *full_path = malloc(sizeof(char) * ret);
+        if (!full_path) {
+            fprintf(stderr, "Error: Could not alloc full path.\n");
+            return false;
+        }
+
 #ifdef _WIN32
         ret = snprintf(full_path, ret, "%s\\%s", real_path, d_name);
 #else
@@ -1244,8 +1261,16 @@ bool read_dir(const char *path, Dir_Entries *list) {
         return false;
     }
     char *parent_full_path = strdup(real_path);
+    if (!parent_full_path) {
+        fprintf(stderr, "Error: Could not alloc parent full path.\n");
+        return false;
+    }
 #else
     char *parent_full_path = realpath(path, NULL);
+    if (!parent_full_path) {
+        fprintf(stderr, "Error: realpath failed: %s\n", strerror(errno));
+        return false;
+    }
 #endif
 
     tkbc_dap(list, ((Dir_Entry){
@@ -1382,6 +1407,10 @@ bool tkbc__make_dir_recursive_if_not_existis_internal(const char *path, bool rep
 #endif
 
     char *copy = strdup(path);
+    if (!copy) {
+        tkbc_fprintf(stderr, "ERROR", "Could not allocated path copy.\n");
+        return false;
+    }
     char *next = strchr(copy, separator);
     while (true) {
         if (next == NULL) {

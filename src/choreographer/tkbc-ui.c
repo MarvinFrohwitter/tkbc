@@ -1389,13 +1389,13 @@ void tkbc_ui_color_picker(Env *env) {
     color_circle.y += 2 * color_circle_radius + padding;
 
     static Color colors[] = {
-        ICAREX_weiß,     ICAREX_hellgrau,   ICAREX_dunkelgrau, ICAREX_schwarz,
+        ICAREX_white,    ICAREX_hellgrau,   ICAREX_dunkelgrau, ICAREX_schwarz,
         ICAREX_rot,      ICAREX_orange,     ICAREX_gold,       ICAREX_gelb,
-        ICAREX_grün,     ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
+        ICAREX_green,     ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
         ICAREX_slate,    ICAREX_hellblau,   ICAREX_blau,       ICAREX_dunkelblau,
         ICAREX_plum,     ICAREX_aubergin,   ICAREX_milkalila1, ICAREX_milkalila2,
         ICAREX_lila,     ICAREX_rasberry,   ICAREX_zartrosa,   ICAREX_brown,
-        ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongrün,   TEAL,
+        ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongreen,   TEAL,
     };
 
     for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
