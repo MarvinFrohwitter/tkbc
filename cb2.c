@@ -199,7 +199,6 @@ void libs_opt(Cmd *cmd, Libs_Opts opts) {
             LIBS(cmd, "-lws2_32");
         }
     } else {
-        exit(EXIT_FAILURE);
     }
 }
 
