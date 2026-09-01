@@ -19,7 +19,14 @@ typedef size_t Index;  // NOTE: Check for clang compiler issue in project.
 typedef size_t Id;     // NOTE: Check for clang compiler issue in project.
 
 typedef enum {
-    LOGO = 0,
+    _16X16_LOGO = 0,
+    _24X24_LOGO,
+    _32X32_LOGO,
+    _48X48_LOGO,
+    _64X64_LOGO,
+    _96X96_LOGO,
+    _128X128_LOGO,
+    _256X256_LOGO,
 
     KITE_DEFAULT_DESIGNS_BEGIN,
     IMAGE_1 = KITE_DEFAULT_DESIGNS_BEGIN,

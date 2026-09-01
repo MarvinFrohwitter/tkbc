@@ -202,7 +202,22 @@ void append_assets(void) {
     // TODO: Make the asset loading depended on the enum.
     static_assert(ASSET_KITE_DESIGN_COUNT, "The static asset count has changed think about the order of appending");
 
-    tkbc_append_asset_image(asset_image_logo, IMAGE_LOGO_WIDTH, IMAGE_LOGO_HEIGHT, IMAGE_LOGO_FORMAT);
+    tkbc_append_asset_image(asset_image_16x16_logo, IMAGE_16X16_LOGO_WIDTH, IMAGE_16X16_LOGO_HEIGHT,
+                            IMAGE_16X16_LOGO_FORMAT);
+    tkbc_append_asset_image(asset_image_24x24_logo, IMAGE_24X24_LOGO_WIDTH, IMAGE_24X24_LOGO_HEIGHT,
+                            IMAGE_24X24_LOGO_FORMAT);
+    tkbc_append_asset_image(asset_image_32x32_logo, IMAGE_32X32_LOGO_WIDTH, IMAGE_32X32_LOGO_HEIGHT,
+                            IMAGE_32X32_LOGO_FORMAT);
+    tkbc_append_asset_image(asset_image_48x48_logo, IMAGE_48X48_LOGO_WIDTH, IMAGE_48X48_LOGO_HEIGHT,
+                            IMAGE_48X48_LOGO_FORMAT);
+    tkbc_append_asset_image(asset_image_64x64_logo, IMAGE_64X64_LOGO_WIDTH, IMAGE_64X64_LOGO_HEIGHT,
+                            IMAGE_64X64_LOGO_FORMAT);
+    tkbc_append_asset_image(asset_image_96x96_logo, IMAGE_96X96_LOGO_WIDTH, IMAGE_96X96_LOGO_HEIGHT,
+                            IMAGE_96X96_LOGO_FORMAT);
+    tkbc_append_asset_image(asset_image_128x128_logo, IMAGE_128X128_LOGO_WIDTH, IMAGE_128X128_LOGO_HEIGHT,
+                            IMAGE_128X128_LOGO_FORMAT);
+    tkbc_append_asset_image(asset_image_256x256_logo, IMAGE_256X256_LOGO_WIDTH, IMAGE_256X256_LOGO_HEIGHT,
+                            IMAGE_256X256_LOGO_FORMAT);
 
     tkbc_append_kite_image(asset_image_1, IMAGE_1_WIDTH, IMAGE_1_HEIGHT, IMAGE_1_FORMAT);
     tkbc_append_kite_image(asset_image_2, IMAGE_2_WIDTH, IMAGE_2_HEIGHT, IMAGE_2_FORMAT);

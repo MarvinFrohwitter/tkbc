@@ -22,8 +22,8 @@ size_t tkbc_get_current_kite_design_count();
 Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width, int height, int format);
 bool tkbc_image_already_exitst_in_assets(Image image, Id *id);
 
-#define _tkbc_get_asset_image(kind)                                                                                    \
-    assets.elements[(assert(assets.count > 0), assert(assets.elements[kind].type == ASSETS_IMAGE), kind)]
+#define _tkbc_get_asset_image(enum_kind)                                                                                    \
+    assets.elements[(assert(assets.count > 0), assert(assets.elements[enum_kind].type == ASSETS_IMAGE), enum_kind)]
 
 #define _tkbc_get_asset_kite_design(enum_kind)                                                                         \
     assets.elements[(assert(assets.count > 0), assert(assets.elements[(enum_kind)].type == ASSETS_KITE_DESIGN),        \

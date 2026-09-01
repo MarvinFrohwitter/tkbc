@@ -1057,7 +1057,19 @@ int main(int argc, char *argv[]) {
     SetWindowMaxSize(SCREEN_WIDTH, SCREEN_HEIGHT);
     SetTargetFPS(TARGET_FPS);
     tkbc_load_assets();
-    SetWindowIcon(_tkbc_get_asset_image(LOGO).as.image);
+
+    {
+
+        // Standard Windows icon sizes: 256, 128, 96, 64, 48, 32, 24, 16
+        Image images[] = {
+            _tkbc_get_asset_image(_16X16_LOGO).as.image,   _tkbc_get_asset_image(_24X24_LOGO).as.image,
+            _tkbc_get_asset_image(_32X32_LOGO).as.image,   _tkbc_get_asset_image(_48X48_LOGO).as.image,
+            _tkbc_get_asset_image(_64X64_LOGO).as.image,   _tkbc_get_asset_image(_96X96_LOGO).as.image,
+            _tkbc_get_asset_image(_128X128_LOGO).as.image, _tkbc_get_asset_image(_256X256_LOGO).as.image,
+        };
+
+        SetWindowIcons(images, ARRAY_LENGTH(images));
+    }
 
     srand(time(NULL));
     env = tkbc_init_env();
