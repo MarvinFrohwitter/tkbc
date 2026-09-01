@@ -1139,7 +1139,6 @@ int main(int argc, char *argv[]) {
 
     tkbc_fprintf(stderr, "INFO", "Exiting 3...2...1...\n");
     if (client.socket_id > 0) {
-        tkbc_fprintf(stderr, "INFO", "UNExiting %d...\n", client.socket_id);
         space_free_space(&client.send_msg_buffer_space);
         space_free_space(&client.recv_msg_buffer_space);
         client.recv_msg_buffer.elements = NULL;
