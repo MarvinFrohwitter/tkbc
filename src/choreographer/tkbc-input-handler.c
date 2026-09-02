@@ -404,8 +404,8 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
 
     Kite *kite = state->kite;
     tkbc_check_is_mouse_in_dead_zone(state, kite->height / 2);
-    tkbc_caluculate_and_update_locked_angles(keymaps, state);
-    tkbc_calcluate_and_update_face_mouse_angle(state);
+    tkbc_calculate_and_update_locked_angles(keymaps, state);
+    tkbc_calculate_and_update_face_mouse_angle(state);
     tkbc_calculate_and_update_snapping_angle(keymaps, state);
     tkbc_calculate_new_kite_position(keymaps, state);
 
@@ -814,7 +814,7 @@ bool tkbc_check_is_mouse_in_dead_zone(Kite_State *state, size_t dead_zone_radius
  * @param state The current state of a kite that should be handled.
  * @return True if the kite angle is locked to a fixed angle, otherwise false.
  */
-bool tkbc_caluculate_and_update_locked_angles(Key_Maps keymaps, Kite_State *state) {
+bool tkbc_calculate_and_update_locked_angles(Key_Maps keymaps, Kite_State *state) {
 
     if (tkbc_check_keymaps_full(keymaps, KMH_LOCK_KITE_ANGLE, KEY_MAP_CHECK_DOWN)) {
         state->is_angle_locked = true;
@@ -844,7 +844,7 @@ bool tkbc_caluculate_and_update_locked_angles(Key_Maps keymaps, Kite_State *stat
  *
  * @param state The current state of a kite that should be handled.
  */
-void tkbc_calcluate_and_update_face_mouse_angle(Kite_State *state) {
+void tkbc_calculate_and_update_face_mouse_angle(Kite_State *state) {
     if (state->is_rotating) {
         return;
     }

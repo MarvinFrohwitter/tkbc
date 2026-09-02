@@ -82,8 +82,11 @@ void tkbc_destroy_env(Env *env);
 void tkbc_destroy_kite(Kite_State *state);
 void tkbc_destroy_kite_array(Kite_States *kite_states);
 bool tkbc_remove_kite_from_list(Kite_States *kite_array, size_t kite_id);
-void tkbc_kite_array_start_position(Kite_States *kite_states,
+Vector2 tkbc_calculate_start_position(Env *env, Kite_States *kite_states,
                                     size_t window_width, size_t window_height);
+void tkbc_kite_array_start_position(Env *env, Kite_States *kite_states,
+                                    size_t window_width, size_t window_height,
+                                    bool set_defaults);
 
 void tkbc_file_handler(Env *env);
 void tkbc_set_kite_defaults(Kite *kite, bool is_generated);

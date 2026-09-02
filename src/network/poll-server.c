@@ -927,7 +927,7 @@ bool tkbc_received_message_handler(Client *client) {
         } break;
         case MESSAGE_KITES_POSITIONS_RESET: {
             // All parsing is already done above.
-            tkbc_kite_array_start_position(&env->kite_array, env->window_width, env->window_height);
+            tkbc_kite_array_start_position(env, &env->kite_array, env->window_width, env->window_height, true);
 
             tkbc_message_clientkites_write_to_all_send_msg_buffers(true);
 

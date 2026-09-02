@@ -1225,6 +1225,8 @@ bool tkbc_run(Env *env) {
                     env->kite_array.elements[k].is_active = false;
                 }
 
+                tkbc_kite_array_start_position(env, &env->kite_array, env->window_width, env->window_height, false);
+
 #ifndef RELEASE
                 tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
 #endif  // RELEASE

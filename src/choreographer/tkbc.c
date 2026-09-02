@@ -225,33 +225,50 @@ bool tkbc_remove_kite_from_list(Kite_States *kite_array, size_t kite_id) {
     }
     return false;
 }
+
 /**
- * @brief The function computes the spaced start positions for the kite_array
- * and set the kites back to the default state values.
+ * @brief This function calculates the start positions for all active kites.
  *
- * @param kite_states The given kite array.
+ * @param env The global state of the application.
+ * @param kite_states The kite_states to consider.
  * @param window_width The width of the window.
  * @param window_height The height of the window.
+ * @return The calculated first position of the kite row.
  */
-void tkbc_kite_array_start_position(Kite_States *kite_states, size_t window_width, size_t window_height) {
-
-    assert(kite_states->count > 0);
-
-    float kite_width = kite_states->elements[0].kite->width;
-    float kite_height = kite_states->elements[0].kite->height;
+Vector2 tkbc_calculate_start_position(Env *env, Kite_States *kite_states, size_t window_width, size_t window_height) {
+    float kite_width = env->vanilla_kite->width;
+    float kite_height = env->vanilla_kite->height;
     float viewport_padding = kite_width > kite_height ? kite_width / 2.0f : kite_height;
 
     size_t count = tkbc_get_active_kite_count(kite_states);
 
-    Vector2 start_pos = {.x = window_width / 2.0f - count * kite_width + kite_width / 2.0f,
-                         .y = window_height - 2 * viewport_padding};
+    return (Vector2){
+        .x = window_width / 2.0f - count * kite_width + kite_width,
+        .y = window_height - 2 * viewport_padding,
+    };
+}
 
+/**
+ * @brief The function computes the spaced start positions for the kite_array
+ * and set the kites back to the default state values.
+ *
+ * @param env The global state of the application.
+ * @param kite_states The given kite array.
+ * @param window_width The width of the window.
+ * @param window_height The height of the window.
+ * @param set_defaults If the defaults of a kite should be set.
+ */
+void tkbc_kite_array_start_position(Env *env, Kite_States *kite_states, size_t window_width, size_t window_height,
+                                    bool set_defaults) {
+    Vector2 start_pos = tkbc_calculate_start_position(env, kite_states, window_width, window_height);
     for (size_t i = 0; i < kite_states->count; ++i) {
         if (kite_states->elements[i].is_active) {
-            tkbc_set_kite_state_defaults(&kite_states->elements[i]);
-            tkbc_set_kite_defaults(kite_states->elements[i].kite, false);
+            if (set_defaults) {
+                tkbc_set_kite_state_defaults(&kite_states->elements[i]);
+                tkbc_set_kite_defaults(kite_states->elements[i].kite, false);
+            }
             tkbc_center_rotation(kite_states->elements[i].kite, &start_pos, 0);
-            start_pos.x += 2 * kite_width;
+            start_pos.x += 2 * env->vanilla_kite->width;
         }
     }
 }

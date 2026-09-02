@@ -1138,7 +1138,7 @@ void tkbc_input_handler_script(Env *env) {
     // Hard reset to startposition angel 0
     // KEY_ENTER
     if (tkbc_check_keymaps_full(env->keymaps, KMH_SET_KITES_TO_START_POSITION, KEY_MAP_CHECK_KEY_PRESSED)) {
-        tkbc_kite_array_start_position(&env->kite_array, env->window_width, env->window_height);
+        tkbc_kite_array_start_position(env, &env->kite_array, env->window_width, env->window_height, true);
     }
 
     // KEY_SPACE

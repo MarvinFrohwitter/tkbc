@@ -402,7 +402,15 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
         tkbc_dap(&ids, next_kite_id);
     }
 
-    tkbc_kite_array_start_position(&env->kite_array, env->window_width, env->window_height);
+    {
+        Vector2 start_pos = tkbc_calculate_start_position(env, &env->kite_array, env->window_width, env->window_height);
+        for (size_t i = 0; i < env->kite_array.count; ++i) {
+            if (env->kite_array.elements[i].is_active) {
+                tkbc_center_rotation(env->kite_array.elements[i].kite, &start_pos, 0);
+                start_pos.x += 2 * env->vanilla_kite->width;
+            }
+        }
+    }
     return ids;
 }
 
