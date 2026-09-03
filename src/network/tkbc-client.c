@@ -358,7 +358,7 @@ bool send_message_send_handler() {
     if (client.send_msg_buffer.count == 0 && client.send_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
         tkbc_fprintf(stderr, "INFO", "realloced send_msg_buffer: old capacity: %zu\n", client.send_msg_buffer.capacity);
 
-        Planet *planet = space_find_planet_from_ptr(&client.send_msg_buffer_space, client.send_msg_buffer.elements);
+        Planet planet = space_find_planet_from_ptr(&client.send_msg_buffer_space, client.send_msg_buffer.elements);
         space_free_planet(&client.send_msg_buffer_space, planet);
 
         client.send_msg_buffer.elements = NULL;
@@ -669,7 +669,7 @@ bool message_queue_handler() {
     if (client.recv_msg_buffer.count == 0 && client.recv_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
         tkbc_fprintf(stderr, "INFO", "realloced message: old capacity: %zu\n", client.recv_msg_buffer.capacity);
 
-        Planet *planet = space_find_planet_from_ptr(&client.recv_msg_buffer_space, &client.recv_msg_buffer.elements);
+        Planet planet = space_find_planet_from_ptr(&client.recv_msg_buffer_space, &client.recv_msg_buffer.elements);
         space_free_planet(&client.recv_msg_buffer_space, planet);
 
         client.recv_msg_buffer.elements = NULL;
