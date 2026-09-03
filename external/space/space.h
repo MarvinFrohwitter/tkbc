@@ -1004,6 +1004,16 @@ SPACEDEF void *space_memmove(Space *space, const void *buf, size_t n) {
 
 /////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Frees a buffer previously allocated through the space.
+ *
+ * This internal function releases a memory buffer using the allocation
+ * method configured on the space.
+ *
+ * @param space Pointer to the Space structure that owns the buffer.
+ * @param buffer Pointer to the memory to free.
+ * @param size_in_bytes The size of the buffer in bytes.
+ */
 static inline void space__free_memory(Space *space, void *buffer, size_t size_in_bytes) {
 
 layout_rerun:
@@ -1024,6 +1034,17 @@ layout_rerun:
     }
 }
 
+/**
+ * @brief Allocates a raw memory buffer through the space.
+ *
+ * This internal function allocates memory using the allocation method
+ * configured on the space (malloc, mmap, or virtual alloc). The returned
+ * memory is uninitialized and is not yet associated with any planet.
+ *
+ * @param space Pointer to the Space structure that will own the buffer.
+ * @param size_in_bytes The number of bytes to allocate.
+ * @return Pointer to the freshly allocated memory, or NULL on failure.
+ */
 static inline void *space__alloc_memory(Space *space, size_t size_in_bytes) {
     void *result = NULL;
 rerun:
@@ -1059,6 +1080,17 @@ rerun:
     return result;
 }
 
+/**
+ * @brief Copies a buffer to a freshly allocated memory block.
+ *
+ * This internal helper allocates a new buffer through the space and copies
+ * the given memory into it, returning the newly allocated copy.
+ *
+ * @param space Pointer to the Space structure that will own the new buffer.
+ * @param buffer Pointer to the source memory to copy.
+ * @param size_in_bytes The number of bytes to copy.
+ * @return Pointer to the newly allocated copy, or NULL on failure.
+ */
 static inline void *space__copy_buffer_to_heap(Space *space, void *buffer, size_t size_in_bytes) {
     void *result = space__alloc_memory(space, size_in_bytes);
     if (result == NULL) {
@@ -1067,6 +1099,19 @@ static inline void *space__copy_buffer_to_heap(Space *space, void *buffer, size_
     return memcpy(result, buffer, size_in_bytes);
 }
 
+/**
+ * @brief Resizes a buffer using the space's allocation method.
+ *
+ * This internal function changes the size of an existing buffer, copying the
+ * data across when the backend cannot grow in place. It behaves like the
+ * standard realloc function, optionally freeing the old buffer.
+ *
+ * @param space Pointer to the Space structure that owns the buffer.
+ * @param buffer Pointer to the memory to resize, or NULL to allocate fresh.
+ * @param old_size_in_bytes The current size of the buffer in bytes.
+ * @param new_size_in_bytes The desired new size of the buffer in bytes.
+ * @return Pointer to the resized memory, or NULL on failure.
+ */
 static inline void *space_realloc_memory(Space *space, void *buffer, size_t old_size_in_bytes,
                                          size_t new_size_in_bytes) {
 
@@ -1146,6 +1191,16 @@ rerun:
     return result;
 }
 
+/**
+ * @brief Appends a planet to the dynamic-array layout.
+ *
+ * This internal helper stores a planet's metadata into the space's dynamic
+ * array, growing the backing array when its capacity is exhausted.
+ *
+ * @param space Pointer to the Space structure configured for the dynamic-array layout.
+ * @param planet The planet to append.
+ * @return true on success, false if the backing array could not be grown.
+ */
 static inline bool space__os_dap_planet(Space *space, Planet planet) {
     if (!space) {
         return false;
@@ -1167,6 +1222,18 @@ static inline bool space__os_dap_planet(Space *space, Planet planet) {
     return true;
 }
 
+/**
+ * @brief Appends a planet to the structure-of-arrays layout.
+ *
+ * This internal helper stores a planet's metadata across the four parallel
+ * arrays of the space (elements, counts, capacitys, and ids). All four arrays
+ * are grown transactionally: if any allocation fails, the space is left
+ * completely untouched.
+ *
+ * @param space Pointer to the Space structure configured for the structure-of-arrays layout.
+ * @param planet The planet to append.
+ * @return true on success, false if the arrays could not be grown.
+ */
 static inline bool space__os_soa_dap_planet(Space *space, Planet planet) {
     if (!space) {
         return false;
@@ -1174,23 +1241,59 @@ static inline bool space__os_soa_dap_planet(Space *space, Planet planet) {
 
     if (space->capacity <= space->count) {
         size_t old_capacity = space->capacity;
-        space->capacity = space->capacity == 0 ? SPACE_DAP_CAP : space->capacity * 2;
+        size_t old_count = space->count;
+        size_t new_capacity = space->capacity == 0 ? SPACE_DAP_CAP : space->capacity * 2;
 
-        space->planet_elements =
-            space_realloc_memory(space, space->planet_elements, sizeof(*space->planet_elements) * old_capacity,
-                                 sizeof(*space->planet_elements) * space->capacity);
-        if (space->planet_elements == NULL) return false;
-        space->planet_counts =
-            space_realloc_memory(space, space->planet_counts, sizeof(*space->planet_counts) * old_capacity,
-                                 sizeof(*space->planet_counts) * space->capacity);
-        if (space->planet_counts == NULL) return false;
-        space->planet_capacitys =
-            space_realloc_memory(space, space->planet_capacitys, sizeof(*space->planet_capacitys) * old_capacity,
-                                 sizeof(*space->planet_capacitys) * space->capacity);
-        if (space->planet_capacitys == NULL) return false;
-        space->planet_ids = space_realloc_memory(space, space->planet_ids, sizeof(*space->planet_ids) * old_capacity,
-                                                 sizeof(*space->planet_ids) * space->capacity);
-        if (space->planet_ids == NULL) return false;
+        // Allocate all four buffers fresh first, so that a failure here leaves
+        // the space completely untouched (no dangling/freed pointers committed).
+        //
+        // This is needed because the functions like mmap and VirtualAlloc need the correct size when deallocating.
+        // So deallocating less memory by just leaving the old capacity will leak memory that can never be reached
+        // again.
+        //
+        // This is the reason why a manually realloc via space__alloc_memory and space__free_memory is needed.
+        //
+        //
+        // Marvin Frohwitter 03.09.2026
+
+        void **new_elements = space__alloc_memory(space, sizeof(*new_elements) * new_capacity);
+        if (new_elements == NULL) return false;
+        size_t *new_counts = space__alloc_memory(space, sizeof(*new_counts) * new_capacity);
+        if (new_counts == NULL) {
+            space__free_memory(space, new_elements, sizeof(*new_elements) * new_capacity);
+            return false;
+        }
+        size_t *new_capacitys = space__alloc_memory(space, sizeof(*new_capacitys) * new_capacity);
+        if (new_capacitys == NULL) {
+            space__free_memory(space, new_elements, sizeof(*new_elements) * new_capacity);
+            space__free_memory(space, new_counts, sizeof(*new_counts) * new_capacity);
+            return false;
+        }
+        size_t *new_ids = space__alloc_memory(space, sizeof(*new_ids) * new_capacity);
+        if (new_ids == NULL) {
+            space__free_memory(space, new_elements, sizeof(*new_elements) * new_capacity);
+            space__free_memory(space, new_counts, sizeof(*new_counts) * new_capacity);
+            space__free_memory(space, new_capacitys, sizeof(*new_capacitys) * new_capacity);
+            return false;
+        }
+
+        if (old_count) {
+            memcpy(new_elements, space->planet_elements, sizeof(*new_elements) * old_count);
+            memcpy(new_counts, space->planet_counts, sizeof(*new_counts) * old_count);
+            memcpy(new_capacitys, space->planet_capacitys, sizeof(*new_capacitys) * old_count);
+            memcpy(new_ids, space->planet_ids, sizeof(*new_ids) * old_count);
+
+            space__free_memory(space, space->planet_elements, sizeof(*space->planet_elements) * old_capacity);
+            space__free_memory(space, space->planet_counts, sizeof(*space->planet_counts) * old_capacity);
+            space__free_memory(space, space->planet_capacitys, sizeof(*space->planet_capacitys) * old_capacity);
+            space__free_memory(space, space->planet_ids, sizeof(*space->planet_ids) * old_capacity);
+        }
+
+        space->planet_elements = new_elements;
+        space->planet_counts = new_counts;
+        space->planet_capacitys = new_capacitys;
+        space->planet_ids = new_ids;
+        space->capacity = new_capacity;
     }
 
     space->planet_elements[space->count] = planet.elements;
@@ -1244,7 +1347,7 @@ SPACEDEF bool space_init_planet(Space *space, size_t size_in_bytes, Planet *plan
  * planet become invalid after this call.
  *
  * @param space Pointer to the Space structure containing the planet.
- * @param planet Pointer to the Planet to free.
+ * @param planet Planet to free.
  */
 SPACEDEF void space_free_planet(Space *space, Planet planet) {
 
@@ -1263,7 +1366,7 @@ SPACEDEF void space_free_planet(Space *space, Planet planet) {
  * data.
  *
  * @param space Pointer to the Space structure containing the planet.
- * @param planet Pointer to the Planet to free.
+ * @param planet Planet to free.
  * @param free_data If true, frees both the planet structure and its data
  * buffer; if false, only frees the planet structure itself.
  */
@@ -1329,15 +1432,17 @@ layout_rerun:
         } else {
             bool found = false;
             for (size_t i = 0; i < space->count; ++i) {
-                if (space->elements[i].id == planet.id && i + 1 < space->count) {
-                    memmove(&space->elements[i], &space->elements[i + 1],
-                            (space->count - i - 1) * sizeof(*space->elements));
+                if (space->elements[i].id == planet.id) {
+                    if (i + 1 < space->count) {
+                        memmove(&space->elements[i], &space->elements[i + 1],
+                                (space->count - i - 1) * sizeof(*space->elements));
+                    }
+                    // Do not zero the planet because they point at the next planet after
+                    // memmove(). The next planet values would be changed.
                     found = true;
                     break;
                 }
             }
-            // Do not zero the planet because they point at the next planet after
-            // memmove(). The next planet values would be changed.
 
             if (!found) {
                 return;
@@ -1378,29 +1483,29 @@ layout_rerun:
         } else {
             bool found = false;
             for (size_t i = 0; i < space->count; ++i) {
-                if (space->planet_ids[i] == planet.id && i + 1 < space->count) {
-                    memmove(&space->planet_elements[i], &space->planet_elements[i + 1],
-                            (space->count - i - 1) * sizeof(*space->planet_elements));
-                    memmove(&space->planet_counts[i], &space->planet_counts[i + 1],
-                            (space->count - i - 1) * sizeof(*space->planet_counts));
-                    memmove(&space->planet_capacitys[i], &space->planet_capacitys[i + 1],
-                            (space->count - i - 1) * sizeof(*space->planet_capacitys));
-                    memmove(&space->planet_ids[i], &space->planet_ids[i + 1],
-                            (space->count - i - 1) * sizeof(*space->planet_ids));
-
+                if (space->planet_ids[i] == planet.id) {
+                    if (i + 1 < space->count) {
+                        memmove(&space->planet_elements[i], &space->planet_elements[i + 1],
+                                (space->count - i - 1) * sizeof(*space->planet_elements));
+                        memmove(&space->planet_counts[i], &space->planet_counts[i + 1],
+                                (space->count - i - 1) * sizeof(*space->planet_counts));
+                        memmove(&space->planet_capacitys[i], &space->planet_capacitys[i + 1],
+                                (space->count - i - 1) * sizeof(*space->planet_capacitys));
+                        memmove(&space->planet_ids[i], &space->planet_ids[i + 1],
+                                (space->count - i - 1) * sizeof(*space->planet_ids));
+                    }
+                    // Do not zero the planet because they point at the next planet after
+                    // memmove(). The next planet values would be changed.
                     found = true;
                     break;
                 }
             }
-            // Do not zero the planet because they point at the next planet after
-            // memmove(). The next planet values would be changed.
 
             if (!found) {
                 return;
             }
         }
 
-        assert(false && "This memory layout is not supported");
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
@@ -1464,7 +1569,6 @@ layout_rerun:
         space->planet_capacitys = NULL;
         space->planet_ids = NULL;
 
-        assert(false && "This memory layout is not supported");
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
@@ -1526,7 +1630,6 @@ layout_rerun:
         space->planet_capacitys = NULL;
         space->planet_ids = NULL;
 
-        assert(false && "This memory layout is not supported");
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
@@ -1638,7 +1741,6 @@ layout_rerun:
             }
         }
 
-        assert(false && "This memory layout is not supported");
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
@@ -1698,7 +1800,6 @@ layout_rerun:
             }
         }
 
-        assert(false && "This memory layout is not supported");
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
@@ -1743,8 +1844,7 @@ layout_rerun:
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
     case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-        memset(space->planet_counts, 0, space->count);
-        assert(false && "This memory layout is not supported");
+        memset(space->planet_counts, 0, space->count * sizeof(*space->planet_counts));
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
@@ -1786,17 +1886,29 @@ layout_rerun:
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
     case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-        memset(space->planet_counts, 0, space->count);
+        memset(space->planet_counts, 0, space->count * sizeof(*space->planet_counts));
         for (size_t i = 0; i < space->count; ++i) {
             memset(space->planet_elements[i], 0, space->planet_capacitys[i]);
         }
-        assert(false && "This memory layout is not supported");
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
     }
 }
 
+/**
+ * @brief Allocates memory using the double-linked-list layout.
+ *
+ * This internal helper searches the linked list of planets for free capacity
+ * and allocates from it, creating a new planet when none has room. It sets
+ * the planet id of the allocation, or 0 on failure.
+ *
+ * @param space Pointer to the Space structure configured for the double-linked-list layout.
+ * @param size_in_bytes The number of bytes to allocate.
+ * @param planet_id Pointer to store the id of the planet the allocation landed in.
+ * @param force_new_planet If true, always create a new planet.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
 static inline void *space__dll_alloc(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet) {
 
     *planet_id = 0;
@@ -1861,6 +1973,19 @@ static inline void *space__dll_alloc(Space *space, size_t size_in_bytes, size_t 
     return big_planet->planet.elements;
 }
 
+/**
+ * @brief Allocates memory using the dynamic-array layout.
+ *
+ * This internal helper searches the array of planets for free capacity and
+ * allocates from it, creating and appending a new planet when none has room.
+ * It sets the planet id of the allocation, or 0 on failure.
+ *
+ * @param space Pointer to the Space structure configured for the dynamic-array layout.
+ * @param size_in_bytes The number of bytes to allocate.
+ * @param planet_id Pointer to store the id of the planet the allocation landed in.
+ * @param force_new_planet If true, always create a new planet.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
 static inline void *space__da_alloc(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet) {
 
     *planet_id = 0;
@@ -1910,6 +2035,19 @@ static inline void *space__da_alloc(Space *space, size_t size_in_bytes, size_t *
     return p.elements;
 }
 
+/**
+ * @brief Allocates memory using the structure-of-arrays layout.
+ *
+ * This internal helper searches the parallel arrays of planets for free
+ * capacity and allocates from it, creating and appending a new planet when
+ * none has room. It sets the planet id of the allocation, or 0 on failure.
+ *
+ * @param space Pointer to the Space structure configured for the structure-of-arrays layout.
+ * @param size_in_bytes The number of bytes to allocate.
+ * @param planet_id Pointer to store the id of the planet the allocation landed in.
+ * @param force_new_planet If true, always create a new planet.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
 static inline void *space__soa_alloc(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet) {
 
     *planet_id = 0;
@@ -1997,10 +2135,7 @@ layout_rerun:
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
     case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-
         return space__soa_alloc(space, size_in_bytes, planet_id, force_new_planet);
-
-        assert(false && "This memory layout is not supported");
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
@@ -2428,7 +2563,7 @@ layout_rerun:
         size_t i = 0;
         for (Big_Planet *big_planet = space->sun; big_planet && i < space->count; big_planet = big_planet->next, ++i) {
             if ((char *) big_planet->planet.elements <= (char *) ptr &&
-                (char *) big_planet->planet.elements + big_planet->planet.capacity >= (char *) ptr) {
+                (char *) big_planet->planet.elements + big_planet->planet.capacity > (char *) ptr) {
                 return big_planet->planet.id;
             }
         }
@@ -2443,7 +2578,7 @@ layout_rerun:
 
         for (size_t i = 0; i < space->count; ++i) {
             if ((char *) space->elements[i].elements <= (char *) ptr &&
-                (char *) space->elements[i].elements + space->elements[i].capacity >= (char *) ptr) {
+                (char *) space->elements[i].elements + space->elements[i].capacity > (char *) ptr) {
                 return space->elements[i].id;
             }
         }
@@ -2458,12 +2593,11 @@ layout_rerun:
 
         for (size_t i = 0; i < space->count; ++i) {
             if ((char *) (space->planet_elements[i]) <= (char *) ptr &&
-                (char *) (space->planet_elements[i]) + space->planet_capacitys[i] >= (char *) ptr) {
+                (char *) (space->planet_elements[i]) + space->planet_capacitys[i] > (char *) ptr) {
                 return space->planet_ids[i];
             }
         }
 
-        assert(false && "This memory layout is not supported");
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
@@ -2472,6 +2606,17 @@ layout_rerun:
     return 0;
 }
 
+/**
+ * @brief Finds the index of a planet given its unique id.
+ *
+ * This internal function searches the space for a planet with the given id
+ * and stores its position in the internal storage into the index pointer.
+ *
+ * @param space Pointer to the Space structure to search.
+ * @param planet_id The unique id of the planet to look up.
+ * @param index Pointer to store the position of the found planet.
+ * @return true if a planet with the given id was found, false otherwise.
+ */
 SPACEDEF bool space_find_planet_index_from_planet_id(Space *space, size_t planet_id, size_t *index) {
     if (!space) {
         return false;
@@ -2569,7 +2714,7 @@ layout_rerun:
         size_t i = 0;
         for (Big_Planet *big_planet = space->sun; big_planet && i < space->count; big_planet = big_planet->next, ++i) {
             if ((char *) big_planet->planet.elements <= (char *) ptr &&
-                (char *) big_planet->planet.elements + big_planet->planet.capacity >= (char *) ptr) {
+                (char *) big_planet->planet.elements + big_planet->planet.capacity > (char *) ptr) {
                 return big_planet->planet;
             }
         }
@@ -2584,7 +2729,7 @@ layout_rerun:
 
         for (size_t i = 0; i < space->count; ++i) {
             if ((char *) space->elements[i].elements <= (char *) ptr &&
-                (char *) space->elements[i].elements + space->elements[i].capacity >= (char *) ptr) {
+                (char *) space->elements[i].elements + space->elements[i].capacity > (char *) ptr) {
                 return space->elements[i];
             }
         }
@@ -2599,7 +2744,7 @@ layout_rerun:
 
         for (size_t i = 0; i < space->count; ++i) {
             if ((char *) (space->planet_elements[i]) <= (char *) ptr &&
-                (char *) (space->planet_elements[i]) + space->planet_capacitys[i] >= (char *) ptr) {
+                (char *) (space->planet_elements[i]) + space->planet_capacitys[i] > (char *) ptr) {
                 return (Planet){
                     .elements = space->planet_elements[i],
                     .count = space->planet_counts[i],
@@ -2608,7 +2753,7 @@ layout_rerun:
                 };
             }
         }
-        assert(false && "This memory layout is not supported");
+
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
@@ -2678,7 +2823,7 @@ SPACEDEF bool space_try_to_expand_in_place(Space *space, void *ptr, size_t old_s
                                            size_t *planet_id) {
 
     Planet p = space_find_planet_from_ptr(space, ptr);
-    if (p.id || !space__is_ptr_last_allocation_in_planet(p, ptr, old_size) ||
+    if (p.id == 0 || !space__is_ptr_last_allocation_in_planet(p, ptr, old_size) ||
         (p.count - old_size + new_size > p.capacity)) {
         *planet_id = 0;
         return false;
@@ -2723,8 +2868,6 @@ layout_rerun:
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
     case SPACE_MEMORY_STUCT_OF_ARRAYS: {
         space->planet_counts[index] = new_count;
-
-        assert(false && "This memory layout is not supported");
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
@@ -2796,7 +2939,6 @@ layout_rerun:
             report->allocated_count += space->planet_counts[i];
         }
 
-        assert(false && "This memory layout is not supported");
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
