@@ -55,4 +55,24 @@ test-short: build
 	./cb test short
 
 
-.PHONY: all clean tkbc tkbc.o build client test server poll-server
+# --- Installation ---------------------------------------------------------
+PREFIX ?= $(HOME)/.local
+
+INSTALL ?= install
+BINDIR ?= $(PREFIX)/bin
+DESKTOP_DIR ?= $(PREFIX)/share/applications
+ICON_DIR ?= $(PREFIX)/share/icons/hicolor/256x256/apps
+
+install: build
+	./cb tkbc
+	./cb client
+	$(INSTALL) -d $(BINDIR) $(DESKTOP_DIR) $(ICON_DIR)
+	$(INSTALL) -m 755 build/tkbc $(BINDIR)/tkbc
+	$(INSTALL) -m 755 build/client $(BINDIR)/client
+	$(INSTALL) -m 644 packaging/tkbc.desktop $(DESKTOP_DIR)/
+	$(INSTALL) -m 644 assets/Logos/256x256_Logo.png $(ICON_DIR)/tkbc.png
+	@update-desktop-database $(DESKTOP_DIR) 2>/dev/null || true
+	@gtk-update-icon-cache -f -t $(PREFIX)/share/icons/hicolor 2>/dev/null || true
+
+
+.PHONY: all clean tkbc tkbc.o build client test server poll-server install

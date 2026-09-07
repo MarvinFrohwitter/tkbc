@@ -13,6 +13,7 @@ Cmd cmd = {0};
 #define CC "gcc"
 #define BUILD_PATH "build/"
 #define ASSETS_PATH "assets/"
+#define RESOURCES_PATH "resources/"
 #define RAYLIB_PATH_LINUX "external/raylib-6.0_linux_amd64/"
 #define RAYLIB_PATH_WINDOWS "external/raylib-6.0_win64_mingw-w64/"
 #define TESTS_PATH "src/tests/"
@@ -202,6 +203,18 @@ void libs_opt(Cmd *cmd, Libs_Opts opts) {
     }
 }
 
+void win_resource(Cmd *cmd, const char *out_path) {
+    Cmd res = {0};
+    cb_cmd_push(&res, "x86_64-w64-mingw32-windres");
+    cb_cmd_push(&res, "-O", "coff");
+    cb_cmd_push(&res, RESOURCES_PATH "tkbc.rc");
+    cb_cmd_push(&res, "-o", out_path);
+
+    if (!cb_run_sync(&res)) exit(EXIT_FAILURE);
+
+    cb_cmd_push(cmd, out_path);
+}
+
 void files_for_test(Cmd *cmd) {
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc.c");
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-api.c");
@@ -283,6 +296,21 @@ void clean(Cmd *cmd) {
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
 }
 
+void win_icon(Cmd *cmd) {
+    cb_cmd_push(cmd, "magick", "convert");
+    cb_cmd_push(cmd, ASSETS_PATH "Logos/16x16_Logo.png");
+    cb_cmd_push(cmd, ASSETS_PATH "Logos/24x24_Logo.png");
+    cb_cmd_push(cmd, ASSETS_PATH "Logos/32x32_Logo.png");
+    cb_cmd_push(cmd, ASSETS_PATH "Logos/48x48_Logo.png");
+    cb_cmd_push(cmd, ASSETS_PATH "Logos/64x64_Logo.png");
+    cb_cmd_push(cmd, ASSETS_PATH "Logos/96x96_Logo.png");
+    cb_cmd_push(cmd, ASSETS_PATH "Logos/128x128_Logo.png");
+    cb_cmd_push(cmd, ASSETS_PATH "Logos/256x256_Logo.png");
+    cb_cmd_push(cmd, ASSETS_PATH "Logos/logo.ico");
+
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+}
+
 void assets(Cmd *cmd) {
     cb_cmd_push(cmd, CC);
     cflags(cmd, .sanitize = true);
@@ -296,6 +324,8 @@ void assets(Cmd *cmd) {
     cb_cmd_push(cmd, "./" BUILD_PATH "assets2h", ASSETS_PATH);
 
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+
+    win_icon(cmd);
 }
 
 typedef struct {
@@ -361,6 +391,7 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
     } else if (os.LINUX) {
         libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
     } else if (os.WINDOWS) {
+        win_resource(cmd, BUILD_PATH "tkbc-res.o");
         libs(cmd, .raylib = true, .WINDOWS = true);
     } else {
         exit(EXIT_FAILURE);
@@ -400,6 +431,7 @@ void client_opt(Cmd *cmd, OS_Opts os) {
     } else if (os.LINUX) {
         libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
     } else if (os.WINDOWS) {
+        win_resource(cmd, BUILD_PATH "tkbc-res.o");
         libs(cmd, .raylib = true, .WINDOWS = true, .network = true);
     } else {
         exit(EXIT_FAILURE);
