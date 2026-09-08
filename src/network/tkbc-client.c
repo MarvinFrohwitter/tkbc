@@ -633,13 +633,14 @@ bool received_message_handler(Message *message) {
         }
         continue;
 
-    err: {
-        bool rerun = tkbc_error_handling_of_received_message_handler(message, lexer, &reset, true);
-        if (rerun) {
-            continue;
+    err:
+        {
+            bool rerun = tkbc_error_handling_of_received_message_handler(message, lexer, &reset, true);
+            if (rerun) {
+                continue;
+            }
+            break;
         }
-        break;
-    }
     } while (token.kind != EOF_TOKEN);
 
 check:
@@ -1280,12 +1281,13 @@ void tkbc_connection_input(Popup *popup, char **host, char **port) {
 
     float box_width = popup->base.width / (fields_count + 1);
     float padding_width = box_width / (fields_count + 1);
+    float adjust = box_width / 2;
 
     Rectangle host_input_box;
     {
         host_input_box.height = popup->base.height * 0.25;
         host_input_box.y = popup->base.y + popup->base.height / 2 - host_input_box.height / 2;
-        host_input_box.width = box_width;
+        host_input_box.width = box_width + adjust;
         host_input_box.x = popup->base.x + padding_width;
         DrawRectangleRec(host_input_box, TKBC_UI_GRAY);
     }
@@ -1313,7 +1315,7 @@ void tkbc_connection_input(Popup *popup, char **host, char **port) {
     {
         port_input_box.height = popup->base.height * 0.25;
         port_input_box.y = popup->base.y + popup->base.height / 2 - port_input_box.height / 2;
-        port_input_box.width = box_width;
+        port_input_box.width = box_width - adjust;
         port_input_box.x = popup->base.x + popup->base.width - port_input_box.width - padding_width;
         DrawRectangleRec(port_input_box, TKBC_UI_GRAY);
     }
