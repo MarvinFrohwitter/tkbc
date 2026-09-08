@@ -1881,6 +1881,9 @@ void tkbc_handle_text_input(Text_Input *input) {
 
             if (key != KEY_NULL) {
                 memmove(&input->text[input->cursor_pos + 1], &input->text[input->cursor_pos], n * sizeof(*input->text));
+                if ((key <= KEY_Z && key >= KEY_A) && (IsKeyUp(KEY_LEFT_SHIFT) && IsKeyUp(KEY_RIGHT_SHIFT))) {
+                    key += 'a' - 'A';
+                }
                 input->text[input->cursor_pos] = key;
                 input->cursor_pos += 1;
             }
