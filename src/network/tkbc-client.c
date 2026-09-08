@@ -1299,7 +1299,6 @@ void tkbc_connection_input(Popup *popup, char **host, char **port) {
         .spacing = spacing,
     };
     {
-
         host_input.box = host_input_box;
         host_input.text = *host;
         host_input.font = popup->font;

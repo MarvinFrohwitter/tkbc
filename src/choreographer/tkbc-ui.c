@@ -1625,7 +1625,9 @@ void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration, size_t 
         env->keymaps_interaction_rec_number = -1;
     }
 
-key_change_skip: {}
+key_change_skip:
+    {
+    }
     Vector2 text_size = {0};
     int font_size = 18;
 
@@ -1864,6 +1866,15 @@ void tkbc_handle_text_input(Text_Input *input) {
                     memmove(&input->text[input->cursor_pos - 1], &input->text[input->cursor_pos],
                             n * sizeof(*input->text));
                     input->cursor_pos -= 1;
+                }
+            }
+        }
+
+        if (IsKeyPressedRepeat(KEY_DELETE) || IsKeyPressed(KEY_DELETE)) {
+            if (char_amount > 0) {
+                if (input->cursor_pos > 0) {
+                    memmove(&input->text[input->cursor_pos], &input->text[input->cursor_pos + 1],
+                            n * sizeof(*input->text));
                 }
             }
         }
