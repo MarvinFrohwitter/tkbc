@@ -1889,6 +1889,7 @@ void tkbc_handle_text_input(Text_Input *input) {
             memmove(&input->text[input->cursor_pos + length], &input->text[input->cursor_pos],
                     length * sizeof(*input->text));
             memcpy(&input->text[input->cursor_pos], clipboard_text, length * sizeof(*input->text));
+            input->cursor_pos += length;
         }
 
         if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_C)) {
