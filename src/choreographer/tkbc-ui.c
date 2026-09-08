@@ -1876,7 +1876,27 @@ void tkbc_handle_text_input(Text_Input *input) {
             }
         }
 
-        if (char_amount < input->max_char) {
+        bool is_spcial_action = false;
+        if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_V)) {
+            is_spcial_action = true;
+            const char *clipboard_text = GetClipboardText();
+            size_t length = strlen(clipboard_text);
+            size_t free_space = input->max_char - char_amount;
+            if (length > free_space) {
+                length -= free_space;
+            }
+
+            memmove(&input->text[input->cursor_pos + length], &input->text[input->cursor_pos],
+                    length * sizeof(*input->text));
+            memcpy(&input->text[input->cursor_pos], clipboard_text, length * sizeof(*input->text));
+        }
+
+        if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_C)) {
+            is_spcial_action = true;
+            SetClipboardText(input->text);
+        }
+
+        if (char_amount < input->max_char && !is_spcial_action) {
             KeyboardKey key = input->key_constrained ? input->key_constrained() : tkbc_is_any_ascii_key_down();
 
             if (key != KEY_NULL) {
