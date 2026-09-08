@@ -507,6 +507,7 @@ typedef struct {
     size_t cursor_pos;
     size_t selection_start;  // The anchor of the selection. SIZE_MAX when none.
     size_t max_char;
+    float scroll_offset;  // Horizontal scroll offset of the text that does not fit the box.
     KeyboardKey (*key_constrained)(void);
 
     bool is_active;

@@ -1840,11 +1840,11 @@ static size_t tkbc_get_char_at_x_pos(Text_Input *input, float mouse_x) {
         return 0;
     }
 
-    float text_x = input->box.x + input->spacing;
+    float text_x = input->box.x + input->spacing - input->scroll_offset;
     float prev_width = 0;
 
     for (size_t i = 0; i < char_amount; i++) {
-        float cur = tkbc_measure_text_sized_ex(input->font, input->text, (int) (i + 1), input->font_size, input->spacing).x;
+        float cur = tkbc_measure_text_sized_ex(input->font, input->text, i + 1, input->font_size, input->spacing).x;
         float char_center = prev_width + (cur - prev_width) / 2.0f;
         if (mouse_x < text_x + char_center) {
             return i;
@@ -1895,11 +1895,11 @@ static void tkbc_draw_selection(Text_Input *input) {
     size_t end;
     tkbc_get_selection_bounds(input, &start, &end);
 
-    Vector2 start_size = tkbc_measure_text_sized_ex(input->font, input->text, (int) start, input->font_size, input->spacing);
-    Vector2 end_size = tkbc_measure_text_sized_ex(input->font, input->text, (int) end, input->font_size, input->spacing);
+    Vector2 start_size = tkbc_measure_text_sized_ex(input->font, input->text, start, input->font_size, input->spacing);
+    Vector2 end_size = tkbc_measure_text_sized_ex(input->font, input->text, end, input->font_size, input->spacing);
 
     Rectangle highlight = input->box;
-    highlight.x = input->box.x + input->spacing + start_size.x;
+    highlight.x = input->box.x + input->spacing + start_size.x - input->scroll_offset;
     highlight.width = end_size.x - start_size.x;
     highlight.y = input->box.y + input->box.height / 2 - input->font_size / 2.f;
     highlight.height = input->font_size;
@@ -1936,10 +1936,11 @@ static void tkbc_delete_selection(Text_Input *input) {
 void tkbc_handle_text_input(Text_Input *input) {
     size_t initial_char_amount = strlen(input->text);
 
-    // Reduce the font size for the current text first, so the cursor, selection
-    // and mouse position mapping all use the same adapted font size as the text.
-    Vector2 text_size =
-        tkbc_reduce_str_to_fit_box(input->font, input->text, &input->font_size, input->spacing, input->box);
+    // Measure the text at its configured font size. The text does not get
+    // shrunk to fit the box, instead it is scrolled horizontally when the
+    // cursor leaves the visible area.
+    Vector2 text_size = tkbc_measure_text_sized_ex(input->font, input->text, (int) initial_char_amount,
+                                                   input->font_size, input->spacing);
 
     if (CheckCollisionPointRec(GetMousePosition(), input->box) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         input->cursor_pos = tkbc_get_char_at_x_pos(input, GetMousePosition().x);
@@ -1998,6 +1999,9 @@ void tkbc_handle_text_input(Text_Input *input) {
             is_spcial_action = true;
             input->selection_start = 0;
             input->cursor_pos = char_amount;
+            if (char_amount == 0) {
+                input->selection_start = SIZE_MAX;
+            }
         }
 
         int n = char_amount - input->cursor_pos + 1;
@@ -2005,8 +2009,7 @@ void tkbc_handle_text_input(Text_Input *input) {
             if (tkbc_has_selection(input)) {
                 tkbc_delete_selection(input);
             } else if (input->cursor_pos > 0) {
-                memmove(&input->text[input->cursor_pos - 1], &input->text[input->cursor_pos],
-                        n * sizeof(*input->text));
+                memmove(&input->text[input->cursor_pos - 1], &input->text[input->cursor_pos], n * sizeof(*input->text));
                 input->cursor_pos -= 1;
             }
         }
@@ -2015,8 +2018,7 @@ void tkbc_handle_text_input(Text_Input *input) {
             if (tkbc_has_selection(input)) {
                 tkbc_delete_selection(input);
             } else if (input->cursor_pos < char_amount) {
-                memmove(&input->text[input->cursor_pos], &input->text[input->cursor_pos + 1],
-                        n * sizeof(*input->text));
+                memmove(&input->text[input->cursor_pos], &input->text[input->cursor_pos + 1], n * sizeof(*input->text));
             }
         }
 
@@ -2042,7 +2044,7 @@ void tkbc_handle_text_input(Text_Input *input) {
             size_t length = strlen(clipboard_text);
             size_t free_space = input->max_char - char_amount;
             if (length > free_space) {
-                length -= free_space;
+                length = free_space;
             }
 
             memmove(&input->text[input->cursor_pos + length], &input->text[input->cursor_pos],
@@ -2074,16 +2076,42 @@ void tkbc_handle_text_input(Text_Input *input) {
     }
 
     if (strlen(input->text) != initial_char_amount) {
-        // The text changed during the input handling, so the font size has to be
-        // reduced again to fit the box.
-        text_size =
-            tkbc_reduce_str_to_fit_box(input->font, input->text, &input->font_size, input->spacing, input->box);
+        // The text changed during the input handling, so the size has to be
+        // measured again for the scroll amount.
+        text_size = tkbc_measure_text_sized_ex(input->font, input->text, (int) strlen(input->text), input->font_size,
+                                               input->spacing);
+    }
+
+    // Scroll the text horizontally inside the box so that the cursor stays
+    // visible: move right when the cursor passes the right edge and back to the
+    // beginning when the cursor is moved to the left. The text that would
+    // overshoot the bounding box gets clipped away.
+    const float visible_width = input->box.width - 2 * input->spacing;
+    float max_scroll = text_size.x - visible_width;
+    if (max_scroll < 0) {
+        max_scroll = 0;
+    }
+
+    if (input->is_active) {
+        float cursor_width =
+            tkbc_measure_text_sized_ex(input->font, input->text, input->cursor_pos, input->font_size, input->spacing).x;
+        float desired_offset = input->scroll_offset;
+        if (cursor_width < input->scroll_offset) {
+            desired_offset = cursor_width;
+        } else if (cursor_width > input->scroll_offset + visible_width) {
+            desired_offset = cursor_width - visible_width;
+        }
+        input->scroll_offset = tkbc_clamp(desired_offset, 0, max_scroll);
+    } else {
+        input->scroll_offset = tkbc_clamp(input->scroll_offset, 0, max_scroll);
     }
 
     const Vector2 input_text_pos = {
-        .x = input->box.x + input->spacing,
+        .x = input->box.x + input->spacing - input->scroll_offset,
         .y = input->box.y + input->box.height / 2 - input->font_size / 2.f,
     };
+
+    BeginScissorMode(input->box.x, input->box.y, input->box.width, input->box.height);
 
     tkbc_draw_selection(input);
     DrawTextEx(input->font, input->text, input_text_pos, text_size.y, input->spacing, input->text_color);
@@ -2103,7 +2131,11 @@ void tkbc_handle_text_input(Text_Input *input) {
         Vector2 cursor_pos_text_size =
             tkbc_measure_text_sized_ex(input->font, input->text, input->cursor_pos, input->font_size, input->spacing);
 
-        tkbc_draw_cursor(input->box, cursor_pos_text_size, input->spacing);
+        Rectangle cursor_box = input->box;
+        cursor_box.x -= input->scroll_offset;
+        tkbc_draw_cursor(cursor_box, cursor_pos_text_size, input->spacing);
         input->spacing = 4;
     }
+
+    EndScissorMode();
 }
