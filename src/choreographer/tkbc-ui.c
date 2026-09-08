@@ -1872,10 +1872,7 @@ void tkbc_handle_text_input(Text_Input *input) {
 
         if (IsKeyPressedRepeat(KEY_DELETE) || IsKeyPressed(KEY_DELETE)) {
             if (char_amount > 0) {
-                if (input->cursor_pos > 0) {
-                    memmove(&input->text[input->cursor_pos], &input->text[input->cursor_pos + 1],
-                            n * sizeof(*input->text));
-                }
+                memmove(&input->text[input->cursor_pos], &input->text[input->cursor_pos + 1], n * sizeof(*input->text));
             }
         }
 

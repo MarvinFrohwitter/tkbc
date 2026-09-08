@@ -1304,9 +1304,14 @@ void tkbc_connection_input(Popup *popup, char **host, char **port) {
         host_input.font = popup->font;
         host_input.text_color = popup->text_color;
         host_input.font_size = popup->font_size;
-        size_t len = strlen(*host);
-        if (host_input.cursor_pos != len && host_input.cursor_pos == 0) {
-            host_input.cursor_pos = len;
+
+        {
+            static bool init = true;
+            if (init) {
+                init = false;
+                size_t len = strlen(*host);
+                host_input.cursor_pos = len;
+            }
         }
     }
 
