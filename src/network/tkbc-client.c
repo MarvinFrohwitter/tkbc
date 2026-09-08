@@ -1295,6 +1295,7 @@ void tkbc_connection_input(Popup *popup, char **host, char **port) {
         .shadow_text = "127.0.0.1",
         .key_constrained = tkbc_is_domain_name_key_down,
         .max_char = 255,
+        .selection_start = SIZE_MAX,
         .is_active = true,
         .spacing = spacing,
     };
@@ -1327,6 +1328,7 @@ void tkbc_connection_input(Popup *popup, char **host, char **port) {
         .shadow_text = "8080",
         .key_constrained = tkbc_is_port_number_key_down,
         .max_char = 6,
+        .selection_start = SIZE_MAX,
         .is_active = true,
         .spacing = spacing,
     };
