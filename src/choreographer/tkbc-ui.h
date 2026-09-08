@@ -24,6 +24,7 @@ void tkbc_set_input_text_to_hex_color(char **text, Color color);
 KeyboardKey tkbc_is_hex_color_key_down();
 KeyboardKey tkbc_is_port_number_key_down();
 KeyboardKey tkbc_is_domain_name_key_down();
+KeyboardKey tkbc_is_any_ascii_key_down();
 void tkbc_ui_color_picker(Env *env);
 void tkbc_set_color_for_selected_kites(Env *env, Color color);
 void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture, ssize_t texture_id, bool is_texture_new);
@@ -38,5 +39,6 @@ void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace);
 void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p, Color replace);
 void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_scale, Colorizer_Mode mode);
 void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding);
+void tkbc_handle_text_input(Text_Input *input);
 
 #endif  // TKBC_UI_H

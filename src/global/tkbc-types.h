@@ -496,6 +496,22 @@ typedef struct {
 } Scrollbar;
 
 typedef struct {
+    Rectangle box;
+    char *text;
+    const char *shadow_text;
+
+    Font font;
+    Color text_color;
+    int font_size;
+    int spacing;
+    size_t cursor_pos;
+    size_t max_char;
+    KeyboardKey (*key_constrained)(void);
+
+    bool is_active;
+} Text_Input;
+
+typedef struct {
     const char *tkbc_dir;           // The dir where all metadata is saved.
     const char *tkbc_keymaps_path;  // The file path where the keymaps are stored.
     Kite *vanilla_kite;             // A representation of all the default kite values.

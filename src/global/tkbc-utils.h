@@ -210,6 +210,7 @@ Color tkbc_uint32_t_to_color(uint32_t color);
 
 unsigned char *tkbc_get_position_in_image(Image image, int x, int y);
 Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size, float spacing, Rectangle bounding_box);
+Vector2 tkbc_measure_text_sized_ex(Font font, const char *text, int size, float fontSize, float spacing);
 #endif
 
 float tkbc_clamp(float z, float a, float b);
@@ -995,6 +996,60 @@ Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size, f
         }
     }
     return text_size;
+}
+
+Vector2 tkbc_measure_text_sized_ex(Font font, const char *text, int size, float fontSize, float spacing)
+{
+    Vector2 textSize = { 0 };
+    if ((font.texture.id == 0) || (text == NULL)) return textSize;
+
+    int tempByteCounter = 0;        // Used to count longer text line num chars
+    int byteCounter = 0;
+
+    float textWidth = 0.0f;
+    float tempTextWidth = 0.0f;     // Used to count longer text line width
+
+    float textHeight = (float)font.baseSize;
+    float scaleFactor = fontSize/(float)font.baseSize;
+
+    int letter = 0;                 // Current character
+    int index = 0;                  // Index position in sprite font
+
+    for (int i = 0; i < size;)
+    {
+        byteCounter++;
+
+        int next = 0;
+        letter = GetCodepointNext(&text[i], &next);
+        index = GetGlyphIndex(font, letter);
+
+        i += next;
+
+        if (letter != '\n')
+        {
+            if (font.glyphs[index].advanceX != 0) textWidth += font.glyphs[index].advanceX;
+            else textWidth += (font.recs[index].width + font.glyphs[index].offsetX);
+        }
+        else
+        {
+            if (tempTextWidth < textWidth) tempTextWidth = textWidth;
+            byteCounter = 0;
+            textWidth = 0;
+
+            // NOTE: Line spacing is a global variable, use SetTextLineSpacing() to setup
+            float TEXTLINESPACING = 15;
+            textHeight += (float)TEXTLINESPACING;
+        }
+
+        if (tempByteCounter < byteCounter) tempByteCounter = byteCounter;
+    }
+
+    if (tempTextWidth < textWidth) tempTextWidth = textWidth;
+
+    textSize.x = tempTextWidth*scaleFactor + (float)((tempByteCounter - 1)*spacing);
+    textSize.y = textHeight*scaleFactor;
+
+    return textSize;
 }
 
 #endif

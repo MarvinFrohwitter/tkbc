@@ -983,6 +983,15 @@ KeyboardKey tkbc_is_domain_name_key_down() {
     return KEY_NULL;
 }
 
+KeyboardKey tkbc_is_any_ascii_key_down() {
+    for (int key = ' '; key < 127; ++key) {
+        if (IsKeyPressedRepeat(key) || IsKeyPressed(key)) {
+            return key;
+        }
+    }
+    return KEY_NULL;
+}
+
 /**
  * @brief The function manages and displays the color picker where the user
  * can select new colors for the currently selected kites.
@@ -1391,11 +1400,11 @@ void tkbc_ui_color_picker(Env *env) {
     static Color colors[] = {
         ICAREX_white,    ICAREX_hellgrau,   ICAREX_dunkelgrau, ICAREX_schwarz,
         ICAREX_rot,      ICAREX_orange,     ICAREX_gold,       ICAREX_gelb,
-        ICAREX_green,     ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
+        ICAREX_green,    ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
         ICAREX_slate,    ICAREX_hellblau,   ICAREX_blau,       ICAREX_dunkelblau,
         ICAREX_plum,     ICAREX_aubergin,   ICAREX_milkalila1, ICAREX_milkalila2,
         ICAREX_lila,     ICAREX_rasberry,   ICAREX_zartrosa,   ICAREX_brown,
-        ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongreen,   TEAL,
+        ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongreen,  TEAL,
     };
 
     for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
@@ -1799,6 +1808,13 @@ void tkbc_ui_keymaps(Env *env) {
     DrawTextEx(env->font, save, p, font_size, spacing, TKBC_UI_BLACK);
 }
 
+/**
+ * @brief [TODO:description]
+ *
+ * @param text_box [TODO:parameter]
+ * @param text_size [TODO:parameter]
+ * @param padding [TODO:parameter]
+ */
 void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding) {
     Rectangle cursor = text_box;
     cursor.width = 2;
@@ -1808,4 +1824,85 @@ void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding) {
     int padding_from_letter = 1;
     cursor.x = text_box.x + padding + text_size.x + padding_from_letter;
     DrawRectangleRec(cursor, TKBC_UI_BLACK);
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param input [TODO:parameter]
+ */
+void tkbc_handle_text_input(Text_Input *input) {
+    size_t char_amount = 0;
+    if (CheckCollisionPointRec(GetMousePosition(), input->box) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        char_amount = strlen(input->text);
+        input->cursor_pos = char_amount;
+
+        input->is_active = true;
+    }
+
+    if (input->is_active) {
+        char_amount = strlen(input->text);
+        if (input->cursor_pos >= char_amount) {
+            input->cursor_pos = char_amount;
+        }
+
+        if (IsKeyPressedRepeat(KEY_RIGHT) || IsKeyPressed(KEY_RIGHT)) {
+            if (input->cursor_pos < char_amount) {
+                input->cursor_pos += 1;
+            }
+        }
+        if (IsKeyPressedRepeat(KEY_LEFT) || IsKeyPressed(KEY_LEFT)) {
+            if (input->cursor_pos > 0) {
+                input->cursor_pos -= 1;
+            }
+        }
+
+        int n = char_amount - input->cursor_pos + 1;
+        if (IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) {
+            if (char_amount > 0) {
+                if (input->cursor_pos > 0) {
+                    memmove(&input->text[input->cursor_pos - 1], &input->text[input->cursor_pos],
+                            n * sizeof(*input->text));
+                    input->cursor_pos -= 1;
+                }
+            }
+        }
+
+        if (char_amount < input->max_char) {
+            KeyboardKey key = input->key_constrained ? input->key_constrained() : tkbc_is_any_ascii_key_down();
+
+            if (key != KEY_NULL) {
+                memmove(&input->text[input->cursor_pos + 1], &input->text[input->cursor_pos], n * sizeof(*input->text));
+                input->text[input->cursor_pos] = key;
+                input->cursor_pos += 1;
+            }
+        }
+    }
+
+    Vector2 text_size =
+        tkbc_reduce_str_to_fit_box(input->font, input->text, &input->font_size, input->spacing, input->box);
+    const Vector2 input_text_pos = {
+        .x = input->box.x + input->spacing,
+        .y = input->box.y + input->box.height / 2 - input->font_size / 2.f,
+    };
+    DrawTextEx(input->font, input->text, input_text_pos, text_size.y, input->spacing, input->text_color);
+
+    if (input->text[0] == '\0') {
+        DrawTextEx(input->font, input->shadow_text, input_text_pos, input->font_size, input->spacing,
+                   TKBC_UI_LIGHTGRAY);
+        // Rest so the cursor does not add the text_size, when the shadow text is
+        // displayed.
+        text_size.x = 0;
+        if (input->is_active) {
+            input->spacing = 0;
+        }
+    }
+
+    if (input->is_active) {
+        Vector2 cursor_pos_text_size =
+            tkbc_measure_text_sized_ex(input->font, input->text, input->cursor_pos, input->font_size, input->spacing);
+
+        tkbc_draw_cursor(input->box, cursor_pos_text_size, input->spacing);
+        input->spacing = 4;
+    }
 }

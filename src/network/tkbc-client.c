@@ -1097,7 +1097,7 @@ int main(int argc, char *argv[]) {
         if (connection.active) {
             tkbc_popup_resize(&connection);
             tkbc_draw_popup(&connection);
-            tkbc_connection_input(env, &connection, &host, &port);
+            tkbc_connection_input(&connection, &host, &port);
 
             int ok = tkbc_check_popup_interaction(&connection);
             if (ok == -1) {
@@ -1274,117 +1274,66 @@ void tkbc_init_online_or_offline_state(Env *env, const char *host, const char *p
     }
 }
 
-void tkbc_connection_input(Env *env, Popup *popup, char **host, char **port) {
-    int fields_count = 2;
-    float spacing = 4;
+void tkbc_connection_input(Popup *popup, char **host, char **port) {
+    const int fields_count = 2;
+    const float spacing = 4;
 
-    static bool host_input_is_active = true;
+    float box_width = popup->base.width / (fields_count + 1);
+    float padding_width = box_width / (fields_count + 1);
 
+    Rectangle host_input_box;
     {
-        Rectangle host_input;
-        host_input.height = popup->base.height * 0.25;
-        host_input.y = popup->base.y + popup->base.height / 2 - host_input.height / 2;
-        host_input.width = popup->base.width / (2 * fields_count + 1);
-        host_input.x = popup->base.x + host_input.width;
-        DrawRectangleRec(host_input, TKBC_UI_GRAY);
+        host_input_box.height = popup->base.height * 0.25;
+        host_input_box.y = popup->base.y + popup->base.height / 2 - host_input_box.height / 2;
+        host_input_box.width = box_width;
+        host_input_box.x = popup->base.x + padding_width;
+        DrawRectangleRec(host_input_box, TKBC_UI_GRAY);
+    }
+    static Text_Input host_input = {
+        .shadow_text = "127.0.0.1",
+        .key_constrained = tkbc_is_domain_name_key_down,
+        .max_char = 255,
+        .is_active = true,
+        .spacing = spacing,
+    };
+    {
 
-        {
-            if (CheckCollisionPointRec(GetMousePosition(), host_input) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                host_input_is_active = true;
-            }
-
-            if (host_input_is_active) {
-                size_t char_amount = strlen(*host);
-
-                if (IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) {
-                    if (char_amount > 0) {
-                        (*host)[char_amount - 1] = '\0';
-                    }
-                }
-
-                KeyboardKey key = tkbc_is_domain_name_key_down();
-                if (key != KEY_NULL) {
-                    if (char_amount < 255) {
-                        (*host)[char_amount] = key;
-                    }
-                }
-            }
-        }
-
-        const char *input_text = *host;
-        Vector2 text_size = tkbc_reduce_str_to_fit_box(popup->font, input_text, &popup->font_size, spacing, host_input);
-        const Vector2 input_text_pos = {
-            .x = host_input.x + spacing,
-            .y = host_input.y + host_input.height / 2 - popup->font_size / 2.f,
-        };
-        DrawTextEx(popup->font, input_text, input_text_pos, text_size.y, spacing, popup->text_color);
-
-        if ((*host)[0] == '\0') {
-            const char *shadow_text = "127.0.0.1";
-            DrawTextEx(env->font, shadow_text, input_text_pos, popup->font_size, spacing, TKBC_UI_LIGHTGRAY);
-            // Rest so the cursor does not add the text_size, when the shadow text is displayed.
-            text_size.x = 0;
-            if (host_input_is_active) {
-                spacing = 0;
-            }
-        }
-
-        if (host_input_is_active) {
-            tkbc_draw_cursor(host_input, text_size, spacing);
-            spacing = 4;
+        host_input.box = host_input_box;
+        host_input.text = *host;
+        host_input.font = popup->font;
+        host_input.text_color = popup->text_color;
+        host_input.font_size = popup->font_size;
+        size_t len = strlen(*host);
+        if (host_input.cursor_pos != len && host_input.cursor_pos == 0) {
+            host_input.cursor_pos = len;
         }
     }
 
+    Rectangle port_input_box;
     {
-        Rectangle port_input;
-        port_input.height = popup->base.height * 0.25;
-        port_input.y = popup->base.y + popup->base.height / 2 - port_input.height / 2;
-        port_input.width = popup->base.width / (2 * fields_count + 1);
-        port_input.x = popup->base.x + popup->base.width - port_input.width * fields_count;
-        DrawRectangleRec(port_input, TKBC_UI_GRAY);
-
-        if (CheckCollisionPointRec(GetMousePosition(), port_input) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            host_input_is_active = false;
-        }
-
-        if (!host_input_is_active) {
-            size_t char_amount = strlen(*port);
-
-            if (IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) {
-                if (char_amount > 0) {
-                    (*port)[char_amount - 1] = '\0';
-                }
-            }
-
-            KeyboardKey key = tkbc_is_port_number_key_down();
-            if (key != KEY_NULL) {
-                if (char_amount < 6) {
-                    (*port)[char_amount] = key;
-                }
-            }
-        }
-
-        const char *input_text = *port;
-        Vector2 text_size = tkbc_reduce_str_to_fit_box(popup->font, input_text, &popup->font_size, spacing, port_input);
-        const Vector2 input_text_pos = {
-            .x = port_input.x + spacing,
-            .y = port_input.y + port_input.height / 2 - popup->font_size / 2.f,
-        };
-        DrawTextEx(popup->font, input_text, input_text_pos, text_size.y, spacing, popup->text_color);
-
-        if ((*port)[0] == '\0') {
-            const char *shadow_text = "8080";
-            DrawTextEx(env->font, shadow_text, input_text_pos, popup->font_size, spacing, TKBC_UI_LIGHTGRAY);
-            // Rest so the cursor does not add the text_size, when the shadow text is displayed.
-            text_size.x = 0;
-            if (!host_input_is_active) {
-                spacing = 0;
-            }
-        }
-
-        if (!host_input_is_active) {
-            tkbc_draw_cursor(port_input, text_size, spacing);
-            spacing = 4;
-        }
+        port_input_box.height = popup->base.height * 0.25;
+        port_input_box.y = popup->base.y + popup->base.height / 2 - port_input_box.height / 2;
+        port_input_box.width = box_width;
+        port_input_box.x = popup->base.x + popup->base.width - port_input_box.width - padding_width;
+        DrawRectangleRec(port_input_box, TKBC_UI_GRAY);
     }
+    static Text_Input port_input = {
+        .shadow_text = "8080",
+        .key_constrained = tkbc_is_port_number_key_down,
+        .max_char = 6,
+        .is_active = true,
+        .spacing = spacing,
+    };
+    {
+        port_input.box = port_input_box;
+        port_input.text = *port;
+        port_input.font = popup->font;
+        port_input.text_color = popup->text_color;
+        port_input.font_size = popup->font_size;
+    }
+
+    tkbc_handle_text_input(&host_input);
+    port_input.is_active = !host_input.is_active;
+    tkbc_handle_text_input(&port_input);
+    host_input.is_active = !port_input.is_active;
 }
