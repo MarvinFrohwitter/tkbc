@@ -55,9 +55,9 @@ void tkbc_take_screenshot(const char *path) {
     UnloadImage(image);
 
     if (FileExists(path))
-        tkbc_fprintf(stderr, "WARNING", "SYSTEM: [%s] Screenshot taken successfully", path);
+        tkbc_fprintf(stderr, "WARNING", "SYSTEM: [%s] Screenshot taken successfully\n", path);
     else
-        tkbc_fprintf(stderr, "WARNING", "SYSTEM: [%s] Screenshot could not be saved", path);
+        tkbc_fprintf(stderr, "WARNING", "SYSTEM: [%s] Screenshot could not be saved\n", path);
 }
 
 /**
@@ -114,9 +114,7 @@ void tkbc_ffmpeg_handler(Env *env) {
             tkbc_fprintf(stderr, "INFO", "File: %s\n", output_file_path);
             if (output_file_path == NULL) {
             err_video:
-                tkbc_fprintf(stderr, "ERROR",
-                             "No file name for screencast can be allocated. Screencast "
-                             "abort.\n");
+                tkbc_fprintf(stderr, "ERROR", "No file name for screencast can be allocated. Screencast abort.\n");
                 return;
             }
 
