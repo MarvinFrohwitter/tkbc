@@ -2051,6 +2051,7 @@ void tkbc_handle_text_input(Text_Input *input) {
                     }
                     input->text[input->cursor_pos] = key;
                     input->cursor_pos += 1;
+                    input->selection_start = SIZE_MAX;
                 }
             }
         }
