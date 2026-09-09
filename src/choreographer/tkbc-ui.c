@@ -1250,7 +1250,7 @@ void tkbc_ui_color_picker(Env *env) {
     if (!env->color_picker_display_designs) {
         color_circle.x = left_circle_center;
         color_circle.y += 2 * color_circle_radius + padding;
-        tkbc_display_color_pallet(env, color_circle, color_circle_radius, padding);
+        tkbc_display_color_pallet(env, color_circle, env->color_picker_base.width, color_circle_radius, padding);
     }
     EndScissorMode();
 }
@@ -2139,9 +2139,9 @@ void tkbc_display_kite_designs(Env *env, Vector2 display_position) {
  * @param color_circle_radius [TODO:parameter]
  * @param padding [TODO:parameter]
  */
-void tkbc_display_color_pallet(Env *env, Vector2 color_circle, float color_circle_radius, float padding) {
+void tkbc_display_color_pallet(Env *env, Vector2 display_position, float width, float circle_radius, float padding) {
 
-    float left_circle_center = color_circle.x;
+    float left_circle_center = display_position.x;
 
     // Handle default colors circles.
     static Color colors[] = {
@@ -2154,19 +2154,24 @@ void tkbc_display_color_pallet(Env *env, Vector2 color_circle, float color_circl
         ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongreen,  TEAL,
     };
 
+    size_t circles_per_row = width / (2 * circle_radius + padding);
+    if (circles_per_row < 1) {
+        circles_per_row = 1;
+    }
+
     Vector2 mouse = GetMousePosition();
     for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
-        if (i % 4 == 0) {
-            color_circle.x = left_circle_center;
-            color_circle.y += 2 * color_circle_radius + padding;
+        if (i % circles_per_row == 0) {
+            display_position.x = left_circle_center;
+            display_position.y += 2 * circle_radius + padding;
         } else {
-            color_circle.x += 2 * color_circle_radius + padding;
+            display_position.x += 2 * circle_radius + padding;
         }
-        DrawCircleV(color_circle, color_circle_radius, WHITE);
-        DrawCircleV(color_circle, color_circle_radius, colors[i]);
-        DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
+        DrawCircleV(display_position, circle_radius, WHITE);
+        DrawCircleV(display_position, circle_radius, colors[i]);
+        DrawCircleLinesV(display_position, circle_radius, BLACK);
 
-        if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
+        if (CheckCollisionPointCircle(mouse, display_position, circle_radius)) {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 env->last_selected_color = colors[i];
                 tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);

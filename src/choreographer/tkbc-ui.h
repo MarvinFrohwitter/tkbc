@@ -41,7 +41,7 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
 void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding);
 void tkbc_handle_text_input(Text_Input *input);
 void tkbc_display_kite_designs(Env *env, Vector2 display_position);
-void tkbc_display_color_pallet(Env *env, Vector2 color_circle, float color_circle_radius, float padding);
+void tkbc_display_color_pallet(Env *env, Vector2 display_position, float width, float circle_radius, float padding);
 void tkbc_BeginScissorMode(Rectangle box);
 
 #endif  // TKBC_UI_H
