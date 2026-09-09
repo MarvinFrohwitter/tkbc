@@ -815,7 +815,7 @@ bool is_key_valid_part_of_hex_number(int key) {
  * @param color The color to convert to hex string.
  */
 void tkbc_set_input_text_to_hex_color(char **text, Color color) {
-    snprintf((*text) + 1, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X", tkbc_color_to_uint32_t(color));
+    snprintf(*text, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X", tkbc_color_to_uint32_t(color));
 }
 
 /**
@@ -1038,65 +1038,46 @@ void tkbc_ui_color_picker(Env *env) {
     }
 
     Vector2 mouse = GetMousePosition();
+
     {
-        if (CheckCollisionPointRec(mouse, input_box) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            env->color_picker_input_mouse_interaction = true;
+
+        Rectangle text_box = input_box;
+        {
+            const float hash_width = MeasureTextEx(env->font, "#", font_size, 4).x;
+            text_box.x += padding + hash_width;
+            text_box.width -= padding + hash_width;
+
+            Vector2 hash_pos = {
+                .x = input_box.x + padding,
+                .y = input_box.y + input_box.height / 2 - font_size / 2.f,
+            };
+            DrawTextEx(env->font, "#", hash_pos, font_size, 4, TKBC_UI_GRAY);
         }
+
+        static Text_Input color_input = {
+            .shadow_text = "008080FF",
+            .key_constrained = tkbc_is_hex_color_key_down,
+            .max_char = HEX_COLOR_LENGTH,
+            .selection_start = SIZE_MAX,
+            .spacing = 4,
+        };
+        color_input.box = text_box;
+        color_input.text = env->color_picker_input_text;
+        color_input.font = env->font;
+        color_input.font_size = font_size;
+        color_input.text_color = TKBC_UI_GRAY;
+        color_input.is_active = env->color_picker_input_mouse_interaction;
+
+        tkbc_handle_text_input(&color_input);
+        tkbc_strtoupper(env->color_picker_input_text);
 
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
-            env->color_picker_input_mouse_interaction = false;
-            goto key_skip;
+            color_input.is_active = false;
         }
+        env->color_picker_input_mouse_interaction = color_input.is_active;
 
-        if (!env->color_picker_input_mouse_interaction) {
-            goto key_skip;
-        }
-    }
-
-    {
-        size_t char_amount = strlen(env->color_picker_input_text);
-        // For slow and fast key repetition detection.
-        if (IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) {
-            if (char_amount > 1) {
-                env->color_picker_input_text[char_amount - 1] = '\0';
-            }
-        }
-        KeyboardKey key = tkbc_is_hex_color_key_down();
-        if (key != KEY_NULL) {
-            if (char_amount > HEX_COLOR_LENGTH) {
-                goto key_skip;
-            }
-            env->color_picker_input_text[char_amount] = key;
-        }
-    }
-
-    {
-    key_skip:
-
-        text_size = MeasureTextEx(env->font, env->color_picker_input_text, font_size, 4);
-        position.x = input_box.x + padding;
-        position.y = input_box.y + input_box.height / 2 - text_size.y / 2;
-        DrawTextEx(env->font, env->color_picker_input_text, position, font_size, 4, TKBC_UI_GRAY);
-
-        if (env->color_picker_input_text[1] == '\0') {
-            const char *shadow_text = "  008080FF";
-            text_size = MeasureTextEx(env->font, shadow_text, font_size, 4);
-
-            Vector2 p;
-            p.x = input_box.x + padding;
-            p.y = input_box.y + input_box.height / 2 - text_size.y / 2;
-            DrawTextEx(env->font, shadow_text, p, font_size, 2, TKBC_UI_LIGHTGRAY);
-            // Rest so the cursor does not add the text_size, when the shadow text is
-            // displayed.
-            text_size = MeasureTextEx(env->font, "#", font_size, 4);
-        }
-    }
-
-    tkbc_draw_cursor(input_box, text_size, padding);
-
-    {
-        if (strlen(env->color_picker_input_text) == HEX_COLOR_LENGTH + 1) {
-            env->last_selected_color = tkbc_uint32_t_to_color(strtoull(env->color_picker_input_text + 1, NULL, 16));
+        if (strlen(env->color_picker_input_text) == HEX_COLOR_LENGTH) {
+            env->last_selected_color = tkbc_uint32_t_to_color(strtoull(env->color_picker_input_text, NULL, 16));
         }
     }
 

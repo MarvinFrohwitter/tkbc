@@ -93,7 +93,6 @@ Env *tkbc_init_env(void) {
     }
 
     env->last_selected_color = tkbc_uint32_t_to_color(0x008080FF);
-    env->color_picker_input_text[0] = '#';
 
 #define estimated_script_count 10
 #define SCIRPT_CREATION_INIT_SIZE (1024 * 1024)
