@@ -1248,40 +1248,9 @@ void tkbc_ui_color_picker(Env *env) {
     }
 
     if (!env->color_picker_display_designs) {
-
-        // Handle default colors circles.
         color_circle.x = left_circle_center;
         color_circle.y += 2 * color_circle_radius + padding;
-
-        static Color colors[] = {
-            ICAREX_white,    ICAREX_hellgrau,   ICAREX_dunkelgrau, ICAREX_schwarz,
-            ICAREX_rot,      ICAREX_orange,     ICAREX_gold,       ICAREX_gelb,
-            ICAREX_green,    ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
-            ICAREX_slate,    ICAREX_hellblau,   ICAREX_blau,       ICAREX_dunkelblau,
-            ICAREX_plum,     ICAREX_aubergin,   ICAREX_milkalila1, ICAREX_milkalila2,
-            ICAREX_lila,     ICAREX_rasberry,   ICAREX_zartrosa,   ICAREX_brown,
-            ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongreen,  TEAL,
-        };
-
-        for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
-            if (i % 4 == 0) {
-                color_circle.x = left_circle_center;
-                color_circle.y += 2 * color_circle_radius + padding;
-            } else {
-                color_circle.x += 2 * color_circle_radius + padding;
-            }
-            DrawCircleV(color_circle, color_circle_radius, WHITE);
-            DrawCircleV(color_circle, color_circle_radius, colors[i]);
-            DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
-
-            if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    env->last_selected_color = colors[i];
-                    tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
-                    tkbc_set_color_for_selected_kites(env, env->last_selected_color);
-                }
-            }
-        }
+        tkbc_display_color_pallet(env, color_circle, color_circle_radius, padding);
     }
     EndScissorMode();
 }
@@ -2157,6 +2126,51 @@ void tkbc_display_kite_designs(Env *env, Vector2 display_position) {
                     }
                 }
                 tkbc_set_color_for_selected_kites(env, BLANK);
+            }
+        }
+    }
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param color_circle [TODO:parameter]
+ * @param color_circle_radius [TODO:parameter]
+ * @param padding [TODO:parameter]
+ */
+void tkbc_display_color_pallet(Env *env, Vector2 color_circle, float color_circle_radius, float padding) {
+
+    float left_circle_center = color_circle.x;
+
+    // Handle default colors circles.
+    static Color colors[] = {
+        ICAREX_white,    ICAREX_hellgrau,   ICAREX_dunkelgrau, ICAREX_schwarz,
+        ICAREX_rot,      ICAREX_orange,     ICAREX_gold,       ICAREX_gelb,
+        ICAREX_green,    ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
+        ICAREX_slate,    ICAREX_hellblau,   ICAREX_blau,       ICAREX_dunkelblau,
+        ICAREX_plum,     ICAREX_aubergin,   ICAREX_milkalila1, ICAREX_milkalila2,
+        ICAREX_lila,     ICAREX_rasberry,   ICAREX_zartrosa,   ICAREX_brown,
+        ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongreen,  TEAL,
+    };
+
+    Vector2 mouse = GetMousePosition();
+    for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
+        if (i % 4 == 0) {
+            color_circle.x = left_circle_center;
+            color_circle.y += 2 * color_circle_radius + padding;
+        } else {
+            color_circle.x += 2 * color_circle_radius + padding;
+        }
+        DrawCircleV(color_circle, color_circle_radius, WHITE);
+        DrawCircleV(color_circle, color_circle_radius, colors[i]);
+        DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
+
+        if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                env->last_selected_color = colors[i];
+                tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
+                tkbc_set_color_for_selected_kites(env, env->last_selected_color);
             }
         }
     }
