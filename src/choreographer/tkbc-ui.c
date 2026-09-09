@@ -1901,7 +1901,10 @@ void tkbc_handle_text_input(Text_Input *input) {
                 size_t start;
                 size_t end;
                 tkbc_get_selection_bounds(input, &start, &end);
-                char *clipboard = strndup(&input->text[start], end - start);
+                size_t len = end - start;
+                char *clipboard = malloc(len + 1);
+                memcpy(clipboard, &input->text[start], len);
+                clipboard[len] = '\0';
                 SetClipboardText(clipboard);
                 free(clipboard);
             } else {
