@@ -639,6 +639,9 @@ typedef struct {
                                                 // box.
     bool script_menu_mouse_interaction;         // Indicates if a box of the script menu
                                                 // is activated.
+    bool text_input_active;                     // The status if a text input field is
+                                                // currently focused and all keys should
+                                                // go to it.
 
 } Env;  // The global state of the application.
 

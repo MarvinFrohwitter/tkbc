@@ -1095,10 +1095,12 @@ int main(int argc, char *argv[]) {
         BeginDrawing();
         ClearBackground(TKBC_UI_SKYBLUE);
 
+        env->text_input_active = false;
+
         if (connection.active) {
             tkbc_popup_resize(&connection);
             tkbc_draw_popup(&connection);
-            tkbc_connection_input(&connection, &host, &port);
+            tkbc_connection_input(env, &connection, &host, &port);
 
             int ok = tkbc_check_popup_interaction(&connection);
             if (ok == -1) {
@@ -1122,7 +1124,7 @@ int main(int argc, char *argv[]) {
         tkbc_ui_post_handler(env);
 
         tkbc_client_file_handler();
-        if (!env->keymaps_interaction && !env->script_menu_interaction) {
+        if (!env->keymaps_interaction && !env->script_menu_interaction && !env->text_input_active) {
             tkbc_input_sound_handler(env);
             tkbc_client_input_handler_kite();
             if (client.socket_id == -1) {
@@ -1135,7 +1137,9 @@ int main(int argc, char *argv[]) {
 
         // The end of the current frame has to be executed so ffmpeg gets the full
         // executed fame.
-        tkbc_ffmpeg_handler(env);
+        if (!env->text_input_active) {
+            tkbc_ffmpeg_handler(env);
+        }
     };
 
     tkbc_fprintf(stderr, "INFO", "Exiting 3...2...1...\n");
@@ -1275,7 +1279,7 @@ void tkbc_init_online_or_offline_state(Env *env, const char *host, const char *p
     }
 }
 
-void tkbc_connection_input(Popup *popup, char **host, char **port) {
+void tkbc_connection_input(Env *env, Popup *popup, char **host, char **port) {
     const int fields_count = 2;
     const float spacing = 4;
 
@@ -1344,4 +1348,5 @@ void tkbc_connection_input(Popup *popup, char **host, char **port) {
     port_input.is_active = !host_input.is_active;
     tkbc_handle_text_input(&port_input);
     host_input.is_active = !port_input.is_active;
+    env->text_input_active = host_input.is_active || port_input.is_active;
 }

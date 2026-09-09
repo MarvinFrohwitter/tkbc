@@ -89,6 +89,8 @@ int main(void) {
         BeginDrawing();
         ClearBackground(SKYBLUE);
 
+        env->text_input_active = false;
+
         if (env->script_setup) {
             // For detection if the begin and end is called correctly.
             env->script_setup = false;
@@ -111,7 +113,7 @@ int main(void) {
         tkbc_ui_post_handler(env);
 
         tkbc_file_handler(env);
-        if (!env->keymaps_interaction && !env->script_menu_interaction) {
+        if (!env->keymaps_interaction && !env->script_menu_interaction && !env->text_input_active) {
             tkbc_input_sound_handler(env);
             tkbc_input_handler_kite_array(env);
             tkbc_input_handler_script(env);
@@ -119,7 +121,9 @@ int main(void) {
 
         // The end of the current frame has to be executed so ffmpeg gets the full
         // executed fame.
-        tkbc_ffmpeg_handler(env);
+        if (!env->text_input_active) {
+            tkbc_ffmpeg_handler(env);
+        }
     };
 
     tkbc_sound_destroy(env->sound);

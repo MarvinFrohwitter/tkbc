@@ -1075,6 +1075,7 @@ void tkbc_ui_color_picker(Env *env) {
             color_input.is_active = false;
         }
         env->color_picker_input_mouse_interaction = color_input.is_active;
+        env->text_input_active = color_input.is_active;
 
         if (strlen(env->color_picker_input_text) == HEX_COLOR_LENGTH) {
             env->last_selected_color = tkbc_uint32_t_to_color(strtoull(env->color_picker_input_text, NULL, 16));

@@ -23,6 +23,6 @@ void tkbc_client_input_handler_script(void);
 
 bool tkbc_run(Env *env);
 void tkbc_init_online_or_offline_state(Env *env, const char *host, const char *port);
-void tkbc_connection_input(Popup *popup, char **host, char **port);
+void tkbc_connection_input(Env *env, Popup *popup, char **host, char **port);
 
 #endif  // TKBC_CLIENT_H
