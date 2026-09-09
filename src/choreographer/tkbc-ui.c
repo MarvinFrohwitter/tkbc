@@ -467,9 +467,7 @@ void tkbc_ui_post_handler(Env *env) {
  */
 void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t items_height, size_t items_count,
                     size_t screen_items, size_t *top_interaction_box) {
-    //
-    // The scroll_bar handle
-    // -1 for the left out box at the bottom
+    Vector2 mouse = GetMousePosition();
 
     scrollbar->base.width = outer_container.width * 0.025;
     scrollbar->base.height = items_height * screen_items;
@@ -526,41 +524,41 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
     if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
         scrollbar->interaction = false;
     }
-    if (CheckCollisionPointRec(GetMousePosition(), scrollbar->inner_scrollbar) &&
-        IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if (CheckCollisionPointRec(mouse, scrollbar->inner_scrollbar) && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         scrollbar->interaction = true;
     }
 
-    if (CheckCollisionPointRec(GetMousePosition(), scrollbar->base) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if (CheckCollisionPointRec(mouse, scrollbar->base) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         scrollbar->interaction = true;
     }
 
     if (scrollbar->interaction) {
-        Vector2 mouse_pos = GetMousePosition();
         float offset_height = scrollbar->inner_scrollbar.height / 2;
         float sb_center_y = scrollbar->inner_scrollbar.y + offset_height;
 
-        if (mouse_pos.y - offset_height > sb_center_y) {
+        if (mouse.y - offset_height > sb_center_y) {
 
             if (*top_interaction_box < items_count - screen_items) {
                 *top_interaction_box += 1;
             }
 
-        } else if (mouse_pos.y + offset_height < sb_center_y) {
+        } else if (mouse.y + offset_height < sb_center_y) {
             if (*top_interaction_box > 0) {
                 *top_interaction_box -= 1;
             }
         }
     }
 
-    if (GetMouseWheelMove()) {
-        if (GetMouseWheelMoveV().y < 0) {
-            if (*top_interaction_box < items_count - screen_items) {
-                *top_interaction_box += 1;
-            }
-        } else {
-            if (*top_interaction_box > 0) {
-                *top_interaction_box -= 1;
+    if (CheckCollisionPointRec(mouse, outer_container)) {
+        if (GetMouseWheelMove()) {
+            if (GetMouseWheelMoveV().y < 0) {
+                if (*top_interaction_box < items_count - screen_items) {
+                    *top_interaction_box += 1;
+                }
+            } else {
+                if (*top_interaction_box > 0) {
+                    *top_interaction_box -= 1;
+                }
             }
         }
     }
