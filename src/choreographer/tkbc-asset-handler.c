@@ -219,15 +219,16 @@ void append_assets(void) {
     tkbc_append_asset_image(asset_image_256x256_logo, IMAGE_256X256_LOGO_WIDTH, IMAGE_256X256_LOGO_HEIGHT,
                             IMAGE_256X256_LOGO_FORMAT);
 
+    tkbc_append_kite_image_pannels();
+
+    Image colorizer_image = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
+    tkbc_append_kite_image(colorizer_image.data, colorizer_image.width, colorizer_image.height, colorizer_image.format);
+
     tkbc_append_kite_image(asset_image_1, IMAGE_1_WIDTH, IMAGE_1_HEIGHT, IMAGE_1_FORMAT);
     tkbc_append_kite_image(asset_image_2, IMAGE_2_WIDTH, IMAGE_2_HEIGHT, IMAGE_2_FORMAT);
     tkbc_append_kite_image(asset_image_3, IMAGE_3_WIDTH, IMAGE_3_HEIGHT, IMAGE_3_FORMAT);
     tkbc_append_kite_image(asset_image_4, IMAGE_4_WIDTH, IMAGE_4_HEIGHT, IMAGE_4_FORMAT);
 
-    tkbc_append_kite_image_pannels();
-
-    Image colorizer_image = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
-    tkbc_append_kite_image(colorizer_image.data, colorizer_image.width, colorizer_image.height, colorizer_image.format);
 }
 
 #ifndef TKBC_SERVER

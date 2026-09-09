@@ -1347,7 +1347,7 @@ void tkbc_ui_color_picker(Env *env) {
                         // The other ones do not fit because thy are blury and you kinda
                         // want to preserve that. Also thy don't have a skeleton, they are
                         // just perfectly blended.
-                        if (i > KITE_COLORIZER && assets.elements[i].type == ASSETS_KITE_DESIGN) {
+                        if (i > KITE_DEFAULT_DESIGNS_END && assets.elements[i].type == ASSETS_KITE_DESIGN) {
                             Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
                             assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
                             assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
