@@ -629,6 +629,9 @@ typedef struct {
                                            // favorite_colors slots.
     Colors favorite_colors;                // The current storage that holds the data for the
                                            // color_picker favorite color circles.
+    Scrollbar color_picker_scrollbar;      // The scrollbar of the color_picker color pallet.
+    size_t color_picker_top_interaction_box;  // The current first displayed row of the
+                                              // scrollable color pallet.
 
     bool script_menu_interaction;               // The status if the menu that displays all the
                                                 // available scripts is currently displays.

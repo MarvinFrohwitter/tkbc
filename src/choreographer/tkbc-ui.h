@@ -10,8 +10,8 @@ void tkbc_ui_post_handler(Env *env);
 void tkbc_display_kite_information_speeds(Env *env, Kite_State *kite_state);
 void tkbc_display_kite_information(Env *env);
 
-void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container, size_t items_count,
-                    size_t *top_interaction_box);
+void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t items_height, size_t items_count,
+                    size_t screen_items, size_t *top_interaction_box);
 bool tkbc_ui_script_menu(Env *env);
 void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count);
 
@@ -41,7 +41,7 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
 void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding);
 void tkbc_handle_text_input(Text_Input *input);
 void tkbc_display_kite_designs(Env *env, Vector2 display_position);
-void tkbc_display_color_pallet(Env *env, Vector2 display_position, float width, float circle_radius, float padding);
+void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_radius, float padding);
 void tkbc_BeginScissorMode(Rectangle box);
 
 #endif  // TKBC_UI_H

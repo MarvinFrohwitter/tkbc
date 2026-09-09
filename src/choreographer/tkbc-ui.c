@@ -455,26 +455,27 @@ void tkbc_ui_post_handler(Env *env) {
  * scrollbar. The bar will automatically scaled and moved according to the given
  * items_count and its currently first displayed item.
  *
- * @param env The global state of the application.
  * @param scrollbar The scrollbar that contains the interaction information and
  * it's geometry.
  * @param outer_container The rectangle where the scrollbar should be placed in.
+ * @param items_height The height of one item that is visible.
  * @param items_count The maximum items that should be represented by the
  * scrollbar position.
+ * @param screen_items The amount of items that should be displayed on the screen.
  * @param top_interaction_box The first item that is displayed currently on the
  * screen, that must not necessary be the first item of the item_count.
  */
-void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container, size_t items_count,
-                    size_t *top_interaction_box) {
+void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t items_height, size_t items_count,
+                    size_t screen_items, size_t *top_interaction_box) {
     //
     // The scroll_bar handle
     // -1 for the left out box at the bottom
-    env->screen_items = (env->window_height / env->box_height) - 1;
 
     scrollbar->base.width = outer_container.width * 0.025;
-    scrollbar->base.height = env->box_height * env->screen_items;
+    scrollbar->base.height = items_height * screen_items;
 
     scrollbar->base.x = outer_container.x + outer_container.width - scrollbar->base.width;
+    scrollbar->base.y = outer_container.y;
 
     DrawRectangleRounded(scrollbar->base, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
 
@@ -482,17 +483,19 @@ void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container, s
     // The inner scroll_bar handle
     scrollbar->inner_scrollbar.x = outer_container.x + outer_container.width - scrollbar->base.width;
     scrollbar->inner_scrollbar.width = scrollbar->base.width;
+    scrollbar->inner_scrollbar.y = scrollbar->base.y;
 
     size_t minimum_handle_height = (size_t) scrollbar->base.height >> 2;
     scrollbar->inner_scrollbar.height =
-        minimum_handle_height + scrollbar->base.height / (float) (items_count - env->screen_items + 1);
+        minimum_handle_height + scrollbar->base.height / (float) (items_count - screen_items + 1);
 
     {
         // Enable the lerping for extra smooth scrolling.
         // float before = scrollbar->inner_scrollbar.y;
 
-        scrollbar->inner_scrollbar.y = (scrollbar->base.height - scrollbar->inner_scrollbar.height) /
-                                       (items_count - env->screen_items) * *top_interaction_box;
+        scrollbar->inner_scrollbar.y =
+            scrollbar->base.y + (scrollbar->base.height - scrollbar->inner_scrollbar.height) /
+                                    (items_count - screen_items) * *top_interaction_box;
 
         // float after = scrollbar->inner_scrollbar.y;
 
@@ -500,7 +503,7 @@ void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container, s
         //     before + (after - before) * tkbc_get_frame_time();
     }
 
-    if (items_count <= env->screen_items) {
+    if (items_count <= screen_items) {
         scrollbar->inner_scrollbar = scrollbar->base;
         DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
         return;
@@ -514,8 +517,8 @@ void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container, s
     // nothing to display so it just empty space there is no need to
     // recallculate the position of the items for the lager window. --
     // M.Frohwitter 07.04.2025
-    if (scrollbar->inner_scrollbar.y > scrollbar->base.height - scrollbar->inner_scrollbar.height) {
-        scrollbar->inner_scrollbar.y = scrollbar->base.height - scrollbar->inner_scrollbar.height;
+    if (scrollbar->inner_scrollbar.y > scrollbar->base.y + scrollbar->base.height - scrollbar->inner_scrollbar.height) {
+        scrollbar->inner_scrollbar.y = scrollbar->base.y + scrollbar->base.height - scrollbar->inner_scrollbar.height;
     }
 
     DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
@@ -539,7 +542,7 @@ void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container, s
 
         if (mouse_pos.y - offset_height > sb_center_y) {
 
-            if (*top_interaction_box < items_count - env->screen_items) {
+            if (*top_interaction_box < items_count - screen_items) {
                 *top_interaction_box += 1;
             }
 
@@ -552,7 +555,7 @@ void tkbc_scrollbar(Env *env, Scrollbar *scrollbar, Rectangle outer_container, s
 
     if (GetMouseWheelMove()) {
         if (GetMouseWheelMoveV().y < 0) {
-            if (*top_interaction_box < items_count - env->screen_items) {
+            if (*top_interaction_box < items_count - screen_items) {
                 *top_interaction_box += 1;
             }
         } else {
@@ -603,8 +606,9 @@ bool tkbc_ui_script_menu(Env *env) {
         .height = env->box_height,
     };
 
-    tkbc_scrollbar(env, &env->script_menu_scrollbar, env->script_menu_base, scripts_count,
-                   &env->script_menu_top_interaction_box);
+    env->screen_items = (env->window_height / env->box_height) - 1;
+    tkbc_scrollbar(&env->script_menu_scrollbar, env->script_menu_base, env->box_height, scripts_count,
+                   env->screen_items, &env->script_menu_top_interaction_box);
 
     BeginScissorMode(env->script_menu_base.x, env->script_menu_base.y,
                      env->script_menu_base.width - env->script_menu_scrollbar.base.width, env->script_menu_base.height);
@@ -1250,7 +1254,16 @@ void tkbc_ui_color_picker(Env *env) {
     if (!env->color_picker_display_designs) {
         color_circle.x = left_circle_center;
         color_circle.y += 2 * color_circle_radius + padding;
-        tkbc_display_color_pallet(env, color_circle, env->color_picker_base.width, color_circle_radius, padding);
+        color_circle.y += color_circle_radius;
+
+        Rectangle palette_container = {
+            .x = env->color_picker_base.x,
+            .y = color_circle.y,
+            .width = env->color_picker_base.width,
+            .height = env->window_height - color_circle.y - padding,
+        };
+
+        tkbc_display_color_pallet(env, palette_container, color_circle_radius, padding);
     }
     EndScissorMode();
 }
@@ -1507,7 +1520,9 @@ void tkbc_ui_keymaps(Env *env) {
         return;
     }
     env->keymaps_base = (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
-    tkbc_scrollbar(env, &env->keymaps_scrollbar, env->keymaps_base, env->keymaps.count,
+
+    env->screen_items = (env->window_height / env->box_height) - 1;
+    tkbc_scrollbar(&env->keymaps_scrollbar, env->keymaps_base, env->box_height, env->keymaps.count, env->screen_items,
                    &env->keymaps_top_interaction_box);
 
     BeginScissorMode(env->keymaps_base.x, env->keymaps_base.y,
@@ -2131,17 +2146,10 @@ void tkbc_display_kite_designs(Env *env, Vector2 display_position) {
     }
 }
 
-/**
- * @brief [TODO:description]
- *
- * @param env [TODO:parameter]
- * @param color_circle [TODO:parameter]
- * @param color_circle_radius [TODO:parameter]
- * @param padding [TODO:parameter]
- */
-void tkbc_display_color_pallet(Env *env, Vector2 display_position, float width, float circle_radius, float padding) {
+void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_radius, float padding) {
 
-    float left_circle_center = display_position.x;
+    float left_circle_center = display_box.x + circle_radius + padding;
+    float row_height = 2 * circle_radius + padding;
 
     // Handle default colors circles.
     static Color colors[] = {
@@ -2153,25 +2161,48 @@ void tkbc_display_color_pallet(Env *env, Vector2 display_position, float width, 
         ICAREX_lila,     ICAREX_rasberry,   ICAREX_zartrosa,   ICAREX_brown,
         ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongreen,  TEAL,
     };
-
-    size_t circles_per_row = width / (2 * circle_radius + padding);
+    const size_t color_count = ARRAY_LENGTH(colors);
+    size_t circles_per_row = (display_box.width - env->color_picker_scrollbar.base.width) / row_height;
     if (circles_per_row < 1) {
         circles_per_row = 1;
     }
+    size_t total_rows = ((color_count - 1) / circles_per_row) + 1;
+    size_t visible_rows = (display_box.height / row_height);
+    if (visible_rows < 1) {
+        visible_rows = 1;
+    }
 
+    tkbc_scrollbar(&env->color_picker_scrollbar, display_box, row_height, total_rows, visible_rows,
+                   &env->color_picker_top_interaction_box);
+
+    // Keep the scroll offset in sync with the current row layout.
+    size_t max_top_box = total_rows > visible_rows ? total_rows - visible_rows : 0;
+    if (env->color_picker_top_interaction_box > max_top_box) {
+        env->color_picker_top_interaction_box = max_top_box;
+    }
+    size_t top_box = env->color_picker_top_interaction_box;
+
+    tkbc_BeginScissorMode(display_box);
     Vector2 mouse = GetMousePosition();
-    for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
-        if (i % circles_per_row == 0) {
-            display_position.x = left_circle_center;
-            display_position.y += 2 * circle_radius + padding;
-        } else {
-            display_position.x += 2 * circle_radius + padding;
+    for (size_t i = 0; i < color_count; ++i) {
+        size_t row = i / circles_per_row;
+        if (row < top_box) {
+            continue;
         }
-        DrawCircleV(display_position, circle_radius, WHITE);
-        DrawCircleV(display_position, circle_radius, colors[i]);
-        DrawCircleLinesV(display_position, circle_radius, BLACK);
+        float row_offset = (row - top_box) * row_height;
+        Vector2 position = {
+            .x = left_circle_center + (i % circles_per_row) * row_height,
+            .y = display_box.y + circle_radius + padding + row_offset,
+        };
+        if (position.y + circle_radius >= display_box.y + display_box.height) {
+            break;
+        }
 
-        if (CheckCollisionPointCircle(mouse, display_position, circle_radius)) {
+        DrawCircleV(position, circle_radius, WHITE);
+        DrawCircleV(position, circle_radius, colors[i]);
+        DrawCircleLinesV(position, circle_radius, BLACK);
+
+        if (CheckCollisionPointCircle(mouse, position, circle_radius)) {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 env->last_selected_color = colors[i];
                 tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
@@ -2179,6 +2210,7 @@ void tkbc_display_color_pallet(Env *env, Vector2 display_position, float width, 
             }
         }
     }
+    EndScissorMode();
 }
 
 void tkbc_BeginScissorMode(Rectangle box) {
