@@ -609,8 +609,8 @@ bool tkbc_ui_script_menu(Env *env) {
     tkbc_scrollbar(env, &env->script_menu_scrollbar, env->script_menu_base, scripts_count,
                    &env->script_menu_top_interaction_box);
 
-    BeginScissorMode(env->script_menu_base.x, env->script_menu_base.y, env->script_menu_base.width - env->script_menu_scrollbar.base.width,
-                     env->script_menu_base.height);
+    BeginScissorMode(env->script_menu_base.x, env->script_menu_base.y,
+                     env->script_menu_base.width - env->script_menu_scrollbar.base.width, env->script_menu_base.height);
 
     int font_size = 22;
     Vector2 text_size;
@@ -659,9 +659,11 @@ bool tkbc_ui_script_menu(Env *env) {
         text_size = tkbc_reduce_str_to_fit_box(env->font, name, &font_size, spacing, script_box);
 
         Vector2 p;
-        p.x = script_box.x + script_box.width / 2 - text_size.x / 2,
-        p.y = script_box.y + script_box.height / 2 - text_size.y / 2,
+        p.x = script_box.x + script_box.width / 2 - text_size.x / 2;
+        p.y = script_box.y + script_box.height / 2 - text_size.y / 2;
+        tkbc_BeginScissorMode(script_box);
         DrawTextEx(env->font, name, p, font_size, spacing, TKBC_UI_BLACK);
+        EndScissorMode();
 
         script_box.y += script_box.height + padding;
         outer_script_box.y += env->box_height;
@@ -702,7 +704,9 @@ bool tkbc_ui_script_menu(Env *env) {
     Vector2 p;
     p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
     p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
+    tkbc_BeginScissorMode(outer_script_box);
     DrawTextEx(env->font, no_script, p, font_size, spacing, TKBC_UI_BLACK);
+    EndScissorMode();
 
     /* ------------------------- Confirm key --------------------------------- */
     outer_script_box.x += (interaction_buttons_count - 1) * (padding + outer_script_box.width);
@@ -743,7 +747,9 @@ bool tkbc_ui_script_menu(Env *env) {
 
     p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
     p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
+    tkbc_BeginScissorMode(outer_script_box);
     DrawTextEx(env->font, confirm, p, font_size, spacing, TKBC_UI_BLACK);
+    EndScissorMode();
 
     EndScissorMode();
     return false;
@@ -1203,7 +1209,9 @@ void tkbc_ui_color_picker(Env *env) {
         Vector2 p;
         p.x = colorizer_button.x + colorizer_button.width * 0.5 - text_size.x * 0.5;
         p.y = colorizer_button.y + colorizer_button.height * 0.5 - text_size.y * 0.5;
+        tkbc_BeginScissorMode(colorizer_button);
         DrawTextEx(env->font, colorizer, p, font_size, spacing, TKBC_UI_BLACK);
+        EndScissorMode();
     }
 
     Rectangle colorizer_view_background;
@@ -1220,7 +1228,9 @@ void tkbc_ui_color_picker(Env *env) {
 
         position.x = forward.x + forward.width * 0.5 - text_size.x * 0.5;
         position.y = forward.y + forward.height * 0.5 - text_size.y * 0.5;
+        tkbc_BeginScissorMode(forward);
         DrawTextEx(env->font, designs, position, font_size, spacing, TKBC_UI_BLACK);
+        EndScissorMode();
 
         tkbc_draw_pannels(env, &colorizer_view_background, &colorizer_view_scale, color_box);
     }
@@ -1634,7 +1644,9 @@ key_change_skip: {}
     Vector2 p;
     p.x = rectangle.x + rectangle.width * 0.5 - text_size.x * 0.5;
     p.y = rectangle.y + rectangle.height * 0.5 - text_size.y * 0.5;
+    tkbc_BeginScissorMode(rectangle);
     DrawTextEx(env->font, str, p, font_size, spacing, TKBC_UI_BLACK);
+    EndScissorMode();
 }
 
 /**
@@ -1669,8 +1681,8 @@ void tkbc_ui_keymaps(Env *env) {
     tkbc_scrollbar(env, &env->keymaps_scrollbar, env->keymaps_base, env->keymaps.count,
                    &env->keymaps_top_interaction_box);
 
-    BeginScissorMode(env->keymaps_base.x, env->keymaps_base.y, env->keymaps_base.width - env->keymaps_scrollbar.base.width,
-                     env->keymaps_base.height);
+    BeginScissorMode(env->keymaps_base.x, env->keymaps_base.y,
+                     env->keymaps_base.width - env->keymaps_scrollbar.base.width, env->keymaps_base.height);
     // DrawRectangleRec(env->keymaps_base, TKBC_UI_GRAY_ALPHA);
 
     // The display key bind boxes.
@@ -1692,10 +1704,10 @@ void tkbc_ui_keymaps(Env *env) {
         };
 
         if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base) && !env->keymaps_mouse_interaction) {
-            DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
+            DrawRectangleRounded(env->keymaps_base, 0.25, 10, TKBC_UI_TEAL_ALPHA);
         }
         if (env->keymaps_mouse_interaction && box == env->keymaps_mouse_interaction_box) {
-            DrawRectangleRec(env->keymaps_base, TKBC_UI_TEAL_ALPHA);
+            DrawRectangleRounded(env->keymaps_base, 0.25, 10, TKBC_UI_TEAL_ALPHA);
         }
 
         int font_size = 22;
@@ -1707,13 +1719,16 @@ void tkbc_ui_keymaps(Env *env) {
         Rectangle bounding_box = {
             .x = p.x,
             .y = p.y,
-            .width = env->keymaps_base.width,
+            .width = env->keymaps_base.width - env->keymaps_scrollbar.base.width,
             .height = env->box_height,
         };
 
         const float spacing = 2;
         text_size = tkbc_reduce_str_to_fit_box(env->font, text, &font_size, spacing, bounding_box);
+
+        tkbc_BeginScissorMode(bounding_box);
         DrawTextEx(env->font, text, p, font_size, spacing, TKBC_UI_BLACK);
+        EndScissorMode();
 
         for (size_t i = 0; i < key_box_count; ++i) {
             // BOX_MOD_KEY
@@ -1757,7 +1772,9 @@ void tkbc_ui_keymaps(Env *env) {
     Vector2 p;
     p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5;
     p.y = env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5;
+    tkbc_BeginScissorMode(env->keymaps_base);
     DrawTextEx(env->font, load, p, font_size, spacing, TKBC_UI_BLACK);
+    EndScissorMode();
 
     env->keymaps_base.x += padding + env->keymaps_base.width;
     if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
@@ -1776,7 +1793,9 @@ void tkbc_ui_keymaps(Env *env) {
     text_size = tkbc_reduce_str_to_fit_box(env->font, reset, &font_size, spacing, env->keymaps_base);
     p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
     p.y = env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
+    tkbc_BeginScissorMode(env->keymaps_base);
     DrawTextEx(env->font, reset, p, font_size, spacing, TKBC_UI_BLACK);
+    EndScissorMode();
 
     env->keymaps_base.x += padding + env->keymaps_base.width;
     if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
@@ -1795,7 +1814,9 @@ void tkbc_ui_keymaps(Env *env) {
     text_size = tkbc_reduce_str_to_fit_box(env->font, save, &font_size, spacing, env->keymaps_base);
     p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
     p.y = env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
+    tkbc_BeginScissorMode(env->keymaps_base);
     DrawTextEx(env->font, save, p, font_size, spacing, TKBC_UI_BLACK);
+    EndScissorMode();
 
     EndScissorMode();
 }
@@ -2104,7 +2125,7 @@ void tkbc_handle_text_input(Text_Input *input) {
         .y = input->box.y + input->box.height / 2 - input->font_size / 2.f,
     };
 
-    BeginScissorMode(input->box.x, input->box.y, input->box.width, input->box.height);
+    tkbc_BeginScissorMode(input->box);
 
     tkbc_draw_selection(input);
     DrawTextEx(input->font, input->text, input_text_pos, text_size.y, input->spacing, input->text_color);
@@ -2131,4 +2152,8 @@ void tkbc_handle_text_input(Text_Input *input) {
     }
 
     EndScissorMode();
+}
+
+void tkbc_BeginScissorMode(Rectangle box) {
+    BeginScissorMode(box.x, box.y, box.width, box.height);
 }
