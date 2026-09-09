@@ -609,6 +609,9 @@ bool tkbc_ui_script_menu(Env *env) {
     tkbc_scrollbar(env, &env->script_menu_scrollbar, env->script_menu_base, scripts_count,
                    &env->script_menu_top_interaction_box);
 
+    BeginScissorMode(env->script_menu_base.x, env->script_menu_base.y, env->script_menu_base.width - env->script_menu_scrollbar.base.width,
+                     env->script_menu_base.height);
+
     int font_size = 22;
     Vector2 text_size;
     Vector2 mouse = GetMousePosition();
@@ -742,6 +745,7 @@ bool tkbc_ui_script_menu(Env *env) {
     p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
     DrawTextEx(env->font, confirm, p, font_size, spacing, TKBC_UI_BLACK);
 
+    EndScissorMode();
     return false;
 }
 
@@ -1016,12 +1020,14 @@ void tkbc_ui_color_picker(Env *env) {
     Rectangle input_box;
     Vector2 text_size;
     Vector2 position;
-    {
-        float color_picker_width = env->window_width * 0.2;
-        env->color_picker_base =
-            (Rectangle){env->window_width - color_picker_width, 0, color_picker_width, env->window_height};
-        // DrawRectangleRec(env->color_picker_base, TKBC_UI_GRAY_ALPHA);
 
+    float color_picker_width = env->window_width * 0.2;
+    env->color_picker_base =
+        (Rectangle){env->window_width - color_picker_width, 0, color_picker_width, env->window_height};
+    // DrawRectangleRec(env->color_picker_base, TKBC_UI_GRAY_ALPHA);
+    BeginScissorMode(env->color_picker_base.x, env->color_picker_base.y, env->color_picker_base.width,
+                     env->color_picker_base.height);
+    {
         const char *description = "Enter a hex color code.";
         text_size = MeasureTextEx(env->font, description, font_size, 2);
         float description_height = text_size.y + padding;
@@ -1371,43 +1377,43 @@ void tkbc_ui_color_picker(Env *env) {
                                      colorizer_view_background, 1 / colorizer_view_scale);
     }
 
-    if (env->color_picker_display_designs) {
-        return;
-    }
+    if (!env->color_picker_display_designs) {
 
-    // Handle default colors circles.
-    color_circle.x = left_circle_center;
-    color_circle.y += 2 * color_circle_radius + padding;
+        // Handle default colors circles.
+        color_circle.x = left_circle_center;
+        color_circle.y += 2 * color_circle_radius + padding;
 
-    static Color colors[] = {
-        ICAREX_white,    ICAREX_hellgrau,   ICAREX_dunkelgrau, ICAREX_schwarz,
-        ICAREX_rot,      ICAREX_orange,     ICAREX_gold,       ICAREX_gelb,
-        ICAREX_green,    ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
-        ICAREX_slate,    ICAREX_hellblau,   ICAREX_blau,       ICAREX_dunkelblau,
-        ICAREX_plum,     ICAREX_aubergin,   ICAREX_milkalila1, ICAREX_milkalila2,
-        ICAREX_lila,     ICAREX_rasberry,   ICAREX_zartrosa,   ICAREX_brown,
-        ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongreen,  TEAL,
-    };
+        static Color colors[] = {
+            ICAREX_white,    ICAREX_hellgrau,   ICAREX_dunkelgrau, ICAREX_schwarz,
+            ICAREX_rot,      ICAREX_orange,     ICAREX_gold,       ICAREX_gelb,
+            ICAREX_green,    ICAREX_cedar,      ICAREX_teal,       ICAREX_caribbean,
+            ICAREX_slate,    ICAREX_hellblau,   ICAREX_blau,       ICAREX_dunkelblau,
+            ICAREX_plum,     ICAREX_aubergin,   ICAREX_milkalila1, ICAREX_milkalila2,
+            ICAREX_lila,     ICAREX_rasberry,   ICAREX_zartrosa,   ICAREX_brown,
+            ICAREX_neongelb, ICAREX_neonorange, ICAREX_neongreen,  TEAL,
+        };
 
-    for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
-        if (i % 4 == 0) {
-            color_circle.x = left_circle_center;
-            color_circle.y += 2 * color_circle_radius + padding;
-        } else {
-            color_circle.x += 2 * color_circle_radius + padding;
-        }
-        DrawCircleV(color_circle, color_circle_radius, WHITE);
-        DrawCircleV(color_circle, color_circle_radius, colors[i]);
-        DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
+        for (size_t i = 0; i < ARRAY_LENGTH(colors); ++i) {
+            if (i % 4 == 0) {
+                color_circle.x = left_circle_center;
+                color_circle.y += 2 * color_circle_radius + padding;
+            } else {
+                color_circle.x += 2 * color_circle_radius + padding;
+            }
+            DrawCircleV(color_circle, color_circle_radius, WHITE);
+            DrawCircleV(color_circle, color_circle_radius, colors[i]);
+            DrawCircleLinesV(color_circle, color_circle_radius, BLACK);
 
-        if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                env->last_selected_color = colors[i];
-                tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
-                tkbc_set_color_for_selected_kites(env, env->last_selected_color);
+            if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius)) {
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    env->last_selected_color = colors[i];
+                    tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
+                    tkbc_set_color_for_selected_kites(env, env->last_selected_color);
+                }
             }
         }
     }
+    EndScissorMode();
 }
 
 /**
@@ -1660,10 +1666,12 @@ void tkbc_ui_keymaps(Env *env) {
         return;
     }
     env->keymaps_base = (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
-    // DrawRectangleRec(env->keymaps_base, TKBC_UI_GRAY_ALPHA);
-
     tkbc_scrollbar(env, &env->keymaps_scrollbar, env->keymaps_base, env->keymaps.count,
                    &env->keymaps_top_interaction_box);
+
+    BeginScissorMode(env->keymaps_base.x, env->keymaps_base.y, env->keymaps_base.width - env->keymaps_scrollbar.base.width,
+                     env->keymaps_base.height);
+    // DrawRectangleRec(env->keymaps_base, TKBC_UI_GRAY_ALPHA);
 
     // The display key bind boxes.
     int padding = 10;
@@ -1788,6 +1796,8 @@ void tkbc_ui_keymaps(Env *env) {
     p.x = env->keymaps_base.x + env->keymaps_base.width * 0.5 - text_size.x * 0.5,
     p.y = env->keymaps_base.y + env->keymaps_base.height * 0.5 - text_size.y * 0.5,
     DrawTextEx(env->font, save, p, font_size, spacing, TKBC_UI_BLACK);
+
+    EndScissorMode();
 }
 
 /**
