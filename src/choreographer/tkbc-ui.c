@@ -442,9 +442,6 @@ void tkbc_ui_post_handler(Env *env) {
     if (!env->color_picker_interaction) {
         return;
     }
-    if (env->color_picker_input_mouse_interaction) {
-        return;
-    }
     if (tkbc_check_key(KEY_LEFT_CONTROL, MODE_DOWN) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         env->color_picker_window_picking = true;
         Color c = tkbc_get_color_from_screen_position(GetMousePosition());
@@ -1238,148 +1235,11 @@ void tkbc_ui_color_picker(Env *env) {
     if (env->color_picker_display_designs) {
         forward.y += forward.height + color_circle_radius * 0.5;
 
-        float remainng_space = env->window_height - forward.y;
-
-        size_t amount = tkbc_get_current_kite_design_count();
-
-        float actual_padding = padding * 2;
-        padding = (remainng_space - actual_padding * amount) / (float) amount;
-
         Vector2 display_position = {
             .x = forward.x,
             .y = forward.y,
         };
-
-        float thick = 3;
-        char alpha_threshold = 0;
-        for (size_t i = 0; i < assets.count; ++i) {
-            if (_tkbc_get_asset(i).type != ASSETS_KITE_DESIGN) {
-                continue;
-            }
-
-            Texture2D t = _tkbc_get_asset_kite_design(i).as.kite_texture.normal;
-            float scale = env->color_picker_base.width * 0.9 / t.width;
-
-            while ((t.height * scale) > (padding - actual_padding)) {
-                scale -= 0.01f;
-            }
-
-            Rectangle shadow;
-            shadow.x = display_position.x;
-            shadow.y = display_position.y;
-            shadow.width = t.width * scale;
-            // shadow.height = t.height * scale - 5 * thick;
-            shadow.height = t.height * scale;
-            tkbc_draw_shadow(shadow, scale);
-            DrawTextureEx(t, display_position, 0, scale, WHITE);
-
-            if (i == KITE_COLORIZER) {
-                shadow.y -= shadow.height * 0.05;
-                shadow.x -= shadow.width * 0.05;
-                shadow.width *= 1.1;
-                shadow.height *= 1.35;
-                DrawRectangleRoundedLinesEx(shadow, 0.25, 20, thick, TKBC_UI_BLACK);
-            }
-
-            Rectangle collision_rectangle = {
-                .x = display_position.x,
-                .y = display_position.y,
-                .width = t.width * scale,
-                .height = t.height * scale,
-            };
-
-            //
-            // Update to the next display position so that continue will work
-            // correctly.
-            //
-            // This can not be done in the for(;; advance) advance part because the
-            // short-circuiting for not kite designs should not increase the
-            // display.
-            display_position.y += padding + actual_padding;
-
-            if (env->color_picker_window_picking) {
-                continue;
-            }
-
-            if (CheckCollisionPointRec(mouse, collision_rectangle)) {
-
-                Image image = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
-                Vector2 p = tkbc_get_position_in_rect(collision_rectangle, 1 / scale, mouse);
-                Color c = GetImageColor(image, p.x, p.y);
-                if (c.a == alpha_threshold) {
-                    continue;
-                }
-
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    Image reference = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
-                    if (i == KITE_COLORIZER) {
-                        Asset a = _tkbc_get_asset_kite_design(KITE_COLORIZER);
-
-                        // This is needed because the UUIDs will be random and not the enum
-                        // value.
-                        Id new_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
-                        bool design_already_exists = false;
-                        if (tkbc_is_same_image(a.as.kite_image.normal, reference)) {
-                            design_already_exists = true;
-                        } else {
-                            design_already_exists =
-                                tkbc_image_already_exitst_in_assets(a.as.kite_image.normal, &new_id);
-                        }
-
-                        if (design_already_exists) {
-                            Asset *asset = tkbc_find_asset_from_id(new_id);
-                            if (!asset) {
-                                continue;
-                            }
-
-                            Kite_Texture kt = asset->as.kite_texture;
-                            tkbc_set_texture_for_selected_kites(env, &kt, new_id, true);
-                        } else {
-                            Kite_Texture *new_kt = tkbc_generate_new_kite_image_and_texture(a.as.kite_image, &new_id);
-                            tkbc_set_texture_for_selected_kites(env, new_kt, new_id, true);
-                        }
-
-                    } else {
-                        tkbc_set_texture_for_selected_kites(env, &_tkbc_get_asset_kite_design(i).as.kite_texture,
-                                                            _tkbc_get_asset_kite_design(i).id, false);
-
-                        // Note just for the kites designed by the colorizer
-                        // The other ones do not fit because thy are blury and you kinda
-                        // want to preserve that. Also thy don't have a skeleton, they are
-                        // just perfectly blended.
-                        if (i > KITE_DEFAULT_DESIGNS_END && assets.elements[i].type == ASSETS_KITE_DESIGN) {
-                            Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
-                            assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-                            assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
-                            assert(im.height ==
-                                   _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
-
-                            // Copy the panel into the KITE_COLORIZER texture
-                            for (size_t y = 0; y < (size_t) im.height; ++y) {
-                                for (size_t x = 0; x < (size_t) im.width; ++x) {
-                                    Vector2 pixel = {.x = x, .y = y};
-                                    // This is needed to allow designs with alpha:
-                                    // So that loading an already existing design in is properly
-                                    // handled.
-                                    tkbc_set_single_pixel_in_kite_image_colorizer(pixel, BLANK);
-
-                                    Color c = *(Color *) tkbc_get_position_in_image(im, x, y);
-                                    if (c.a <= alpha_threshold) {
-                                        continue;
-                                    }
-
-                                    tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
-                                }
-                            }
-
-                            tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
-                                                     _tkbc_get_asset_kite_design(i).as.kite_image);
-                        }
-                    }
-                    tkbc_set_color_for_selected_kites(env, BLANK);
-                }
-            }
-        }
+        tkbc_display_kite_designs(env, display_position);
     }
 
     if (env->colorizer) {
@@ -2152,6 +2012,151 @@ void tkbc_handle_text_input(Text_Input *input) {
     }
 
     EndScissorMode();
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param env [TODO:parameter]
+ * @param display_position [TODO:parameter]
+ */
+void tkbc_display_kite_designs(Env *env, Vector2 display_position) {
+
+    int padding = 10;
+    float remainng_space = env->window_height - display_position.y;
+    size_t amount = tkbc_get_current_kite_design_count();
+    float actual_padding = padding * 2;
+    padding = (remainng_space - actual_padding * amount) / (float) amount;
+
+    float thick = 3;
+    char alpha_threshold = 0;
+    for (size_t i = 0; i < assets.count; ++i) {
+        if (_tkbc_get_asset(i).type != ASSETS_KITE_DESIGN) {
+            continue;
+        }
+
+        Texture2D t = _tkbc_get_asset_kite_design(i).as.kite_texture.normal;
+        float scale = env->color_picker_base.width * 0.9 / t.width;
+
+        while ((t.height * scale) > (padding - actual_padding)) {
+            scale -= 0.01f;
+        }
+
+        Rectangle shadow;
+        shadow.x = display_position.x;
+        shadow.y = display_position.y;
+        shadow.width = t.width * scale;
+        // shadow.height = t.height * scale - 5 * thick;
+        shadow.height = t.height * scale;
+        tkbc_draw_shadow(shadow, scale);
+        DrawTextureEx(t, display_position, 0, scale, WHITE);
+
+        if (i == KITE_COLORIZER) {
+            shadow.y -= shadow.height * 0.05;
+            shadow.x -= shadow.width * 0.05;
+            shadow.width *= 1.1;
+            shadow.height *= 1.35;
+            DrawRectangleRoundedLinesEx(shadow, 0.25, 20, thick, TKBC_UI_BLACK);
+        }
+
+        Rectangle collision_rectangle = {
+            .x = display_position.x,
+            .y = display_position.y,
+            .width = t.width * scale,
+            .height = t.height * scale,
+        };
+
+        //
+        // Update to the next display position so that continue will work
+        // correctly.
+        //
+        // This can not be done in the for(;; advance) advance part because the
+        // short-circuiting for not kite designs should not increase the
+        // display.
+        display_position.y += padding + actual_padding;
+
+        if (env->color_picker_window_picking) {
+            continue;
+        }
+
+        Vector2 mouse = GetMousePosition();
+        if (CheckCollisionPointRec(mouse, collision_rectangle)) {
+
+            Image image = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
+            Vector2 p = tkbc_get_position_in_rect(collision_rectangle, 1 / scale, mouse);
+            Color c = GetImageColor(image, p.x, p.y);
+            if (c.a == alpha_threshold) {
+                continue;
+            }
+
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Image reference = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
+                if (i == KITE_COLORIZER) {
+                    Asset a = _tkbc_get_asset_kite_design(KITE_COLORIZER);
+
+                    // This is needed because the UUIDs will be random and not the enum
+                    // value.
+                    Id new_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
+                    bool design_already_exists = false;
+                    if (tkbc_is_same_image(a.as.kite_image.normal, reference)) {
+                        design_already_exists = true;
+                    } else {
+                        design_already_exists = tkbc_image_already_exitst_in_assets(a.as.kite_image.normal, &new_id);
+                    }
+
+                    if (design_already_exists) {
+                        Asset *asset = tkbc_find_asset_from_id(new_id);
+                        if (!asset) {
+                            continue;
+                        }
+
+                        Kite_Texture kt = asset->as.kite_texture;
+                        tkbc_set_texture_for_selected_kites(env, &kt, new_id, true);
+                    } else {
+                        Kite_Texture *new_kt = tkbc_generate_new_kite_image_and_texture(a.as.kite_image, &new_id);
+                        tkbc_set_texture_for_selected_kites(env, new_kt, new_id, true);
+                    }
+
+                } else {
+                    tkbc_set_texture_for_selected_kites(env, &_tkbc_get_asset_kite_design(i).as.kite_texture,
+                                                        _tkbc_get_asset_kite_design(i).id, false);
+
+                    // Note just for the kites designed by the colorizer
+                    // The other ones do not fit because thy are blury and you kinda
+                    // want to preserve that. Also thy don't have a skeleton, they are
+                    // just perfectly blended.
+                    if (i > KITE_DEFAULT_DESIGNS_END && assets.elements[i].type == ASSETS_KITE_DESIGN) {
+                        Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
+                        assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+                        assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
+                        assert(im.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
+
+                        // Copy the panel into the KITE_COLORIZER texture
+                        for (size_t y = 0; y < (size_t) im.height; ++y) {
+                            for (size_t x = 0; x < (size_t) im.width; ++x) {
+                                Vector2 pixel = {.x = x, .y = y};
+                                // This is needed to allow designs with alpha:
+                                // So that loading an already existing design in is properly
+                                // handled.
+                                tkbc_set_single_pixel_in_kite_image_colorizer(pixel, BLANK);
+
+                                Color c = *(Color *) tkbc_get_position_in_image(im, x, y);
+                                if (c.a <= alpha_threshold) {
+                                    continue;
+                                }
+
+                                tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
+                            }
+                        }
+
+                        tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
+                                                 _tkbc_get_asset_kite_design(i).as.kite_image);
+                    }
+                }
+                tkbc_set_color_for_selected_kites(env, BLANK);
+            }
+        }
+    }
 }
 
 void tkbc_BeginScissorMode(Rectangle box) {

@@ -40,6 +40,7 @@ void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p, Color
 void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_scale, Colorizer_Mode mode);
 void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding);
 void tkbc_handle_text_input(Text_Input *input);
+void tkbc_display_kite_designs(Env *env, Vector2 display_position);
 void tkbc_BeginScissorMode(Rectangle box);
 
 #endif  // TKBC_UI_H
