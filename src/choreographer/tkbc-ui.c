@@ -2033,9 +2033,9 @@ static float tkbc_kite_design_stride(Env *env, Texture2D design, float scale_fac
  */
 void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     Rectangle base = display_box;
+    base.width -= padding / 2; // for the scrollbar
     display_box.x += 2 * padding;
     display_box.y += 2 * padding;
-    float base_y = display_box.y;
 
     size_t total_amount = tkbc_get_current_kite_design_count();
     size_t scrollable_amount = total_amount - 1;
@@ -2102,8 +2102,6 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         shadow.x -= ring_box_x;
         shadow.width *= 1.1;
         shadow.height *= 1.35;
-
-        base_y = shadow.y;
         DrawRectangleRoundedLinesEx(shadow, 0.25, 20, 3, TKBC_UI_BLACK);
 
         if (!env->color_picker_window_picking) {
@@ -2245,9 +2243,8 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         }
         row++;
     }
-    float scrollbar_row_step = scrolled_content_height / visible_rows;
 
-    base.y = base_y;
+    float scrollbar_row_step = (scrolled_content_height + 2 * padding) / visible_rows;
     tkbc_scrollbar(&env->kite_designs_scrollbar, base, scrollbar_row_step, scrollable_amount, visible_rows,
                    &env->kite_designs_top_interaction_box);
 }
@@ -2278,7 +2275,9 @@ void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_rad
         visible_rows = 1;
     }
 
-    tkbc_scrollbar(&env->color_picker_scrollbar, display_box, row_height, total_rows, visible_rows,
+    Rectangle base = display_box;
+    base.width -= padding / 2; // for the scrollbar
+    tkbc_scrollbar(&env->color_picker_scrollbar, base, row_height, total_rows, visible_rows,
                    &env->color_picker_top_interaction_box);
 
     // Keep the scroll offset in sync with the current row layout.
@@ -2288,7 +2287,7 @@ void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_rad
     }
     size_t top_box = env->color_picker_top_interaction_box;
 
-    tkbc_BeginScissorMode(display_box);
+    tkbc_BeginScissorMode(base);
     Vector2 mouse = GetMousePosition();
     for (size_t i = 0; i < color_count; ++i) {
         size_t row = i / circles_per_row;
