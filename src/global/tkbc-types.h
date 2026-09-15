@@ -633,6 +633,10 @@ typedef struct {
     size_t color_picker_top_interaction_box;  // The current first displayed row of the
                                               // scrollable color pallet.
 
+    Scrollbar kite_designs_scrollbar;      // The scrollbar of the color_picker color pallet.
+    size_t kite_designs_top_interaction_box;  // The current first displayed row of the
+                                              // scrollable color pallet.
+
     bool script_menu_interaction;               // The status if the menu that displays all the
                                                 // available scripts is currently displays.
     Rectangle script_menu_base;                 // The bounding box of the complete script menu portion.
