@@ -472,9 +472,9 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
     scrollbar->base.width = outer_container.width * 0.025;
     scrollbar->base.height = items_height * screen_items;
 
-    // if (scrollbar->base.height > outer_container.height) {
-    //     scrollbar->base.height = outer_container.height;
-    // }
+    if (scrollbar->base.height > outer_container.height) {
+        scrollbar->base.height = outer_container.height;
+    }
 
     scrollbar->base.x = outer_container.x + outer_container.width - scrollbar->base.width;
     scrollbar->base.y = outer_container.y;
