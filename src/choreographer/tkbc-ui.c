@@ -1788,6 +1788,40 @@ static void tkbc_draw_selection(Text_Input *input) {
  *
  * @param input The input that holds the selected text.
  */
+static bool tkbc_is_word_boundary(char c) {
+    return c == ' ' || c == '\t' || c == '.' || c == ',' || c == ';' || c == ':' || c == '(' || c == ')' || c == '[' ||
+           c == ']' || c == '{' || c == '}' || c == '"' || c == '\'' || c == '/' || c == '\\' || c == '-' || c == '_' ||
+           c == '+' || c == '=' || c == '<' || c == '>' || c == '|' || c == '&' || c == '^' || c == '%' || c == '#' ||
+           c == '@' || c == '!' || c == '?' || c == '~' || c == '`';
+}
+
+static size_t tkbc_find_word_left(Text_Input *input) {
+    size_t pos = input->cursor_pos;
+    if (pos == 0) return 0;
+
+    pos--;
+    while (pos > 0 && tkbc_is_word_boundary(input->text[pos])) {
+        pos--;
+    }
+    while (pos > 0 && !tkbc_is_word_boundary(input->text[pos - 1])) {
+        pos--;
+    }
+    return pos;
+}
+
+static size_t tkbc_find_word_right(Text_Input *input) {
+    size_t pos = input->cursor_pos;
+    size_t len = strlen(input->text);
+
+    while (pos < len && tkbc_is_word_boundary(input->text[pos])) {
+        pos++;
+    }
+    while (pos < len && !tkbc_is_word_boundary(input->text[pos])) {
+        pos++;
+    }
+    return pos;
+}
+
 static void tkbc_delete_selection(Text_Input *input) {
     if (!tkbc_has_selection(input)) {
         return;
@@ -1868,6 +1902,58 @@ void tkbc_handle_text_input(Text_Input *input) {
             }
         }
 
+        if (IsKeyPressed(KEY_HOME)) {
+            if (shift_down) {
+                if (input->selection_start == SIZE_MAX) {
+                    input->selection_start = input->cursor_pos;
+                }
+            } else if (tkbc_has_selection(input)) {
+                input->cursor_pos =
+                    input->selection_start < input->cursor_pos ? input->selection_start : input->cursor_pos;
+                input->selection_start = SIZE_MAX;
+            }
+            input->cursor_pos = 0;
+        }
+        if (IsKeyPressed(KEY_END)) {
+            if (shift_down) {
+                if (input->selection_start == SIZE_MAX) {
+                    input->selection_start = input->cursor_pos;
+                }
+            } else if (tkbc_has_selection(input)) {
+                input->cursor_pos =
+                    input->selection_start > input->cursor_pos ? input->selection_start : input->cursor_pos;
+                input->selection_start = SIZE_MAX;
+            }
+            input->cursor_pos = char_amount;
+        }
+
+        bool ctrl_down = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
+
+        if (ctrl_down && (IsKeyPressed(KEY_LEFT))) {
+            if (shift_down) {
+                if (input->selection_start == SIZE_MAX) {
+                    input->selection_start = input->cursor_pos;
+                }
+            } else if (tkbc_has_selection(input)) {
+                input->cursor_pos =
+                    input->selection_start < input->cursor_pos ? input->selection_start : input->cursor_pos;
+                input->selection_start = SIZE_MAX;
+            }
+            input->cursor_pos = tkbc_find_word_left(input);
+        }
+        if (ctrl_down && (IsKeyPressed(KEY_RIGHT))) {
+            if (shift_down) {
+                if (input->selection_start == SIZE_MAX) {
+                    input->selection_start = input->cursor_pos;
+                }
+            } else if (tkbc_has_selection(input)) {
+                input->cursor_pos =
+                    input->selection_start > input->cursor_pos ? input->selection_start : input->cursor_pos;
+                input->selection_start = SIZE_MAX;
+            }
+            input->cursor_pos = tkbc_find_word_right(input);
+        }
+
         bool is_spcial_action = false;
 
         if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_A)) {
@@ -1883,6 +1969,13 @@ void tkbc_handle_text_input(Text_Input *input) {
         if (IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) {
             if (tkbc_has_selection(input)) {
                 tkbc_delete_selection(input);
+            } else if (ctrl_down) {
+                size_t word_pos = tkbc_find_word_left(input);
+                if (word_pos < input->cursor_pos) {
+                    memmove(&input->text[word_pos], &input->text[input->cursor_pos],
+                            (char_amount - input->cursor_pos + 1) * sizeof(*input->text));
+                    input->cursor_pos = word_pos;
+                }
             } else if (input->cursor_pos > 0) {
                 memmove(&input->text[input->cursor_pos - 1], &input->text[input->cursor_pos], n * sizeof(*input->text));
                 input->cursor_pos -= 1;
@@ -1892,6 +1985,12 @@ void tkbc_handle_text_input(Text_Input *input) {
         if (IsKeyPressedRepeat(KEY_DELETE) || IsKeyPressed(KEY_DELETE)) {
             if (tkbc_has_selection(input)) {
                 tkbc_delete_selection(input);
+            } else if (ctrl_down) {
+                size_t word_pos = tkbc_find_word_right(input);
+                if (word_pos > input->cursor_pos) {
+                    memmove(&input->text[input->cursor_pos], &input->text[word_pos],
+                            (char_amount - word_pos + 1) * sizeof(*input->text));
+                }
             } else if (input->cursor_pos < char_amount) {
                 memmove(&input->text[input->cursor_pos], &input->text[input->cursor_pos + 1], n * sizeof(*input->text));
             }
