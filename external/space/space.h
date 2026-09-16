@@ -117,24 +117,36 @@ struct Big_Planet {
 #error "No valid memory layout method"
 #endif
 
+#if SPACE_MEMORY_LAYOUT_METHOD_DEFAULT == -1
+#error "No valid default memory layout method could be set! Possible wrong value for SPACE_MEMORY_LAYOUT_METHOD"
+#endif
+
 typedef struct {
     union {
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
         Big_Planet *sun;
+#endif
 
+#if SPACE_MEMORY_LAYOUT_METHOD & (SPACE_MEMORY_DYNAMIC_ARRAY | SPACE_MEMORY_STUCT_OF_ARRAYS)
         struct {
             union {
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
                 Planet *elements;
+#endif
 
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
                 struct {
                     void **planet_elements;
                     size_t *planet_counts;
                     size_t *planet_capacitys;
                     size_t *planet_ids;
                 };
+#endif
             };
 
             size_t capacity;
         };
+#endif
     };
 
     size_t count;
@@ -573,7 +585,9 @@ SPACEDEF void *space_vcat_impl(Space *space, ...) {
         return (void *) first;
     }
 
-alloc: {}
+alloc:
+    {
+    }
     size_t count = first_len;
     {
         va_start(args, space);
@@ -676,7 +690,9 @@ SPACEDEF void *space_vstrcat_impl(Space *space, const char *first, ...) {
         return (void *) first;
     }
 
-alloc: {}
+alloc:
+    {
+    }
     size_t count = first_len + 1;
     {
         va_start(args, first);
@@ -1201,6 +1217,7 @@ rerun:
  * @param planet The planet to append.
  * @return true on success, false if the backing array could not be grown.
  */
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
 static inline bool space__os_dap_planet(Space *space, Planet planet) {
     if (!space) {
         return false;
@@ -1221,6 +1238,7 @@ static inline bool space__os_dap_planet(Space *space, Planet planet) {
     space->elements[space->count++] = planet;
     return true;
 }
+#endif
 
 /**
  * @brief Appends a planet to the structure-of-arrays layout.
@@ -1234,6 +1252,7 @@ static inline bool space__os_dap_planet(Space *space, Planet planet) {
  * @param planet The planet to append.
  * @return true on success, false if the arrays could not be grown.
  */
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
 static inline bool space__os_soa_dap_planet(Space *space, Planet planet) {
     if (!space) {
         return false;
@@ -1304,6 +1323,7 @@ static inline bool space__os_soa_dap_planet(Space *space, Planet planet) {
     space->count++;
     return true;
 }
+#endif
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -1649,6 +1669,11 @@ layout_rerun:
  * @param planet Pointer to the Planet to reset.
  */
 SPACEDEF void space_reset_planet(Space *space, Planet *planet) {
+    if (!planet) {
+        return;
+    }
+
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
     if (space->memory_layout == SPACE_MEMORY_STUCT_OF_ARRAYS) {
         for (size_t i = 0; i < space->count; ++i) {
             if (space->planet_ids[i] == planet->id) {
@@ -1657,6 +1682,7 @@ SPACEDEF void space_reset_planet(Space *space, Planet *planet) {
             }
         }
     }
+#endif
 
     planet->count = 0;
 }
@@ -1678,6 +1704,7 @@ SPACEDEF void space_reset_planet_and_zero(Space *space, Planet *planet) {
         return;
     }
 
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
     if (space->memory_layout == SPACE_MEMORY_STUCT_OF_ARRAYS) {
         for (size_t i = 0; i < space->count; ++i) {
             if (space->planet_ids[i] == planet->id) {
@@ -1685,6 +1712,7 @@ SPACEDEF void space_reset_planet_and_zero(Space *space, Planet *planet) {
             }
         }
     }
+#endif
 
     if (planet->elements) {
         // NOTE: This depends on that the planet_elements is the first filed in the structure.
@@ -1909,6 +1937,7 @@ layout_rerun:
  * @param force_new_planet If true, always create a new planet.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
 static inline void *space__dll_alloc(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet) {
 
     *planet_id = 0;
@@ -1972,6 +2001,7 @@ static inline void *space__dll_alloc(Space *space, size_t size_in_bytes, size_t 
     space->count++;
     return big_planet->planet.elements;
 }
+#endif
 
 /**
  * @brief Allocates memory using the dynamic-array layout.
@@ -1986,8 +2016,8 @@ static inline void *space__dll_alloc(Space *space, size_t size_in_bytes, size_t 
  * @param force_new_planet If true, always create a new planet.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
 static inline void *space__da_alloc(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet) {
-
     *planet_id = 0;
     for (size_t i = 0; i < space->count; ++i) {
         Planet *planet = &space->elements[i];
@@ -2034,6 +2064,7 @@ static inline void *space__da_alloc(Space *space, size_t size_in_bytes, size_t *
     *planet_id = p.id;
     return p.elements;
 }
+#endif
 
 /**
  * @brief Allocates memory using the structure-of-arrays layout.
@@ -2048,6 +2079,7 @@ static inline void *space__da_alloc(Space *space, size_t size_in_bytes, size_t *
  * @param force_new_planet If true, always create a new planet.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
 static inline void *space__soa_alloc(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet) {
 
     *planet_id = 0;
@@ -2095,6 +2127,7 @@ static inline void *space__soa_alloc(Space *space, size_t size_in_bytes, size_t 
     *planet_id = p.id;
     return p.elements;
 }
+#endif
 
 /**
  * @brief Core allocation function that allocates memory and optionally
@@ -2774,6 +2807,7 @@ layout_rerun:
  * @return Pointer to the Big_Planet structure containing the Planet, or NULL
  * if not found.
  */
+#if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
 SPACEDECL Big_Planet *space_find_big_planet_from_planet_id(Space *space, size_t planet_id) {
 
     if (planet_id == 0 || !space) {
@@ -2800,6 +2834,7 @@ SPACEDECL Big_Planet *space_find_big_planet_from_planet_id(Space *space, size_t 
     assert(i == space->count);
     return NULL;
 }
+#endif
 
 /**
  * @brief Attempts to expand a memory allocation in place without moving it.
