@@ -1914,6 +1914,28 @@ void tkbc_handle_text_input(Text_Input *input) {
             }
         }
 
+        if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_X)) {
+            is_spcial_action = true;
+            if (tkbc_has_selection(input)) {
+                size_t start;
+                size_t end;
+                tkbc_get_selection_bounds(input, &start, &end);
+                size_t len = end - start;
+                char *clipboard = malloc(len + 1);
+                memcpy(clipboard, &input->text[start], len);
+                clipboard[len] = '\0';
+                SetClipboardText(clipboard);
+                free(clipboard);
+                tkbc_delete_selection(input);
+            } else {
+                SetClipboardText(input->text);
+
+                input->selection_start = SIZE_MAX;
+                input->cursor_pos = 0;
+                input->text[0] = '\0';
+            }
+        }
+
         if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_V)) {
             is_spcial_action = true;
             tkbc_delete_selection(input);
@@ -2033,7 +2055,7 @@ static float tkbc_kite_design_stride(Env *env, Texture2D design, float scale_fac
  */
 void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     Rectangle base = display_box;
-    base.width -= padding / 2; // for the scrollbar
+    base.width -= padding / 2;  // for the scrollbar
     display_box.x += 2 * padding;
     display_box.y += 2 * padding;
 
@@ -2276,7 +2298,7 @@ void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_rad
     }
 
     Rectangle base = display_box;
-    base.width -= padding / 2; // for the scrollbar
+    base.width -= padding / 2;  // for the scrollbar
     tkbc_scrollbar(&env->color_picker_scrollbar, base, row_height, total_rows, visible_rows,
                    &env->color_picker_top_interaction_box);
 
