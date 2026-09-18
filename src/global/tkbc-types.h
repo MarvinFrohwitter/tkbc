@@ -467,10 +467,11 @@ typedef struct {
                        // the number of collection elements of the array type.
     Id script_id;      // The number of the loaded script starting from 1, 0 no script.
     const char *name;  // The name of the script.
-
     Space space;
-} Script;  // A dynamic array collection that combined multiple frames to a
-           // single kite draw representation.
+
+    bool was_send_to_server;  // Indicates if this script was already send to a server.
+} Script;                     // A dynamic array collection that combined multiple frames to a
+                              // single kite draw representation.
 
 typedef struct {
     Script *elements;  // The dynamic array collection for all combined scripts.
@@ -623,17 +624,17 @@ typedef struct {
     Color last_selected_color;                  // The color that is displayed in the box below the
                                                 // input.
 
-    size_t max_favorite_colors;            // The maximum of favorite colors slots that are
-                                           // generates in the color picker.
-    size_t current_favorite_colors_index;  // The current next free slot of the
-                                           // favorite_colors slots.
-    Colors favorite_colors;                // The current storage that holds the data for the
-                                           // color_picker favorite color circles.
-    Scrollbar color_picker_scrollbar;      // The scrollbar of the color_picker color pallet.
+    size_t max_favorite_colors;               // The maximum of favorite colors slots that are
+                                              // generates in the color picker.
+    size_t current_favorite_colors_index;     // The current next free slot of the
+                                              // favorite_colors slots.
+    Colors favorite_colors;                   // The current storage that holds the data for the
+                                              // color_picker favorite color circles.
+    Scrollbar color_picker_scrollbar;         // The scrollbar of the color_picker color pallet.
     size_t color_picker_top_interaction_box;  // The current first displayed row of the
                                               // scrollable color pallet.
 
-    Scrollbar kite_designs_scrollbar;      // The scrollbar of the color_picker color pallet.
+    Scrollbar kite_designs_scrollbar;         // The scrollbar of the color_picker color pallet.
     size_t kite_designs_top_interaction_box;  // The current first displayed row of the
                                               // scrollable color pallet.
 
