@@ -469,7 +469,7 @@ typedef struct {
     const char *name;  // The name of the script.
     Space space;
 
-    bool was_send_to_server;  // Indicates if this script was already send to a server.
+    bool was_send;  // Indicates if this script was already send to a server.
 } Script;                     // A dynamic array collection that combined multiple frames to a
                               // single kite draw representation.
 

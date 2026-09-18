@@ -923,7 +923,7 @@ bool tkbc_message_script(void) {
     size_t saved_count = client.send_msg_buffer.count;
 
     for (size_t i = env->send_scripts; i < env->scripts.count; ++i) {
-        if (env->scripts.elements[i].was_send_to_server) continue;
+        if (env->scripts.elements[i].was_send) continue;
         total_amount_to_send += 1;
     }
 
@@ -935,7 +935,7 @@ bool tkbc_message_script(void) {
                total_amount_to_send);
 
     for (size_t i = env->send_scripts; i < env->scripts.count; ++i) {
-        if (env->scripts.elements[i].was_send_to_server) continue;
+        if (env->scripts.elements[i].was_send) continue;
         char buf[16];
         int size = snprintf(buf, sizeof(buf), "%d:", MESSAGE_SCRIPT);
         space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%s", buf);
@@ -945,7 +945,7 @@ bool tkbc_message_script(void) {
             client.send_msg_buffer.count -= size;
             check_return(false);
         }
-        env->scripts.elements[i].was_send_to_server = true;
+        env->scripts.elements[i].was_send = true;
 
         space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
         counter++;
