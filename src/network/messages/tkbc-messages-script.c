@@ -393,5 +393,7 @@ parsing_skip:
     tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
 #endif
 
+    // TODO: Send the script back to all other clients.
+
     return true;
 }

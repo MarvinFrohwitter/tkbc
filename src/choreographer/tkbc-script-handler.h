@@ -35,7 +35,7 @@ void tkbc_change_visibility_to_script_kites(Env *env, Script *script);
 void tkbc_load_next_script(Env *env);
 bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh);
 void tkbc_unload_script(Env *env);
-bool tkbc_unload_script_from_memory(Env *env, size_t script_id);
+int tkbc_unload_script_from_memory(Env *env, size_t script_id);
 
 size_t tkbc_calculate_frame_byte_size(Frame frame);
 size_t tkbc_calculate_frames_byte_size(Frames frames);

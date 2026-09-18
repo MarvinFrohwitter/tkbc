@@ -642,10 +642,10 @@ bool tkbc_ui_script_menu(Env *env) {
             }
         }
 
+        static ssize_t is_the_same_box_as_last_double_click = -1;
         if (env->script_menu_mouse_interaction && (ssize_t) box == env->script_menu_mouse_interaction_box) {
 
             DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
-            static ssize_t is_the_same_box_as_last_double_click = -1;
             if (is_mouse_double_click(MOUSE_LEFT_BUTTON) && (ssize_t) box == is_the_same_box_as_last_double_click) {
                 is_the_same_box_as_last_double_click = -1;
                 double_click_confirm = true;
@@ -654,8 +654,59 @@ bool tkbc_ui_script_menu(Env *env) {
             }
         }
 
-        // TODO: Display an icon on the right of the selection that unload the
-        // script form memory. See the TODO for making the space per script.
+        float delete_circle_radius = script_box.height / 2.0;
+        {
+            Vector2 circle_center = {
+                .x = script_box.x + script_box.width - delete_circle_radius,
+                .y = script_box.y + delete_circle_radius,
+            };
+            DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_GRAY_ALPHA);
+
+            if (CheckCollisionPointCircle(mouse, circle_center, delete_circle_radius)) {
+                if (env->script_menu_mouse_interaction) {
+                    DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_DARKPURPLE_ALPHA);
+                } else {
+                    DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_PURPLE_ALPHA);
+                }
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_PURPLE_ALPHA);
+
+                    // TODO: When all clients have knowledge about the scripts that are loaded in the server ask the
+                    // server to delete that script as well.
+                    tkbc_unload_script_from_memory(env, env->scripts.elements[box].script_id);
+
+                    env->script_menu_mouse_interaction = false;
+                    env->script_menu_mouse_interaction_box = -1;
+                    is_the_same_box_as_last_double_click = -1;
+                }
+            }
+
+            float inner_padding_both_sides = 2 * delete_circle_radius * 0.4;
+            float inner_padding = inner_padding_both_sides / 2.0;
+            {
+                Vector2 start_position = {
+                    .x = circle_center.x - delete_circle_radius + inner_padding,
+                    .y = circle_center.y - delete_circle_radius + inner_padding,
+                };
+                Vector2 end_position = {
+                    .x = circle_center.x + delete_circle_radius - inner_padding,
+                    .y = circle_center.y + delete_circle_radius - inner_padding,
+                };
+
+                DrawLineEx(start_position, end_position, 3, TKBC_UI_BLACK);
+            }
+            {
+                Vector2 start_position = {
+                    .x = circle_center.x - delete_circle_radius + inner_padding,
+                    .y = circle_center.y + delete_circle_radius - inner_padding,
+                };
+                Vector2 end_position = {
+                    .x = circle_center.x + delete_circle_radius - inner_padding,
+                    .y = circle_center.y - delete_circle_radius + inner_padding,
+                };
+                DrawLineEx(start_position, end_position, 3, TKBC_UI_BLACK);
+            }
+        }
 
         const float spacing = 2;
         const char *name = env->scripts.elements[box].name;
@@ -664,7 +715,10 @@ bool tkbc_ui_script_menu(Env *env) {
         Vector2 p;
         p.x = script_box.x + script_box.width / 2 - text_size.x / 2;
         p.y = script_box.y + script_box.height / 2 - text_size.y / 2;
-        tkbc_BeginScissorMode(script_box);
+
+        Rectangle text_element_box = script_box;
+        text_element_box.width -= delete_circle_radius * 2;
+        tkbc_BeginScissorMode(text_element_box);
         DrawTextEx(env->font, name, p, font_size, spacing, TKBC_UI_BLACK);
         EndScissorMode();
 

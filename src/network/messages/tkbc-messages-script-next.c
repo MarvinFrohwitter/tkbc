@@ -61,7 +61,9 @@ bool tkbc_messages_script_next(Lexer *lexer) {
     //
     // Marvin Frohwitter 13 April 2026
 
-    tkbc_load_script_id(env, script_id, true);
+    if (!tkbc_load_script_id(env, script_id, true)) {
+        tkbc_fprintf(stderr, "WARNING", "Could not load script: %d not found!", script_id);
+    }
 
     // This parsing function is just used in the server but liked in the client
     // as well so just a simple guard for compilation.

@@ -934,11 +934,32 @@ void tkbc_unload_script(Env *env) {
  *
  * @param env The global state of the application.
  * @param script_id The id of the script that should be unloaded.
- * @return True if the unloading was successful, otherwise false.
+ * @return 0 if the unloading was successful, otherwise 1 if the script could not be found or -1 if the currently loaded
+ * script was deleted in the middle of unloading the given one.
  */
-bool tkbc_unload_script_from_memory(Env *env, size_t script_id) {
+int tkbc_unload_script_from_memory(Env *env, size_t script_id) {
+    Index loaded_frames_index = 0;
+    Id loaded_script_id = 0;
+    bool is_frames = false;
+    bool is_script = false;
+    int ok = 1;
+
+    if (env->frames) {
+        is_frames = true;
+        loaded_frames_index = env->frames->frames_index;
+    }
+
+    if (env->script) {
+        is_script = true;
+        loaded_script_id = env->script->script_id;
+    }
+
     for (size_t i = 0; i < env->scripts.count; ++i) {
         if (script_id == env->scripts.elements[i].script_id) {
+            if (env->script && script_id == env->script->script_id) {
+                tkbc_unload_script(env);
+            }
+
             space_free_space(&env->scripts.elements[i].space);
 
             if (i + 1 < env->scripts.count) {
@@ -947,10 +968,28 @@ bool tkbc_unload_script_from_memory(Env *env, size_t script_id) {
             }
 
             env->scripts.count -= 1;
-            return true;
+            ok = 0;
+            break;
         }
     }
-    return false;
+
+    if (is_script) {
+        if (!tkbc_load_script_id(env, loaded_script_id, false)) {
+            ok = -1;
+        }
+    }
+
+    if (is_frames && ok != -1) {
+        // The env->script pointer is now valid again, so we can use it.
+        for (size_t i = 0; i < env->script->count; ++i) {
+            if (env->script->elements[i].frames_index == loaded_frames_index) {
+                env->frames = &env->script->elements[i];
+                break;
+            }
+        }
+    }
+
+    return ok;
 }
 
 /**
