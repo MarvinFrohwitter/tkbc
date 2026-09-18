@@ -633,14 +633,13 @@ bool received_message_handler(Message *message) {
         }
         continue;
 
-    err:
-        {
-            bool rerun = tkbc_error_handling_of_received_message_handler(message, lexer, &reset, true);
-            if (rerun) {
-                continue;
-            }
-            break;
+    err: {
+        bool rerun = tkbc_error_handling_of_received_message_handler(message, lexer, &reset, true);
+        if (rerun) {
+            continue;
         }
+        break;
+    }
     } while (token.kind != EOF_TOKEN);
 
 check:
@@ -1195,9 +1194,7 @@ bool tkbc_run(Env *env) {
     if (sending_receiving) {
         if (!message_queue_handler()) {
             disconnect.active = true;
-            // TODO:
-            // When server disconnects the client kites that are the others should be removed.
-
+            tkbc_remove_non_script_kites_except(&env->kite_array, client.kite_id);
         }
         sending_receiving = send_message_send_handler();
     }

@@ -199,6 +199,21 @@ void tkbc_destroy_kite_array(Kite_States *kite_states) {
 }
 
 /**
+ * @brief The function removed all kites that are not script kites except the given kite id. The given kite_id is most
+ * likely the client.kite_id.
+ *
+ * @param kite_array The array that holds all the ktie_states that should be inspected.
+ * @param kite_id The kite state that should not be removed.
+ */
+void tkbc_remove_non_script_kites_except(Kite_States *kite_array, size_t kite_id) {
+    for (size_t i = 0; i < kite_array->count; ++i) {
+        if (kite_array->elements[i].kite_id != kite_id && !kite_array->elements[i].is_script_kite) {
+            tkbc_remove_kite_from_list(kite_array, kite_array->elements[i].kite_id);
+        }
+    }
+}
+
+/**
  * @brief The function can be used to remove a kite from the given list by the
  * given kite_id.
  *

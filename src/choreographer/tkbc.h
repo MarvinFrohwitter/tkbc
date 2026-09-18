@@ -81,21 +81,18 @@ Kite_State tkbc_init_kite(void);
 void tkbc_destroy_env(Env *env);
 void tkbc_destroy_kite(Kite_State *state);
 void tkbc_destroy_kite_array(Kite_States *kite_states);
+void tkbc_remove_non_script_kites_except(Kite_States *kite_array, size_t kite_id);
 bool tkbc_remove_kite_from_list(Kite_States *kite_array, size_t kite_id);
-Vector2 tkbc_calculate_start_position(Env *env, Kite_States *kite_states,
-                                    size_t window_width, size_t window_height);
-void tkbc_kite_array_start_position(Env *env, Kite_States *kite_states,
-                                    size_t window_width, size_t window_height,
+Vector2 tkbc_calculate_start_position(Env *env, Kite_States *kite_states, size_t window_width, size_t window_height);
+void tkbc_kite_array_start_position(Env *env, Kite_States *kite_states, size_t window_width, size_t window_height,
                                     bool set_defaults);
 
 void tkbc_file_handler(Env *env);
 void tkbc_set_kite_defaults(Kite *kite, bool is_generated);
 void tkbc_set_kite_state_defaults(Kite_State *state);
-void tkbc_set_kite_internals(Kite *kite, float fly_speed, float turn_speed,
-                             Color body_color, Color top_color, float overlap,
-                             float inner_space, float spread, float width,
-                             float height, float angle, Vector2 center,
-                             float scale);
+void tkbc_set_kite_internals(Kite *kite, float fly_speed, float turn_speed, Color body_color, Color top_color,
+                             float overlap, float inner_space, float spread, float width, float height, float angle,
+                             Vector2 center, float scale);
 
 // ========================== KITE POSITION ==================================
 
@@ -103,10 +100,8 @@ void tkbc_kite_update_internal(Kite *kite);
 void tkbc_kite_update_scale(Kite *kite, float scale);
 void tkbc_kite_update_position(Kite *kite, Vector2 *position);
 void tkbc_kite_update_angle(Kite *kite, float center_deg_rotation);
-void tkbc_center_rotation(Kite *kite, Vector2 *position,
-                          float center_deg_rotation);
-void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation,
-                       TIP tip);
+void tkbc_center_rotation(Kite *kite, Vector2 *position, float center_deg_rotation);
+void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation, TIP tip);
 
 // ========================== KITE DISPLAY ===================================
 
