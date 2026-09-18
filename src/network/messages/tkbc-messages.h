@@ -17,6 +17,7 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client, Kite 
 
 bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_alleady_there_parsing_skip);
 bool tkbc_messages_script_next(Lexer *lexer);
+bool tkbc_messages_script_amount(Client *client, Lexer *lexer);
 bool tkbc_messages_script_scrub(Lexer *lexer);
 
 #endif  // TKBC_MESSAGES_H

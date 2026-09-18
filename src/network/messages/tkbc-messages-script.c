@@ -349,6 +349,11 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     // reducing the memory storage size of a script.
     //
     // Marvin Frohwitter 22.06.2025
+    scb_script->was_send = true;
+
+    if (!env->scratch_buf_script.name) {
+        tkbc_set_script_name(scb_script, space_printf(scb_space, "Script: %zu", ++env->script_id_counter));
+    }
     tkbc_add_script(env, *scb_script);
 
     // This is just to be explicit is already happen in the script adding.
@@ -380,6 +385,7 @@ parsing_skip:
     }
     if (client->script_amount == 0 && !script_parse_fail) {
         space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:\r\n", MESSAGE_SCRIPT_PARSED);
+        // The sending is done automatically in the next section or in the client when the send call is performed.
     }
 
     tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT\n");
@@ -390,10 +396,28 @@ parsing_skip:
     // This parsing function is just used in the server but liked in the client as
     // well so just a simple guard for compilation.
 #ifdef TKBC_SERVER
+#include "../tkbc-network-common.h"
+    // TODO: Send the script back to all other clients.
+    size_t total_amount_to_send = 1;
+    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT,
+               total_amount_to_send);
+
+    size_t save_count = client->send_msg_buffer.count;
+    assert(env->scripts.count);
+
+    Message message = {0};
+    if (!tkbc_message_append_script(space_get_tspace(), &message,
+                                    env->scripts.elements[env->scripts.count - 1].script_id)) {
+        tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
+        client->send_msg_buffer.count = save_count;
+        return false;
+    }
+
+    tkbc_write_to_all_send_msg_buffers_except(message, client->socket_id);
+    space_reset_tspace();
+
     tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
 #endif
-
-    // TODO: Send the script back to all other clients.
 
     return true;
 }

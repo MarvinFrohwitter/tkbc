@@ -387,6 +387,7 @@ bool received_message_handler(Message *message) {
 
     Lexer *lexer = lexer_new(__FILE__, message->elements, message->count, message->i);
     do {
+        bool script_alleady_there_parsing_skip = false;
         token = lexer_next(lexer);
         if (token.kind == EOF_TOKEN) {
             break;
@@ -603,6 +604,19 @@ bool received_message_handler(Message *message) {
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "CLIENTKITES\n");
         } break;
+        case MESSAGE_SCRIPT: {
+            if (!tkbc_messages_script(env, lexer, &client, &script_alleady_there_parsing_skip)) {
+                goto err;
+            }
+
+        } break;
+        case MESSAGE_SCRIPT_AMOUNT: {
+            if (!tkbc_messages_script_amount(&client, lexer)) {
+                goto err;
+            }
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "MESSAGE_SCRIPT_AMOUNT\n");
+        } break;
         case MESSAGE_SCRIPT_PARSED: {
             env->scripts_parsed = true;
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_PARSED\n");
@@ -634,7 +648,8 @@ bool received_message_handler(Message *message) {
         continue;
 
     err: {
-        bool rerun = tkbc_error_handling_of_received_message_handler(message, lexer, &reset, true);
+        bool rerun =
+            tkbc_error_handling_of_received_message_handler(message, lexer, &reset, !script_alleady_there_parsing_skip);
         if (rerun) {
             continue;
         }
@@ -835,80 +850,6 @@ void tkbc_client_input_handler_kite(void) {
 }
 
 /**
- * @brief The function appends the script found from the given script_id in
- * the scripts to the given message structure.
- *
- * @param script_id The script number the should be appended.
- * @return True if the script was found and is correctly appended, otherwise
- * false.
- */
-bool tkbc_message_append_script(size_t script_id) {
-
-    for (size_t i = 0; i < env->scripts.count; ++i) {
-        if (env->scripts.elements[i].script_id != script_id) {
-            continue;
-        }
-        Script *script = &env->scripts.elements[i];
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%zu:%zu:", script_id, script->count);
-
-        for (size_t j = 0; j < script->count; ++j) {
-            Frames *frames = &script->elements[j];
-            space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%zu:%zu:", frames->frames_index,
-                       frames->count);
-
-            for (size_t k = 0; k < frames->count; ++k) {
-                space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                           "%zu:%d:%d:", frames->elements[k].index, frames->elements[k].finished,
-                           frames->elements[k].kind);
-
-                static_assert(ACTION_KIND_COUNT == 9, "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
-                switch (frames->elements[k].kind) {
-                case ACTION_KITE_QUIT:
-                case ACTION_KITE_WAIT: {
-                } break;
-                case ACTION_KITE_MOVE:
-                case ACTION_KITE_MOVE_ADD: {
-                    Move_Action action = frames->elements[k].action.as_move;
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%f:%f", action.position.x,
-                               action.position.y);
-                } break;
-                case ACTION_KITE_ROTATION:
-                case ACTION_KITE_ROTATION_ADD: {
-                    Rotation_Action action = frames->elements[k].action.as_rotation;
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%f", action.angle);
-                } break;
-                case ACTION_KITE_TIP_ROTATION:
-                case ACTION_KITE_TIP_ROTATION_ADD: {
-                    Tip_Rotation_Action action = frames->elements[k].action.as_tip_rotation;
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%f", action.tip,
-                               action.angle);
-                } break;
-                default:
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, ":UNKNOWN ACTION");
-                    assert(0 && "UNREACHABLE tkbc_message_append_script()");
-                }
-
-                space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                           ":%f:", frames->elements[k].duration);
-
-                Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
-                if (kite_ids->count) {
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%zu:(", kite_ids->count);
-                    for (size_t id = 0; id < kite_ids->count; ++id) {
-                        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%zu,",
-                                   kite_ids->elements[id]);
-                    }
-                    client.send_msg_buffer.count--;
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "):");
-                }
-            }
-        }
-        return true;
-    }
-    return false;
-}
-
-/**
  * @brief The function can be used to construct the message script out of the
  * currently registered scripts. The result is directly written to the
  * send_message_queue ready to be send to the server.
@@ -936,18 +877,14 @@ bool tkbc_message_script(void) {
 
     for (size_t i = env->send_scripts; i < env->scripts.count; ++i) {
         if (env->scripts.elements[i].was_send) continue;
-        char buf[16];
-        int size = snprintf(buf, sizeof(buf), "%d:", MESSAGE_SCRIPT);
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%s", buf);
-
-        if (!tkbc_message_append_script(env->scripts.elements[i].script_id)) {
+        size_t saved_count = client.send_msg_buffer.count;
+        if (!tkbc_message_append_script(&client.send_msg_buffer_space, &client.send_msg_buffer, env->scripts.elements[i].script_id)) {
             tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
-            client.send_msg_buffer.count -= size;
+            client.send_msg_buffer.count = saved_count;
             check_return(false);
         }
-        env->scripts.elements[i].was_send = true;
 
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
+        env->scripts.elements[i].was_send = true;
         counter++;
     }
 check:

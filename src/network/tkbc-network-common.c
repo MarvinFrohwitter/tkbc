@@ -153,6 +153,80 @@ check:
 }
 
 /**
+ * @brief The function appends the script found from the given script_id in
+ * the scripts to the given message structure.
+ *
+ * @param space The arena style allocator.
+ * @param message The message structure where the data should be appended in.
+ * @param script_id The script number the should be appended.
+ * @return True if the script was found and is correctly appended, otherwise
+ * false.
+ */
+bool tkbc_message_append_script(Space *space, Message *message, size_t script_id) {
+
+    space_dapf(space, message, "%d:", MESSAGE_SCRIPT);
+
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        if (env->scripts.elements[i].script_id != script_id) {
+            continue;
+        }
+        Script *script = &env->scripts.elements[i];
+        space_dapf(space, message, "%zu:%zu:", script_id, script->count);
+
+        for (size_t j = 0; j < script->count; ++j) {
+            Frames *frames = &script->elements[j];
+            space_dapf(space, message, "%zu:%zu:", frames->frames_index, frames->count);
+
+            for (size_t k = 0; k < frames->count; ++k) {
+                space_dapf(space, message, "%zu:%d:%d:", frames->elements[k].index, frames->elements[k].finished,
+                           frames->elements[k].kind);
+
+                static_assert(ACTION_KIND_COUNT == 9, "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
+                switch (frames->elements[k].kind) {
+                case ACTION_KITE_QUIT:
+                case ACTION_KITE_WAIT: {
+                } break;
+                case ACTION_KITE_MOVE:
+                case ACTION_KITE_MOVE_ADD: {
+                    Move_Action action = frames->elements[k].action.as_move;
+                    space_dapf(space, message, "%f:%f", action.position.x, action.position.y);
+                } break;
+                case ACTION_KITE_ROTATION:
+                case ACTION_KITE_ROTATION_ADD: {
+                    Rotation_Action action = frames->elements[k].action.as_rotation;
+                    space_dapf(space, message, "%f", action.angle);
+                } break;
+                case ACTION_KITE_TIP_ROTATION:
+                case ACTION_KITE_TIP_ROTATION_ADD: {
+                    Tip_Rotation_Action action = frames->elements[k].action.as_tip_rotation;
+                    space_dapf(space, message, "%d:%f", action.tip, action.angle);
+                } break;
+                default:
+                    space_dapf(space, message, ":UNKNOWN ACTION");
+                    assert(0 && "UNREACHABLE tkbc_message_append_script()");
+                }
+
+                space_dapf(space, message, ":%f:", frames->elements[k].duration);
+
+                Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
+                if (kite_ids->count) {
+                    space_dapf(space, message, "%zu:(", kite_ids->count);
+                    for (size_t id = 0; id < kite_ids->count; ++id) {
+                        space_dapf(space, message, "%zu,", kite_ids->elements[id]);
+                    }
+                    message->count--;
+                    space_dapf(space, message, "):");
+                }
+            }
+        }
+
+        space_dapf(space, message, "\r\n");
+        return true;
+    }
+    return false;
+}
+
+/**
  * @brief The function parses image data from the lexer. It extracts the texture
  * id, width, height, format, and pixel data for a kite texture.
  *

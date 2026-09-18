@@ -940,18 +940,16 @@ bool tkbc_received_message_handler(Client *client) {
             }
         } break;
         case MESSAGE_SCRIPT_AMOUNT: {
-            token = lexer_next(lexer);
-            if (token.kind != NUMBER) {
-                goto err;
-            }
-
-            client->script_amount = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-            token = lexer_next(lexer);
-            if (token.kind != PUNCT_COLON) {
+            if (!tkbc_messages_script_amount(client, lexer)) {
                 goto err;
             }
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_AMOUNT\n");
+        } break;
+        case MESSAGE_SCRIPT_PARSED: {
+            // This is irrelevant on the server side.
+            env->scripts_parsed = true;
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_PARSED\n");
         } break;
         case MESSAGE_SCRIPT_TOGGLE: {
             // The script associated kites don't have to be toggled in visibility,
