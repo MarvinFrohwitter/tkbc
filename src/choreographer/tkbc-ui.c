@@ -673,10 +673,13 @@ bool tkbc_ui_script_menu(Env *env) {
 
                     // TODO: When all clients have knowledge about the scripts that are loaded in the server ask the
                     // server to delete that script as well.
-                    tkbc_unload_script_from_memory(env, env->scripts.elements[box].script_id);
 
-                    env->script_menu_mouse_interaction = false;
+                    env->new_script_selected = true;
                     env->script_menu_mouse_interaction_box = -1;
+
+                    tkbc_unload_script_from_memory(env, env->scripts.elements[box].script_id);
+                    tkbc_change_visibility_to_non_script_kites(env);
+                    env->script_menu_mouse_interaction = false;
                     is_the_same_box_as_last_double_click = -1;
                 }
             }
