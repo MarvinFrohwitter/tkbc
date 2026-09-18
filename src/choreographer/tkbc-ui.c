@@ -791,9 +791,6 @@ bool tkbc_ui_script_menu(Env *env) {
             // TODO: Display an icon on the left of the selection that does not reset
             // it if clicked.
 
-            // TODO: No kite selection happens in offline mode the is_avtive has to
-            // change, Visibility is incorrect.
-
             tkbc_load_script_id(env, env->scripts.elements[env->script_menu_mouse_interaction_box].script_id, true);
 
             env->script_menu_interaction = false;

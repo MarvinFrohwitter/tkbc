@@ -1130,6 +1130,10 @@ int main(int argc, char *argv[]) {
             if (client.socket_id == -1) {
                 // tkbc_input_handler_kite_array(env);
                 tkbc_input_handler_script(env);
+
+                if (env->new_script_selected && env->script_menu_mouse_interaction_box == -1) {
+                    tkbc_get_kite_state_by_id(env, client.kite_id)->is_kite_input_handler_active = true;
+                }
             } else {
                 tkbc_client_input_handler_script();
             }
@@ -1191,6 +1195,9 @@ bool tkbc_run(Env *env) {
     if (sending_receiving) {
         if (!message_queue_handler()) {
             disconnect.active = true;
+            // TODO:
+            // When server disconnects the client kites that are the others should be removed.
+
         }
         sending_receiving = send_message_send_handler();
     }
