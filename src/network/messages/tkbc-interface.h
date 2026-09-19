@@ -113,7 +113,7 @@ typedef enum {
  * MESSAGE_SCRIPT:
  *
  *****
- * MESSAGE_SCRIPT:script_id:script->count:
+ * MESSAGE_SCRIPT:script_id:name_count:[name:]?script->count:
  * [frames->index:frames->count:
  * [frame->index:frame->finished:frame->kind:
  *   {move->x:move->y|rotation->angle|tip_rotation->tip:tip_rotation->angle}:

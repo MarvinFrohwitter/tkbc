@@ -56,6 +56,38 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
         script_parse_fail = true;
         goto script_err;
     }
+
+    size_t name_len = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
+    token = lexer_next(lexer);
+    if (token.kind != PUNCT_COLON) {
+        script_parse_fail = true;
+        goto script_err;
+    }
+
+    if (name_len > 0) {
+        token = lexer_next(lexer);
+        if (token.kind != STRINGLITERAL) {
+            script_parse_fail = true;
+            goto script_err;
+        }
+
+        char *name = space_calloc(scb_space, 1, name_len + 1);
+        if (name) {
+            scb_script->name = memcpy(name, token.content + 1, token.size - 2);
+        }
+    }
+
+    //
+    token = lexer_next(lexer);
+    if (token.kind != PUNCT_COLON) {
+        script_parse_fail = true;
+        goto script_err;
+    }
+    token = lexer_next(lexer);
+    if (token.kind != NUMBER) {
+        script_parse_fail = true;
+        goto script_err;
+    }
     size_t script_count = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {

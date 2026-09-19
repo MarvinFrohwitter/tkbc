@@ -171,7 +171,18 @@ bool tkbc_message_append_script(Space *space, Message *message, size_t script_id
             continue;
         }
         Script *script = &env->scripts.elements[i];
-        space_dapf(space, message, "%zu:%zu:", script_id, script->count);
+
+        space_dapf(space, message, "%zu:", script_id);
+
+        if (script->name) {
+            size_t name_len = strlen(script->name);
+            space_dapf(space, message, "%zu:\"%s\":", name_len, script->name);
+        } else {
+            // To ensure the name_len can be 64 bit later.
+            space_dapf(space, message, "%zu:", (size_t) 0);
+        }
+
+        space_dapf(space, message, "%zu:", script->count);
 
         for (size_t j = 0; j < script->count; ++j) {
             Frames *frames = &script->elements[j];
@@ -318,7 +329,9 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data, siz
         }
     }
 
-check: {}
+check:
+    {
+    }
     if (!ok) {
         space_reset_space(data_space);
     }
