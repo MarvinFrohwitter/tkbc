@@ -487,6 +487,15 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
     scrollbar->inner_scrollbar.width = scrollbar->base.width;
     scrollbar->inner_scrollbar.y = scrollbar->base.y;
 
+    // Clamp the scroll offset to the valid interval of the current
+    // items_count/screen_items. Without this, a list scrolled to the bottom in a
+    // smaller window keeps its too-large offset after the window is enlarged.
+    // The list then starts below the top elements and the scrollbar refuses to
+    // scroll back up to them.
+    if (items_count > screen_items && *top_interaction_box > items_count - screen_items) {
+        *top_interaction_box = items_count - screen_items;
+    }
+
     size_t minimum_handle_height = (size_t) scrollbar->base.height >> 2;
     scrollbar->inner_scrollbar.height =
         minimum_handle_height + scrollbar->base.height / (float) (items_count - screen_items + 1);
@@ -506,6 +515,9 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
     }
 
     if (items_count <= screen_items) {
+        // When the whole list fits onto the screen there is nothing to scroll,
+        // so reset the offset to the top again.
+        *top_interaction_box = 0;
         scrollbar->inner_scrollbar = scrollbar->base;
         DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
         return;
@@ -515,10 +527,11 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
     // is scrolled to the bottom in a small window and then the window gets
     // resized to a lager one, the scrollbar should not be outside of the base
     // scroll container. The list it self may float to the top but that is not a
-    // bug in it self list can handle a scrolloff. Below the list there is
+    // bug in it self list can handle a scroll offset. Below the list there is
     // nothing to display so it just empty space there is no need to
-    // recallculate the position of the items for the lager window. --
-    // M.Frohwitter 07.04.2025
+    // recalculate the position of the items for the lager window.
+    //
+    // -- M.Frohwitter 07.04.2025
     if (scrollbar->inner_scrollbar.y > scrollbar->base.y + scrollbar->base.height - scrollbar->inner_scrollbar.height) {
         scrollbar->inner_scrollbar.y = scrollbar->base.y + scrollbar->base.height - scrollbar->inner_scrollbar.height;
     }
