@@ -351,9 +351,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     // Marvin Frohwitter 22.06.2025
     scb_script->was_send = true;
 
-    if (!env->scratch_buf_script.name) {
-        tkbc_set_script_name(scb_script, space_printf(scb_space, "Script: %zu", ++env->script_id_counter));
-    }
+    tkbc_set_script_name_if_not_exists(scb_script);
     tkbc_add_script(env, *scb_script);
 
     // This is just to be explicit is already happen in the script adding.

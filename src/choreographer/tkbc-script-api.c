@@ -34,6 +34,20 @@ void tkbc_set_script_name(Script *script, const char *name) {
 }
 
 /**
+ * @brief The function sets a default name if the script has no name set yet.
+ *
+ * @param script The script where the name should be assigned.
+ */
+void tkbc_set_script_name_if_not_exists(Script *script) {
+    if (!script->name) {
+        char *name = tkbc_generate_name_with_time_stamp("Script: ", NULL);
+        // Name is intentionally not checked for NULL.
+        tkbc_set_script_name(script, space_strdup(&script->space, name));
+        free(name);
+    }
+}
+
+/**
  * @brief The function applies the given Kite_Configs to the internal kite
  * states.
  *
@@ -118,12 +132,7 @@ void tkbc__script_end(Env *env) {
 
     assert(env->scratch_buf_script.count > 0);
     env->scratch_buf_script.script_id = env->script_id_counter++ + 1;
-
-    if (!env->scratch_buf_script.name) {
-        tkbc_set_script_name(&env->scratch_buf_script,
-                             space_printf(&env->scratch_buf_script.space, "Script: %zu", env->script_id_counter));
-    }
-
+    tkbc_set_script_name_if_not_exists(&env->scratch_buf_script);
     tkbc_add_script(env, env->scratch_buf_script);
 }
 

@@ -77,7 +77,7 @@ void tkbc_ffmpeg_handler(Env *env) {
             goto err_screenshot;
         }
 
-        char *file_name = tkbc_generate_file_name_with_time_stamp(prefix, ".png");
+        char *file_name = tkbc_generate_name_with_time_stamp(prefix, ".png");
         space_reset_tspace();
         if (file_name == NULL) {
         err_screenshot:
@@ -108,7 +108,7 @@ void tkbc_ffmpeg_handler(Env *env) {
             if (!prefix) {
                 goto err_video;
             }
-            char *output_file_path = tkbc_generate_file_name_with_time_stamp(prefix, ".mp4");
+            char *output_file_path = tkbc_generate_name_with_time_stamp(prefix, ".mp4");
             space_reset_tspace();
 
             tkbc_fprintf(stderr, "INFO", "File: %s\n", output_file_path);

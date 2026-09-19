@@ -196,7 +196,7 @@ void tkbc_print_cmd(FILE *stream, const char *cmd[]);
 int tkbc_get_screen_height(void);
 int tkbc_get_screen_width(void);
 
-char *tkbc_generate_file_name_with_time_stamp(const char *prefix, const char *postfix);
+char *tkbc_generate_name_with_time_stamp(const char *prefix, const char *postfix);
 double tkbc_get_time(void);
 void tkbc_make_frame_time(double target_dt);
 float tkbc_get_frame_time(void);
@@ -648,7 +648,13 @@ int tkbc_get_screen_width(void) {
  * @param postfix The postfix for the file name.
  * @return A pointer to the generated file name on the heap or NULL on failure.
  */
-char *tkbc_generate_file_name_with_time_stamp(const char *prefix, const char *postfix) {
+char *tkbc_generate_name_with_time_stamp(const char *prefix, const char *postfix) {
+    if (!prefix) {
+        prefix = "";
+    }
+    if (!postfix) {
+        postfix = "";
+    }
     const time_t current_time = time(NULL);
     if (current_time == (time_t) -1) {
         tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
@@ -998,25 +1004,23 @@ Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size, f
     return text_size;
 }
 
-Vector2 tkbc_measure_text_sized_ex(Font font, const char *text, int size, float fontSize, float spacing)
-{
-    Vector2 textSize = { 0 };
+Vector2 tkbc_measure_text_sized_ex(Font font, const char *text, int size, float fontSize, float spacing) {
+    Vector2 textSize = {0};
     if ((font.texture.id == 0) || (text == NULL)) return textSize;
 
-    int tempByteCounter = 0;        // Used to count longer text line num chars
+    int tempByteCounter = 0;  // Used to count longer text line num chars
     int byteCounter = 0;
 
     float textWidth = 0.0f;
-    float tempTextWidth = 0.0f;     // Used to count longer text line width
+    float tempTextWidth = 0.0f;  // Used to count longer text line width
 
-    float textHeight = (float)font.baseSize;
-    float scaleFactor = fontSize/(float)font.baseSize;
+    float textHeight = (float) font.baseSize;
+    float scaleFactor = fontSize / (float) font.baseSize;
 
-    int letter = 0;                 // Current character
-    int index = 0;                  // Index position in sprite font
+    int letter = 0;  // Current character
+    int index = 0;   // Index position in sprite font
 
-    for (int i = 0; i < size;)
-    {
+    for (int i = 0; i < size;) {
         byteCounter++;
 
         int next = 0;
@@ -1025,20 +1029,19 @@ Vector2 tkbc_measure_text_sized_ex(Font font, const char *text, int size, float 
 
         i += next;
 
-        if (letter != '\n')
-        {
-            if (font.glyphs[index].advanceX != 0) textWidth += font.glyphs[index].advanceX;
-            else textWidth += (font.recs[index].width + font.glyphs[index].offsetX);
-        }
-        else
-        {
+        if (letter != '\n') {
+            if (font.glyphs[index].advanceX != 0)
+                textWidth += font.glyphs[index].advanceX;
+            else
+                textWidth += (font.recs[index].width + font.glyphs[index].offsetX);
+        } else {
             if (tempTextWidth < textWidth) tempTextWidth = textWidth;
             byteCounter = 0;
             textWidth = 0;
 
             // NOTE: Line spacing is a global variable, use SetTextLineSpacing() to setup
             float TEXTLINESPACING = 15;
-            textHeight += (float)TEXTLINESPACING;
+            textHeight += (float) TEXTLINESPACING;
         }
 
         if (tempByteCounter < byteCounter) tempByteCounter = byteCounter;
@@ -1046,8 +1049,8 @@ Vector2 tkbc_measure_text_sized_ex(Font font, const char *text, int size, float 
 
     if (tempTextWidth < textWidth) tempTextWidth = textWidth;
 
-    textSize.x = tempTextWidth*scaleFactor + (float)((tempByteCounter - 1)*spacing);
-    textSize.y = textHeight*scaleFactor;
+    textSize.x = tempTextWidth * scaleFactor + (float) ((tempByteCounter - 1) * spacing);
+    textSize.y = textHeight * scaleFactor;
 
     return textSize;
 }
