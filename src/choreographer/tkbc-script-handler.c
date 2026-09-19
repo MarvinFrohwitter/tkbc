@@ -230,6 +230,7 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
     }
     new_script.id = script->id;
     new_script.name = space_strdup(space, script->name);
+    new_script.was_send = script->was_send;
 
     for (size_t i = 0; i < script->count; ++i) {
         Frames frames = tkbc_deep_copy_frames(space, &script->elements[i]);
