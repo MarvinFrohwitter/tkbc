@@ -1141,12 +1141,8 @@ void tkbc_add_script(Env *env, Script script) {
         // Rest only the rest of the fields and not the space inside of the
         // scratch_buf_script script to preserve memory for reuse.
         {
-            env->scratch_buf_script.elements = NULL;
-            env->scratch_buf_script.count = 0;
-            env->scratch_buf_script.capacity = 0;
-            env->scratch_buf_script.id = 0;
-            env->scratch_buf_script.name = NULL;
             space_reset_space(&env->scratch_buf_script.space);
+            memset(&env->scratch_buf_script, 0, sizeof(env->scratch_buf_script));
         }
     }
 

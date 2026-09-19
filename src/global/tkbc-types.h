@@ -536,8 +536,6 @@ typedef struct {
                                // no name provided.
     char *script_file_name;    // The name of the script file '.kite'.
 
-    size_t send_scripts;                // Represents the amount of scripts that where send to
-                                        // the peer partner starts; with 1.
     size_t server_script_frames_index;  // Represents of the index of the frames
                                         // the server is currently executing.
     size_t server_script_frames_count;  // Representation of the amount of

@@ -860,10 +860,9 @@ bool tkbc_message_script(void) {
     bool ok = true;
 
     size_t total_amount_to_send = 0;
-    size_t counter = 0;
     size_t saved_count = client.send_msg_buffer.count;
 
-    for (size_t i = env->send_scripts; i < env->scripts.count; ++i) {
+    for (size_t i = 0; i < env->scripts.count; ++i) {
         if (env->scripts.elements[i].was_send) continue;
         total_amount_to_send += 1;
     }
@@ -875,7 +874,7 @@ bool tkbc_message_script(void) {
     space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT,
                total_amount_to_send);
 
-    for (size_t i = env->send_scripts; i < env->scripts.count; ++i) {
+    for (size_t i = 0; i < env->scripts.count; ++i) {
         if (env->scripts.elements[i].was_send) continue;
         size_t saved_count = client.send_msg_buffer.count;
         if (!tkbc_message_append_script(&client.send_msg_buffer_space, &client.send_msg_buffer, env->scripts.elements[i].id)) {
@@ -885,11 +884,8 @@ bool tkbc_message_script(void) {
         }
 
         env->scripts.elements[i].was_send = true;
-        counter++;
     }
 check:
-    assert(total_amount_to_send == counter);
-    env->send_scripts += counter;
     if (!ok) {
         // Abort the complete sending of all scripts.
         client.send_msg_buffer.count = saved_count;
@@ -912,7 +908,7 @@ void tkbc_client_file_handler(void) {
         // This allows for offline mode.
         return;
     }
-    if (env->scripts.count > 0 && env->scripts.count - env->send_scripts > 0) {
+    if (env->scripts.count > 0) {
         tkbc_message_script();
     }
 
