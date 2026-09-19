@@ -694,6 +694,9 @@ bool tkbc_ui_script_menu(Env *env) {
                     tkbc_change_visibility_to_non_script_kites(env);
                     env->script_menu_mouse_interaction = false;
                     is_the_same_box_as_last_double_click = -1;
+                    if (env->script_menu_top_interaction_box > 0) {
+                        env->script_menu_top_interaction_box -= 1;
+                    }
                 }
             }
 
