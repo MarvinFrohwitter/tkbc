@@ -131,7 +131,7 @@ void tkbc__script_end(Env *env) {
     env->script_setup = false;
 
     assert(env->scratch_buf_script.count > 0);
-    env->scratch_buf_script.script_id = env->script_id_counter++ + 1;
+    env->scratch_buf_script.id = env->script_id_counter++ + 1;
     tkbc_set_script_name_if_not_exists(&env->scratch_buf_script);
     tkbc_add_script(env, env->scratch_buf_script);
 }
@@ -436,7 +436,7 @@ void tkbc_print_script(FILE *stream, Script *script) {
         return;
     }
 
-    fprintf(stream, "Script: %zu\n", script->script_id);
+    fprintf(stream, "Script: %zu\n", script->id);
     for (size_t block = 0; block < script->count; ++block) {
         fprintf(stream, "  Block-Index: %zu\n", script->elements[block].frames_index);
 

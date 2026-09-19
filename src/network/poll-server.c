@@ -1192,7 +1192,7 @@ bool tkbc_base_execution(void) {
 
         if (env->frames->frames_index != bindex) {
             bindex = env->frames->frames_index;
-            tkbc_message_script_meta_data_write_to_all_send_msg_buffers(env->script->script_id, env->script->count,
+            tkbc_message_script_meta_data_write_to_all_send_msg_buffers(env->script->id, env->script->count,
                                                                         bindex);
         }
 

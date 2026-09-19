@@ -94,7 +94,7 @@ Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id) {
  */
 bool tkbc_scripts_contains_id(Scripts scripts, Id script_id) {
     for (size_t i = 0; i < scripts.count; ++i) {
-        if (scripts.elements[i].script_id == script_id) {
+        if (scripts.elements[i].id == script_id) {
             return true;
         }
     }
@@ -228,7 +228,7 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
     if (!script) {
         return new_script;
     }
-    new_script.script_id = script->script_id;
+    new_script.id = script->id;
     new_script.name = space_strdup(space, script->name);
 
     for (size_t i = 0; i < script->count; ++i) {
@@ -862,9 +862,9 @@ void tkbc_load_next_script(Env *env) {
 
     // Switch to next script.
     // NOTE: The first iteration has no loaded value jet so 0 is default.
-    size_t id = env->script == NULL ? 0 : env->script->script_id;
+    size_t id = env->script == NULL ? 0 : env->script->id;
     size_t script_index = id % env->scripts.count;
-    size_t script_id = env->scripts.elements[script_index].script_id;
+    size_t script_id = env->scripts.elements[script_index].id;
     tkbc_load_script_id(env, script_id, true);
 }
 
@@ -880,7 +880,7 @@ void tkbc_load_next_script(Env *env) {
 bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh) {
     bool found = false;
     for (size_t i = 0; i < env->scripts.count; ++i) {
-        if (env->scripts.elements[i].script_id == script_id) {
+        if (env->scripts.elements[i].id == script_id) {
             env->script = &env->scripts.elements[i];
             found = true;
             break;
@@ -951,12 +951,12 @@ int tkbc_unload_script_from_memory(Env *env, size_t script_id) {
 
     if (env->script) {
         is_script = true;
-        loaded_script_id = env->script->script_id;
+        loaded_script_id = env->script->id;
     }
 
     for (size_t i = 0; i < env->scripts.count; ++i) {
-        if (script_id == env->scripts.elements[i].script_id) {
-            if (env->script && script_id == env->script->script_id) {
+        if (script_id == env->scripts.elements[i].id) {
+            if (env->script && script_id == env->script->id) {
                 tkbc_unload_script(env);
             }
 
@@ -1114,7 +1114,7 @@ void tkbc_add_script(Env *env, Script script) {
 
     if (env->script) {
         is_script = true;
-        script_id = env->script->script_id;
+        script_id = env->script->id;
     }
 
 #define threshold_max_scripts_in_memory 10
@@ -1122,7 +1122,7 @@ void tkbc_add_script(Env *env, Script script) {
         Script *first_script = &env->scripts.elements[0];
         // NOTE: this is actually slow because every other script just be moved
         // over in the array.
-        tkbc_unload_script_from_memory(env, first_script->script_id);
+        tkbc_unload_script_from_memory(env, first_script->id);
     }
 
     // size_t bytes_count = tkbc_calculate_script_byte_size_allocated(script);
@@ -1144,7 +1144,7 @@ void tkbc_add_script(Env *env, Script script) {
             env->scratch_buf_script.elements = NULL;
             env->scratch_buf_script.count = 0;
             env->scratch_buf_script.capacity = 0;
-            env->scratch_buf_script.script_id = 0;
+            env->scratch_buf_script.id = 0;
             env->scratch_buf_script.name = NULL;
             space_reset_space(&env->scratch_buf_script.space);
         }

@@ -878,7 +878,7 @@ bool tkbc_message_script(void) {
     for (size_t i = env->send_scripts; i < env->scripts.count; ++i) {
         if (env->scripts.elements[i].was_send) continue;
         size_t saved_count = client.send_msg_buffer.count;
-        if (!tkbc_message_append_script(&client.send_msg_buffer_space, &client.send_msg_buffer, env->scripts.elements[i].script_id)) {
+        if (!tkbc_message_append_script(&client.send_msg_buffer_space, &client.send_msg_buffer, env->scripts.elements[i].id)) {
             tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
             client.send_msg_buffer.count = saved_count;
             check_return(false);
@@ -954,7 +954,7 @@ void tkbc_client_input_handler_script(void) {
         space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_NEXT,
                    env->script_menu_mouse_interaction_box == -1
                        ? 0
-                       : env->scripts.elements[env->script_menu_mouse_interaction_box].script_id);
+                       : env->scripts.elements[env->script_menu_mouse_interaction_box].id);
         env->new_script_selected = false;
     }
 

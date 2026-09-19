@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
         if (res < 0) {
             fprintf(stderr, "ERROR: could not write combined data to file!\n");
         } else {
-            fprintf(stderr, "Successfully wrriten combined: %s\n", path);
+            fprintf(stderr, "Successfully written combined: %s\n", path);
         }
 
         free(final_path);

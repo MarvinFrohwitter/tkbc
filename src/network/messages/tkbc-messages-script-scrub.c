@@ -46,7 +46,7 @@ bool tkbc_messages_script_scrub(Lexer *lexer) {
     // This parsing function is just used in the server but liked in the client as
     // well so just a simple guard for compilation.
 #ifdef TKBC_SERVER
-    tkbc_message_script_meta_data_write_to_all_send_msg_buffers(env->script->script_id, env->script->count,
+    tkbc_message_script_meta_data_write_to_all_send_msg_buffers(env->script->id, env->script->count,
                                                                 env->frames->frames_index);
 #endif
     return true;

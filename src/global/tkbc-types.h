@@ -465,13 +465,13 @@ typedef struct {
     size_t count;      // The amount of elements in the array.
     size_t capacity;   // The complete allocated space for the array represented as
                        // the number of collection elements of the array type.
-    Id script_id;      // The number of the loaded script starting from 1, 0 no script.
+    Id id;             // The number of the loaded script starting from 1, 0 no script.
     const char *name;  // The name of the script.
     Space space;
 
     bool was_send;  // Indicates if this script was already send to a server.
-} Script;                     // A dynamic array collection that combined multiple frames to a
-                              // single kite draw representation.
+} Script;           // A dynamic array collection that combined multiple frames to a
+                    // single kite draw representation.
 
 typedef struct {
     Script *elements;  // The dynamic array collection for all combined scripts.

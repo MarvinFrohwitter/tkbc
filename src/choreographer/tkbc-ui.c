@@ -677,7 +677,7 @@ bool tkbc_ui_script_menu(Env *env) {
                     env->new_script_selected = true;
                     env->script_menu_mouse_interaction_box = -1;
 
-                    tkbc_unload_script_from_memory(env, env->scripts.elements[box].script_id);
+                    tkbc_unload_script_from_memory(env, env->scripts.elements[box].id);
                     tkbc_change_visibility_to_non_script_kites(env);
                     env->script_menu_mouse_interaction = false;
                     is_the_same_box_as_last_double_click = -1;
@@ -791,7 +791,7 @@ bool tkbc_ui_script_menu(Env *env) {
             // TODO: Display an icon on the left of the selection that does not reset
             // it if clicked.
 
-            tkbc_load_script_id(env, env->scripts.elements[env->script_menu_mouse_interaction_box].script_id, true);
+            tkbc_load_script_id(env, env->scripts.elements[env->script_menu_mouse_interaction_box].id, true);
 
             env->script_menu_interaction = false;
             env->keymaps_interaction = false;

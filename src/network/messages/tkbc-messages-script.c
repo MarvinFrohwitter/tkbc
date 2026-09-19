@@ -36,11 +36,11 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
         script_parse_fail = true;
         goto script_err;
     }
-    scb_script->script_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
+    scb_script->id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
     //
     // This just fast forward a script that is already known and it reduces
     // the parsing afford.
-    if (tkbc_scripts_contains_id(env->scripts, scb_script->script_id)) {
+    if (tkbc_scripts_contains_id(env->scripts, scb_script->id)) {
         *script_alleady_there_parsing_skip = true;
         script_parse_fail = true;
         goto script_err;
@@ -437,7 +437,7 @@ parsing_skip:
 
     Message message = {0};
     if (!tkbc_message_append_script(space_get_tspace(), &message,
-                                    env->scripts.elements[env->scripts.count - 1].script_id)) {
+                                    env->scripts.elements[env->scripts.count - 1].id)) {
         tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
         client->send_msg_buffer.count = save_count;
         return false;

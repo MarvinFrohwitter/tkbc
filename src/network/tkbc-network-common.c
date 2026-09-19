@@ -167,7 +167,7 @@ bool tkbc_message_append_script(Space *space, Message *message, size_t script_id
     space_dapf(space, message, "%d:", MESSAGE_SCRIPT);
 
     for (size_t i = 0; i < env->scripts.count; ++i) {
-        if (env->scripts.elements[i].script_id != script_id) {
+        if (env->scripts.elements[i].id != script_id) {
             continue;
         }
         Script *script = &env->scripts.elements[i];

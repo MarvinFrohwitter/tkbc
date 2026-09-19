@@ -266,7 +266,7 @@ Test deep_copy_script(void) {
     cassert_ptr_neq(&script, &new_script);
     cassert_int_eq(script.count, new_script.count);
     cassert_int_eq(script.capacity, new_script.capacity);
-    cassert_int_eq(script.script_id, new_script.script_id);
+    cassert_int_eq(script.id, new_script.id);
     cassert_ptr_neq(&script.elements, &new_script.elements);
 
     cassert_ptr_neq(script.elements, new_script.elements);

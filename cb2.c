@@ -300,7 +300,7 @@ void clean(Cmd *cmd) {
 }
 
 void win_icon(Cmd *cmd) {
-    cb_cmd_push(cmd, "magick", "convert");
+    cb_cmd_push(cmd, "magick");
     cb_cmd_push(cmd, ASSETS_PATH "Logos/16x16_Logo.png");
     cb_cmd_push(cmd, ASSETS_PATH "Logos/24x24_Logo.png");
     cb_cmd_push(cmd, ASSETS_PATH "Logos/32x32_Logo.png");

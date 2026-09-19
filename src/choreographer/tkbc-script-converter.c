@@ -170,7 +170,7 @@ int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env, const char *path
         err = tkbc_export_script_to_dot_kite_file_from_mem(&env->scripts.elements[i], buf);
 
         if (err) {
-            id = env->scripts.elements[i].script_id;
+            id = env->scripts.elements[i].id;
             break;
         }
     }
