@@ -381,6 +381,12 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     // reducing the memory storage size of a script.
     //
     // Marvin Frohwitter 22.06.2025
+    //
+    // NOTE: Update:
+    // Currently a memory threshold of 10 scripts are implemented in the
+    // tkbc_add_script() function.
+    //
+    // Marvin Frohwitter 19.09.2026
     scb_script->was_send = true;
 
     tkbc_set_script_name_if_not_exists(scb_script);
@@ -427,7 +433,6 @@ parsing_skip:
     // well so just a simple guard for compilation.
 #ifdef TKBC_SERVER
 #include "../tkbc-network-common.h"
-    // TODO: Send the script back to all other clients.
     size_t total_amount_to_send = 1;
     space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT,
                total_amount_to_send);
@@ -436,8 +441,7 @@ parsing_skip:
     assert(env->scripts.count);
 
     Message message = {0};
-    if (!tkbc_message_append_script(space_get_tspace(), &message,
-                                    env->scripts.elements[env->scripts.count - 1].id)) {
+    if (!tkbc_message_append_script(space_get_tspace(), &message, env->scripts.elements[env->scripts.count - 1].id)) {
         tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
         client->send_msg_buffer.count = save_count;
         return false;
