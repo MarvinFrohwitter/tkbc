@@ -162,17 +162,19 @@ check:
  * @return True if the script was found and is correctly appended, otherwise
  * false.
  */
-bool tkbc_message_append_script(Space *space, Message *message, size_t script_id) {
+bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) {
 
     space_dapf(space, message, "%d:", MESSAGE_SCRIPT);
 
     for (size_t i = 0; i < env->scripts.count; ++i) {
-        if (env->scripts.elements[i].id != script_id) {
+        if (!tkbc_uuid_equals(env->scripts.elements[i].id, script_id)) {
             continue;
         }
         Script *script = &env->scripts.elements[i];
 
-        space_dapf(space, message, "%zu:", script_id);
+        char script_id_cstr[37];
+        tkbc_uuid_to_string(script_id, script_id_cstr);
+        space_dapf(space, message, "\"%s\":", script_id_cstr);
 
         if (script->name) {
             size_t name_len = strlen(script->name);

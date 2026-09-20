@@ -19,21 +19,32 @@
 bool tkbc_messages_script_next(Lexer *lexer) {
     Token token;
     token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
+    if (token.kind != STRINGLITERAL) {
         return false;
     }
-    ssize_t script_id = strtoll(lexer_token_to_cstr(lexer, &token), NULL, 10);
+
+    // To strip the quotes manipulate the token directly
+    if (token.size <= 2) {
+        return false;
+    }
+    token.size -= 2;
+    token.content += 1;
+    UUID script_id;
+    bool ok = tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), &script_id);
+    if (!ok) {
+        return false;
+    }
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {
         return false;
     }
 
-    if (script_id == 0) {
+    if (tkbc_uuid_is_nil(script_id)) {
         tkbc_unload_script(env);
         // This parsing function is just used in the server but liked in the client
         // as well so just a simple guard for compilation.
 #ifdef TKBC_SERVER
-        tkbc_message_script_meta_data_write_to_all_send_msg_buffers(0, 0, 0);
+        tkbc_message_script_meta_data_write_to_all_send_msg_buffers(tkbc_uuid_nil(), 0, 0);
 #endif
 
         // Enable the normal client kites.

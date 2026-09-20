@@ -8,6 +8,7 @@
 
 #include "../../external/space/space.h"
 #include "raylib.h"
+#include "tkbc-uuid.h"
 #include <assert.h>
 #include <stddef.h>
 
@@ -465,7 +466,8 @@ typedef struct {
     size_t count;      // The amount of elements in the array.
     size_t capacity;   // The complete allocated space for the array represented as
                        // the number of collection elements of the array type.
-    Id id;             // The number of the loaded script starting from 1, 0 no script.
+    UUID id;           // The unique uuid of the script. The nil uuid represents
+                       // the state where no script is loaded.
     const char *name;  // The name of the script.
     Space space;
 
@@ -531,26 +533,25 @@ typedef struct {
     Scripts scripts;       // The collection of all the parsed scripts.
     Space _scripts_space;  // The final allocation place for all scripts.
 
-    size_t script_id_counter;  // This is a counter that keeps track of the
-                               // script id/names that are generated if there is
-                               // no name provided.
-    char *script_file_name;    // The name of the script file '.kite'.
+    char *script_file_name;  // The name of the script file '.kite'.
 
     size_t server_script_frames_index;  // Represents of the index of the frames
                                         // the server is currently executing.
     size_t server_script_frames_count;  // Representation of the amount of
                                         // frames in the current script.
-    size_t server_script_id;            // Representation of the current script the server
-                                        // executes.
+    UUID server_script_id;              // Representation of the current script the server
+                                        // executes. The nil uuid represents the state where
+                                        // no script is loaded.
     bool scripts_parsed;                // If the server has parsed all send scripts.
 
     bool new_script_selected;  // Representation if a user has selected a new
                                // script in the UI.
 
-    bool script_setup;      // The indication if the initial setup run is executed.
-    bool script_interrupt;  // The indication if a script is currently going to be
-                            // loaded.
-    bool script_finished;   // The indication a script has finished.
+    bool script_setup;              // The indication if the initial setup run is executed.
+    bool script_interrupt;          // The indication if a script is currently going to be
+                                    // loaded.
+    bool script_finished;           // The indication a script has finished.
+    size_t default_scripts_amount;  // How many default scripts are compiled in.
 
     struct {
         bool is_script_quit;

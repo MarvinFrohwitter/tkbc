@@ -92,9 +92,9 @@ Kite *tkbc_get_kite_by_id_unwrap(Env *env, size_t id) {
  * @param script_id The id of a script to search for.
  * @return True if the given script was found in the scripts, otherwise false.
  */
-bool tkbc_scripts_contains_id(Scripts scripts, Id script_id) {
+bool tkbc_scripts_contains_id(Scripts scripts, UUID script_id) {
     for (size_t i = 0; i < scripts.count; ++i) {
-        if (scripts.elements[i].id == script_id) {
+        if (tkbc_uuid_equals(scripts.elements[i].id, script_id)) {
             return true;
         }
     }
@@ -862,11 +862,16 @@ void tkbc_load_next_script(Env *env) {
     }
 
     // Switch to next script.
-    // NOTE: The first iteration has no loaded value jet so 0 is default.
-    size_t id = env->script == NULL ? 0 : env->script->id;
-    size_t script_index = id % env->scripts.count;
-    size_t script_id = env->scripts.elements[script_index].id;
-    tkbc_load_script_id(env, script_id, true);
+    // NOTE: The first iteration has no loaded value jet so 0 is the first index.
+    size_t current_index = env->script == NULL ? 0 : 0;
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        if (env->script && tkbc_uuid_equals(env->script->id, env->scripts.elements[i].id)) {
+            current_index = i;
+            break;
+        }
+    }
+    size_t script_index = (current_index + 1) % env->scripts.count;
+    tkbc_load_script_id(env, env->scripts.elements[script_index].id, true);
 }
 
 /**
@@ -878,10 +883,10 @@ void tkbc_load_next_script(Env *env) {
  * current execution.
  * @return True if the script could be loaded successfully, otherwise false.
  */
-bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh) {
+bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
     bool found = false;
     for (size_t i = 0; i < env->scripts.count; ++i) {
-        if (env->scripts.elements[i].id == script_id) {
+        if (tkbc_uuid_equals(env->scripts.elements[i].id, script_id)) {
             env->script = &env->scripts.elements[i];
             found = true;
             break;
@@ -920,7 +925,7 @@ bool tkbc_load_script_id(Env *env, size_t script_id, bool fresh) {
  * @param env The global state of the application.
  */
 void tkbc_unload_script(Env *env) {
-    env->server_script_id = 0;
+    env->server_script_id = tkbc_uuid_nil();
     env->server_script_frames_count = 0;
     env->server_script_frames_index = 0;
     env->script_finished = true;
@@ -938,9 +943,9 @@ void tkbc_unload_script(Env *env) {
  * @return 0 if the unloading was successful, otherwise 1 if the script could not be found or -1 if the currently loaded
  * script was deleted in the middle of unloading the given one.
  */
-int tkbc_unload_script_from_memory(Env *env, size_t script_id) {
+int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
     Index loaded_frames_index = 0;
-    Id loaded_script_id = 0;
+    UUID loaded_script_id = tkbc_uuid_nil();
     bool is_frames = false;
     bool is_script = false;
     int ok = 1;
@@ -956,8 +961,8 @@ int tkbc_unload_script_from_memory(Env *env, size_t script_id) {
     }
 
     for (size_t i = 0; i < env->scripts.count; ++i) {
-        if (script_id == env->scripts.elements[i].id) {
-            if (env->script && script_id == env->script->id) {
+        if (tkbc_uuid_equals(script_id, env->scripts.elements[i].id)) {
+            if (env->script && tkbc_uuid_equals(script_id, env->script->id)) {
                 tkbc_unload_script(env);
             }
 
@@ -1103,8 +1108,8 @@ size_t tkbc_calculate_script_byte_size_allocated(Script script) {
  * @param script The script to add.
  */
 void tkbc_add_script(Env *env, Script script) {
+    UUID script_id = tkbc_uuid_nil();
     Index frames_index = 0;
-    Id script_id = 0;
     bool is_frames = false;
     bool is_script = false;
 

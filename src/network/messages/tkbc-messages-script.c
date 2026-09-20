@@ -32,11 +32,24 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     Kite_Ids possible_new_kis = {0};
 
     token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
+    if (token.kind != STRINGLITERAL) {
         script_parse_fail = true;
         goto script_err;
     }
-    scb_script->id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
+
+    // To strip the quotes manipulate the token directly
+    if (token.size <= 2) {
+        script_parse_fail = true;
+        goto script_err;
+    }
+    token.size -= 2;
+    token.content += 1;
+    bool ok = tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), &scb_script->id);
+    if (!ok) {
+        script_parse_fail = true;
+        goto script_err;
+    }
+
     //
     // This just fast forward a script that is already known and it reduces
     // the parsing afford.

@@ -32,10 +32,11 @@ void tkbc_draw_ui(Env *env) {
     }
 
     // TODO: The script bar is not displayed if another client triggered a script.
-    if ((env->frames || env->server_script_id) && !(env->script_menu_interaction || env->keymaps_interaction)) {
+    if ((env->frames || !tkbc_uuid_is_nil(env->server_script_id)) &&
+        !(env->script_menu_interaction || env->keymaps_interaction)) {
         // A script is currently executing.
 
-        if (env->server_script_id) {
+        if (!tkbc_uuid_is_nil(env->server_script_id)) {
             //
             // NOTE: This realise on the fact that server_script_id will just be set
             // on a client and not a no server related client.
@@ -689,8 +690,6 @@ bool tkbc_ui_script_menu(Env *env) {
 
                     // TODO:
                     // Introduce the deletion message.
-                    // TODO:
-                    // Introduce UUID for scripts maybe timestamps.
 
                     env->new_script_selected = true;
                     env->script_menu_mouse_interaction_box = -1;

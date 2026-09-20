@@ -18,7 +18,7 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float 
 
 int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id, size_t *parsed_id);
 
-bool tkbc_message_append_script(Space *space, Message *message, size_t script_id);
+bool tkbc_message_append_script(Space *space, Message *message, UUID script_id);
 
 bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data, size_t *width, size_t *height,
                       size_t *format, size_t *texture_id);

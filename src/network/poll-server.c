@@ -1,3 +1,14 @@
+// When a new script is send to the server the server resets all the client positions this should not be the case.
+
+// When just a single client is connected and a script with more than one kite for example 2 is drag and dropped the
+// server crashes. server: src/choreographer/tkbc-script-handler.c:633: tkbc_remap_script_kite_id_arrays_to_kite_ids:
+// Assertion `kite_ids.count > 0' failed.
+
+// Use the UUIDs for the client_kites id's
+
+// Sometime the server does not broadcast the new script and this is not because of and actually valid parsing_skip but
+// the function returns earl before the script can be send back.
+
 #include "tkbc-servers-common.h"
 
 #define SPACE_IMPLEMENTATION
@@ -752,10 +763,12 @@ void tkbc_message_clientkites_write_to_all_send_msg_buffers(bool overwrite_is_ac
  * @param frames_index The current index of the collection of individual
  * frames in a script.
  */
-void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(size_t script_id, size_t script_count,
+void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(UUID script_id, size_t script_count,
                                                                  size_t frames_index) {
-
-    space_tdapf(&t_message, "%d:%zu:%zu:%zu:\r\n", MESSAGE_SCRIPT_META_DATA, script_id, script_count, frames_index);
+    char script_id_cstr[37];
+    tkbc_uuid_to_string(script_id, script_id_cstr);
+    space_tdapf(&t_message, "%d:\"%s\":%zu:%zu:\r\n", MESSAGE_SCRIPT_META_DATA, script_id_cstr, script_count,
+                frames_index);
 
     tkbc_write_to_all_send_msg_buffers(t_message);
     tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
@@ -935,7 +948,6 @@ bool tkbc_received_message_handler(Client *client) {
         } break;
         case MESSAGE_SCRIPT: {
             if (!tkbc_messages_script(env, lexer, client, &script_alleady_there_parsing_skip)) {
-
                 goto err;
             }
         } break;
@@ -976,14 +988,15 @@ bool tkbc_received_message_handler(Client *client) {
         }
         continue;
 
-    err: {
-        bool rerun =
-            tkbc_error_handling_of_received_message_handler(message, lexer, &reset, !script_alleady_there_parsing_skip);
-        if (rerun) {
-            continue;
+    err:
+        {
+            bool rerun = tkbc_error_handling_of_received_message_handler(message, lexer, &reset,
+                                                                         !script_alleady_there_parsing_skip);
+            if (rerun) {
+                continue;
+            }
+            break;
         }
-        break;
-    }
     } while (token.kind != EOF_TOKEN);
 
 check:
@@ -1192,8 +1205,7 @@ bool tkbc_base_execution(void) {
 
         if (env->frames->frames_index != bindex) {
             bindex = env->frames->frames_index;
-            tkbc_message_script_meta_data_write_to_all_send_msg_buffers(env->script->id, env->script->count,
-                                                                        bindex);
+            tkbc_message_script_meta_data_write_to_all_send_msg_buffers(env->script->id, env->script->count, bindex);
         }
 
         tkbc_message_clientkites_write_to_all_send_msg_buffers(false);

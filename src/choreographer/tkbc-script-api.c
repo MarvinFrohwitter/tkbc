@@ -131,7 +131,15 @@ void tkbc__script_end(Env *env) {
     env->script_setup = false;
 
     assert(env->scratch_buf_script.count > 0);
-    env->scratch_buf_script.id = env->script_id_counter++ + 1;
+
+    if (env->default_scripts_amount) {
+        // Hack so that not every client registers all the base scripts again in the server when connecting.
+        env->scratch_buf_script.id = tkbc_uuid_from_number(env->default_scripts_amount--);
+
+    } else {
+        env->scratch_buf_script.id = tkbc_uuid_generate();
+    }
+
     tkbc_set_script_name_if_not_exists(&env->scratch_buf_script);
     tkbc_add_script(env, env->scratch_buf_script);
 }
@@ -436,7 +444,9 @@ void tkbc_print_script(FILE *stream, Script *script) {
         return;
     }
 
-    fprintf(stream, "Script: %zu\n", script->id);
+    char uuid_buf[37];
+    tkbc_uuid_to_string(script->id, uuid_buf);
+    fprintf(stream, "Script: %s\n", uuid_buf);
     for (size_t block = 0; block < script->count; ++block) {
         fprintf(stream, "  Block-Index: %zu\n", script->elements[block].frames_index);
 

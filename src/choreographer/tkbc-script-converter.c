@@ -152,17 +152,15 @@ check:
  *
  * @param env The global state of the application.
  * @param path The path where the scripts should be exported to.
- * @return 0 If the saving and serialization of all the files has succeeded. If
- * an error occurred the positive "script_id" of the first failing script is
- * returned, if writing the header of that script has failed and the negative
- * "-scirpt_id" will be returned, if writing the main program has failed.
+ * @return 0 If the saving and serialization of all the files has succeeded. 1
+ * if the header of the first failing script could not be written, and -1 if
+ * the main program of the first failing script could not be written.
  * The first initial KITES count in the script is considered to be the header.
  */
 int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env, const char *path) {
     tkbc_make_dir_recursive_if_not_existis(path);
 
     int err = 0;
-    size_t id = 1;
     for (size_t i = 0; i < env->scripts.count; ++i) {
         assert(env->scripts.elements[i].name);
         space_reset_tspace();
@@ -170,11 +168,10 @@ int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env, const char *path
         err = tkbc_export_script_to_dot_kite_file_from_mem(&env->scripts.elements[i], buf);
 
         if (err) {
-            id = env->scripts.elements[i].id;
             break;
         }
     }
     space_reset_tspace();
 
-    return err * id;
+    return err;
 }

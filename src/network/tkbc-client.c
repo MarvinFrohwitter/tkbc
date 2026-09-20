@@ -281,6 +281,7 @@ void sending_script_handler(void) {
     // For detection if the begin and end is called correctly.
     env->script_setup = false;
     tkbc__script_input(env);
+    env->default_scripts_amount = env->scripts.count;
 
 #ifndef RELEASE
     tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
@@ -623,7 +624,7 @@ bool received_message_handler(Message *message) {
         } break;
         case MESSAGE_SCRIPT_FINISHED: {
             env->script_finished = true;
-            env->server_script_id = 0;
+            env->server_script_id = tkbc_uuid_nil();
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_FINISHED\n");
         } break;
@@ -647,14 +648,15 @@ bool received_message_handler(Message *message) {
         }
         continue;
 
-    err: {
-        bool rerun =
-            tkbc_error_handling_of_received_message_handler(message, lexer, &reset, !script_alleady_there_parsing_skip);
-        if (rerun) {
-            continue;
+    err:
+        {
+            bool rerun = tkbc_error_handling_of_received_message_handler(message, lexer, &reset,
+                                                                         !script_alleady_there_parsing_skip);
+            if (rerun) {
+                continue;
+            }
+            break;
         }
-        break;
-    }
     } while (token.kind != EOF_TOKEN);
 
 check:
@@ -797,7 +799,7 @@ static bool tkbc_update_kites_input_handling_for_message_single_kite_update(Kite
  * send_message_queue.
  */
 void tkbc_client_input_handler_kite(void) {
-    if (env->server_script_id != 0 || env->script) {
+    if (!tkbc_uuid_is_nil(env->server_script_id) || env->script) {
 
         {  ///////////////////////////////////////////////////////////////////////
            // Kite_State *kite_state = tkbc_get_kite_state_by_id(env,
@@ -843,7 +845,7 @@ void tkbc_client_input_handler_kite(void) {
             return;
         }
 
-        if (env->script_finished && env->script == NULL && env->server_script_id == 0) {
+        if (env->script_finished && env->script == NULL && tkbc_uuid_is_nil(env->server_script_id)) {
             client_kite = *kite_state->kite;
         }
     }
@@ -877,7 +879,8 @@ bool tkbc_message_script(void) {
     for (size_t i = 0; i < env->scripts.count; ++i) {
         if (env->scripts.elements[i].was_send) continue;
         size_t saved_count = client.send_msg_buffer.count;
-        if (!tkbc_message_append_script(&client.send_msg_buffer_space, &client.send_msg_buffer, env->scripts.elements[i].id)) {
+        if (!tkbc_message_append_script(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                                        env->scripts.elements[i].id)) {
             tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
             client.send_msg_buffer.count = saved_count;
             check_return(false);
@@ -947,10 +950,14 @@ void tkbc_client_input_handler_script(void) {
     // KEY_TAB
     if (env->new_script_selected) {
         // Script ids start from 1 so +1 is needed.
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_NEXT,
-                   env->script_menu_mouse_interaction_box == -1
-                       ? 0
-                       : env->scripts.elements[env->script_menu_mouse_interaction_box].id);
+        char uuid[37];
+        if (env->script_menu_mouse_interaction_box == -1) {
+            tkbc_uuid_to_string(tkbc_uuid_nil(), uuid);
+        } else {
+            tkbc_uuid_to_string(env->scripts.elements[env->script_menu_mouse_interaction_box].id, uuid);
+        }
+
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:\"%s\":\r\n", MESSAGE_SCRIPT_NEXT, uuid);
         env->new_script_selected = false;
     }
 
@@ -1176,6 +1183,8 @@ bool tkbc_run(Env *env) {
                 // For detection if the begin and end is called correctly.
                 env->script_setup = false;
                 tkbc__script_input(env);
+                env->default_scripts_amount = env->scripts.count;
+
                 env->scripts_parsed = true;
 
                 // HACK disabling the default activeness just for offline is wrong.

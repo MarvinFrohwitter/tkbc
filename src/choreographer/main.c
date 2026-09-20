@@ -74,7 +74,6 @@ int main(void) {
         SetWindowIcons(images, ARRAY_LENGTH(images));
     }
 
-
     srand(time(NULL));
     Env *env = tkbc_init_env();
     if (!env) return 1;
@@ -95,6 +94,7 @@ int main(void) {
             // For detection if the begin and end is called correctly.
             env->script_setup = false;
             tkbc__script_input(env);
+            env->default_scripts_amount = env->scripts.count;
             env->scripts_parsed = true;
 
 #ifndef RELEASE
