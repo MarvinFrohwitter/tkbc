@@ -132,16 +132,21 @@ void tkbc__script_end(Env *env) {
 
     assert(env->scratch_buf_script.count > 0);
 
-    if (env->default_scripts_amount > 0) {
-        // Hack so that not every client registers all the base scripts again in the server when connecting.
-        env->scratch_buf_script.id = tkbc_uuid_from_number(env->default_scripts_amount--);
+    if (env->default_scripts_setup) {
+        // The compiled in default scripts are built in the same order on every
+        // client, so derive their uuid dynamically from the registration order
+        // (the current script count). This way the server can deduplicate the
+        // default scripts of every client without knowing the total amount.
+        env->scratch_buf_script.id = tkbc_uuid_from_number(env->scripts.count + 1);
 
     } else {
+        // This is a script like a dragged in .kite file, it keeps a random uuid
+        // so that scripts of different users do not collide.
         env->scratch_buf_script.id = tkbc_uuid_generate();
     }
 
     tkbc_set_script_name_if_not_exists(&env->scratch_buf_script);
-    tkbc_add_script(env, env->scratch_buf_script);
+    tkbc_add_script(env, env->scratch_buf_script, true);
 }
 
 /**

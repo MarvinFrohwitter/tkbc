@@ -431,11 +431,14 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     // Currently a memory threshold of 10 scripts are implemented in the
     // tkbc_add_script() function.
     //
+    // Now that evict_when_full is false the server saves unlimited scripts again.
+    // So need to fix
+    //
     // Marvin Frohwitter 19.09.2026
     scb_script->was_send = true;
 
     tkbc_set_script_name_if_not_exists(scb_script);
-    tkbc_add_script(env, *scb_script);
+    tkbc_add_script(env, *scb_script, false);
 
     // This is just to be explicit is already happen in the script adding.
     //
@@ -459,10 +462,11 @@ script_err:
     }
 
 parsing_skip:
-    if (client->script_amount > 0) {
+    bool was_expecting_script = client->script_amount > 0;
+    if (was_expecting_script) {
         client->script_amount--;
     }
-    if (!script_parse_fail && client->script_amount == 0) {
+    if (was_expecting_script && client->script_amount == 0) {
         space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:\r\n", MESSAGE_SCRIPT_PARSED);
         // The sending is done automatically in the next section or in the client when the send call is performed.
     }
@@ -481,7 +485,8 @@ parsing_skip:
         space_reset_tspace();
         return false;
     }
-    tkbc_write_to_all_send_msg_buffers(message);
+    // The receiving client is excluded so it does not get its own script back.
+    tkbc_write_to_all_send_msg_buffers_except(message, client->socket_id);
     space_reset_tspace();
     tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
 

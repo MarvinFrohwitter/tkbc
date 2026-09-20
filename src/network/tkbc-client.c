@@ -280,7 +280,9 @@ void sending_script_handler(void) {
     size_t prev_kite_array_count = env->kite_array.count;
     // For detection if the begin and end is called correctly.
     env->script_setup = false;
+    env->default_scripts_setup = true;
     tkbc__script_input(env);
+    env->default_scripts_setup = false;
     env->default_scripts_amount = env->scripts.count;
 
 #ifndef RELEASE
@@ -1137,7 +1139,9 @@ bool tkbc_run(Env *env) {
             if (env->script_setup) {
                 // For detection if the begin and end is called correctly.
                 env->script_setup = false;
+                env->default_scripts_setup = true;
                 tkbc__script_input(env);
+                env->default_scripts_setup = false;
                 env->default_scripts_amount = env->scripts.count;
 
                 env->scripts_parsed = true;

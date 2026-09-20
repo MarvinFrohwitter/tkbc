@@ -93,7 +93,9 @@ int main(void) {
         if (env->script_setup) {
             // For detection if the begin and end is called correctly.
             env->script_setup = false;
+            env->default_scripts_setup = true;
             tkbc__script_input(env);
+            env->default_scripts_setup = false;
             env->default_scripts_amount = env->scripts.count;
             env->scripts_parsed = true;
 

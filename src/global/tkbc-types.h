@@ -551,7 +551,11 @@ typedef struct {
     bool script_interrupt;          // The indication if a script is currently going to be
                                     // loaded.
     bool script_finished;           // The indication a script has finished.
-    size_t default_scripts_amount;  // How many default scripts are compiled in.
+    bool default_scripts_setup;     // The indication the compiled in default scripts are
+                                    // currently being built. Only they get a deterministic
+                                    // uuid so that all clients share the same default uuids.
+    size_t default_scripts_amount;  // How many default scripts are compiled in. Gets set
+                                    // once the default script input is finished.
 
     struct {
         bool is_script_quit;

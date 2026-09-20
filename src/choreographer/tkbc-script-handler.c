@@ -1106,8 +1106,14 @@ size_t tkbc_calculate_script_byte_size_allocated(Script script) {
  *
  * @param env The global state of the application.
  * @param script The script to add.
+ * @param evict_when_full When the scripts array reached the memory threshold
+ * and this flag is true, the oldest script is evicted to keep the known scripts
+ * bounded. Receiving scripts from the network have to pass false here, because
+ * evicting them would make the client/server forget a script that it already
+ * knows and the next time the script arrives it would be registered as new and
+ * send/broadcast again.
  */
-void tkbc_add_script(Env *env, Script script) {
+void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
     UUID script_id = tkbc_uuid_nil();
     Index frames_index = 0;
     bool is_frames = false;
@@ -1123,8 +1129,9 @@ void tkbc_add_script(Env *env, Script script) {
         script_id = env->script->id;
     }
 
+    // This has to be twice as big as the default script amount to be able to remove the evict_when_full guard.
 #define threshold_max_scripts_in_memory 10
-    if (env->scripts.count >= threshold_max_scripts_in_memory) {
+    if (evict_when_full && env->scripts.count >= threshold_max_scripts_in_memory) {
         Script *first_script = &env->scripts.elements[0];
         // NOTE: this is actually slow because every other script just be moved
         // over in the array.
