@@ -153,6 +153,60 @@ check:
 }
 
 /**
+ * @brief The function can be used to construct the message script out of the
+ * currently registered scripts. The result is directly written to the
+ * send_message_queue ready to be send to the server.
+ *
+ * @param client The client where the message should be appended into the send buffer.
+ * @param overwrite_was_send When true ignore the was_send flag in the Script type that indicates if the script was
+ * already send once. This can be useful for sending all scripts that are currently registered.
+ * @return True if the message script could be constructed, otherwise false.
+ */
+bool tkbc_message_script(Client *client, bool overwrite_was_send) {
+    bool ok = true;
+
+    size_t total_amount_to_send = 0;
+    size_t saved_count = client->send_msg_buffer.count;
+
+    if (overwrite_was_send) {
+        total_amount_to_send = env->scripts.count;
+    } else {
+        for (size_t i = 0; i < env->scripts.count; ++i) {
+            if (env->scripts.elements[i].was_send) continue;
+            total_amount_to_send += 1;
+        }
+    }
+
+    if (total_amount_to_send == 0) {
+        check_return(true);
+    }
+
+    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT,
+               total_amount_to_send);
+
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        if (!overwrite_was_send) {
+            if (env->scripts.elements[i].was_send) continue;
+        }
+        size_t saved_count = client->send_msg_buffer.count;
+        if (!tkbc_message_append_script(&client->send_msg_buffer_space, &client->send_msg_buffer,
+                                        env->scripts.elements[i].id)) {
+            tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
+            client->send_msg_buffer.count = saved_count;
+            check_return(false);
+        }
+
+        env->scripts.elements[i].was_send = true;
+    }
+check:
+    if (!ok) {
+        // Abort the complete sending of all scripts.
+        client->send_msg_buffer.count = saved_count;
+    }
+    return ok;
+}
+
+/**
  * @brief The function appends the script found from the given script_id in
  * the scripts to the given message structure.
  *

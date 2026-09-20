@@ -432,6 +432,9 @@ void tkbc_client_prolog(Client *client) {
         kite_state.is_active = false;
     }
     tkbc_dap(&env->kite_array, kite_state);
+
+    // Send all the scripts to the client
+    tkbc_message_script(client, true);
 }
 
 /**

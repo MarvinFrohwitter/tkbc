@@ -286,7 +286,7 @@ void sending_script_handler(void) {
 #ifndef RELEASE
     tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
 #endif  // RELEASE
-    tkbc_message_script();
+    tkbc_message_script(&client, false);
 
     if (prev_kite_array_count != env->kite_array.count) {
         // Remove kites that are just generated for sending a script.
@@ -852,51 +852,6 @@ void tkbc_client_input_handler_kite(void) {
 }
 
 /**
- * @brief The function can be used to construct the message script out of the
- * currently registered scripts. The result is directly written to the
- * send_message_queue ready to be send to the server.
- *
- * @return True if the message script could be constructed, otherwise false.
- */
-bool tkbc_message_script(void) {
-    bool ok = true;
-
-    size_t total_amount_to_send = 0;
-    size_t saved_count = client.send_msg_buffer.count;
-
-    for (size_t i = 0; i < env->scripts.count; ++i) {
-        if (env->scripts.elements[i].was_send) continue;
-        total_amount_to_send += 1;
-    }
-
-    if (total_amount_to_send == 0) {
-        check_return(true);
-    }
-
-    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT,
-               total_amount_to_send);
-
-    for (size_t i = 0; i < env->scripts.count; ++i) {
-        if (env->scripts.elements[i].was_send) continue;
-        size_t saved_count = client.send_msg_buffer.count;
-        if (!tkbc_message_append_script(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                                        env->scripts.elements[i].id)) {
-            tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
-            client.send_msg_buffer.count = saved_count;
-            check_return(false);
-        }
-
-        env->scripts.elements[i].was_send = true;
-    }
-check:
-    if (!ok) {
-        // Abort the complete sending of all scripts.
-        client.send_msg_buffer.count = saved_count;
-    }
-    return ok;
-}
-
-/**
  * @brief The function handles the files, that can be registered via drag and
  * drop, those can contain music and the scripts files that have a '.kite'
  * extension other files are ignored.
@@ -912,7 +867,7 @@ void tkbc_client_file_handler(void) {
         return;
     }
     if (env->scripts.count > 0) {
-        tkbc_message_script();
+        tkbc_message_script(&client, false);
     }
 
     if (prev_kite_array_count != env->kite_array.count) {
