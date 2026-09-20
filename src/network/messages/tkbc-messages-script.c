@@ -88,14 +88,13 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
         if (name) {
             scb_script->name = memcpy(name, token.content + 1, token.size - 2);
         }
+        token = lexer_next(lexer);
+        if (token.kind != PUNCT_COLON) {
+            script_parse_fail = true;
+            goto script_err;
+        }
     }
 
-    //
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        script_parse_fail = true;
-        goto script_err;
-    }
     token = lexer_next(lexer);
     if (token.kind != NUMBER) {
         script_parse_fail = true;
