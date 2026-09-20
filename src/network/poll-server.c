@@ -3,6 +3,8 @@
 // Sometime the server does not broadcast the new script and this is not because of and actually valid parsing_skip but
 // the function returns earl before the script can be send back.
 
+// Add script deletion message to the server and client.
+
 #include "tkbc-servers-common.h"
 
 #define SPACE_IMPLEMENTATION
@@ -14,6 +16,7 @@
 #undef TKBC_UTILS_IMPLEMENTATION
 
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 

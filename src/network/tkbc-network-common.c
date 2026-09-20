@@ -202,24 +202,24 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
                 case ACTION_KITE_MOVE:
                 case ACTION_KITE_MOVE_ADD: {
                     Move_Action action = frames->elements[k].action.as_move;
-                    space_dapf(space, message, "%f:%f", action.position.x, action.position.y);
+                    space_dapf(space, message, "%f:%f:", action.position.x, action.position.y);
                 } break;
                 case ACTION_KITE_ROTATION:
                 case ACTION_KITE_ROTATION_ADD: {
                     Rotation_Action action = frames->elements[k].action.as_rotation;
-                    space_dapf(space, message, "%f", action.angle);
+                    space_dapf(space, message, "%f:", action.angle);
                 } break;
                 case ACTION_KITE_TIP_ROTATION:
                 case ACTION_KITE_TIP_ROTATION_ADD: {
                     Tip_Rotation_Action action = frames->elements[k].action.as_tip_rotation;
-                    space_dapf(space, message, "%d:%f", action.tip, action.angle);
+                    space_dapf(space, message, "%d:%f:", action.tip, action.angle);
                 } break;
                 default:
-                    space_dapf(space, message, ":UNKNOWN ACTION");
+                    space_dapf(space, message, "UNKNOWN ACTION");
                     assert(0 && "UNREACHABLE tkbc_message_append_script()");
                 }
 
-                space_dapf(space, message, ":%f:", frames->elements[k].duration);
+                space_dapf(space, message, "%f:", frames->elements[k].duration);
 
                 Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
                 if (kite_ids->count) {

@@ -1148,7 +1148,11 @@ void tkbc_add_script(Env *env, Script script) {
         // scratch_buf_script script to preserve memory for reuse.
         {
             space_reset_space(&env->scratch_buf_script.space);
+            // Rest only the rest of the fields and not the space inside of the
+            // scratch_buf_script script to preserve memory for reuse.
+            Space saved_space = env->scratch_buf_script.space;
             memset(&env->scratch_buf_script, 0, sizeof(env->scratch_buf_script));
+            env->scratch_buf_script.space = saved_space;
         }
     }
 

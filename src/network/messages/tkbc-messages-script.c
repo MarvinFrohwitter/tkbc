@@ -31,6 +31,14 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     Frame frame = {0};
     Kite_Ids collected_kids = {0};
 
+    space_reset_space(&env->scratch_buf_script.space);
+    // Reset the whole struct but keep the space so that its planets remain
+    // valid for reuse and can still be freed on shutdown.
+    Space saved_space = env->scratch_buf_script.space;
+    memset(&env->scratch_buf_script, 0, sizeof(env->scratch_buf_script));
+    env->scratch_buf_script.space = saved_space;
+    memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));
+
     token = lexer_next(lexer);
     if (token.kind != STRINGLITERAL) {
         script_parse_fail = true;
@@ -270,10 +278,13 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
             }
 
             frame.action = action;
-            token = lexer_next(lexer);
-            if (token.kind != PUNCT_COLON) {
-                script_parse_fail = true;
-                goto script_err;
+
+            if (frame.kind != ACTION_KITE_WAIT && frame.kind != ACTION_KITE_QUIT) {
+                token = lexer_next(lexer);
+                if (token.kind != PUNCT_COLON) {
+                    script_parse_fail = true;
+                    goto script_err;
+                }
             }
 
             token = lexer_next(lexer);
@@ -356,7 +367,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
         space_dap(scb_space, scb_script, frames);
 
         // No reset because the kite_id_array is by pointer in the elements and
-        // thy should not change. This dose not reuse the memory of the
+        // they should not change. This dose not reuse the memory of the
         // scb_frames, but that is internal the frames data has to be stored
         // some were and can not be overwritten till the script is added to the
         // env.scripts_space.
@@ -428,13 +439,11 @@ script_err:
         return false;
     }
 
-    client->script_amount--;
 parsing_skip:
-    if (client->script_amount && *script_alleady_there_parsing_skip) {
-        script_parse_fail = false;
-        client->script_amount = 0;
+    if (client->script_amount > 0) {
+        client->script_amount--;
     }
-    if (client->script_amount == 0 && !script_parse_fail) {
+    if (!script_parse_fail && client->script_amount == 0) {
         space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:\r\n", MESSAGE_SCRIPT_PARSED);
         // The sending is done automatically in the next section or in the client when the send call is performed.
     }
@@ -462,7 +471,7 @@ parsing_skip:
         return false;
     }
 
-    tkbc_write_to_all_send_msg_buffers_except(message, client->socket_id);
+    tkbc_write_to_all_send_msg_buffers(message);
     space_reset_tspace();
 
     tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
