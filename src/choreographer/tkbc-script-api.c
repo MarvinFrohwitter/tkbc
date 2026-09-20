@@ -132,7 +132,7 @@ void tkbc__script_end(Env *env) {
 
     assert(env->scratch_buf_script.count > 0);
 
-    if (env->default_scripts_amount) {
+    if (env->default_scripts_amount > 0) {
         // Hack so that not every client registers all the base scripts again in the server when connecting.
         env->scratch_buf_script.id = tkbc_uuid_from_number(env->default_scripts_amount--);
 

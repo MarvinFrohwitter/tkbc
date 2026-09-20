@@ -432,9 +432,6 @@ void tkbc_client_prolog(Client *client) {
         kite_state.is_active = false;
     }
     tkbc_dap(&env->kite_array, kite_state);
-
-    // Send all the scripts to the client
-    tkbc_message_script(client, true);
 }
 
 /**
@@ -868,6 +865,8 @@ bool tkbc_received_message_handler(Client *client) {
             space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:\r\n", MESSAGE_HELLO_PASSED);
             client->handshake_passed = true;
 
+            // Send all the scripts to the client
+            tkbc_message_script(client, true);
             tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
             tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
 
