@@ -687,6 +687,11 @@ bool tkbc_ui_script_menu(Env *env) {
                     // TODO: When all clients have knowledge about the scripts that are loaded in the server ask the
                     // server to delete that script as well.
 
+                    // TODO:
+                    // Introduce the deletion message.
+                    // TODO:
+                    // Introduce UUID for scripts maybe timestamps.
+
                     env->new_script_selected = true;
                     env->script_menu_mouse_interaction_box = -1;
 
