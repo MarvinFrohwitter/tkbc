@@ -408,6 +408,7 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
         return (Kite_Ids){0};
     }
     Kite_Ids ids = {0};
+    size_t previous_count = env->kite_array.count;
     for (size_t i = 0; i < kite_count; ++i) {
         tkbc_dap(&env->kite_array, tkbc_init_kite());
         // The id starts from 0.
@@ -421,7 +422,15 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
 
     {
         Vector2 start_pos = tkbc_calculate_start_position(env, &env->kite_array, env->window_width, env->window_height);
-        for (size_t i = 0; i < env->kite_array.count; ++i) {
+        for (size_t i = 0; i < previous_count; ++i) {
+            if (env->kite_array.elements[i].is_active) {
+                start_pos.x += 2 * env->vanilla_kite->width;
+            }
+        }
+        // Only the newly generated kites are positioned, the already existing
+        // kites (e.g. the kites of the connected clients on the server) keep
+        // their current positions.
+        for (size_t i = previous_count; i < env->kite_array.count; ++i) {
             if (env->kite_array.elements[i].is_active) {
                 tkbc_center_rotation(env->kite_array.elements[i].kite, &start_pos, 0);
                 start_pos.x += 2 * env->vanilla_kite->width;
