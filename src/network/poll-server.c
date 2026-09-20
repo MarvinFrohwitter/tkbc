@@ -1,7 +1,3 @@
-// When just a single client is connected and a script with more than one kite for example 2 is drag and dropped the
-// server crashes. server: src/choreographer/tkbc-script-handler.c:633: tkbc_remap_script_kite_id_arrays_to_kite_ids:
-// Assertion `kite_ids.count > 0' failed.
-
 // Use the UUIDs for the client_kites id's
 
 // Sometime the server does not broadcast the new script and this is not because of and actually valid parsing_skip but

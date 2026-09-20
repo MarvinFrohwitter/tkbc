@@ -29,7 +29,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     Script *scb_script = &env->scratch_buf_script;
     Frames *scb_frames = &env->scratch_buf_frames;
     Frame frame = {0};
-    Kite_Ids possible_new_kis = {0};
+    Kite_Ids collected_kids = {0};
 
     token = lexer_next(lexer);
     if (token.kind != STRINGLITERAL) {
@@ -318,14 +318,14 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
                     size_t kite_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
                     bool contains = false;
                     space_dap(scb_space, &frame.kite_id_array, kite_id);
-                    for (size_t id = 0; id < possible_new_kis.count; ++id) {
-                        if (possible_new_kis.elements[id] == kite_id) {
+                    for (size_t id = 0; id < collected_kids.count; ++id) {
+                        if (collected_kids.elements[id] == kite_id) {
                             contains = true;
                             break;
                         }
                     }
                     if (!contains) {
-                        tkbc_dap(&possible_new_kis, kite_id);
+                        tkbc_dap(&collected_kids, kite_id);
                     }
 
                     token = lexer_next(lexer);
@@ -368,18 +368,21 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     }
 
     // Post parsing
-    size_t kite_count = possible_new_kis.count;
+    size_t kite_count = collected_kids.count;
     size_t prev_count = env->kite_array.count;
-    Kite_Ids kite_ids = tkbc_kite_array_generate(env, kite_count);
+    Kite_Ids generated_kite_ids = tkbc_kite_array_generate(env, kite_count);
 
     for (size_t i = prev_count; i < env->kite_array.count; ++i) {
         env->kite_array.elements[i].is_active = false;
         env->kite_array.elements[i].is_script_kite = true;
     }
 
-    tkbc_remap_script_kite_id_arrays_to_kite_ids(scb_script, kite_ids);
-    free(kite_ids.elements);
-    kite_ids.elements = NULL;
+    if (generated_kite_ids.count) {
+        // Ensure that new kite ids are available
+        tkbc_remap_script_kite_id_arrays_to_kite_ids(scb_script, generated_kite_ids);
+    }
+    free(generated_kite_ids.elements);
+    generated_kite_ids.elements = NULL;
 
     // Set the first kite positions
     tkbc_patch_script_kite_positions(env, scb_script, scb_space);
@@ -411,9 +414,9 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     scb_script->count = 0;
 
 script_err:
-    if (possible_new_kis.elements) {
-        free(possible_new_kis.elements);
-        possible_new_kis.elements = NULL;
+    if (collected_kids.elements) {
+        free(collected_kids.elements);
+        collected_kids.elements = NULL;
     }
     if (tmp_buffer.elements) {
         free(tmp_buffer.elements);
