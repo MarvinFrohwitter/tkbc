@@ -684,10 +684,19 @@ bool tkbc_server_handle_client(Client *client) {
         }
 
         result = tkbc_socket_write(client);
-        pollfd->events = POLLRDNORM;
 
         if (result == -1) {
             return false;
+        }
+
+        // A non-blocking write can hand fewer bytes to the kernel than
+        // requested. Stay in the write state until the entire send buffer has
+        // been flushed, otherwise the remainder is stranded until the client
+        // sends again (which receivers never do).
+        if (client->send_msg_buffer.count - client->send_msg_buffer.i > 0) {
+            pollfd->events = POLLWRNORM;
+        } else {
+            pollfd->events = POLLRDNORM;
         }
         return true;
     default: assert(0 && "UNKNOWN EVENT"); return false;
