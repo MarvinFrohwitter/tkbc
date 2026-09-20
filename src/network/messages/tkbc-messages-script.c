@@ -9,6 +9,26 @@
 
 #include <stdbool.h>
 
+#ifdef TKBC_SERVER
+#include "../tkbc-network-common.h"
+static bool tkbc_combine_message_script_amount_and_message_script_for_one_id(Space *space, Message *message,
+                                                                             UUID script_id) {
+    size_t total_amount_to_send = 1;
+    space_dapf(space, message, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT, total_amount_to_send);
+
+    size_t save_count = message->count;
+    assert(env->scripts.count);
+
+    if (!tkbc_message_append_script(space, message, script_id)) {
+        tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
+        message->count = save_count;
+        return false;
+    }
+
+    return true;
+}
+#endif
+
 /**
  * @brief Handles a SCRIPT message by parsing and registering a script from the
  * client.
@@ -52,8 +72,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     }
     token.size -= 2;
     token.content += 1;
-    bool ok = tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), &scb_script->id);
-    if (!ok) {
+    if (!tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), &scb_script->id)) {
         script_parse_fail = true;
         goto script_err;
     }
@@ -456,25 +475,16 @@ parsing_skip:
     // This parsing function is just used in the server but liked in the client as
     // well so just a simple guard for compilation.
 #ifdef TKBC_SERVER
-#include "../tkbc-network-common.h"
-    size_t total_amount_to_send = 1;
-    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT,
-               total_amount_to_send);
-
-    size_t save_count = client->send_msg_buffer.count;
-    assert(env->scripts.count);
-
     Message message = {0};
-    if (!tkbc_message_append_script(space_get_tspace(), &message, env->scripts.elements[env->scripts.count - 1].id)) {
-        tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
-        client->send_msg_buffer.count = save_count;
+    if (!tkbc_combine_message_script_amount_and_message_script_for_one_id(
+            space_get_tspace(), &message, env->scripts.elements[env->scripts.count - 1].id)) {
+        space_reset_tspace();
         return false;
     }
-
     tkbc_write_to_all_send_msg_buffers(message);
     space_reset_tspace();
-
     tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
+
 #endif
 
     return true;
