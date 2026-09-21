@@ -1217,10 +1217,14 @@ size_t tkbc_calculate_script_byte_size_allocated(Script script) {
  * @brief Returns the longest original duration of all frames in the block.
  *
  * The upscaling uses the original durations (not the mutated live ones) so
- * that a replay or a second upscale pass sees the same timing.
+ * that a replay or a second upscale pass sees the same timing. QUIT frames
+ * are excluded: a QUIT in a multi-frame block finishes alongside the other
+ * frames without gating block time, and a lone QUIT drives the global quit
+ * timer instead of block timing, so its duration must never size the block.
  *
  * @param frames The block to inspect.
- * @return The maximum original_duration, or duration as a fallback.
+ * @return The maximum original_duration over non-QUIT frames, or duration as
+ * a fallback.
  */
 float tkbc_block_original_duration(const Frames *frames) {
     float max = 0;
@@ -1228,6 +1232,9 @@ float tkbc_block_original_duration(const Frames *frames) {
         return 0;
     }
     for (size_t i = 0; i < frames->count; ++i) {
+        if (frames->elements[i].kind == ACTION_KITE_QUIT) {
+            continue;
+        }
         float d = frames->elements[i].original_duration;
         if (d <= 0) {
             d = frames->elements[i].duration;
@@ -1457,6 +1464,11 @@ static void upscale_push_wait_frame(Space *space, Frames *slice, Action_Kind kin
  * stay start-independent, absolute MOVE targets are linearly interpolated,
  * and absolute rotations are split into ADD deltas plus a final absolute
  * snap. Blocks with N <= 1 are kept as-is (idempotent second pass).
+ * QUIT frames are never split: a lone QUIT drives the global quit timer and
+ * is kept as-is, and a QUIT next to other frames is timing-irrelevant (it
+ * finishes alongside them), so it is dropped from the slices. Splitting it
+ * would create single-QUIT slices sharing the global countdown and kill the
+ * script early.
  *
  * The script is rebuilt in its own Space; old arrays stay allocated in the
  * same Space and are simply orphaned (the Space frees everything at once).
@@ -1480,7 +1492,12 @@ void tkbc_upscale_script(Env *env, Script *script, float fps) {
         float D = tkbc_block_original_duration(block);
         size_t N = tkbc_upscale_step_count(D, fps);
 
-        // Collect motion kite ids and wait/quit presence.
+        // Collect motion kite ids and wait/quit presence. QUIT frames are
+        // tracked separately: a QUIT in a multi-frame block finishes
+        // alongside the other frames without gating time, and a lone QUIT
+        // drives the global quit timer, so QUIT must never be split into
+        // per-tick single-QUIT slices (they would share and exhaust the
+        // global countdown and kill the whole script).
         Id *involved = NULL;
         size_t involved_count = 0;
         size_t involved_cap = 0;
@@ -1587,10 +1604,18 @@ void tkbc_upscale_script(Env *env, Script *script, float fps) {
             for (size_t i = 0; i < block->count; ++i) {
                 Frame *f = &block->elements[i];
                 float O = f->original_duration > 0 ? f->original_duration : f->duration;
+                if (f->kind == ACTION_KITE_QUIT) {
+                    // A QUIT in a multi-frame block finishes alongside the
+                    // other frames without gating time; emitting it into the
+                    // slices would create single-QUIT blocks that share and
+                    // exhaust the global quit countdown and kill the script.
+                    // Pure QUIT blocks never reach the slice loop (kept as-is).
+                    continue;
+                }
                 if (O <= 0) {
                     if (s == 0) {
                         // Instant frame: keep once in the first slice.
-                        if (f->kind == ACTION_KITE_WAIT || f->kind == ACTION_KITE_QUIT) {
+                        if (f->kind == ACTION_KITE_WAIT) {
                             upscale_push_wait_frame(&script->space, &slice, f->kind, 0);
                         } else {
                             for (size_t j = 0; j < f->kite_id_array.count; ++j) {
@@ -1615,7 +1640,7 @@ void tkbc_upscale_script(Env *env, Script *script, float fps) {
                 if (dur <= 0) {
                     dur = step;
                 }
-                if (f->kind == ACTION_KITE_WAIT || f->kind == ACTION_KITE_QUIT) {
+                if (f->kind == ACTION_KITE_WAIT) {
                     upscale_push_wait_frame(&script->space, &slice, f->kind, dur);
                     continue;
                 }

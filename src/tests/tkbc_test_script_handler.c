@@ -770,6 +770,176 @@ Test bake_upscaled_slice_chain(void) {
     return test;
 }
 
+static void quit_test_build_script(Script *script) {
+    // One block: MOVE (0,0) -> (12,0) in 0.2s plus QUIT 0.5s. The QUIT is
+    // timing-irrelevant next to motion (it finishes alongside it), so the
+    // block must upscale from the MOVE duration only.
+    memset(script, 0, sizeof(*script));
+    space_init_capacity(&script->space, 128);
+    Frames block = {0};
+    Frame move = {0};
+    move.kind = ACTION_KITE_MOVE;
+    move.action.as_move.position = (Vector2){.x = 12, .y = 0};
+    move.duration = 0.2f;
+    move.original_duration = 0.2f;
+    move.index = 0;
+    space_dap(&script->space, &move.kite_id_array, (Id) 0);
+    space_dap(&script->space, &block, move);
+    Frame quit = {0};
+    quit.kind = ACTION_KITE_QUIT;
+    quit.duration = 0.5f;
+    quit.original_duration = 0.5f;
+    quit.index = 1;
+    space_dap(&script->space, &block, quit);
+    block.frames_index = 0;
+    Kite_Position kp = {.kite_id = 0, .position = {.x = 0, .y = 0}, .angle = 0};
+    space_dap(&script->space, &block.kite_frame_positions, kp);
+    space_dap(&script->space, script, block);
+}
+
+static bool slice_contains_quit(const Frames *slice) {
+    for (size_t i = 0; i < slice->count; ++i) {
+        if (slice->elements[i].kind == ACTION_KITE_QUIT) {
+            return true;
+        }
+    }
+    return false;
+}
+
+Test upscale_quit_mixed_block(void) {
+    Test test = cassert_init_test("upscale drops QUIT from slices");
+    Env *env = tkbc_init_env();
+    Kite_State s0 = tkbc_init_kite();
+    s0.kite_id = 0;
+    s0.is_active = true;
+    s0.is_script_kite = true;
+    Vector2 start = {.x = 0, .y = 0};
+    tkbc_center_rotation(s0.kite, &start, 0);
+    s0.kite->old_center = s0.kite->center;
+    s0.kite->old_angle = s0.kite->angle;
+    tkbc_dap(&env->kite_array, s0);
+
+    Script script = {0};
+    quit_test_build_script(&script);
+    tkbc_upscale_script(env, &script, 60.0f);
+
+    // 0.2s of motion, not 0.5s of QUIT: 12 slices, none a lone QUIT that
+    // would share and exhaust the global quit countdown.
+    cassert_size_t_eq(script.count, 12);
+    for (size_t i = 0; i < script.count; ++i) {
+        cassert_bool_eq(slice_contains_quit(&script.elements[i]), false);
+    }
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
+Test upscale_quit_block_plays_through(void) {
+    Test test = cassert_init_test("mixed QUIT block plays through");
+    Env *env = tkbc_init_env();
+    Kite_State s0 = tkbc_init_kite();
+    s0.kite_id = 0;
+    s0.is_active = true;
+    s0.is_script_kite = true;
+    Vector2 start = {.x = 0, .y = 0};
+    tkbc_center_rotation(s0.kite, &start, 0);
+    s0.kite->old_center = s0.kite->center;
+    s0.kite->old_angle = s0.kite->angle;
+    tkbc_dap(&env->kite_array, s0);
+
+    Script script = {0};
+    quit_test_build_script(&script);
+    tkbc_upscale_script(env, &script, 60.0f);
+    tkbc_bake_script_timeline(env, &script);
+
+    // Play with realistic frame times: the script must run through all
+    // slices to its natural end instead of dying early via the global quit.
+    env->script = &script;
+    env->frames = &script.elements[0];
+    env->script_finished = false;
+    for (int i = 0; i < 60 && !tkbc_script_finished(env); ++i) {
+        tkbc_make_frame_time(TARGET_DT);
+        tkbc_script_update_frames(env);
+    }
+    cassert_bool_eq(tkbc_script_finished(env), true);
+    cassert_size_t_eq(env->frames->frames_index, script.count - 1);
+    cassert_ptr_neq(env->script, NULL);
+    cassert_ptr_neq(env->frames, NULL);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
+Test quit_alone_acts_global(void) {
+    Test test = cassert_init_test("lone QUIT acts global");
+    Env *env = tkbc_init_env();
+    Kite_State s0 = tkbc_init_kite();
+    s0.kite_id = 0;
+    s0.is_active = true;
+    s0.is_script_kite = true;
+    Vector2 start = {.x = 0, .y = 0};
+    tkbc_center_rotation(s0.kite, &start, 0);
+    s0.kite->old_center = s0.kite->center;
+    s0.kite->old_angle = s0.kite->angle;
+    tkbc_dap(&env->kite_array, s0);
+
+    // Block 0: lone QUIT 0.3s arms the global timer. Blocks 1+2: long MOVEs.
+    // The global timer must cut the script short mid-flight (index 1, never
+    // reaching the natural end), while everything stays loaded.
+    Script script = {0};
+    space_init_capacity(&script.space, 128);
+    {
+        Frames block = {0};
+        Frame quit = {0};
+        quit.kind = ACTION_KITE_QUIT;
+        quit.duration = 0.3f;
+        quit.original_duration = 0.3f;
+        quit.index = 0;
+        space_dap(&script.space, &block, quit);
+        block.frames_index = 0;
+        space_dap(&script.space, &script, block);
+    }
+    for (int b = 1; b <= 2; ++b) {
+        Frames block = {0};
+        Frame move = {0};
+        move.kind = ACTION_KITE_MOVE;
+        move.action.as_move.position = (Vector2){.x = (float) (b * 1000), .y = 0};
+        move.duration = 5.0f;
+        move.original_duration = 5.0f;
+        move.index = 0;
+        space_dap(&script.space, &move.kite_id_array, (Id) 0);
+        space_dap(&script.space, &block, move);
+        block.frames_index = (size_t) b;
+        Kite_Position kp = {.kite_id = 0, .position = start, .angle = 0};
+        space_dap(&script.space, &block.kite_frame_positions, kp);
+        space_dap(&script.space, &script, block);
+    }
+    tkbc_upscale_script(env, &script, 60.0f);
+
+    // The lone QUIT block itself is kept as-is (global semantics preserved).
+    cassert_int_eq(script.elements[0].elements[0].kind, ACTION_KITE_QUIT);
+
+    env->script = &script;
+    env->frames = &script.elements[0];
+    env->script_finished = false;
+    for (int i = 0; i < 80 && !tkbc_script_finished(env); ++i) {
+        tkbc_make_frame_time(TARGET_DT);
+        tkbc_script_update_frames(env);
+    }
+    // Cut short by the global timer mid-flight: finished, parked well
+    // before the natural end, and still loaded.
+    cassert_bool_eq(tkbc_script_finished(env), true);
+    cassert_bool_eq(env->frames->frames_index == script.count - 1, false);
+    cassert_ptr_neq(env->script, NULL);
+    cassert_ptr_neq(env->frames, NULL);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
 /**
  * @brief Run all script handler unit tests.
  *
@@ -795,4 +965,7 @@ void tkbc_test_script_handler(Tests *tests) {
     cassert_dap(tests, toggle_at_end_clamps());
     cassert_dap(tests, bake_fixes_stale_starts());
     cassert_dap(tests, bake_upscaled_slice_chain());
+    cassert_dap(tests, upscale_quit_mixed_block());
+    cassert_dap(tests, upscale_quit_block_plays_through());
+    cassert_dap(tests, quit_alone_acts_global());
 }
