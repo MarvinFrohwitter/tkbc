@@ -450,7 +450,7 @@ void tkbc_ui_post_handler(Env *env) {
         Color c = tkbc_get_color_from_screen_position(GetMousePosition());
         env->last_selected_color = c;
         tkbc_set_input_text_to_hex_color(&env->color_picker_input, &env->color_picker_input_space,
-                                           env->last_selected_color);
+                                         env->last_selected_color);
     }
 }
 
@@ -602,6 +602,7 @@ bool tkbc_ui_script_menu(Env *env) {
     if (tkbc_check_keymaps_full(env->keymaps, KMH_SWITCHES_NEXT_SCRIPT, KEY_MAP_CHECK_KEY_PRESSED)) {
         env->script_menu_interaction = !env->script_menu_interaction;
         env->script_menu_mouse_interaction = false;
+        env->script_menu_mouse_interaction_box = -1;
     }
 
     if (!env->script_menu_interaction) {
@@ -750,6 +751,8 @@ bool tkbc_ui_script_menu(Env *env) {
 
         Rectangle text_element_box = script_box;
         text_element_box.width -= delete_circle_radius * 2;
+        text_element_box.width -= 2 * padding;
+        text_element_box.x += padding;
 
         {
             script->name_input.box = text_element_box;
@@ -758,7 +761,8 @@ bool tkbc_ui_script_menu(Env *env) {
             if (env->script_menu_mouse_interaction && (size_t) env->script_menu_mouse_interaction_box == box) {
                 script->name_input.is_active = true;
             }
-            if ((size_t) env->script_menu_mouse_interaction_box != box) {
+            if (env->script_menu_mouse_interaction_box == -1 ||
+                (size_t) env->script_menu_mouse_interaction_box != box) {
                 script->name_input.selection_start = SIZE_MAX;
             }
             tkbc_handle_text_input(&script->name_input, &script->space);
@@ -1172,7 +1176,7 @@ void tkbc_ui_color_picker(Env *env) {
             env->favorite_colors.elements[env->current_favorite_colors_index++ % env->favorite_colors.count] =
                 env->last_selected_color;
             tkbc_set_input_text_to_hex_color(&env->color_picker_input, &env->color_picker_input_space,
-                                           env->last_selected_color);
+                                             env->last_selected_color);
         }
     }
 
@@ -1191,7 +1195,7 @@ void tkbc_ui_color_picker(Env *env) {
                 IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 env->last_selected_color = env->favorite_colors.elements[i];
                 tkbc_set_input_text_to_hex_color(&env->color_picker_input, &env->color_picker_input_space,
-                                           env->last_selected_color);
+                                                 env->last_selected_color);
                 tkbc_set_color_for_selected_kites(env, env->last_selected_color);
             }
 
@@ -2576,7 +2580,7 @@ void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_rad
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 env->last_selected_color = colors[i];
                 tkbc_set_input_text_to_hex_color(&env->color_picker_input, &env->color_picker_input_space,
-                                           env->last_selected_color);
+                                                 env->last_selected_color);
                 tkbc_set_color_for_selected_kites(env, env->last_selected_color);
             }
         }
