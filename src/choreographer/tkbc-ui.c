@@ -733,18 +733,28 @@ bool tkbc_ui_script_menu(Env *env) {
         }
 
         const float spacing = 2;
-        const char *name = env->scripts.elements[box].name;
+        Script *script = &env->scripts.elements[box];
+        char *name = script->name;
         text_size = tkbc_reduce_str_to_fit_box(env->font, name, &font_size, spacing, script_box);
 
-        Vector2 p;
-        p.x = script_box.x + script_box.width / 2 - text_size.x / 2;
-        p.y = script_box.y + script_box.height / 2 - text_size.y / 2;
+        // TODO: Implement centering text in the input filled.
+        // Vector2 p;
+        // p.x = script_box.x + script_box.width / 2 - text_size.x / 2;
+        // p.y = script_box.y + script_box.height / 2 - text_size.y / 2;
 
         Rectangle text_element_box = script_box;
         text_element_box.width -= delete_circle_radius * 2;
-        tkbc_BeginScissorMode(text_element_box);
-        DrawTextEx(env->font, name, p, font_size, spacing, TKBC_UI_BLACK);
-        EndScissorMode();
+
+        {
+            script->name_input.box = text_element_box;
+            script->name_input.font_size = font_size;
+            script->name_input.is_active = false;
+            if (env->script_menu_mouse_interaction && (size_t) env->script_menu_mouse_interaction_box == box) {
+                script->name_input.is_active = true;
+            }
+
+            tkbc_handle_text_input(&script->name_input);
+        }
 
         script_box.y += script_box.height + padding;
         outer_script_box.y += env->box_height;

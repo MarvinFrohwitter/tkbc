@@ -173,6 +173,24 @@ typedef struct KeyMaps {
     size_t capacity;
 } Key_Maps;
 
+typedef struct {
+    Rectangle box;
+    char *text;
+    const char *shadow_text;
+
+    Font font;
+    Color text_color;
+    int font_size;
+    int spacing;
+    size_t cursor_pos;
+    size_t selection_start;  // The anchor of the selection. SIZE_MAX when none.
+    size_t max_char;
+    float scroll_offset;  // Horizontal scroll offset of the text that does not fit the box.
+    KeyboardKey (*key_constrained)(void);
+
+    bool is_active;
+} Text_Input;
+
 typedef enum {
     KMH_CHANGE_KEY_MAPPINGS = 1000,
     KMH_QUIT_PROGRAM,
@@ -468,8 +486,10 @@ typedef struct {
                        // the number of collection elements of the array type.
     UUID id;           // The unique uuid of the script. The nil uuid represents
                        // the state where no script is loaded.
-    const char *name;  // The name of the script.
+    char *name;        // The name of the script.
     Space space;
+
+    Text_Input name_input;
 
     bool was_send;  // Indicates if this script was already send to a server.
 } Script;           // A dynamic array collection that combined multiple frames to a
@@ -504,24 +524,6 @@ typedef struct {
     bool interaction;           // Checks if the scrollbar is currently
                                 // moved.
 } Scrollbar;
-
-typedef struct {
-    Rectangle box;
-    char *text;
-    const char *shadow_text;
-
-    Font font;
-    Color text_color;
-    int font_size;
-    int spacing;
-    size_t cursor_pos;
-    size_t selection_start;  // The anchor of the selection. SIZE_MAX when none.
-    size_t max_char;
-    float scroll_offset;  // Horizontal scroll offset of the text that does not fit the box.
-    KeyboardKey (*key_constrained)(void);
-
-    bool is_active;
-} Text_Input;
 
 typedef struct {
     const char *tkbc_dir;           // The dir where all metadata is saved.

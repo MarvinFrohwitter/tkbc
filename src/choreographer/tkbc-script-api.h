@@ -17,7 +17,7 @@
 void tkbc__script_input(Env *env);
 void tkbc__script_begin(Env *env);
 void tkbc__script_end(Env *env);
-void tkbc_set_script_name(Script *script, const char *name);
+void tkbc_set_script_name(Script *script, char *name);
 void tkbc_set_script_name_if_not_exists(Script *script);
 bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config, ...);
 
@@ -26,7 +26,7 @@ bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config, ...)
 #define tkbc_script_begin(...)                                                                                         \
     do {                                                                                                               \
         tkbc__script_begin(env);                                                                                       \
-        const char *tmp = space_vstrcat(&env->scratch_buf_script.space, NULL, ##__VA_ARGS__);                          \
+        char *tmp = space_vstrcat(&env->scratch_buf_script.space, NULL, ##__VA_ARGS__);                          \
         tkbc_set_script_name(&env->scratch_buf_script, tmp);                                                           \
     } while (0)
 

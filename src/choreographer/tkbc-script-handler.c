@@ -231,6 +231,7 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
     new_script.id = script->id;
     new_script.name = space_strdup(space, script->name);
     new_script.was_send = script->was_send;
+    new_script.name_input = script->name_input;
 
     for (size_t i = 0; i < script->count; ++i) {
         Frames frames = tkbc_deep_copy_frames(space, &script->elements[i]);
@@ -1154,6 +1155,19 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
             space_init_capacity(&s_copy.space, report.allocated_count);
         }
         s_copy = tkbc_deep_copy_script(&s_copy.space, &script);
+
+        {
+            s_copy.name_input.shadow_text = "";
+            s_copy.name_input.key_constrained = NULL;
+            s_copy.name_input.max_char = 255;
+            s_copy.name_input.selection_start = SIZE_MAX;
+            s_copy.name_input.is_active = false;
+            s_copy.name_input.spacing = 2;
+            s_copy.name_input.font = env->font;
+            s_copy.name_input.text_color = TKBC_UI_BLACK;
+            s_copy.name_input.text = s_copy.name;
+        }
+
         space_dap(&env->_scripts_space, &env->scripts, s_copy);
 
         // Rest the scratch buffers they got invalidated by resetting the space.

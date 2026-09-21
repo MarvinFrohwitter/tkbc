@@ -266,8 +266,12 @@ Test deep_copy_script(void) {
     cassert_ptr_neq(&script, &new_script);
     cassert_int_eq(script.count, new_script.count);
     cassert_int_eq(script.capacity, new_script.capacity);
+    cassert_bool_eq(script.was_send, new_script.was_send);
 
     cassert_type_compare_function(ANY_ALLOCED_EQ, script.id, new_script.id, tkbc_uuid_equals);
+
+    cassert_type_compare_function_param(ANY_ALLOCED_EQ, &script.name_input, &new_script.name_input, memcmp,
+                                        sizeof(script.name_input));
 
     cassert_ptr_neq(&script.elements, &new_script.elements);
 

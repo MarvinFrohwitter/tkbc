@@ -29,7 +29,7 @@ void tkbc__script_begin(Env *env) {
  * @param script The script where the name should be assigned.
  * @param name The new name for the script.
  */
-void tkbc_set_script_name(Script *script, const char *name) {
+void tkbc_set_script_name(Script *script, char *name) {
     script->name = name;
 }
 
