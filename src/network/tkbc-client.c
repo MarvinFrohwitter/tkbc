@@ -646,6 +646,17 @@ bool received_message_handler(Message *message) {
             env->script_finished = true;
             env->server_script_id = tkbc_uuid_nil();
 
+            // Execution ended: mirror the server, which returns to the
+            // free-fly view. Drop any local script view so stale script
+            // kites don't linger next to the normal kites.
+            tkbc_unload_script(env);
+            tkbc_change_visibility_to_non_script_kites(env);
+            for (size_t i = 0; i < env->kite_array.count; ++i) {
+                if (!env->kite_array.elements[i].is_script_kite) {
+                    env->kite_array.elements[i].is_kite_input_handler_active = true;
+                }
+            }
+
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_FINISHED\n");
         } break;
         case MESSAGE_SCRIPT_DELETE: {

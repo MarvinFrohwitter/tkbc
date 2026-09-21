@@ -428,7 +428,9 @@ void tkbc_client_prolog(Client *client) {
     kite_state.is_active = true;
     float r = (float) rand() / (float) RAND_MAX;
     kite_state.kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
-    if (!tkbc_script_finished(env) || env->script != NULL) {
+    // A joining client only stays hidden while the server is executing a
+    // script; otherwise it joins the free-fly view like everyone else.
+    if (!tkbc_script_finished(env) && env->script != NULL) {
         kite_state.is_active = false;
     }
     tkbc_dap(&env->kite_array, kite_state);
@@ -1228,11 +1230,12 @@ bool tkbc_base_execution(void) {
             tkbc_write_to_all_send_msg_buffers(t_message);
             tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 
-            // A finished but still loaded script keeps its script kite view.
-            // Flipping every kite here desynced existing clients (which never
-            // flip) from late joiners (which receive the flipped snapshot as
-            // their initial state). Free-fly resumes explicitly via unload or
-            // script next, both of which already sync visibility.
+            // Execution ended but the script stays loaded: return to the
+            // free-fly view explicitly. Clients switch to the same view on
+            // SCRIPT_FINISHED, so late joiners receive a snapshot that
+            // matches what everyone else shows. (A blind flip of every kite
+            // would also expose unrelated hidden script kites.)
+            tkbc_change_visibility_to_non_script_kites(env);
         }
         return true;
     }

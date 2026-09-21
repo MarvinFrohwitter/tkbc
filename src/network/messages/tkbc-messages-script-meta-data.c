@@ -19,6 +19,10 @@ extern Client client;
  */
 bool tkbc_messages_script_meta_data(Lexer *lexer) {
     Token token;
+    UUID previous_id = env->server_script_id;
+    UUID parsed_id;
+    size_t parsed_count = 0;
+    size_t parsed_index = 0;
     token = lexer_next(lexer);
     if (token.kind != STRINGLITERAL) {
         return false;
@@ -30,7 +34,7 @@ bool tkbc_messages_script_meta_data(Lexer *lexer) {
     }
     token.content += 1;
     token.size -= 2;
-    bool ok = tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), &env->server_script_id);
+    bool ok = tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), &parsed_id);
     if (!ok) {
         return false;
     }
@@ -44,7 +48,7 @@ bool tkbc_messages_script_meta_data(Lexer *lexer) {
         return false;
     }
 
-    env->server_script_frames_count = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
+    parsed_count = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
 
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {
@@ -55,15 +59,22 @@ bool tkbc_messages_script_meta_data(Lexer *lexer) {
         return false;
     }
 
-    env->server_script_frames_index = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
+    parsed_index = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
 
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {
         return false;
     }
 
-    if (tkbc_uuid_is_nil(env->server_script_id)) {
-        tkbc_unload_script(env);
+    // Reset through the shared helper so the local view, the frame cursor
+    // and the finished flag are cleared in one place. Afterwards the parsed
+    // server tracking is applied on the clean state.
+    tkbc_unload_script(env);
+    env->server_script_id = parsed_id;
+    env->server_script_frames_count = parsed_count;
+    env->server_script_frames_index = parsed_index;
+
+    if (tkbc_uuid_is_nil(parsed_id)) {
         for (size_t i = 0; i < env->kite_array.count; ++i) {
             Kite_State *kite_state = &env->kite_array.elements[i];
             if (kite_state->is_script_kite) {
@@ -73,6 +84,15 @@ bool tkbc_messages_script_meta_data(Lexer *lexer) {
                 kite_state->is_active = true;
                 kite_state->is_kite_input_handler_active = true;
             }
+        }
+    } else if (tkbc_uuid_is_nil(previous_id) || !tkbc_uuid_equals(previous_id, parsed_id)) {
+        // The server started executing a (new) script: from here visibility
+        // is server-driven, the per-tick snapshots show exactly the executing
+        // kites. Start blank so stale local script kites (which use different
+        // per-side ids) cannot linger next to them.
+        for (size_t i = 0; i < env->kite_array.count; ++i) {
+            env->kite_array.elements[i].is_active = false;
+            env->kite_array.elements[i].is_kite_input_handler_active = false;
         }
     }
 
