@@ -90,7 +90,7 @@ Env *tkbc_init_env(void) {
     env->color_picker_input.key_constrained = tkbc_is_hex_color_key_down;
     env->color_picker_input.max_char = HEX_COLOR_LENGTH;
     env->color_picker_input.font = env->font;
-    env->color_picker_input.text_color = TKBC_UI_GRAY;
+    env->color_picker_input.text_color = TKBC_UI_BLACK;
 
     env->max_favorite_colors = 4;
     for (size_t i = 0; i < env->max_favorite_colors; i++) {

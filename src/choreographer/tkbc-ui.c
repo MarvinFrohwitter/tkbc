@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
@@ -755,7 +756,9 @@ bool tkbc_ui_script_menu(Env *env) {
             if (env->script_menu_mouse_interaction && (size_t) env->script_menu_mouse_interaction_box == box) {
                 script->name_input.is_active = true;
             }
-
+            if ((size_t) env->script_menu_mouse_interaction_box != box) {
+                script->name_input.selection_start = SIZE_MAX;
+            }
             tkbc_handle_text_input(&script->name_input);
         }
 
@@ -1742,7 +1745,8 @@ void tkbc_ui_keymaps(Env *env) {
 void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding) {
     Rectangle cursor = text_box;
     cursor.width = 2;
-    cursor.height = text_box.height * 0.9;
+    float cursor_height_scaling = 1.5;
+    cursor.height = fminf(text_size.y * cursor_height_scaling, text_box.height * 0.9);
     cursor.y = text_box.y + text_box.height / 2 - cursor.height / 2;
 
     int padding_from_letter = 1;
@@ -1830,7 +1834,7 @@ static void tkbc_draw_selection(Text_Input *input) {
     highlight.y = input->box.y + input->box.height / 2 - input->font_size / 2.f;
     highlight.height = input->font_size;
 
-    DrawRectangleRec(highlight, TKBC_UI_PURPLE_ALPHA);
+    DrawRectangleRec(highlight, TKBC_UI_DARKPURPLE_ALPHA);
 }
 
 /**
