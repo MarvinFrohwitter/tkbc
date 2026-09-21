@@ -111,7 +111,9 @@ typedef enum {
 
 /**
  *
- * MESSAGE_SCRIPT:
+ * MESSAGE_SCRIPT: always carries the original non-upscaled blocks. Each side
+ * upscales and bakes locally, so the receiver can still save the original
+ * form and per-tick slices never hit the wire.
  *
  *****
  * MESSAGE_SCRIPT:script_id:name_count:[name:]?script->count:

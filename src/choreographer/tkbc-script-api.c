@@ -504,7 +504,8 @@ void tkbc_print_script(FILE *stream, Script *script) {
     tkbc_uuid_to_string(script->id, uuid_buf);
     fprintf(stream, "Script: %s\n", uuid_buf);
     for (size_t block = 0; block < script->count; ++block) {
-        fprintf(stream, "  Block-Index: %zu\n", script->elements[block].frames_index);
+        fprintf(stream, "  Block-Index: %zu%s\n", script->elements[block].frames_index,
+                script->elements[block].is_upscaled ? " (upscaled)" : "");
 
         fprintf(stream, "    Kite-Frames:\n");
         for (size_t frame = 0; frame < script->elements[block].count; ++frame) {

@@ -1,6 +1,7 @@
 #include "../../external/cassert/cassert.h"
 
 #include "../choreographer/tkbc-script-api.h"
+#include "../choreographer/tkbc-script-converter.h"
 #include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-types.h"
@@ -940,6 +941,93 @@ Test quit_alone_acts_global(void) {
     return test;
 }
 
+static size_t count_occurrences(const char *haystack, const char *needle) {
+    size_t n = 0;
+    size_t len = strlen(needle);
+    if (len == 0) {
+        return 0;
+    }
+    const char *p = haystack;
+    while ((p = strstr(p, needle)) != NULL) {
+        ++n;
+        p += len;
+    }
+    return n;
+}
+
+Test export_writes_original(void) {
+    Test test = cassert_init_test("download writes original, not upscaled");
+    Env *env = tkbc_init_env();
+    Kite_State s0 = tkbc_init_kite();
+    s0.kite_id = 0;
+    s0.is_active = true;
+    s0.is_script_kite = true;
+    Vector2 start = {.x = 0, .y = 0};
+    tkbc_center_rotation(s0.kite, &start, 0);
+    s0.kite->old_center = s0.kite->center;
+    s0.kite->old_angle = s0.kite->angle;
+    tkbc_dap(&env->kite_array, s0);
+
+    Script script = {0};
+    quit_test_build_script(&script);
+    tkbc_upscale_script(env, &script, 60.0f);
+
+    // Live timeline is upscaled, but the originals indicator keeps the
+    // authored single block (stripped: actions only, no positions).
+    cassert_size_t_eq(script.count, 12);
+    cassert_size_t_eq(script.original_count, 1);
+    cassert_size_t_eq(script.original_elements[0].kite_frame_positions.count, 0);
+    cassert_bool_eq(script.original_elements[0].is_upscaled, false);
+    for (size_t i = 0; i < script.count; ++i) {
+        cassert_bool_eq(script.elements[i].is_upscaled, true);
+    }
+    Frames *blocks = NULL;
+    size_t block_count = 0;
+    tkbc_script_original_blocks(&script, &blocks, &block_count);
+    cassert_size_t_eq(block_count, 1);
+    cassert_ptr_eq(blocks, script.original_elements);
+
+    // A script that was never expanded has no originals: selector falls back
+    // to the live blocks.
+    Script plain = {0};
+    tkbc_script_original_blocks(&plain, &blocks, &block_count);
+    cassert_size_t_eq(block_count, 0);
+
+    // Download the upscaled script: the file must contain the single
+    // authored MOVE + QUIT, not twelve slice MOVEs.
+    const char *path = "/tmp/opencode/export_original_test.kite";
+    cassert_int_eq(tkbc_export_script_to_dot_kite_file_from_mem(&script, path), 0);
+    FILE *exported = fopen(path, "rb");
+    cassert_ptr_neq(exported, NULL);
+    fseek(exported, 0, SEEK_END);
+    long export_size = ftell(exported);
+    cassert_bool_eq(export_size > 0, true);
+    fseek(exported, 0, SEEK_SET);
+    char *export_text = malloc((size_t) export_size + 1);
+    cassert_ptr_neq(export_text, NULL);
+    size_t export_read = fread(export_text, 1, (size_t) export_size, exported);
+    cassert_size_t_eq(export_read, (size_t) export_size);
+    export_text[export_size] = '\0';
+    fclose(exported);
+    cassert_size_t_eq(count_occurrences(export_text, "MOVE ("), 1);
+    cassert_size_t_eq(count_occurrences(export_text, "QUIT"), 1);
+    free(export_text);
+
+    // Deep copies carry the originals along.
+    Space copy_space = {0};
+    space_init_capacity(&copy_space, 64);
+    Script copy = tkbc_deep_copy_script(&copy_space, &script);
+    cassert_size_t_eq(copy.original_count, 1);
+    cassert_size_t_eq(copy.count, 12);
+    tkbc_script_original_blocks(&copy, &blocks, &block_count);
+    cassert_size_t_eq(block_count, 1);
+    space_free_space(&copy_space);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
 /**
  * @brief Run all script handler unit tests.
  *
@@ -968,4 +1056,5 @@ void tkbc_test_script_handler(Tests *tests) {
     cassert_dap(tests, upscale_quit_mixed_block());
     cassert_dap(tests, upscale_quit_block_plays_through());
     cassert_dap(tests, quit_alone_acts_global());
+    cassert_dap(tests, export_writes_original());
 }

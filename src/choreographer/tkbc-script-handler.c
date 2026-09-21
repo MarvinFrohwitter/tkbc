@@ -172,6 +172,7 @@ Frames tkbc_deep_copy_frames(Space *space, Frames *frames) {
         return new_frames;
     }
     new_frames.frames_index = frames->frames_index;
+    new_frames.is_upscaled = frames->is_upscaled;
 
     if (frames->kite_frame_positions.count) {
         space_dapc(space, &new_frames.kite_frame_positions, frames->kite_frame_positions.elements,
@@ -188,6 +189,57 @@ Frames tkbc_deep_copy_frames(Space *space, Frames *frames) {
     }
 
     return new_frames;
+}
+
+/**
+ * @brief Duplicates a block stripped down to export needs: actions,
+ * durations and kite ids, without stored positions and without overallocation.
+ *
+ * Positions are never exported or sent and are always re-derived at load by
+ * patch + bake, so keeping them would only bloat the originals store.
+ * Arrays are sized exactly (capacity == count).
+ *
+ * @param space The space where the exact allocations happen.
+ * @param src The block to strip-copy.
+ * @return The stripped copy, owned by space.
+ */
+static Frames tkbc_duplicate_frames_stripped(Space *space, const Frames *src) {
+    Frames dst = {0};
+    if (!src) {
+        return dst;
+    }
+    dst.frames_index = src->frames_index;
+    dst.is_upscaled = false;
+    if (src->count == 0) {
+        return dst;
+    }
+    dst.elements = space_malloc(space, src->count * sizeof(*dst.elements));
+    if (!dst.elements) {
+        tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+        abort();
+    }
+    dst.count = src->count;
+    dst.capacity = src->count;
+    for (size_t i = 0; i < src->count; ++i) {
+        const Frame *s = &src->elements[i];
+        Frame *d = &dst.elements[i];
+        *d = *s;
+        d->kite_id_array.elements = NULL;
+        d->kite_id_array.count = 0;
+        d->kite_id_array.capacity = 0;
+        if (s->kite_id_array.count > 0) {
+            size_t n = s->kite_id_array.count;
+            d->kite_id_array.elements = space_malloc(space, n * sizeof(*d->kite_id_array.elements));
+            if (!d->kite_id_array.elements) {
+                tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+                abort();
+            }
+            memcpy(d->kite_id_array.elements, s->kite_id_array.elements, n * sizeof(*d->kite_id_array.elements));
+            d->kite_id_array.count = n;
+            d->kite_id_array.capacity = n;
+        }
+    }
+    return dst;
 }
 
 /**
@@ -335,6 +387,24 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
     for (size_t i = 0; i < script->count; ++i) {
         Frames frames = tkbc_deep_copy_frames(space, &script->elements[i]);
         space_dap(space, &new_script, frames);
+    }
+
+    // The pre-upscale originals travel with the copy so every replica can
+    // still export/send the non-upscaled script. Stored stripped (no
+    // positions) and exact-sized, exactly like the upscaler keeps them.
+    if (script->original_elements && script->original_count > 0) {
+        size_t n = script->original_count;
+        Frames *originals = space_malloc(space, n * sizeof(*originals));
+        if (!originals) {
+            tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+            abort();
+        }
+        for (size_t i = 0; i < n; ++i) {
+            originals[i] = tkbc_duplicate_frames_stripped(space, &script->original_elements[i]);
+        }
+        new_script.original_elements = originals;
+        new_script.original_count = n;
+        new_script.original_capacity = n;
     }
     return new_script;
 }
@@ -731,60 +801,25 @@ void tkbc_render_frame(Env *env, Frame *frame) {
  * @param script The script where the kite ids should be remapped to new values.
  * @param kite_ids The ids array that contain the new values.
  */
-void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script, Kite_Ids kite_ids) {
-    assert(script);
-    assert(script->count > 0);
-    assert(kite_ids.count > 0);
-
-    Kite_Ids current_kite_ids = {0};
-    for (size_t i = 0; i < script->count; ++i) {
-
-        for (size_t j = 0; j < script->elements[i].count; ++j) {
-            Frame *frame = &script->elements[i].elements[j];
-            for (size_t k = 0; k < frame->kite_id_array.count; ++k) {
-                Kite_Ids ids = frame->kite_id_array;
-                Id id = ids.elements[k];
-                if (!tkbc_contains_id(current_kite_ids, id)) {
-                    tkbc_dap(&current_kite_ids, id);
-                }
+/**
+ * @brief Rewrites kite ids inside a single frames block via the collected mapping.
+ *
+ * @param frames The block whose frame id arrays and stored positions get remapped.
+ * @param current_kite_ids The distinct ids found in the script, in order.
+ * @param kite_ids The replacement ids in the same order.
+ */
+static void tkbc_remap_frames_kite_ids(Frames *frames, Kite_Ids current_kite_ids, Kite_Ids kite_ids) {
+    assert(frames);
+    assert(frames->elements || frames->count == 0);
+    for (size_t new_id = 0; new_id < current_kite_ids.count; ++new_id) {
+        for (size_t j = 0; j < frames->count; ++j) {
+            if (frames->elements[j].kind == ACTION_KITE_WAIT || frames->elements[j].kind == ACTION_KITE_QUIT) {
+                continue;
             }
-        }
-
-        for (size_t j = 0; j < script->elements[i].kite_frame_positions.count; ++j) {
-            Id id = script->elements[i].kite_frame_positions.elements[j].kite_id;
-            if (!tkbc_contains_id(current_kite_ids, id)) {
-                tkbc_dap(&current_kite_ids, id);
-            }
-        }
-    }
-
-    assert(current_kite_ids.count == kite_ids.count);
-
-    for (size_t i = 0; i < script->count; ++i) {
-        assert(script->elements);
-        Frames *frames = &script->elements[i];
-
-        for (size_t new_id = 0; new_id < current_kite_ids.count; ++new_id) {
-
-            assert(frames->elements);
-            for (size_t j = 0; j < frames->count; ++j) {
-                if (frames->elements[j].kind == ACTION_KITE_WAIT || frames->elements[j].kind == ACTION_KITE_QUIT) {
-                    continue;
-                }
-                Kite_Ids *ids = &frames->elements[j].kite_id_array;
-                assert(ids->elements);
-                for (size_t k = 0; k < ids->count; ++k) {
-                    Id *id = &ids->elements[k];
-
-                    if (current_kite_ids.elements[new_id] == *id) {
-                        *id = kite_ids.elements[new_id];
-                        break;
-                    }
-                }
-            }
-
-            for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
-                Id *id = &frames->kite_frame_positions.elements[j].kite_id;
+            Kite_Ids *ids = &frames->elements[j].kite_id_array;
+            assert(ids->elements);
+            for (size_t k = 0; k < ids->count; ++k) {
+                Id *id = &ids->elements[k];
 
                 if (current_kite_ids.elements[new_id] == *id) {
                     *id = kite_ids.elements[new_id];
@@ -792,6 +827,62 @@ void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script, Kite_Ids kite_
                 }
             }
         }
+
+        for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
+            Id *id = &frames->kite_frame_positions.elements[j].kite_id;
+
+            if (current_kite_ids.elements[new_id] == *id) {
+                *id = kite_ids.elements[new_id];
+                break;
+            }
+        }
+    }
+}
+
+static void tkbc_collect_frames_kite_ids(const Frames *frames, Kite_Ids *current_kite_ids) {
+    for (size_t j = 0; j < frames->count; ++j) {
+        const Frame *frame = &frames->elements[j];
+        for (size_t k = 0; k < frame->kite_id_array.count; ++k) {
+            Kite_Ids ids = frame->kite_id_array;
+            Id id = ids.elements[k];
+            if (!tkbc_contains_id(*current_kite_ids, id)) {
+                tkbc_dap(current_kite_ids, id);
+            }
+        }
+    }
+
+    for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
+        Id id = frames->kite_frame_positions.elements[j].kite_id;
+        if (!tkbc_contains_id(*current_kite_ids, id)) {
+            tkbc_dap(current_kite_ids, id);
+        }
+    }
+}
+
+void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script, Kite_Ids kite_ids) {
+    assert(script);
+    assert(script->count > 0);
+    assert(kite_ids.count > 0);
+
+    Kite_Ids current_kite_ids = {0};
+    for (size_t i = 0; i < script->count; ++i) {
+        tkbc_collect_frames_kite_ids(&script->elements[i], &current_kite_ids);
+    }
+    // The stashed pre-upscale originals carry the same ids; collect them as
+    // well so the mapping stays total if remap ever runs post-upscale.
+    for (size_t i = 0; i < script->original_count; ++i) {
+        tkbc_collect_frames_kite_ids(&script->original_elements[i], &current_kite_ids);
+    }
+
+    assert(current_kite_ids.count == kite_ids.count);
+
+    for (size_t i = 0; i < script->count; ++i) {
+        assert(script->elements);
+        tkbc_remap_frames_kite_ids(&script->elements[i], current_kite_ids, kite_ids);
+    }
+    for (size_t i = 0; i < script->original_count; ++i) {
+        assert(script->original_elements);
+        tkbc_remap_frames_kite_ids(&script->original_elements[i], current_kite_ids, kite_ids);
     }
 
     free(current_kite_ids.elements);
@@ -1210,6 +1301,29 @@ size_t tkbc_calculate_script_byte_size_allocated(Script script) {
         }
     }
 
+    // The stashed pre-upscale originals live in the same Space.
+    if (script.original_count > 0) {
+        result += script.original_capacity * sizeof(Frames);
+    }
+    for (size_t i = 0; i < script.original_count; ++i) {
+        Frames *frames = &script.original_elements[i];
+
+        if (frames->kite_frame_positions.count > 0) {
+            result += frames->kite_frame_positions.capacity * sizeof(Kite_Position);
+        }
+
+        if (frames->count > 0) {
+            result += frames->capacity * sizeof(Frame);
+        }
+
+        for (size_t j = 0; j < frames->count; ++j) {
+
+            if (frames->elements[j].kite_id_array.count > 0) {
+                result += frames->elements[j].kite_id_array.capacity * sizeof(Id);
+            }
+        }
+    }
+
     return result;
 }
 
@@ -1591,6 +1705,7 @@ void tkbc_upscale_script(Env *env, Script *script, float fps) {
         // Precompute per (frame,kite) absolute travel for rotations.
         for (size_t s = 0; s < N; ++s) {
             Frames slice = {0};
+            slice.is_upscaled = true;
             // Slice start positions for scrubbing.
             for (size_t k = 0; k < involved_count; ++k) {
                 Kite_Position kp = {
@@ -1890,6 +2005,29 @@ void tkbc_upscale_script(Env *env, Script *script, float fps) {
     }
 
     // Replace the script body with the upscaled one, reindexed.
+    // Keep the pre-upscale blocks as stripped originals (actions, durations
+    // and kite ids only): disk export and network send use them so the
+    // original non-upscaled script is preserved at minimal footprint.
+    // Positions stay out on purpose, they are re-derived at load by patch +
+    // bake and are never exported or sent. The old arrays stay allocated in
+    // the same Space and are simply orphaned (freed all at once).
+    // When nothing expanded, the kept deep copies already are the originals.
+    if (upscaled.count != script->count) {
+        Frames *originals = NULL;
+        if (script->count > 0) {
+            originals = space_malloc(&script->space, script->count * sizeof(*originals));
+            if (!originals) {
+                tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
+                abort();
+            }
+            for (size_t i = 0; i < script->count; ++i) {
+                originals[i] = tkbc_duplicate_frames_stripped(&script->space, &script->elements[i]);
+            }
+        }
+        script->original_elements = originals;
+        script->original_count = script->count;
+        script->original_capacity = script->count;
+    }
     script->elements = upscaled.elements;
     script->count = upscaled.count;
     script->capacity = upscaled.capacity;
@@ -1897,6 +2035,35 @@ void tkbc_upscale_script(Env *env, Script *script, float fps) {
         script->elements[i].frames_index = i;
     }
     free(map);
+}
+
+/**
+ * @brief Selects the blocks that represent the original non-upscaled script.
+ *
+ * Disk export and network send use these so an upscaled script is always
+ * saved/shared in its original form, no matter how many per-tick slices the
+ * live timeline holds.
+ *
+ * @param script The script to inspect.
+ * @param blocks Output for the block array (originals when present).
+ * @param count Output for the block count.
+ */
+void tkbc_script_original_blocks(Script *script, Frames **blocks, size_t *count) {
+    if (script && script->original_elements && script->original_count > 0) {
+        if (blocks) {
+            *blocks = script->original_elements;
+        }
+        if (count) {
+            *count = script->original_count;
+        }
+        return;
+    }
+    if (blocks) {
+        *blocks = script ? script->elements : NULL;
+    }
+    if (count) {
+        *count = script ? script->count : 0;
+    }
 }
 
 /**

@@ -61,12 +61,19 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
     Kite_Ids ids = {0};
     Content out = {0};
 
+    // Download writes the original non-upscaled script: the live timeline
+    // may hold hundreds of per-tick slices, but the file keeps the authored
+    // blocks they were baked from.
+    Frames *blocks = NULL;
+    size_t block_count = 0;
+    tkbc_script_original_blocks(script, &blocks, &block_count);
+
     // Collect all distinct kite ids first so every frame can be serialized
     // as file-local indices into this list.
     // TODO: Use hash function for this.
-    for (size_t frames = 0; frames < script->count; ++frames) {
-        for (size_t frame = 0; frame < script->elements[frames].count; ++frame) {
-            Frame *f = &script->elements[frames].elements[frame];
+    for (size_t frames = 0; frames < block_count; ++frames) {
+        for (size_t frame = 0; frame < blocks[frames].count; ++frame) {
+            Frame *f = &blocks[frames].elements[frame];
             for (size_t i = 0; i < f->kite_id_array.count; ++i) {
                 Id id = f->kite_id_array.elements[i];
                 if (!tkbc_contains_id(ids, id)) {
@@ -77,14 +84,14 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
     }
 
     tkbc_dapf(&out, "BEGIN\n");
-    for (size_t frames = 0; frames < script->count; ++frames) {
+    for (size_t frames = 0; frames < block_count; ++frames) {
 
-        if (script->elements[frames].count > 1) {
+        if (blocks[frames].count > 1) {
             tkbc_dapf(&out, "{\n");
         }
 
-        for (size_t frame = 0; frame < script->elements[frames].count; ++frame) {
-            Frame *f = &script->elements[frames].elements[frame];
+        for (size_t frame = 0; frame < blocks[frames].count; ++frame) {
+            Frame *f = &blocks[frames].elements[frame];
 
             switch (f->kind) {
             case ACTION_KITE_QUIT: {
@@ -150,7 +157,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
             tkbc_dapf(&out, "\n");
         }
 
-        if (script->elements[frames].count > 1) {
+        if (blocks[frames].count > 1) {
             tkbc_dapf(&out, "}\n");
         }
     }
