@@ -26,6 +26,7 @@ typedef enum {
     MESSAGE_SCRIPT_NEXT,
     MESSAGE_SCRIPT_SCRUB,
     MESSAGE_SCRIPT_FINISHED,
+    MESSAGE_SCRIPT_DELETE,
 
     MESSAGE_GET_TEXTURE_ID,
     MESSAGE_SEND_TEXTURE_ID,
@@ -220,6 +221,15 @@ typedef enum {
  *
  *****
  * MESSAGE_SEND_TEXTURE:id:width:height:format:{pixel_data}:\r\n
+ *****
+ */
+
+/**
+ *
+ * MESSAGE_SCRIPT_DELETE:
+ *
+ *****
+ * MESSAGE_SCRIPT_DELETE:script_id:\r\n
  *****
  */
 

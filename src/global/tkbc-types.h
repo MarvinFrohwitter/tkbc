@@ -482,6 +482,13 @@ typedef struct {
                        // the number of collection elements of the array type.
 } Scripts;             // A dynamic array collection that combined multiple scripts.
 
+typedef struct {
+    UUID *elements;   // The dynamic array collection for all pending script ids.
+    size_t count;     // The amount of elements in the array.
+    size_t capacity;  // The complete allocated space for the array represented as
+                      // the number of collection elements of the array type.
+} UUIDs;              // A dynamic array collection that holds script ids (UUIDs).
+
 typedef struct Process Process;
 
 typedef struct {
@@ -544,8 +551,10 @@ typedef struct {
                                         // no script is loaded.
     bool scripts_parsed;                // If the server has parsed all send scripts.
 
-    bool new_script_selected;  // Representation if a user has selected a new
-                               // script in the UI.
+    bool new_script_selected;      // Representation if a user has selected a new
+                                   // script in the UI.
+    UUIDs pending_script_deletes;  // Scripts deleted locally whose deletion still has to be announced to the server via
+                                   // MESSAGE_SCRIPT_DELETE.
 
     bool script_setup;              // The indication if the initial setup run is executed.
     bool script_interrupt;          // The indication if a script is currently going to be

@@ -685,17 +685,17 @@ bool tkbc_ui_script_menu(Env *env) {
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_PURPLE_ALPHA);
 
-                    // TODO: When all clients have knowledge about the scripts that are loaded in the server ask the
-                    // server to delete that script as well.
-
-                    // TODO:
-                    // Introduce the deletion message.
+                    UUID deleted_script_id = env->scripts.elements[box].id;
 
                     env->new_script_selected = true;
                     env->script_menu_mouse_interaction_box = -1;
 
-                    tkbc_unload_script_from_memory(env, env->scripts.elements[box].id);
-                    tkbc_change_visibility_to_non_script_kites(env);
+                    tkbc_unload_script_from_memory(env, deleted_script_id);
+                    // Queue the deletion so the client informs the server
+                    // about it via MESSAGE_SCRIPT_DELETE. The server then
+                    // deletes the script as well and broadcasts the same
+                    // message to all other clients.
+                    tkbc_dap(&env->pending_script_deletes, deleted_script_id);
                     env->script_menu_mouse_interaction = false;
                     is_the_same_box_as_last_double_click = -1;
                     if (env->script_menu_top_interaction_box > 0) {

@@ -964,6 +964,7 @@ int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
         if (tkbc_uuid_equals(script_id, env->scripts.elements[i].id)) {
             if (env->script && tkbc_uuid_equals(script_id, env->script->id)) {
                 tkbc_unload_script(env);
+                tkbc_change_visibility_to_non_script_kites(env);
             }
 
             space_free_space(&env->scripts.elements[i].space);
@@ -993,6 +994,12 @@ int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
                 break;
             }
         }
+    }
+
+    if (tkbc_uuid_equals(env->server_script_id, script_id)) {
+        env->server_script_id = tkbc_uuid_nil();
+        env->server_script_frames_count = 0;
+        env->server_script_frames_index = 0;
     }
 
     return ok;
@@ -1187,6 +1194,11 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
  * @param env The global state of the application.
  */
 void tkbc_input_handler_script(Env *env) {
+    // Offline (or standalone) mode: there is no server to inform about
+    // script deletions, so drop pending delete requests. The local deletion
+    // already happened in the script menu.
+    env->pending_script_deletes.count = 0;
+
     // Hard reset to startposition angel 0
     // KEY_ENTER
     if (tkbc_check_keymaps_full(env->keymaps, KMH_SET_KITES_TO_START_POSITION, KEY_MAP_CHECK_KEY_PRESSED)) {

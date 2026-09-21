@@ -19,5 +19,6 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
 bool tkbc_messages_script_next(Lexer *lexer);
 bool tkbc_messages_script_amount(Client *client, Lexer *lexer);
 bool tkbc_messages_script_scrub(Lexer *lexer);
+bool tkbc_messages_script_delete(Env *env, Lexer *lexer, Client *client);
 
 #endif  // TKBC_MESSAGES_H

@@ -151,6 +151,10 @@ void tkbc_destroy_env(Env *env) {
     env->color_picker_input_text = NULL;
     free(env->favorite_colors.elements);
     env->favorite_colors.elements = NULL;
+    free(env->pending_script_deletes.elements);
+    env->pending_script_deletes.elements = NULL;
+    env->pending_script_deletes.count = 0;
+    env->pending_script_deletes.capacity = 0;
     free(env->sound_file_name);
     env->sound_file_name = NULL;
     free(env->script_file_name);

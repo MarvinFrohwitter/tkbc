@@ -429,7 +429,7 @@ bool received_message_handler(Message *message) {
         }
 
         message->i = lexer->position - digits_count_of_kind - 1;
-        static_assert(MESSAGE_COUNT == 20, "NEW MESSAGE_COUNT WAS INTRODUCED");
+        static_assert(MESSAGE_COUNT == 21, "NEW MESSAGE_COUNT WAS INTRODUCED");
         switch (kind) {
         case MESSAGE_HELLO: {
             if (!tkbc_messages_hello_verification(lexer, "\"Hello client from server!" PROTOCOL_VERSION "\"")) {
@@ -629,6 +629,11 @@ bool received_message_handler(Message *message) {
             env->server_script_id = tkbc_uuid_nil();
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_FINISHED\n");
+        } break;
+        case MESSAGE_SCRIPT_DELETE: {
+            if (!tkbc_messages_script_delete(env, lexer, &client)) {
+                goto err;
+            }
         } break;
         case MESSAGE_CLIENT_DISCONNECT: {
             token = lexer_next(lexer);
@@ -885,10 +890,38 @@ void tkbc_client_file_handler(void) {
 }
 
 /**
+ * @brief The function drains locally queued script deletions into
+ * MESSAGE_SCRIPT_DELETE messages for the server.
+ *
+ * It is called unconditionally every frame (even while the script menu is
+ * open) so that pressing the delete button in the script menu informs the
+ * server immediately instead of waiting until the menu is closed.
+ */
+void tkbc_client_send_pending_script_deletes(void) {
+    if (env->pending_script_deletes.count == 0) {
+        return;
+    }
+    if (client.socket_id == -1) {
+        // Offline: nobody to inform, the local deletion already happened.
+        env->pending_script_deletes.count = 0;
+        return;
+    }
+    for (size_t i = 0; i < env->pending_script_deletes.count; ++i) {
+        char uuid[37];
+        tkbc_uuid_to_string(env->pending_script_deletes.elements[i], uuid);
+        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:\"%s\":\r\n", MESSAGE_SCRIPT_DELETE,
+                   uuid);
+    }
+    env->pending_script_deletes.count = 0;
+}
+
+/**
  * @brief The function warps the user key inputs for script control into
  * messages that are send to the server.
  */
 void tkbc_client_input_handler_script(void) {
+    tkbc_client_send_pending_script_deletes();
+
     if (env->scripts.count <= 0) {
         return;
     }
@@ -1039,6 +1072,10 @@ int main(int argc, char *argv[]) {
         tkbc_ui_post_handler(env);
 
         tkbc_client_file_handler();
+        // Outside of the interaction gate so that script deletions from the
+        // script menu are sent to the server immediately, while the menu is
+        // still open. The queued message is flushed in the next tkbc_run().
+        tkbc_client_send_pending_script_deletes();
         if (!env->keymaps_interaction && !env->script_menu_interaction && !env->text_input_active) {
             tkbc_input_sound_handler(env);
             tkbc_client_input_handler_kite();

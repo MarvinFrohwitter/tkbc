@@ -1,9 +1,11 @@
 // Use the UUIDs for the client_kites id's
 
+// When kite ids in .tkbc scripts are higher than the current known ids that is a parsing fail.
+
+// When a new kite .tkbc file is dropped the kites become visible (is_active) that is wrong.
+
 // Sometime the server does not broadcast the new script and this is not because of and actually valid parsing_skip but
 // the function returns earl before the script can be send back.
-
-// Add script deletion message to the server and client.
 
 #include "tkbc-servers-common.h"
 
@@ -855,7 +857,7 @@ bool tkbc_received_message_handler(Client *client) {
         }
 
         message->i = lexer->position - digits_count_of_kind - 1;
-        static_assert(MESSAGE_COUNT == 20, "NEW MESSAGE_COUNT WAS INTRODUCED");
+        static_assert(MESSAGE_COUNT == 21, "NEW MESSAGE_COUNT WAS INTRODUCED");
         switch (kind) {
         case MESSAGE_HELLO: {
             if (!tkbc_messages_hello_verification(lexer, "\"Hello server from client!" PROTOCOL_VERSION "\"")) {
@@ -991,6 +993,11 @@ bool tkbc_received_message_handler(Client *client) {
             }
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_SCRUB\n");
+        } break;
+        case MESSAGE_SCRIPT_DELETE: {
+            if (!tkbc_messages_script_delete(env, lexer, client)) {
+                goto err;
+            }
         } break;
         default: tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind); goto err;
         }

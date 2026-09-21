@@ -273,6 +273,7 @@ void files_for_client(Cmd *cmd) {
     cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script-meta-data.c");
     cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-single-kite-add.c");
     cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script-amount.c");
+    cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script-delete.c");
     cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script.c");
 }
 
@@ -291,6 +292,7 @@ void files_for_server(Cmd *cmd) {
     cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script-scrub.c");
     cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script-next.c");
     cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script-amount.c");
+    cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script-delete.c");
     cb_cmd_push(cmd, MESSAGES_PATH "tkbc-messages-script.c");
 }
 
