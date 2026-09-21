@@ -1005,18 +1005,16 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
     if (!fresh) {
         tkbc_set_kite_positions_from_kite_frames_positions(env);
     } else {
-        // Fresh play of an (upscaled) script: keep the baked per-tick start
-        // positions so scrubbing works immediately without a full play first.
-        // The kites jump to the baked initial positions like a video restart.
+        // Fresh play (offline selection or server NEXT): start from the
+        // current kite positions and rebake the timeline eagerly, so smooth
+        // scrubbing works immediately without playing the script one time
+        // first. Absolute targets stay fixed while relative offsets shift
+        // with the new start, exactly like a live run would.
         assert(env->script);
         tkbc_restore_script_frame_states(env);
-        if (env->script->count > 0 && env->script->elements[0].kite_frame_positions.count > 0) {
-            tkbc_set_kite_positions_from_kite_frames_positions(env);
-        } else {
-            // Fallback for scripts without baked positions (e.g. pure WAIT):
-            // start from the current kite positions.
-            tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
-        }
+        tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
+        tkbc_bake_script_timeline(env, env->script);
+        tkbc_set_kite_positions_from_kite_frames_positions(env);
     }
     env->script_finished = false;
     env->script_loading = true;
@@ -1877,6 +1875,184 @@ void tkbc_upscale_script(Env *env, Script *script, float fps) {
 }
 
 /**
+ * @brief Eagerly computes the true per-block start positions of a script.
+ *
+ * This is exactly the calculation that otherwise only happens implicitly
+ * during the first full play (when each finished block overwrites the next
+ * block's stored positions with the live kite state). Running it eagerly
+ * means smooth scrubbing works immediately, with zero plays beforehand:
+ * every block's kite_frame_positions becomes the deterministically simulated
+ * end state of its predecessor, stepped with a fixed dt of TARGET_DT.
+ *
+ * Only stored positions are rewritten; actions, durations and the block
+ * structure are untouched. Missing entries for involved kites are appended
+ * (mirroring the patch helpers). Blocks that cannot involve kites
+ * (WAIT/QUIT-only) keep their stored data as-is.
+ *
+ * @param env The global state, used for kite geometry templates.
+ * @param script The script whose timeline gets baked in place.
+ */
+void tkbc_bake_script_timeline(Env *env, Script *script) {
+    if (!env || !script || script->count == 0) {
+        return;
+    }
+    const float dt = (float) TARGET_DT;
+
+    Upscale_Kite *map = NULL;
+    size_t map_count = 0;
+    size_t map_cap = 0;
+
+    for (size_t b = 0; b < script->count; ++b) {
+        Frames *block = &script->elements[b];
+
+        // Collect the kites this block moves.
+        Id *involved = NULL;
+        size_t involved_count = 0;
+        size_t involved_cap = 0;
+        for (size_t i = 0; i < block->count; ++i) {
+            Frame *f = &block->elements[i];
+            if (!upscale_frame_is_motion(f->kind)) {
+                continue;
+            }
+            for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+                Id id = f->kite_id_array.elements[j];
+                bool seen = false;
+                for (size_t k = 0; k < involved_count; ++k) {
+                    if (involved[k] == id) {
+                        seen = true;
+                        break;
+                    }
+                }
+                if (!seen) {
+                    if (involved_count >= involved_cap) {
+                        size_t ncap = involved_cap ? involved_cap * 2 : 8;
+                        Id *n = realloc(involved, ncap * sizeof(*n));
+                        if (!n) {
+                            abort();
+                        }
+                        involved = n;
+                        involved_cap = ncap;
+                    }
+                    involved[involved_count++] = id;
+                }
+            }
+        }
+
+        for (size_t k = 0; k < involved_count; ++k) {
+            upscale_ensure_kite(env, &map, &map_count, &map_cap, involved[k], block);
+        }
+
+        // Rewrite the stored starts from the simulated chain state, appending
+        // entries for involved kites that have none yet.
+        for (size_t i = 0; i < block->kite_frame_positions.count; ++i) {
+            Kite_Position *kp = &block->kite_frame_positions.elements[i];
+            Upscale_Kite *uk = upscale_find_kite(map, map_count, kp->kite_id);
+            if (uk) {
+                kp->position = uk->kite.center;
+                kp->angle = uk->kite.angle;
+            }
+        }
+        for (size_t k = 0; k < involved_count; ++k) {
+            bool present = false;
+            for (size_t i = 0; i < block->kite_frame_positions.count; ++i) {
+                if (block->kite_frame_positions.elements[i].kite_id == involved[k]) {
+                    present = true;
+                    break;
+                }
+            }
+            if (!present) {
+                Upscale_Kite *uk = upscale_find_kite(map, map_count, involved[k]);
+                if (uk) {
+                    Kite_Position kp = {
+                        .kite_id = involved[k],
+                        .position = uk->kite.center,
+                        .angle = uk->kite.angle,
+                    };
+                    space_dap(&script->space, &block->kite_frame_positions, kp);
+                }
+            }
+        }
+
+        // Old state equals the block start, like a live block entry.
+        for (size_t k = 0; k < involved_count; ++k) {
+            Upscale_Kite *uk = upscale_find_kite(map, map_count, involved[k]);
+            if (uk) {
+                uk->kite.old_center = uk->kite.center;
+                uk->kite.old_angle = uk->kite.angle;
+            }
+        }
+
+        if (block->count > 0) {
+            // Simulate this block to completion on copies, so the script's
+            // own runtime state (durations/finished) is never touched.
+            Frame *tmp = malloc(block->count * sizeof(*tmp));
+            if (!tmp) {
+                abort();
+            }
+            for (size_t i = 0; i < block->count; ++i) {
+                tmp[i] = block->elements[i];
+                float orig = block->elements[i].original_duration;
+                tmp[i].duration = orig > 0 ? orig : block->elements[i].duration;
+                tmp[i].finished = false;
+            }
+
+            Kite_State *states = NULL;
+            if (involved_count > 0) {
+                states = malloc(involved_count * sizeof(*states));
+                if (!states) {
+                    abort();
+                }
+                for (size_t k = 0; k < involved_count; ++k) {
+                    Upscale_Kite *uk = upscale_find_kite(map, map_count, involved[k]);
+                    memset(&states[k], 0, sizeof(states[k]));
+                    states[k].kite_id = involved[k];
+                    states[k].kite = uk ? &uk->kite : NULL;
+                }
+            }
+
+            Env tmpenv;
+            memset(&tmpenv, 0, sizeof(tmpenv));
+            tmpenv.kite_array.elements = states;
+            tmpenv.kite_array.count = involved_count;
+            tmpenv.kite_array.capacity = involved_count;
+            Frames tmpblock = *block;
+            tmpblock.elements = tmp;
+            tmpenv.frames = &tmpblock;
+
+            size_t guard = 0;
+            for (;;) {
+                for (size_t i = 0; i < tmpblock.count; ++i) {
+                    if (!tmp[i].finished) {
+                        tkbc_render_frame_with_dt(&tmpenv, &tmp[i], dt);
+                    }
+                }
+                bool all = true;
+                for (size_t i = 0; i < tmpblock.count; ++i) {
+                    if (!tmp[i].finished) {
+                        all = false;
+                        break;
+                    }
+                }
+                if (all) {
+                    break;
+                }
+                if (++guard > 1000000) {
+                    tkbc_fprintf(stderr, "WARNING", "Timeline bake: block %zu did not converge.\n", b);
+                    break;
+                }
+            }
+
+            free(tmp);
+            free(states);
+        }
+
+        free(involved);
+    }
+
+    free(map);
+}
+
+/**
  * @brief This function adds a script to the global array located in the env.
  * It is needed to achieve stability for the raw frames and script pointers in
  * the env, they can be invalidated when the scripts array reallocates.
@@ -1951,6 +2127,11 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
         // blocks (durations <= 1/fps) are kept as-is, making this idempotent
         // for network re-receives.
         tkbc_upscale_script(env, &s_copy, (float) TARGET_FPS);
+
+        // Eagerly bake the true timeline positions right away (this also runs
+        // on the server for freshly received scripts): smooth scrubbing works
+        // immediately without playing the script one time first.
+        tkbc_bake_script_timeline(env, &s_copy);
 
         space_dap(&env->_scripts_space, &env->scripts, s_copy);
 

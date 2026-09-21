@@ -54,6 +54,7 @@ void tkbc_scrub_frames(Env *env);
 float tkbc_block_original_duration(const Frames *frames);
 size_t tkbc_upscale_step_count(float duration, float fps);
 void tkbc_upscale_script(Env *env, Script *script, float fps);
+void tkbc_bake_script_timeline(Env *env, Script *script);
 
 // ===========================================================================
 // ========================== SCRIPT HANDLER INTERNAL ========================

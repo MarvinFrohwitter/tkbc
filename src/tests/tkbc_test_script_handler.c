@@ -683,6 +683,93 @@ Test toggle_at_end_clamps(void) {
     return test;
 }
 
+static void bake_test_build_two_block_script(Script *script, Vector2 stale_start) {
+    memset(script, 0, sizeof(*script));
+    space_init_capacity(&script->space, 128);
+    // Block 0: MOVE (0,0) -> (60,0) in 1s, correct stored start.
+    {
+        Frames block = {0};
+        Frame f = {0};
+        f.kind = ACTION_KITE_MOVE;
+        f.action.as_move.position = (Vector2){.x = 60, .y = 0};
+        f.duration = 1.0f;
+        f.original_duration = 1.0f;
+        f.index = 0;
+        space_dap(&script->space, &f.kite_id_array, (Id) 0);
+        space_dap(&script->space, &block, f);
+        block.frames_index = 0;
+        Kite_Position kp = {.kite_id = 0, .position = {.x = 0, .y = 0}, .angle = 0};
+        space_dap(&script->space, &block.kite_frame_positions, kp);
+        space_dap(&script->space, script, block);
+    }
+    // Block 1: MOVE -> (120,0) in 1s, but with a STALE stored start as seen
+    // before any play (e.g. patched from an unrelated kite position).
+    {
+        Frames block = {0};
+        Frame f = {0};
+        f.kind = ACTION_KITE_MOVE;
+        f.action.as_move.position = (Vector2){.x = 120, .y = 0};
+        f.duration = 1.0f;
+        f.original_duration = 1.0f;
+        f.index = 0;
+        space_dap(&script->space, &f.kite_id_array, (Id) 0);
+        space_dap(&script->space, &block, f);
+        block.frames_index = 1;
+        Kite_Position kp = {.kite_id = 0, .position = stale_start, .angle = 0};
+        space_dap(&script->space, &block.kite_frame_positions, kp);
+        space_dap(&script->space, script, block);
+    }
+}
+
+Test bake_fixes_stale_starts(void) {
+    Test test = cassert_init_test("bake fixes stale starts without playing");
+    Env *env = tkbc_init_env();
+    Kite_State s0 = tkbc_init_kite();
+    s0.kite_id = 0;
+    s0.is_active = true;
+    s0.is_script_kite = true;
+    Vector2 start = {.x = 0, .y = 0};
+    tkbc_center_rotation(s0.kite, &start, 0);
+    s0.kite->old_center = s0.kite->center;
+    s0.kite->old_angle = s0.kite->angle;
+    tkbc_dap(&env->kite_array, s0);
+
+    Script script = {0};
+    bake_test_build_two_block_script(&script, (Vector2){.x = 999, .y = 0});
+
+    // No play happened: block 1 still claims a stale start. The eager bake
+    // (server after receive / offline client at load) must compute the true
+    // chain end of block 0 instead.
+    tkbc_bake_script_timeline(env, &script);
+    cassert_bool_eq(fabsf(script.elements[0].kite_frame_positions.elements[0].position.x - 0.0f) < 0.01f, true);
+    cassert_bool_eq(fabsf(script.elements[1].kite_frame_positions.elements[0].position.x - 60.0f) < 0.5f, true);
+
+    // The env kites and the script runtime state are untouched by baking.
+    cassert_float_eq(tkbc_get_kite_by_id(env, 0)->center.x, 0.0f);
+    cassert_bool_eq(script.elements[0].elements[0].finished, false);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
+Test bake_upscaled_slice_chain(void) {
+    Test test = cassert_init_test("bake repairs upscaled slice starts");
+    Script script = {0};
+    Env *env = scrub_test_setup_env(&script);
+
+    // Corrupt one slice start in the middle, then bake: the deterministic
+    // simulation must restore the continuous chain without any play.
+    script.elements[30].kite_frame_positions.elements[0].position.x = 999.0f;
+    tkbc_bake_script_timeline(env, &script);
+    cassert_bool_eq(fabsf(script.elements[30].kite_frame_positions.elements[0].position.x - 30.0f) < 0.5f, true);
+    cassert_bool_eq(fabsf(script.elements[59].kite_frame_positions.elements[0].position.x - 59.0f) < 0.5f, true);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
 /**
  * @brief Run all script handler unit tests.
  *
@@ -706,4 +793,6 @@ void tkbc_test_script_handler(Tests *tests) {
     cassert_dap(tests, scrub_stays_in_script_mode());
     cassert_dap(tests, finish_stays_loaded());
     cassert_dap(tests, toggle_at_end_clamps());
+    cassert_dap(tests, bake_fixes_stale_starts());
+    cassert_dap(tests, bake_upscaled_slice_chain());
 }
