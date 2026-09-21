@@ -1952,6 +1952,10 @@ void tkbc_handle_text_input(Text_Input *input) {
                 input->cursor_pos =
                     input->selection_start > input->cursor_pos ? input->selection_start : input->cursor_pos;
                 input->selection_start = SIZE_MAX;
+            } else {
+                // Drop a stale anchor (e.g. from click placement) so it can
+                // not become a phantom selection after the cursor moves.
+                input->selection_start = SIZE_MAX;
             }
             if (input->cursor_pos < char_amount) {
                 input->cursor_pos += 1;
@@ -1965,6 +1969,10 @@ void tkbc_handle_text_input(Text_Input *input) {
             } else if (tkbc_has_selection(input)) {
                 input->cursor_pos =
                     input->selection_start < input->cursor_pos ? input->selection_start : input->cursor_pos;
+                input->selection_start = SIZE_MAX;
+            } else {
+                // Drop a stale anchor (e.g. from click placement) so it can
+                // not become a phantom selection after the cursor moves.
                 input->selection_start = SIZE_MAX;
             }
             if (input->cursor_pos > 0) {
@@ -1981,6 +1989,10 @@ void tkbc_handle_text_input(Text_Input *input) {
                 input->cursor_pos =
                     input->selection_start < input->cursor_pos ? input->selection_start : input->cursor_pos;
                 input->selection_start = SIZE_MAX;
+            } else {
+                // Drop a stale anchor (e.g. from click placement) so it can
+                // not become a phantom selection after the cursor moves.
+                input->selection_start = SIZE_MAX;
             }
             input->cursor_pos = 0;
         }
@@ -1992,6 +2004,10 @@ void tkbc_handle_text_input(Text_Input *input) {
             } else if (tkbc_has_selection(input)) {
                 input->cursor_pos =
                     input->selection_start > input->cursor_pos ? input->selection_start : input->cursor_pos;
+                input->selection_start = SIZE_MAX;
+            } else {
+                // Drop a stale anchor (e.g. from click placement) so it can
+                // not become a phantom selection after the cursor moves.
                 input->selection_start = SIZE_MAX;
             }
             input->cursor_pos = input->text.count;
@@ -2009,6 +2025,10 @@ void tkbc_handle_text_input(Text_Input *input) {
                 input->cursor_pos =
                     input->selection_start < input->cursor_pos ? input->selection_start : input->cursor_pos;
                 input->selection_start = SIZE_MAX;
+            } else {
+                // Drop a stale anchor (e.g. from click placement) so it can
+                // not become a phantom selection after the cursor moves.
+                input->selection_start = SIZE_MAX;
             }
             input->cursor_pos = tkbc_find_word_left(input);
         }
@@ -2020,6 +2040,10 @@ void tkbc_handle_text_input(Text_Input *input) {
             } else if (tkbc_has_selection(input)) {
                 input->cursor_pos =
                     input->selection_start > input->cursor_pos ? input->selection_start : input->cursor_pos;
+                input->selection_start = SIZE_MAX;
+            } else {
+                // Drop a stale anchor (e.g. from click placement) so it can
+                // not become a phantom selection after the cursor moves.
                 input->selection_start = SIZE_MAX;
             }
             input->cursor_pos = tkbc_find_word_right(input);
@@ -2050,12 +2074,14 @@ void tkbc_handle_text_input(Text_Input *input) {
                             (char_amount - input->cursor_pos + 1) * sizeof(*elements));
                     input->text.count = char_amount - removed;
                     input->cursor_pos = word_pos;
+                    input->selection_start = SIZE_MAX;
                 }
             } else if (input->cursor_pos > 0) {
                 size_t n = char_amount - input->cursor_pos + 1;
                 memmove(&elements[input->cursor_pos - 1], &elements[input->cursor_pos], n * sizeof(*elements));
                 input->text.count = char_amount - 1;
                 input->cursor_pos -= 1;
+                input->selection_start = SIZE_MAX;
             }
         }
 
@@ -2070,11 +2096,13 @@ void tkbc_handle_text_input(Text_Input *input) {
                     memmove(&elements[input->cursor_pos], &elements[word_pos],
                             (char_amount - word_pos + 1) * sizeof(*elements));
                     input->text.count = char_amount - (word_pos - input->cursor_pos);
+                    input->selection_start = SIZE_MAX;
                 }
             } else if (input->cursor_pos < char_amount) {
                 size_t n = char_amount - input->cursor_pos + 1;
                 memmove(&elements[input->cursor_pos], &elements[input->cursor_pos + 1], n * sizeof(*elements));
                 input->text.count = char_amount - 1;
+                input->selection_start = SIZE_MAX;
             }
         }
 
@@ -2129,6 +2157,9 @@ void tkbc_handle_text_input(Text_Input *input) {
         if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_V)) {
             is_spcial_action = true;
             tkbc_delete_selection(input);
+            // Deleting (or not finding) a selection must not leave a stale
+            // anchor behind for the inserted text to turn into a selection.
+            input->selection_start = SIZE_MAX;
             char_amount = input->text.count;
             const char *clipboard_text = GetClipboardText();
             if (clipboard_text) {
@@ -2157,6 +2188,9 @@ void tkbc_handle_text_input(Text_Input *input) {
                 if (tkbc_has_selection(input)) {
                     tkbc_delete_selection(input);
                 }
+                // No live selection survives the delete above; clear a stale
+                // anchor too so the inserted char can not select anything.
+                input->selection_start = SIZE_MAX;
                 char_amount = input->text.count;
                 // Grow the buffer when there is not enough space; max_char only
                 // guards how much the user may input (0 = unlimited).
