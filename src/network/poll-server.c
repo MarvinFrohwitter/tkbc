@@ -1,7 +1,5 @@
 // Use the UUIDs for the client_kites id's
 
-// When a new kite .tkbc file is dropped the kites become visible (is_active) that is wrong.
-
 // Sometime the server does not broadcast the new script and this is not because of and actually valid parsing_skip but
 // the function returns earl before the script can be send back.
 

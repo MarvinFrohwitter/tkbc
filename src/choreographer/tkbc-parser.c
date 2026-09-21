@@ -96,7 +96,16 @@ void tkbc_script_parser(Env *env) {
                         break;
                     }
                     kite_number -= env->kite_array.count;
-                    ki = tkbc_kite_array_generate(env, kite_number);
+                    {
+                        size_t prev_count = env->kite_array.count;
+                        ki = tkbc_kite_array_generate(env, kite_number);
+
+                        // New kites of a dropped .kite script must stay invisible until the script is selected.
+                        for (size_t i = prev_count; i < env->kite_array.count; ++i) {
+                            env->kite_array.elements[i].is_active = false;
+                            env->kite_array.elements[i].is_script_kite = true;
+                        }
+                    }
                 }
                 break;
             } else if (strncmp("MOVE", t.content, t.size) == 0) {
@@ -283,6 +292,13 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
                     }
                     env_id = generated.elements[0];
                     free(generated.elements);
+
+                    // Fallback kites must stay invisible until the script is selected, like network received scripts.
+                    Kite_State *new_state = tkbc_get_kite_state_by_id(env, env_id);
+                    if (new_state) {
+                        new_state->is_active = false;
+                        new_state->is_script_kite = true;
+                    }
                     tkbc_dap(&remap->file_ids, file_id);
                     tkbc_dap(&remap->env_ids, env_id);
                     tkbc_dap(orig_kis, env_id);
@@ -447,8 +463,8 @@ check:
  * @return True if the parsing and frame construction has worked, otherwise
  * false.
  */
-bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap,
-                             bool brace, Content *tmp_buffer) {
+bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap, bool brace,
+                             Content *tmp_buffer) {
     bool ok = true;
     Kite_Ids kis = {0};
     TIP tip;
