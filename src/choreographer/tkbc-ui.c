@@ -1,8 +1,8 @@
 #include <assert.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
@@ -703,6 +703,10 @@ bool tkbc_ui_script_menu(Env *env) {
                     if (env->script_menu_top_interaction_box > 0) {
                         env->script_menu_top_interaction_box -= 1;
                     }
+                    // The unload above freed the script's space and shrunk the
+                    // array. You can't  modify the scripts count in place because the scrollbar is already calculated.
+                    // The menu redraws next frame.
+                    break;
                 }
             }
 
