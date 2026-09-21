@@ -8,6 +8,7 @@
 #include "raylib.h"
 #include "rlgl.h"
 #include "tkbc-keymaps.h"
+#include "tkbc-script-converter.h"
 #include "tkbc-script-handler.h"
 #include "tkbc-ui.h"
 #include "tkbc.h"
@@ -751,14 +752,14 @@ bool tkbc_ui_script_menu(Env *env) {
 
     /* ------------------------- Buttons ------------------------------------- */
 
-    size_t interaction_buttons_count = 3;
+    const size_t interaction_buttons_count = 3;
     outer_script_box.width =
         (outer_script_box.width - (padding * interaction_buttons_count)) / interaction_buttons_count;
     outer_script_box.height = env->box_height * 0.5;
     outer_script_box.y = env->box_height * env->screen_items + env->box_height / 2.f;
 
     /* ------------------------- NO_SCRIPT KEY -------------------------------- */
-    outer_script_box.x += padding + (interaction_buttons_count - 3) * (padding + outer_script_box.width);
+    outer_script_box.x += padding;
 
     if (CheckCollisionPointRec(mouse, outer_script_box)) {
         DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
@@ -788,8 +789,43 @@ bool tkbc_ui_script_menu(Env *env) {
     DrawTextEx(env->font, no_script, p, font_size, spacing, TKBC_UI_BLACK);
     EndScissorMode();
 
+    /* ------------------------- Download key --------------------------------- */
+    outer_script_box.x += padding + outer_script_box.width;
+
+    if (CheckCollisionPointRec(mouse, outer_script_box)) {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+    } else {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
+    }
+
+    if (env->script_menu_mouse_interaction) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, outer_script_box)) {
+            DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+            assert(env->script_menu_mouse_interaction_box != -1);
+            assert(env->scripts.count >= (size_t) env->script_menu_mouse_interaction_box);
+
+            tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
+            Script *script = &env->scripts.elements[env->script_menu_mouse_interaction_box];
+            const char *buf = space_tprintf("%s%s.kite", env->tkbc_dir, script->name);
+            tkbc_export_script_to_dot_kite_file_from_mem(script, buf);
+            space_reset_tspace();
+
+            env->script_menu_mouse_interaction_box = -1;
+            env->script_menu_mouse_interaction = false;
+        }
+    }
+
+    const char *download = "DOWNLOAD";
+    text_size = tkbc_reduce_str_to_fit_box(env->font, download, &font_size, spacing, outer_script_box);
+    p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
+    p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
+    tkbc_BeginScissorMode(outer_script_box);
+    DrawTextEx(env->font, download, p, font_size, spacing, TKBC_UI_BLACK);
+    EndScissorMode();
+
     /* ------------------------- Confirm key --------------------------------- */
-    outer_script_box.x += (interaction_buttons_count - 1) * (padding + outer_script_box.width);
+
+    outer_script_box.x += padding + outer_script_box.width;
 
     if (CheckCollisionPointRec(mouse, outer_script_box)) {
         DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
@@ -819,9 +855,9 @@ bool tkbc_ui_script_menu(Env *env) {
             env->new_script_selected = true;
         }
     }
+
     const char *confirm = "CONFIRM";
     text_size = tkbc_reduce_str_to_fit_box(env->font, confirm, &font_size, spacing, outer_script_box);
-
     p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
     p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
     tkbc_BeginScissorMode(outer_script_box);
@@ -1680,7 +1716,7 @@ void tkbc_ui_keymaps(Env *env) {
 
     //
     // Display of the load, reset and save buttons.
-    size_t interaction_buttons_count = 3;
+    const size_t interaction_buttons_count = 3;
     env->keymaps_base.width =
         (env->keymaps_base.width - (padding * (interaction_buttons_count * 1))) / interaction_buttons_count;
     env->keymaps_base.height = env->box_height * 0.5;
