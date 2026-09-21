@@ -49,8 +49,7 @@ void tkbc_set_script_name(Script *script, char *name) {
         return;
     }
     // The name is stored only in name_input.text, owned by script->space.
-    script->name_input.space = &script->space;
-    tkbc_text_input_set_text(&script->name_input, name ? name : "");
+    tkbc_text_input_set_text(&script->name_input, &script->space, name ? name : "");
 }
 
 /**

@@ -1276,8 +1276,6 @@ void tkbc_connection_input(Env *env, Popup *popup, const char *host_default, con
         static bool init = true;
         if (init) {
             init = false;
-            host_input->space = &connection_input_space;
-            port_input->space = &connection_input_space;
             tkbc_text_input_init(host_input, &connection_input_space, host_default);
             tkbc_text_input_init(port_input, &connection_input_space, port_default);
             host_input->cursor_pos = host_input->text.count;
@@ -1304,9 +1302,9 @@ void tkbc_connection_input(Env *env, Popup *popup, const char *host_default, con
         port_input->font_size = popup->font_size;
     }
 
-    tkbc_handle_text_input(host_input);
+    tkbc_handle_text_input(host_input, &connection_input_space);
     port_input->is_active = !host_input->is_active;
-    tkbc_handle_text_input(port_input);
+    tkbc_handle_text_input(port_input, &connection_input_space);
     host_input->is_active = !port_input->is_active;
     env->text_input_active = host_input->is_active || port_input->is_active;
 }

@@ -181,8 +181,9 @@ typedef struct {
 
 typedef struct {
     Rectangle box;
-    Text_Buffer text;
-    Space *space;  // Allocator for text.elements via space_realloc, NULL falls back to realloc.
+    Text_Buffer text;  // The buffer is grown with tkbc_text_input_reserve(),
+                       // the owning Space is passed explicitly to each helper
+                       // so no allocator pointer is stored here.
 
     const char *shadow_text;
 
@@ -499,10 +500,9 @@ typedef struct {
     Space space;       // Owner of all frames data and the name_input text.
 
     Text_Input name_input;  // Holds the script name in name_input.text, the single
-                            // place the name is stored. name_input.space must always
-                            // point to the containing Script.space, repaired by
-                            // tkbc_script_fixup_name_refs() after every move
-                            // of the Scripts array.
+                            // place the name is stored. The buffer is owned by
+                            // the containing Script.space, which callers pass
+                            // explicitly to the text helpers.
 
     bool was_send;  // Indicates if this script was already send to a server.
 } Script;           // A dynamic array collection that combined multiple frames to a

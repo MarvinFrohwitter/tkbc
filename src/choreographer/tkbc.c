@@ -82,7 +82,6 @@ Env *tkbc_init_env(void) {
 
     // The color picker text lives directly in its space backed input, no
     // extra allocation.
-    env->color_picker_input.space = &env->color_picker_input_space;
     env->color_picker_input.selection_start = SIZE_MAX;
     env->color_picker_input.spacing = 4;
     tkbc_text_input_init(&env->color_picker_input, &env->color_picker_input_space, "");

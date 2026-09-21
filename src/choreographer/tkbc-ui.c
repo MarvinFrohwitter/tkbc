@@ -449,7 +449,8 @@ void tkbc_ui_post_handler(Env *env) {
         env->color_picker_window_picking = true;
         Color c = tkbc_get_color_from_screen_position(GetMousePosition());
         env->last_selected_color = c;
-        tkbc_set_input_text_to_hex_color(&env->color_picker_input, env->last_selected_color);
+        tkbc_set_input_text_to_hex_color(&env->color_picker_input, &env->color_picker_input_space,
+                                           env->last_selected_color);
     }
 }
 
@@ -739,9 +740,6 @@ bool tkbc_ui_script_menu(Env *env) {
 
         const float spacing = 2;
         Script *script = &env->scripts.elements[box];
-        // Repair the allocator pointer in case the Scripts array moved. Cheap
-        // and keeps name_input.space valid even if a fixup was missed.
-        tkbc_script_fixup_name_refs(script);
         const char *name = tkbc_text_input_cstr(&script->name_input);
         text_size = tkbc_reduce_str_to_fit_box(env->font, name, &font_size, spacing, script_box);
 
@@ -763,7 +761,7 @@ bool tkbc_ui_script_menu(Env *env) {
             if ((size_t) env->script_menu_mouse_interaction_box != box) {
                 script->name_input.selection_start = SIZE_MAX;
             }
-            tkbc_handle_text_input(&script->name_input);
+            tkbc_handle_text_input(&script->name_input, &script->space);
         }
 
         script_box.y += script_box.height + padding;
@@ -952,19 +950,20 @@ bool is_key_valid_part_of_hex_number(int key) {
  */
 /**
  * @brief The function converts a color to a hexadecimal string representation
- * and updates the input text. The allocation happens directly in the input's
+ * and updates the input text. The allocation happens directly in the given
  * space, no extra buffer is involved.
  *
  * @param input The text input to update.
+ * @param space The Space owning the input's text buffer.
  * @param color The color to convert to hex string.
  */
-void tkbc_set_input_text_to_hex_color(Text_Input *input, Color color) {
+void tkbc_set_input_text_to_hex_color(Text_Input *input, Space *space, Color color) {
     if (!input) {
         return;
     }
     char buf[HEX_COLOR_LENGTH + 1];
     snprintf(buf, sizeof(buf), "%0" STR(HEX_COLOR_LENGTH) "X", tkbc_color_to_uint32_t(color));
-    tkbc_text_input_set_text(input, buf);
+    tkbc_text_input_set_text(input, space, buf);
 }
 
 /**
@@ -1138,7 +1137,7 @@ void tkbc_ui_color_picker(Env *env) {
         env->color_picker_input.font_size = font_size;
         env->color_picker_input.is_active = env->color_picker_input_mouse_interaction;
 
-        tkbc_handle_text_input(&env->color_picker_input);
+        tkbc_handle_text_input(&env->color_picker_input, &env->color_picker_input_space);
         if (env->color_picker_input.text.elements) {
             tkbc_strtoupper(env->color_picker_input.text.elements);
         }
@@ -1172,7 +1171,8 @@ void tkbc_ui_color_picker(Env *env) {
             tkbc_set_color_for_selected_kites(env, env->last_selected_color);
             env->favorite_colors.elements[env->current_favorite_colors_index++ % env->favorite_colors.count] =
                 env->last_selected_color;
-            tkbc_set_input_text_to_hex_color(&env->color_picker_input, env->last_selected_color);
+            tkbc_set_input_text_to_hex_color(&env->color_picker_input, &env->color_picker_input_space,
+                                           env->last_selected_color);
         }
     }
 
@@ -1190,7 +1190,8 @@ void tkbc_ui_color_picker(Env *env) {
             if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius) &&
                 IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 env->last_selected_color = env->favorite_colors.elements[i];
-                tkbc_set_input_text_to_hex_color(&env->color_picker_input, env->last_selected_color);
+                tkbc_set_input_text_to_hex_color(&env->color_picker_input, &env->color_picker_input_space,
+                                           env->last_selected_color);
                 tkbc_set_color_for_selected_kites(env, env->last_selected_color);
             }
 
@@ -1902,10 +1903,12 @@ static void tkbc_delete_selection(Text_Input *input) {
 
 /**
  * @brief Handles mouse, keyboard and clipboard input for a text input.
+ * The owning Space is passed explicitly so inputs store no allocator pointer.
  *
  * @param input The input to handle.
+ * @param space The Space owning the text buffer, grown via space_realloc.
  */
-void tkbc_handle_text_input(Text_Input *input) {
+void tkbc_handle_text_input(Text_Input *input, Space *space) {
     if (!input) {
         return;
     }
@@ -1913,7 +1916,7 @@ void tkbc_handle_text_input(Text_Input *input) {
     if (!input->text.elements) {
         input->text.count = 0;
         input->text.capacity = 0;
-    } else if (!tkbc_text_input_reserve(input, input->text.count)) {
+    } else if (!tkbc_text_input_reserve(space, &input->text, input->text.count)) {
         return;
     }
     size_t initial_char_amount = input->text.count;
@@ -2174,7 +2177,7 @@ void tkbc_handle_text_input(Text_Input *input) {
                         length = free_space;
                     }
                 }
-                if (length > 0 && tkbc_text_input_reserve(input, char_amount + length)) {
+                if (length > 0 && tkbc_text_input_reserve(space, &input->text, char_amount + length)) {
                     char *elements = input->text.elements;
                     memmove(&elements[input->cursor_pos + length], &elements[input->cursor_pos],
                             (char_amount - input->cursor_pos + 1) * sizeof(*elements));
@@ -2199,7 +2202,7 @@ void tkbc_handle_text_input(Text_Input *input) {
                 // Grow the buffer when there is not enough space; max_char only
                 // guards how much the user may input (0 = unlimited).
                 if ((input->max_char == 0 || char_amount < input->max_char) &&
-                    tkbc_text_input_reserve(input, char_amount + 1)) {
+                    tkbc_text_input_reserve(space, &input->text, char_amount + 1)) {
                     char *elements = input->text.elements;
                     size_t n = char_amount - input->cursor_pos + 1;
                     memmove(&elements[input->cursor_pos + 1], &elements[input->cursor_pos], n * sizeof(*elements));
@@ -2572,7 +2575,8 @@ void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_rad
         if (CheckCollisionPointCircle(mouse, position, circle_radius)) {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 env->last_selected_color = colors[i];
-                tkbc_set_input_text_to_hex_color(&env->color_picker_input, env->last_selected_color);
+                tkbc_set_input_text_to_hex_color(&env->color_picker_input, &env->color_picker_input_space,
+                                           env->last_selected_color);
                 tkbc_set_color_for_selected_kites(env, env->last_selected_color);
             }
         }

@@ -202,60 +202,52 @@ const char *tkbc_text_input_cstr(const Text_Input *input) {
 
 /**
  * @brief Ensures the text buffer can hold needed_count chars plus NUL.
- * Grows via space_realloc when input->space is set, otherwise realloc.
+ * Grows via space_realloc when space is NULL. The owning Space
+ * is passed explicitly so inputs store no allocator pointer.
  */
-bool tkbc_text_input_reserve(Text_Input *input, size_t needed_count) {
-    if (!input) {
+bool tkbc_text_input_reserve(Space *space, Text_Buffer *buffer, size_t needed_count) {
+    if (!buffer) {
         return false;
     }
     size_t need = needed_count + 1;
-    if (need <= input->text.capacity) {
+    if (need <= buffer->capacity) {
         return true;
     }
-    size_t new_cap = input->text.capacity ? input->text.capacity : 64;
+    size_t new_cap = buffer->capacity ? buffer->capacity : 64;
     while (new_cap < need) {
         new_cap *= 2;
     }
-    size_t old_cap = input->text.capacity;
+    size_t old_cap = buffer->capacity;
     char *new_elements = NULL;
-    if (!input->space) {
+    if (space) {
+        new_elements = space_realloc(space, buffer->elements, old_cap, new_cap);
+    } else {
+        new_elements = realloc(buffer->elements, new_cap);
     }
-
-    new_elements = space_realloc(input->space, input->text.elements, old_cap, new_cap);
     if (!new_elements) {
         return false;
     }
-    input->text.elements = new_elements;
-    input->text.capacity = new_cap;
-    if (input->text.count >= new_cap) {
-        input->text.count = new_cap - 1;
+    buffer->elements = new_elements;
+    buffer->capacity = new_cap;
+    if (buffer->count >= new_cap) {
+        buffer->count = new_cap - 1;
     }
-    input->text.elements[input->text.count] = '\0';
+    buffer->elements[buffer->count] = '\0';
     return true;
 }
 
 /**
  * @brief Copies str into the input buffer, growing it as needed.
  */
-void tkbc_text_input_set_text(Text_Input *input, const char *str) {
-    if (!input) {
-        return;
-    }
-    if (!str) {
-        str = "";
-    }
+void tkbc_text_input_set_text(Text_Input *input, Space *space, const char *str) {
+    if (!input) return;
+    if (!str) str = "";
     size_t len = strlen(str);
-    if (!tkbc_text_input_reserve(input, len)) {
-        return;
-    }
+    if (!tkbc_text_input_reserve(space, &input->text, len)) return;
     memcpy(input->text.elements, str, len + 1);
     input->text.count = len;
-    if (input->cursor_pos > len) {
-        input->cursor_pos = len;
-    }
-    if (input->selection_start != SIZE_MAX && input->selection_start > len) {
-        input->selection_start = len;
-    }
+    if (input->cursor_pos > len) input->cursor_pos = len;
+    if (input->selection_start != SIZE_MAX && input->selection_start > len) input->selection_start = len;
 }
 
 /**
@@ -265,11 +257,10 @@ void tkbc_text_input_init(Text_Input *input, Space *space, const char *initial) 
     if (!input) {
         return;
     }
-    input->space = space;
     input->text.elements = NULL;
     input->text.count = 0;
     input->text.capacity = 0;
-    tkbc_text_input_set_text(input, initial);
+    tkbc_text_input_set_text(input, space, initial);
 }
 
 /**
@@ -340,46 +331,12 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
     new_script.name_input.scroll_offset = script->name_input.scroll_offset;
     new_script.name_input.key_constrained = script->name_input.key_constrained;
     new_script.name_input.is_active = script->name_input.is_active;
-    new_script.name_input.space = NULL;
 
     for (size_t i = 0; i < script->count; ++i) {
         Frames frames = tkbc_deep_copy_frames(space, &script->elements[i]);
         space_dap(space, &new_script, frames);
     }
     return new_script;
-}
-
-/**
- * @brief Repairs the allocator pointer inside a Script after it was moved in
- * memory (memcpy/memmove by the Scripts dynamic array).
- *
- * The name_input.space pointer has to point at the containing script->space.
- * A stale pointer would reference the old location of the Script before the
- * move.
- *
- * @param script The script at its new location whose refs should be fixed.
- */
-void tkbc_script_fixup_name_refs(Script *script) {
-    if (!script) {
-        return;
-    }
-    script->name_input.space = &script->space;
-}
-
-/**
- * @brief Repairs the self references of every script in the array. Must be
- * called after every operation that may reallocate/move the Scripts elements
- * buffer (space_dap on scripts, memmove on delete).
- *
- * @param scripts The array whose elements should be fixed.
- */
-void tkbc_scripts_fixup_all_name_refs(Scripts *scripts) {
-    if (!scripts) {
-        return;
-    }
-    for (size_t i = 0; i < scripts->count; ++i) {
-        tkbc_script_fixup_name_refs(&scripts->elements[i]);
-    }
 }
 
 /**
@@ -1118,9 +1075,6 @@ int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
             }
 
             env->scripts.count -= 1;
-            // The memmove above shifted Scripts in memory, repair every
-            // name_input.space self reference.
-            tkbc_scripts_fixup_all_name_refs(&env->scripts);
             ok = 0;
             break;
         }
@@ -1318,18 +1272,13 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
             s_copy.name_input.spacing = 2;
             s_copy.name_input.font = env->font;
             s_copy.name_input.text_color = TKBC_UI_BLACK;
-            // The name buffer is already deep copied above; just bind the
-            // allocator.
-            s_copy.name_input.space = &s_copy.space;
+            // The name buffer is already deep copied above into s_copy.space.
             if (!s_copy.name_input.text.elements) {
                 tkbc_text_input_init(&s_copy.name_input, &s_copy.space, "");
             }
         }
 
         space_dap(&env->_scripts_space, &env->scripts, s_copy);
-        // The Scripts elements buffer may have moved, which invalidates every
-        // name_input.space self reference. Repair them all.
-        tkbc_scripts_fixup_all_name_refs(&env->scripts);
 
         // Rest the scratch buffers they got invalidated by resetting the space.
         memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));
