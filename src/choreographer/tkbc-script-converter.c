@@ -12,14 +12,33 @@
 /**
  * @brief The function prints the serialized form of the kite ids.
  *
- * @param file The file where to print the kites.
- * @param ids The kite ids that should be serialized.
+ * Ids are serialized as file-local zero based indices into the global
+ * distinct id list, so exported scripts stay portable even if the in memory
+ * kite ids are higher than a fresh session knows (e.g. after networking or
+ * previous script loads). The parser resolves them back to env kites.
+ *
+ * @param buffer The buffer where to print the kites.
+ * @param ids The kite ids of a single frame that should be serialized.
+ * @param all_ids The distinct kite ids of the whole script in first
+ * appearance order, used for the index mapping.
  */
-void tkbc_print_kites(Content *buffer, Kite_Ids ids) {
+void tkbc_print_kites(Content *buffer, Kite_Ids ids, Kite_Ids all_ids) {
     if (ids.count > 0) {
-        tkbc_dapf(buffer, "(%zu", ids.elements[0]);
+        size_t index = 0;
+        for (; index < all_ids.count; ++index) {
+            if (all_ids.elements[index] == ids.elements[0]) {
+                break;
+            }
+        }
+        tkbc_dapf(buffer, "(%zu", index);
         for (size_t id = 1; id < ids.count; ++id) {
-            tkbc_dapf(buffer, " %zu", ids.elements[id]);
+            index = 0;
+            for (; index < all_ids.count; ++index) {
+                if (all_ids.elements[index] == ids.elements[id]) {
+                    break;
+                }
+            }
+            tkbc_dapf(buffer, " %zu", index);
         }
     } else {
         tkbc_dapf(buffer, "(");
@@ -42,6 +61,21 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
     Kite_Ids ids = {0};
     Content out = {0};
 
+    // Collect all distinct kite ids first so every frame can be serialized
+    // as file-local indices into this list.
+    // TODO: Use hash function for this.
+    for (size_t frames = 0; frames < script->count; ++frames) {
+        for (size_t frame = 0; frame < script->elements[frames].count; ++frame) {
+            Frame *f = &script->elements[frames].elements[frame];
+            for (size_t i = 0; i < f->kite_id_array.count; ++i) {
+                Id id = f->kite_id_array.elements[i];
+                if (!tkbc_contains_id(ids, id)) {
+                    tkbc_dap(&ids, id);
+                }
+            }
+        }
+    }
+
     tkbc_dapf(&out, "BEGIN\n");
     for (size_t frames = 0; frames < script->count; ++frames) {
 
@@ -51,14 +85,6 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
 
         for (size_t frame = 0; frame < script->elements[frames].count; ++frame) {
             Frame *f = &script->elements[frames].elements[frame];
-
-            // TODO: Use hash function for this.
-            for (size_t i = 0; i < f->kite_id_array.count; ++i) {
-                Id id = f->kite_id_array.elements[i];
-                if (!tkbc_contains_id(ids, id)) {
-                    tkbc_dap(&ids, id);
-                }
-            }
 
             switch (f->kind) {
             case ACTION_KITE_QUIT: {
@@ -72,7 +98,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
             case ACTION_KITE_MOVE: {
                 Move_Action action = f->action.as_move;
                 tkbc_dapf(&out, "MOVE ");
-                tkbc_print_kites(&out, f->kite_id_array);
+                tkbc_print_kites(&out, f->kite_id_array, ids);
                 tkbc_dapf(&out, " %G %G", action.position.x, action.position.y);
 
             } break;
@@ -80,7 +106,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
             case ACTION_KITE_MOVE_ADD: {
                 Move_Add_Action action = f->action.as_move_add;
                 tkbc_dapf(&out, "MOVE_ADD ");
-                tkbc_print_kites(&out, f->kite_id_array);
+                tkbc_print_kites(&out, f->kite_id_array, ids);
                 tkbc_dapf(&out, " %G %G", action.position.x, action.position.y);
 
             } break;
@@ -88,7 +114,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
             case ACTION_KITE_ROTATION: {
                 Rotation_Action action = f->action.as_rotation;
                 tkbc_dapf(&out, "ROTATION ");
-                tkbc_print_kites(&out, f->kite_id_array);
+                tkbc_print_kites(&out, f->kite_id_array, ids);
                 tkbc_dapf(&out, " %G", action.angle);
 
             } break;
@@ -96,7 +122,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
             case ACTION_KITE_ROTATION_ADD: {
                 Rotation_Add_Action action = f->action.as_rotation_add;
                 tkbc_dapf(&out, "ROTATION_ADD ");
-                tkbc_print_kites(&out, f->kite_id_array);
+                tkbc_print_kites(&out, f->kite_id_array, ids);
                 tkbc_dapf(&out, " %G", action.angle);
 
             } break;
@@ -104,7 +130,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
             case ACTION_KITE_TIP_ROTATION: {
                 Tip_Rotation_Action action = f->action.as_tip_rotation;
                 tkbc_dapf(&out, "TIP_ROTATION ");
-                tkbc_print_kites(&out, f->kite_id_array);
+                tkbc_print_kites(&out, f->kite_id_array, ids);
                 tkbc_dapf(&out, " %G %s", action.angle, action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
             } break;
@@ -112,7 +138,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
             case ACTION_KITE_TIP_ROTATION_ADD: {
                 Tip_Rotation_Add_Action action = f->action.as_tip_rotation_add;
                 tkbc_dapf(&out, "TIP_ROTATION_ADD ");
-                tkbc_print_kites(&out, f->kite_id_array);
+                tkbc_print_kites(&out, f->kite_id_array, ids);
                 tkbc_dapf(&out, " %G %s", action.angle, action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
             } break;

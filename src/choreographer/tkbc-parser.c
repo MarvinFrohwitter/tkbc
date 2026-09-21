@@ -33,6 +33,7 @@ void tkbc_script_parser(Env *env) {
     bool script_begin = false;
     bool brace = false;
     Kite_Ids ki = {0};
+    Kite_Id_Remap remap = {0};
     Frames *frames = &env->scratch_buf_frames;
     Frame *frame = NULL;
 
@@ -51,7 +52,7 @@ void tkbc_script_parser(Env *env) {
                 char *function_name = strdup(lexer_token_to_cstr(l, &t));
                 assert(function_name != NULL);
                 Kite_Ids kis = {0};
-                if (!tkbc_parse_kis_after_generation(env, l, &kis, ki)) {
+                if (!tkbc_parse_kis_after_generation(env, l, &kis, &ki, &remap)) {
                     check_return(false);
                 }
                 if (!tkbc_parse_team_figures(env, kis, l, function_name, &tmp_buffer)) {
@@ -99,32 +100,32 @@ void tkbc_script_parser(Env *env) {
                 }
                 break;
             } else if (strncmp("MOVE", t.content, t.size) == 0) {
-                if (!tkbc_parse_move(env, l, ACTION_KITE_MOVE, ki, brace, &tmp_buffer)) {
+                if (!tkbc_parse_move(env, l, ACTION_KITE_MOVE, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
-                if (!tkbc_parse_move(env, l, ACTION_KITE_MOVE_ADD, ki, brace, &tmp_buffer)) {
+                if (!tkbc_parse_move(env, l, ACTION_KITE_MOVE_ADD, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("ROTATION", t.content, t.size) == 0) {
-                if (!tkbc_parse_rotation(env, l, ACTION_KITE_ROTATION, ki, brace, &tmp_buffer)) {
+                if (!tkbc_parse_rotation(env, l, ACTION_KITE_ROTATION, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("ROTATION_ADD", t.content, t.size) == 0) {
-                if (!tkbc_parse_rotation(env, l, ACTION_KITE_ROTATION_ADD, ki, brace, &tmp_buffer)) {
+                if (!tkbc_parse_rotation(env, l, ACTION_KITE_ROTATION_ADD, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("TIP_ROTATION", t.content, t.size) == 0) {
-                if (!tkbc_parse_tip_rotation(env, l, ACTION_KITE_TIP_ROTATION, ki, brace, &tmp_buffer)) {
+                if (!tkbc_parse_tip_rotation(env, l, ACTION_KITE_TIP_ROTATION, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("TIP_ROTATION_ADD", t.content, t.size) == 0) {
-                if (!tkbc_parse_tip_rotation(env, l, ACTION_KITE_TIP_ROTATION_ADD, ki, brace, &tmp_buffer)) {
+                if (!tkbc_parse_tip_rotation(env, l, ACTION_KITE_TIP_ROTATION_ADD, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
@@ -190,6 +191,10 @@ void tkbc_script_parser(Env *env) {
 
     // TODO: use maybe a space allocation in here
     ki.elements = NULL;
+    if (remap.file_ids.elements) free(remap.file_ids.elements);
+    remap.file_ids.elements = NULL;
+    if (remap.env_ids.elements) free(remap.env_ids.elements);
+    remap.env_ids.elements = NULL;
 }
 
 /**
@@ -213,37 +218,77 @@ bool tkbc_parsed_kis_is_in_env(Env *env, Index index) {
  * @brief The function parses the kite ids and unions them with the given
  * orig_kis that are then placed into dest_kis.
  *
+ * File-local ids are resolved to the kites of the current environment so
+ * that scripts stay loadable even if their ids are higher than (or otherwise
+ * different from) the currently known kite ids:
+ * 1. ids that already exist in the env are used as is,
+ * 2. ids smaller than the script kite count are treated as an index into
+ *    the script kite list (the documented `KITES n` + `(0 ... n-1)` form),
+ * 3. all other ids get a freshly generated kite that is remembered in the
+ *    remap for the whole script, so the same file id always maps to the
+ *    same kite instead of failing the parse.
+ *
  * @param env The global state of the application.
  * @param lexer The data to parse should be located in her.
  * @param dest_kis The out parameter contains the union of the parsed and
  * already existing kis.
- * @param orig_kis The already generated and existing kis.
+ * @param orig_kis The already generated and existing kis of the script. It
+ * is extended when fallback kites have to be generated.
+ * @param remap Script-wide file id to env id mapping for ids that need a
+ * fallback kite.
  * @return True if the merging has worked, false if there are no kites
- * generated yet but the KITES keyword is used or if a to high id was
- * specified in the script that is not generated, or if an parser error
+ * generated yet but the KITES keyword is used or if an parser error
  * occurred.
  */
-bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis, Kite_Ids orig_kis) {
+bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis, Kite_Ids *orig_kis,
+                                     Kite_Id_Remap *remap) {
 
     Token t = lexer_next(lexer);
     if (strncmp("KITES", t.content, t.size) == 0) {
-        if (orig_kis.count == 0) {
+        if (orig_kis->count == 0) {
             return false;
         }
-        for (size_t i = 0; i < orig_kis.count; ++i) {
-            tkbc_dap(dest_kis, orig_kis.elements[i]);
+        for (size_t i = 0; i < orig_kis->count; ++i) {
+            tkbc_dap(dest_kis, orig_kis->elements[i]);
         }
 
     } else if (t.kind == PUNCT_LPAREN) {
         t = lexer_next(lexer);
         while (t.kind == NUMBER) {
-            int number = atoi(lexer_token_to_cstr(lexer, &t));
-            tkbc_dap(dest_kis, number);
-            if (!tkbc_parsed_kis_is_in_env(env, number)) {
+            long number = strtol(lexer_token_to_cstr(lexer, &t), NULL, 10);
+            if (number < 0) {
                 tkbc_fprintf(stderr, NULL, "%s:%llu:%llu: the given kites in the listing are invalid\n",
                              lexer->file_name, lexer->line_count, lexer->column_count);
                 return false;
             }
+            size_t file_id = (size_t) number;
+            Id env_id;
+            if (tkbc_parsed_kis_is_in_env(env, file_id)) {
+                env_id = file_id;
+            } else if (file_id < orig_kis->count) {
+                env_id = orig_kis->elements[file_id];
+            } else {
+                bool mapped = false;
+                for (size_t i = 0; i < remap->file_ids.count; ++i) {
+                    if (remap->file_ids.elements[i] == file_id) {
+                        env_id = remap->env_ids.elements[i];
+                        mapped = true;
+                        break;
+                    }
+                }
+                if (!mapped) {
+                    Kite_Ids generated = tkbc_kite_array_generate(env, 1);
+                    if (generated.count == 0) {
+                        return false;
+                    }
+                    env_id = generated.elements[0];
+                    free(generated.elements);
+                    tkbc_dap(&remap->file_ids, file_id);
+                    tkbc_dap(&remap->env_ids, env_id);
+                    tkbc_dap(orig_kis, env_id);
+                }
+            }
+            tkbc_dap(dest_kis, env_id);
             t = lexer_next(lexer);
         }
 
@@ -276,13 +321,14 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
  * @return True if the parsing and frame construction has worked, otherwise
  * false.
  */
-bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki, bool brace, Content *tmp_buffer) {
+bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap, bool brace,
+                     Content *tmp_buffer) {
     bool ok = true;
     Kite_Ids kis = {0};
     float x, y, duration;
     Frame *frame = NULL;
 
-    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
+    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki, remap)) {
         check_return(false);
     }
 
@@ -338,13 +384,14 @@ check:
  * @return True if the parsing and frame construction has worked, otherwise
  * false.
  */
-bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki, bool brace, Content *tmp_buffer) {
+bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap, bool brace,
+                         Content *tmp_buffer) {
     bool ok = true;
     Kite_Ids kis = {0};
     float angle, duration;
     Frame *frame = NULL;
 
-    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
+    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki, remap)) {
         check_return(false);
     }
 
@@ -400,14 +447,15 @@ check:
  * @return True if the parsing and frame construction has worked, otherwise
  * false.
  */
-bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki, bool brace, Content *tmp_buffer) {
+bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap,
+                             bool brace, Content *tmp_buffer) {
     bool ok = true;
     Kite_Ids kis = {0};
     TIP tip;
     float angle, duration;
     Frame *frame = NULL;
 
-    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki)) {
+    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki, remap)) {
         check_return(false);
     }
 

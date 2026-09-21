@@ -6,10 +6,24 @@
 #include "../global/tkbc-utils.h"
 
 void tkbc_script_parser(Env *env);
-bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis, Kite_Ids orig_kis);
-bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki, bool brace, Content *tmp_buffer);
-bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki, bool brace, Content *tmp_buffer);
-bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids ki, bool brace, Content *tmp_buffer);
+bool tkbc_parsed_kis_is_in_env(Env *env, Index index);
+
+typedef struct {
+    // Distinct file-local kite ids that could neither be found in the env
+    // nor be interpreted as an index into the script kite list. Parallel to
+    // env_ids: file_ids[i] is mapped to env_ids[i] for the whole script.
+    Kite_Ids file_ids;
+    Kite_Ids env_ids;
+} Kite_Id_Remap;
+
+bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis, Kite_Ids *orig_kis,
+                                     Kite_Id_Remap *remap);
+bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap, bool brace,
+                     Content *tmp_buffer);
+bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap, bool brace,
+                         Content *tmp_buffer);
+bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap, bool brace,
+                             Content *tmp_buffer);
 
 bool tkbc_parse_number_prolog(Lexer *lexer, Content *tmp_buffer);
 bool tkbc_parse_float(float *number, Lexer *lexer, Content *tmp_buffer);

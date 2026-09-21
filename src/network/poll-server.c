@@ -1,7 +1,5 @@
 // Use the UUIDs for the client_kites id's
 
-// When kite ids in .tkbc scripts are higher than the current known ids that is a parsing fail.
-
 // When a new kite .tkbc file is dropped the kites become visible (is_active) that is wrong.
 
 // Sometime the server does not broadcast the new script and this is not because of and actually valid parsing_skip but
