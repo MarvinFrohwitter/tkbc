@@ -99,6 +99,12 @@ int main(void) {
             env->default_scripts_amount = env->scripts.count;
             env->scripts_parsed = true;
 
+            // Generated kites start hidden; the standalone choreographer
+            // flies its working kites manually until a script is loaded.
+            for (size_t i = 0; i < env->kite_array.count; ++i) {
+                env->kite_array.elements[i].is_active = true;
+            }
+
 #ifndef RELEASE
             tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
 #endif  // RELEASE

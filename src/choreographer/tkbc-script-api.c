@@ -427,6 +427,19 @@ Kite_Ids tkbc_indexs_range(int start, int end) {
  * @param kite_count The amount of kites that are pushed to the kite array.
  * @return The kite indies that are appended to the kite array.
  */
+/**
+ * @brief The function initializes the amount of kites that are provided in
+ * the arguments and inserts them in the global kite_array. It also sets a
+ * different color for each kite, rather than the default color.
+ *
+ * The new kites are hidden (is_active == false); visibility is applied when
+ * a script is loaded (tkbc_load_script_id()) or explicitly for manually
+ * flown working kites.
+ *
+ * @param env The global state of the application.
+ * @param kite_count The amount of kites that are pushed to the kite array.
+ * @return The kite indies that are appended to the kite array.
+ */
 Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
     if (kite_count <= 0) {
         return (Kite_Ids){0};
@@ -444,21 +457,31 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
         tkbc_dap(&ids, next_kite_id);
     }
 
+    // The new kites stay hidden until their script is loaded, but they still
+    // need spread-out start positions because scripts bake them at parse
+    // time. Center the row as if the new kites were visible, then place
+    // every new kite unconditionally. Already existing kites (e.g. the
+    // kites of the connected clients on the server) keep their positions;
+    // hidden ones reserve no space.
     {
-        Vector2 start_pos = tkbc_calculate_start_position(env, &env->kite_array, env->window_width, env->window_height);
+        size_t active_existing = 0;
         for (size_t i = 0; i < previous_count; ++i) {
             if (env->kite_array.elements[i].is_active) {
-                start_pos.x += 2 * env->vanilla_kite->width;
+                active_existing++;
             }
         }
-        // Only the newly generated kites are positioned, the already existing
-        // kites (e.g. the kites of the connected clients on the server) keep
-        // their current positions.
+        float kite_width = env->vanilla_kite->width;
+        float kite_height = env->vanilla_kite->height;
+        float viewport_padding = kite_width > kite_height ? kite_width / 2.0f : kite_height;
+        size_t count = active_existing + kite_count;
+        Vector2 start_pos = {
+            .x = env->window_width / 2.0f - count * kite_width + kite_width,
+            .y = env->window_height - 2 * viewport_padding,
+        };
+        start_pos.x += active_existing * 2 * env->vanilla_kite->width;
         for (size_t i = previous_count; i < env->kite_array.count; ++i) {
-            if (env->kite_array.elements[i].is_active) {
-                tkbc_center_rotation(env->kite_array.elements[i].kite, &start_pos, 0);
-                start_pos.x += 2 * env->vanilla_kite->width;
-            }
+            tkbc_center_rotation(env->kite_array.elements[i].kite, &start_pos, 0);
+            start_pos.x += 2 * env->vanilla_kite->width;
         }
     }
     return ids;

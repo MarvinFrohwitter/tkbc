@@ -403,8 +403,8 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     size_t prev_count = env->kite_array.count;
     Kite_Ids generated_kite_ids = tkbc_kite_array_generate(env, kite_count);
 
+    // Generated kites stay hidden until the script is loaded.
     for (size_t i = prev_count; i < env->kite_array.count; ++i) {
-        env->kite_array.elements[i].is_active = false;
         env->kite_array.elements[i].is_script_kite = true;
     }
 

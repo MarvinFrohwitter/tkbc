@@ -3,6 +3,8 @@
 // Sometime the server does not broadcast the new script and this is not because of and actually valid parsing_skip but
 // the function returns earl before the script can be send back.
 
+// The time_line is not visible to a client that joins when the script is loaded but has finished the last frame.
+
 #include "tkbc-servers-common.h"
 
 #define SPACE_IMPLEMENTATION
@@ -1226,10 +1228,11 @@ bool tkbc_base_execution(void) {
             tkbc_write_to_all_send_msg_buffers(t_message);
             tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 
-            for (size_t i = 0; i < env->kite_array.count; ++i) {
-                Kite_State *kite_state = &env->kite_array.elements[i];
-                kite_state->is_active = !kite_state->is_active;
-            }
+            // A finished but still loaded script keeps its script kite view.
+            // Flipping every kite here desynced existing clients (which never
+            // flip) from late joiners (which receive the flipped snapshot as
+            // their initial state). Free-fly resumes explicitly via unload or
+            // script next, both of which already sync visibility.
         }
         return true;
     }

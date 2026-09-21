@@ -38,6 +38,8 @@ Step 1 Initialization
 
 ```C
 // Create the maximum amount of kites that should be used in the script.
+// Generated kites start hidden; they become visible when their script is
+// loaded. For manually flown working kites activate them explicitly.
 Kite_Ids ki = tkbc_kite_array_generate(env, 4);
 Id zero = ki.elements[0];
 Id one = ki.elements[1];

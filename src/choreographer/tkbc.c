@@ -285,6 +285,7 @@ void tkbc_kite_array_start_position(Env *env, Kite_States *kite_states, size_t w
         if (kite_states->elements[i].is_active) {
             if (set_defaults) {
                 tkbc_set_kite_state_defaults(&kite_states->elements[i]);
+                kite_states->elements[i].is_active = true;
                 tkbc_set_kite_defaults(kite_states->elements[i].kite, false);
             }
             tkbc_center_rotation(kite_states->elements[i].kite, &start_pos, 0);
@@ -456,7 +457,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
  */
 void tkbc_set_kite_state_defaults(Kite_State *state) {
 
-    state->is_active = true;
+    state->is_active = false;
     state->is_kite_input_handler_active = false;
     state->fly_velocity = 10;
     state->turn_velocity = 10;
