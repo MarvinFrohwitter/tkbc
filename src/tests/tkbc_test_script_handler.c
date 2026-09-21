@@ -417,6 +417,272 @@ Test calculate_script_byte_size_allocated(void) {
     return test;
 }
 
+static void upscale_test_build_script(Script *script, Id kite_id, Action_Kind kind, Action action, float duration,
+                                        Vector2 start_pos, float start_angle) {
+    memset(script, 0, sizeof(*script));
+    space_init_capacity(&script->space, 64);
+    Frames block = {0};
+    Frame f = {0};
+    f.kind = kind;
+    f.action = action;
+    f.duration = duration;
+    f.original_duration = duration;
+    f.finished = false;
+    f.index = 0;
+    if (kind != ACTION_KITE_WAIT && kind != ACTION_KITE_QUIT) {
+        space_dap(&script->space, &f.kite_id_array, kite_id);
+    }
+    space_dap(&script->space, &block, f);
+    block.frames_index = 0;
+    if (kind != ACTION_KITE_WAIT && kind != ACTION_KITE_QUIT) {
+        Kite_Position kp = {.kite_id = kite_id, .position = start_pos, .angle = start_angle};
+        space_dap(&script->space, &block.kite_frame_positions, kp);
+    }
+    space_dap(&script->space, script, block);
+}
+
+Test upscale_move_absolute(void) {
+    Test test = cassert_init_test("tkbc_upscale_script(MOVE)");
+    Env *env = tkbc_init_env();
+    Kite_State s0 = tkbc_init_kite();
+    s0.kite_id = 0;
+    s0.is_active = true;
+    Vector2 start = {.x = 0, .y = 0};
+    tkbc_center_rotation(s0.kite, &start, 0);
+    s0.kite->old_center = s0.kite->center;
+    s0.kite->old_angle = s0.kite->angle;
+    tkbc_dap(&env->kite_array, s0);
+
+    Space space = {0};
+    space_init_capacity(&space, 64);
+    Action a = {0};
+    a.as_move.position = (Vector2){.x = 60, .y = 0};
+    Script script = {0};
+    upscale_test_build_script(&script, 0, ACTION_KITE_MOVE, a, 1.0f, start, 0);
+
+    tkbc_upscale_script(env, &script, 60.0f);
+    cassert_size_t_eq(script.count, 60);
+    // First slice moves 1/60th of the way, last slice reaches the target.
+    cassert_float_eq(script.elements[0].elements[0].action.as_move.position.x, 1.0f);
+    cassert_float_eq(script.elements[59].elements[0].action.as_move.position.x, 60.0f);
+    cassert_float_eq(script.elements[0].elements[0].duration, 1.0f / 60.0f);
+    // Scrub to the middle lands on the baked start of that slice.
+    env->script = &script;
+    env->frames = &script.elements[0];
+    tkbc_scrub_to_index(env, 30);
+    Kite *k = tkbc_get_kite_by_id(env, 0);
+    cassert_float_eq(k->center.x, 30.0f);
+
+    // Idempotent second pass keeps the count.
+    tkbc_upscale_script(env, &script, 60.0f);
+    cassert_size_t_eq(script.count, 60);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
+Test upscale_move_add(void) {
+    Test test = cassert_init_test("tkbc_upscale_script(MOVE_ADD)");
+    Env *env = tkbc_init_env();
+    Kite_State s0 = tkbc_init_kite();
+    s0.kite_id = 0;
+    s0.is_active = true;
+    Vector2 start = {.x = 0, .y = 0};
+    tkbc_center_rotation(s0.kite, &start, 0);
+    s0.kite->old_center = s0.kite->center;
+    s0.kite->old_angle = s0.kite->angle;
+    tkbc_dap(&env->kite_array, s0);
+
+    Space space = {0};
+    space_init_capacity(&space, 64);
+    Action a = {0};
+    a.as_move_add.position = (Vector2){.x = 60, .y = 0};
+    Script script = {0};
+    upscale_test_build_script(&script, 0, ACTION_KITE_MOVE_ADD, a, 1.0f, start, 0);
+
+    tkbc_upscale_script(env, &script, 60.0f);
+    cassert_size_t_eq(script.count, 60);
+    // Relative offsets stay start-independent: each slice adds (1,0).
+    cassert_float_eq(script.elements[0].elements[0].action.as_move_add.position.x, 1.0f);
+    cassert_int_eq(script.elements[0].elements[0].kind, ACTION_KITE_MOVE_ADD);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
+Test upscale_wait(void) {
+    Test test = cassert_init_test("tkbc_upscale_script(WAIT)");
+    Env *env = tkbc_init_env();
+
+    Script script = {0};
+    space_init_capacity(&script.space, 64);
+    Frames block = {0};
+    Frame f = {0};
+    f.kind = ACTION_KITE_WAIT;
+    f.duration = 0.5f;
+    f.original_duration = 0.5f;
+    f.index = 0;
+    space_dap(&script.space, &block, f);
+    block.frames_index = 0;
+    space_dap(&script.space, &script, block);
+
+    tkbc_upscale_script(env, &script, 60.0f);
+    cassert_size_t_eq(script.count, 30);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
+Test upscale_rotation_add(void) {
+    Test test = cassert_init_test("tkbc_upscale_script(ROTATION_ADD)");
+    Env *env = tkbc_init_env();
+    Kite_State s0 = tkbc_init_kite();
+    s0.kite_id = 0;
+    s0.is_active = true;
+    Vector2 start = {.x = 0, .y = 0};
+    tkbc_center_rotation(s0.kite, &start, 0);
+    s0.kite->old_center = s0.kite->center;
+    s0.kite->old_angle = s0.kite->angle;
+    tkbc_dap(&env->kite_array, s0);
+
+    Script script = {0};
+    space_init_capacity(&script.space, 64);
+    Frames block = {0};
+    Frame f = {0};
+    f.kind = ACTION_KITE_ROTATION_ADD;
+    f.action.as_rotation_add.angle = 90.0f;
+    f.duration = 1.0f;
+    f.original_duration = 1.0f;
+    f.index = 0;
+    space_dap(&script.space, &f.kite_id_array, (Id) 0);
+    space_dap(&script.space, &block, f);
+    block.frames_index = 0;
+    Kite_Position kp = {.kite_id = 0, .position = start, .angle = 0};
+    space_dap(&script.space, &block.kite_frame_positions, kp);
+    space_dap(&script.space, &script, block);
+
+    tkbc_upscale_script(env, &script, 60.0f);
+    cassert_size_t_eq(script.count, 60);
+    cassert_bool_eq(fabsf(script.elements[0].elements[0].action.as_rotation_add.angle - 1.5f) < 0.001f, true);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
+static Env *scrub_test_setup_env(Script *script) {
+    Env *env = tkbc_init_env();
+    Kite_State s0 = tkbc_init_kite();
+    s0.kite_id = 0;
+    s0.is_active = true;
+    s0.is_script_kite = true;
+    Vector2 start = {.x = 0, .y = 0};
+    tkbc_center_rotation(s0.kite, &start, 0);
+    s0.kite->old_center = s0.kite->center;
+    s0.kite->old_angle = s0.kite->angle;
+    tkbc_dap(&env->kite_array, s0);
+
+    Action a = {0};
+    a.as_move.position = (Vector2){.x = 60, .y = 0};
+    upscale_test_build_script(script, 0, ACTION_KITE_MOVE, a, 1.0f, start, 0);
+    tkbc_upscale_script(env, script, 60.0f);
+
+    env->script = script;
+    env->frames = &script->elements[0];
+    env->script_finished = false;
+    return env;
+}
+
+Test scrub_stays_in_script_mode(void) {
+    Test test = cassert_init_test("scrub stays inside script mode");
+    Script script = {0};
+    Env *env = scrub_test_setup_env(&script);
+
+    // Scrub to start, end, and past the end: the script must stay loaded,
+    // paused, with script kites still presented (no unload, no visibility
+    // flip to non-script kites).
+    tkbc_scrub_to_index(env, 0);
+    cassert_ptr_neq(env->script, NULL);
+    cassert_ptr_neq(env->frames, NULL);
+    cassert_size_t_eq(env->frames->frames_index, 0);
+    cassert_bool_eq(env->script_finished, true);
+    cassert_bool_eq(env->kite_array.elements[0].is_active, true);
+
+    tkbc_scrub_to_index(env, script.count - 1);
+    cassert_ptr_neq(env->script, NULL);
+    cassert_ptr_neq(env->frames, NULL);
+    cassert_size_t_eq(env->frames->frames_index, script.count - 1);
+    cassert_bool_eq(env->script_finished, true);
+    cassert_bool_eq(env->kite_array.elements[0].is_active, true);
+    cassert_bool_eq(fabsf(tkbc_get_kite_by_id(env, 0)->center.x - 59.0f) < 0.01f, true);
+
+    // Past-the-end clamps into range instead of finishing/unloading.
+    tkbc_scrub_to_index(env, script.count + 100);
+    cassert_ptr_neq(env->script, NULL);
+    cassert_ptr_neq(env->frames, NULL);
+    cassert_size_t_eq(env->frames->frames_index, script.count - 1);
+    cassert_bool_eq(env->kite_array.elements[0].is_active, true);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
+Test finish_stays_loaded(void) {
+    Test test = cassert_init_test("natural finish stays loaded");
+    Script script = {0};
+    Env *env = scrub_test_setup_env(&script);
+
+    // Simulate all frames done on the final slice, then run the finish path.
+    env->frames = &script.elements[script.count - 1];
+    for (size_t j = 0; j < env->frames->count; ++j) {
+        env->frames->elements[j].finished = true;
+    }
+    env->script_finished = false;
+    tkbc_script_update_frames(env);
+
+    // Finished, but still loaded in script mode: only an explicit NO SCRIPT
+    // (unload) may terminate execution.
+    cassert_bool_eq(env->script_finished, true);
+    cassert_ptr_neq(env->script, NULL);
+    cassert_ptr_neq(env->frames, NULL);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
+Test toggle_at_end_clamps(void) {
+    Test test = cassert_init_test("toggle at end clamps, no wrap");
+    Script script = {0};
+    Env *env = scrub_test_setup_env(&script);
+
+    // Scrub-paused at the final slice, then toggle to play: resumes in place
+    // at the end (clamped, no wrap-around to the start) and stays loaded.
+    tkbc_scrub_to_index(env, script.count - 1);
+    tkbc_toggle_script_execution(env);
+    cassert_size_t_eq(env->frames->frames_index, script.count - 1);
+    cassert_bool_eq(env->script_finished, false);
+    cassert_ptr_neq(env->script, NULL);
+    cassert_ptr_neq(env->frames, NULL);
+
+    // Plain pause/resume in the middle is a simple flip.
+    tkbc_scrub_to_index(env, 10);
+    tkbc_toggle_script_execution(env);  // paused -> resume
+    cassert_bool_eq(env->script_finished, false);
+    cassert_size_t_eq(env->frames->frames_index, 10);
+    tkbc_toggle_script_execution(env);  // playing -> pause
+    cassert_bool_eq(env->script_finished, true);
+    cassert_size_t_eq(env->frames->frames_index, 10);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
 /**
  * @brief Run all script handler unit tests.
  *
@@ -433,4 +699,11 @@ void tkbc_test_script_handler(Tests *tests) {
     cassert_dap(tests, destroy_frames_internal_data());
     cassert_dap(tests, reset_frames_internal_data());
     cassert_dap(tests, calculate_script_byte_size_allocated());
+    cassert_dap(tests, upscale_move_absolute());
+    cassert_dap(tests, upscale_move_add());
+    cassert_dap(tests, upscale_wait());
+    cassert_dap(tests, upscale_rotation_add());
+    cassert_dap(tests, scrub_stays_in_script_mode());
+    cassert_dap(tests, finish_stays_loaded());
+    cassert_dap(tests, toggle_at_end_clamps());
 }

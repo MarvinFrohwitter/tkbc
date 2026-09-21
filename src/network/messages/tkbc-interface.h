@@ -171,16 +171,22 @@ typedef enum {
 
 /**
  *
- * MESSAGE_SCRIPT_SCRUB:
+ * MESSAGE_SCRIPT_SCRUB: absolute timeline jump for continuous scrubbing.
+ *
+ * The client maps its mouse X onto the (upscaled, per-tick) timeline and
+ * sends the target frames_index. The server jumps via tkbc_scrub_to_index,
+ * so every animation tick in between keyframes is reachable like in a video.
  *
  *****
- * MESSAGE_SCRIPT_SCRUB:drag_left:\r\n
+ * MESSAGE_SCRIPT_SCRUB:target_frames_index:\r\n
  *****
  */
 
 /**
  *
- * MESSAGE_SCRIPT_FINISHED:
+ * MESSAGE_SCRIPT_FINISHED: no longer sent on natural end (kept for protocol
+ * compatibility). A finished script stays paused in script mode; only an
+ * explicit NO SCRIPT (SCRIPT_NEXT with nil id) terminates execution.
  *
  *****
  * MESSAGE_SCRIPT_FINISHED:\r\n

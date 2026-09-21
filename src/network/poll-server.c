@@ -975,8 +975,10 @@ bool tkbc_received_message_handler(Client *client) {
         } break;
         case MESSAGE_SCRIPT_TOGGLE: {
             // The script associated kites don't have to be toggled in visibility,
-            // because you want to be able to pause the script.
-            env->script_finished = !env->script_finished;
+            // because you want to be able to pause the script. Resuming at the
+            // final slice restarts from the beginning instead of instantly
+            // finishing, so scrubbing stays inside script mode.
+            tkbc_toggle_script_execution(env);
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_TOGGLE\n");
         } break;
@@ -1226,16 +1228,11 @@ bool tkbc_base_execution(void) {
         tkbc_message_clientkites_write_to_all_send_msg_buffers(false);
 
         if (tkbc_script_finished(env)) {
-            space_tdapf(&t_message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
-            tkbc_write_to_all_send_msg_buffers(t_message);
-            tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
-
-            // Execution ended but the script stays loaded: return to the
-            // free-fly view explicitly. Clients switch to the same view on
-            // SCRIPT_FINISHED, so late joiners receive a snapshot that
-            // matches what everyone else shows. (A blind flip of every kite
-            // would also expose unrelated hidden script kites.)
-            tkbc_change_visibility_to_non_script_kites(env);
+            // Natural end of the script: stay paused in script mode on the
+            // final frame (video-like). Termination is explicit only via the
+            // NO SCRIPT button (SCRIPT_NEXT with nil id), which unloads and
+            // flips visibility. No FINISHED broadcast, no visibility change.
+            tkbc_fprintf(stderr, "INFO", "The script has finished successfully. Staying in script mode.\n");
         }
         return true;
     }

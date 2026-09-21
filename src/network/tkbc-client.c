@@ -643,19 +643,11 @@ bool received_message_handler(Message *message) {
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_PARSED\n");
         } break;
         case MESSAGE_SCRIPT_FINISHED: {
+            // Natural end no longer terminates: stay paused in script mode on
+            // the final frame. Termination is explicit only via NO SCRIPT
+            // (SCRIPT_NEXT with nil id / nil meta). Kept for protocol
+            // compatibility; current servers no longer send this.
             env->script_finished = true;
-            env->server_script_id = tkbc_uuid_nil();
-
-            // Execution ended: mirror the server, which returns to the
-            // free-fly view. Drop any local script view so stale script
-            // kites don't linger next to the normal kites.
-            tkbc_unload_script(env);
-            tkbc_change_visibility_to_non_script_kites(env);
-            for (size_t i = 0; i < env->kite_array.count; ++i) {
-                if (!env->kite_array.elements[i].is_script_kite) {
-                    env->kite_array.elements[i].is_kite_input_handler_active = true;
-                }
-            }
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_FINISHED\n");
         } break;
@@ -980,14 +972,42 @@ void tkbc_client_input_handler_script(void) {
         env->new_script_selected = false;
     }
 
+    static size_t last_sent_scrub_target = (size_t) -1;
+    if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
+        last_sent_scrub_target = (size_t) -1;
+    }
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
-        int mouse_x = GetMouseX();
-        float slider = env->timeline_front.x + env->timeline_front.width;
-        float c = mouse_x - slider;
-        bool drag_left = c <= 0;
+        // Video-like absolute scrub of the server timeline: map the mouse X
+        // onto the upscaled per-tick frame count and send the target index.
+        // Only send on change to avoid spamming one message per frame while
+        // holding still.
+        if (env->timeline_base.width > 0 && env->server_script_frames_count > 0) {
+            int mouse_x = GetMouseX();
+            float t = ((float) mouse_x - env->timeline_base.x) / env->timeline_base.width;
+            if (t < 0) {
+                t = 0;
+            }
+            if (t > 1) {
+                t = 1;
+            }
+            size_t target = (size_t) (t * (float) env->server_script_frames_count);
+            if (target >= env->server_script_frames_count) {
+                target = env->server_script_frames_count - 1;
+            }
+            if (target != last_sent_scrub_target) {
+                last_sent_scrub_target = target;
+                space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n",
+                           MESSAGE_SCRIPT_SCRUB, target);
+            }
+        } else {
+            int mouse_x = GetMouseX();
+            float slider = env->timeline_front.x + env->timeline_front.width;
+            float c = mouse_x - slider;
+            bool drag_left = c <= 0;
 
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%d:\r\n", MESSAGE_SCRIPT_SCRUB,
-                   drag_left);
+            space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%d:\r\n", MESSAGE_SCRIPT_SCRUB,
+                       drag_left);
+        }
     }
 }
 

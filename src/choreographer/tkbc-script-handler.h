@@ -46,16 +46,27 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full);
 void tkbc_input_handler_script(Env *env);
 void tkbc_set_kite_positions_from_kite_frames_positions(Env *env);
 void tkbc_execute_scrub_slide(Env *env, bool drag_left);
+void tkbc_scrub_to_index(Env *env, size_t target_index);
+void tkbc_toggle_script_execution(Env *env);
 void tkbc_restore_script_frame_states(Env *env);
 void tkbc_scrub_frames(Env *env);
+
+float tkbc_block_original_duration(const Frames *frames);
+size_t tkbc_upscale_step_count(float duration, float fps);
+void tkbc_upscale_script(Env *env, Script *script, float fps);
 
 // ===========================================================================
 // ========================== SCRIPT HANDLER INTERNAL ========================
 // ===========================================================================
 
 Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration);
+Vector2 tkbc_script_move_with_dt(Kite *kite, Vector2 position, float duration, float dt);
 float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding);
+float tkbc_script_rotate_with_dt(Kite *kite, float angle, float duration, bool adding, float dt);
 float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration, bool adding);
+float tkbc_script_rotate_tip_with_dt(Kite *kite, TIP tip, float angle, float duration, bool adding, float dt);
 float tkbc_check_angle_zero(Kite *kite, Action_Kind kind, Action action, float duration);
+void tkbc_render_frame(Env *env, Frame *frame);
+void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt);
 
 #endif  // TKBC_SCRIPT_HANDLER_H_

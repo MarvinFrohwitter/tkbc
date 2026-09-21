@@ -490,7 +490,7 @@ static Vector2 tkbc_combined_move_destination(Kite *kite, Frame *tip_frame, Vect
  * intermediate values.
  * @return true if a global quit is active fired, otherwise false.
  */
-void tkbc_render_frame(Env *env, Frame *frame) {
+void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
     Kite *kite = NULL;
     Frame *env_frame = &env->frames->elements[frame->index];
 
@@ -511,7 +511,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             frame->finished = true;
             frame->duration = 0;
         } else {
-            frame->duration -= tkbc_get_frame_time();
+            frame->duration -= dt;
         }
     } break;
 
@@ -527,10 +527,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             if (tip_frame) {
                 dest_position = tkbc_combined_move_destination(kite, tip_frame, action->position);
             }
-            Vector2 d = tkbc_script_move(kite, dest_position, frame->duration);
+            Vector2 d = tkbc_script_move_with_dt(kite, dest_position, frame->duration, dt);
 
             if (Vector2Equals(dest_position, kite->old_center)) {
-                frame->duration -= tkbc_get_frame_time();
+                frame->duration -= dt;
                 if (frame->duration <= 0) {
                     frame->finished = true;
                 }
@@ -541,7 +541,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
             if (res) {
                 frame->finished = true;
-                tkbc_script_move(kite, dest_position, 0);
+                tkbc_script_move_with_dt(kite, dest_position, 0, dt);
             }
         }
 
@@ -554,11 +554,11 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             Id id = env_frame->kite_id_array.elements[i];
             kite = tkbc_get_kite_by_id_unwrap(env, id);
 
-            Vector2 d = tkbc_script_move(kite, action->position, frame->duration);
+            Vector2 d = tkbc_script_move_with_dt(kite, action->position, frame->duration, dt);
 
             if (Vector2Equals(action->position, Vector2Zero())) {
                 if (frame->duration > 0) {
-                    frame->duration -= tkbc_get_frame_time();
+                    frame->duration -= dt;
                     continue;
                 }
                 bool result = fabsf(action->position.x - kite->center.x) <= d.x &&
@@ -574,7 +574,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
             if (res) {
                 frame->finished = true;
-                tkbc_script_move(kite, action->position, 0);
+                tkbc_script_move_with_dt(kite, action->position, 0, dt);
             }
         }
     } break;
@@ -586,9 +586,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             Id id = env_frame->kite_id_array.elements[i];
             kite = tkbc_get_kite_by_id_unwrap(env, id);
 
-            float d = tkbc_script_rotate(kite, action->angle, frame->duration, true);
+            float d = tkbc_script_rotate_with_dt(kite, action->angle, frame->duration, true, dt);
             if (action->angle == 0) {
-                frame->duration -= tkbc_get_frame_time();
+                frame->duration -= dt;
                 if (frame->duration <= 0) {
                     frame->finished = true;
                 }
@@ -599,7 +599,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             if (result) {
                 frame->finished = true;
                 // Enable for setting the correct angle precision.
-                tkbc_script_rotate(kite, action->angle, 0, true);
+                tkbc_script_rotate_with_dt(kite, action->angle, 0, true, dt);
             }
         }
     } break;
@@ -612,11 +612,11 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             kite = tkbc_get_kite_by_id_unwrap(env, id);
 
             float intermediate_angle = tkbc_check_angle_zero(kite, frame->kind, *(Action *) action, frame->duration);
-            float d = tkbc_script_rotate(kite, intermediate_angle, frame->duration, false);
+            float d = tkbc_script_rotate_with_dt(kite, intermediate_angle, frame->duration, false, dt);
 
             if (action->angle == 0) {
                 if (frame->duration > 0) {
-                    frame->duration -= tkbc_get_frame_time();
+                    frame->duration -= dt;
                     continue;
                 }
                 bool result = fabsf(kite->angle) <= d * fmaxf(1.0f, fabsf(kite->angle));
@@ -631,7 +631,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             if (result) {
                 frame->finished = true;
                 // Enable for setting the correct angle precision.
-                tkbc_script_rotate(kite, intermediate_angle, 0, false);
+                tkbc_script_rotate_with_dt(kite, intermediate_angle, 0, false, dt);
             }
         }
     } break;
@@ -649,12 +649,12 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
             float d;
             if (has_move) {
-                d = tkbc_script_rotate(kite, action->angle, frame->duration, true);
+                d = tkbc_script_rotate_with_dt(kite, action->angle, frame->duration, true, dt);
             } else {
-                d = tkbc_script_rotate_tip(kite, action->tip, action->angle, frame->duration, true);
+                d = tkbc_script_rotate_tip_with_dt(kite, action->tip, action->angle, frame->duration, true, dt);
             }
             if (action->angle == 0) {
-                frame->duration -= tkbc_get_frame_time();
+                frame->duration -= dt;
                 if (frame->duration <= 0) {
                     frame->finished = true;
                 }
@@ -665,9 +665,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             if (result) {
                 frame->finished = true;
                 if (has_move) {
-                    tkbc_script_rotate(kite, action->angle, 0, true);
+                    tkbc_script_rotate_with_dt(kite, action->angle, 0, true, dt);
                 } else {
-                    tkbc_script_rotate_tip(kite, action->tip, action->angle, 0, true);
+                    tkbc_script_rotate_tip_with_dt(kite, action->tip, action->angle, 0, true, dt);
                 }
             }
         }
@@ -685,14 +685,14 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
             float d;
             if (has_move) {
-                d = tkbc_script_rotate(kite, intermediate_angle, frame->duration, false);
+                d = tkbc_script_rotate_with_dt(kite, intermediate_angle, frame->duration, false, dt);
             } else {
-                d = tkbc_script_rotate_tip(kite, action->tip, intermediate_angle, frame->duration, false);
+                d = tkbc_script_rotate_tip_with_dt(kite, action->tip, intermediate_angle, frame->duration, false, dt);
             }
 
             if (action->angle == 0) {
                 if (frame->duration > 0) {
-                    frame->duration -= tkbc_get_frame_time();
+                    frame->duration -= dt;
                     continue;
                 }
                 bool result = fabsf(kite->angle) <= d * fmaxf(1.0f, fabsf(kite->angle));
@@ -707,9 +707,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             if (result) {
                 frame->finished = true;
                 if (has_move) {
-                    tkbc_script_rotate(kite, intermediate_angle, 0, false);
+                    tkbc_script_rotate_with_dt(kite, intermediate_angle, 0, false, dt);
                 } else {
-                    tkbc_script_rotate_tip(kite, action->tip, intermediate_angle, 0, false);
+                    tkbc_script_rotate_tip_with_dt(kite, action->tip, intermediate_angle, 0, false, dt);
                 }
             }
         }
@@ -717,6 +717,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
     default: assert(0 && "UNREACHABLE tkbc_render_frame()");
     }
+}
+
+void tkbc_render_frame(Env *env, Frame *frame) {
+    tkbc_render_frame_with_dt(env, frame, tkbc_get_frame_time());
 }
 
 /**
@@ -1001,15 +1005,18 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
     if (!fresh) {
         tkbc_set_kite_positions_from_kite_frames_positions(env);
     } else {
-        // load without setting any position but clear alle the saved positions
-        // start a fresh play.
+        // Fresh play of an (upscaled) script: keep the baked per-tick start
+        // positions so scrubbing works immediately without a full play first.
+        // The kites jump to the baked initial positions like a video restart.
         assert(env->script);
         tkbc_restore_script_frame_states(env);
-        for (size_t i = 0; i < env->script->count; ++i) {
-            env->script->elements[i].kite_frame_positions.count = 0;
+        if (env->script->count > 0 && env->script->elements[0].kite_frame_positions.count > 0) {
+            tkbc_set_kite_positions_from_kite_frames_positions(env);
+        } else {
+            // Fallback for scripts without baked positions (e.g. pure WAIT):
+            // start from the current kite positions.
+            tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
         }
-
-        tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
     }
     env->script_finished = false;
     env->script_loading = true;
@@ -1209,6 +1216,667 @@ size_t tkbc_calculate_script_byte_size_allocated(Script script) {
 }
 
 /**
+ * @brief Returns the longest original duration of all frames in the block.
+ *
+ * The upscaling uses the original durations (not the mutated live ones) so
+ * that a replay or a second upscale pass sees the same timing.
+ *
+ * @param frames The block to inspect.
+ * @return The maximum original_duration, or duration as a fallback.
+ */
+float tkbc_block_original_duration(const Frames *frames) {
+    float max = 0;
+    if (!frames) {
+        return 0;
+    }
+    for (size_t i = 0; i < frames->count; ++i) {
+        float d = frames->elements[i].original_duration;
+        if (d <= 0) {
+            d = frames->elements[i].duration;
+        }
+        if (d > max) {
+            max = d;
+        }
+    }
+    return max;
+}
+
+/**
+ * @brief Returns how many timeline steps a duration needs at the given fps.
+ *
+ * @param duration The duration in seconds.
+ * @param fps The frames per second, e.g. TARGET_FPS.
+ * @return At least 1. ceil(duration * fps) otherwise.
+ */
+size_t tkbc_upscale_step_count(float duration, float fps) {
+    if (duration <= 0 || fps <= 0) {
+        return 1;
+    }
+    size_t n = (size_t) ceilf(duration * fps - 1e-6f);
+    if (n < 1) {
+        n = 1;
+    }
+    // Safety cap so a pathological WAIT (e.g. 1000s) cannot OOM the script.
+    // 10000 steps are ~166s at 60fps and still scrub smoothly.
+    if (n > 10000) {
+        n = 10000;
+    }
+    return n;
+}
+
+typedef struct {
+    Id id;
+    Kite kite;
+} Upscale_Kite;
+
+static Upscale_Kite *upscale_find_kite(Upscale_Kite *map, size_t map_count, Id id) {
+    for (size_t i = 0; i < map_count; ++i) {
+        if (map[i].id == id) {
+            return &map[i];
+        }
+    }
+    return NULL;
+}
+
+static bool upscale_block_has_move(const Frames *block, Id id) {
+    for (size_t i = 0; i < block->count; ++i) {
+        const Frame *f = &block->elements[i];
+        if (f->kind == ACTION_KITE_MOVE || f->kind == ACTION_KITE_MOVE_ADD) {
+            for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+                if (f->kite_id_array.elements[j] == id) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+static bool upscale_frame_is_motion(Action_Kind kind) {
+    return kind == ACTION_KITE_MOVE || kind == ACTION_KITE_MOVE_ADD || kind == ACTION_KITE_ROTATION ||
+           kind == ACTION_KITE_ROTATION_ADD || kind == ACTION_KITE_TIP_ROTATION || kind == ACTION_KITE_TIP_ROTATION_ADD;
+}
+
+/**
+ * @brief Finds the signed travel in direction of the target for absolute rotations.
+ *
+ * Absolute rotations move in direction sign(target) until the wrapped angle
+ * matches. The search samples the same fabs(fmod()) comparison the playback
+ * uses, so the baked travel matches what the live execution would do.
+ */
+static float upscale_absolute_travel(float start_angle, float target_angle) {
+    float dir = signbit(target_angle) ? -1.0f : 1.0f;
+    float target_mod = fabsf(fmodf(target_angle, 360.0f));
+    for (float d = 0; d <= 360.0f; d += 0.05f) {
+        float y = start_angle + dir * d;
+        float m = fabsf(fmodf(y, 360.0f));
+        if (fabsf(m - target_mod) <= 0.06f) {
+            return dir * d;
+        }
+    }
+    return dir * 360.0f;
+}
+
+static void upscale_ensure_kite(Env *env, Upscale_Kite **map, size_t *map_count, size_t *map_cap, Id id,
+                                const Frames *block) {
+    if (upscale_find_kite(*map, *map_count, id)) {
+        return;
+    }
+    if (*map_count >= *map_cap) {
+        size_t ncap = *map_cap ? *map_cap * 2 : 16;
+        Upscale_Kite *n = realloc(*map, ncap * sizeof(**map));
+        if (!n) {
+            abort();
+        }
+        *map = n;
+        *map_cap = ncap;
+    }
+    Upscale_Kite *slot = &(*map)[*map_count];
+    slot->id = id;
+    Kite *src = tkbc_get_kite_by_id(env, id);
+    if (src) {
+        slot->kite = *src;
+    } else if (env->vanilla_kite) {
+        slot->kite = *env->vanilla_kite;
+    } else {
+        memset(&slot->kite, 0, sizeof(slot->kite));
+    }
+    // Start from the stored block start when available, otherwise keep the
+    // current (cloned) position.
+    bool found = false;
+    for (size_t i = 0; i < block->kite_frame_positions.count; ++i) {
+        if (block->kite_frame_positions.elements[i].kite_id == id) {
+            Vector2 p = block->kite_frame_positions.elements[i].position;
+            float a = block->kite_frame_positions.elements[i].angle;
+            tkbc_center_rotation(&slot->kite, &p, a);
+            slot->kite.old_center = slot->kite.center;
+            slot->kite.old_angle = slot->kite.angle;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        slot->kite.old_center = slot->kite.center;
+        slot->kite.old_angle = slot->kite.angle;
+    }
+    *map_count += 1;
+}
+
+/**
+ * @brief Instantly applies a whole block to the temp kite map for chaining.
+ *
+ * Used for blocks that are kept as-is (N <= 1) so the next block still starts
+ * from the correct end positions. Rotations/tips run first, moves second, so
+ * a combined MOVE_ADD + TIP_ROTATION ends at tip_end + offset like the live
+ * combined destination.
+ */
+static void upscale_apply_block_instant(Upscale_Kite *map, size_t map_count, const Frames *block) {
+    for (size_t pass = 0; pass < 2; ++pass) {
+        for (size_t i = 0; i < block->count; ++i) {
+            const Frame *f = &block->elements[i];
+            bool is_move = f->kind == ACTION_KITE_MOVE || f->kind == ACTION_KITE_MOVE_ADD;
+            if ((pass == 0 && is_move) || (pass == 1 && !is_move && upscale_frame_is_motion(f->kind))) {
+                // pass 0: rotations/tips only, pass 1: moves only.
+                if (pass == 0 && is_move) {
+                    continue;
+                }
+                if (pass == 1 && !is_move) {
+                    continue;
+                }
+            }
+            if (pass == 0 && is_move) {
+                continue;
+            }
+            if (pass == 1 && !is_move) {
+                continue;
+            }
+            for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+                Upscale_Kite *uk = upscale_find_kite(map, map_count, f->kite_id_array.elements[j]);
+                if (!uk) {
+                    continue;
+                }
+                switch (f->kind) {
+                case ACTION_KITE_MOVE: {
+                    Vector2 target = f->action.as_move.position;
+                    tkbc_center_rotation(&uk->kite, &target, uk->kite.angle);
+                } break;
+                case ACTION_KITE_MOVE_ADD: {
+                    Vector2 np = Vector2Add(uk->kite.center, f->action.as_move_add.position);
+                    tkbc_kite_update_position(&uk->kite, &np);
+                } break;
+                case ACTION_KITE_ROTATION:
+                    tkbc_kite_update_angle(&uk->kite, f->action.as_rotation.angle);
+                    break;
+                case ACTION_KITE_ROTATION_ADD:
+                    tkbc_kite_update_angle(&uk->kite, uk->kite.angle + f->action.as_rotation_add.angle);
+                    break;
+                case ACTION_KITE_TIP_ROTATION:
+                    tkbc_tip_rotation(&uk->kite, NULL, f->action.as_tip_rotation.angle, f->action.as_tip_rotation.tip);
+                    break;
+                case ACTION_KITE_TIP_ROTATION_ADD:
+                    tkbc_tip_rotation(&uk->kite, NULL, uk->kite.angle + f->action.as_tip_rotation_add.angle,
+                                      f->action.as_tip_rotation_add.tip);
+                    break;
+                default: break;
+                }
+            }
+        }
+    }
+    for (size_t i = 0; i < map_count; ++i) {
+        map[i].kite.old_center = map[i].kite.center;
+        map[i].kite.old_angle = map[i].kite.angle;
+    }
+}
+
+static void upscale_push_single_id_frame(Space *space, Frames *slice, Action_Kind kind, Action action, float duration,
+                                         Id kite_id) {
+    Frame f = {0};
+    f.kind = kind;
+    f.action = action;
+    f.duration = duration;
+    f.original_duration = duration;
+    f.finished = false;
+    f.index = slice->count;
+    space_dap(space, &f.kite_id_array, kite_id);
+    space_dap(space, slice, f);
+}
+
+static void upscale_push_wait_frame(Space *space, Frames *slice, Action_Kind kind, float duration) {
+    Frame f = {0};
+    f.kind = kind;
+    f.duration = duration;
+    f.original_duration = duration;
+    f.finished = false;
+    f.index = slice->count;
+    space_dap(space, slice, f);
+}
+
+/**
+ * @brief Expands every long block into per-tick slices at the given fps.
+ *
+ * Each block with duration D becomes N = ceil(D * fps) slices of duration
+ * D / N (~1/fps). Relative actions (ADD) are split proportionally so they
+ * stay start-independent, absolute MOVE targets are linearly interpolated,
+ * and absolute rotations are split into ADD deltas plus a final absolute
+ * snap. Blocks with N <= 1 are kept as-is (idempotent second pass).
+ *
+ * The script is rebuilt in its own Space; old arrays stay allocated in the
+ * same Space and are simply orphaned (the Space frees everything at once).
+ *
+ * @param env The global state, used for kite geometry templates.
+ * @param script The script to upscale in place.
+ * @param fps The timeline resolution, usually TARGET_FPS.
+ */
+void tkbc_upscale_script(Env *env, Script *script, float fps) {
+    if (!env || !script || script->count == 0 || fps <= 0) {
+        return;
+    }
+
+    Script upscaled = {0};
+    Upscale_Kite *map = NULL;
+    size_t map_count = 0;
+    size_t map_cap = 0;
+
+    for (size_t b = 0; b < script->count; ++b) {
+        Frames *block = &script->elements[b];
+        float D = tkbc_block_original_duration(block);
+        size_t N = tkbc_upscale_step_count(D, fps);
+
+        // Collect motion kite ids and wait/quit presence.
+        Id *involved = NULL;
+        size_t involved_count = 0;
+        size_t involved_cap = 0;
+        bool has_motion = false;
+        for (size_t i = 0; i < block->count; ++i) {
+            Frame *f = &block->elements[i];
+            if (f->kind == ACTION_KITE_WAIT || f->kind == ACTION_KITE_QUIT) {
+                continue;
+            } else if (upscale_frame_is_motion(f->kind)) {
+                has_motion = true;
+                for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+                    Id id = f->kite_id_array.elements[j];
+                    bool seen = false;
+                    for (size_t k = 0; k < involved_count; ++k) {
+                        if (involved[k] == id) {
+                            seen = true;
+                            break;
+                        }
+                    }
+                    if (!seen) {
+                        if (involved_count >= involved_cap) {
+                            size_t ncap = involved_cap ? involved_cap * 2 : 8;
+                            Id *n = realloc(involved, ncap * sizeof(*n));
+                            if (!n) {
+                                abort();
+                            }
+                            involved = n;
+                            involved_cap = ncap;
+                        }
+                        involved[involved_count++] = id;
+                    }
+                }
+            }
+        }
+
+        for (size_t k = 0; k < involved_count; ++k) {
+            upscale_ensure_kite(env, &map, &map_count, &map_cap, involved[k], block);
+        }
+        // Sync existing map entries to the carried end positions: old = current.
+        // New entries were already initialized to the stored block start.
+        // For existing entries the current center already holds the previous
+        // block end, which is the correct start here (stale stored starts are
+        // ignored, fixing pre-playback scrub positions as well).
+        for (size_t k = 0; k < involved_count; ++k) {
+            Upscale_Kite *uk = upscale_find_kite(map, map_count, involved[k]);
+            if (uk) {
+                uk->kite.old_center = uk->kite.center;
+                uk->kite.old_angle = uk->kite.angle;
+            }
+        }
+
+        if (N <= 1 || D <= 0) {
+            // Keep as-is, but advance the chain so later blocks start correctly.
+            if (has_motion) {
+                upscale_apply_block_instant(map, map_count, block);
+            }
+            Frames kept = tkbc_deep_copy_frames(&script->space, block);
+            kept.frames_index = upscaled.count;
+            for (size_t i = 0; i < kept.count; ++i) {
+                kept.elements[i].index = i;
+            }
+            space_dap(&script->space, &upscaled, kept);
+            free(involved);
+            continue;
+        }
+
+        // N > 1: bake per-kite start snapshots and iterative cursors.
+        float step = D / (float) N;
+        typedef struct {
+            Id id;
+            Vector2 start_pos;
+            float start_angle;
+            Vector2 cur_pos;
+            float cur_angle;
+            Kite geo;
+        } Cursor;
+        Cursor *cursors = malloc(involved_count * sizeof(*cursors));
+        if (involved_count && !cursors) {
+            abort();
+        }
+        for (size_t k = 0; k < involved_count; ++k) {
+            Upscale_Kite *uk = upscale_find_kite(map, map_count, involved[k]);
+            cursors[k].id = involved[k];
+            cursors[k].start_pos = uk->kite.center;
+            cursors[k].start_angle = uk->kite.angle;
+            cursors[k].cur_pos = uk->kite.center;
+            cursors[k].cur_angle = uk->kite.angle;
+            cursors[k].geo = uk->kite;
+        }
+
+        // Precompute per (frame,kite) absolute travel for rotations.
+        for (size_t s = 0; s < N; ++s) {
+            Frames slice = {0};
+            // Slice start positions for scrubbing.
+            for (size_t k = 0; k < involved_count; ++k) {
+                Kite_Position kp = {
+                    .kite_id = cursors[k].id,
+                    .position = cursors[k].cur_pos,
+                    .angle = cursors[k].cur_angle,
+                };
+                space_dap(&script->space, &slice.kite_frame_positions, kp);
+            }
+
+            for (size_t i = 0; i < block->count; ++i) {
+                Frame *f = &block->elements[i];
+                float O = f->original_duration > 0 ? f->original_duration : f->duration;
+                if (O <= 0) {
+                    if (s == 0) {
+                        // Instant frame: keep once in the first slice.
+                        if (f->kind == ACTION_KITE_WAIT || f->kind == ACTION_KITE_QUIT) {
+                            upscale_push_wait_frame(&script->space, &slice, f->kind, 0);
+                        } else {
+                            for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+                                upscale_push_single_id_frame(&script->space, &slice, f->kind, f->action, 0,
+                                                             f->kite_id_array.elements[j]);
+                            }
+                        }
+                    }
+                    continue;
+                }
+                size_t Ni = (size_t) ceilf(O / step - 1e-6f);
+                if (Ni < 1) {
+                    Ni = 1;
+                }
+                if (Ni > N) {
+                    Ni = N;
+                }
+                if (s >= Ni) {
+                    continue;
+                }
+                float dur = (s == Ni - 1) ? (O - (float) (Ni - 1) * step) : step;
+                if (dur <= 0) {
+                    dur = step;
+                }
+                if (f->kind == ACTION_KITE_WAIT || f->kind == ACTION_KITE_QUIT) {
+                    upscale_push_wait_frame(&script->space, &slice, f->kind, dur);
+                    continue;
+                }
+                float elapsed_next = (s == Ni - 1) ? O : (float) (s + 1) * step;
+                for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+                    Id kid = f->kite_id_array.elements[j];
+                    Cursor *cu = NULL;
+                    for (size_t k = 0; k < involved_count; ++k) {
+                        if (cursors[k].id == kid) {
+                            cu = &cursors[k];
+                            break;
+                        }
+                    }
+                    if (!cu) {
+                        continue;
+                    }
+                    // Block start for this kite (for absolute lerps).
+                    Vector2 Spos = {0};
+                    float Sangle = 0;
+                    {
+                        Upscale_Kite *uk0 = upscale_find_kite(map, map_count, kid);
+                        // map currently holds block start (old == start). Use the
+                        // saved cursor start instead, which is exactly that.
+                        Spos = cu->start_pos;
+                        Sangle = cu->start_angle;
+                        (void) uk0;
+                    }
+                    switch (f->kind) {
+                    case ACTION_KITE_MOVE: {
+                        float t = elapsed_next / O;
+                        if (t > 1) {
+                            t = 1;
+                        }
+                        Vector2 target = Vector2Lerp(Spos, f->action.as_move.position, t);
+                        Action a = {0};
+                        a.as_move.position = target;
+                        upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_MOVE, a, dur, kid);
+                        cu->cur_pos = target;
+                    } break;
+                    case ACTION_KITE_MOVE_ADD: {
+                        Vector2 off = Vector2Scale(f->action.as_move_add.position, dur / O);
+                        Action a = {0};
+                        a.as_move_add.position = off;
+                        upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_MOVE_ADD, a, dur, kid);
+                        cu->cur_pos = Vector2Add(cu->cur_pos, off);
+                        // If a tip frame shares this slice it already moved cu
+                        // via geometry below in original order; the pure offset
+                        // addition here matches sequential playback order.
+                    } break;
+                    case ACTION_KITE_ROTATION_ADD: {
+                        float aj = f->action.as_rotation_add.angle * (dur / O);
+                        Action a = {0};
+                        a.as_rotation_add.angle = aj;
+                        upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_ROTATION_ADD, a, dur, kid);
+                        cu->cur_angle += aj;
+                    } break;
+                    case ACTION_KITE_ROTATION: {
+                        float T = f->action.as_rotation.angle;
+                        if (Ni == 1) {
+                            Action a = {0};
+                            a.as_rotation.angle = T;
+                            upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_ROTATION, a, dur, kid);
+                            cu->cur_angle = T;
+                        } else if (s < Ni - 1) {
+                            float Delta;
+                            if (T == 0) {
+                                Kite tmp = cu->geo;
+                                tmp.old_angle = Sangle;
+                                tmp.angle = Sangle;
+                                Action tmpa = {0};
+                                tmpa.as_rotation.angle = T;
+                                Delta = tkbc_check_angle_zero(&tmp, ACTION_KITE_ROTATION, tmpa, O);
+                            } else {
+                                Delta = upscale_absolute_travel(Sangle, T);
+                            }
+                            float aj = Delta * (dur / O);
+                            Action a = {0};
+                            a.as_rotation_add.angle = aj;
+                            upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_ROTATION_ADD, a, dur,
+                                                         kid);
+                            cu->cur_angle += aj;
+                        } else {
+                            Action a = {0};
+                            a.as_rotation.angle = T;
+                            upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_ROTATION, a, dur, kid);
+                            cu->cur_angle = T;
+                        }
+                    } break;
+                    case ACTION_KITE_TIP_ROTATION_ADD: {
+                        float aj = f->action.as_tip_rotation_add.angle * (dur / O);
+                        bool has_move = upscale_block_has_move(block, kid);
+                        if (has_move && f->action.as_tip_rotation_add.angle != 0) {
+                            // Keep geometry motion (tip moves center) so the
+                            // final matches tip_end + move offsets. Playback
+                            // runs tip+move sequentially per slice like here.
+                        }
+                        Action a = {0};
+                        a.as_tip_rotation_add.angle = aj;
+                        a.as_tip_rotation_add.tip = f->action.as_tip_rotation_add.tip;
+                        upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_TIP_ROTATION_ADD, a, dur,
+                                                     kid);
+                        // Advance cursor via real tip geometry.
+                        Kite tmp = cu->geo;
+                        tmp.center = cu->cur_pos;
+                        tmp.angle = cu->cur_angle;
+                        tmp.old_center = cu->cur_pos;
+                        tmp.old_angle = cu->cur_angle;
+                        tkbc_kite_update_internal(&tmp);
+                        tkbc_tip_rotation(&tmp, NULL, tmp.angle + aj, f->action.as_tip_rotation_add.tip);
+                        cu->cur_pos = tmp.center;
+                        cu->cur_angle = tmp.angle;
+                    } break;
+                    case ACTION_KITE_TIP_ROTATION: {
+                        float T = f->action.as_tip_rotation.angle;
+                        TIP tip = f->action.as_tip_rotation.tip;
+                        bool has_move = upscale_block_has_move(block, kid);
+                        // For absolute MOVE + TIP the live playback uses
+                        // angle-only tip (no center motion) to avoid wobble.
+                        // Mirror that by emitting ROTATION slices here.
+                        bool angle_only = has_move;
+                        // Detect absolute move presence: if the kite has any
+                        // absolute MOVE frame in this block, use angle-only.
+                        bool has_abs_move = false;
+                        for (size_t q = 0; q < block->count; ++q) {
+                            if (block->elements[q].kind == ACTION_KITE_MOVE &&
+                                tkbc_contains_id(block->elements[q].kite_id_array, kid)) {
+                                has_abs_move = true;
+                                break;
+                            }
+                        }
+                        if (has_abs_move) {
+                            angle_only = true;
+                        }
+                        if (Ni == 1) {
+                            if (angle_only) {
+                                Action a = {0};
+                                a.as_rotation.angle = T;
+                                upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_ROTATION, a, dur,
+                                                             kid);
+                                cu->cur_angle = T;
+                            } else {
+                                Action a = {0};
+                                a.as_tip_rotation.angle = T;
+                                a.as_tip_rotation.tip = tip;
+                                upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_TIP_ROTATION, a, dur,
+                                                             kid);
+                                Kite tmp = cu->geo;
+                                tmp.center = Spos;
+                                tmp.angle = Sangle;
+                                tmp.old_center = Spos;
+                                tmp.old_angle = Sangle;
+                                tkbc_kite_update_internal(&tmp);
+                                tkbc_tip_rotation(&tmp, &Spos, T, tip);
+                                cu->cur_pos = tmp.center;
+                                cu->cur_angle = tmp.angle;
+                            }
+                        } else if (s < Ni - 1) {
+                            float Delta;
+                            if (T == 0) {
+                                Kite tmp = cu->geo;
+                                tmp.old_angle = Sangle;
+                                tmp.angle = Sangle;
+                                Action tmpa = {0};
+                                tmpa.as_tip_rotation.angle = T;
+                                tmpa.as_tip_rotation.tip = tip;
+                                Delta = tkbc_check_angle_zero(&tmp, ACTION_KITE_TIP_ROTATION, tmpa, O);
+                            } else {
+                                Delta = upscale_absolute_travel(Sangle, T);
+                            }
+                            float aj = Delta * (dur / O);
+                            if (angle_only) {
+                                Action a = {0};
+                                a.as_rotation_add.angle = aj;
+                                upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_ROTATION_ADD, a,
+                                                             dur, kid);
+                                cu->cur_angle += aj;
+                            } else {
+                                Action a = {0};
+                                a.as_tip_rotation_add.angle = aj;
+                                a.as_tip_rotation_add.tip = tip;
+                                upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_TIP_ROTATION_ADD, a,
+                                                             dur, kid);
+                                Kite tmp = cu->geo;
+                                tmp.center = cu->cur_pos;
+                                tmp.angle = cu->cur_angle;
+                                tmp.old_center = cu->cur_pos;
+                                tmp.old_angle = cu->cur_angle;
+                                tkbc_kite_update_internal(&tmp);
+                                tkbc_tip_rotation(&tmp, NULL, tmp.angle + aj, tip);
+                                cu->cur_pos = tmp.center;
+                                cu->cur_angle = tmp.angle;
+                            }
+                        } else {
+                            if (angle_only) {
+                                Action a = {0};
+                                a.as_rotation.angle = T;
+                                upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_ROTATION, a, dur,
+                                                             kid);
+                                cu->cur_angle = T;
+                            } else {
+                                Action a = {0};
+                                a.as_tip_rotation.angle = T;
+                                a.as_tip_rotation.tip = tip;
+                                upscale_push_single_id_frame(&script->space, &slice, ACTION_KITE_TIP_ROTATION, a, dur,
+                                                             kid);
+                                Kite tmp = cu->geo;
+                                tmp.center = cu->cur_pos;
+                                tmp.angle = cu->cur_angle;
+                                tmp.old_center = Spos;
+                                tmp.old_angle = Sangle;
+                                tkbc_kite_update_internal(&tmp);
+                                // Snap from the block start for exactness.
+                                Kite snap = cu->geo;
+                                snap.center = Spos;
+                                snap.angle = Sangle;
+                                snap.old_center = Spos;
+                                snap.old_angle = Sangle;
+                                tkbc_kite_update_internal(&snap);
+                                tkbc_tip_rotation(&snap, &Spos, T, tip);
+                                cu->cur_pos = snap.center;
+                                cu->cur_angle = snap.angle;
+                            }
+                        }
+                    } break;
+                    default: break;
+                    }
+                }
+            }
+
+            slice.frames_index = upscaled.count;
+            space_dap(&script->space, &upscaled, slice);
+        }
+
+        // Commit cursor ends to the chain map.
+        for (size_t k = 0; k < involved_count; ++k) {
+            Upscale_Kite *uk = upscale_find_kite(map, map_count, cursors[k].id);
+            if (uk) {
+                Vector2 p = cursors[k].cur_pos;
+                float a = cursors[k].cur_angle;
+                tkbc_center_rotation(&uk->kite, &p, a);
+                uk->kite.old_center = uk->kite.center;
+                uk->kite.old_angle = uk->kite.angle;
+            }
+        }
+        free(cursors);
+        free(involved);
+    }
+
+    // Replace the script body with the upscaled one, reindexed.
+    script->elements = upscaled.elements;
+    script->count = upscaled.count;
+    script->capacity = upscaled.capacity;
+    for (size_t i = 0; i < script->count; ++i) {
+        script->elements[i].frames_index = i;
+    }
+    free(map);
+}
+
+/**
  * @brief This function adds a script to the global array located in the env.
  * It is needed to achieve stability for the raw frames and script pointers in
  * the env, they can be invalidated when the scripts array reallocates.
@@ -1278,6 +1946,12 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
             }
         }
 
+        // Upscale long blocks into per-tick slices so the timeline can scrub
+        // continuously at the animation fps, like a video. Already upscaled
+        // blocks (durations <= 1/fps) are kept as-is, making this idempotent
+        // for network re-receives.
+        tkbc_upscale_script(env, &s_copy, (float) TARGET_FPS);
+
         space_dap(&env->_scripts_space, &env->scripts, s_copy);
 
         // Rest the scratch buffers they got invalidated by resetting the space.
@@ -1331,9 +2005,7 @@ void tkbc_input_handler_script(Env *env) {
 
     // KEY_SPACE
     if (tkbc_check_keymaps_full(env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION, KEY_MAP_CHECK_KEY_PRESSED)) {
-        if (env->frames) {
-            env->script_finished = !env->script_finished;
-        }
+        tkbc_toggle_script_execution(env);
     }
 
     // This guard just prevent it for one frame.
@@ -1387,24 +2059,68 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
  * false.
  */
 void tkbc_execute_scrub_slide(Env *env, bool drag_left) {
-    env->script_finished = true;
-    // TODO: Allow scrubbing to a specific location index at once.
-
+    if (!env->script || !env->frames) {
+        return;
+    }
+    size_t current = env->frames->frames_index;
+    size_t target = current;
     // The indexes are assumed in order and at the corresponding index.
     // This is needed to avoid a down cast of size_t to long or int that can
     // hold ever value of size_t.
     if (drag_left) {
-        if (env->frames->frames_index > 0) {
-            env->frames = &env->script->elements[env->frames->frames_index - 1];
+        if (current > 0) {
+            target = current - 1;
         }
     } else {
-        if (env->frames->frames_index + 1 < env->script->count) {
-            env->frames = &env->script->elements[env->frames->frames_index + 1];
+        if (current + 1 < env->script->count) {
+            target = current + 1;
         }
     }
 
+    tkbc_scrub_to_index(env, target);
+}
+
+/**
+ * @brief Jumps the timeline to an absolute block index (video-like scrub).
+ *
+ * Every scrub position is a slice start with correct remaining durations, so
+ * resuming playback continues smoothly from there.
+ *
+ * @param env The global state of the application.
+ * @param target_index The frames_index to jump to, clamped into range.
+ */
+void tkbc_scrub_to_index(Env *env, size_t target_index) {
+    if (!env->script || !env->frames) {
+        return;
+    }
+    if (env->script->count == 0) {
+        return;
+    }
+    if (target_index >= env->script->count) {
+        target_index = env->script->count - 1;
+    }
+    env->script_finished = true;
+    env->frames = &env->script->elements[target_index];
+
     tkbc_restore_script_frame_states(env);
     tkbc_set_kite_positions_from_kite_frames_positions(env);
+}
+
+/**
+ * @brief Toggles script playback between paused and playing.
+ *
+ * The toggle is clamped to the loaded script: resuming at the final slice
+ * just plays out that slice and pauses again at the end, resuming at the
+ * first slice just plays forward. It never wraps around and never leaves
+ * script mode; only an explicit NO SCRIPT terminates execution.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_toggle_script_execution(Env *env) {
+    if (!env->frames) {
+        return;
+    }
+    env->script_finished = !env->script_finished;
 }
 
 /**
@@ -1443,11 +2159,32 @@ void tkbc_scrub_frames(Env *env) {
 
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
         int mouse_x = GetMouseX();
-        float slider = env->timeline_front.x + env->timeline_front.width;
-        float c = mouse_x - slider;
-        bool drag_left = c <= 0;
+        // Video-like absolute scrub: map the mouse X onto the upscaled
+        // per-tick timeline instead of stepping a single block per event.
+        // With hundreds of slices the old stepwise slide would take seconds
+        // to traverse the script.
+        if (env->timeline_base.width > 0 && env->script->count > 0) {
+            float t = ((float) mouse_x - env->timeline_base.x) / env->timeline_base.width;
+            if (t < 0) {
+                t = 0;
+            }
+            if (t > 1) {
+                t = 1;
+            }
+            size_t target = (size_t) (t * (float) env->script->count);
+            if (target >= env->script->count) {
+                target = env->script->count - 1;
+            }
+            if (target != env->frames->frames_index) {
+                tkbc_scrub_to_index(env, target);
+            }
+        } else {
+            float slider = env->timeline_front.x + env->timeline_front.width;
+            float c = mouse_x - slider;
+            bool drag_left = c <= 0;
 
-        tkbc_execute_scrub_slide(env, drag_left);
+            tkbc_execute_scrub_slide(env, drag_left);
+        }
     }
 }
 
@@ -1464,7 +2201,7 @@ void tkbc_scrub_frames(Env *env) {
  * @return The amount that the center position has moved to the final
  * position.
  */
-Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration) {
+Vector2 tkbc_script_move_with_dt(Kite *kite, Vector2 position, float duration, float dt) {
     if (duration <= 0) {
         Vector2 result = Vector2Subtract(position, kite->center);
         tkbc_kite_update_position(kite, &position);
@@ -1478,7 +2215,6 @@ Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration) {
         return result;
     }
 
-    float dt = tkbc_get_frame_time();
     Vector2 d = Vector2Subtract(position, kite->old_center);
     Vector2 dnorm = Vector2Normalize(d);
     Vector2 dnormscale = Vector2Scale(dnorm, (Vector2Length(d) / duration * dt));
@@ -1507,7 +2243,7 @@ Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration) {
  * to the kite or if the kite angle should change to the given angle.
  * @return The delta amount the kite angle changes.
  */
-float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
+float tkbc_script_rotate_with_dt(Kite *kite, float angle, float duration, bool adding, float dt) {
 
     // NOTE: For the instant rotation the computation can be simpler by just
     // calling the direction angles, but for future line wrap calculation the
@@ -1521,7 +2257,6 @@ float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
         return fabsf(angle);
     }
 
-    float dt = tkbc_get_frame_time();
     float d = fabsf(angle);
     float ds = d / duration * dt;
 
@@ -1559,7 +2294,7 @@ float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
  * to the kite or if the kite angle should change to the given angle.
  * @return The delta amount the kite angle changes.
  */
-float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration, bool adding) {
+float tkbc_script_rotate_tip_with_dt(Kite *kite, TIP tip, float angle, float duration, bool adding, float dt) {
 
     // NOTE: For the instant rotation the computation can be simpler by just
     // calling the direction angles, but for future line wrap calculation the
@@ -1573,7 +2308,6 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration, b
         return fabsf(angle);
     }
 
-    float dt = tkbc_get_frame_time();
     float d = fabsf(angle);
     float ds = d / duration * dt;
 
@@ -1596,6 +2330,18 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration, b
         tkbc_tip_rotation(kite, NULL, kite->angle + ds, tip);
     }
     return fabsf(ds);
+}
+
+Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration) {
+    return tkbc_script_move_with_dt(kite, position, duration, tkbc_get_frame_time());
+}
+
+float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
+    return tkbc_script_rotate_with_dt(kite, angle, duration, adding, tkbc_get_frame_time());
+}
+
+float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration, bool adding) {
+    return tkbc_script_rotate_tip_with_dt(kite, tip, angle, duration, adding, tkbc_get_frame_time());
 }
 
 /**
