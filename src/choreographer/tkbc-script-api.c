@@ -6,6 +6,7 @@
 #include "../global/tkbc-utils.h"
 #include "tkbc-script-converter.h"
 #include "tkbc-script-handler.h"
+#include "tkbc-ui.h"
 #include "tkbc.h"
 #include <stdarg.h>
 #include <stdio.h>
@@ -24,13 +25,32 @@ void tkbc__script_begin(Env *env) {
 }
 
 /**
+ * @brief Returns the name of the script, "" when empty. The name is stored
+ * only in name_input.text, there is no separate name field.
+ *
+ * @param script The script whose name should be returned.
+ * @return The NUL terminated name, never NULL.
+ */
+const char *tkbc_script_name(const Script *script) {
+    if (!script || !script->name_input.text.elements) {
+        return "";
+    }
+    return script->name_input.text.elements;
+}
+
+/**
  * @brief The function sets the provided name as a name for the given script.
  *
  * @param script The script where the name should be assigned.
  * @param name The new name for the script.
  */
 void tkbc_set_script_name(Script *script, char *name) {
-    script->name = name;
+    if (!script) {
+        return;
+    }
+    // The name is stored only in name_input.text, owned by script->space.
+    script->name_input.space = &script->space;
+    tkbc_text_input_set_text(&script->name_input, name ? name : "");
 }
 
 /**
@@ -39,10 +59,10 @@ void tkbc_set_script_name(Script *script, char *name) {
  * @param script The script where the name should be assigned.
  */
 void tkbc_set_script_name_if_not_exists(Script *script) {
-    if (!script->name) {
+    if (tkbc_script_name(script)[0] == '\0') {
         char *name = tkbc_generate_name_with_time_stamp("Script: ", NULL);
         // Name is intentionally not checked for NULL.
-        tkbc_set_script_name(script, space_strdup(&script->space, name));
+        tkbc_set_script_name(script, name);
         free(name);
     }
 }

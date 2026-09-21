@@ -19,7 +19,7 @@ void tkbc_set_key_or_delete(int *dest_key, const char **dest_str, int key_value)
 void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration, size_t cur_major_box);
 void tkbc_ui_keymaps(Env *env);
 
-void tkbc_set_input_text_to_hex_color(char **text, Color color);
+void tkbc_set_input_text_to_hex_color(Text_Input *input, Color color);
 
 KeyboardKey tkbc_is_hex_color_key_down();
 KeyboardKey tkbc_is_port_number_key_down();
@@ -39,6 +39,10 @@ void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace);
 void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p, Color replace);
 void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_scale, Colorizer_Mode mode);
 void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding);
+bool tkbc_text_input_reserve(Text_Input *input, size_t needed_count);
+void tkbc_text_input_set_text(Text_Input *input, const char *str);
+void tkbc_text_input_init(Text_Input *input, Space *space, const char *initial);
+const char *tkbc_text_input_cstr(const Text_Input *input);
 void tkbc_handle_text_input(Text_Input *input);
 void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding);
 void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_radius, float padding);

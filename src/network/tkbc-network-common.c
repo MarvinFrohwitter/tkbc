@@ -1,5 +1,6 @@
 #include "tkbc-network-common.h"
 #include "../choreographer/tkbc-asset-handler.h"
+#include "../choreographer/tkbc-script-api.h"
 #include "../choreographer/tkbc-script-handler.h"
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-utils.h"
@@ -230,9 +231,10 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
         tkbc_uuid_to_string(script_id, script_id_cstr);
         space_dapf(space, message, "\"%s\":", script_id_cstr);
 
-        if (script->name) {
-            size_t name_len = strlen(script->name);
-            space_dapf(space, message, "%zu:\"%s\":", name_len, script->name);
+        const char *script_name = tkbc_script_name(script);
+        if (script_name[0] != '\0') {
+            size_t name_len = strlen(script_name);
+            space_dapf(space, message, "%zu:\"%s\":", name_len, script_name);
         } else {
             // To ensure the name_len can be 64 bit later.
             space_dapf(space, message, "%zu:", (size_t) 0);

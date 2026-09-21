@@ -1,6 +1,7 @@
 #include "tkbc-script-converter.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include "tkbc-script-api.h"
 #include "tkbc-script-handler.h"
 #include <assert.h>
 #include <errno.h>
@@ -162,9 +163,9 @@ int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env, const char *path
 
     int err = 0;
     for (size_t i = 0; i < env->scripts.count; ++i) {
-        assert(env->scripts.elements[i].name);
+        assert(tkbc_script_name(&env->scripts.elements[i])[0] != '\0');
         space_reset_tspace();
-        const char *buf = space_tprintf("%s%s.kite", path, env->scripts.elements[i].name);
+        const char *buf = space_tprintf("%s%s.kite", path, tkbc_script_name(&env->scripts.elements[i]));
         err = tkbc_export_script_to_dot_kite_file_from_mem(&env->scripts.elements[i], buf);
 
         if (err) {

@@ -113,7 +113,10 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
 
         char *name = space_calloc(scb_space, 1, name_len + 1);
         if (name) {
-            scb_script->name = memcpy(name, token.content + 1, token.size - 2);
+            memcpy(name, token.content + 1, token.size - 2);
+            // The name is stored only in name_input.text.
+            scb_script->name_input.space = scb_space;
+            tkbc_text_input_set_text(&scb_script->name_input, name);
         }
         token = lexer_next(lexer);
         if (token.kind != PUNCT_COLON) {

@@ -270,8 +270,17 @@ Test deep_copy_script(void) {
 
     cassert_type_compare_function(ANY_ALLOCED_EQ, script.id, new_script.id, tkbc_uuid_equals);
 
-    cassert_type_compare_function_param(ANY_ALLOCED_EQ, &script.name_input, &new_script.name_input, memcmp,
-                                        sizeof(script.name_input));
+    // cassert_type_compare_function_param(ANY_ALLOCED_EQ, &script.name_input, &new_script.name_input, memcmp, sizeof(script.name_input));
+
+    // The name buffer is deep copied: same content, different allocation.
+    // The name is stored only in name_input.text; deep copy owns its own allocation.
+    cassert_size_t_eq(script.name_input.text.count, new_script.name_input.text.count);
+    cassert_size_t_eq(script.name_input.max_char, new_script.name_input.max_char);
+    if (script.name_input.text.elements || new_script.name_input.text.elements) {
+        cassert_ptr_neq(script.name_input.text.elements, new_script.name_input.text.elements);
+        cassert_string_eq(script.name_input.text.elements ? script.name_input.text.elements : "",
+                          new_script.name_input.text.elements ? new_script.name_input.text.elements : "");
+    }
 
     cassert_ptr_neq(&script.elements, &new_script.elements);
 
@@ -283,9 +292,6 @@ Test deep_copy_script(void) {
     for (size_t i = 0; i < new_script.count; ++i) {
         tkbc_destroy_frames_internal_data(&new_script.elements[i]);
     }
-    script.name = NULL;
-    new_script.name = NULL;
-
     free(script.elements);
     free(new_script.elements);
     script.elements = NULL;

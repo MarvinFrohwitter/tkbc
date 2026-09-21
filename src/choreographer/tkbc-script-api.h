@@ -19,6 +19,7 @@ void tkbc__script_begin(Env *env);
 void tkbc__script_end(Env *env);
 void tkbc_set_script_name(Script *script, char *name);
 void tkbc_set_script_name_if_not_exists(Script *script);
+const char *tkbc_script_name(const Script *script);
 bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config, ...);
 
 #define tkbc_script_input void tkbc__script_input(Env *env)

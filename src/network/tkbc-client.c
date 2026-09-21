@@ -80,6 +80,24 @@ static Popup loading = {0};
 static Popup disconnect = {0};
 static bool sending_receiving = true;
 
+static Space connection_input_space = {0};
+static Text_Input connection_host_input = {
+    .shadow_text = "127.0.0.1",
+    .key_constrained = tkbc_is_domain_name_key_down,
+    .max_char = 255,
+    .selection_start = SIZE_MAX,
+    .is_active = true,
+    .spacing = 4,
+};
+static Text_Input connection_port_input = {
+    .shadow_text = "8080",
+    .key_constrained = tkbc_is_port_number_key_down,
+    .max_char = 6,
+    .selection_start = SIZE_MAX,
+    .is_active = true,
+    .spacing = 4,
+};
+
 /**
  * @brief The function prints the way the program should be called.
  *
@@ -982,17 +1000,14 @@ int main(int argc, char *argv[]) {
 
     client.kite_id = -1;
 
-    char *port = malloc(sizeof(*port) * 6);
-    assert(port);
-    char *host = malloc(sizeof(*host) * 256);
-    assert(host);
-
-    port = strcpy(port, "8080");
-    host = strcpy(host, "127.0.0.1");
+    // No host/port buffers are allocated here. The connection inputs own
+    // their text directly in their spaces.
+    const char *port = "8080";
+    const char *host = "127.0.0.1";
     char *program_name = tkbc_shift_args(&argc, &argv);
     if (tkbc_client_commandline_check(argc, program_name)) {
-        host = strcpy(host, tkbc_shift_args(&argc, &argv));
-        port = strcpy(port, tkbc_shift_args(&argc, &argv));
+        host = tkbc_shift_args(&argc, &argv);
+        port = tkbc_shift_args(&argc, &argv);
     }
 
     const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
@@ -1048,7 +1063,7 @@ int main(int argc, char *argv[]) {
         if (connection.active) {
             tkbc_popup_resize(&connection);
             tkbc_draw_popup(&connection);
-            tkbc_connection_input(env, &connection, &host, &port);
+            tkbc_connection_input(env, &connection, host, port);
 
             int ok = tkbc_check_popup_interaction(&connection);
             if (ok == -1) {
@@ -1056,7 +1071,7 @@ int main(int argc, char *argv[]) {
             } else if (ok == 1) {
                 // input confirmed
                 connection.active = false;
-                tkbc_init_online_or_offline_state(env, host, port);
+                tkbc_init_online_or_offline_state(env, tkbc_connection_host(), tkbc_connection_port());
             }
 
         } else {
@@ -1240,9 +1255,8 @@ void tkbc_init_online_or_offline_state(Env *env, const char *host, const char *p
     }
 }
 
-void tkbc_connection_input(Env *env, Popup *popup, char **host, char **port) {
+void tkbc_connection_input(Env *env, Popup *popup, const char *host_default, const char *port_default) {
     const int fields_count = 2;
-    const float spacing = 4;
 
     float box_width = popup->base.width / (fields_count + 1);
     float padding_width = box_width / (fields_count + 1);
@@ -1256,29 +1270,23 @@ void tkbc_connection_input(Env *env, Popup *popup, char **host, char **port) {
         host_input_box.x = popup->base.x + padding_width;
         DrawRectangleRec(host_input_box, TKBC_UI_GRAY);
     }
-    static Text_Input host_input = {
-        .shadow_text = "127.0.0.1",
-        .key_constrained = tkbc_is_domain_name_key_down,
-        .max_char = 255,
-        .selection_start = SIZE_MAX,
-        .is_active = true,
-        .spacing = spacing,
-    };
+    Text_Input *host_input = &connection_host_input;
+    Text_Input *port_input = &connection_port_input;
     {
-        host_input.box = host_input_box;
-        host_input.text = *host;
-        host_input.font = popup->font;
-        host_input.text_color = popup->text_color;
-        host_input.font_size = popup->font_size;
-
-        {
-            static bool init = true;
-            if (init) {
-                init = false;
-                size_t len = strlen(*host);
-                host_input.cursor_pos = len;
-            }
+        static bool init = true;
+        if (init) {
+            init = false;
+            host_input->space = &connection_input_space;
+            port_input->space = &connection_input_space;
+            tkbc_text_input_init(host_input, &connection_input_space, host_default);
+            tkbc_text_input_init(port_input, &connection_input_space, port_default);
+            host_input->cursor_pos = host_input->text.count;
         }
+
+        host_input->box = host_input_box;
+        host_input->font = popup->font;
+        host_input->text_color = popup->text_color;
+        host_input->font_size = popup->font_size;
     }
 
     Rectangle port_input_box;
@@ -1289,25 +1297,30 @@ void tkbc_connection_input(Env *env, Popup *popup, char **host, char **port) {
         port_input_box.x = popup->base.x + popup->base.width - port_input_box.width - padding_width;
         DrawRectangleRec(port_input_box, TKBC_UI_GRAY);
     }
-    static Text_Input port_input = {
-        .shadow_text = "8080",
-        .key_constrained = tkbc_is_port_number_key_down,
-        .max_char = 6,
-        .selection_start = SIZE_MAX,
-        .is_active = true,
-        .spacing = spacing,
-    };
     {
-        port_input.box = port_input_box;
-        port_input.text = *port;
-        port_input.font = popup->font;
-        port_input.text_color = popup->text_color;
-        port_input.font_size = popup->font_size;
+        port_input->box = port_input_box;
+        port_input->font = popup->font;
+        port_input->text_color = popup->text_color;
+        port_input->font_size = popup->font_size;
     }
 
-    tkbc_handle_text_input(&host_input);
-    port_input.is_active = !host_input.is_active;
-    tkbc_handle_text_input(&port_input);
-    host_input.is_active = !port_input.is_active;
-    env->text_input_active = host_input.is_active || port_input.is_active;
+    tkbc_handle_text_input(host_input);
+    port_input->is_active = !host_input->is_active;
+    tkbc_handle_text_input(port_input);
+    host_input->is_active = !port_input->is_active;
+    env->text_input_active = host_input->is_active || port_input->is_active;
+}
+
+/**
+ * @brief Returns the host string, owned by the connection input's space.
+ */
+const char *tkbc_connection_host(void) {
+    return tkbc_text_input_cstr(&connection_host_input);
+}
+
+/**
+ * @brief Returns the port string, owned by the connection input's space.
+ */
+const char *tkbc_connection_port(void) {
+    return tkbc_text_input_cstr(&connection_port_input);
 }

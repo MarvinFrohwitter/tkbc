@@ -15,6 +15,7 @@
 #include "tkbc-keymaps.h"
 #include "tkbc-parser.h"
 #include "tkbc-script-handler.h"
+#include "tkbc-ui.h"
 #include "tkbc.h"
 
 extern Assets assets;
@@ -79,13 +80,17 @@ Env *tkbc_init_env(void) {
     env->box_height = 80;
     env->keymaps_interaction_rec_number = -1;
 
-    env->color_picker_input_text = calloc(10, sizeof(char));
-    if (env->color_picker_input_text == NULL) {
-        tkbc_fprintf(stderr, "ERROR", "No more memory can be allocated.\n");
-        free(env->vanilla_kite);
-        free(env);
-        return NULL;
-    }
+    // The color picker text lives directly in its space backed input, no
+    // extra allocation.
+    env->color_picker_input.space = &env->color_picker_input_space;
+    env->color_picker_input.selection_start = SIZE_MAX;
+    env->color_picker_input.spacing = 4;
+    tkbc_text_input_init(&env->color_picker_input, &env->color_picker_input_space, "");
+    env->color_picker_input.shadow_text = "008080FF";
+    env->color_picker_input.key_constrained = tkbc_is_hex_color_key_down;
+    env->color_picker_input.max_char = HEX_COLOR_LENGTH;
+    env->color_picker_input.font = env->font;
+    env->color_picker_input.text_color = TKBC_UI_GRAY;
 
     env->max_favorite_colors = 4;
     for (size_t i = 0; i < env->max_favorite_colors; i++) {
@@ -147,8 +152,7 @@ void tkbc_destroy_env(Env *env) {
         env->keymaps.elements = NULL;
     }
 
-    free(env->color_picker_input_text);
-    env->color_picker_input_text = NULL;
+    space_free_space(&env->color_picker_input_space);
     free(env->favorite_colors.elements);
     env->favorite_colors.elements = NULL;
     free(env->pending_script_deletes.elements);
@@ -170,7 +174,6 @@ void tkbc_destroy_env(Env *env) {
     space_free_space(&env->scratch_buf_script.space);
     space_free_space(&env->_scripts_space);
     space_free_tspace();
-    env->scratch_buf_script.name = NULL;
 
     free(env);
     env = NULL;

@@ -8,6 +8,7 @@
 #include "raylib.h"
 #include "rlgl.h"
 #include "tkbc-keymaps.h"
+#include "tkbc-script-api.h"
 #include "tkbc-script-converter.h"
 #include "tkbc-script-handler.h"
 #include "tkbc-ui.h"
@@ -16,7 +17,6 @@
 #include "tkbc-asset-handler.h"
 
 extern Assets assets;
-#define HEX_COLOR_LENGTH 8
 
 /**
  * @brief The function wraps all the UI-elements to a single draw handler that
@@ -448,7 +448,7 @@ void tkbc_ui_post_handler(Env *env) {
         env->color_picker_window_picking = true;
         Color c = tkbc_get_color_from_screen_position(GetMousePosition());
         env->last_selected_color = c;
-        tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
+        tkbc_set_input_text_to_hex_color(&env->color_picker_input, env->last_selected_color);
     }
 }
 
@@ -734,7 +734,10 @@ bool tkbc_ui_script_menu(Env *env) {
 
         const float spacing = 2;
         Script *script = &env->scripts.elements[box];
-        char *name = script->name;
+        // Repair the allocator pointer in case the Scripts array moved. Cheap
+        // and keeps name_input.space valid even if a fixup was missed.
+        tkbc_script_fixup_name_refs(script);
+        const char *name = tkbc_text_input_cstr(&script->name_input);
         text_size = tkbc_reduce_str_to_fit_box(env->font, name, &font_size, spacing, script_box);
 
         // TODO: Implement centering text in the input filled.
@@ -816,7 +819,7 @@ bool tkbc_ui_script_menu(Env *env) {
 
             tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
             Script *script = &env->scripts.elements[env->script_menu_mouse_interaction_box];
-            const char *buf = space_tprintf("%s%s.kite", env->tkbc_dir, script->name);
+            const char *buf = space_tprintf("%s%s.kite", env->tkbc_dir, tkbc_script_name(script));
             tkbc_export_script_to_dot_kite_file_from_mem(script, buf);
             space_reset_tspace();
 
@@ -942,13 +945,19 @@ bool is_key_valid_part_of_hex_number(int key) {
  */
 /**
  * @brief The function converts a color to a hexadecimal string representation
- * and updates the input text.
+ * and updates the input text. The allocation happens directly in the input's
+ * space, no extra buffer is involved.
  *
- * @param text Pointer to the text string to update.
+ * @param input The text input to update.
  * @param color The color to convert to hex string.
  */
-void tkbc_set_input_text_to_hex_color(char **text, Color color) {
-    snprintf(*text, HEX_COLOR_LENGTH + 1, "%0" STR(HEX_COLOR_LENGTH) "X", tkbc_color_to_uint32_t(color));
+void tkbc_set_input_text_to_hex_color(Text_Input *input, Color color) {
+    if (!input) {
+        return;
+    }
+    char buf[HEX_COLOR_LENGTH + 1];
+    snprintf(buf, sizeof(buf), "%0" STR(HEX_COLOR_LENGTH) "X", tkbc_color_to_uint32_t(color));
+    tkbc_text_input_set_text(input, buf);
 }
 
 /**
@@ -1191,31 +1200,24 @@ void tkbc_ui_color_picker(Env *env) {
             DrawTextEx(env->font, "#", hash_pos, font_size, 4, TKBC_UI_GRAY);
         }
 
-        static Text_Input color_input = {
-            .shadow_text = "008080FF",
-            .key_constrained = tkbc_is_hex_color_key_down,
-            .max_char = HEX_COLOR_LENGTH,
-            .selection_start = SIZE_MAX,
-            .spacing = 4,
-        };
-        color_input.box = text_box;
-        color_input.text = env->color_picker_input_text;
-        color_input.font = env->font;
-        color_input.font_size = font_size;
-        color_input.text_color = TKBC_UI_GRAY;
-        color_input.is_active = env->color_picker_input_mouse_interaction;
+        env->color_picker_input.box = text_box;
+        env->color_picker_input.font_size = font_size;
+        env->color_picker_input.is_active = env->color_picker_input_mouse_interaction;
 
-        tkbc_handle_text_input(&color_input);
-        tkbc_strtoupper(env->color_picker_input_text);
+        tkbc_handle_text_input(&env->color_picker_input);
+        if (env->color_picker_input.text.elements) {
+            tkbc_strtoupper(env->color_picker_input.text.elements);
+        }
 
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
-            color_input.is_active = false;
+            env->color_picker_input.is_active = false;
         }
-        env->color_picker_input_mouse_interaction = color_input.is_active;
-        env->text_input_active = color_input.is_active;
+        env->color_picker_input_mouse_interaction = env->color_picker_input.is_active;
+        env->text_input_active = env->color_picker_input.is_active;
 
-        if (strlen(env->color_picker_input_text) == HEX_COLOR_LENGTH) {
-            env->last_selected_color = tkbc_uint32_t_to_color(strtoull(env->color_picker_input_text, NULL, 16));
+        if (env->color_picker_input.text.count == HEX_COLOR_LENGTH) {
+            env->last_selected_color =
+                tkbc_uint32_t_to_color(strtoull(tkbc_text_input_cstr(&env->color_picker_input), NULL, 16));
         }
     }
 
@@ -1236,7 +1238,7 @@ void tkbc_ui_color_picker(Env *env) {
             tkbc_set_color_for_selected_kites(env, env->last_selected_color);
             env->favorite_colors.elements[env->current_favorite_colors_index++ % env->favorite_colors.count] =
                 env->last_selected_color;
-            tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
+            tkbc_set_input_text_to_hex_color(&env->color_picker_input, env->last_selected_color);
         }
     }
 
@@ -1254,7 +1256,7 @@ void tkbc_ui_color_picker(Env *env) {
             if (CheckCollisionPointCircle(mouse, color_circle, color_circle_radius) &&
                 IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 env->last_selected_color = env->favorite_colors.elements[i];
-                tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
+                tkbc_set_input_text_to_hex_color(&env->color_picker_input, env->last_selected_color);
                 tkbc_set_color_for_selected_kites(env, env->last_selected_color);
             }
 
@@ -1830,7 +1832,8 @@ void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding) {
  * @return size_t The character index that matches the given position.
  */
 static size_t tkbc_get_char_at_x_pos(Text_Input *input, float mouse_x) {
-    size_t char_amount = strlen(input->text);
+    size_t char_amount = input->text.count;
+    const char *cstr = tkbc_text_input_cstr(input);
     if (char_amount == 0) {
         return 0;
     }
@@ -1839,7 +1842,7 @@ static size_t tkbc_get_char_at_x_pos(Text_Input *input, float mouse_x) {
     float prev_width = 0;
 
     for (size_t i = 0; i < char_amount; i++) {
-        float cur = tkbc_measure_text_sized_ex(input->font, input->text, i + 1, input->font_size, input->spacing).x;
+        float cur = tkbc_measure_text_sized_ex(input->font, cstr, i + 1, input->font_size, input->spacing).x;
         float char_center = prev_width + (cur - prev_width) / 2.0f;
         if (mouse_x < text_x + char_center) {
             return i;
@@ -1890,8 +1893,9 @@ static void tkbc_draw_selection(Text_Input *input) {
     size_t end;
     tkbc_get_selection_bounds(input, &start, &end);
 
-    Vector2 start_size = tkbc_measure_text_sized_ex(input->font, input->text, start, input->font_size, input->spacing);
-    Vector2 end_size = tkbc_measure_text_sized_ex(input->font, input->text, end, input->font_size, input->spacing);
+    const char *input_cstr = tkbc_text_input_cstr(input);
+    Vector2 start_size = tkbc_measure_text_sized_ex(input->font, input_cstr, start, input->font_size, input->spacing);
+    Vector2 end_size = tkbc_measure_text_sized_ex(input->font, input_cstr, end, input->font_size, input->spacing);
 
     Rectangle highlight = input->box;
     highlight.x = input->box.x + input->spacing + start_size.x - input->scroll_offset;
@@ -1918,12 +1922,13 @@ static bool tkbc_is_word_boundary(char c) {
 static size_t tkbc_find_word_left(Text_Input *input) {
     size_t pos = input->cursor_pos;
     if (pos == 0) return 0;
+    const char *input_cstr = tkbc_text_input_cstr(input);
 
     pos--;
-    while (pos > 0 && tkbc_is_word_boundary(input->text[pos])) {
+    while (pos > 0 && tkbc_is_word_boundary(input_cstr[pos])) {
         pos--;
     }
-    while (pos > 0 && !tkbc_is_word_boundary(input->text[pos - 1])) {
+    while (pos > 0 && !tkbc_is_word_boundary(input_cstr[pos - 1])) {
         pos--;
     }
     return pos;
@@ -1931,12 +1936,13 @@ static size_t tkbc_find_word_left(Text_Input *input) {
 
 static size_t tkbc_find_word_right(Text_Input *input) {
     size_t pos = input->cursor_pos;
-    size_t len = strlen(input->text);
+    size_t len = input->text.count;
+    const char *cstr = tkbc_text_input_cstr(input);
 
-    while (pos < len && tkbc_is_word_boundary(input->text[pos])) {
+    while (pos < len && tkbc_is_word_boundary(cstr[pos])) {
         pos++;
     }
-    while (pos < len && !tkbc_is_word_boundary(input->text[pos])) {
+    while (pos < len && !tkbc_is_word_boundary(cstr[pos])) {
         pos++;
     }
     return pos;
@@ -1950,9 +1956,11 @@ static void tkbc_delete_selection(Text_Input *input) {
     size_t start;
     size_t end;
     tkbc_get_selection_bounds(input, &start, &end);
-    size_t char_amount = strlen(input->text);
+    size_t char_amount = input->text.count;
+    char *elements = input->text.elements;
 
-    memmove(&input->text[start], &input->text[end], (char_amount - end + 1) * sizeof(*input->text));
+    memmove(&elements[start], &elements[end], (char_amount - end + 1) * sizeof(*elements));
+    input->text.count = char_amount - (end - start);
     input->cursor_pos = start;
     input->selection_start = SIZE_MAX;
 }
@@ -1963,13 +1971,24 @@ static void tkbc_delete_selection(Text_Input *input) {
  * @param input The input to handle.
  */
 void tkbc_handle_text_input(Text_Input *input) {
-    size_t initial_char_amount = strlen(input->text);
+    if (!input) {
+        return;
+    }
+    // Maintain NUL invariant for freshly initialized or externally aliased inputs.
+    if (!input->text.elements) {
+        input->text.count = 0;
+        input->text.capacity = 0;
+    } else if (!tkbc_text_input_reserve(input, input->text.count)) {
+        return;
+    }
+    size_t initial_char_amount = input->text.count;
+    const char *cstr = tkbc_text_input_cstr(input);
 
     // Measure the text at its configured font size. The text does not get
     // shrunk to fit the box, instead it is scrolled horizontally when the
     // cursor leaves the visible area.
-    Vector2 text_size = tkbc_measure_text_sized_ex(input->font, input->text, (int) initial_char_amount,
-                                                   input->font_size, input->spacing);
+    Vector2 text_size =
+        tkbc_measure_text_sized_ex(input->font, cstr, (int) initial_char_amount, input->font_size, input->spacing);
 
     if (CheckCollisionPointRec(GetMousePosition(), input->box) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         input->cursor_pos = tkbc_get_char_at_x_pos(input, GetMousePosition().x);
@@ -1978,11 +1997,11 @@ void tkbc_handle_text_input(Text_Input *input) {
     }
 
     if (input->is_active) {
-        size_t char_amount = strlen(input->text);
-        if (input->cursor_pos >= char_amount) {
+        size_t char_amount = input->text.count;
+        if (input->cursor_pos > char_amount) {
             input->cursor_pos = char_amount;
         }
-        if (input->selection_start != SIZE_MAX && input->selection_start >= char_amount) {
+        if (input->selection_start != SIZE_MAX && input->selection_start > char_amount) {
             input->selection_start = char_amount;
         }
 
@@ -2044,7 +2063,8 @@ void tkbc_handle_text_input(Text_Input *input) {
                     input->selection_start > input->cursor_pos ? input->selection_start : input->cursor_pos;
                 input->selection_start = SIZE_MAX;
             }
-            input->cursor_pos = char_amount;
+            input->cursor_pos = input->text.count;
+            char_amount = input->text.count;
         }
 
         bool ctrl_down = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
@@ -2078,6 +2098,7 @@ void tkbc_handle_text_input(Text_Input *input) {
 
         if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_A)) {
             is_spcial_action = true;
+            char_amount = input->text.count;
             input->selection_start = 0;
             input->cursor_pos = char_amount;
             if (char_amount == 0) {
@@ -2085,91 +2106,117 @@ void tkbc_handle_text_input(Text_Input *input) {
             }
         }
 
-        int n = char_amount - input->cursor_pos + 1;
         if (IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) {
+            char_amount = input->text.count;
+            char *elements = input->text.elements;
             if (tkbc_has_selection(input)) {
                 tkbc_delete_selection(input);
             } else if (ctrl_down) {
                 size_t word_pos = tkbc_find_word_left(input);
                 if (word_pos < input->cursor_pos) {
-                    memmove(&input->text[word_pos], &input->text[input->cursor_pos],
-                            (char_amount - input->cursor_pos + 1) * sizeof(*input->text));
+                    size_t removed = input->cursor_pos - word_pos;
+                    memmove(&elements[word_pos], &elements[input->cursor_pos],
+                            (char_amount - input->cursor_pos + 1) * sizeof(*elements));
+                    input->text.count = char_amount - removed;
                     input->cursor_pos = word_pos;
                 }
             } else if (input->cursor_pos > 0) {
-                memmove(&input->text[input->cursor_pos - 1], &input->text[input->cursor_pos], n * sizeof(*input->text));
+                size_t n = char_amount - input->cursor_pos + 1;
+                memmove(&elements[input->cursor_pos - 1], &elements[input->cursor_pos], n * sizeof(*elements));
+                input->text.count = char_amount - 1;
                 input->cursor_pos -= 1;
             }
         }
 
         if (IsKeyPressedRepeat(KEY_DELETE) || IsKeyPressed(KEY_DELETE)) {
+            char_amount = input->text.count;
+            char *elements = input->text.elements;
             if (tkbc_has_selection(input)) {
                 tkbc_delete_selection(input);
             } else if (ctrl_down) {
                 size_t word_pos = tkbc_find_word_right(input);
                 if (word_pos > input->cursor_pos) {
-                    memmove(&input->text[input->cursor_pos], &input->text[word_pos],
-                            (char_amount - word_pos + 1) * sizeof(*input->text));
+                    memmove(&elements[input->cursor_pos], &elements[word_pos],
+                            (char_amount - word_pos + 1) * sizeof(*elements));
+                    input->text.count = char_amount - (word_pos - input->cursor_pos);
                 }
             } else if (input->cursor_pos < char_amount) {
-                memmove(&input->text[input->cursor_pos], &input->text[input->cursor_pos + 1], n * sizeof(*input->text));
+                size_t n = char_amount - input->cursor_pos + 1;
+                memmove(&elements[input->cursor_pos], &elements[input->cursor_pos + 1], n * sizeof(*elements));
+                input->text.count = char_amount - 1;
             }
         }
 
         if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_C)) {
             is_spcial_action = true;
+            cstr = tkbc_text_input_cstr(input);
             if (tkbc_has_selection(input)) {
                 size_t start;
                 size_t end;
                 tkbc_get_selection_bounds(input, &start, &end);
                 size_t len = end - start;
                 char *clipboard = malloc(len + 1);
-                memcpy(clipboard, &input->text[start], len);
-                clipboard[len] = '\0';
-                SetClipboardText(clipboard);
-                free(clipboard);
+                if (clipboard) {
+                    memcpy(clipboard, &cstr[start], len);
+                    clipboard[len] = '\0';
+                    SetClipboardText(clipboard);
+                    free(clipboard);
+                }
             } else {
-                SetClipboardText(input->text);
+                SetClipboardText(cstr);
             }
         }
 
         if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_X)) {
             is_spcial_action = true;
+            cstr = tkbc_text_input_cstr(input);
             if (tkbc_has_selection(input)) {
                 size_t start;
                 size_t end;
                 tkbc_get_selection_bounds(input, &start, &end);
                 size_t len = end - start;
                 char *clipboard = malloc(len + 1);
-                memcpy(clipboard, &input->text[start], len);
-                clipboard[len] = '\0';
-                SetClipboardText(clipboard);
-                free(clipboard);
+                if (clipboard) {
+                    memcpy(clipboard, &cstr[start], len);
+                    clipboard[len] = '\0';
+                    SetClipboardText(clipboard);
+                    free(clipboard);
+                }
                 tkbc_delete_selection(input);
             } else {
-                SetClipboardText(input->text);
+                SetClipboardText(cstr);
 
                 input->selection_start = SIZE_MAX;
                 input->cursor_pos = 0;
-                input->text[0] = '\0';
+                input->text.count = 0;
+                if (input->text.elements) {
+                    input->text.elements[0] = '\0';
+                }
             }
         }
 
         if ((IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_V)) {
             is_spcial_action = true;
             tkbc_delete_selection(input);
-            char_amount = strlen(input->text);
+            char_amount = input->text.count;
             const char *clipboard_text = GetClipboardText();
-            size_t length = strlen(clipboard_text);
-            size_t free_space = input->max_char - char_amount;
-            if (length > free_space) {
-                length = free_space;
+            if (clipboard_text) {
+                size_t length = strlen(clipboard_text);
+                if (input->max_char != 0) {
+                    size_t free_space = char_amount >= input->max_char ? 0 : input->max_char - char_amount;
+                    if (length > free_space) {
+                        length = free_space;
+                    }
+                }
+                if (length > 0 && tkbc_text_input_reserve(input, char_amount + length)) {
+                    char *elements = input->text.elements;
+                    memmove(&elements[input->cursor_pos + length], &elements[input->cursor_pos],
+                            (char_amount - input->cursor_pos + 1) * sizeof(*elements));
+                    memcpy(&elements[input->cursor_pos], clipboard_text, length * sizeof(*elements));
+                    input->text.count = char_amount + length;
+                    input->cursor_pos += length;
+                }
             }
-
-            memmove(&input->text[input->cursor_pos + length], &input->text[input->cursor_pos],
-                    (char_amount - input->cursor_pos + 1) * sizeof(*input->text));
-            memcpy(&input->text[input->cursor_pos], clipboard_text, length * sizeof(*input->text));
-            input->cursor_pos += length;
         }
 
         if (!is_spcial_action) {
@@ -2178,16 +2225,20 @@ void tkbc_handle_text_input(Text_Input *input) {
             if (key != KEY_NULL) {
                 if (tkbc_has_selection(input)) {
                     tkbc_delete_selection(input);
-                    char_amount = strlen(input->text);
                 }
-                if (char_amount < input->max_char) {
-                    n = char_amount - input->cursor_pos + 1;
-                    memmove(&input->text[input->cursor_pos + 1], &input->text[input->cursor_pos],
-                            n * sizeof(*input->text));
+                char_amount = input->text.count;
+                // Grow the buffer when there is not enough space; max_char only
+                // guards how much the user may input (0 = unlimited).
+                if ((input->max_char == 0 || char_amount < input->max_char) &&
+                    tkbc_text_input_reserve(input, char_amount + 1)) {
+                    char *elements = input->text.elements;
+                    size_t n = char_amount - input->cursor_pos + 1;
+                    memmove(&elements[input->cursor_pos + 1], &elements[input->cursor_pos], n * sizeof(*elements));
                     if ((key <= KEY_Z && key >= KEY_A) && (IsKeyUp(KEY_LEFT_SHIFT) && IsKeyUp(KEY_RIGHT_SHIFT))) {
                         key += 'a' - 'A';
                     }
-                    input->text[input->cursor_pos] = key;
+                    elements[input->cursor_pos] = (char) key;
+                    input->text.count = char_amount + 1;
                     input->cursor_pos += 1;
                     input->selection_start = SIZE_MAX;
                 }
@@ -2195,11 +2246,12 @@ void tkbc_handle_text_input(Text_Input *input) {
         }
     }
 
-    if (strlen(input->text) != initial_char_amount) {
+    cstr = tkbc_text_input_cstr(input);
+    if (input->text.count != initial_char_amount) {
         // The text changed during the input handling, so the size has to be
         // measured again for the scroll amount.
-        text_size = tkbc_measure_text_sized_ex(input->font, input->text, (int) strlen(input->text), input->font_size,
-                                               input->spacing);
+        text_size =
+            tkbc_measure_text_sized_ex(input->font, cstr, (int) input->text.count, input->font_size, input->spacing);
     }
 
     // Scroll the text horizontally inside the box so that the cursor stays
@@ -2214,7 +2266,7 @@ void tkbc_handle_text_input(Text_Input *input) {
 
     if (input->is_active) {
         float cursor_width =
-            tkbc_measure_text_sized_ex(input->font, input->text, input->cursor_pos, input->font_size, input->spacing).x;
+            tkbc_measure_text_sized_ex(input->font, cstr, input->cursor_pos, input->font_size, input->spacing).x;
         float desired_offset = input->scroll_offset;
         if (cursor_width < input->scroll_offset) {
             desired_offset = cursor_width;
@@ -2234,9 +2286,9 @@ void tkbc_handle_text_input(Text_Input *input) {
     tkbc_BeginScissorMode(input->box);
 
     tkbc_draw_selection(input);
-    DrawTextEx(input->font, input->text, input_text_pos, text_size.y, input->spacing, input->text_color);
+    DrawTextEx(input->font, cstr, input_text_pos, text_size.y, input->spacing, input->text_color);
 
-    if (input->text[0] == '\0') {
+    if (cstr[0] == '\0') {
         DrawTextEx(input->font, input->shadow_text, input_text_pos, input->font_size, input->spacing,
                    TKBC_UI_LIGHTGRAY);
         // Rest so the cursor does not add the text_size, when the shadow text is
@@ -2249,7 +2301,7 @@ void tkbc_handle_text_input(Text_Input *input) {
 
     if (input->is_active) {
         Vector2 cursor_pos_text_size =
-            tkbc_measure_text_sized_ex(input->font, input->text, input->cursor_pos, input->font_size, input->spacing);
+            tkbc_measure_text_sized_ex(input->font, cstr, input->cursor_pos, input->font_size, input->spacing);
 
         Rectangle cursor_box = input->box;
         cursor_box.x -= input->scroll_offset;
@@ -2551,7 +2603,7 @@ void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_rad
         if (CheckCollisionPointCircle(mouse, position, circle_radius)) {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 env->last_selected_color = colors[i];
-                tkbc_set_input_text_to_hex_color(&env->color_picker_input_text, env->last_selected_color);
+                tkbc_set_input_text_to_hex_color(&env->color_picker_input, env->last_selected_color);
                 tkbc_set_color_for_selected_kites(env, env->last_selected_color);
             }
         }

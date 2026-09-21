@@ -12,6 +12,8 @@
 #include "tkbc.h"
 
 #include "raymath.h"
+#include "tkbc-script-api.h"
+#include "tkbc-ui.h"
 
 // ========================== Script Handler =================================
 
@@ -189,6 +191,88 @@ Frames tkbc_deep_copy_frames(Space *space, Frames *frames) {
 }
 
 /**
+ * @brief Returns the NUL terminated string of the input, "" when empty.
+ */
+const char *tkbc_text_input_cstr(const Text_Input *input) {
+    if (!input || !input->text.elements) {
+        return "";
+    }
+    return input->text.elements;
+}
+
+/**
+ * @brief Ensures the text buffer can hold needed_count chars plus NUL.
+ * Grows via space_realloc when input->space is set, otherwise realloc.
+ */
+bool tkbc_text_input_reserve(Text_Input *input, size_t needed_count) {
+    if (!input) {
+        return false;
+    }
+    size_t need = needed_count + 1;
+    if (need <= input->text.capacity) {
+        return true;
+    }
+    size_t new_cap = input->text.capacity ? input->text.capacity : 64;
+    while (new_cap < need) {
+        new_cap *= 2;
+    }
+    size_t old_cap = input->text.capacity;
+    char *new_elements = NULL;
+    if (!input->space) {
+    }
+
+    new_elements = space_realloc(input->space, input->text.elements, old_cap, new_cap);
+    if (!new_elements) {
+        return false;
+    }
+    input->text.elements = new_elements;
+    input->text.capacity = new_cap;
+    if (input->text.count >= new_cap) {
+        input->text.count = new_cap - 1;
+    }
+    input->text.elements[input->text.count] = '\0';
+    return true;
+}
+
+/**
+ * @brief Copies str into the input buffer, growing it as needed.
+ */
+void tkbc_text_input_set_text(Text_Input *input, const char *str) {
+    if (!input) {
+        return;
+    }
+    if (!str) {
+        str = "";
+    }
+    size_t len = strlen(str);
+    if (!tkbc_text_input_reserve(input, len)) {
+        return;
+    }
+    memcpy(input->text.elements, str, len + 1);
+    input->text.count = len;
+    if (input->cursor_pos > len) {
+        input->cursor_pos = len;
+    }
+    if (input->selection_start != SIZE_MAX && input->selection_start > len) {
+        input->selection_start = len;
+    }
+}
+
+/**
+ * @brief Initializes an input with the given allocator and initial content.
+ */
+void tkbc_text_input_init(Text_Input *input, Space *space, const char *initial) {
+    if (!input) {
+        return;
+    }
+    input->space = space;
+    input->text.elements = NULL;
+    input->text.count = 0;
+    input->text.capacity = 0;
+    tkbc_text_input_set_text(input, initial);
+}
+
+/**
  * @brief The function can be used to copy a frame struct.
  *
  * @param space The space where the internal allocation should happen.
@@ -229,15 +313,73 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
         return new_script;
     }
     new_script.id = script->id;
-    new_script.name = space_strdup(space, script->name);
     new_script.was_send = script->was_send;
-    new_script.name_input = script->name_input;
+
+    // Deep copy the name buffer into the new allocation. The name is stored
+    // only in name_input.text.
+    const char *src_name = tkbc_script_name(script);
+    size_t src_len = strlen(src_name);
+    if (src_len > 0 || script->name_input.text.elements) {
+        char *dst = space_malloc(space, src_len + 1);
+        if (dst) {
+            memcpy(dst, src_name, src_len + 1);
+            new_script.name_input.text.elements = dst;
+            new_script.name_input.text.count = src_len;
+            new_script.name_input.text.capacity = src_len + 1;
+        }
+    }
+    new_script.name_input.box = script->name_input.box;
+    new_script.name_input.shadow_text = script->name_input.shadow_text;
+    new_script.name_input.font = script->name_input.font;
+    new_script.name_input.text_color = script->name_input.text_color;
+    new_script.name_input.font_size = script->name_input.font_size;
+    new_script.name_input.spacing = script->name_input.spacing;
+    new_script.name_input.cursor_pos = script->name_input.cursor_pos;
+    new_script.name_input.selection_start = script->name_input.selection_start;
+    new_script.name_input.max_char = script->name_input.max_char;
+    new_script.name_input.scroll_offset = script->name_input.scroll_offset;
+    new_script.name_input.key_constrained = script->name_input.key_constrained;
+    new_script.name_input.is_active = script->name_input.is_active;
+    new_script.name_input.space = NULL;
 
     for (size_t i = 0; i < script->count; ++i) {
         Frames frames = tkbc_deep_copy_frames(space, &script->elements[i]);
         space_dap(space, &new_script, frames);
     }
     return new_script;
+}
+
+/**
+ * @brief Repairs the allocator pointer inside a Script after it was moved in
+ * memory (memcpy/memmove by the Scripts dynamic array).
+ *
+ * The name_input.space pointer has to point at the containing script->space.
+ * A stale pointer would reference the old location of the Script before the
+ * move.
+ *
+ * @param script The script at its new location whose refs should be fixed.
+ */
+void tkbc_script_fixup_name_refs(Script *script) {
+    if (!script) {
+        return;
+    }
+    script->name_input.space = &script->space;
+}
+
+/**
+ * @brief Repairs the self references of every script in the array. Must be
+ * called after every operation that may reallocate/move the Scripts elements
+ * buffer (space_dap on scripts, memmove on delete).
+ *
+ * @param scripts The array whose elements should be fixed.
+ */
+void tkbc_scripts_fixup_all_name_refs(Scripts *scripts) {
+    if (!scripts) {
+        return;
+    }
+    for (size_t i = 0; i < scripts->count; ++i) {
+        tkbc_script_fixup_name_refs(&scripts->elements[i]);
+    }
 }
 
 /**
@@ -976,6 +1118,9 @@ int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
             }
 
             env->scripts.count -= 1;
+            // The memmove above shifted Scripts in memory, repair every
+            // name_input.space self reference.
+            tkbc_scripts_fixup_all_name_refs(&env->scripts);
             ok = 0;
             break;
         }
@@ -1054,8 +1199,9 @@ size_t tkbc_calculate_script_byte_size(Script script) {
 
     size_t result = 0;
     result += sizeof(script);
-    if (script.name != NULL) {
-        result += strlen(script.name) + 1;
+    const char *script_name = tkbc_script_name(&script);
+    if (script_name[0] != '\0') {
+        result += strlen(script_name) + 1;
     }
 
     for (size_t i = 0; i < script.count; ++i) {
@@ -1076,8 +1222,9 @@ size_t tkbc_calculate_script_byte_size(Script script) {
 size_t tkbc_calculate_script_byte_size_allocated(Script script) {
     size_t result = 0;
 
-    if (script.name != NULL) {
-        result += strlen(script.name) + 1;
+    const char *script_name = tkbc_script_name(&script);
+    if (script_name[0] != '\0') {
+        result += strlen(script_name) + 1;
     }
 
     if (script.count > 0) {
@@ -1149,12 +1296,18 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
     // size_t bytes_count = tkbc_calculate_script_byte_size_allocated(script);
 
     {
-        Script s_copy = {0};
+        // NOTE: s_copy.space must survive the deep copy. tkbc_deep_copy_script
+        // allocates into the passed Space but returns a Script with a zeroed
+        // space field, so track allocations in a separate Space and move it
+        // into the copy afterwards. Otherwise the assignment below would
+        // discard the planet bookkeeping.
+        Space s_space = {0};
         Space_Report report = {0};
         if (space_report_allocations(&env->scratch_buf_script.space, &report)) {
-            space_init_capacity(&s_copy.space, report.allocated_count);
+            space_init_capacity(&s_space, report.allocated_count);
         }
-        s_copy = tkbc_deep_copy_script(&s_copy.space, &script);
+        Script s_copy = tkbc_deep_copy_script(&s_space, &script);
+        s_copy.space = s_space;
 
         {
             s_copy.name_input.shadow_text = "";
@@ -1165,10 +1318,18 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
             s_copy.name_input.spacing = 2;
             s_copy.name_input.font = env->font;
             s_copy.name_input.text_color = TKBC_UI_BLACK;
-            s_copy.name_input.text = s_copy.name;
+            // The name buffer is already deep copied above; just bind the
+            // allocator.
+            s_copy.name_input.space = &s_copy.space;
+            if (!s_copy.name_input.text.elements) {
+                tkbc_text_input_init(&s_copy.name_input, &s_copy.space, "");
+            }
         }
 
         space_dap(&env->_scripts_space, &env->scripts, s_copy);
+        // The Scripts elements buffer may have moved, which invalidates every
+        // name_input.space self reference. Repair them all.
+        tkbc_scripts_fixup_all_name_refs(&env->scripts);
 
         // Rest the scratch buffers they got invalidated by resetting the space.
         memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));

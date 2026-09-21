@@ -174,8 +174,16 @@ typedef struct KeyMaps {
 } Key_Maps;
 
 typedef struct {
+    char *elements;
+    size_t count;
+    size_t capacity;
+} Text_Buffer;
+
+typedef struct {
     Rectangle box;
-    char *text;
+    Text_Buffer text;
+    Space *space;  // Allocator for text.elements via space_realloc, NULL falls back to realloc.
+
     const char *shadow_text;
 
     Font font;
@@ -184,7 +192,9 @@ typedef struct {
     int spacing;
     size_t cursor_pos;
     size_t selection_start;  // The anchor of the selection. SIZE_MAX when none.
-    size_t max_char;
+    size_t max_char;  // Guard how many chars can be part of the text via user input. 0 = unlimited.
+                      // Independent from the reallocation: the buffer still grows via space_realloc,
+                      // the guard only limits what typing/paste may insert.
     float scroll_offset;  // Horizontal scroll offset of the text that does not fit the box.
     KeyboardKey (*key_constrained)(void);
 
@@ -486,10 +496,13 @@ typedef struct {
                        // the number of collection elements of the array type.
     UUID id;           // The unique uuid of the script. The nil uuid represents
                        // the state where no script is loaded.
-    char *name;        // The name of the script.
-    Space space;
+    Space space;       // Owner of all frames data and the name_input text.
 
-    Text_Input name_input;
+    Text_Input name_input;  // Holds the script name in name_input.text, the single
+                            // place the name is stored. name_input.space must always
+                            // point to the containing Script.space, repaired by
+                            // tkbc_script_fixup_name_refs() after every move
+                            // of the Scripts array.
 
     bool was_send;  // Indicates if this script was already send to a server.
 } Script;           // A dynamic array collection that combined multiple frames to a
@@ -625,8 +638,9 @@ typedef struct {
     bool colorizer;  // If the colorizer was selected.
 
     Rectangle color_picker_base;                // The base bounding box of the color selection menu.
-    char *color_picker_input_text;              // The base bounding box of the color
-                                                // selection menu.
+    Text_Input color_picker_input;              // The hex color text field, owns its buffer
+                                                // in color_picker_input_space, no extra allocation.
+    Space color_picker_input_space;             // Allocator for the color picker input text.
     bool color_picker_interaction;              // The status if the color picker is currently
                                                 // in use.
     bool color_picker_window_picking;           // Denotes if the color is picked from the
