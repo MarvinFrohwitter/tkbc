@@ -240,10 +240,13 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
             space_dapf(space, message, "%zu:", (size_t) 0);
         }
 
-        space_dapf(space, message, "%zu:", script->count);
-
-        for (size_t j = 0; j < script->count; ++j) {
-            Frames *frames = &script->elements[j];
+        // The original non-upscaled script: the receiver upscales and
+        // bakes locally, so it can still be saved in its original form and
+        // the message stays small no matter how many per-tick slices the
+        // live timeline holds.
+        space_dapf(space, message, "%zu:", script->original_count);
+        for (size_t j = 0; j < script->original_count; ++j) {
+            Frames *frames = &script->original_elements[j];
             space_dapf(space, message, "%zu:%zu:", frames->frames_index, frames->count);
 
             for (size_t k = 0; k < frames->count; ++k) {

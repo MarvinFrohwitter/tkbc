@@ -153,10 +153,12 @@ void tkbc__script_end(Env *env) {
 
     if (env->default_scripts_setup) {
         // The compiled in default scripts are built in the same order on every
-        // client, so derive their uuid dynamically from the registration order
-        // (the current script count). This way the server can deduplicate the
-        // default scripts of every client without knowing the total amount.
-        env->scratch_buf_script.id = tkbc_uuid_from_number(env->scripts.count + 1);
+        // client, so derive their uuid from the build-order sequence. The old
+        // code used env->scripts.count + 1, which breaks as soon as scripts
+        // were already received from the server (e.g. a late joiner while a
+        // script is running): the ids shift and the server no longer
+        // recognises them as defaults, adding duplicates to the list.
+        env->scratch_buf_script.id = tkbc_uuid_from_number(++env->default_scripts_seq);
 
     } else {
         // This is a script like a dragged in .kite file, it keeps a random uuid
@@ -180,7 +182,7 @@ void tkbc_script_update_frames(Env *env) {
         Frame *frame = &env->frames->elements[i];
         assert(frame != NULL);
         if (!frame->finished) {
-            tkbc_render_frame(env, frame);
+            tkbc_render_frame_with_dt(env, frame, tkbc_get_frame_time());
         }
     }
 
@@ -504,7 +506,8 @@ void tkbc_print_script(FILE *stream, Script *script) {
     tkbc_uuid_to_string(script->id, uuid_buf);
     fprintf(stream, "Script: %s\n", uuid_buf);
     for (size_t block = 0; block < script->count; ++block) {
-        fprintf(stream, "  Block-Index: %zu\n", script->elements[block].frames_index);
+        fprintf(stream, "  Block-Index: %zu%s\n", script->elements[block].frames_index,
+                script->elements[block].is_upscaled ? " (upscaled)" : "");
 
         fprintf(stream, "    Kite-Frames:\n");
         for (size_t frame = 0; frame < script->elements[block].count; ++frame) {

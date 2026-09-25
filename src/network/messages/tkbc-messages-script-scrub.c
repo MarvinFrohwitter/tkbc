@@ -7,10 +7,15 @@
 #include "tkbc-messages.h"
 
 #include <stdbool.h>
+#include <stdlib.h>
 
 /**
- * @brief Handles a SCRIPT_SCRUB message by scrubbing through the current script
- * timeline.
+ * @brief Handles a SCRIPT_SCRUB message by jumping the server script timeline
+ * to an absolute frame index.
+ *
+ * The client maps its timeline mouse position onto the upscaled per-tick
+ * timeline and sends the target frames_index, so scrubbing works
+ * continuously even inside the animation between script keyframes.
  *
  * @param lexer The lexer positioned at the message content.
  * @return True if the scrub was executed successfully, otherwise false.
@@ -21,7 +26,7 @@ bool tkbc_messages_script_scrub(Lexer *lexer) {
     if (token.kind != NUMBER) {
         return false;
     }
-    bool drag_left = !!atoi(lexer_token_to_cstr(lexer, &token));
+    size_t target_index = strtoull(lexer_token_to_cstr(lexer, &token), NULL, 10);
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {
         return false;
@@ -32,22 +37,21 @@ bool tkbc_messages_script_scrub(Lexer *lexer) {
         return true;
     }
 
-    // TODO: Ensure kite_ids are correctly mapped.
-    {
-        if (env->script->count <= 0) {
-            return false;
-        }
-
-        // TODO: map the kite_ids before setting this inside the positions are
-        // recalculated..
-        tkbc_execute_scrub_slide(env, drag_left);
+    if (env->script->count <= 0) {
+        return false;
     }
+
+    tkbc_scrub_to_index(env, target_index);
 
     // This parsing function is just used in the server but liked in the client as
     // well so just a simple guard for compilation.
 #ifdef TKBC_SERVER
     tkbc_message_script_meta_data_write_to_all_send_msg_buffers(env->script->id, env->script->count,
                                                                 env->frames->frames_index);
+    // The scrub pauses execution (script_finished), so no regular per-tick
+    // kite broadcast follows. Push the jumped positions explicitly, otherwise
+    // clients would move the slider but keep stale kite positions.
+    tkbc_message_clientkites_write_to_all_send_msg_buffers(false);
 #endif
     return true;
 }
