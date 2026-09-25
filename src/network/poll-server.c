@@ -1,4 +1,4 @@
-// Use the UUIDs for the client_kites id's
+// Use the UUIDs for the kite_design textures.
 
 // Sometime the server does not broadcast the new script and this is not because of and actually valid parsing_skip but
 // the function returns earl before the script can be send back.
@@ -428,9 +428,10 @@ void tkbc_client_prolog(Client *client) {
     kite_state.is_active = true;
     float r = (float) rand() / (float) RAND_MAX;
     kite_state.kite->body_color = ColorFromHSV(r * 360, 0.6, (r + 3) / 4);
-    // A joining client only stays hidden while the server is executing a
-    // script; otherwise it joins the free-fly view like everyone else.
-    if (!tkbc_script_finished(env) && env->script != NULL) {
+    // A joining client stays hidden while the server has a script loaded
+    // (playing or paused); otherwise it joins the free-fly view like
+    // everyone else. Only the kites that belong to the script are displayed.
+    if (env->script != NULL) {
         kite_state.is_active = false;
     }
     tkbc_dap(&env->kite_array, kite_state);
@@ -762,23 +763,24 @@ void tkbc_message_clientkites_write_to_all_send_msg_buffers(bool overwrite_is_ac
     tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 }
 
-/**
- * @brief The function constructs all the scripts that specified in a block
- * frame.
- *
- * @param script_id The id that is the current load script.
- * @param script_count The amount of scripts that are available.
- * @param frames_index The current index of the collection of individual
- * frames in a script.
- */
-void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(UUID script_id, size_t script_count,
-                                                                 size_t frames_index) {
+void tkbc_message_script_meta_data(Message *message, UUID script_id, size_t script_count, size_t frames_index) {
     char script_id_cstr[37];
     tkbc_uuid_to_string(script_id, script_id_cstr);
-    space_tdapf(&t_message, "%d:\"%s\":%zu:%zu:\r\n", MESSAGE_SCRIPT_META_DATA, script_id_cstr, script_count,
+    space_tdapf(message, "%d:\"%s\":%zu:%zu:\r\n", MESSAGE_SCRIPT_META_DATA, script_id_cstr, script_count,
                 frames_index);
+}
 
+void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(UUID script_id, size_t script_count,
+                                                                 size_t frames_index) {
+    tkbc_message_script_meta_data(&t_message, script_id, script_count, frames_index);
     tkbc_write_to_all_send_msg_buffers(t_message);
+    tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+}
+
+void tkbc_message_script_meta_data_write_to_send_msg_buffer(Client *client, UUID script_id, size_t script_count,
+                                                            size_t frames_index) {
+    tkbc_message_script_meta_data(&t_message, script_id, script_count, frames_index);
+    tkbc_write_to_send_msg_buffer(client, t_message);
     tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 }
 
@@ -869,6 +871,16 @@ bool tkbc_received_message_handler(Client *client) {
 
             // Send all the scripts to the client
             tkbc_message_script(client, true);
+            // When a script is loaded (playing or paused) the joining client
+            // has to learn the running script id, otherwise it stays in
+            // free-fly mode and its kite would become visible again through
+            // its own SINGLE_KITE_UPDATEs. Send before CLIENTKITES so the
+            // client blanks its view first and then fills it with the
+            // script-only snapshot.
+            if (env->script != NULL) {
+                tkbc_message_script_meta_data_write_to_send_msg_buffer(client, env->script->id, env->script->count,
+                                                                       env->frames->frames_index);
+            }
             tkbc_message_kiteadd_write_to_all_send_msg_buffers(client->kite_id);
             tkbc_message_clientkites_write_to_send_msg_buffer(client, true);
 
@@ -912,6 +924,8 @@ bool tkbc_received_message_handler(Client *client) {
                 goto err;
             }
 
+            // With a correct client implementation the state should always be
+            // available. No memory corruption on the server side implied.
             Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
             if (state == NULL) {
                 check_return(false);  // Disconnect the client.
@@ -933,10 +947,12 @@ bool tkbc_received_message_handler(Client *client) {
                 state->kite->texture_id = texture_id;
             }
 
-            // Consider disconnecting the client if the client is not found by its
-            // kite id. Instead of crashing the complete server.
-            // With a correct client implementation the state should always be
-            // available. No memory corruption on the server side implied.
+            // While a script is loaded (playing or paused) only script kites
+            // are displayed, so a free-fly kite must not become visible
+            // through its own updates.
+            if (env->script != NULL && !state->is_script_kite) {
+                is_active = false;
+            }
             tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id, is_reversed, is_active,
                                             is_script_kite);
 
@@ -976,7 +992,7 @@ bool tkbc_received_message_handler(Client *client) {
         case MESSAGE_SCRIPT_TOGGLE: {
             // The script associated kites don't have to be toggled in visibility,
             // because you want to be able to pause the script.
-            env->script_finished = !env->script_finished;
+            tkbc_toggle_script_execution(env);
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_TOGGLE\n");
         } break;
@@ -1226,16 +1242,11 @@ bool tkbc_base_execution(void) {
         tkbc_message_clientkites_write_to_all_send_msg_buffers(false);
 
         if (tkbc_script_finished(env)) {
-            space_tdapf(&t_message, "%d:\r\n", MESSAGE_SCRIPT_FINISHED);
-            tkbc_write_to_all_send_msg_buffers(t_message);
-            tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
-
-            // Execution ended but the script stays loaded: return to the
-            // free-fly view explicitly. Clients switch to the same view on
-            // SCRIPT_FINISHED, so late joiners receive a snapshot that
-            // matches what everyone else shows. (A blind flip of every kite
-            // would also expose unrelated hidden script kites.)
-            tkbc_change_visibility_to_non_script_kites(env);
+            // Natural end of the script: stay paused in script mode on the
+            // final frame (video-like). Termination is explicit only via the
+            // NO SCRIPT button (SCRIPT_NEXT with nil id), which unloads and
+            // flips visibility. No FINISHED broadcast, no visibility change.
+            tkbc_fprintf(stderr, "INFO", "The script has finished successfully. Staying in script mode.\n");
         }
         return true;
     }

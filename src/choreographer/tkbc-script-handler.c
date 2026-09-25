@@ -172,6 +172,7 @@ Frames tkbc_deep_copy_frames(Space *space, Frames *frames) {
         return new_frames;
     }
     new_frames.frames_index = frames->frames_index;
+    new_frames.is_upscaled = frames->is_upscaled;
 
     if (frames->kite_frame_positions.count) {
         space_dapc(space, &new_frames.kite_frame_positions, frames->kite_frame_positions.elements,
@@ -336,6 +337,25 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
         Frames frames = tkbc_deep_copy_frames(space, &script->elements[i]);
         space_dap(space, &new_script, frames);
     }
+
+    if (script->original_elements && script->original_count > 0) {
+        size_t n = script->original_count;
+        Frames *new_non_upscaled = space_malloc(space, n * sizeof(*new_non_upscaled));
+        if (!new_non_upscaled) {
+            return (Script){0};
+        }
+
+        for (size_t i = 0; i < n; ++i) {
+            Frames frames = tkbc_deep_copy_frames(space, &script->original_elements[i]);
+            new_non_upscaled[i] = frames;
+            // Not possible because alternative names of the dynamic array.
+            // space_dap(space, &new_script.original_elements, frames);
+        }
+
+        new_script.original_elements = new_non_upscaled;
+        new_script.original_count = n;
+        new_script.original_capacity = n;
+    }
     return new_script;
 }
 
@@ -490,7 +510,7 @@ static Vector2 tkbc_combined_move_destination(Kite *kite, Frame *tip_frame, Vect
  * intermediate values.
  * @return true if a global quit is active fired, otherwise false.
  */
-void tkbc_render_frame(Env *env, Frame *frame) {
+void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
     Kite *kite = NULL;
     Frame *env_frame = &env->frames->elements[frame->index];
 
@@ -511,7 +531,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             frame->finished = true;
             frame->duration = 0;
         } else {
-            frame->duration -= tkbc_get_frame_time();
+            frame->duration -= dt;
         }
     } break;
 
@@ -527,10 +547,10 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             if (tip_frame) {
                 dest_position = tkbc_combined_move_destination(kite, tip_frame, action->position);
             }
-            Vector2 d = tkbc_script_move(kite, dest_position, frame->duration);
+            Vector2 d = tkbc_script_move_with_dt(kite, dest_position, frame->duration, dt);
 
             if (Vector2Equals(dest_position, kite->old_center)) {
-                frame->duration -= tkbc_get_frame_time();
+                frame->duration -= dt;
                 if (frame->duration <= 0) {
                     frame->finished = true;
                 }
@@ -541,7 +561,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
             if (res) {
                 frame->finished = true;
-                tkbc_script_move(kite, dest_position, 0);
+                tkbc_script_move_with_dt(kite, dest_position, 0, dt);
             }
         }
 
@@ -554,11 +574,11 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             Id id = env_frame->kite_id_array.elements[i];
             kite = tkbc_get_kite_by_id_unwrap(env, id);
 
-            Vector2 d = tkbc_script_move(kite, action->position, frame->duration);
+            Vector2 d = tkbc_script_move_with_dt(kite, action->position, frame->duration, dt);
 
             if (Vector2Equals(action->position, Vector2Zero())) {
                 if (frame->duration > 0) {
-                    frame->duration -= tkbc_get_frame_time();
+                    frame->duration -= dt;
                     continue;
                 }
                 bool result = fabsf(action->position.x - kite->center.x) <= d.x &&
@@ -574,7 +594,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
             if (res) {
                 frame->finished = true;
-                tkbc_script_move(kite, action->position, 0);
+                tkbc_script_move_with_dt(kite, action->position, 0, dt);
             }
         }
     } break;
@@ -586,9 +606,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             Id id = env_frame->kite_id_array.elements[i];
             kite = tkbc_get_kite_by_id_unwrap(env, id);
 
-            float d = tkbc_script_rotate(kite, action->angle, frame->duration, true);
+            float d = tkbc_script_rotate_with_dt(kite, action->angle, frame->duration, true, dt);
             if (action->angle == 0) {
-                frame->duration -= tkbc_get_frame_time();
+                frame->duration -= dt;
                 if (frame->duration <= 0) {
                     frame->finished = true;
                 }
@@ -599,7 +619,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             if (result) {
                 frame->finished = true;
                 // Enable for setting the correct angle precision.
-                tkbc_script_rotate(kite, action->angle, 0, true);
+                tkbc_script_rotate_with_dt(kite, action->angle, 0, true, dt);
             }
         }
     } break;
@@ -612,11 +632,11 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             kite = tkbc_get_kite_by_id_unwrap(env, id);
 
             float intermediate_angle = tkbc_check_angle_zero(kite, frame->kind, *(Action *) action, frame->duration);
-            float d = tkbc_script_rotate(kite, intermediate_angle, frame->duration, false);
+            float d = tkbc_script_rotate_with_dt(kite, intermediate_angle, frame->duration, false, dt);
 
             if (action->angle == 0) {
                 if (frame->duration > 0) {
-                    frame->duration -= tkbc_get_frame_time();
+                    frame->duration -= dt;
                     continue;
                 }
                 bool result = fabsf(kite->angle) <= d * fmaxf(1.0f, fabsf(kite->angle));
@@ -631,7 +651,7 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             if (result) {
                 frame->finished = true;
                 // Enable for setting the correct angle precision.
-                tkbc_script_rotate(kite, intermediate_angle, 0, false);
+                tkbc_script_rotate_with_dt(kite, intermediate_angle, 0, false, dt);
             }
         }
     } break;
@@ -649,12 +669,12 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
             float d;
             if (has_move) {
-                d = tkbc_script_rotate(kite, action->angle, frame->duration, true);
+                d = tkbc_script_rotate_with_dt(kite, action->angle, frame->duration, true, dt);
             } else {
-                d = tkbc_script_rotate_tip(kite, action->tip, action->angle, frame->duration, true);
+                d = tkbc_script_rotate_tip_with_dt(kite, action->tip, action->angle, frame->duration, true, dt);
             }
             if (action->angle == 0) {
-                frame->duration -= tkbc_get_frame_time();
+                frame->duration -= dt;
                 if (frame->duration <= 0) {
                     frame->finished = true;
                 }
@@ -665,9 +685,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             if (result) {
                 frame->finished = true;
                 if (has_move) {
-                    tkbc_script_rotate(kite, action->angle, 0, true);
+                    tkbc_script_rotate_with_dt(kite, action->angle, 0, true, dt);
                 } else {
-                    tkbc_script_rotate_tip(kite, action->tip, action->angle, 0, true);
+                    tkbc_script_rotate_tip_with_dt(kite, action->tip, action->angle, 0, true, dt);
                 }
             }
         }
@@ -685,14 +705,14 @@ void tkbc_render_frame(Env *env, Frame *frame) {
 
             float d;
             if (has_move) {
-                d = tkbc_script_rotate(kite, intermediate_angle, frame->duration, false);
+                d = tkbc_script_rotate_with_dt(kite, intermediate_angle, frame->duration, false, dt);
             } else {
-                d = tkbc_script_rotate_tip(kite, action->tip, intermediate_angle, frame->duration, false);
+                d = tkbc_script_rotate_tip_with_dt(kite, action->tip, intermediate_angle, frame->duration, false, dt);
             }
 
             if (action->angle == 0) {
                 if (frame->duration > 0) {
-                    frame->duration -= tkbc_get_frame_time();
+                    frame->duration -= dt;
                     continue;
                 }
                 bool result = fabsf(kite->angle) <= d * fmaxf(1.0f, fabsf(kite->angle));
@@ -707,9 +727,9 @@ void tkbc_render_frame(Env *env, Frame *frame) {
             if (result) {
                 frame->finished = true;
                 if (has_move) {
-                    tkbc_script_rotate(kite, intermediate_angle, 0, false);
+                    tkbc_script_rotate_with_dt(kite, intermediate_angle, 0, false, dt);
                 } else {
-                    tkbc_script_rotate_tip(kite, action->tip, intermediate_angle, 0, false);
+                    tkbc_script_rotate_tip_with_dt(kite, action->tip, intermediate_angle, 0, false, dt);
                 }
             }
         }
@@ -727,60 +747,25 @@ void tkbc_render_frame(Env *env, Frame *frame) {
  * @param script The script where the kite ids should be remapped to new values.
  * @param kite_ids The ids array that contain the new values.
  */
-void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script, Kite_Ids kite_ids) {
-    assert(script);
-    assert(script->count > 0);
-    assert(kite_ids.count > 0);
-
-    Kite_Ids current_kite_ids = {0};
-    for (size_t i = 0; i < script->count; ++i) {
-
-        for (size_t j = 0; j < script->elements[i].count; ++j) {
-            Frame *frame = &script->elements[i].elements[j];
-            for (size_t k = 0; k < frame->kite_id_array.count; ++k) {
-                Kite_Ids ids = frame->kite_id_array;
-                Id id = ids.elements[k];
-                if (!tkbc_contains_id(current_kite_ids, id)) {
-                    tkbc_dap(&current_kite_ids, id);
-                }
+/**
+ * @brief Rewrites kite ids inside a single frames block via the collected mapping.
+ *
+ * @param frames The block whose frame id arrays and stored positions get remapped.
+ * @param current_kite_ids The distinct ids found in the script, in order.
+ * @param kite_ids The replacement ids in the same order.
+ */
+void tkbc_remap_frames_kite_ids(Frames *frames, Kite_Ids current_kite_ids, Kite_Ids kite_ids) {
+    assert(frames);
+    assert(frames->elements || frames->count == 0);
+    for (size_t new_id = 0; new_id < current_kite_ids.count; ++new_id) {
+        for (size_t j = 0; j < frames->count; ++j) {
+            if (frames->elements[j].kind == ACTION_KITE_WAIT || frames->elements[j].kind == ACTION_KITE_QUIT) {
+                continue;
             }
-        }
-
-        for (size_t j = 0; j < script->elements[i].kite_frame_positions.count; ++j) {
-            Id id = script->elements[i].kite_frame_positions.elements[j].kite_id;
-            if (!tkbc_contains_id(current_kite_ids, id)) {
-                tkbc_dap(&current_kite_ids, id);
-            }
-        }
-    }
-
-    assert(current_kite_ids.count == kite_ids.count);
-
-    for (size_t i = 0; i < script->count; ++i) {
-        assert(script->elements);
-        Frames *frames = &script->elements[i];
-
-        for (size_t new_id = 0; new_id < current_kite_ids.count; ++new_id) {
-
-            assert(frames->elements);
-            for (size_t j = 0; j < frames->count; ++j) {
-                if (frames->elements[j].kind == ACTION_KITE_WAIT || frames->elements[j].kind == ACTION_KITE_QUIT) {
-                    continue;
-                }
-                Kite_Ids *ids = &frames->elements[j].kite_id_array;
-                assert(ids->elements);
-                for (size_t k = 0; k < ids->count; ++k) {
-                    Id *id = &ids->elements[k];
-
-                    if (current_kite_ids.elements[new_id] == *id) {
-                        *id = kite_ids.elements[new_id];
-                        break;
-                    }
-                }
-            }
-
-            for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
-                Id *id = &frames->kite_frame_positions.elements[j].kite_id;
+            Kite_Ids *ids = &frames->elements[j].kite_id_array;
+            assert(ids->elements);
+            for (size_t k = 0; k < ids->count; ++k) {
+                Id *id = &ids->elements[k];
 
                 if (current_kite_ids.elements[new_id] == *id) {
                     *id = kite_ids.elements[new_id];
@@ -788,9 +773,63 @@ void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script, Kite_Ids kite_
                 }
             }
         }
-    }
 
-    free(current_kite_ids.elements);
+        for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
+            Id *id = &frames->kite_frame_positions.elements[j].kite_id;
+
+            if (current_kite_ids.elements[new_id] == *id) {
+                *id = kite_ids.elements[new_id];
+                break;
+            }
+        }
+    }
+}
+
+void tkbc_collect_script_kite_ids(Space *space, const Script *script, Kite_Ids *current_kite_ids) {
+    for (size_t i = 0; i < script->count; ++i) {
+        tkbc_collect_frames_kite_ids(space, &script->elements[i], current_kite_ids);
+    }
+}
+
+void tkbc_collect_frames_kite_ids(Space *space, const Frames *frames, Kite_Ids *current_kite_ids) {
+    // If the positions are available than it is faster to iterate the than looking into every frame individually. An
+    // every kite id is part of the kite_frame_positions  if their are available.
+    //
+    // This assumes that every id is also part of the positions array => that is currently the case.
+    if (frames->kite_frame_positions.elements) {
+        for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
+            Id id = frames->kite_frame_positions.elements[j].kite_id;
+            if (!tkbc_contains_id(*current_kite_ids, id)) {
+                space_dap(space, current_kite_ids, id);
+            }
+        }
+    } else {
+        for (size_t j = 0; j < frames->count; ++j) {
+            const Frame *frame = &frames->elements[j];
+            for (size_t k = 0; k < frame->kite_id_array.count; ++k) {
+                Kite_Ids ids = frame->kite_id_array;
+                Id id = ids.elements[k];
+                if (!tkbc_contains_id(*current_kite_ids, id)) {
+                    space_dap(space, current_kite_ids, id);
+                }
+            }
+        }
+    }
+}
+
+void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script, Kite_Ids current_kite_ids, Kite_Ids kite_ids) {
+    assert(script);
+    assert(script->count > 0);
+    assert(current_kite_ids.count == kite_ids.count);
+    assert(kite_ids.count > 0);
+    for (size_t i = 0; i < script->count; ++i) {
+        assert(script->elements);
+        tkbc_remap_frames_kite_ids(&script->elements[i], current_kite_ids, kite_ids);
+    }
+    for (size_t i = 0; i < script->original_count; ++i) {
+        assert(script->original_elements);
+        tkbc_remap_frames_kite_ids(&script->original_elements[i], current_kite_ids, kite_ids);
+    }
 }
 
 /**
@@ -919,20 +958,12 @@ void tkbc_change_visibility_to_non_script_kites(Env *env) {
 void tkbc_change_visibility_to_script_kites(Env *env, Script *script) {
 
     // TODO: Find a better way to do it reliable. And faster!!!
+    // And use a space that is provided as a tspace this has to be passed in because we don't know if getting a tspace
+    // and then releasing it will cause other data loss.
 
-    Kite_Ids ids = {0};
-    for (size_t i = 0; i < script->count; ++i) {
-        for (size_t j = 0; j < script->elements[i].count; ++j) {
-            Kite_Ids *kite_id_array = &script->elements[i].elements[j].kite_id_array;
-
-            for (size_t k = 0; k < kite_id_array->count; ++k) {
-                Id id = kite_id_array->elements[k];
-                if (!tkbc_contains_id(ids, id)) {
-                    tkbc_dap(&ids, id);
-                }
-            }
-        }
-    }
+    Space space = {0};
+    Kite_Ids current_kite_ids = {0};
+    tkbc_collect_script_kite_ids(&space, script, &current_kite_ids);
 
     //
     // Activate the kites that belong to the script.
@@ -940,14 +971,15 @@ void tkbc_change_visibility_to_script_kites(Env *env, Script *script) {
         env->kite_array.elements[i].is_active = false;
         env->kite_array.elements[i].is_kite_input_handler_active = false;
 
-        for (size_t j = 0; j < ids.count; ++j) {
-            if (ids.elements[j] == env->kite_array.elements[i].kite_id) {
+        for (size_t j = 0; j < current_kite_ids.count; ++j) {
+            if (current_kite_ids.elements[j] == env->kite_array.elements[i].kite_id) {
                 env->kite_array.elements[i].is_active = true;
                 break;
             }
         }
     }
-    free(ids.elements);
+
+    space_free_space(&space);
 }
 
 /**
@@ -1001,15 +1033,16 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
     if (!fresh) {
         tkbc_set_kite_positions_from_kite_frames_positions(env);
     } else {
-        // load without setting any position but clear alle the saved positions
-        // start a fresh play.
+        // Fresh play (offline selection or server NEXT): start from the
+        // current kite positions and rebake the timeline eagerly, so smooth
+        // scrubbing works immediately without playing the script one time
+        // first. Absolute targets stay fixed while relative offsets shift
+        // with the new start, exactly like a live run would.
         assert(env->script);
         tkbc_restore_script_frame_states(env);
-        for (size_t i = 0; i < env->script->count; ++i) {
-            env->script->elements[i].kite_frame_positions.count = 0;
-        }
-
         tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
+        tkbc_bake_script_timeline(env, env->script);
+        tkbc_set_kite_positions_from_kite_frames_positions(env);
     }
     env->script_finished = false;
     env->script_loading = true;
@@ -1066,9 +1099,20 @@ int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
                 tkbc_unload_script(env);
                 tkbc_change_visibility_to_non_script_kites(env);
             }
+            // TODO: Remove when the client in offline mode also generates kites for each script separately.
+#ifdef TKBC_SERVER
+            {  // Remove the kites that are used from the kite array.
+                Kite_Ids current_kite_ids = {0};
+                // Use the script space one last time.
+                tkbc_collect_script_kite_ids(&env->scripts.elements[i].space, &env->scripts.elements[i],
+                                             &current_kite_ids);
+                for (size_t i = 0; i < current_kite_ids.count; ++i) {
+                    tkbc_remove_kite_from_list(&env->kite_array, current_kite_ids.elements[i]);
+                }
+            }
+#endif
 
             space_free_space(&env->scripts.elements[i].space);
-
             if (i + 1 < env->scripts.count) {
                 memmove(&env->scripts.elements[i], &env->scripts.elements[i + 1],
                         sizeof(*env->scripts.elements) * (env->scripts.count - i - 1));
@@ -1206,12 +1250,36 @@ size_t tkbc_calculate_script_byte_size_allocated(Script script) {
     }
 
     return result;
+
+/**
+ * @brief Resets the scratch buffers used during script creation.
+ *
+ * Zeroes scratch_buf_frames and the scratch_buf_script struct while preserving
+ * the scratch_buf_script.space allocator for reuse. Called after a script was
+ * added to env->scripts and when adding is skipped because the script id is
+ * already known, so the next script build starts clean.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_reset_script_scratch_creation(Env *env) {
+    // Rest the scratch buffers they get invalidated by resetting the space.
+    memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));
+    {
+        space_reset_space(&env->scratch_buf_script.space);
+        // Rest only the rest of the fields and not the space inside of the
+        // scratch_buf_script script to preserve memory for reuse.
+        Space saved_space = env->scratch_buf_script.space;
+        memset(&env->scratch_buf_script, 0, sizeof(env->scratch_buf_script));
+        env->scratch_buf_script.space = saved_space;
+    }
 }
 
 /**
  * @brief This function adds a script to the global array located in the env.
  * It is needed to achieve stability for the raw frames and script pointers in
  * the env, they can be invalidated when the scripts array reallocates.
+ *
+ * A script whose id is already known is ignored instead of added again.
  *
  * @param env The global state of the application.
  * @param script The script to add.
@@ -1223,6 +1291,13 @@ size_t tkbc_calculate_script_byte_size_allocated(Script script) {
  * send/broadcast again.
  */
 void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
+    // A script that is already known must not be added a second time.
+    // Drop the scratch copy (reset like below) so the next build starts clean.
+    if (tkbc_scripts_contains_id(env->scripts, script.id)) {
+        tkbc_reset_script_scratch_creation(env);
+        return;
+    }
+
     UUID script_id = tkbc_uuid_nil();
     Index frames_index = 0;
     bool is_frames = false;
@@ -1246,8 +1321,6 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
         // over in the array.
         tkbc_unload_script_from_memory(env, first_script->id);
     }
-
-    // size_t bytes_count = tkbc_calculate_script_byte_size_allocated(script);
 
     {
         // NOTE: s_copy.space must survive the deep copy. tkbc_deep_copy_script
@@ -1278,20 +1351,19 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
             }
         }
 
-        space_dap(&env->_scripts_space, &env->scripts, s_copy);
+        // Upscale long blocks into per-tick slices so the timeline can scrub
+        // continuously at the animation fps, like a video. Already upscaled
+        // blocks (durations <= 1/fps) are kept as-is, making this idempotent
+        // for network re-receives.
+        tkbc_upscale_script(env, &s_copy, (float) TARGET_FPS);
 
-        // Rest the scratch buffers they got invalidated by resetting the space.
-        memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));
-        // Rest only the rest of the fields and not the space inside of the
-        // scratch_buf_script script to preserve memory for reuse.
-        {
-            space_reset_space(&env->scratch_buf_script.space);
-            // Rest only the rest of the fields and not the space inside of the
-            // scratch_buf_script script to preserve memory for reuse.
-            Space saved_space = env->scratch_buf_script.space;
-            memset(&env->scratch_buf_script, 0, sizeof(env->scratch_buf_script));
-            env->scratch_buf_script.space = saved_space;
-        }
+        // Eagerly bake the true timeline positions right away (this also runs
+        // on the server for freshly received scripts): smooth scrubbing works
+        // immediately without playing the script one time first.
+        tkbc_bake_script_timeline(env, &s_copy);
+
+        space_dap(&env->_scripts_space, &env->scripts, s_copy);
+        tkbc_reset_script_scratch_creation(env);
     }
 
     if (is_script) {
@@ -1331,9 +1403,7 @@ void tkbc_input_handler_script(Env *env) {
 
     // KEY_SPACE
     if (tkbc_check_keymaps_full(env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION, KEY_MAP_CHECK_KEY_PRESSED)) {
-        if (env->frames) {
-            env->script_finished = !env->script_finished;
-        }
+        tkbc_toggle_script_execution(env);
     }
 
     // This guard just prevent it for one frame.
@@ -1383,28 +1453,71 @@ void tkbc_set_kite_positions_from_kite_frames_positions(Env *env) {
  * recalculates the script_frames_positions
  *
  * @param env The global state of the application.
- * @param drag_left True, if the script should be moved forward, otherwise
+ * @param drag_left True, if the script should be moved back, otherwise
  * false.
  */
 void tkbc_execute_scrub_slide(Env *env, bool drag_left) {
-    env->script_finished = true;
-    // TODO: Allow scrubbing to a specific location index at once.
-
+    if (!env->script || !env->frames) {
+        return;
+    }
+    size_t current = env->frames->frames_index;
     // The indexes are assumed in order and at the corresponding index.
     // This is needed to avoid a down cast of size_t to long or int that can
     // hold ever value of size_t.
     if (drag_left) {
-        if (env->frames->frames_index > 0) {
-            env->frames = &env->script->elements[env->frames->frames_index - 1];
+        if (current > 0) {
+            current -= 1;
         }
     } else {
-        if (env->frames->frames_index + 1 < env->script->count) {
-            env->frames = &env->script->elements[env->frames->frames_index + 1];
+        if (current + 1 < env->script->count) {
+            current += 1;
         }
     }
 
+    tkbc_scrub_to_index(env, current);
+}
+
+/**
+ * @brief Jumps the timeline to an absolute block index (video-like scrub).
+ *
+ * Every scrub position is a slice start with correct remaining durations, so
+ * resuming playback continues smoothly from there.
+ *
+ * @param env The global state of the application.
+ * @param target_index The frames_index to jump to, clamped into range.
+ */
+void tkbc_scrub_to_index(Env *env, size_t target_index) {
+    if (!env->script || !env->frames) {
+        return;
+    }
+    if (env->script->count == 0) {
+        return;
+    }
+    if (target_index >= env->script->count) {
+        target_index = env->script->count - 1;
+    }
+    env->script_finished = true;
+    env->frames = &env->script->elements[target_index];
+
     tkbc_restore_script_frame_states(env);
     tkbc_set_kite_positions_from_kite_frames_positions(env);
+}
+
+/**
+ * @brief Toggles script playback between paused and playing.
+ *
+ * The toggle is clamped to the loaded script: resuming at the final slice
+ * just plays out that slice and pauses again at the end, resuming at the
+ * first slice just plays forward. It never wraps around and never leaves
+ * script mode; only an explicit NO SCRIPT terminates execution.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_toggle_script_execution(Env *env) {
+    if (!env->frames) {
+        return;
+    }
+    env->script_finished = !env->script_finished;
 }
 
 /**
@@ -1443,11 +1556,27 @@ void tkbc_scrub_frames(Env *env) {
 
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
         int mouse_x = GetMouseX();
-        float slider = env->timeline_front.x + env->timeline_front.width;
-        float c = mouse_x - slider;
-        bool drag_left = c <= 0;
+        // Video-like absolute scrub: map the mouse X onto the upscaled
+        // per-tick timeline instead of stepping a single block per event.
+        // With hundreds of slices the old stepwise slide would take seconds
+        // to traverse the script.
+        if (env->script->count > 0 && env->timeline_base.width > 0) {
+            float t = ((float) mouse_x - env->timeline_base.x) / env->timeline_base.width;
+            t = tkbc_clamp(t, 0, 1);
+            size_t target = (size_t) (t * (float) env->script->count);
+            if (target >= env->script->count) {
+                target = env->script->count - 1;
+            }
+            if (target != env->frames->frames_index) {
+                tkbc_scrub_to_index(env, target);
+            }
+        } else {
+            float slider = env->timeline_front.x + env->timeline_front.width;
+            float c = mouse_x - slider;
+            bool drag_left = c <= 0;
 
-        tkbc_execute_scrub_slide(env, drag_left);
+            tkbc_execute_scrub_slide(env, drag_left);
+        }
     }
 }
 
@@ -1464,7 +1593,7 @@ void tkbc_scrub_frames(Env *env) {
  * @return The amount that the center position has moved to the final
  * position.
  */
-Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration) {
+Vector2 tkbc_script_move_with_dt(Kite *kite, Vector2 position, float duration, float dt) {
     if (duration <= 0) {
         Vector2 result = Vector2Subtract(position, kite->center);
         tkbc_kite_update_position(kite, &position);
@@ -1478,7 +1607,6 @@ Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration) {
         return result;
     }
 
-    float dt = tkbc_get_frame_time();
     Vector2 d = Vector2Subtract(position, kite->old_center);
     Vector2 dnorm = Vector2Normalize(d);
     Vector2 dnormscale = Vector2Scale(dnorm, (Vector2Length(d) / duration * dt));
@@ -1507,7 +1635,7 @@ Vector2 tkbc_script_move(Kite *kite, Vector2 position, float duration) {
  * to the kite or if the kite angle should change to the given angle.
  * @return The delta amount the kite angle changes.
  */
-float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
+float tkbc_script_rotate_with_dt(Kite *kite, float angle, float duration, bool adding, float dt) {
 
     // NOTE: For the instant rotation the computation can be simpler by just
     // calling the direction angles, but for future line wrap calculation the
@@ -1521,7 +1649,6 @@ float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
         return fabsf(angle);
     }
 
-    float dt = tkbc_get_frame_time();
     float d = fabsf(angle);
     float ds = d / duration * dt;
 
@@ -1559,7 +1686,7 @@ float tkbc_script_rotate(Kite *kite, float angle, float duration, bool adding) {
  * to the kite or if the kite angle should change to the given angle.
  * @return The delta amount the kite angle changes.
  */
-float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration, bool adding) {
+float tkbc_script_rotate_tip_with_dt(Kite *kite, TIP tip, float angle, float duration, bool adding, float dt) {
 
     // NOTE: For the instant rotation the computation can be simpler by just
     // calling the direction angles, but for future line wrap calculation the
@@ -1573,7 +1700,6 @@ float tkbc_script_rotate_tip(Kite *kite, TIP tip, float angle, float duration, b
         return fabsf(angle);
     }
 
-    float dt = tkbc_get_frame_time();
     float d = fabsf(angle);
     float ds = d / duration * dt;
 

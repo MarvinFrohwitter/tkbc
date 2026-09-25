@@ -299,9 +299,10 @@ void sending_script_handler(void) {
     // For detection if the begin and end is called correctly.
     env->script_setup = false;
     env->default_scripts_setup = true;
+    env->default_scripts_seq = 0;
     tkbc__script_input(env);
     env->default_scripts_setup = false;
-    env->default_scripts_amount = env->scripts.count;
+    env->default_scripts_amount = env->default_scripts_seq;
 
 #ifndef RELEASE
     tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);
@@ -643,19 +644,11 @@ bool received_message_handler(Message *message) {
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_PARSED\n");
         } break;
         case MESSAGE_SCRIPT_FINISHED: {
+            // Natural end no longer terminates: stay paused in script mode on
+            // the final frame. Termination is explicit only via NO SCRIPT
+            // (SCRIPT_NEXT with nil id / nil meta). Kept for protocol
+            // compatibility; current servers no longer send this.
             env->script_finished = true;
-            env->server_script_id = tkbc_uuid_nil();
-
-            // Execution ended: mirror the server, which returns to the
-            // free-fly view. Drop any local script view so stale script
-            // kites don't linger next to the normal kites.
-            tkbc_unload_script(env);
-            tkbc_change_visibility_to_non_script_kites(env);
-            for (size_t i = 0; i < env->kite_array.count; ++i) {
-                if (!env->kite_array.elements[i].is_script_kite) {
-                    env->kite_array.elements[i].is_kite_input_handler_active = true;
-                }
-            }
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_FINISHED\n");
         } break;
@@ -980,14 +973,36 @@ void tkbc_client_input_handler_script(void) {
         env->new_script_selected = false;
     }
 
+    static size_t last_sent_scrub_target = (size_t) -1;
+    if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
+        last_sent_scrub_target = (size_t) -1;
+    }
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_interaction) {
-        int mouse_x = GetMouseX();
-        float slider = env->timeline_front.x + env->timeline_front.width;
-        float c = mouse_x - slider;
-        bool drag_left = c <= 0;
+        // Video-like absolute scrub of the server timeline: map the mouse X
+        // onto the upscaled per-tick frame count and send the target index.
+        // Only send on change to avoid spamming one message per frame while
+        // holding still.
+        float mouse_x = GetMouseX();
+        if (env->server_script_frames_count > 0 && env->timeline_base.width > 0) {
+            float t = (mouse_x - env->timeline_base.x) / env->timeline_base.width;
+            t = tkbc_clamp(t, 0, 1);
+            size_t target = t * env->server_script_frames_count;
+            if (target >= env->server_script_frames_count) {
+                target = env->server_script_frames_count - 1;
+            }
+            if (target != last_sent_scrub_target) {
+                last_sent_scrub_target = target;
+                space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_SCRUB,
+                           target);
+            }
+        } else {
+            float slider = env->timeline_front.x + env->timeline_front.width;
+            float c = mouse_x - slider;
+            bool drag_left = c <= 0;
 
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%d:\r\n", MESSAGE_SCRIPT_SCRUB,
-                   drag_left);
+            space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%d:\r\n", MESSAGE_SCRIPT_SCRUB,
+                       drag_left);
+        }
     }
 }
 
@@ -1203,9 +1218,10 @@ bool tkbc_run(Env *env) {
                 // For detection if the begin and end is called correctly.
                 env->script_setup = false;
                 env->default_scripts_setup = true;
+                env->default_scripts_seq = 0;
                 tkbc__script_input(env);
                 env->default_scripts_setup = false;
-                env->default_scripts_amount = env->scripts.count;
+                env->default_scripts_amount = env->default_scripts_seq;
 
                 env->scripts_parsed = true;
 

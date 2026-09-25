@@ -37,8 +37,11 @@ bool tkbc_base_execution(void);
 
 void tkbc_message_clientkites(Message *t_message, bool overwrite_is_active);
 void tkbc_message_clientkites_write_to_all_send_msg_buffers(bool overwrite_is_active);
+void tkbc_message_script_meta_data(Message *message, UUID script_id, size_t script_count, size_t frames_index);
 void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(UUID script_id, size_t script_count,
                                                                  size_t frames_index);
+void tkbc_message_script_meta_data_write_to_send_msg_buffer(Client *client, UUID script_id, size_t script_count,
+                                                            size_t frames_index);
 bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(size_t client_id, int fd);
 void tkbc_message_kites_write_to_all_send_msg_buffers(void);
 bool tkbc_received_message_handler(Client *client);

@@ -94,9 +94,10 @@ int main(void) {
             // For detection if the begin and end is called correctly.
             env->script_setup = false;
             env->default_scripts_setup = true;
+            env->default_scripts_seq = 0;
             tkbc__script_input(env);
             env->default_scripts_setup = false;
-            env->default_scripts_amount = env->scripts.count;
+            env->default_scripts_amount = env->default_scripts_seq;
             env->scripts_parsed = true;
 
             // Generated kites start hidden; the standalone choreographer
