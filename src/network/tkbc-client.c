@@ -223,6 +223,8 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
         break;  // Successfully connected
     }
 
+    freeaddrinfo(servinfo);  // Free the linked list
+
     // ==============================================================
     if (rp == NULL) {
         tkbc_fprintf(stderr, "ERROR", "Failed to connect to %s:%s\n", host, port);
@@ -232,8 +234,6 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
         return -1;
     }
     // ==============================================================
-
-    freeaddrinfo(servinfo);  // Free the linked list
 
     //
     // Set the socket to non-blocking
@@ -1164,6 +1164,7 @@ int main(int argc, char *argv[]) {
 
     space_free_tspace();
     space_free_space(&assets.space);
+    space_free_space(&connection_input_space);
     CloseWindow();
     tkbc_fprintf(stderr, "INFO", "EXITED SUCCESSFULLY.\n");
     return 0;
