@@ -432,8 +432,8 @@ void cassert_print_tests(Tests *tests);
         cassert.line = __LINE__;                                                                                       \
         cassert.file = __FILE__;                                                                                       \
         cassert.assert_type = type;                                                                                    \
-        cassert.value1 = (void *) (a);                                                                                 \
-        cassert.value2 = (void *) (b);                                                                                 \
+        cassert.value1 = (void *) (uintptr_t) (a);                                                                     \
+        cassert.value2 = (void *) (uintptr_t) (b);                                                                     \
         cassert.comparison = #compare;                                                                                 \
         cassert.operation_str = #a " " #compare " " #b;                                                                \
         cassert.result = (a) compare(b) ? 1 : 0;                                                                       \
