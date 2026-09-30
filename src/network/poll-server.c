@@ -3,8 +3,6 @@
 // Sometime the server does not broadcast the new script and this is not because of and actually valid parsing_skip but
 // the function returns earl before the script can be send back.
 
-// The time_line is not visible to a client that joins when the script is loaded but has finished the last frame.
-
 #include "tkbc-servers-common.h"
 
 #define SPACE_IMPLEMENTATION
