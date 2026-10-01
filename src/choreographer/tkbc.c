@@ -52,6 +52,7 @@ Env *tkbc_init_env(void) {
     env->window_height = tkbc_get_screen_height();
     env->script_finished = true;
     env->fps = TARGET_FPS;
+    env->show_kite_information = true;
 
 #define TKBC_DIR "tkbc"
 #define KEYMAPS_FILE ".tkbc-keymaps"

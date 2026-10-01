@@ -267,6 +267,9 @@ typedef enum {
 
     KMH_KEY_REVERS_MOUSE_FOLLOW,
 
+    KMH_SHOW_GRID_LINES,
+    KMH_SHOW_KITE_INFORMATION,
+
     KMH_COUNT,
 } Key_Map_Hash;
 
@@ -703,6 +706,8 @@ typedef struct {
                                                 // box.
     bool script_menu_mouse_interaction;         // Indicates if a box of the script menu
                                                 // is activated.
+    bool show_grid_lines;                       // Indicates if the grid lines should be drawn.
+    bool show_kite_information;                 // Draws the information like kite speed.
     bool text_input_active;                     // The status if a text input field is
                                                 // currently focused and all keys should
                                                 // go to it.

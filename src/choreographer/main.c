@@ -117,6 +117,7 @@ int main(void) {
 
         tkbc_update_kites_for_resize_window(env);
         tkbc_draw_kite_array(env->kite_array);
+        tkbc_draw_grid_lines(env);
         tkbc_draw_ui(env);
         EndDrawing();
         tkbc_ui_post_handler(env);

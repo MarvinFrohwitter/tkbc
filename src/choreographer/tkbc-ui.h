@@ -3,6 +3,7 @@
 
 #include "../global/tkbc-types.h"
 
+void tkbc_draw_grid_lines(Env *env);
 void tkbc_draw_ui(Env *env);
 Color tkbc_get_color_from_screen_position(Vector2 position);
 Vector2 tkbc_get_position_in_rect(Rectangle rect, float rectangle_scale, Vector2 pos);

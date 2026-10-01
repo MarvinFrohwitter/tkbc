@@ -14,6 +14,18 @@ static Key_Map default_keymaps[] = {
     },
 
     {
+        .description = "Displays kite information (kite speed).",
+        .key = KEY_F1,
+        .hash = KMH_SHOW_KITE_INFORMATION,
+    },
+
+    {
+        .description = "Displays a grid in the background.",
+        .key = KEY_F2,
+        .hash = KMH_SHOW_GRID_LINES,
+    },
+
+    {
         .description = "Take a Screenshot.",
         .key = KEY_B,
         .hash = KMH_TAKE_SCREENSHOT,

@@ -20,6 +20,48 @@
 extern Assets assets;
 
 /**
+ * @brief This function draws a grid of lines in the background so that when flying a kite you can orient yourself on
+ * that. It is also useful for scripts to get and understanding of a correct position.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_draw_grid_lines(Env *env) {
+
+    if (tkbc_check_keymaps_full(env->keymaps, KMH_SHOW_GRID_LINES, KEY_MAP_CHECK_KEY_PRESSED)) {
+        env->show_grid_lines = !env->show_grid_lines;
+    }
+
+    if (!env->show_grid_lines) {
+        return;
+    }
+
+    Color color = GRAY;
+    float thick = 1;
+
+    float segment_width;
+    float segment_height;
+    segment_width = segment_height = env->vanilla_kite->width * 0.5;
+
+    float horizontall_amount = env->window_width / segment_width;
+    float vertical_amount = env->window_height / segment_height;
+
+    for (size_t i = 0; i < segment_width * horizontall_amount; i += segment_width) {
+        int x = i;
+        Vector2 start_position = {.x = x, .y = 0};
+        Vector2 end_position = {.x = x, .y = env->window_height};
+        DrawLineEx(start_position, end_position, thick, color);
+    }
+
+    for (size_t i = 0; i < segment_height * vertical_amount; i += segment_height) {
+        int y = i;
+        Vector2 start_position = {.x = 0, .y = y};
+        Vector2 end_position = {.x = env->window_width, .y = y};
+
+        DrawLineEx(start_position, end_position, thick, color);
+    }
+}
+
+/**
  * @brief The function wraps all the UI-elements to a single draw handler that
  * computes the position and size of the UI-components.
  *
@@ -897,6 +939,13 @@ bool tkbc_ui_script_menu(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_display_kite_information(Env *env) {
+    if (tkbc_check_keymaps_full(env->keymaps, KMH_SHOW_KITE_INFORMATION, KEY_MAP_CHECK_KEY_PRESSED)) {
+        env->show_kite_information = !env->show_kite_information;
+    }
+    if (!env->show_kite_information) {
+        return;
+    }
+
     for (size_t i = 0; i < env->kite_array.count; ++i) {
         if (env->kite_array.elements[i].is_active && env->kite_array.elements[i].is_kite_input_handler_active) {
             tkbc_display_kite_information_speeds(env, &env->kite_array.elements[i]);
