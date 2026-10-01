@@ -38,25 +38,22 @@ void tkbc_draw_grid_lines(Env *env) {
     Color color = GRAY;
     float thick = 1;
 
-    float segment_width;
-    float segment_height;
-    segment_width = segment_height = env->vanilla_kite->width * 0.5;
+    size_t segment_width;
+    size_t segment_height;
+    segment_width = segment_height = (size_t) env->vanilla_kite->width >> 1;
 
-    float horizontall_amount = env->window_width / segment_width;
-    float vertical_amount = env->window_height / segment_height;
+    size_t horizontall_amount = env->window_width / segment_width;
+    size_t vertical_amount = env->window_height / segment_height;
 
-    for (size_t i = 0; i < segment_width * horizontall_amount; i += segment_width) {
-        int x = i;
+    for (size_t x = 0; x <= segment_width * horizontall_amount; x += segment_width) {
         Vector2 start_position = {.x = x, .y = 0};
         Vector2 end_position = {.x = x, .y = env->window_height};
         DrawLineEx(start_position, end_position, thick, color);
     }
 
-    for (size_t i = 0; i < segment_height * vertical_amount; i += segment_height) {
-        int y = i;
+    for (size_t y = 0; y <= segment_height * vertical_amount; y += segment_height) {
         Vector2 start_position = {.x = 0, .y = y};
         Vector2 end_position = {.x = env->window_width, .y = y};
-
         DrawLineEx(start_position, end_position, thick, color);
     }
 }
