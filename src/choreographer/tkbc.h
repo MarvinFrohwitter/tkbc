@@ -4,42 +4,41 @@
 #include "../global/tkbc-types.h"
 #include "raylib.h"
 
-#define TEAL CLITERAL(Color){0, 128, 128, 255} // Teal
+#define TEAL CLITERAL(Color){0, 128, 128, 255}  // Teal
 
-#define ICAREX_white      CLITERAL(Color){0xFF, 0xFF, 0xFF, 0xFF}
-#define ICAREX_hellgrau   CLITERAL(Color){169,  169,  169,  0xFF}
-#define ICAREX_dunkelgrau CLITERAL(Color){58,   58,   58,   0xFF}
-#define ICAREX_schwarz    CLITERAL(Color){0,    0,    0,    0xFF}
-#define ICAREX_rot        CLITERAL(Color){255,  0,    0,    0xFF}
-#define ICAREX_orange     CLITERAL(Color){255,  101,  50,   0xFF}
-#define ICAREX_gold       CLITERAL(Color){204,  153,  0,    0xFF}
-#define ICAREX_gelb       CLITERAL(Color){255,  204,  50,   0xFF}
+#define ICAREX_white CLITERAL(Color){0xFF, 0xFF, 0xFF, 0xFF}
+#define ICAREX_hellgrau CLITERAL(Color){169, 169, 169, 0xFF}
+#define ICAREX_dunkelgrau CLITERAL(Color){58, 58, 58, 0xFF}
+#define ICAREX_schwarz CLITERAL(Color){0, 0, 0, 0xFF}
+#define ICAREX_rot CLITERAL(Color){255, 0, 0, 0xFF}
+#define ICAREX_orange CLITERAL(Color){255, 101, 50, 0xFF}
+#define ICAREX_gold CLITERAL(Color){204, 153, 0, 0xFF}
+#define ICAREX_gelb CLITERAL(Color){255, 204, 50, 0xFF}
 
-#define ICAREX_green       CLITERAL(Color){0,    128,  0,    0xFF}
-#define ICAREX_cedar      CLITERAL(Color){60,   179,  113,  0xFF}
+#define ICAREX_green CLITERAL(Color){0, 128, 0, 0xFF}
+#define ICAREX_cedar CLITERAL(Color){60, 179, 113, 0xFF}
 
-#define ICAREX_teal       CLITERAL(Color){0,    153,  153,  0xFF}
-#define ICAREX_caribbean  CLITERAL(Color){44,   164,  173,  0xFF}
-#define ICAREX_slate      CLITERAL(Color){70,   130,  180,  79}
-#define ICAREX_hellblau   CLITERAL(Color){50,   211,  255,  0xFF}
+#define ICAREX_teal CLITERAL(Color){0, 153, 153, 0xFF}
+#define ICAREX_caribbean CLITERAL(Color){44, 164, 173, 0xFF}
+#define ICAREX_slate CLITERAL(Color){70, 130, 180, 79}
+#define ICAREX_hellblau CLITERAL(Color){50, 211, 255, 0xFF}
 
-#define ICAREX_blau       CLITERAL(Color){30,   144,  255,  0xFF}
-#define ICAREX_dunkelblau CLITERAL(Color){0,    0,    205,  0xFF}
+#define ICAREX_blau CLITERAL(Color){30, 144, 255, 0xFF}
+#define ICAREX_dunkelblau CLITERAL(Color){0, 0, 205, 0xFF}
 
-#define ICAREX_plum       CLITERAL(Color){132,  68,   82,   0xFF}
-#define ICAREX_aubergin   CLITERAL(Color){102,  0,    80,   0xFF}
-#define ICAREX_milkalila1 CLITERAL(Color){147,  95,   255,  0xFF}
-#define ICAREX_milkalila2 CLITERAL(Color){114,  84,   154,  0xFF}
-#define ICAREX_lila       CLITERAL(Color){153,  0,    153,  0xFF}
+#define ICAREX_plum CLITERAL(Color){132, 68, 82, 0xFF}
+#define ICAREX_aubergin CLITERAL(Color){102, 0, 80, 0xFF}
+#define ICAREX_milkalila1 CLITERAL(Color){147, 95, 255, 0xFF}
+#define ICAREX_milkalila2 CLITERAL(Color){114, 84, 154, 0xFF}
+#define ICAREX_lila CLITERAL(Color){153, 0, 153, 0xFF}
 
-#define ICAREX_rasberry   CLITERAL(Color){255,  0,    129,  0xFF}
-#define ICAREX_zartrosa   CLITERAL(Color){255,  136,  153,  0xFF}
-#define ICAREX_brown      CLITERAL(Color){139,  69,   0,    0xFF}
+#define ICAREX_rasberry CLITERAL(Color){255, 0, 129, 0xFF}
+#define ICAREX_zartrosa CLITERAL(Color){255, 136, 153, 0xFF}
+#define ICAREX_brown CLITERAL(Color){139, 69, 0, 0xFF}
 
-#define ICAREX_neongelb   CLITERAL(Color){199,  255,  0,    0xFF}
-#define ICAREX_neonorange CLITERAL(Color){255,  65,   0,    0xFF}
-#define ICAREX_neongreen   CLITERAL(Color){0,    255,  0,    0xFF}
-
+#define ICAREX_neongelb CLITERAL(Color){199, 255, 0, 0xFF}
+#define ICAREX_neonorange CLITERAL(Color){255, 65, 0, 0xFF}
+#define ICAREX_neongreen CLITERAL(Color){0, 255, 0, 0xFF}
 
 #define TKBC_UI_WHITE ColorBrightness(WHITE, 0)
 #define TKBC_UI_SKYBLUE ColorBrightness(SKYBLUE, 0)
@@ -60,13 +59,13 @@
 #define TKBC_UI_WHITE_ALPHA ColorAlpha(WHITE, ALPHA_RATIO)
 
 #define VECTOR2_FMT "(%f,%f)"
-#define Vector2_FMT_ARGS(arg) (float)(arg).x, (float)(arg).y
+#define Vector2_FMT_ARGS(arg) (float) (arg).x, (float) (arg).y
 #define HEX_COLOR_LENGTH 8
 #ifndef EPSILON
 #define EPSILON 0.001f
-#endif // EPSILON
+#endif  // EPSILON
 #define TARGET_FPS 60
-#define TARGET_DT (1 / (double)TARGET_FPS)
+#define TARGET_DT (1 / (double) TARGET_FPS)
 // #define TARGET_DT 0
 
 #define CLIENT_BASE_ID 10e6
@@ -99,10 +98,10 @@ void tkbc_set_kite_internals(Kite *kite, float fly_speed, float turn_speed, Colo
 
 void tkbc_kite_update_internal(Kite *kite);
 void tkbc_kite_update_scale(Kite *kite, float scale);
-void tkbc_kite_update_position(Kite *kite, Vector2 *position);
+void tkbc_kite_update_position(Kite *kite, const Vector2 *position);
 void tkbc_kite_update_angle(Kite *kite, float center_deg_rotation);
-void tkbc_center_rotation(Kite *kite, Vector2 *position, float center_deg_rotation);
-void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation, TIP tip);
+void tkbc_center_rotation(Kite *kite, const Vector2 *position, float center_deg_rotation);
+void tkbc_tip_rotation(Kite *kite, const Vector2 *position, float tip_deg_rotation, TIP tip);
 
 // ========================== KITE DISPLAY ===================================
 
@@ -113,4 +112,4 @@ void tkbc_update_kites_for_resize_window(Env *env);
 bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture);
 Color tkbc_get_random_color(void);
 
-#endif // TKBC_H_
+#endif  // TKBC_H_

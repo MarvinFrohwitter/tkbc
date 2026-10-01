@@ -509,7 +509,7 @@ void tkbc_kite_update_scale(Kite *kite, float scale) {
  * @param position The new position for the kite at the center of the leading
  * edge or NULL for internal center position of the kite structure.
  */
-void tkbc_kite_update_position(Kite *kite, Vector2 *position) {
+void tkbc_kite_update_position(Kite *kite, const Vector2 *position) {
     tkbc_center_rotation(kite, position, kite->angle);
 }
 
@@ -538,7 +538,7 @@ void tkbc_kite_update_angle(Kite *kite, float center_deg_rotation) {
  * @param center_deg_rotation The rotation of the kite that is set to the
  * given rotation.
  */
-void tkbc_center_rotation(Kite *kite, Vector2 *position, float center_deg_rotation) {
+void tkbc_center_rotation(Kite *kite, const Vector2 *position, float center_deg_rotation) {
     Vector2 pos = {0};
     if (position != NULL) {
         pos.x = position->x;
@@ -552,20 +552,20 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position, float center_deg_rotati
     kite->center.y = pos.y;
 
     kite->angle = center_deg_rotation;
-    float cw = kite->width / 2.0f;
-    float is = kite->inner_space;
-    float o = kite->overlap;
-    float_t length = cw + kite->spread;
+    const float cw = kite->width / 2.0f;
+    const float is = kite->inner_space;
+    const float o = kite->overlap;
+    float length = cw + kite->spread;
     length = floorf(length);
 
     // The difference between the angle 0 and the default downward interpolation
-    float angle = 42;
-    float bl_angle = (PI * (360 - (90 - angle)) / 180);
-    float br_angle = (PI * (360 + (90 - angle)) / 180);
-    float phi = (PI * (kite->angle) / 180);
+    const float angle = 42;
+    const float bl_angle = (PI * (360 - (90 - angle)) / 180);
+    const float br_angle = (PI * (360 + (90 - angle)) / 180);
+    const float phi = (PI * (kite->angle) / 180);
 
-    float cosphi = cosf(phi);
-    float sinphi = sinf(phi);
+    const float cosphi = cosf(phi);
+    const float sinphi = sinf(phi);
 
     // LEFT Triangle
     kite->left.v1.x = pos.x - cw * cosphi;
@@ -603,15 +603,15 @@ void tkbc_center_rotation(Kite *kite, Vector2 *position, float center_deg_rotati
  * angle.
  * @param tip The tip chosen, left or right, where the kite is turning around.
  */
-void tkbc_tip_rotation(Kite *kite, Vector2 *position, float tip_deg_rotation, TIP tip) {
+void tkbc_tip_rotation(Kite *kite, const Vector2 *position, float tip_deg_rotation, TIP tip) {
 
     if (position != NULL) {
         tkbc_kite_update_position(kite, position);
     }
 
-    float_t length = (kite->width / 2.f + kite->spread);
+    float length = (kite->width / 2.f + kite->spread);
     length = floorf(length);
-    float phi = (PI * (tip_deg_rotation) / 180);
+    const float phi = (PI * (tip_deg_rotation) / 180);
 
     Vector2 pos = {0};
     switch (tip) {
