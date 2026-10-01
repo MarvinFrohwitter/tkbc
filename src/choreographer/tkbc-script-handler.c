@@ -1257,6 +1257,135 @@ static bool upscale_block_has_move(const Frames *frames, Id id) {
 }
 
 /**
+ * @brief Finds the first tip rotation frame of the given kite in the block.
+ *
+ * The playback combines a move with a tip rotation of the same kite by using
+ * the first tip frame it finds for that kite, see
+ * tkbc_kite_tip_rotation_in_block(). The upscaling has to pick the very same
+ * frame, otherwise the baked destination differs from the rendered one.
+ *
+ * @param frames The block to inspect.
+ * @param id The kite to look for.
+ * @return The first tip rotation frame of the kite or NULL when there is none.
+ */
+static const Frame *upscale_block_tip_frame(const Frames *frames, Id id) {
+    for (size_t i = 0; i < frames->count; ++i) {
+        const Frame *f = &frames->elements[i];
+        if (f->kind != ACTION_KITE_TIP_ROTATION && f->kind != ACTION_KITE_TIP_ROTATION_ADD) {
+            continue;
+        }
+        for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+            if (f->kite_id_array.elements[j] == id) {
+                return f;
+            }
+        }
+    }
+    return NULL;
+}
+
+/**
+ * @brief Computes the absolute tip angle a tip rotation frame animates to.
+ *
+ * The ADDing variant starts at the angle the block starts with, the absolute
+ * variant is the target angle on its own. This is the same resolution the
+ * playback uses in tkbc_combined_move_destination().
+ *
+ * @param tip_frame The tip rotation frame of the kite in the block.
+ * @param start_angle The block start angle of the kite.
+ * @return The tip angle the frame ends at.
+ */
+static float upscale_tip_final_angle(const Frame *tip_frame, float start_angle) {
+    float angle = tip_frame->action.as_tip_rotation.angle;
+    if (tip_frame->kind == ACTION_KITE_TIP_ROTATION_ADD) {
+        return start_angle + angle;
+    }
+    return angle;
+}
+
+/**
+ * @brief Computes the center a kite has after a tip rotation of
+ * final_tip_angle.
+ *
+ * The rotation is not applied around the current center, it is applied around
+ * the (fixed) center the block starts with, exactly like the playback does it
+ * in tkbc_combined_move_destination() and
+ * tkbc_script_rotate_tip_with_dt(), which always pass kite->old_center as the
+ * pivot.
+ *
+ * @param kite The kite geometry to use as template.
+ * @param start_pos The fixed center the rotation pivots around.
+ * @param start_angle The angle the kite geometry has at that center.
+ * @param final_tip_angle The absolute angle the tip rotation ends at.
+ * @param tip The tip the kite rotates around.
+ * @return The center after the tip rotation finished.
+ */
+static Vector2 upscale_tip_center_at_angle(const Kite *kite, Vector2 start_pos, float start_angle,
+                                           float final_tip_angle, TIP tip) {
+
+    Kite tmp = *kite;  // This is needed to get the width and inner_spacing and so on from the current kite. If it was
+                       // modified in size it would not create the correct position.
+    tmp.center = start_pos;
+    tmp.angle = start_angle;
+    tkbc_kite_update_internal(&tmp);
+    tkbc_tip_rotation(&tmp, &start_pos, final_tip_angle, tip);
+    return tmp.center;
+}
+
+/**
+ * @brief Finds the last relative move frame (MOVE_ADD) of the given kite in
+ * the block.
+ *
+ * Only one move can win the center of a kite, and the playback lets the last
+ * processed move frame of the block determine the destination. The upscaling
+ * picks the same frame so the baked destination matches the rendered one.
+ *
+ * @param frames The block to inspect.
+ * @param id The kite to look for.
+ * @return The last MOVE_ADD frame of the kite or NULL when there is none.
+ */
+static const Frame *upscale_block_last_move_add(const Frames *frames, Id id) {
+    const Frame *found = NULL;
+    for (size_t i = 0; i < frames->count; ++i) {
+        const Frame *f = &frames->elements[i];
+        if (f->kind != ACTION_KITE_MOVE_ADD) {
+            continue;
+        }
+        for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+            if (f->kite_id_array.elements[j] == id) {
+                found = f;
+            }
+        }
+    }
+    return found;
+}
+
+/**
+ * @brief Checks if the given kite has an absolute move frame (MOVE) in the
+ * block.
+ *
+ * An absolute move owns the center of the kite completely, the playback never
+ * folds a tip rotation displacement into it.
+ *
+ * @param frames The block to inspect.
+ * @param id The kite to look for.
+ * @return True if an absolute MOVE frame exists for this kite.
+ */
+static bool upscale_block_has_absolute_move(const Frames *frames, Id id) {
+    for (size_t i = 0; i < frames->count; ++i) {
+        const Frame *f = &frames->elements[i];
+        if (f->kind != ACTION_KITE_MOVE) {
+            continue;
+        }
+        for (size_t j = 0; j < f->kite_id_array.count; ++j) {
+            if (f->kite_id_array.elements[j] == id) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
  * @brief Finds the signed travel in direction of the target for absolute rotations.
  *
  * Absolute rotations move in direction sign(target) until the wrapped angle
@@ -1490,6 +1619,29 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
             Vector2 current_position;
             float current_angle;
             Kite kite;
+            // How the playback resolves a move and a tip rotation of the same
+            // kite inside one block: both run at the same time. The tip
+            // rotation only drives the angle and the move carries the center,
+            // including the displacement the tip rotation causes. See
+            // tkbc_combined_move_destination() and the has_move branches of
+            // tkbc_render_frame_with_dt().
+            const Frame *tip_frame;
+            bool has_move;
+            bool has_absolute_move;
+            // Center the kite has when the block finished. A relative move
+            // interpolates towards it, which is what makes the move and the
+            // tip rotation of a block contribute at the same time: the tip
+            // displacement is part of the destination instead of being applied
+            // after (or before) the move.
+            Vector2 move_end_center;
+            // State of the slice that is currently baked. The center the slice
+            // starts with is the pivot for the tip rotation geometry, exactly
+            // like kite->old_center in the playback, and the already emitted
+            // move offsets keep the sum of the slices equal to the intended
+            // displacement.
+            Vector2 slice_start_pos;
+            float slice_start_angle;
+            Vector2 slice_emitted_offset;
         } Cursor;
 
         Cursor *cursors = space_malloc(tspace, involved_kids.count * sizeof(*cursors));
@@ -1504,6 +1656,29 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
             cursors[k].current_position = uk->kite.center;
             cursors[k].current_angle = uk->kite.angle;
             cursors[k].kite = uk->kite;
+            cursors[k].tip_frame = upscale_block_tip_frame(base_frames, cursors[k].id);
+            cursors[k].has_move = upscale_block_has_move(base_frames, cursors[k].id);
+            cursors[k].has_absolute_move = upscale_block_has_absolute_move(base_frames, cursors[k].id);
+            cursors[k].slice_start_pos = uk->kite.center;
+            cursors[k].slice_start_angle = uk->kite.angle;
+            cursors[k].slice_emitted_offset = Vector2Zero();
+
+            // A relative move and a tip rotation of the same kite run at the
+            // same time during playback, so the center the move animates to is
+            // the center of the finished tip rotation plus the move offset.
+            // See tkbc_combined_move_destination().
+            Vector2 end_center = cursors[k].start_pos;
+            if (cursors[k].tip_frame) {
+                end_center =
+                    upscale_tip_center_at_angle(&cursors[k].kite, cursors[k].start_pos, cursors[k].start_angle,
+                                                upscale_tip_final_angle(cursors[k].tip_frame, cursors[k].start_angle),
+                                                cursors[k].tip_frame->action.as_tip_rotation.tip);
+            }
+            const Frame *move_add_frame = upscale_block_last_move_add(base_frames, cursors[k].id);
+            if (move_add_frame) {
+                end_center = Vector2Add(end_center, move_add_frame->action.as_move_add.position);
+            }
+            cursors[k].move_end_center = end_center;
         }
 
         // Precompute per (frame,kite) absolute travel for rotations.
@@ -1518,6 +1693,12 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                     .angle = cursors[k].current_angle,
                 };
                 space_dap(&script->space, &new_frames.kite_frame_positions, kp);
+                // The slice is a block of its own in the upscaled script, so
+                // its start is the pivot the tip rotation geometry uses, like
+                // kite->old_center during the playback of the slice.
+                cursors[k].slice_start_pos = cursors[k].current_position;
+                cursors[k].slice_start_angle = cursors[k].current_angle;
+                cursors[k].slice_emitted_offset = Vector2Zero();
             }
 
             for (size_t i = 0; i < base_frames->count; ++i) {
@@ -1552,6 +1733,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                 }
 
                 float elapsed_next = (s == Ni - 1) ? frame_duration : (s + 1) * step;
+                float elapsed_prev = elapsed_next - new_duration;
                 for (size_t j = 0; j < f->kite_id_array.count; ++j) {
                     Cursor *cu = NULL;
 
@@ -1587,14 +1769,33 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                         cu->current_position = target;
                     } break;
                     case ACTION_KITE_MOVE_ADD: {
-                        Vector2 offset = Vector2Scale(f->action.as_move_add.position, new_duration / frame_duration);
+                        Vector2 offset;
+                        if (cu->has_absolute_move) {
+                            // An absolute move of the same block owns the
+                            // center, keep the plain relative share.
+                            offset = Vector2Scale(f->action.as_move_add.position, new_duration / frame_duration);
+                            cu->current_position = Vector2Add(cu->current_position, offset);
+                        } else {
+                            // The move interpolates towards the combined block
+                            // destination (the finished tip rotation plus the
+                            // move offset) exactly like the playback does it
+                            // with tkbc_combined_move_destination(). The slice
+                            // carries the part of that path it covers, so the
+                            // move and the tip rotation of the block are
+                            // accounted for at the same time.
+                            float t_prev = tkbc_clamp(elapsed_prev / frame_duration, 0, 1);
+                            float t_next = tkbc_clamp(elapsed_next / frame_duration, 0, 1);
+                            Vector2 slice_end = Vector2Lerp(start_pos, cu->move_end_center, t_next);
+                            offset = Vector2Subtract(slice_end, Vector2Lerp(start_pos, cu->move_end_center, t_prev));
+                            // Slices of several move frames of one block add
+                            // up to the intended displacement of the slice.
+                            offset = Vector2Subtract(offset, cu->slice_emitted_offset);
+                            cu->slice_emitted_offset = Vector2Add(cu->slice_emitted_offset, offset);
+                            cu->current_position = slice_end;
+                        }
                         Action action = {.as_move_add.position = offset};
                         tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_MOVE_ADD, action, new_duration,
                                                kid);
-                        cu->current_position = Vector2Add(cu->current_position, offset);
-                        // If a tip frame shares this slice it already moved cu
-                        // via geometry below in original order; the pure offset
-                        // addition here matches sequential playback order.
                     } break;
                     case ACTION_KITE_ROTATION_ADD: {
                         float angle = f->action.as_rotation_add.angle * (new_duration / frame_duration);
@@ -1634,52 +1835,44 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                     } break;
                     case ACTION_KITE_TIP_ROTATION_ADD: {
                         float angle = f->action.as_tip_rotation_add.angle * (new_duration / frame_duration);
-                        bool has_move = upscale_block_has_move(base_frames, kid);
-                        if (has_move && f->action.as_tip_rotation_add.angle != 0) {
-                            // Keep geometry motion (tip moves center) so the
-                            // final matches tip_end + move offsets. Playback
-                            // runs tip+move sequentially per slice like here.
-                        }
-                        Action action = {
-                            .as_tip_rotation_add.angle = angle,
-                            .as_tip_rotation_add.tip = f->action.as_tip_rotation_add.tip,
-                        };
-                        tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_TIP_ROTATION_ADD, action,
-                                               new_duration, kid);
+                        TIP tip = f->action.as_tip_rotation_add.tip;
+                        if (cu->has_move) {
+                            // A move of the same block runs at the same time and
+                            // carries the center, including the displacement
+                            // this tip rotation causes. So the tip rotation is
+                            // angle only here, which is exactly what the
+                            // has_move branch of tkbc_render_frame_with_dt()
+                            // does during the playback.
+                            Action action = {.as_rotation_add.angle = angle};
+                            tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_ROTATION_ADD, action,
+                                                   new_duration, kid);
+                            cu->current_angle += angle;
+                        } else {
+                            Action action = {
+                                .as_tip_rotation_add.angle = angle,
+                                .as_tip_rotation_add.tip = tip,
+                            };
+                            tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_TIP_ROTATION_ADD, action,
+                                                   new_duration, kid);
 
-                        // Advance cursor via real tip geometry.
-                        {
-                            Kite tmp = cu->kite;
-                            tmp.center = cu->current_position;
-                            tmp.angle = cu->current_angle;
-                            tkbc_kite_update_internal(&tmp);
-                            tkbc_tip_rotation(&tmp, NULL, tmp.angle + angle, f->action.as_tip_rotation_add.tip);
-                            cu->current_position = tmp.center;
-                            cu->current_angle = tmp.angle;
+                            // Advance the cursor via the real tip geometry. The
+                            // rotation pivots around the center the slice
+                            // starts with, like the playback passes
+                            // kite->old_center to tkbc_tip_rotation().
+                            float tip_angle = cu->current_angle + angle;
+                            cu->current_position = upscale_tip_center_at_angle(&cu->kite, cu->slice_start_pos,
+                                                                               cu->slice_start_angle, tip_angle, tip);
+                            cu->current_angle = tip_angle;
                         }
-
                     } break;
                     case ACTION_KITE_TIP_ROTATION: {
                         float orig_angle = f->action.as_tip_rotation.angle;
                         TIP tip = f->action.as_tip_rotation.tip;
-                        bool has_move = upscale_block_has_move(base_frames, kid);
-                        // For absolute MOVE + TIP the live playback uses
-                        // angle-only tip (no center motion) to avoid wobble.
-                        // Mirror that by emitting ROTATION slices here.
-                        bool angle_only = has_move;
-                        // Detect absolute move presence: if the kite has any
-                        // absolute MOVE frame in this block, use angle-only.
-                        bool has_abs_move = false;
-                        for (size_t q = 0; q < base_frames->count; ++q) {
-                            if (base_frames->elements[q].kind == ACTION_KITE_MOVE &&
-                                tkbc_contains_id(base_frames->elements[q].kite_id_array, kid)) {
-                                has_abs_move = true;
-                                break;
-                            }
-                        }
-                        if (has_abs_move) {
-                            angle_only = true;
-                        }
+                        // A tip rotation that shares the block with a move is
+                        // played back angle only (the move handles the full
+                        // center animation), so mirror that by emitting
+                        // ROTATION slices here.
+                        bool angle_only = cu->has_move;
                         if (Ni == 1) {
                             if (angle_only) {
                                 Action a = {.as_rotation.angle = orig_angle};
@@ -1693,16 +1886,9 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                                 };
                                 tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_TIP_ROTATION, a,
                                                        new_duration, kid);
-                                {
-
-                                    Kite tmp = cu->kite;
-                                    tmp.center = start_pos;
-                                    tmp.angle = start_angle;
-                                    tkbc_kite_update_internal(&tmp);
-                                    tkbc_tip_rotation(&tmp, &start_pos, orig_angle, tip);
-                                    cu->current_position = tmp.center;
-                                    cu->current_angle = tmp.angle;
-                                }
+                                cu->current_position = upscale_tip_center_at_angle(
+                                    &cu->kite, cu->slice_start_pos, cu->slice_start_angle, orig_angle, tip);
+                                cu->current_angle = orig_angle;
                             }
                         } else if (s < Ni - 1) {
                             float delta;
@@ -1730,15 +1916,13 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                                 };
                                 tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_TIP_ROTATION_ADD,
                                                        action, new_duration, kid);
-                                {
-                                    Kite tmp = cu->kite;
-                                    tmp.center = cu->current_position;
-                                    tmp.angle = cu->current_angle;
-                                    tkbc_kite_update_internal(&tmp);
-                                    tkbc_tip_rotation(&tmp, NULL, tmp.angle + angle, tip);
-                                    cu->current_position = tmp.center;
-                                    cu->current_angle = tmp.angle;
-                                }
+                                // The tip angle after the slice, used as
+                                // rotation angle and as rotation target of the
+                                // geometry.
+                                float tip_angle = cu->current_angle + angle;
+                                cu->current_position = upscale_tip_center_at_angle(
+                                    &cu->kite, cu->slice_start_pos, cu->slice_start_angle, tip_angle, tip);
+                                cu->current_angle = tip_angle;
                             }
                         } else {
                             if (angle_only) {
@@ -1753,16 +1937,9 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                                 };
                                 tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_TIP_ROTATION, action,
                                                        new_duration, kid);
-                                {
-                                    // Snap from the block start for exactness.
-                                    Kite tmp = cu->kite;
-                                    tmp.center = start_pos;
-                                    tmp.angle = start_angle;
-                                    tkbc_kite_update_internal(&tmp);
-                                    tkbc_tip_rotation(&tmp, &start_pos, orig_angle, tip);
-                                    cu->current_position = tmp.center;
-                                    cu->current_angle = tmp.angle;
-                                }
+                                cu->current_position = upscale_tip_center_at_angle(
+                                    &cu->kite, cu->slice_start_pos, cu->slice_start_angle, orig_angle, tip);
+                                cu->current_angle = orig_angle;
                             }
                         }
                     } break;
