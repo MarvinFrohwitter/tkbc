@@ -27,7 +27,7 @@ bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config, ...)
 #define tkbc_script_begin(...)                                                                                         \
     do {                                                                                                               \
         tkbc__script_begin(env);                                                                                       \
-        char *tmp = space_vstrcat(&env->scratch_buf_script.space, NULL, ##__VA_ARGS__);                          \
+        char *tmp = space_vstrcat(&env->scratch_buf_script.space, NULL, ##__VA_ARGS__);                                \
         tkbc_set_script_name(&env->scratch_buf_script, tmp);                                                           \
     } while (0)
 
@@ -85,5 +85,27 @@ Kite_Ids tkbc_indexs_range(int start, int end);
 Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count);
 void tkbc_print_script(FILE *stream, Script *script);
 void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env, const char *path);
+
+void tkbc_kite_bezier_quadratic(Env *env, Kite_Ids kite_index_array, Vector2 p1, Vector2 p2, Vector2 p3,
+                                float move_duration, float angle, float rotation_duration);
+void tkbc_kite_bezier_cubic(Env *env, Kite_Ids kite_index_array, Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4,
+                            float move_duration, float angle, float rotation_duration);
+
+void tkbc_kite_bezier_quadratic_add(Env *env, Kite_Ids kite_index_array, Vector2 p2, Vector2 p3, float move_duration,
+                                    float angle, float rotation_duration);
+void tkbc_kite_bezier_cubic_add(Env *env, Kite_Ids kite_index_array, Vector2 p2, Vector2 p3, Vector2 p4,
+                                float move_duration, float angle, float rotation_duration);
+
+#define KITE_SET_BEZIER_QUADRATIC(kite_ids, p1, p2, p3, move_duration, angle, rotation_duration)                       \
+    tkbc_kite_bezier_quadratic(env, kite_ids, p1, p2, p3, move_duration, angle, rotation_duration)
+
+#define KITE_SET_BEZIER_CUBIC(kite_ids, p1, p2, p3, p4, move_duration, angle, rotation_duration)                       \
+    tkbc_kite_bezier_cubic(env, kite_ids, p1, p2, p3, p4, move_duration, angle, rotation_duration)
+
+#define KITE_SET_BEZIER_QUADRATIC_ADD(kite_ids, p2, p3, move_duration, angle, rotation_duration)                       \
+    tkbc_kite_bezier_quadratic_add(env, kite_ids, p2, p3, move_duration, angle, rotation_duration)
+
+#define KITE_SET_BEZIER_CUBIC_ADD(kite_ids, p2, p3, p4, move_duration, angle, rotation_duration)                       \
+    tkbc_kite_bezier_cubic_add(env, kite_ids, p2, p3, p4, move_duration, angle, rotation_duration)
 
 #endif  // TKBC_SCRIPT_API_H_

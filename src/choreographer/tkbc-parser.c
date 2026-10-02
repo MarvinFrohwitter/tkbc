@@ -138,6 +138,26 @@ void tkbc_script_parser(Env *env) {
                     goto err;
                 }
                 break;
+            } else if (strncmp("BEZIERCURVE_QUADRATIC", t.content, t.size) == 0) {
+                if (!tkbc_parse_bezier_curve(env, l, false, false, &ki, &remap, brace, &tmp_buffer)) {
+                    goto err;
+                }
+                break;
+            } else if (strncmp("BEZIERCURVE_CUBIC", t.content, t.size) == 0) {
+                if (!tkbc_parse_bezier_curve(env, l, true, false, &ki, &remap, brace, &tmp_buffer)) {
+                    goto err;
+                }
+                break;
+            } else if (strncmp("BEZIERCURVE_QUADRATIC_ADD", t.content, t.size) == 0) {
+                if (!tkbc_parse_bezier_curve(env, l, false, true, &ki, &remap, brace, &tmp_buffer)) {
+                    goto err;
+                }
+                break;
+            } else if (strncmp("BEZIERCURVE_CUBIC_ADD", t.content, t.size) == 0) {
+                if (!tkbc_parse_bezier_curve(env, l, true, true, &ki, &remap, brace, &tmp_buffer)) {
+                    goto err;
+                }
+                break;
             } else if (strncmp("WAIT", t.content, t.size) == 0) {
                 t = lexer_next(l);
                 float duration = atof(lexer_token_to_cstr(l, &t));
@@ -500,6 +520,116 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids 
             space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
         } else {
             SET(KITE_TIP_ROTATION(kis, angle, tip, duration));
+        }
+    }
+
+check:
+    if (kis.elements) {
+        free(kis.elements);
+        // TODO: use maybe a space allocation in here
+        kis.elements = NULL;
+    }
+    return ok;
+}
+
+/**
+ * @brief The function parses a bezier curve out of the current lexer content and
+ * expands it into the frame blocks that move the kites along the curve.
+ *
+ * A bezier curve is represented by a sequence of frame blocks, one per straight
+ * segment of the approximation, so it can not be part of a parallel frame block
+ * and is rejected when it was parsed inside a brace. The point arguments follow
+ * the C api: the non additive variants expect the absolute start, control and
+ * end points, while the additive variants use the current kite position as an
+ * implicit start point and only read the points that are relative to it.
+ *
+ * @param env The global state of the application.
+ * @param lexer The data to parse should be located in her.
+ * @param cubic True for a cubic curve with two control points, false for a
+ * quadratic curve with one control point.
+ * @param add True for the additive variant that uses the current kite position
+ * as an implicit start point.
+ * @param ki The already generated kite ids to compare to the possible new
+ * parsed kite ids.
+ * @param remap Script-wide file id to env id mapping for ids that need a
+ * fallback kite.
+ * @param brace Represents if the parsing has happened inside a frame block.
+ * These for these blocks the frame has to be generated for parallel
+ * visualisation.
+ * @param tmp_buffer A scratch buffer for number sign constructing after
+ * parsing.
+ * @return True if the parsing and frame construction has worked, otherwise
+ * false.
+ */
+bool tkbc_parse_bezier_curve(Env *env, Lexer *lexer, bool cubic, bool add, Kite_Ids *ki, Kite_Id_Remap *remap,
+                             bool brace, Content *tmp_buffer) {
+    bool ok = true;
+    Kite_Ids kis = {0};
+    Vector2 p1 = {0};
+    Vector2 p2 = {0};
+    Vector2 p3 = {0};
+    Vector2 p4 = {0};
+    float move_duration, angle, rotation_duration;
+
+    // A curve expands into multiple sequential frame blocks, which can not be
+    // expressed inside a parallel frame block.
+    if (brace) {
+        check_return(false);
+    }
+
+    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki, remap)) {
+        check_return(false);
+    }
+
+    if (!add) {
+        if (!tkbc_parse_float(&p1.x, lexer, tmp_buffer)) {
+            check_return(false);
+        }
+        if (!tkbc_parse_float(&p1.y, lexer, tmp_buffer)) {
+            check_return(false);
+        }
+    }
+    if (!tkbc_parse_float(&p2.x, lexer, tmp_buffer)) {
+        check_return(false);
+    }
+    if (!tkbc_parse_float(&p2.y, lexer, tmp_buffer)) {
+        check_return(false);
+    }
+    if (!tkbc_parse_float(&p3.x, lexer, tmp_buffer)) {
+        check_return(false);
+    }
+    if (!tkbc_parse_float(&p3.y, lexer, tmp_buffer)) {
+        check_return(false);
+    }
+    if (cubic) {
+        if (!tkbc_parse_float(&p4.x, lexer, tmp_buffer)) {
+            check_return(false);
+        }
+        if (!tkbc_parse_float(&p4.y, lexer, tmp_buffer)) {
+            check_return(false);
+        }
+    }
+    if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
+        check_return(false);
+    }
+    if (!tkbc_parse_float(&angle, lexer, tmp_buffer)) {
+        check_return(false);
+    }
+    if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
+        check_return(false);
+    }
+
+    if (cubic) {
+        if (add) {
+            tkbc_kite_bezier_cubic_add(env, kis, p2, p3, p4, move_duration, angle, rotation_duration);
+        } else {
+            tkbc_kite_bezier_cubic(env, kis, p1, p2, p3, p4, move_duration, angle, rotation_duration);
+        }
+    } else {
+        if (add) {
+            tkbc_kite_bezier_quadratic_add(env, kis, p2, p3, move_duration, angle, rotation_duration);
+        } else {
+            tkbc_kite_bezier_quadratic(env, kis, p1, p2, p3, move_duration, angle, rotation_duration);
         }
     }
 

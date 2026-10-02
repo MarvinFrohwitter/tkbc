@@ -8,6 +8,8 @@
 #include "tkbc-script-handler.h"
 #include "tkbc-ui.h"
 #include "tkbc.h"
+#include "raymath.h"
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -487,6 +489,258 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
         }
     }
     return ids;
+}
+
+// ===========================================================================
+// ========================== BEZIER CURVES ==================================
+// ===========================================================================
+
+// A bezier curve is not a primitive the frame system can execute directly, so
+// it is approximated by a chain of straight KITE_MOVE segments. The control
+// polygon length is used as an upper bound for the curve length and a segment
+// target of TKBC_BEZIER_SEGMENT_LENGTH pixels keeps the polyline close to the
+// real curve independent of the curve size.
+#define TKBC_BEZIER_SEGMENT_LENGTH 25.0f
+#define TKBC_BEZIER_MIN_SEGMENTS 8
+#define TKBC_BEZIER_MAX_SEGMENTS 256
+
+/**
+ * @brief Evaluates a quadratic bezier curve at the parameter t.
+ *
+ * @param p1 The start point of the curve.
+ * @param p2 The single control point of the curve.
+ * @param p3 The end point of the curve.
+ * @param t The interpolation parameter in the range [0, 1].
+ * @return The point on the curve at the given parameter.
+ */
+static Vector2 tkbc_bezier_quadratic_at(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4, float t) {
+    (void) p4;
+    float u = 1.0f - t;
+    return (Vector2){
+        .x = u * u * p1.x + 2.0f * u * t * p2.x + t * t * p3.x,
+        .y = u * u * p1.y + 2.0f * u * t * p2.y + t * t * p3.y,
+    };
+}
+
+/**
+ * @brief Evaluates a cubic bezier curve at the parameter t.
+ *
+ * @param p1 The start point of the curve.
+ * @param p2 The first control point of the curve.
+ * @param p3 The second control point of the curve.
+ * @param p4 The end point of the curve.
+ * @param t The interpolation parameter in the range [0, 1].
+ * @return The point on the curve at the given parameter.
+ */
+static Vector2 tkbc_bezier_cubic_at(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4, float t) {
+    float u = 1.0f - t;
+    float uu = u * u;
+    float tt = t * t;
+    return (Vector2){
+        .x = uu * u * p1.x + 3.0f * uu * t * p2.x + 3.0f * u * tt * p3.x + tt * t * p4.x,
+        .y = uu * u * p1.y + 3.0f * uu * t * p2.y + 3.0f * u * tt * p3.y + tt * t * p4.y,
+    };
+}
+
+/**
+ * @brief Derives the amount of straight segments used to approximate a curve.
+ *
+ * @param control_polygon_length The summed distance between the points that
+ * control the curve, used as an upper bound of the curve length.
+ * @return The segment count clamped between TKBC_BEZIER_MIN_SEGMENTS and
+ * TKBC_BEZIER_MAX_SEGMENTS.
+ */
+static size_t tkbc_bezier_segment_count(float control_polygon_length) {
+    if (control_polygon_length <= 0.0f) {
+        return TKBC_BEZIER_MIN_SEGMENTS;
+    }
+    size_t segments = (size_t) ceilf(control_polygon_length / TKBC_BEZIER_SEGMENT_LENGTH);
+    if (segments < TKBC_BEZIER_MIN_SEGMENTS) {
+        segments = TKBC_BEZIER_MIN_SEGMENTS;
+    } else if (segments > TKBC_BEZIER_MAX_SEGMENTS) {
+        segments = TKBC_BEZIER_MAX_SEGMENTS;
+    }
+    return segments;
+}
+
+/**
+ * @brief Emits the frames that trace the given curve and rotate the given kites
+ * at the same time.
+ *
+ * Every segment is registered as its own frame block that moves the kites to
+ * the next point on the curve (KITE_MOVE) and, when an angle is provided,
+ * rotates them a little further (KITE_ROTATION_ADD) in the same block. Both
+ * actions therefore run at the same time. The move progresses over
+ * move_duration and the rotation over rotation_duration, split evenly across
+ * the segments. Since a block only ends after all of its frames finished, a
+ * block takes as long as the slower of its two actions.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param p1 The start point of the curve.
+ * @param p2 The control point of a quadratic curve or the first control point
+ * of a cubic curve.
+ * @param p3 The end point of a quadratic curve or the second control point of
+ * a cubic curve.
+ * @param p4 The end point (cubic), ignored by the quadratic curve.
+ * @param eval The function that evaluates the curve at a given parameter.
+ * @param segment_count The amount of straight segments that are emitted.
+ * @param move_duration The time that the movement along the curve should take
+ * in seconds.
+ * @param angle The angle in degrees the kites should rotate while moving.
+ * @param rotation_duration The time that the rotation should take in seconds.
+ * @param additive When true the curve is interpreted as a displacement from
+ * the current position of every kite (the curve must then start at the origin,
+ * p1 is ignored) and KITE_MOVE_ADD is used, otherwise the curve points are
+ * absolute destinations and KITE_MOVE is used.
+ */
+static void tkbc_kite_bezier_emit(Env *env, Kite_Ids kite_index_array, Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4,
+                                  Vector2 (*eval)(Vector2, Vector2, Vector2, Vector2, float), size_t segment_count,
+                                  float move_duration, float angle, float rotation_duration, bool additive) {
+    if (!env->script_setup || kite_index_array.count == 0 || segment_count == 0) {
+        return;
+    }
+
+    const float move_step_duration = move_duration / (float) segment_count;
+    const float rotation_step_duration = rotation_duration > 0.0f ? rotation_duration / (float) segment_count : 0.0f;
+    const float rotation_step_angle = angle / (float) segment_count;
+    const bool rotate = angle != 0.0f;
+
+    // The additive variant accumulates the displacement of the curve. Every
+    // block only owns the delta to the previous sample, because a MOVE_ADD is
+    // applied to the position the block starts with.
+    Vector2 previous = eval(p1, p2, p3, p4, 0.0f);
+
+    for (size_t i = 1; i <= segment_count; ++i) {
+        float t = (float) i / (float) segment_count;
+        Vector2 position = eval(p1, p2, p3, p4, t);
+        Vector2 target = position;
+        if (additive) {
+            target = Vector2Subtract(position, previous);
+            previous = position;
+        }
+
+        if (additive && rotate) {
+            SET(KITE_MOVE_ADD(kite_index_array, target.x, target.y, move_step_duration),
+                KITE_ROTATION_ADD(kite_index_array, rotation_step_angle, rotation_step_duration));
+        } else if (additive) {
+            SET(KITE_MOVE_ADD(kite_index_array, target.x, target.y, move_step_duration));
+        } else if (rotate) {
+            SET(KITE_MOVE(kite_index_array, target.x, target.y, move_step_duration),
+                KITE_ROTATION_ADD(kite_index_array, rotation_step_angle, rotation_step_duration));
+        } else {
+            SET(KITE_MOVE(kite_index_array, target.x, target.y, move_step_duration));
+        }
+    }
+}
+
+/**
+ * @brief The function can be used to move the given kites via index along a
+ * quadratic bezier curve while rotating them at the same time.
+ *
+ * The kites follow the absolute curve from p1 to p3. The curve is approximated
+ * by straight segments, see tkbc_kite_bezier_emit() for the timing of the
+ * movement and the rotation.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param p1 The start point of the curve.
+ * @param p2 The control point of the curve.
+ * @param p3 The end point of the curve.
+ * @param move_duration The time that the movement along the curve should take
+ * in seconds.
+ * @param angle The angle in degrees the kites should rotate while moving.
+ * @param rotation_duration The time that the rotation should take in seconds.
+ */
+void tkbc_kite_bezier_quadratic(Env *env, Kite_Ids kite_index_array, Vector2 p1, Vector2 p2, Vector2 p3,
+                                float move_duration, float angle, float rotation_duration) {
+    float control_polygon_length = Vector2Distance(p1, p2) + Vector2Distance(p2, p3);
+    size_t segment_count = tkbc_bezier_segment_count(control_polygon_length);
+    tkbc_kite_bezier_emit(env, kite_index_array, p1, p2, p3, (Vector2){0}, tkbc_bezier_quadratic_at, segment_count,
+                          move_duration, angle, rotation_duration, false);
+}
+
+/**
+ * @brief The function can be used to move the given kites via index along a
+ * quadratic bezier curve while rotating them at the same time.
+ *
+ * In contrast to tkbc_kite_bezier_quadratic() the implicit start point p1 is
+ * the current position of every kite, so the kites keep their relative
+ * formation, and p2 and p3 are given relative to that start point.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param p2 The control point of the curve, relative to the current kite
+ * position.
+ * @param p3 The end point of the curve, relative to the current kite position.
+ * @param move_duration The time that the movement along the curve should take
+ * in seconds.
+ * @param angle The angle in degrees the kites should rotate while moving.
+ * @param rotation_duration The time that the rotation should take in seconds.
+ */
+void tkbc_kite_bezier_quadratic_add(Env *env, Kite_Ids kite_index_array, Vector2 p2, Vector2 p3, float move_duration,
+                                    float angle, float rotation_duration) {
+    Vector2 p1 = {0};
+    float control_polygon_length = Vector2Length(p2) + Vector2Distance(p2, p3);
+    size_t segment_count = tkbc_bezier_segment_count(control_polygon_length);
+    tkbc_kite_bezier_emit(env, kite_index_array, p1, p2, p3, (Vector2){0}, tkbc_bezier_quadratic_at, segment_count,
+                          move_duration, angle, rotation_duration, true);
+}
+
+/**
+ * @brief The function can be used to move the given kites via index along a
+ * cubic bezier curve while rotating them at the same time.
+ *
+ * The kites follow the absolute curve from p1 to p4. The curve is approximated
+ * by straight segments, see tkbc_kite_bezier_emit() for the timing of the
+ * movement and the rotation.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param p1 The start point of the curve.
+ * @param p2 The first control point of the curve.
+ * @param p3 The second control point of the curve.
+ * @param p4 The end point of the curve.
+ * @param move_duration The time that the movement along the curve should take
+ * in seconds.
+ * @param angle The angle in degrees the kites should rotate while moving.
+ * @param rotation_duration The time that the rotation should take in seconds.
+ */
+void tkbc_kite_bezier_cubic(Env *env, Kite_Ids kite_index_array, Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4,
+                            float move_duration, float angle, float rotation_duration) {
+    float control_polygon_length = Vector2Distance(p1, p2) + Vector2Distance(p2, p3) + Vector2Distance(p3, p4);
+    size_t segment_count = tkbc_bezier_segment_count(control_polygon_length);
+    tkbc_kite_bezier_emit(env, kite_index_array, p1, p2, p3, p4, tkbc_bezier_cubic_at, segment_count, move_duration,
+                          angle, rotation_duration, false);
+}
+
+/**
+ * @brief The function can be used to move the given kites via index along a
+ * cubic bezier curve while rotating them at the same time.
+ *
+ * In contrast to tkbc_kite_bezier_cubic() the implicit start point p1 is the
+ * current position of every kite, so the kites keep their relative formation,
+ * and p2, p3 and p4 are given relative to that start point.
+ *
+ * @param env The global state of the application.
+ * @param kite_index_array The kites represented by there kite_id.
+ * @param p2 The first control point of the curve, relative to the current kite
+ * position.
+ * @param p3 The second control point of the curve, relative to the current kite
+ * position.
+ * @param p4 The end point of the curve, relative to the current kite position.
+ * @param move_duration The time that the movement along the curve should take
+ * in seconds.
+ * @param angle The angle in degrees the kites should rotate while moving.
+ * @param rotation_duration The time that the rotation should take in seconds.
+ */
+void tkbc_kite_bezier_cubic_add(Env *env, Kite_Ids kite_index_array, Vector2 p2, Vector2 p3, Vector2 p4,
+                                float move_duration, float angle, float rotation_duration) {
+    Vector2 p1 = {0};
+    float control_polygon_length = Vector2Length(p2) + Vector2Distance(p2, p3) + Vector2Distance(p3, p4);
+    size_t segment_count = tkbc_bezier_segment_count(control_polygon_length);
+    tkbc_kite_bezier_emit(env, kite_index_array, p1, p2, p3, p4, tkbc_bezier_cubic_at, segment_count, move_duration,
+                          angle, rotation_duration, true);
 }
 
 /**

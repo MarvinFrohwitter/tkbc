@@ -6,6 +6,7 @@
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -50,7 +51,7 @@ Test get_kite_by_id(void) {
     tkbc_dap(&env->kite_array, kite_state0);
     tkbc_dap(&env->kite_array, kite_state1);
     tkbc_dap(&env->kite_array, kite_state2);
-    cassert_size_t_eq(env->kite_array.count, 3);
+    cassert_size_t_eq(env->kite_array.count, (size_t) 3);
 
     Kite *kite = tkbc_get_kite_by_id(env, 0);
     cassert_ptr_eq(kite_state0.kite, kite);
@@ -81,7 +82,7 @@ Test get_kite_state_by_id(void) {
     tkbc_dap(&env->kite_array, kite_state0);
     tkbc_dap(&env->kite_array, kite_state1);
     tkbc_dap(&env->kite_array, kite_state2);
-    cassert_size_t_eq(env->kite_array.count, 3);
+    cassert_size_t_eq(env->kite_array.count, (size_t) 3);
 
     Kite_State *ret_kite_state = tkbc_get_kite_state_by_id(env, 0);
     cassert_ptr_neq(&kite_state0, ret_kite_state);
@@ -113,7 +114,7 @@ Test get_kite_state_by_id(void) {
 Test contains_id(void) {
     Test test = cassert_init_test("tkbc_contains_id()");
     Kite_Ids kite_ids = tkbc_indexs_range(4, 13);
-    cassert_size_t_eq(kite_ids.count, 9);
+    cassert_size_t_eq(kite_ids.count, (size_t) 9);
 
     bool contains = tkbc_contains_id(kite_ids, 12);
     cassert_bool_eq(contains, true);
@@ -147,7 +148,7 @@ Test deep_copy_frame(void) {
     Kite_Ids kite_ids = tkbc_indexs_range(0, 8);
     tkbc_dapc(&frame->kite_id_array, kite_ids.elements, kite_ids.count);
     Frame frame_copy = tkbc_deep_copy_frame(&space, frame);
-    cassert_size_t_eq(frame->kite_id_array.count, 8);
+    cassert_size_t_eq(frame->kite_id_array.count, (size_t) 8);
 
     cassert_ptr_neq(frame, &frame_copy);
     cassert_ptr_neq(frame->kite_id_array.elements, &frame_copy.kite_id_array.elements);
@@ -271,7 +272,8 @@ Test deep_copy_script(void) {
 
     cassert_type_compare_function(ANY_ALLOCED_EQ, script.id, new_script.id, tkbc_uuid_equals);
 
-    // cassert_type_compare_function_param(ANY_ALLOCED_EQ, &script.name_input, &new_script.name_input, memcmp, sizeof(script.name_input));
+    // cassert_type_compare_function_param(ANY_ALLOCED_EQ, &script.name_input, &new_script.name_input, memcmp,
+    // sizeof(script.name_input));
 
     // The name buffer is deep copied: same content, different allocation.
     // The name is stored only in name_input.text; deep copy owns its own allocation.
@@ -279,8 +281,12 @@ Test deep_copy_script(void) {
     cassert_size_t_eq(script.name_input.max_char, new_script.name_input.max_char);
     if (script.name_input.text.elements || new_script.name_input.text.elements) {
         cassert_ptr_neq(script.name_input.text.elements, new_script.name_input.text.elements);
-        cassert_string_eq(script.name_input.text.elements ? script.name_input.text.elements : "",
-                          new_script.name_input.text.elements ? new_script.name_input.text.elements : "");
+        char *empty = "";
+        cassert_string_eq(script.name_input.text.elements ? script.name_input.text.elements : empty,
+                          new_script.name_input.text.elements ? new_script.name_input.text.elements : empty);
+
+        cassert_string_eq(script.name_input.text.elements ? script.name_input.text.elements : empty,
+                          new_script.name_input.text.elements ? new_script.name_input.text.elements : empty);
     }
 
     cassert_ptr_neq(&script.elements, &new_script.elements);
@@ -320,17 +326,17 @@ Test destroy_frames_internal_data(void) {
                 ((Kite_Position){.kite_id = 2, .position.x = 150, .position.y = 250, .angle = 180}));
 
     cassert_ptr_neq(frames.elements, NULL);
-    cassert_size_t_neq(frames.count, 0);
-    cassert_size_t_neq(frames.capacity, 0);
+    cassert_size_t_neq(frames.count, (size_t) 0);
+    cassert_size_t_neq(frames.capacity, (size_t) 0);
     cassert_ptr_neq(frames.kite_frame_positions.elements, NULL);
-    cassert_size_t_neq(frames.kite_frame_positions.count, 0);
-    cassert_size_t_neq(frames.kite_frame_positions.capacity, 0);
+    cassert_size_t_neq(frames.kite_frame_positions.count, (size_t) 0);
+    cassert_size_t_neq(frames.kite_frame_positions.capacity, (size_t) 0);
 
     Kite_Ids *ids = &frames.elements->kite_id_array;
 
     cassert_ptr_neq(frames.elements->kite_id_array.elements, NULL);
-    cassert_size_t_neq(frames.elements->kite_id_array.count, 0);
-    cassert_size_t_neq(frames.elements->kite_id_array.capacity, 0);
+    cassert_size_t_neq(frames.elements->kite_id_array.count, (size_t) 0);
+    cassert_size_t_neq(frames.elements->kite_id_array.capacity, (size_t) 0);
 
     tkbc_destroy_frames_internal_data(&frames);
 
@@ -344,12 +350,12 @@ Test destroy_frames_internal_data(void) {
     }
 
     cassert_ptr_eq(frames.elements, NULL);
-    cassert_size_t_eq(frames.count, 0);
-    cassert_size_t_eq(frames.capacity, 0);
+    cassert_size_t_eq(frames.count, (size_t) 0);
+    cassert_size_t_eq(frames.capacity, (size_t) 0);
 
     cassert_ptr_eq(frames.kite_frame_positions.elements, NULL);
-    cassert_size_t_eq(frames.kite_frame_positions.count, 0);
-    cassert_size_t_eq(frames.kite_frame_positions.capacity, 0);
+    cassert_size_t_eq(frames.kite_frame_positions.count, (size_t) 0);
+    cassert_size_t_eq(frames.kite_frame_positions.capacity, (size_t) 0);
 
     return test;
 }
@@ -370,34 +376,33 @@ Test reset_frames_internal_data(void) {
                 ((Kite_Position){.kite_id = 2, .position.x = 150, .position.y = 250, .angle = 180}));
 
     cassert_ptr_neq(frames.elements, NULL);
-    cassert_size_t_neq(frames.count, 0);
-    cassert_size_t_neq(frames.capacity, 0);
+    cassert_size_t_neq(frames.count, (size_t) 0);
+    cassert_size_t_neq(frames.capacity, (size_t) 0);
     cassert_ptr_neq(frames.kite_frame_positions.elements, NULL);
-    cassert_size_t_neq(frames.kite_frame_positions.count, 0);
-    cassert_size_t_neq(frames.kite_frame_positions.capacity, 0);
-
+    cassert_size_t_neq(frames.kite_frame_positions.count, (size_t) 0);
+    cassert_size_t_neq(frames.kite_frame_positions.capacity, (size_t) 0);
     Kite_Ids *ids = &frames.elements->kite_id_array;
 
     cassert_ptr_neq(frames.elements->kite_id_array.elements, NULL);
-    cassert_size_t_neq(frames.elements->kite_id_array.count, 0);
-    cassert_size_t_neq(frames.elements->kite_id_array.capacity, 0);
+    cassert_size_t_neq(frames.elements->kite_id_array.count, (size_t) 0);
+    cassert_size_t_neq(frames.elements->kite_id_array.capacity, (size_t) 0);
 
     size_t hack_tracking_count_number_for_memory_managment = frames.count;
     tkbc_reset_frames_internal_data(&frames);
 
     cassert_ptr_neq(ids, NULL);
     cassert_ptr_neq(ids->elements, NULL);
-    cassert_size_t_neq(ids->count, 3);
-    cassert_size_t_eq(ids->count, 0);
-    cassert_size_t_eq(ids->capacity, 0);
+    cassert_size_t_neq(ids->count, (size_t) 3);
+    cassert_size_t_eq(ids->count, (size_t) 0);
+    cassert_size_t_eq(ids->capacity, (size_t) 0);
 
     cassert_ptr_neq(frames.elements, NULL);
-    cassert_size_t_eq(frames.count, 0);
-    cassert_size_t_neq(frames.capacity, 0);
+    cassert_size_t_eq(frames.count, (size_t) 0);
+    cassert_size_t_neq(frames.capacity, (size_t) 0);
 
     cassert_ptr_neq(frames.kite_frame_positions.elements, NULL);
-    cassert_size_t_eq(frames.kite_frame_positions.count, 0);
-    cassert_size_t_neq(frames.kite_frame_positions.capacity, 0);
+    cassert_size_t_eq(frames.kite_frame_positions.count, (size_t) 0);
+    cassert_size_t_neq(frames.kite_frame_positions.capacity, (size_t) 0);
 
     frames.count = hack_tracking_count_number_for_memory_managment;
     tkbc_destroy_frames_internal_data(&frames);
@@ -414,7 +419,7 @@ static Space upscale_test_temp_space(void) {
 }
 
 static void upscale_test_build_script(Script *script, Id kite_id, Action_Kind kind, Action action, float duration,
-                                        Vector2 start_pos, float start_angle) {
+                                      Vector2 start_pos, float start_angle) {
     memset(script, 0, sizeof(*script));
     space_init_capacity(&script->space, 64);
     Frames block = {0};
@@ -456,7 +461,7 @@ Test upscale_script_move_absolute(void) {
     upscale_test_build_script(&script, 0, ACTION_KITE_MOVE, a, 1.0f, start, 0);
 
     tkbc_upscale_script(env, &tspace, &script, 60.0f);
-    cassert_size_t_eq(script.count, 60);
+    cassert_size_t_eq(script.count, (size_t) 60);
     // First slice moves 1/60th of the way, last slice reaches the target.
     cassert_float_eq(script.elements[0].elements[0].action.as_move.position.x, 1.0f);
     cassert_float_eq(script.elements[script.count - 1].elements[0].action.as_move.position.x, 60.0f);
@@ -471,7 +476,7 @@ Test upscale_script_move_absolute(void) {
 
     // Idempotent second pass keeps the count.
     tkbc_upscale_script(env, &tspace, &script, 60.0f);
-    cassert_size_t_eq(script.count, 60);
+    cassert_size_t_eq(script.count, (size_t) 60);
 
     space_free_space(&script.space);
     space_free_space(&tspace);
@@ -498,10 +503,10 @@ Test upscale_script_move_add(void) {
     upscale_test_build_script(&script, 0, ACTION_KITE_MOVE_ADD, a, 1.0f, start, 0);
 
     tkbc_upscale_script(env, &tspace, &script, 60.0f);
-    cassert_size_t_eq(script.count, 60);
+    cassert_size_t_eq(script.count, (size_t) 60);
     // Relative offsets stay start-independent: each slice adds (1,0).
     cassert_float_eq(script.elements[0].elements[0].action.as_move_add.position.x, 1.0f);
-    cassert_int_eq(script.elements[0].elements[0].kind, ACTION_KITE_MOVE_ADD);
+    cassert_int_eq((int) script.elements[0].elements[0].kind, ACTION_KITE_MOVE_ADD);
 
     space_free_space(&script.space);
     space_free_space(&tspace);
@@ -539,7 +544,7 @@ Test upscale_script_rotation_add(void) {
 
     Space tspace = upscale_test_temp_space();
     tkbc_upscale_script(env, &tspace, &script, 60.0f);
-    cassert_size_t_eq(script.count, 60);
+    cassert_size_t_eq(script.count, (size_t) 60);
     cassert_bool_eq(fabsf(script.elements[0].elements[0].action.as_rotation_add.angle - 1.5f) < 0.001f, true);
 
     space_free_space(&script.space);
@@ -584,7 +589,7 @@ Test scrub_to_index_stays_in_script_mode(void) {
     tkbc_scrub_to_index(env, 0);
     cassert_ptr_neq(env->script, NULL);
     cassert_ptr_neq(env->frames, NULL);
-    cassert_size_t_eq(env->frames->frames_index, 0);
+    cassert_size_t_eq(env->frames->frames_index, (size_t) 0);
     cassert_bool_eq(env->script_finished, true);
     cassert_bool_eq(env->kite_array.elements[0].is_active, true);
 
@@ -747,7 +752,7 @@ Test simulate_script_and_bake_positions_repairs_slice_chain(void) {
                         0.01f,
                     true);
     cassert_bool_eq(fabsf(script.elements[script.count - 1].kite_frame_positions.elements[0].position.x -
-                         (float) (script.count - 1)) < 0.01f,
+                          (float) (script.count - 1)) < 0.01f,
                     true);
 
     space_free_space(&script.space);
@@ -812,7 +817,7 @@ Test upscale_script_quit_mixed_block(void) {
 
     // 0.2s of motion, not 0.5s of QUIT: 12 slices, none a lone QUIT that
     // would share and exhaust the global quit countdown.
-    cassert_size_t_eq(script.count, 12);
+    cassert_size_t_eq(script.count, (size_t) 12);
     for (size_t i = 0; i < script.count; ++i) {
         cassert_bool_eq(slice_contains_quit(&script.elements[i]), false);
     }
@@ -871,7 +876,7 @@ Test upscale_script_quit_alone_acts_global(void) {
     space_free_space(&tspace);
 
     // The lone QUIT block itself is kept as-is (global semantics preserved).
-    cassert_int_eq(script.elements[0].elements[0].kind, ACTION_KITE_QUIT);
+    cassert_int_eq((int) script.elements[0].elements[0].kind, ACTION_KITE_QUIT);
 
     env->script = &script;
     env->frames = &script.elements[0];
@@ -906,7 +911,6 @@ static size_t count_occurrences(const char *haystack, const char *needle) {
     return n;
 }
 
-
 Test export_script_to_dot_kite_file_from_mem_writes_original(void) {
     Test test = cassert_init_test("tkbc_export_script_to_dot_kite_file_from_mem()");
     Env *env = tkbc_init_env();
@@ -928,9 +932,9 @@ Test export_script_to_dot_kite_file_from_mem_writes_original(void) {
 
     // Live timeline is upscaled, but the originals indicator keeps the
     // authored single block (stripped: actions only, no positions).
-    cassert_size_t_eq(script.count, 12);
-    cassert_size_t_eq(script.original_count, 1);
-    cassert_size_t_eq(script.original_elements[0].kite_frame_positions.count, 1);
+    cassert_size_t_eq(script.count, (size_t) 12);
+    cassert_size_t_eq(script.original_count, (size_t) 1);
+    cassert_size_t_eq(script.original_elements[0].kite_frame_positions.count, (size_t) 1);
     cassert_bool_eq(script.original_elements[0].is_upscaled, false);
     for (size_t i = 0; i < script.count; ++i) {
         cassert_bool_eq(script.elements[i].is_upscaled, true);
@@ -951,16 +955,16 @@ Test export_script_to_dot_kite_file_from_mem_writes_original(void) {
     cassert_size_t_eq(export_read, (size_t) export_size);
     export_text[export_size] = '\0';
     fclose(exported);
-    cassert_size_t_eq(count_occurrences(export_text, "MOVE ("), 1);
-    cassert_size_t_eq(count_occurrences(export_text, "QUIT"), 1);
+    cassert_size_t_eq(count_occurrences(export_text, "MOVE ("), (size_t) 1);
+    cassert_size_t_eq(count_occurrences(export_text, "QUIT"), (size_t) 1);
     free(export_text);
 
     // Deep copies carry the originals along.
     Space copy_space = {0};
     space_init_capacity(&copy_space, 64);
     Script copy = tkbc_deep_copy_script(&copy_space, &script);
-    cassert_size_t_eq(copy.original_count, 1);
-    cassert_size_t_eq(copy.count, 12);
+    cassert_size_t_eq(copy.original_count, (size_t) 1);
+    cassert_size_t_eq(copy.count, (size_t) 12);
     space_free_space(&copy_space);
 
     space_free_space(&script.space);

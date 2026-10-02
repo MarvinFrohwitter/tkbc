@@ -297,6 +297,72 @@ void tkbc_script_team_diamond_right(Env *env, Kite_Ids kite_index_array,
 
 ---
 
+## SCRIPT BEZIER API in C
+
+The kites can be moved along an approximated quadratic or cubic bezier curve
+while rotating at the same time. A bezier curve is not a primitive the frame
+system can execute directly, so it is expanded into a chain of `KITE_MOVE` (or
+`KITE_MOVE_ADD`) frames, one per straight segment, each paired with a
+`KITE_ROTATION_ADD` in the same block. Because of that expansion a bezier call
+can not be nested into a parallel visualization block (braces), unlike the
+primitive calls.
+
+The env pointer is automatically inserted into the scope.
+
+```C
+void tkbc_kite_bezier_quadratic(Env *env, Kite_Ids kite_index_array,
+                                Vector2 p1, Vector2 p2, Vector2 p3,
+                                float move_duration, float angle,
+                                float rotation_duration);
+
+void tkbc_kite_bezier_cubic(Env *env, Kite_Ids kite_index_array,
+                            Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4,
+                            float move_duration, float angle,
+                            float rotation_duration);
+
+// The additive variants use the current position of every kite as the implicit
+// start point, so the given points are relative to it.
+void tkbc_kite_bezier_quadratic_add(Env *env, Kite_Ids kite_index_array,
+                                    Vector2 p2, Vector2 p3,
+                                    float move_duration, float angle,
+                                    float rotation_duration);
+
+void tkbc_kite_bezier_cubic_add(Env *env, Kite_Ids kite_index_array,
+                                Vector2 p2, Vector2 p3, Vector2 p4,
+                                float move_duration, float angle,
+                                float rotation_duration);
+```
+
+For the absolute variants the curve runs from p1 to p3 (quadratic, with p2 as
+control point) or from p1 to p4 (cubic, with p2 and p3 as control points). The
+additive variants move every kite from its current position to the relative end
+point p3 (quadratic) or p4 (cubic), so the formation is preserved.
+
+The movement along the curve takes move_duration and the rotation of angle
+degrees takes rotation_duration, both split evenly across the generated
+segments, so both run at the same time.
+
+The simple versions:
+
+```C
+KITE_SET_BEZIER_QUADRATIC(ID(zero), (Vector2){0, 0}, (Vector2){50, 100},
+                          (Vector2){100, 0}, move_duration, 90,
+                          rotation_duration);
+
+KITE_SET_BEZIER_CUBIC(ID(zero), (Vector2){0, 0}, (Vector2){0, 100},
+                      (Vector2){100, 100}, (Vector2){100, 0}, move_duration,
+                      -45, rotation_duration);
+
+KITE_SET_BEZIER_QUADRATIC_ADD(ID(zero), (Vector2){50, 100}, (Vector2){100, 0},
+                              move_duration, 90, rotation_duration);
+
+KITE_SET_BEZIER_CUBIC_ADD(ID(zero), (Vector2){0, 100}, (Vector2){100, 100},
+                          (Vector2){100, 0}, move_duration, -45,
+                          rotation_duration);
+```
+
+---
+
 ## SCRIPT API in .kite files
 
 The .kite files can be loaded dynamic at runtime via drag and drop.
@@ -344,6 +410,25 @@ ROTATION_ADD KITES 180 2
 TIP_ROTATION KITES 180 LEFT 2
 // action|>ids|>angle|>TIP|>duration
 TIP_ROTATION_ADD KITES 180 RIGHT 2
+```
+
+Bezier curves move the given kites along an approximated quadratic or cubic
+curve while rotating them at the same time. The curve is expanded into multiple
+sequential frame blocks, therefore a bezier call can not be part of a parallel
+brace block.
+
+```Scala
+// action|>ids|>p1.x|>p1.y|>p2.x|>p2.y|>p3.x|>p3.y|>move_duration|>angle|>rotation_duration
+BEZIERCURVE_QUADRATIC KITES 0 0 50 100 100 0 1 90 2
+// action|>ids|>p1.x|>p1.y|>p2.x|>p2.y|>p3.x|>p3.y|>p4.x|>p4.y|>move_duration|>angle|>rotation_duration
+BEZIERCURVE_CUBIC KITES 0 0 0 100 100 100 100 0 1 -45 1
+
+// The additive variants use the current position of every kite as the implicit
+// start point, so the given points are relative to it.
+// action|>ids|>p2.x|>p2.y|>p3.x|>p3.y|>move_duration|>angle|>rotation_duration
+BEZIERCURVE_QUADRATIC_ADD KITES 50 100 100 0 1 90 2
+// action|>ids|>p2.x|>p2.y|>p3.x|>p3.y|>p4.x|>p4.y|>move_duration|>angle|>rotation_duration
+BEZIERCURVE_CUBIC_ADD KITES 0 100 100 100 100 0 1 -45 1
 ```
 
 For parallel visualization use braces to make the block that should be executed together.
