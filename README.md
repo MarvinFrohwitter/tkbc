@@ -527,6 +527,8 @@ END
 | ---------------------------------- | ----------------------------------------------------------------- |
 | `KEY_1 KEY_9`                      | Toggles the selection of a kite.                                  |
 | `KEY_ESCAPE`                       | Change key mappings.                                              |
+| `KEY_F1`                           | Displays kite information (kite speed).                           |
+| `KEY_F2`                           | Displays a grid in the background.                                |
 | `KEY_B`                            | Take a Screenshot.                                                |
 | `KEY_V`                            | Begin recording the screen.                                       |
 | `SHIFT + KEY_V`                    | End recording the screen.                                         |
