@@ -15,6 +15,9 @@ bool tkbc_scripts_contains_id(Scripts scripts, UUID script_id);
 bool tkbc_contains_id(Kite_Ids kite_ids, size_t id);
 bool tkbc_find_first_active_script_kite(Env *env, Id *id);
 size_t tkbc_get_active_kite_count(Kite_States *kite_states);
+void tkbc_redirect_script_elements(Script *script);
+void tkbc_remove_redirect_script_elements(Script *script);
+
 Frame tkbc_deep_copy_frame(Space *space, Frame *frame);
 Frames tkbc_deep_copy_frames(Space *space, Frames *frames);
 Script tkbc_deep_copy_script(Space *space, Script *script);
@@ -33,7 +36,7 @@ bool tkbc_check_finished_frames(Env *env);
 size_t tkbc_check_finished_frames_count(Env *env);
 
 void tkbc_change_visibility_to_non_script_kites(Env *env);
-void tkbc_change_visibility_to_script_kites(Env *env, Script *script);
+void tkbc_change_visibility_to_script_kites(Env *env, Space *tspace, Script *script);
 
 bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh);
 void tkbc_unload_script(Env *env);
@@ -56,7 +59,7 @@ void tkbc_scrub_frames(Env *env);
 float tkbc_original_duration_across_frames_collection(const Frames *frames);
 size_t tkbc_upscale_step_count(float duration, float fps);
 void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps);
-void tkbc_simulate_script_and_bake_positions(Env *env, Script *script);
+void tkbc_simulate_script_and_bake_positions(Env *env, Space *tspace, Script *script);
 
 // ===========================================================================
 // ========================== SCRIPT HANDLER INTERNAL ========================

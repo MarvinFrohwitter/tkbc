@@ -244,6 +244,8 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
         // bakes locally, so it can still be saved in its original form and
         // the message stays small no matter how many per-tick slices the
         // live timeline holds.
+
+        tkbc_redirect_script_elements(script);
         space_dapf(space, message, "%zu:", script->original_count);
         for (size_t j = 0; j < script->original_count; ++j) {
             Frames *frames = &script->original_elements[j];
@@ -293,6 +295,8 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
         }
 
         space_dapf(space, message, "\r\n");
+
+        tkbc_remove_redirect_script_elements(script);
         return true;
     }
     return false;
@@ -429,8 +433,7 @@ check:
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x, float *y, float *angle, Color *color,
                                    UUID *texture_id, size_t *texture_width, size_t *texture_height,
                                    size_t *texture_format, Space *data_space, unsigned char **texture_data,
-                                   UUID *inline_texture_id, bool *is_reversed, bool *is_active,
-                                   bool *is_script_kite) {
+                                   UUID *inline_texture_id, bool *is_reversed, bool *is_active, bool *is_script_kite) {
     Content buffer = {0};
     Token token;
     bool ok = true;
@@ -545,7 +548,7 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x, floa
         // handed back separately so the caller can store the image under that
         // very uuid instead of appending it as a brand new asset.
         if (!tkbc_parse_image(lexer, data_space, texture_data, texture_width, texture_height, texture_format,
-                               inline_texture_id)) {
+                              inline_texture_id)) {
             check_return(false);
         }
     } else {

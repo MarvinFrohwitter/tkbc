@@ -720,7 +720,7 @@ Test simulate_script_and_bake_positions_fixes_stale_starts(void) {
     // No play happened: block 1 still claims a stale start. The eager bake
     // (server after receive / offline client at load) must compute the true
     // chain end of block 0 instead.
-    tkbc_simulate_script_and_bake_positions(env, &script);
+    tkbc_simulate_script_and_bake_positions(env, &script.space, &script);
     cassert_bool_eq(fabsf(script.elements[0].kite_frame_positions.elements[0].position.x - 0.0f) < 0.01f, true);
     cassert_bool_eq(fabsf(script.elements[1].kite_frame_positions.elements[0].position.x - 60.0f) < 0.01f, true);
 
@@ -742,7 +742,7 @@ Test simulate_script_and_bake_positions_repairs_slice_chain(void) {
     // simulation must restore the continuous chain without any play.
     const size_t corrupted = script.count / 2;
     script.elements[corrupted].kite_frame_positions.elements[0].position.x = 999.0f;
-    tkbc_simulate_script_and_bake_positions(env, &script);
+    tkbc_simulate_script_and_bake_positions(env, &script.space, &script);
     // The stored start of slice i is the position at the beginning of that
     // slice, so slice i starts at x == i and targets x == i + 1.
     cassert_bool_eq(fabsf(script.elements[corrupted].kite_frame_positions.elements[0].position.x - (float) corrupted) <

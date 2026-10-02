@@ -18,6 +18,7 @@
 #include "tkbc-asset-handler.h"
 
 extern Assets assets;
+extern bool sending_receiving;
 
 /**
  * @brief This function draws a grid of lines in the background so that when flying a kite you can orient yourself on
@@ -910,14 +911,19 @@ bool tkbc_ui_script_menu(Env *env) {
             assert(env->script_menu_mouse_interaction_box != -1);
             assert(env->scripts.count >= (size_t) env->script_menu_mouse_interaction_box);
 
-            // TODO: Handle false as an persistente loading option.
-            // A script should be completely resettable and you should be able to
-            // restore the current play state.
 
             // TODO: Display an icon on the left of the selection that does not reset
             // it if clicked.
 
-            tkbc_load_script_id(env, env->scripts.elements[env->script_menu_mouse_interaction_box].id, true);
+            bool offline = !sending_receiving;
+            if (offline) {
+
+                if (double_click_confirm) {
+                    tkbc_load_script_id(env, env->scripts.elements[env->script_menu_mouse_interaction_box].id, false);
+                } else {
+                    tkbc_load_script_id(env, env->scripts.elements[env->script_menu_mouse_interaction_box].id, true);
+                }
+            }
 
             env->script_menu_interaction = false;
             env->keymaps_interaction = false;

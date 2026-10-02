@@ -552,9 +552,11 @@ typedef struct {
                             // the containing Script.space, which callers pass
                             // explicitly to the text helpers.
 
-    bool was_send;  // Indicates if this script was already send to a server.
-} Script;           // A dynamic array collection that combined multiple frames to a
-                    // single kite draw representation.
+    bool internal_redirect;  // Indicates if the original_elements are currently pointing at elements. This can be the
+                             // case if no upscaling has happened jet.
+    bool was_send;           // Indicates if this script was already send to a server.
+} Script;                    // A dynamic array collection that combined multiple frames to a
+                             // single kite draw representation.
 
 typedef struct {
     Script *elements;  // The dynamic array collection for all combined scripts.

@@ -78,7 +78,7 @@ Kite client_kite;
 static Popup connection = {0};
 static Popup loading = {0};
 static Popup disconnect = {0};
-static bool sending_receiving = true;
+bool sending_receiving = true;
 
 static Space connection_input_space = {0};
 static Text_Input connection_host_input = {

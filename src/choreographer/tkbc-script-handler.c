@@ -155,6 +155,34 @@ size_t tkbc_get_active_kite_count(Kite_States *kite_states) {
 }
 
 /**
+ * @brief The function lets the original_elements point at the elements in the script if there is not upscaling yet.
+ *
+ * @param script The script where the redirect should happen.
+ */
+void tkbc_redirect_script_elements(Script *script) {
+    if (!script->original_elements || script->original_count == 0) {
+        script->internal_redirect = true;
+        script->original_elements = script->elements;
+        script->original_count = script->count;
+        script->original_capacity = script->capacity;
+    }
+}
+
+/**
+ * @brief The function removes the internal pointer to the elements from the original_elements.
+ *
+ * @param script The script where the redirect is active.
+ */
+void tkbc_remove_redirect_script_elements(Script *script) {
+    if (script->internal_redirect) {
+        script->original_elements = NULL;
+        script->original_count = 0;
+        script->original_capacity = 0;
+        script->internal_redirect = false;
+    }
+}
+
+/**
  * @brief The function copies every single value even the values that are just
  * represented by a pointer of the struct Frames to a new instance. Every
  * internal pointer is a new one in the created representation and points to the
@@ -796,7 +824,7 @@ void tkbc_collect_frames_kite_ids(Space *space, const Frames *frames, Kite_Ids *
     // every kite id is part of the kite_frame_positions  if their are available.
     //
     // This assumes that every id is also part of the positions array => that is currently the case.
-    if (frames->kite_frame_positions.elements) {
+    if (frames->kite_frame_positions.elements && frames->kite_frame_positions.count != 0) {
         for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
             Id id = frames->kite_frame_positions.elements[j].kite_id;
             if (!tkbc_contains_id(*current_kite_ids, id)) {
@@ -953,17 +981,15 @@ void tkbc_change_visibility_to_non_script_kites(Env *env) {
  * and disables all others.
  *
  * @param env The global state of the application.
+ * @param tspace A space where temporary allocations can stay.
  * @param script The script where the belonging kites should be toggled on.
  */
-void tkbc_change_visibility_to_script_kites(Env *env, Script *script) {
+void tkbc_change_visibility_to_script_kites(Env *env, Space *tspace, Script *script) {
 
     // TODO: Find a better way to do it reliable. And faster!!!
-    // And use a space that is provided as a tspace this has to be passed in because we don't know if getting a tspace
-    // and then releasing it will cause other data loss.
 
-    Space space = {0};
     Kite_Ids current_kite_ids = {0};
-    tkbc_collect_script_kite_ids(&space, script, &current_kite_ids);
+    tkbc_collect_script_kite_ids(tspace, script, &current_kite_ids);
 
     //
     // Activate the kites that belong to the script.
@@ -978,8 +1004,6 @@ void tkbc_change_visibility_to_script_kites(Env *env, Script *script) {
             }
         }
     }
-
-    space_free_space(&space);
 }
 
 /**
@@ -988,7 +1012,9 @@ void tkbc_change_visibility_to_script_kites(Env *env, Script *script) {
  *
  * @param env The global state of the application.
  * @param script_id The id of the script that should be loaded into the
- * current execution.
+ * @param fresh Indicates if the script should be loaded with no saved positions.
+ * @param upscale_if_not_already_done Indicates if the script should be upscaled if there is not already an upscaled
+ * version. current execution.
  * @return True if the script could be loaded successfully, otherwise false.
  */
 bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
@@ -1005,10 +1031,18 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
         return false;
     }
 
-    env->frames = &env->script->elements[0];
-    if (!fresh) {
-        tkbc_set_kite_positions_from_kite_frames_positions(env);
-    } else {
+    bool was_baked = false;
+    if (!env->script->original_elements && env->script->original_count == 0) {
+        // Upscale long blocks into per-tick slices so the timeline can scrub
+        // continuously at the animation fps, like a video. Already upscaled
+        // blocks (durations <= 1/fps) are kept as-is, making this idempotent
+        // for network re-receives.
+        tkbc_upscale_script(env, &env->scratch_buf_script.space, env->script, TARGET_FPS);
+        tkbc_simulate_script_and_bake_positions(env, &env->scratch_buf_script.space, env->script);
+        was_baked = true;
+    }
+
+    if (fresh) {
         // Fresh play (offline selection or server NEXT): start from the
         // current kite positions and rebake the timeline eagerly, so smooth
         // scrubbing works immediately without playing the script one time
@@ -1016,14 +1050,23 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
         // with the new start, exactly like a live run would.
         assert(env->script);
         tkbc_restore_script_frame_states(env);
-        tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
-        tkbc_simulate_script_and_bake_positions(env, env->script);
-        tkbc_set_kite_positions_from_kite_frames_positions(env);
+
+        if (!was_baked) {
+            for (size_t i = 0; i < env->script->count; ++i) {
+                env->script->elements[i].kite_frame_positions.count = 0;
+            }
+            tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
+            tkbc_simulate_script_and_bake_positions(env, &env->scratch_buf_script.space, env->script);
+        }
     }
+
+    env->frames = &env->script->elements[0];
+    tkbc_set_kite_positions_from_kite_frames_positions(env);
     env->script_finished = false;
     env->script_loading = true;
 
-    tkbc_change_visibility_to_script_kites(env, env->script);
+    tkbc_change_visibility_to_script_kites(env, &env->scratch_buf_script.space, env->script);
+    tkbc_reset_script_scratch_creation(env);
     return true;
 }
 
@@ -1991,21 +2034,13 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
  * (WAIT/QUIT-only) keep their stored data as-is.
  *
  * @param env The global state, used for kite geometry templates.
+ * @param tspace A space where temporary allocations can stay.
  * @param script The script whose timeline gets baked in place.
  */
-void tkbc_simulate_script_and_bake_positions(Env *env, Script *script) {
+void tkbc_simulate_script_and_bake_positions(Env *env, Space *tspace, Script *script) {
 
     if (!env || !script || script->count == 0) {
         return;
-    }
-    Space temp_space = {0};
-    {
-        // Preallocated some space to be faster the raw malloc version was faster.
-        bool ok = space_init_capacity(&temp_space, 1024 * 1024);
-        if (!ok) {
-            assert(false && "Memory allocation has failed.");
-            abort();
-        }
     }
 
     const float dt = (float) TARGET_DT;
@@ -2018,7 +2053,7 @@ void tkbc_simulate_script_and_bake_positions(Env *env, Script *script) {
         }
 
         Kite_Ids involved_kids = {0};
-        tkbc_collect_frames_kite_ids(&temp_space, frames, &involved_kids);
+        tkbc_collect_frames_kite_ids(tspace, frames, &involved_kids);
 
         for (size_t k = 0; k < involved_kids.count; ++k) {
             Id id = involved_kids.elements[k];
@@ -2048,7 +2083,7 @@ void tkbc_simulate_script_and_bake_positions(Env *env, Script *script) {
         Kite_States states = {0};
         for (size_t k = 0; k < involved_kids.count; ++k) {
             Upscale_Kite *uk = upscale_find_kite(&upscale_kites, involved_kids.elements[k]);
-            space_dap(&temp_space, &states,
+            space_dap(tspace, &states,
                       ((Kite_State){
                           .kite_id = involved_kids.elements[k],
                           .kite = uk ? &uk->kite : NULL,
@@ -2057,7 +2092,7 @@ void tkbc_simulate_script_and_bake_positions(Env *env, Script *script) {
 
         Frames tmp = {0};
         for (size_t i = 0; i < frames->count; ++i) {
-            space_dap(&temp_space, &tmp, frames->elements[i]);
+            space_dap(tspace, &tmp, frames->elements[i]);
             tmp.elements[tmp.count - 1].duration = tmp.elements[tmp.count - 1].original_duration;
             tmp.elements[tmp.count - 1].finished = false;
         }
@@ -2097,8 +2132,6 @@ void tkbc_simulate_script_and_bake_positions(Env *env, Script *script) {
             }
         }
     }
-
-    space_free_space(&temp_space);
 }
 
 /**
@@ -2201,16 +2234,10 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
             }
         }
 
-        // Upscale long blocks into per-tick slices so the timeline can scrub
-        // continuously at the animation fps, like a video. Already upscaled
-        // blocks (durations <= 1/fps) are kept as-is, making this idempotent
-        // for network re-receives.
-        tkbc_upscale_script(env, &env->scratch_buf_script.space, &s_copy, (float) TARGET_FPS);
-
         // Eagerly bake the true timeline positions right away (this also runs
         // on the server for freshly received scripts): smooth scrubbing works
         // immediately without playing the script one time first.
-        tkbc_simulate_script_and_bake_positions(env, &s_copy);
+        tkbc_simulate_script_and_bake_positions(env, &env->scratch_buf_script.space, &s_copy);
 
         space_dap(&env->_scripts_space, &env->scripts, s_copy);
         tkbc_reset_script_scratch_creation(env);

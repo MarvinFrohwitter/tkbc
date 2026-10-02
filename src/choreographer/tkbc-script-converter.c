@@ -61,13 +61,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
     Kite_Ids ids = {0};
     Content out = {0};
 
-    bool internal_redirect = false;
-    if (!script->original_elements || script->original_count == 0) {
-        internal_redirect = true;
-        script->original_elements = script->elements;
-        script->original_count = script->count;
-        script->original_capacity = script->capacity;
-    }
+    tkbc_redirect_script_elements(script);
 
     // Download writes the original non-upscaled script: the live timeline
     // may hold hundreds of per-tick slices, but the file keeps the authored
@@ -178,12 +172,8 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *fil
     check_return(err);
 
 check:
-    if (internal_redirect) {
-        script->original_elements = NULL;
-        script->original_count = 0;
-        script->original_capacity = 0;
-    }
 
+    tkbc_remove_redirect_script_elements(script);
     free(out.elements);
     free(ids.elements);
     return ok;
