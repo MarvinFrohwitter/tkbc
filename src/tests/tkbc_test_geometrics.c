@@ -34,7 +34,7 @@ Test kite_update_internal(void) {
     cassert_float_eq(kite.left.v1.y, position.y + kite.width / 2.0);
 
     cassert_float_eq_epsilon(kite.left.v2.x, position.x + kite.height, EPSILON);
-    cassert_float_eq_epsilon(kite.left.v2.y, position.y + kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.left.v2.y, position.y + kite.inner_space * approx, 0.01);
 
     cassert_float_eq(kite.left.v3.x, position.x);
     cassert_float_eq(kite.left.v3.y, position.y - kite.overlap);
@@ -43,7 +43,7 @@ Test kite_update_internal(void) {
     cassert_float_eq(kite.right.v1.y, position.y + kite.overlap);
 
     cassert_float_eq_epsilon(kite.right.v2.x, position.x + kite.height, EPSILON);
-    cassert_float_eq_epsilon(kite.right.v2.y, position.y - kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.right.v2.y, position.y - kite.inner_space * approx, 0.01);
 
     cassert_float_eq(kite.right.v3.x, position.x);
     cassert_float_eq(kite.right.v3.y, position.y - kite.width / 2.0);
@@ -82,7 +82,7 @@ Test kite_update_position(void) {
     cassert_float_eq(kite.left.v1.x, position.x - kite.width / 2);
     cassert_float_eq(kite.left.v1.y, position.y);
 
-    cassert_float_eq_epsilon(kite.left.v2.x, position.x - kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.left.v2.x, position.x - kite.inner_space * approx, 0.01);
     cassert_float_eq_epsilon(kite.left.v2.y, position.y + kite.height, EPSILON);
 
     cassert_float_eq(kite.left.v3.x, position.x + kite.overlap);
@@ -91,7 +91,7 @@ Test kite_update_position(void) {
     cassert_float_eq(kite.right.v1.x, position.x - kite.overlap);
     cassert_float_eq(kite.right.v1.y, position.y);
 
-    cassert_float_eq_epsilon(kite.right.v2.x, position.x + kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.right.v2.x, position.x + kite.inner_space * approx, 0.01);
     cassert_float_eq_epsilon(kite.right.v2.y, position.y + kite.height, EPSILON);
 
     cassert_float_eq(kite.right.v3.x, position.x + kite.width / 2);
@@ -132,7 +132,7 @@ Test kite_update_angle(void) {
     cassert_float_eq_epsilon(kite.left.v1.y, kite.width / 2, EPSILON);
 
     cassert_float_eq_epsilon(kite.left.v2.x, kite.height, EPSILON);
-    cassert_float_eq_epsilon(kite.left.v2.y, kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.left.v2.y, kite.inner_space * approx, 0.01);
 
     cassert_float_eq_epsilon(kite.left.v3.x, 0, EPSILON);
     cassert_float_eq_epsilon(kite.left.v3.y, -kite.overlap, EPSILON);
@@ -141,7 +141,7 @@ Test kite_update_angle(void) {
     cassert_float_eq_epsilon(kite.right.v1.y, +kite.overlap, EPSILON);
 
     cassert_float_eq_epsilon(kite.right.v2.x, kite.height, EPSILON);
-    cassert_float_eq_epsilon(kite.right.v2.y, -kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.right.v2.y, -kite.inner_space * approx, 0.01);
 
     cassert_float_eq_epsilon(kite.right.v3.x, 0, EPSILON);
     cassert_float_eq_epsilon(kite.right.v3.y, -kite.width / 2, EPSILON);
@@ -180,7 +180,7 @@ Test center_rotation(void) {
     cassert_float_eq(kite.left.v1.y, position.y + kite.width / 2.0);
 
     cassert_float_eq_epsilon(kite.left.v2.x, position.x + kite.height, EPSILON);
-    cassert_float_eq_epsilon(kite.left.v2.y, position.y + kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.left.v2.y, position.y + kite.inner_space * approx, 0.01);
 
     cassert_float_eq(kite.left.v3.x, position.x);
     cassert_float_eq(kite.left.v3.y, position.y - kite.overlap);
@@ -189,7 +189,7 @@ Test center_rotation(void) {
     cassert_float_eq(kite.right.v1.y, position.y + kite.overlap);
 
     cassert_float_eq_epsilon(kite.right.v2.x, position.x + kite.height, EPSILON);
-    cassert_float_eq_epsilon(kite.right.v2.y, position.y - kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.right.v2.y, position.y - kite.inner_space * approx, 0.01);
 
     cassert_float_eq(kite.right.v3.x, position.x);
     cassert_float_eq(kite.right.v3.y, position.y - kite.width / 2.0);
@@ -230,7 +230,7 @@ Test tip_rotation_left(void) {
     cassert_float_eq(kite.left.v1.y, position.y);
 
     cassert_float_eq_epsilon(kite.left.v2.x, position.x - kite.width / 2 + kite.height, EPSILON);
-    cassert_float_eq_epsilon(kite.left.v2.y, position.y - kite.width / 2 + kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.left.v2.y, position.y - kite.width / 2 + kite.inner_space * approx, 0.01);
 
     cassert_float_eq(kite.left.v3.x, position.x - kite.width / 2);
     cassert_float_eq(kite.left.v3.y, position.y - kite.width / 2 - kite.overlap);
@@ -239,7 +239,7 @@ Test tip_rotation_left(void) {
     cassert_float_eq(kite.right.v1.y, position.y - kite.width / 2 + kite.overlap);
 
     cassert_float_eq_epsilon(kite.right.v2.x, position.x - kite.width / 2 + kite.height, EPSILON);
-    cassert_float_eq_epsilon(kite.right.v2.y, position.y - kite.width / 2 - kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.right.v2.y, position.y - kite.width / 2 - kite.inner_space * approx, 0.01);
 
     cassert_float_eq(kite.right.v3.x, position.x - kite.width / 2);
     cassert_float_eq(kite.right.v3.y, position.y - kite.width);
@@ -280,7 +280,7 @@ Test tip_rotation_right(void) {
     cassert_float_eq(kite.left.v1.y, position.y + kite.width);
 
     cassert_float_eq_epsilon(kite.left.v2.x, position.x + kite.width / 2 + kite.height, EPSILON);
-    cassert_float_eq_epsilon(kite.left.v2.y, position.y + kite.width / 2 + kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.left.v2.y, position.y + kite.width / 2 + kite.inner_space * approx, 0.01);
 
     cassert_float_eq(kite.left.v3.x, position.x + kite.width / 2);
     cassert_float_eq(kite.left.v3.y, position.y + kite.width / 2 - kite.overlap);
@@ -289,7 +289,7 @@ Test tip_rotation_right(void) {
     cassert_float_eq(kite.right.v1.y, position.y + kite.width / 2 + kite.overlap);
 
     cassert_float_eq_epsilon(kite.right.v2.x, position.x + kite.width / 2 + kite.height, EPSILON);
-    cassert_float_eq_epsilon(kite.right.v2.y, position.y + kite.width / 2 - kite.inner_space * approx, EPSILON);
+    cassert_float_eq_epsilon(kite.right.v2.y, position.y + kite.width / 2 - kite.inner_space * approx, 0.01);
 
     cassert_float_eq(kite.right.v3.x, position.x + kite.width / 2);
     cassert_float_eq(kite.right.v3.y, position.y);

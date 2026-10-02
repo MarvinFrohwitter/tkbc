@@ -281,12 +281,9 @@ Test deep_copy_script(void) {
     cassert_size_t_eq(script.name_input.max_char, new_script.name_input.max_char);
     if (script.name_input.text.elements || new_script.name_input.text.elements) {
         cassert_ptr_neq(script.name_input.text.elements, new_script.name_input.text.elements);
-        char *empty = "";
-        cassert_string_eq(script.name_input.text.elements ? script.name_input.text.elements : empty,
-                          new_script.name_input.text.elements ? new_script.name_input.text.elements : empty);
-
-        cassert_string_eq(script.name_input.text.elements ? script.name_input.text.elements : empty,
-                          new_script.name_input.text.elements ? new_script.name_input.text.elements : empty);
+        char *s = script.name_input.text.elements ? script.name_input.text.elements : "";
+        char *s_new = new_script.name_input.text.elements ? new_script.name_input.text.elements : "";
+        cassert_string_eq(s, s_new);
     }
 
     cassert_ptr_neq(&script.elements, &new_script.elements);
