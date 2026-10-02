@@ -82,9 +82,13 @@ typedef enum {
     IMAGE_3,
     IMAGE_4,
     KITE_DEFAULT_DESIGNS_END = IMAGE_4,
-    KITE_NEW_DESIGNS_BEGIN,
 
     // --- New generated kite designs from the colorizer.
+    //
+    // Everything from this index on is created at runtime and therefore has to
+    // be transferred to the sides that do not know it yet. The baked in assets
+    // above get the same deterministic uuid everywhere.
+    KITE_NEW_DESIGNS_BEGIN,
 
     ASSET_KITE_DESIGN_COUNT,
 } Asset_Id_Kind;
