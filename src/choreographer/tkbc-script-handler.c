@@ -2237,7 +2237,14 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
         // Eagerly bake the true timeline positions right away (this also runs
         // on the server for freshly received scripts): smooth scrubbing works
         // immediately without playing the script one time first.
-        tkbc_simulate_script_and_bake_positions(env, &env->scratch_buf_script.space, &s_copy);
+        //
+        // This is technically not needed any more because when the script is first called it is baked after upscaling
+        // anyway. When positions should be required before upscaling in the future enable it back.
+        // This could be the case when we, for what ever reason, want to save the positions to disk.
+        //
+        // tkbc_simulate_script_and_bake_positions(env, &env->scratch_buf_script.space, &s_copy);
+        //
+        // 03.10.2026 Marvin Frohwitter
 
         space_dap(&env->_scripts_space, &env->scripts, s_copy);
         tkbc_reset_script_scratch_creation(env);

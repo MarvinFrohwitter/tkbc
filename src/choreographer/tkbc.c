@@ -103,7 +103,10 @@ Env *tkbc_init_env(void) {
 #define SCIRPT_CREATION_INIT_SIZE (1024 * 1024)
 
     // space_init_capacity(&env->id_space, SCIRPT_CREATION_INIT_SIZE);
-    space_init_capacity(&env->scratch_buf_script.space, SCIRPT_CREATION_INIT_SIZE * 30);
+
+    // Due to upscaling 32MB is not enough any more so there is at least 40MB needed so we set it to 64MB to have plenty
+    // of room before the allocations become slower.
+    space_init_capacity(&env->scratch_buf_script.space, SCIRPT_CREATION_INIT_SIZE * 64);
     return env;
 }
 
