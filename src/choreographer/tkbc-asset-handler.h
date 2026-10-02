@@ -8,19 +8,21 @@
 #include <assert.h>
 #include <stdio.h>
 
-size_t tkbc_append_kite_image(unsigned char *data, int width, int height, int format);
+UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, int format, UUID id);
+UUID tkbc_append_kite_image(unsigned char *data, int width, int height, int format);
 
 #ifndef TKBC_SERVER
-void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, Id asset_id);
+void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id);
 void tkbc_load_assets(void);
 #endif
 
 void append_assets(void);
 void tkbc_assets_destroy(void);
-Asset *tkbc_find_asset_from_id(Id id);
+Asset *tkbc_find_asset_from_id(UUID id);
 size_t tkbc_get_current_kite_design_count();
-Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width, int height, int format);
-bool tkbc_image_already_exitst_in_assets(Image image, Id *id);
+UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int width, int height, int format,
+                                                    UUID id);
+bool tkbc_image_already_exitst_in_assets(Image image, UUID *id);
 
 #define _tkbc_get_asset_image(enum_kind)                                                                                    \
     assets.elements[(assert(assets.count > 0), assert(assets.elements[enum_kind].type == ASSETS_IMAGE), enum_kind)]

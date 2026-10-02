@@ -20,11 +20,10 @@
  */
 bool tkbc_messages_get_texture(Lexer *lexer, Client *client) {
     Token token;
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
+    UUID texture_id;
+    if (!tkbc_parse_uuid(lexer, &texture_id)) {
         return false;
     }
-    ssize_t texture_id = atoll(lexer_token_to_cstr(lexer, &token));
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {
         return false;

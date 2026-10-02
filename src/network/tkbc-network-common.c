@@ -38,19 +38,18 @@ void tkbc_reset_space_and_null_message(Space *space, Message *message) {
  * @param y The new y value of the kite center.
  * @param angle The new angle of the kite.
  * @param color The new color of the kite.
- * @param texture_id The id of the texture that should be used to display the
+ * @param texture_id The uuid of the asset that should be used to display the
  * kite.
  * @param is_reversed If the kite should fly reverse by default.
  * @param is_active If the kite should be displayed on the screen.
  * @param is_script_kite Indicates if the kite is part of a script.
  */
-void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float angle, Color color, ssize_t texture_id,
+void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float angle, Color color, UUID texture_id,
                                      bool is_reversed, bool is_active, bool is_script_kite) {
     // There should not be a single missing texture in here.
-    // This just enshures that not an implicit cast from (ssize_t) to (size_t)
-    // happens when calling this function. For the same reason the type of
-    // texture_id is (ssize_t) to catch it here explicitly.
-    assert(texture_id >= 0);
+    // The nil uuid is reserved for the state where the pixel data is still
+    // transferred inline, so it must never end up stored on a kite.
+    assert(!tkbc_uuid_is_nil(texture_id));
 
     assert(state);
     state->kite->center.x = x;
@@ -106,14 +105,15 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id, size_t *parsed_i
     Color color;
     bool is_reversed, is_active, is_script_kite;
 
-    ssize_t texture_id;
+    UUID texture_id;
+    UUID inline_texture_id;
     size_t texture_width, texture_height, texture_format;
     Space *data_space = space_get_tspace();
     unsigned char *texture_data = NULL;
 
     if (!tkbc_parse_message_kite_value(lexer, parsed_id, &x, &y, &angle, &color, &texture_id, &texture_width,
-                                       &texture_height, &texture_format, data_space, &texture_data, &is_reversed,
-                                       &is_active, &is_script_kite)) {
+                                       &texture_height, &texture_format, data_space, &texture_data, &inline_texture_id,
+                                       &is_reversed, &is_active, &is_script_kite)) {
 
         check_return(0);
     }
@@ -124,14 +124,16 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id, size_t *parsed_i
         }
     }
 
-    // Append it
-    if (texture_id == -1) {
-        texture_id =
-            tkbc_append_kite_image_and_kite_texture(texture_data, texture_width, texture_height, texture_format);
+    // Append it under the uuid the originator assigned to it. Registering it
+    // under a fresh uuid here would make this side believe the design is
+    // unknown and add it a second time.
+    if (tkbc_uuid_is_nil(texture_id)) {
+        texture_id = tkbc_append_kite_image_and_kite_texture_with_id(texture_data, texture_width, texture_height,
+                                                                     texture_format, inline_texture_id);
     }
 
     Asset *found = tkbc_find_asset_from_id(texture_id);
-    if (!found && texture_id != -1) {
+    if (!found) {
         texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
         ok = 2;
     }
@@ -227,9 +229,7 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
         }
         Script *script = &env->scripts.elements[i];
 
-        char script_id_cstr[37];
-        tkbc_uuid_to_string(script_id, script_id_cstr);
-        space_dapf(space, message, "\"%s\":", script_id_cstr);
+        tkbc_message_append_uuid(space, message, script_id);
 
         const char *script_name = tkbc_script_name(script);
         if (script_name[0] != '\0') {
@@ -312,15 +312,13 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
  * @return True if the image was parsed successfully, otherwise false.
  */
 bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data, size_t *width, size_t *height,
-                      size_t *format, size_t *texture_id) {
+                      size_t *format, UUID *texture_id) {
     bool ok = true;
     Token token;
 
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
+    if (!tkbc_parse_uuid(lexer, texture_id)) {
         return false;
     }
-    *texture_id = atoll(lexer_token_to_cstr(lexer, &token));
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {
         return false;
@@ -409,13 +407,19 @@ check:
  * @param y The y position the corresponding parsed value is assigned to.
  * @param angle The angle the corresponding parsed value is assigned to.
  * @param color The color the corresponding parsed value is assigned to.
- * @param texture_id The id that represents the texture in the global
- * kite_textures or -1 if the data is passed.
+ * @param texture_id The uuid that identifies the texture asset in the global
+ * assets. The nil uuid means the pixel data is transferred inline and still
+ * has to be appended by the caller via
+ * tkbc_append_kite_image_and_kite_texture_with_id.
  * @param texture_width The width of the texture.
  * @param texture_height The height of the texture.
  * @param texture_format The format of the texture.
  * @param data_space The space for allocating texture data.
  * @param texture_data Pointer to store the texture data.
+ * @param inline_texture_id Pointer to store the uuid that the originator
+ * assigned to the inlined image. It is only meaningful when texture_id came
+ * back as the nil uuid, so the caller can store the image under that very uuid
+ * instead of registering it as a new asset.
  * @param is_reversed If the kite should fly reverse by default.
  * @param is_active If the kite should be displayed on the screen.
  * @param is_script_kite If the kite is part of a script.
@@ -423,9 +427,10 @@ check:
  * otherwise false.
  */
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x, float *y, float *angle, Color *color,
-                                   ssize_t *texture_id, size_t *texture_width, size_t *texture_height,
+                                   UUID *texture_id, size_t *texture_width, size_t *texture_height,
                                    size_t *texture_format, Space *data_space, unsigned char **texture_data,
-                                   bool *is_reversed, bool *is_active, bool *is_script_kite) {
+                                   UUID *inline_texture_id, bool *is_reversed, bool *is_active,
+                                   bool *is_script_kite) {
     Content buffer = {0};
     Token token;
     bool ok = true;
@@ -523,22 +528,11 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x, floa
     }
 
     {
-
-        token = lexer_next(lexer);
-        if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+        // The texture_id is a uuid. The nil uuid marks that the pixel data is
+        // transferred inline.
+        if (!tkbc_parse_uuid(lexer, texture_id)) {
             check_return(false);
         }
-        if (token.kind == PUNCT_SUB) {
-            tkbc_dapc(&buffer, token.content, token.size);
-            token = lexer_next(lexer);
-            if (token.kind != NUMBER) {
-                check_return(false);
-            }
-        }
-        tkbc_dapc(&buffer, token.content, token.size);
-        tkbc_dap(&buffer, 0);
-        *texture_id = atoll(buffer.elements);
-        buffer.count = 0;
 
         token = lexer_next(lexer);
         if (token.kind != PUNCT_COLON) {
@@ -546,11 +540,16 @@ bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x, floa
         }
     }
 
-    if (*texture_id == -1) {
-        Id id;  // Throw away. This is the id where the client stores the image.
-        if (!tkbc_parse_image(lexer, data_space, texture_data, texture_width, texture_height, texture_format, &id)) {
+    if (tkbc_uuid_is_nil(*texture_id)) {
+        // The inlined image block carries the uuid of the originator. It is
+        // handed back separately so the caller can store the image under that
+        // very uuid instead of appending it as a brand new asset.
+        if (!tkbc_parse_image(lexer, data_space, texture_data, texture_width, texture_height, texture_format,
+                               inline_texture_id)) {
             check_return(false);
         }
+    } else {
+        *inline_texture_id = tkbc_uuid_nil();
     }
 
     token = lexer_next(lexer);

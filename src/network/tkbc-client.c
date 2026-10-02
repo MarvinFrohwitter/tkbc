@@ -273,12 +273,12 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
  * @param y The new positional y value of the center of the kite.
  * @param angle The new rotation angle of the kite.
  * @param color The new body color of the kite.
- * @param texture_id The id of the texture that should be used to display the
- * kite.
+ * @param texture_id The uuid of the texture asset that should be used to
+ * display the kite.
  * @param is_reversed If the kite should fly reverse by default.
  * @param is_active If the kite should be displayed on the screen.
  */
-void tkbc_register_kite_from_values(size_t kite_id, float x, float y, float angle, Color color, size_t texture_id,
+void tkbc_register_kite_from_values(size_t kite_id, float x, float y, float angle, Color color, UUID texture_id,
                                     bool is_reversed, bool is_active, bool is_script_kite) {
     Kite_State state = tkbc_init_kite();
     tkbc_assign_values_to_kitestate(&state, x, y, angle, color, texture_id, is_reversed, is_active, is_script_kite);
@@ -517,8 +517,10 @@ bool received_message_handler(Message *message) {
             if (kite) {
                 // The texture request for the kite.
                 if (ok == 2) {
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n",
-                               MESSAGE_GET_TEXTURE, kite->texture_id);
+                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:", MESSAGE_GET_TEXTURE);
+                    tkbc_message_append_uuid(&client.send_msg_buffer_space, &client.send_msg_buffer,
+                                             kite->texture_id);
+                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
                     space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n",
                                MESSAGE_GET_TEXTURE_ID, parsed_id);
                 }
@@ -551,22 +553,24 @@ bool received_message_handler(Message *message) {
                 Color color;
                 bool is_reversed, is_active, is_script_kite;
 
-                ssize_t texture_id;
+                UUID texture_id;
+                UUID inline_texture_id;
                 size_t texture_width, texture_height, texture_format;
                 Space *data_space = space_get_tspace();
                 unsigned char *texture_data = NULL;
 
                 if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle, &color, &texture_id, &texture_width,
                                                    &texture_height, &texture_format, data_space, &texture_data,
-                                                   &is_reversed, &is_active, &is_script_kite)) {
+                                                   &inline_texture_id, &is_reversed, &is_active, &is_script_kite)) {
                     space_reset_tspace();
                     goto err;
                 }
 
                 Asset *found = tkbc_find_asset_from_id(texture_id);
-                if (!found && texture_id != -1) {
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n",
-                               MESSAGE_GET_TEXTURE, texture_id);
+                if (!found && !tkbc_uuid_is_nil(texture_id)) {
+                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:", MESSAGE_GET_TEXTURE);
+                    tkbc_message_append_uuid(&client.send_msg_buffer_space, &client.send_msg_buffer, texture_id);
+                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
 
                     // requested texture id
                     space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n",
@@ -575,17 +579,10 @@ bool received_message_handler(Message *message) {
                     texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
                 }
 
-                if (texture_id == -1 && texture_data) {
-                    texture_id = tkbc_append_kite_image_and_kite_texture(texture_data, texture_width, texture_height,
-                                                                         texture_format);
-                    // } else {
-                    //   if (!found) {
-                    //     // The server does not have the texture this is a bug.
-                    //     // The server want to request random image data. Related to
-                    //     kite_id
-                    //     // that the client not necessary has.
-                    //     assert(texture_data);
-                    //   }
+                if (tkbc_uuid_is_nil(texture_id) && texture_data) {
+                    texture_id = tkbc_append_kite_image_and_kite_texture_with_id(texture_data, texture_width,
+                                                                                 texture_height, texture_format,
+                                                                                 inline_texture_id);
                 }
 
                 space_reset_tspace();

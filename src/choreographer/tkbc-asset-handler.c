@@ -13,39 +13,41 @@ extern Assets assets;
 // Save and load kite designs from config files.
 
 /**
- * @brief The function generates a unique id for a new asset.
+ * @brief The function returns the uuid that should be assigned to a newly
+ * appended asset.
  *
- * @return The generated unique asset id.
+ * While the baked in base assets are appended (see append_assets) the uuid is
+ * derived from the build-order sequence. append_assets() runs in the exact
+ * same order on every client and on the server, so this yields the very same
+ * uuid for the same base asset everywhere. That is what keeps the already
+ * known base assets - like IMAGE_1 .. IMAGE_4, KITE_COLORIZER and the panel
+ * parts - from being treated as newly received assets on the other sides.
+ *
+ * Everything that is created afterwards (e.g. a colorizer result) gets a
+ * random uuid instead, so that designs created by different users never
+ * collide.
+ *
+ * @return The uuid for the newly appended asset.
  */
-static inline Id tkbc_generate_uuid_for_asset(void) {
-    static size_t global_asset_id_factory = 0;
-
-    // This is so that all base assets that are not send have the same texture id.
-    static size_t first_base_assets = ASSET_KITE_DESIGN_COUNT;
-    if (first_base_assets-- > 0) {
-        return global_asset_id_factory++;
+static inline UUID tkbc_generate_uuid_for_asset(void) {
+    if (assets.default_assets_setup) {
+        return tkbc_uuid_from_number(++assets.default_assets_seq);
     }
-    return global_asset_id_factory++;
-
-    union {
-        double d;
-        Id i;
-    } result = {.d = tkbc_get_time()};
-    result.i += global_asset_id_factory++;
-    return result.i;
+    return tkbc_uuid_generate();
 }
 
 /**
- * @brief The function appends a new kite image to the global kite_images
- * collection. The image data is copied and stored.
+ * @brief The function appends a new kite image under the given uuid to the
+ * global kite_images collection. The image data is copied and stored.
  *
  * @param data The raw image data.
  * @param width The width of the image.
  * @param height The height of the image.
  * @param format The pixel format of the image.
- * @return The id assigned to the newly appended kite image.
+ * @param id The uuid the kite image is stored under.
+ * @return The uuid of the newly appended kite image.
  */
-Id tkbc_append_kite_image(unsigned char *data, int width, int height, int format) {
+UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, int format, UUID id) {
     Image image_normal = {
         .data = data,
         .width = width,
@@ -59,7 +61,6 @@ Id tkbc_append_kite_image(unsigned char *data, int width, int height, int format
         .normal = image_normal,
     };
 
-    Id id = tkbc_generate_uuid_for_asset();
     space_dap(&assets.space, &assets,
               ((Asset){
                   .type = ASSETS_KITE_DESIGN,
@@ -71,6 +72,21 @@ Id tkbc_append_kite_image(unsigned char *data, int width, int height, int format
 }
 
 /**
+ * @brief The function appends a new kite image with a fresh uuid to the global
+ * kite_images collection. Only used for assets that are created at runtime,
+ * like a colorizer result.
+ *
+ * @param data The raw image data.
+ * @param width The width of the image.
+ * @param height The height of the image.
+ * @param format The pixel format of the image.
+ * @return The uuid assigned to the newly appended kite image.
+ */
+UUID tkbc_append_kite_image(unsigned char *data, int width, int height, int format) {
+    return tkbc_append_kite_image_with_id(data, width, height, format, tkbc_generate_uuid_for_asset());
+}
+
+/**
  * @brief The function appends a new asset image to the global assets
  * collection. The image data is copied and stored.
  *
@@ -78,9 +94,9 @@ Id tkbc_append_kite_image(unsigned char *data, int width, int height, int format
  * @param width The width of the image.
  * @param height The height of the image.
  * @param format The pixel format of the image.
- * @return The id assigned to the newly appended asset.
+ * @return The uuid assigned to the newly appended asset.
  */
-Id tkbc_append_asset_image(unsigned char *data, int width, int height, int format) {
+UUID tkbc_append_asset_image(unsigned char *data, int width, int height, int format) {
     Image image = {
         .data = data,
         .width = width,
@@ -91,7 +107,7 @@ Id tkbc_append_asset_image(unsigned char *data, int width, int height, int forma
 
     image = ImageCopy(image);
 
-    Id id = tkbc_generate_uuid_for_asset();
+    UUID id = tkbc_generate_uuid_for_asset();
     space_dap(&assets.space, &assets,
               ((Asset){
                   .type = ASSETS_IMAGE,
@@ -197,6 +213,14 @@ void append_assets(void) {
     // NOTE: This is needed when loading assets directly from files.
     // GetApplicationDirectory();
 
+    // The baked in base assets get a uuid that is derived from the
+    // build-order sequence. Since this function appends them in the exact same
+    // order on every client and on the server, all sides end up with the same
+    // uuid for the same base asset and therefore recognize e.g. IMAGE_1 as
+    // already known instead of registering it as a newly received asset.
+    assets.default_assets_setup = true;
+    assets.default_assets_seq = 0;
+
     // This loading order has to be the exact same as in the
     // Asset_Kite_Design_Kind enum to correlate the place.
     // TODO: Make the asset loading depended on the enum.
@@ -229,6 +253,7 @@ void append_assets(void) {
     tkbc_append_kite_image(asset_image_3, IMAGE_3_WIDTH, IMAGE_3_HEIGHT, IMAGE_3_FORMAT);
     tkbc_append_kite_image(asset_image_4, IMAGE_4_WIDTH, IMAGE_4_HEIGHT, IMAGE_4_FORMAT);
 
+    assets.default_assets_setup = false;
 }
 
 #ifndef TKBC_SERVER
@@ -239,7 +264,7 @@ void append_assets(void) {
  *
  * @param kite_image The kite image from which the texture should be created.
  */
-void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, Id asset_id) {
+void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id) {
     Asset *asset = tkbc_find_asset_from_id(asset_id);
     if (!asset) {
         return;
@@ -274,8 +299,9 @@ void tkbc_load_assets(void) {
             tkbc_fprintf(stderr, "ERROR", "Could not load normal kite image: %zu.\n", i);
         }
 
-        if (_tkbc_get_asset_kite_design(i).id >= IMAGE_PANNEL_PARTS_BEGIN &&
-            _tkbc_get_asset_kite_design(i).id <= IMAGE_PANNEL_PARTS_END) {
+        // The asset index correlates with the Asset_Id_Kind enum, the Asset.id
+        // is a uuid and therefore not comparable to the enum values.
+        if (i >= IMAGE_PANNEL_PARTS_BEGIN && i <= IMAGE_PANNEL_PARTS_END) {
             continue;
         }
 
@@ -309,14 +335,14 @@ void tkbc_assets_destroy(void) {
 }
 
 /**
- * @brief The function tries to find a specific asset by an id.
+ * @brief The function tries to find a specific asset by its uuid.
  *
- * @param id The id of the assets to search for.
+ * @param id The uuid of the asset to search for.
  * @return The found asset, if not found NULL.
  */
-Asset *tkbc_find_asset_from_id(Id id) {
+Asset *tkbc_find_asset_from_id(UUID id) {
     for (size_t i = 0; i < assets.count; ++i) {
-        if (assets.elements[i].id == id) {
+        if (tkbc_uuid_equals(assets.elements[i].id, id)) {
             return &assets.elements[i];
         }
     }
@@ -340,24 +366,41 @@ size_t tkbc_get_current_kite_design_count() {
 }
 
 /**
- * @brief Appends a kite image to the asset list and loads its texture.
+ * @brief Appends a kite image under the given uuid to the asset list and loads
+ * its texture.
+ *
+ * This is the path for kite images that arrive from another side. The uuid is
+ * the one the originator assigned to the design, so storing it under that very
+ * uuid makes the design known to this side. Otherwise the receiving side would
+ * register the design a second time under a fresh uuid and the kite referring
+ * to the original uuid could not be resolved.
  *
  * @param data The raw pixel data of the kite image.
  * @param width The width of the image in pixels.
  * @param height The height of the image in pixels.
  * @param format The pixel format of the image data.
- * @return Id The asset id of the appended kite image.
+ * @param id The uuid the kite image is stored under.
+ * @return The uuid of the appended kite image.
  */
-Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width, int height, int format) {
+UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int width, int height, int format, UUID id) {
+    if (tkbc_uuid_is_nil(id)) {
+        // The id comes from the network, so a faulty or hostile peer could
+        // claim the nil uuid. Fall back to a fresh uuid rather than storing an
+        // unidentifiable asset.
+        id = tkbc_uuid_generate();
+    }
 
-    Id id = tkbc_append_kite_image(data, width, height, format);
+    tkbc_append_kite_image_with_id(data, width, height, format, id);
     // This is just for compilation the function is not used in
     // the server at all. Just the files in this dir are all
     // passed to the server compilations as well.
 #ifndef TKBC_SERVER
-    Kite_Image kite_image = _tkbc_get_asset_kite_design(assets.count - 1).as.kite_image;
-
-    tkbc_load_kite_texture_from_kite_image(kite_image, id);
+    // NOTE: This is the last appended item but for future possible data structure change we find it clean one more
+    // time.
+    Asset *asset = tkbc_find_asset_from_id(id);
+    assert(asset != NULL);
+    assert(asset->type == ASSETS_KITE_DESIGN);
+    tkbc_load_kite_texture_from_kite_image(asset->as.kite_image, id);
 #endif
     return id;
 }
@@ -367,11 +410,11 @@ Id tkbc_append_kite_image_and_kite_texture(unsigned char *data, int width, int h
  * exists in the assets.
  *
  * @param image The image that gets searched for in the assets.
- * @param id A pointer where the id of the found asset gets stored.
+ * @param id A pointer where the uuid of the found asset gets stored.
  * @return Returns true if an asset with the same image was found, otherwise
  * false.
  */
-bool tkbc_image_already_exitst_in_assets(Image image, Id *id) {
+bool tkbc_image_already_exitst_in_assets(Image image, UUID *id) {
     for (size_t i = KITE_COLORIZER + 1; i < assets.count; ++i) {
         if (tkbc_is_same_image(image, assets.elements[i].as.image)) {
             *id = assets.elements[i].id;

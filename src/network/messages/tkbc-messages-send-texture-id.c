@@ -29,14 +29,13 @@ bool tkbc_messages_send_texture_id(Env *env, Lexer *lexer, Client *client) {
         return false;
     }
 
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
+    // The nil uuid should not be send by the server. The server should always
+    // send a valid texture_id.
+    UUID texture_id;
+    if (!tkbc_parse_uuid(lexer, &texture_id)) {
         return false;
     }
-    // Negative values should not be send by the server. The serer should
-    // always send a valid texture_id.
-    ssize_t texture_id = atoll(lexer_token_to_cstr(lexer, &token));
-    assert(texture_id != -1);
+    assert(!tkbc_uuid_is_nil(texture_id));
     token = lexer_next(lexer);
     if (token.kind != PUNCT_COLON) {
         return false;
@@ -47,8 +46,9 @@ bool tkbc_messages_send_texture_id(Env *env, Lexer *lexer, Client *client) {
         // The message is split to allow getting a texture by its own at some
         // point. Maybe this is never needed, but it can be useful when a client
         // want to get all the available textures in the server.
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_GET_TEXTURE,
-                   texture_id);
+        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:", MESSAGE_GET_TEXTURE);
+        tkbc_message_append_uuid(&client->send_msg_buffer_space, &client->send_msg_buffer, texture_id);
+        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "\r\n");
 
         space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID,
                    kite_id);

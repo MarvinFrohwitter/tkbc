@@ -337,6 +337,37 @@ void tkbc_message_hello_write_to_send_msg_buffer(Client *client) {
 }
 
 /**
+ * @brief The function appends every kite design asset that this side knows to
+ * the send message buffer of the given client.
+ *
+ * The baked in base assets are not send, because append_assets() gives them the
+ * same deterministic uuid on every side, so the client already holds all of
+ * them. Only the designs that were created at runtime - like a colorizer result
+ * of a client - have to be transferred.
+ *
+ * This is the counterpart of tkbc_message_script(), which also sends everything
+ * it knows to a joining client and relies on the receiver to skip the entries
+ * it already has.
+ *
+ * @param client The client that should get the kite designs.
+ */
+void tkbc_message_kite_designs_write_to_send_msg_buffer(Client *client) {
+    for (size_t i = KITE_NEW_DESIGNS_BEGIN; i < assets.count; ++i) {
+        if (_tkbc_get_asset(i).type != ASSETS_KITE_DESIGN) {
+            continue;
+        }
+        Asset *asset = &_tkbc_get_asset_kite_design(i);
+
+        space_tdapf(&t_message, "%d:", MESSAGE_SEND_TEXTURE);
+        tkbc_message_append_image_data(space_get_tspace(), &t_message, asset->as.kite_image.normal, asset->id);
+        space_tdapf(&t_message, "\r\n");
+    }
+
+    tkbc_write_to_send_msg_buffer(client, t_message);
+    tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+}
+
+/**
  * @brief The function constructs the message SINGLE_KITE_ADD that is send to
  * all clients, whenever a new client has connected to the server.
  *
@@ -867,6 +898,12 @@ bool tkbc_received_message_handler(Client *client) {
             space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:\r\n", MESSAGE_HELLO_PASSED);
             client->handshake_passed = true;
 
+            // Send every kite design this side knows before anything that can
+            // reference one. The scripts and the kites below point at their
+            // designs by uuid, so the client resolves them right away instead of
+            // having to fall back to KITE_COLORIZER and request them one by one.
+            tkbc_message_kite_designs_write_to_send_msg_buffer(client);
+
             // Send all the scripts to the client
             tkbc_message_script(client, true);
             // When a script is loaded (playing or paused) the joining client
@@ -906,7 +943,8 @@ bool tkbc_received_message_handler(Client *client) {
         } break;
         case MESSAGE_SINGLE_KITE_UPDATE: {
             size_t kite_id;
-            ssize_t texture_id;
+            UUID texture_id;
+            UUID inline_texture_id;
             size_t texture_width, texture_height, texture_format;
             Space *data_space = space_get_tspace();
             unsigned char *texture_data = NULL;
@@ -916,7 +954,7 @@ bool tkbc_received_message_handler(Client *client) {
 
             if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle, &color, &texture_id, &texture_width,
                                                &texture_height, &texture_format, data_space, &texture_data,
-                                               &is_reversed, &is_active, &is_script_kite)) {
+                                               &inline_texture_id, &is_reversed, &is_active, &is_script_kite)) {
 
                 space_reset_tspace();
                 goto err;
@@ -928,9 +966,12 @@ bool tkbc_received_message_handler(Client *client) {
             if (state == NULL) {
                 check_return(false);  // Disconnect the client.
             }
-            if (texture_id == -1) {
-                Id id = tkbc_append_kite_image(texture_data, texture_width, texture_height, texture_format);
-                texture_id = id;
+            if (tkbc_uuid_is_nil(texture_id)) {
+                // Store the image under the uuid the client assigned to it, so
+                // the server and the other clients recognize the very same
+                // design instead of adding a second entry for it.
+                texture_id = tkbc_append_kite_image_with_id(texture_data, texture_width, texture_height, texture_format,
+                                                            inline_texture_id);
                 state->kite->texture_id = texture_id;
                 space_reset_tspace();
             }
@@ -939,8 +980,9 @@ bool tkbc_received_message_handler(Client *client) {
 
             Asset *found = tkbc_find_asset_from_id(texture_id);
             if (!found) {
-                space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_GET_TEXTURE,
-                           texture_id);
+                space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:", MESSAGE_GET_TEXTURE);
+                tkbc_message_append_uuid(&client->send_msg_buffer_space, &client->send_msg_buffer, texture_id);
+                space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "\r\n");
                 texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
                 state->kite->texture_id = texture_id;
             }

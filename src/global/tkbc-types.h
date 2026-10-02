@@ -82,6 +82,7 @@ typedef enum {
     IMAGE_3,
     IMAGE_4,
     KITE_DEFAULT_DESIGNS_END = IMAGE_4,
+    KITE_NEW_DESIGNS_BEGIN,
 
     // --- New generated kite designs from the colorizer.
 
@@ -104,7 +105,12 @@ typedef struct {
 
 typedef struct {
     Assets_Kind type;
-    Id id;
+    UUID id;  // The unique uuid of the asset. The baked in base assets get a
+              // deterministic uuid that is derived from the build-order
+              // sequence (see Assets.default_assets_seq), so every client and
+              // the server hold the same uuid for e.g. IMAGE_1. Assets that
+              // are created at runtime (e.g. a colorizer result) get a random
+              // uuid so designs of different users never collide.
 
     union {
         Image image;
@@ -121,6 +127,15 @@ typedef struct {
     Asset *elements;
     size_t count;
     size_t capacity;
+
+    bool default_assets_setup;  // The indication the baked in base assets are
+                                // currently being appended. Only they get a
+                                // deterministic uuid so that every side holds
+                                // the same uuid for the same base asset.
+    size_t default_assets_seq;  // Build-order sequence for the deterministic
+                                // base asset uuids. Reset to 0 before each
+                                // base build; incremented per base asset so
+                                // the uuids stay stable.
 
     Space space;
 } Assets;
@@ -311,8 +326,10 @@ typedef struct {
 typedef struct {
     Kite_Texture texture;  // The kite body texture that is used in when
                            // normal flying mode is active.
-    ssize_t texture_id;    // The number that identifies the kite texture in the
-                           // global kite_textures.
+    UUID texture_id;       // The uuid that identifies the kite texture asset
+                           // (Asset.id). The nil uuid represents the state
+                           // where the texture is newly created and still has
+                           // to be transferred to the other sides.
 
     bool is_texture_new;  // Indicates if the texture is currently newly created.
 

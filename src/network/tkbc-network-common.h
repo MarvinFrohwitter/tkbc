@@ -13,7 +13,7 @@
 
 void tkbc_reset_space_and_null_message(Space *space, Message *message);
 
-void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float angle, Color color, ssize_t texture_id,
+void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float angle, Color color, UUID texture_id,
                                      bool is_reversed, bool is_active, bool is_script_kite);
 
 int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id, size_t *parsed_id);
@@ -22,11 +22,12 @@ bool tkbc_message_script(Client *client, bool overwrite_was_send);
 bool tkbc_message_append_script(Space *space, Message *message, UUID script_id);
 
 bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data, size_t *width, size_t *height,
-                      size_t *format, size_t *texture_id);
+                      size_t *format, UUID *texture_id);
 bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x, float *y, float *angle, Color *color,
-                                   ssize_t *texture_id, size_t *texture_width, size_t *texture_height,
+                                   UUID *texture_id, size_t *texture_width, size_t *texture_height,
                                    size_t *texture_format, Space *data_space, unsigned char **texture_data,
-                                   bool *is_reversed, bool *is_active, bool *is_script_kite);
+                                   UUID *inline_texture_id, bool *is_reversed, bool *is_active,
+                                   bool *is_script_kite);
 char *tkbc_find_rn_in_message_from_position(Message *message, size_t position);
 
 bool tkbc_error_handling_of_received_message_handler(Message *message, Lexer *lexer, bool *reset, bool display_errors);

@@ -154,14 +154,18 @@ void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old, Color repla
  * kite images collection.
  *
  * @param kite_image The kite image to copy.
- * @param new_id Pointer to store the new id assigned to the copied image.
+ * @param new_id Pointer to store the new uuid assigned to the copied image.
  * @return Pointer to the newly created kite image.
  */
-Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image, Id *new_id) {
+Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image, UUID *new_id) {
     Image image = kite_image.normal;
     *new_id = tkbc_append_kite_image(image.data, image.width, image.height, image.format);
 
-    return &_tkbc_get_asset_kite_design(assets.count - 1).as.kite_image;
+    // NOTE: This is the last element in the dynamic array, but for future prove switch of the data structure.
+    // We will find it explicitly.
+    Asset *asset = tkbc_find_asset_from_id(*new_id);
+    assert(asset != NULL);
+    return &asset->as.kite_image;
 }
 
 /**
@@ -169,13 +173,18 @@ Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image, Id *new_id) {
  * from an existing kite image.
  *
  * @param kite_image The source kite image to copy.
- * @param new_id Pointer to store the new id.
+ * @param new_id Pointer to store the new uuid.
  * @return Pointer to the newly created kite texture.
  */
-Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image, Id *new_id) {
+Kite_Texture *tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image, UUID *new_id) {
     Kite_Image *new_kite_image = tkbc_copy_kite_image(kite_image, new_id);
     tkbc_load_kite_texture_from_kite_image(*new_kite_image, *new_id);
-    return &_tkbc_get_asset_kite_design(assets.count - 1).as.kite_texture;
+
+    // NOTE: This is the last element in the dynamic array, but for future prove switch of the data structure.
+    // We will find it explicitly.
+    Asset *asset = tkbc_find_asset_from_id(*new_id);
+    assert(asset != NULL);
+    return &asset->as.kite_texture;
 }
 
 /**
@@ -1413,14 +1422,12 @@ void tkbc_set_color_for_selected_kites(Env *env, Color color) {
  * @param env The global state of the application.
  * @param kite_texture The new pair of textures that should be assigned to all
  * the selected kites.
- * @param texture_id The id that represents the kite_texture and is assigned
- * to all the selected kites in the kite array, when -1 the last appended
- * texture slot is set for the texture_id.
+ * @param texture_id The uuid of the asset that represents the kite_texture and
+ * is assigned to all the selected kites in the kite array.
  * @param is_texture_new Describes whenever the texture is newly generated
  * right before.
  */
-void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture, ssize_t texture_id,
-                                         bool is_texture_new) {
+void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture, UUID texture_id, bool is_texture_new) {
     for (size_t i = 0; i < env->kite_array.count; ++i) {
         if (env->kite_array.elements[i].is_kite_input_handler_active) {
             tkbc_set_kite_texture(env->kite_array.elements[i].kite, kite_texture);
@@ -2427,7 +2434,7 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
 
                 // This is needed because the UUIDs will be random and not the enum
                 // value.
-                Id new_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
+                UUID new_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
                 bool design_already_exists = false;
                 if (tkbc_is_same_image(a.as.kite_image.normal, reference)) {
                     design_already_exists = true;

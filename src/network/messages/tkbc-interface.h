@@ -40,6 +40,22 @@ typedef enum {
 // MESSAGE_COUNT: The toatal amount of message types.
 // MESSAGE_ZERO: A reserved Message that could be used to disable messages.
 
+// PROTOCOL NOTE: Every texture_id and asset id in the protocol is a UUID that
+// is serialized as a quoted string literal holding the canonical textual
+// representation of the uuid: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx".
+//
+// The nil uuid "00000000-0000-0000-0000-000000000000" marks that the pixel
+// data is transferred inline. That is the case for a kite design that was just
+// created and that the other sides cannot know yet. The inlined image block
+// then carries the uuid the originator assigned to the design, so the receiver
+// stores the image under that very uuid instead of registering it a second time
+// under a fresh one.
+//
+// The baked in base assets share one deterministic uuid across all sides, since
+// they are built in the exact same order everywhere. Assets created at runtime
+// (e.g. a colorizer result) get a random uuid, so designs of different users
+// never collide.
+
 /**
  *
  * MESSAGE_HELLO:
@@ -62,10 +78,10 @@ typedef enum {
 /**
  *
  * MESSAGE_SINGLE_KITE_ADD: Server notifies all clients about a new kite.
- * When texture_id is -1, inline image data is included.
+ * When texture_id is the nil uuid, inline image data is included.
  *
  *****
- * MESSAGE_SINGLE_KITE_ADD:kite_id:(x,y):angle:color:texture_id_or_-1:{id:width:height:format:{pixel_data}:}?is_reversed:is_active:\r\n
+ * MESSAGE_SINGLE_KITE_ADD:kite_id:(x,y):angle:color:"texture_id_or_nil_uuid":{id:width:height:format:{pixel_data}:}?is_reversed:is_active:\r\n
  *****
  */
 
@@ -81,11 +97,11 @@ typedef enum {
 /**
  *
  * MESSAGE_CLIENTKITES: From server to client in the beginning to inform the
- * client about all kites and when a script is running. When texture_id is -1,
- * inline image data is included.
+ * client about all kites and when a script is running. When texture_id is the
+ * nil uuid, inline image data is included.
  *
  *****
- * MESSAGE_CLIENTKITES:active_count:[kite_id:(x,y):angle:color:texture_id_or_-1:{id:width:height:format:{pixel_data}:}?is_reversed:is_active:]^*\r\n
+ * MESSAGE_CLIENTKITES:active_count:[kite_id:(x,y):angle:color:"texture_id_or_nil_uuid":{id:width:height:format:{pixel_data}:}?is_reversed:is_active:]^*\r\n
  *****
  */
 
@@ -101,11 +117,11 @@ typedef enum {
 /**
  *
  * MESSAGE_SINGLE_KITE_UPDATE: Client sends kite position update to server.
- * Server broadcasts to all other clients. When texture_id is -1, inline image
- * data is included.
+ * Server broadcasts to all other clients. When texture_id is the nil uuid,
+ * inline image data is included.
  *
  *****
- * MESSAGE_SINGLE_KITE_UPDATE:kite_id:(x,y):angle:color:texture_id_or_-1:{id:width:height:format:{pixel_data}:}?is_reversed:is_active:\r\n
+ * MESSAGE_SINGLE_KITE_UPDATE:kite_id:(x,y):angle:color:"texture_id_or_nil_uuid":{id:width:height:format:{pixel_data}:}?is_reversed:is_active:\r\n
  *****
  */
 
@@ -209,26 +225,35 @@ typedef enum {
  * MESSAGE_SEND_TEXTURE_ID:
  *
  *****
- * MESSAGE_SEND_TEXTURE_ID:kite_id:texture_id:\r\n
+ * MESSAGE_SEND_TEXTURE_ID:kite_id:"texture_id":\r\n
  *****
  */
 
 /**
  *
  * MESSAGE_GET_TEXTURE:
- * ID.
+ * The uuid of the requested texture asset.
  *
  *****
- * MESSAGE_GET_TEXTURE:texture_id:\r\n
+ * MESSAGE_GET_TEXTURE:"texture_id":\r\n
  *****
  */
 
 /**
  *
- * MESSAGE_SEND_TEXTURE:
+ * MESSAGE_SEND_TEXTURE: The id is the uuid the originator assigned to the
+ * design, so the receiver stores the image under the very same uuid.
+ *
+ * The receiver ignores the design if it already knows that uuid.
+ *
+ * The server also sends this unsolicited for every kite design it knows to a
+ * client that just joined, right behind the MESSAGE_HELLO_PASSED and before the
+ * scripts and kites that reference those designs. Only the designs that were
+ * created at runtime are send, the baked in base designs are already known to
+ * every side.
  *
  *****
- * MESSAGE_SEND_TEXTURE:id:width:height:format:{pixel_data}:\r\n
+ * MESSAGE_SEND_TEXTURE:"id":width:height:format:{pixel_data}:\r\n
  *****
  */
 

@@ -27,22 +27,24 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client, Kite 
     float x, y, angle;
     Color color;
     bool is_reversed, is_active, is_script_kite;
-    ssize_t texture_id;
+    UUID texture_id;
+    UUID inline_texture_id;
     size_t texture_width, texture_height, texture_format;
     Space *data_space = space_get_tspace();
     unsigned char *texture_data = NULL;
 
     if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle, &color, &texture_id, &texture_width,
-                                       &texture_height, &texture_format, data_space, &texture_data, &is_reversed,
-                                       &is_active, &is_script_kite)) {
+                                       &texture_height, &texture_format, data_space, &texture_data, &inline_texture_id,
+                                       &is_reversed, &is_active, &is_script_kite)) {
         space_reset_tspace();
         return false;
     }
 
     Asset *asset = tkbc_find_asset_from_id(texture_id);
-    if (!asset && texture_id != -1) {
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_GET_TEXTURE,
-                   texture_id);
+    if (!asset && !tkbc_uuid_is_nil(texture_id)) {
+        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:", MESSAGE_GET_TEXTURE);
+        tkbc_message_append_uuid(&client->send_msg_buffer_space, &client->send_msg_buffer, texture_id);
+        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "\r\n");
 
         // requested texture id
         space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID,
@@ -51,9 +53,9 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client, Kite 
         texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
     }
 
-    if (texture_id == -1) {
-        texture_id =
-            tkbc_append_kite_image_and_kite_texture(texture_data, texture_width, texture_height, texture_format);
+    if (tkbc_uuid_is_nil(texture_id)) {
+        texture_id = tkbc_append_kite_image_and_kite_texture_with_id(texture_data, texture_width, texture_height,
+                                                                     texture_format, inline_texture_id);
     }
     space_reset_tspace();
 

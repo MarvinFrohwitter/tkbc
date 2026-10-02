@@ -28,7 +28,7 @@ KeyboardKey tkbc_is_domain_name_key_down();
 KeyboardKey tkbc_is_any_ascii_key_down();
 void tkbc_ui_color_picker(Env *env);
 void tkbc_set_color_for_selected_kites(Env *env, Color color);
-void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture, ssize_t texture_id, bool is_texture_new);
+void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture, UUID texture_id, bool is_texture_new);
 
 void tkbc_draw_shadow(Rectangle shadow, float original_scale);
 void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image);

@@ -34,8 +34,9 @@ bool tkbc_messages_get_texture_id(Lexer *lexer, Client *client) {
     if (!kite) {
         return false;
     }
-    assert(kite->texture_id != -1);
-    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:%zu:\r\n", MESSAGE_SEND_TEXTURE_ID,
-               kite_id, kite->texture_id);
+    assert(!tkbc_uuid_is_nil(kite->texture_id));
+    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:", MESSAGE_SEND_TEXTURE_ID, kite_id);
+    tkbc_message_append_uuid(&client->send_msg_buffer_space, &client->send_msg_buffer, kite->texture_id);
+    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "\r\n");
     return true;
 }

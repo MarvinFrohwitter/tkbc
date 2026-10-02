@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.3.037"
+#define PROTOCOL_VERSION "0.3.038"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -12,6 +12,7 @@
 #define TKBC_LOGGING_MESSAGEHANDLER
 //////////////////////////////////////////////////////////////////////////////
 
+#include "../../external/lexer/tkbc-lexer.h"
 #include "../../external/space/space.h"
 #include "../choreographer/tkbc-asset-handler.h"
 #include "../choreographer/tkbc-ui.h"
@@ -216,19 +217,60 @@ static inline int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
 }
 
 /**
+ * @brief The function appends the given uuid to a message as a quoted string
+ * literal that holds the canonical textual representation of the uuid.
+ *
+ * @param space The space that is used for the message buffer.
+ * @param message The Message struct that should contain the serialized uuid.
+ * @param uuid The uuid that should be appended.
+ */
+static inline void tkbc_message_append_uuid(Space *space, Message *message, UUID uuid) {
+    char uuid_cstr[37];
+    tkbc_uuid_to_string(uuid, uuid_cstr);
+    space_dapf(space, message, "\"%s\":", uuid_cstr);
+}
+
+/**
+ * @brief The function parses a uuid out of the lexer data. The uuid is
+ * expected as a quoted string literal that holds the canonical textual
+ * representation of a uuid.
+ *
+ * @param lexer The current state and data of the string to parse.
+ * @param uuid The uuid object where the parsed uuid should be stored.
+ * @return True if the uuid could be parsed successfully, otherwise false.
+ */
+static inline bool tkbc_parse_uuid(Lexer *lexer, UUID *uuid) {
+    Token token = lexer_next(lexer);
+    if (token.kind != STRINGLITERAL) {
+        return false;
+    }
+
+    // To strip the quotes manipulate the token directly.
+    if (token.size <= 2) {
+        return false;
+    }
+    token.content += 1;
+    token.size -= 2;
+    return tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), uuid);
+}
+
+/**
  * @brief The function appends the pixel data of the given image to a message.
  *
  * @param space The space that is used for the message buffer.
  * @param message The Message struct that should contain the serialized image
  * data.
  * @param image The image whose pixel data should be appended.
- * @param id The id that is serialized in front of the image data.
+ * @param id The uuid that is serialized in front of the image data. This is the
+ * uuid of the originator so that the receiver stores the image under the very
+ * same uuid and does not register it a second time.
  */
-static inline void tkbc_message_append_image_data(Space *space, Message *message, Image image, Id id) {
+static inline void tkbc_message_append_image_data(Space *space, Message *message, Image image, UUID id) {
     size_t width = image.width;
     size_t height = image.height;
     size_t format = image.format;
-    space_dapf(space, message, "%zu:%zu:%zu:%zu:", id, width, height, format);
+    tkbc_message_append_uuid(space, message, id);
+    space_dapf(space, message, "%zu:%zu:%zu:", width, height, format);
     for (size_t y = 0; y < height; y++) {
         for (size_t x = 0; x < width; x++) {
             Color c = *(Color *) tkbc_get_position_in_image(image, x, y);
@@ -251,7 +293,7 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state, Message *mes
     float angle = fmodf(kite_state->kite->angle, 360);
 
     uint32_t color = tkbc_color_to_uint32_t(kite_state->kite->body_color);
-    ssize_t texture_id = kite_state->kite->texture_id;
+    UUID texture_id = kite_state->kite->texture_id;
 
     bool is_reversed = kite_state->is_kite_reversed;
     bool is_active = kite_state->is_active;
@@ -259,20 +301,21 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state, Message *mes
 
     space_dapf(space, message, "%zu:(%f,%f):%f:%u:", kite_id, x, y, angle, color);
 
-    if (texture_id == -1 || kite_state->kite->is_texture_new) {
-        texture_id = -1;
-        space_dapf(space, message, "%zd:", texture_id);
+    // The nil uuid marks that the pixel data is transferred inline. That is the
+    // case for a freshly created kite design (is_texture_new) that the other
+    // sides cannot know yet.
+    if (tkbc_uuid_is_nil(texture_id) || kite_state->kite->is_texture_new) {
+        assert(!tkbc_uuid_is_nil(texture_id) && "The texture of a new kite design must be known locally.");
+        Asset *asset = tkbc_find_asset_from_id(texture_id);
+        assert(asset != NULL && "The texture asset of a new kite design must exist locally.");
+        assert(asset->type == ASSETS_KITE_DESIGN);
 
-        // NOTE: This is not nasally the KITE_COLORIZER position.
-        assert(assets.count != 0);
-
-        Asset *asset = &_tkbc_get_asset_kite_design(assets.count - 1);
-
+        tkbc_message_append_uuid(space, message, tkbc_uuid_nil());
         Kite_Image *kite_image = &asset->as.kite_image;
         tkbc_message_append_image_data(space, message, kite_image->normal, asset->id);
         kite_state->kite->is_texture_new = false;
     } else {
-        space_dapf(space, message, "%zd:", texture_id);
+        tkbc_message_append_uuid(space, message, texture_id);
     }
 
     space_dapf(space, message, "%zu:%zu:%zu:", (size_t) is_reversed, (size_t) is_active, (size_t) is_script_kite);
