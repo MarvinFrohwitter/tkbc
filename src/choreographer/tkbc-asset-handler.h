@@ -17,14 +17,15 @@ void tkbc_load_assets(void);
 #endif
 
 void append_assets(void);
+void tkbc_asset_destroy(Asset *asset);
 void tkbc_assets_destroy(void);
+void tkbc_removed_asset_by_id(UUID uuid);
 Asset *tkbc_find_asset_from_id(UUID id);
 size_t tkbc_get_current_kite_design_count();
-UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int width, int height, int format,
-                                                    UUID id);
+UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int width, int height, int format, UUID id);
 bool tkbc_image_already_exitst_in_assets(Image image, UUID *id);
 
-#define _tkbc_get_asset_image(enum_kind)                                                                                    \
+#define _tkbc_get_asset_image(enum_kind)                                                                               \
     assets.elements[(assert(assets.count > 0), assert(assets.elements[enum_kind].type == ASSETS_IMAGE), enum_kind)]
 
 #define _tkbc_get_asset_kite_design(enum_kind)                                                                         \

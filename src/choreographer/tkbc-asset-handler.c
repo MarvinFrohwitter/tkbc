@@ -316,20 +316,50 @@ void tkbc_load_assets(void) {
 #endif
 
 /**
+ * @brief The function can be used to destroy a given asset.
+ *
+ * @param asset The asset that should be destroyed.
+ */
+void tkbc_asset_destroy(Asset *asset) {
+    switch (asset->type) {
+    case ASSETS_IMAGE: UnloadImage(asset->as.image); break;
+    case ASSETS_KITE_DESIGN: UnloadImage(asset->as.kite_image.normal);
+
+#ifndef TKBC_SERVER
+        UnloadTexture(asset->as.kite_texture.normal);
+#endif
+        break;
+    case ASSETS_KIND_COUNT:
+    default: assert(false && "tkbc_asset_destroy: UNREACHABLE");
+    }
+}
+
+/**
  * @brief The function destroys all kite assets including images and textures.
  */
 void tkbc_assets_destroy(void) {
     for (size_t i = 0; i < assets.count; ++i) {
-        switch (assets.elements[i].type) {
-        case ASSETS_IMAGE: UnloadImage(_tkbc_get_asset_image(i).as.image); break;
-        case ASSETS_KITE_DESIGN: UnloadImage(_tkbc_get_asset_kite_design(i).as.kite_image.normal);
+        tkbc_asset_destroy(&assets.elements[i]);
+    }
+}
 
-#ifndef TKBC_SERVER
-            UnloadTexture(_tkbc_get_asset_kite_design(i).as.kite_texture.normal);
-#endif
+/**
+ * @brief THis function can be used to remove a specified asset from the global assets array.
+ *
+ * @param uuid Id where the asset is identifiable by,
+ */
+void tkbc_removed_asset_by_id(UUID uuid) {
+    for (size_t i = 0; i < assets.count; ++i) {
+        if (tkbc_uuid_equals(assets.elements[i].id, uuid)) {
+            tkbc_asset_destroy(&assets.elements[i]);
+
+            if (i + 1 < assets.count) {
+                size_t n = assets.count - i - 1;
+                memmove(&assets.elements[i], &assets.elements[i + 1], n * sizeof(*assets.elements));
+            }
+
+            assets.count -= 1;
             break;
-        case ASSETS_KIND_COUNT:
-        default: assert(false && "tkbc_assets_destroy: UNREACHABLE");
         }
     }
 }

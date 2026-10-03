@@ -727,8 +727,8 @@ bool tkbc_ui_script_menu(Env *env) {
                 .x = script_box.x + script_box.width - delete_circle_radius,
                 .y = script_box.y + delete_circle_radius,
             };
-            DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_GRAY_ALPHA);
 
+            tkbc_draw_circle_with_x(circle_center, delete_circle_radius, TKBC_UI_GRAY_ALPHA);
             if (CheckCollisionPointCircle(mouse, circle_center, delete_circle_radius)) {
                 if (env->script_menu_mouse_interaction) {
                     DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_DARKPURPLE_ALPHA);
@@ -759,32 +759,6 @@ bool tkbc_ui_script_menu(Env *env) {
                     // The menu redraws next frame.
                     break;
                 }
-            }
-
-            float inner_padding_both_sides = 2 * delete_circle_radius * 0.4;
-            float inner_padding = inner_padding_both_sides / 2.0;
-            {
-                Vector2 start_position = {
-                    .x = circle_center.x - delete_circle_radius + inner_padding,
-                    .y = circle_center.y - delete_circle_radius + inner_padding,
-                };
-                Vector2 end_position = {
-                    .x = circle_center.x + delete_circle_radius - inner_padding,
-                    .y = circle_center.y + delete_circle_radius - inner_padding,
-                };
-
-                DrawLineEx(start_position, end_position, 3, TKBC_UI_BLACK);
-            }
-            {
-                Vector2 start_position = {
-                    .x = circle_center.x - delete_circle_radius + inner_padding,
-                    .y = circle_center.y + delete_circle_radius - inner_padding,
-                };
-                Vector2 end_position = {
-                    .x = circle_center.x + delete_circle_radius - inner_padding,
-                    .y = circle_center.y - delete_circle_radius + inner_padding,
-                };
-                DrawLineEx(start_position, end_position, 3, TKBC_UI_BLACK);
             }
         }
 
@@ -910,7 +884,6 @@ bool tkbc_ui_script_menu(Env *env) {
             DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
             assert(env->script_menu_mouse_interaction_box != -1);
             assert(env->scripts.count >= (size_t) env->script_menu_mouse_interaction_box);
-
 
             // TODO: Display an icon on the left of the selection that does not reset
             // it if clicked.
@@ -1439,6 +1412,23 @@ void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture, U
             tkbc_set_kite_texture(env->kite_array.elements[i].kite, kite_texture);
             env->kite_array.elements[i].kite->texture_id = texture_id;
             env->kite_array.elements[i].kite->is_texture_new = is_texture_new;
+        }
+    }
+}
+
+/**
+ * @brief This function can be used to switch all kites that have a missing texture back to the colorizer texture.
+ *
+ * @param kite_array The Kite_States that should be checked.
+ * @param texture_id The id where the
+ */
+void tkbc_set_colorizer_texture_insted_of_texture_id(Kite_States *kite_array, UUID texture_id) {
+    Asset colorizer = _tkbc_get_asset_kite_design(KITE_COLORIZER);
+    for (size_t i = 0; i < kite_array->count; ++i) {
+        if (tkbc_uuid_equals(kite_array->elements[i].kite->texture_id, texture_id)) {
+            tkbc_set_kite_texture(kite_array->elements[i].kite, &colorizer.as.kite_texture);
+            kite_array->elements[i].kite->texture_id = colorizer.id;
+            kite_array->elements[i].kite->is_texture_new = false;
         }
     }
 }
@@ -2467,6 +2457,7 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     // The scrollable designs are displayed below the always visible KITE_COLORIZER.
     display_box.y += colorizer_stride;
 
+    Vector2 mouse = GetMousePosition();
     // The newest designs are appended at the end of the assets so the loop
     // iterates backwards to display them first.
     for (size_t i = assets.count, row = 0; i-- > KITE_DEFAULT_DESIGNS_BEGIN;) {
@@ -2501,6 +2492,27 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         collision_rectangle.width = t.width * scale;
         collision_rectangle.height = t.height * scale;
 
+        {
+            float radius = t.width * 0.05;
+            Vector2 center = {
+                .x = collision_rectangle.x + collision_rectangle.width + 2 * padding + radius / 2,
+                .y = collision_rectangle.y + collision_rectangle.height / 2,
+            };
+            tkbc_draw_circle_with_x(center, radius, TKBC_UI_GRAY_ALPHA);
+
+            if (CheckCollisionPointCircle(mouse, center, radius)) {
+                tkbc_draw_circle_with_x(center, radius, TKBC_UI_DARKPURPLE_ALPHA);
+
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    tkbc_draw_circle_with_x(center, radius, TKBC_UI_PURPLE_ALPHA);
+                    UUID uuid = _tkbc_get_asset_kite_design(i).id;
+
+                    tkbc_set_colorizer_texture_insted_of_texture_id(&env->kite_array, uuid);
+                    tkbc_removed_asset_by_id(uuid);
+                }
+            }
+        }
+
         //
         // Update to the next display position so that continue will work
         // correctly.
@@ -2515,7 +2527,6 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
             continue;
         }
 
-        Vector2 mouse = GetMousePosition();
         if (CheckCollisionPointRec(mouse, collision_rectangle) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             tkbc_set_texture_for_selected_kites(env, &_tkbc_get_asset_kite_design(i).as.kite_texture,
                                                 _tkbc_get_asset_kite_design(i).id, false);
@@ -2645,6 +2656,36 @@ void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_rad
         }
     }
     EndScissorMode();
+}
+
+void tkbc_draw_circle_with_x(Vector2 center, float radius, Color color) {
+
+    DrawCircleV(center, radius, color);
+    float inner_padding_both_sides = 2 * radius * 0.4;
+    float inner_padding = inner_padding_both_sides / 2.0;
+    {
+        Vector2 start_position = {
+            .x = center.x - radius + inner_padding,
+            .y = center.y - radius + inner_padding,
+        };
+        Vector2 end_position = {
+            .x = center.x + radius - inner_padding,
+            .y = center.y + radius - inner_padding,
+        };
+
+        DrawLineEx(start_position, end_position, 3, TKBC_UI_BLACK);
+    }
+    {
+        Vector2 start_position = {
+            .x = center.x - radius + inner_padding,
+            .y = center.y + radius - inner_padding,
+        };
+        Vector2 end_position = {
+            .x = center.x + radius - inner_padding,
+            .y = center.y - radius + inner_padding,
+        };
+        DrawLineEx(start_position, end_position, 3, TKBC_UI_BLACK);
+    }
 }
 
 void tkbc_BeginScissorMode(Rectangle box) {

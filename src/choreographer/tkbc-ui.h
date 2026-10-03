@@ -29,6 +29,7 @@ KeyboardKey tkbc_is_any_ascii_key_down();
 void tkbc_ui_color_picker(Env *env);
 void tkbc_set_color_for_selected_kites(Env *env, Color color);
 void tkbc_set_texture_for_selected_kites(Env *env, Kite_Texture *kite_texture, UUID texture_id, bool is_texture_new);
+void tkbc_set_colorizer_texture_insted_of_texture_id(Kite_States *kite_array, UUID texture_id);
 
 void tkbc_draw_shadow(Rectangle shadow, float original_scale);
 void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image);
@@ -47,6 +48,7 @@ const char *tkbc_text_input_cstr(const Text_Input *input);
 void tkbc_handle_text_input(Text_Input *input, Space *space);
 void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding);
 void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_radius, float padding);
+void tkbc_draw_circle_with_x(Vector2 center, float radius, Color color);
 void tkbc_BeginScissorMode(Rectangle box);
 
 #endif  // TKBC_UI_H
