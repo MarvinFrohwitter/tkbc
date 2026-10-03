@@ -1186,6 +1186,7 @@ bool tkbc_run(Env *env) {
             disconnect.active = true;
             assert(client.kite_id != -1);
             tkbc_remove_non_script_kites_except(&env->kite_array, (size_t) client.kite_id);
+            client.socket_id = -1;
         }
         sending_receiving = send_message_send_handler();
     }
