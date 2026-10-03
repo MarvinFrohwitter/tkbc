@@ -17,7 +17,11 @@ static bool tkbc_combine_message_script_amount_and_message_script_for_one_id(Spa
     space_dapf(space, message, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT, total_amount_to_send);
 
     size_t saved_count = message->count;
-    assert(env->scripts.count);
+    // The script has to be known at this point, otherwise it cannot be written
+    // out below. Asserting the search for the id instead of only a non empty
+    // scripts array keeps the invariant that used to be checked here intact
+    // without relying on the scripts array count.
+    assert(tkbc_scripts_contains_id(env->scripts, script_id));
 
     if (!tkbc_message_append_script(space, message, script_id)) {
         tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
@@ -51,6 +55,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     Frames *scb_frames = &env->scratch_buf_frames;
     Frame frame = {0};
     Kite_Ids collected_kids = {0};
+    Kite_Ids generated_kite_ids = {0};
 
     space_reset_space(&env->scratch_buf_script.space);
     // Reset the whole struct but keep the space so that its planets remain
@@ -366,7 +371,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     // Post parsing
     size_t kite_count = collected_kids.count;
     size_t prev_count = env->kite_array.count;
-    Kite_Ids generated_kite_ids = tkbc_kite_array_generate(env, kite_count);
+    generated_kite_ids = tkbc_kite_array_generate(env, kite_count);
 
     // Generated kites stay hidden until the script is loaded.
     for (size_t i = prev_count; i < env->kite_array.count; ++i) {
@@ -380,11 +385,19 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
         // positions/originals needed pre-patch).
         tkbc_remap_script_kite_id_arrays_to_kite_ids(scb_script, collected_kids, generated_kite_ids);
     }
-    free(generated_kite_ids.elements);
-    generated_kite_ids.elements = NULL;
+    // NOTE: generated_kite_ids is intentionally not freed here because it holds
+    // the ids of the kites that were just created and they are needed for the
+    // CLIENTKITES message further down. It is freed in the cleanup section,
+    // which also covers the error paths.
 
     // Set the first kite positions
     tkbc_patch_script_kite_positions(env, scb_script, scb_space);
+
+#ifdef TKBC_SERVER
+    // Remember the id because tkbc_add_script() resets the scratch buffer that
+    // scb_script points to.
+    UUID script_id = scb_script->id;
+#endif
 
     //
     //
@@ -421,8 +434,8 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     {
         Message t_message = {0};
         {
-            if (!tkbc_combine_message_script_amount_and_message_script_for_one_id(
-                    space_get_tspace(), &t_message, env->scripts.elements[env->scripts.count - 1].id)) {
+            if (!tkbc_combine_message_script_amount_and_message_script_for_one_id(space_get_tspace(), &t_message,
+                                                                                 script_id)) {
                 space_reset_tspace();
                 check_return(false);
             }
@@ -431,9 +444,18 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
         }
         t_message.count = 0;
         {
-            space_tdapf(&t_message, "%d:%zu:", MESSAGE_CLIENTKITES, collected_kids.count);
-            for (size_t i = 0; i < collected_kids.count; ++i) {
-                Kite_State *kite_state = tkbc_get_kite_state_by_id(env, collected_kids.elements[i]);
+            // The kite ids that were parsed from the message are the ids of the
+            // sending side and have nothing to do with the ids in the kite array
+            // of this side. Only the generated ones are known here and in the
+            // kite arrays of the receiving clients.
+            space_tdapf(&t_message, "%d:%zu:", MESSAGE_CLIENTKITES, generated_kite_ids.count);
+            for (size_t i = 0; i < generated_kite_ids.count; ++i) {
+                Kite_State *kite_state = tkbc_get_kite_state_by_id(env, generated_kite_ids.elements[i]);
+                if (!kite_state) {
+                    tkbc_fprintf(stderr, "ERROR", "The generated kite id %zu was not found in the kite array.\n",
+                                 generated_kite_ids.elements[i]);
+                    continue;
+                }
                 tkbc_message_append_clientkite(kite_state->kite_id, &t_message, space_get_tspace());
             }
             space_tdapf(&t_message, "\r\n");
@@ -463,6 +485,10 @@ check:
     if (collected_kids.elements) {
         free(collected_kids.elements);
         collected_kids.elements = NULL;
+    }
+    if (generated_kite_ids.elements) {
+        free(generated_kite_ids.elements);
+        generated_kite_ids.elements = NULL;
     }
     if (tmp_buffer.elements) {
         free(tmp_buffer.elements);
