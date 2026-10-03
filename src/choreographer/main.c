@@ -41,6 +41,7 @@
 #include "../../tkbc_scripts/first.c"
 
 Assets assets = {0};
+bool sending_receiving = false;
 
 /**
  * @brief The main function that handles the event loop.
