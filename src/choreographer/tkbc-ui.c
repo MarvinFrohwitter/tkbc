@@ -1010,8 +1010,9 @@ void tkbc_set_input_text_to_hex_color(Text_Input *input, Space *space, Color col
  *
  * @param shadow The rectangle to draw the shadow around.
  * @param original_scale The scale factor for the shadow.
+ * @return The maximum Rectangle the shadow needs.
  */
-void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
+Rectangle tkbc_draw_shadow(Rectangle shadow, float original_scale) {
     static float opacities[] = {0.08f,  0.089f, 0.098f, 0.107f, 0.116f, 0.125f, 0.134f, 0.143f, 0.152f, 0.161f,
                                 0.170f, 0.179f, 0.188f, 0.197f, 0.206f, 0.215f, 0.224f, 0.233f, 0.242f, 0.251f,
                                 0.260f, 0.269f, 0.278f, 0.287f, 0.296f, 0.305f, 0.314f, 0.323f, 0.332f, 0.35f};
@@ -1021,7 +1022,10 @@ void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
     shadow.x -= shadow.width * 0.03;
     shadow.width *= 1.06;
     shadow.height *= 1.06;
+    Rectangle box = shadow;
 
+    float first_y = shadow.y;
+    float max_width = shadow.width;
     for (size_t i = 0; i < 3; ++i) {
         DrawRectangleRounded(shadow, 0.15f, 20, ColorAlpha(BLACK, opacities[i]));
         shadow.y += shadow.height * 0.06;
@@ -1029,6 +1033,9 @@ void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
         shadow.width *= 0.97;
         shadow.height *= 0.97;
     }
+
+    box.width = max_width;
+    box.height = (shadow.y + shadow.height) - first_y;
 
     Rectangle floor = orig_shadow;
     float old_floor_height = floor.height;
@@ -1103,6 +1110,8 @@ void tkbc_draw_shadow(Rectangle shadow, float original_scale) {
     DrawCircleGradient(k.left.v2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
 
     DrawCircleGradient(k.right.v2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
+
+    return box;
 }
 
 /**
@@ -2354,6 +2363,9 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     base.width -= padding / 2;  // for the scrollbar
     display_box.x += 2 * padding;
     display_box.y += 2 * padding;
+    display_box.width -= 2 * padding;
+    display_box.height -= 2 * padding;
+    display_box.width -= padding / 2;  // for the scrollbar
 
     size_t total_amount = tkbc_get_current_kite_design_count();
     size_t scrollable_amount = total_amount - 1;
@@ -2364,10 +2376,13 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     const float scale_factor = 0.7;
     float scale = env->color_picker_base.width * scale_factor / t.width;
 
-    float ring_box_x = t.width * scale * 0.05;
-    float ring_box_y = t.height * scale * 0.05;
-    display_box.x += ring_box_x;
-    display_box.y += ring_box_y;
+    float ring_box_x_width = t.width * scale * 0.05;
+    float ring_box_y_width = t.height * scale * 0.05;
+    display_box.y += ring_box_y_width;
+    display_box.height -= ring_box_y_width;
+
+    display_box.width -= ring_box_x_width;
+    display_box.x += ring_box_x_width;
 
     float colorizer_stride = tkbc_kite_design_stride(env, t, scale_factor, padding, actual_padding);
 
@@ -2400,13 +2415,6 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     size_t top_box = env->kite_designs_top_interaction_box;
 
     Rectangle shadow;
-    Rectangle collision_rectangle = {
-        .x = display_box.x,
-        .y = display_box.y,
-        .width = t.width * scale,
-        .height = t.height * scale,
-    };
-
     tkbc_BeginScissorMode(base);
     {
         shadow.x = display_box.x;
@@ -2416,15 +2424,15 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         tkbc_draw_shadow(shadow, scale);
         DrawTextureEx(t, (Vector2){.x = display_box.x, .y = display_box.y}, 0, scale, WHITE);
 
-        shadow.y -= ring_box_y;
-        shadow.x -= ring_box_x;
+        shadow.y -= ring_box_y_width;
+        shadow.x -= ring_box_x_width;
         shadow.width *= 1.1;
         shadow.height *= 1.35;
         DrawRectangleRoundedLinesEx(shadow, 0.25, 20, 3, TKBC_UI_BLACK);
 
         if (!env->color_picker_window_picking) {
             Vector2 mouse = GetMousePosition();
-            if (CheckCollisionPointRec(mouse, collision_rectangle) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if (CheckCollisionPointRec(mouse, shadow) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Image reference = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
                 Asset a = _tkbc_get_asset_kite_design(KITE_COLORIZER);
 
@@ -2456,6 +2464,7 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
 
     // The scrollable designs are displayed below the always visible KITE_COLORIZER.
     display_box.y += colorizer_stride;
+    display_box.height -= colorizer_stride;
 
     Vector2 mouse = GetMousePosition();
     // The newest designs are appended at the end of the assets so the loop
@@ -2484,21 +2493,36 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         shadow.y = display_box.y;
         shadow.width = t.width * scale;
         shadow.height = t.height * scale;
-        tkbc_draw_shadow(shadow, scale);
+        Rectangle shadow_box = tkbc_draw_shadow(shadow, scale);
         DrawTextureEx(t, (Vector2){.x = display_box.x, .y = display_box.y}, 0, scale, WHITE);
 
-        collision_rectangle.x = display_box.x;
+        float shadow_thick_y = (shadow_box.y - display_box.y);
+        Rectangle collision_rectangle = shadow_box;
         collision_rectangle.y = display_box.y;
-        collision_rectangle.width = t.width * scale;
-        collision_rectangle.height = t.height * scale;
+        collision_rectangle.height = shadow_box.height + shadow_thick_y;
 
         {
-            float radius = t.width * 0.05;
+            float shadow_thick_x = (display_box.x - shadow_box.x);
+            float ring_box_difference_to_shadow_box = ring_box_x_width;
+            float remaing_width_in_container = display_box.width - (shadow_box.width - shadow_thick_x) -
+                                               env->kite_designs_scrollbar.base.width -
+                                               ring_box_difference_to_shadow_box;
+
+            float radius = (remaing_width_in_container - 2 * padding) * 0.75;
             Vector2 center = {
-                .x = collision_rectangle.x + collision_rectangle.width + 2 * padding + radius / 2,
-                .y = collision_rectangle.y + collision_rectangle.height / 2,
+                .x = base.x + base.width - padding - env->kite_designs_scrollbar.base.width - radius,
+                .y = collision_rectangle.y + collision_rectangle.height * 0.5,
             };
-            tkbc_draw_circle_with_x(center, radius, TKBC_UI_GRAY_ALPHA);
+
+            // Rectangle right_section = {
+            //     .x = collision_rectangle.x + collision_rectangle.width + ring_box_difference_to_shadow_box,
+            //     .y = collision_rectangle.y,
+            //     .width = remaing_width_in_container,
+            //     .height = collision_rectangle.height,
+            // };
+
+            tkbc_draw_circle_with_x(center, radius, BLANK);
+            DrawCircleLinesV(center, radius, TKBC_UI_BLACK);
 
             if (CheckCollisionPointCircle(mouse, center, radius)) {
                 tkbc_draw_circle_with_x(center, radius, TKBC_UI_DARKPURPLE_ALPHA);
@@ -2659,7 +2683,6 @@ void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_rad
 }
 
 void tkbc_draw_circle_with_x(Vector2 center, float radius, Color color) {
-
     DrawCircleV(center, radius, color);
     float inner_padding_both_sides = 2 * radius * 0.4;
     float inner_padding = inner_padding_both_sides / 2.0;
