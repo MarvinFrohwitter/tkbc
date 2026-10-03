@@ -7,6 +7,7 @@
 #undef TKBC_UTILS_IMPLEMENTATION
 
 #include "tkbc_test_geometrics.c"
+#include "tkbc_test_kite_array.c"
 #include "tkbc_test_script_handler.c"
 #include "tkbc_test_script_api.c"
 #include "tkbc_test_parser.c"
@@ -19,18 +20,11 @@
 Assets assets = {0};
 Env *env = {0};
 
-/**
- * @brief Test program entry point.
- *
- * Initialises global kite data, runs geometric, script handler, script
- * api and parser tests, prints results, then cleans up.
- *
- * @return 0 on success.
- */
 int main(void) {
     append_assets();
     cassert_tests {
         tkbc_test_geometrics(&tests);
+        tkbc_test_kite_array(&tests);
         tkbc_test_script_handler(&tests);
         tkbc_test_script_api(&tests);
         tkbc_test_parser(&tests);

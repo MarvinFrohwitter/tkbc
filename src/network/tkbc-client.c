@@ -518,8 +518,7 @@ bool received_message_handler(Message *message) {
                 // The texture request for the kite.
                 if (ok == 2) {
                     space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:", MESSAGE_GET_TEXTURE);
-                    tkbc_message_append_uuid(&client.send_msg_buffer_space, &client.send_msg_buffer,
-                                             kite->texture_id);
+                    tkbc_message_append_uuid(&client.send_msg_buffer_space, &client.send_msg_buffer, kite->texture_id);
                     space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
                     space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n",
                                MESSAGE_GET_TEXTURE_ID, parsed_id);
@@ -580,9 +579,8 @@ bool received_message_handler(Message *message) {
                 }
 
                 if (tkbc_uuid_is_nil(texture_id) && texture_data) {
-                    texture_id = tkbc_append_kite_image_and_kite_texture_with_id(texture_data, texture_width,
-                                                                                 texture_height, texture_format,
-                                                                                 inline_texture_id);
+                    texture_id = tkbc_append_kite_image_and_kite_texture_with_id(
+                        texture_data, texture_width, texture_height, texture_format, inline_texture_id);
                 }
 
                 space_reset_tspace();
@@ -1186,7 +1184,8 @@ bool tkbc_run(Env *env) {
     if (sending_receiving) {
         if (!message_queue_handler()) {
             disconnect.active = true;
-            tkbc_remove_non_script_kites_except(&env->kite_array, client.kite_id);
+            assert(client.kite_id != -1);
+            tkbc_remove_non_script_kites_except(&env->kite_array, (size_t) client.kite_id);
         }
         sending_receiving = send_message_send_handler();
     }

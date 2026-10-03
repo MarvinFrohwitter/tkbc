@@ -216,11 +216,23 @@ void tkbc_destroy_kite_array(Kite_States *kite_states) {
  * @param kite_id The kite state that should not be removed.
  */
 void tkbc_remove_non_script_kites_except(Kite_States *kite_array, size_t kite_id) {
-    for (size_t i = 0; i < kite_array->count; ++i) {
-        if (kite_array->elements[i].kite_id != kite_id && !kite_array->elements[i].is_script_kite) {
-            bool ok = tkbc_remove_ordered_kite_from_list(kite_array, kite_array->elements[i].kite_id);
-            assert(ok);
+    if (kite_array == NULL) {
+        return;
+    }
+
+    for (size_t i = 0; i < kite_array->count;) {
+        Kite_State *state = &kite_array->elements[i];
+        if (state->is_script_kite || state->kite_id == kite_id) {
+            ++i;
+            continue;
         }
+
+        Kite_State ks_temp = kite_array->elements[i];
+        kite_array->elements[i] = kite_array->elements[kite_array->count - 1];
+        kite_array->elements[kite_array->count - 1] = ks_temp;
+        free(kite_array->elements[kite_array->count - 1].kite);
+        kite_array->elements[kite_array->count - 1].kite = NULL;
+        kite_array->count -= 1;
     }
 }
 
