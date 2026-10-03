@@ -1127,7 +1127,7 @@ int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
                 tkbc_collect_script_kite_ids(&env->scripts.elements[i].space, &env->scripts.elements[i],
                                              &current_kite_ids);
                 for (size_t i = 0; i < current_kite_ids.count; ++i) {
-                    tkbc_remove_kite_from_list(&env->kite_array, current_kite_ids.elements[i]);
+                    tkbc_remove_unordered_kite_from_list(&env->kite_array, current_kite_ids.elements[i]);
                 }
             }
 #endif

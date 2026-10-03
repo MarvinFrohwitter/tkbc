@@ -242,7 +242,7 @@ bool tkbc_remove_fd_unorderd(int fd) {
  */
 int tkbc_remove_connection(Client client, bool retry) {
     if (!retry) {
-        if (!tkbc_remove_kite_from_list(&env->kite_array, client.kite_id)) {
+        if (!tkbc_remove_unordered_kite_from_list(&env->kite_array, client.kite_id)) {
             tkbc_fprintf(stderr, "INFO", "Client:" CLIENT_FMT ":Kite could not be removed: not found.\n",
                          CLIENT_ARG(client));
             return 1;
@@ -760,7 +760,7 @@ void tkbc_socket_handling(void) {
                 bool orphan;
                 Kite_State *s = tkbc_check_for_orphan_kite_states(&orphan);
                 if (orphan) {
-                    tkbc_remove_kite_from_list(&env->kite_array, s->kite_id);
+                    tkbc_remove_unordered_kite_from_list(&env->kite_array, s->kite_id);
                 }
                 tkbc_remove_fd_unorderd(fd);
                 tkbc_close(fd);

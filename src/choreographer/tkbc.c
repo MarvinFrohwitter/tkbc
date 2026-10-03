@@ -218,21 +218,52 @@ void tkbc_destroy_kite_array(Kite_States *kite_states) {
 void tkbc_remove_non_script_kites_except(Kite_States *kite_array, size_t kite_id) {
     for (size_t i = 0; i < kite_array->count; ++i) {
         if (kite_array->elements[i].kite_id != kite_id && !kite_array->elements[i].is_script_kite) {
-            tkbc_remove_kite_from_list(kite_array, kite_array->elements[i].kite_id);
+            bool ok = tkbc_remove_ordered_kite_from_list(kite_array, kite_array->elements[i].kite_id);
+            assert(ok);
         }
     }
 }
 
 /**
  * @brief The function can be used to remove a kite from the given list by the
- * given kite_id.
+ * given kite_id with guaranty that the array order stays stable.
  *
  * @param kite_array The list of kite Kite_State that should may contain the
  * kite.
  * @param kite_id The id of the kite that should be removed.
  * @return True if the kite is removed successfully, otherwise false.
  */
-bool tkbc_remove_kite_from_list(Kite_States *kite_array, size_t kite_id) {
+bool tkbc_remove_ordered_kite_from_list(Kite_States *kite_array, size_t kite_id) {
+    if (kite_array == NULL) {
+        return false;
+    }
+    for (size_t i = 0; i < kite_array->count; ++i) {
+        if (kite_array->elements[i].kite_id == kite_id) {
+            free(kite_array->elements[i].kite);
+            kite_array->elements[i].kite = NULL;
+
+            if (i + 1 < kite_array->count) {
+                size_t n = kite_array->count - i - 1;
+                memmove(&kite_array->elements[i], &kite_array->elements[i + 1], n * sizeof(*kite_array->elements));
+            }
+
+            kite_array->count -= 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief The function can be used to remove a kite from the given list by the
+ * given kite_id with no guaranty that the array order stays stable.
+ *
+ * @param kite_array The list of kite Kite_State that should may contain the
+ * kite.
+ * @param kite_id The id of the kite that should be removed.
+ * @return True if the kite is removed successfully, otherwise false.
+ */
+bool tkbc_remove_unordered_kite_from_list(Kite_States *kite_array, size_t kite_id) {
     if (kite_array == NULL) {
         return false;
     }

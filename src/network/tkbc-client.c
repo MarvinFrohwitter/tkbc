@@ -666,7 +666,7 @@ bool received_message_handler(Message *message) {
                 check_return(false);
             }
 
-            tkbc_remove_kite_from_list(&env->kite_array, kite_id);
+            tkbc_remove_unordered_kite_from_list(&env->kite_array, kite_id);
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "CLIENT_DISCONNET\n");
         } break;

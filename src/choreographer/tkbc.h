@@ -82,7 +82,8 @@ void tkbc_destroy_env(Env *env);
 void tkbc_destroy_kite(Kite_State *state);
 void tkbc_destroy_kite_array(Kite_States *kite_states);
 void tkbc_remove_non_script_kites_except(Kite_States *kite_array, size_t kite_id);
-bool tkbc_remove_kite_from_list(Kite_States *kite_array, size_t kite_id);
+bool tkbc_remove_ordered_kite_from_list(Kite_States *kite_array, size_t kite_id);
+bool tkbc_remove_unordered_kite_from_list(Kite_States *kite_array, size_t kite_id);
 Vector2 tkbc_calculate_start_position(Env *env, Kite_States *kite_states, size_t window_width, size_t window_height);
 void tkbc_kite_array_start_position(Env *env, Kite_States *kite_states, size_t window_width, size_t window_height,
                                     bool set_defaults);
