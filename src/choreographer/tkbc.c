@@ -355,7 +355,7 @@ void tkbc_file_handler(Env *env) {
             return;
         }
         char *file_path;
-        for (size_t i = 0; i < file_path_list.count && i < 1; ++i) {
+        for (size_t i = 0; i < file_path_list.count; ++i) {
             file_path = file_path_list.paths[i];
             tkbc_fprintf(stderr, "INFO", "FILE: PATH: %s\n", file_path);
             const char *extension = GetFileExtension(file_path);
@@ -375,24 +375,32 @@ void tkbc_file_handler(Env *env) {
                 }
                 tkbc_script_parser(env);
             } else {
+                if (issound) {
+                    continue;
+                }
                 if (IsSoundValid(env->sound)) {
                     StopSound(env->sound);
                     UnloadSound(env->sound);
                 }
-                issound = true;
                 env->sound = LoadSound(file_path);
-            }
-        }
-        if (issound) {
-            // Checks drag and dropped audio files.
-            if (env->sound_file_name != NULL) {
-                free(env->sound_file_name);
-                env->sound_file_name = NULL;
-            }
-            env->sound_file_name = strdup(file_path);
-            if (env->sound_file_name == NULL) {
-                tkbc_fprintf(stderr, "ERROR", "The allocation has failed in: %s: %d: %s\n", __FILE__, __LINE__,
-                             strerror(errno));
+                if (!IsSoundValid(env->sound)) {
+                    // No valid sound file or any other file.
+                    continue;
+                }
+
+                // Only take the first valid sound file. If valid sound file was discovered ignore all other files even
+                // non sound files.
+                issound = true;
+                // Checks drag and dropped audio files.
+                if (env->sound_file_name) {
+                    free(env->sound_file_name);
+                    env->sound_file_name = NULL;
+                }
+                env->sound_file_name = strdup(file_path);
+                if (env->sound_file_name == NULL) {
+                    tkbc_fprintf(stderr, "ERROR", "The allocation has failed in: %s: %d: %s\n", __FILE__, __LINE__,
+                                 strerror(errno));
+                }
             }
         }
 
