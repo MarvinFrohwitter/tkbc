@@ -1073,7 +1073,7 @@ int main(int argc, char *argv[]) {
         tkbc_fprintf(stderr, "INFO", "No keympas are load from file.\n");
     }
     SetExitKey(tkbc_hash_to_key(env->keymaps, KMH_QUIT_PROGRAM));
-    tkbc_init_sound(40);
+    InitAudioDevice();
 
     while (!WindowShouldClose()) {
         BeginDrawing();
