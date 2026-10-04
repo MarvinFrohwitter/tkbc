@@ -77,6 +77,8 @@ void tkbc_script_parser(Env *env) {
 
                 break;
             } else if (strncmp("END", t.content, t.size) == 0) {
+                char *base_name = tkbc_get_basename(env->script_file_name);
+                tkbc_set_script_name(&env->scratch_buf_script, base_name);
                 tkbc__script_end(env);
                 script_begin = false;
                 break;
@@ -210,6 +212,8 @@ void tkbc_script_parser(Env *env) {
 
     if (script_begin) {
         tkbc_fprintf(stderr, "ERROR", "Script END is not defined.");
+        char *base_name = tkbc_get_basename(env->script_file_name);
+        tkbc_set_script_name(&env->scratch_buf_script, base_name);
         tkbc__script_end(env);
     }
 

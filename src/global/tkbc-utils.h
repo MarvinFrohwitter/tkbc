@@ -219,6 +219,7 @@ int tkbc_max(int x, int y);
 char *tkbc_strtolower(char *str);
 char *tkbc_strtoupper(char *str);
 
+char *tkbc_get_basename(char *path);
 void free_dir_entrys(Dir_Entries dir_entrys);
 bool read_dir_impl(const char *path, Dir_Entries *list);
 bool read_dir(const char *path, Dir_Entries *list);
@@ -1137,6 +1138,33 @@ char *tkbc_strtoupper(char *str) {
         str[i] = toupper(str[i]);
     }
     return begin_str;
+}
+
+/**
+ * @brief The function gets the basename of a path in a cross-platform way.
+ *
+ * @param path The path that should be inspected
+ * @return The pointer to the basename or
+ */
+char *tkbc_get_basename(char *path) {
+    if (!path) {
+        return NULL;
+    }
+
+    size_t n = strlen(path);
+    if (n == 0) {
+        return NULL;
+    }
+    if (path[n - 1] == '/' || path[n - 1] == '\\') {
+        path[n - 1] = '\0';
+    }
+
+    char *last_backslash = strrchr(path, '\\');
+    char *last_slash = strrchr(path, '/');
+
+    // Use whichever separator comes last
+    char *sep = (last_backslash > last_slash) ? last_backslash : last_slash;
+    return (sep) ? sep + 1 : path;
 }
 
 /**
