@@ -1,4 +1,3 @@
-#include "../../../external/lexer/tkbc-lexer.h"
 #include "../../../external/space/space.h"
 #include "../../choreographer/tkbc-script-handler.h"
 #include "../../global/tkbc-types.h"
@@ -17,18 +16,13 @@
  * timeline and sends the target frames_index, so scrubbing works
  * continuously even inside the animation between script keyframes.
  *
- * @param lexer The lexer positioned at the message content.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @return True if the scrub was executed successfully, otherwise false.
  */
-bool tkbc_messages_script_scrub(Lexer *lexer) {
-    Token token;
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        return false;
-    }
-    size_t target_index = strtoull(lexer_token_to_cstr(lexer, &token), NULL, 10);
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
+bool tkbc_messages_script_scrub(Message *reader) {
+    uint64_t target_index;
+    if (!tkbc_message_read_u64(reader, &target_index)) {
         return false;
     }
 
@@ -53,5 +47,6 @@ bool tkbc_messages_script_scrub(Lexer *lexer) {
     // clients would move the slider but keep stale kite positions.
     tkbc_message_clientkites_write_to_all_send_msg_buffers(false);
 #endif
+
     return true;
 }

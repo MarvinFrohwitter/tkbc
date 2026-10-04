@@ -1,4 +1,3 @@
-#include "../../../external/lexer/tkbc-lexer.h"
 #include "../../../external/space/space.h"
 #include "../../choreographer/tkbc-script-api.h"
 #include "../../choreographer/tkbc-script-handler.h"
@@ -13,29 +12,13 @@
  * @brief Handles a SCRIPT_NEXT message by loading and activating the next
  * script, deactivating non-script kites.
  *
- * @param lexer The lexer positioned at the message content.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @return True if the script was loaded successfully, otherwise false.
  */
-bool tkbc_messages_script_next(Lexer *lexer) {
-    Token token;
-    token = lexer_next(lexer);
-    if (token.kind != STRINGLITERAL) {
-        return false;
-    }
-
-    // To strip the quotes manipulate the token directly
-    if (token.size <= 2) {
-        return false;
-    }
-    token.size -= 2;
-    token.content += 1;
+bool tkbc_messages_script_next(Message *reader) {
     UUID script_id;
-    bool ok = tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), &script_id);
-    if (!ok) {
-        return false;
-    }
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
+    if (!tkbc_message_read_uuid(reader, &script_id)) {
         return false;
     }
 
@@ -67,7 +50,9 @@ bool tkbc_messages_script_next(Lexer *lexer) {
     // This is not a good behavior for multiple clients.
     // tkbc_load_script_id(env, script_id, false);
     if (!tkbc_load_script_id(env, script_id, true)) {
-        tkbc_fprintf(stderr, "WARNING", "Could not load script: %d not found!", script_id);
+        char script_id_cstr[37];
+        tkbc_uuid_to_string(script_id, script_id_cstr);
+        tkbc_fprintf(stderr, "WARNING", "Could not load script: %s not found!\n", script_id_cstr);
     }
 
     // This parsing function is just used in the server but liked in the client

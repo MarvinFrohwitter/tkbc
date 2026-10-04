@@ -1,4 +1,3 @@
-#include "../../../external/lexer/tkbc-lexer.h"
 #include "../../../external/space/space.h"
 #include "../../global/tkbc-types.h"
 #include "../tkbc-servers-common.h"
@@ -14,55 +13,23 @@ extern Client client;
  * script id, the frames count and the frames index and updates the server
  * script values in the environment.
  *
- * @param lexer The lexer that is used to read the message tokens.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @return Returns true if the message was parsed successfully, otherwise false.
  */
-bool tkbc_messages_script_meta_data(Lexer *lexer) {
-    Token token;
+bool tkbc_messages_script_meta_data(Message *reader) {
     UUID previous_id = env->server_script_id;
     UUID parsed_id;
-    size_t parsed_count = 0;
-    size_t parsed_index = 0;
-    token = lexer_next(lexer);
-    if (token.kind != STRINGLITERAL) {
-        return false;
-    }
+    uint64_t parsed_count = 0;
+    uint64_t parsed_index = 0;
 
-    // To strip the quotes manipulate the token directly
-    if (token.size <= 2) {
+    if (!tkbc_message_read_uuid(reader, &parsed_id)) {
         return false;
     }
-    token.content += 1;
-    token.size -= 2;
-    bool ok = tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), &parsed_id);
-    if (!ok) {
+    if (!tkbc_message_read_u64(reader, &parsed_count)) {
         return false;
     }
-
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        return false;
-    }
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        return false;
-    }
-
-    parsed_count = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        return false;
-    }
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        return false;
-    }
-
-    parsed_index = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
+    if (!tkbc_message_read_u64(reader, &parsed_index)) {
         return false;
     }
 

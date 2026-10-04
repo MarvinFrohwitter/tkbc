@@ -1,5 +1,3 @@
-#include "../../../external/lexer/tkbc-lexer.h"
-#include "../../../external/space/space.h"
 #include "../../choreographer/tkbc-asset-handler.h"
 #include "../../global/tkbc-types.h"
 #include "../tkbc-servers-common.h"
@@ -14,18 +12,14 @@
  * the texture asset and appends the kite image data as a MESSAGE_SEND_TEXTURE
  * to the client send buffer.
  *
- * @param lexer The lexer that is used to read the message tokens.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @param client The client that the texture data gets send to.
  * @return Returns true if the texture was found and send, otherwise false.
  */
-bool tkbc_messages_get_texture(Lexer *lexer, Client *client) {
-    Token token;
+bool tkbc_messages_get_texture(Message *reader, Client *client) {
     UUID texture_id;
-    if (!tkbc_parse_uuid(lexer, &texture_id)) {
-        return false;
-    }
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
+    if (!tkbc_message_read_uuid(reader, &texture_id)) {
         return false;
     }
 
@@ -41,11 +35,10 @@ bool tkbc_messages_get_texture(Lexer *lexer, Client *client) {
         return false;
     }
 
-    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:", MESSAGE_SEND_TEXTURE);
-
+    size_t offset =
+        tkbc_message_write_begin(&client->send_msg_buffer, &client->send_msg_buffer_space, MESSAGE_SEND_TEXTURE);
     tkbc_message_append_image_data(&client->send_msg_buffer_space, &client->send_msg_buffer, kite_image->normal,
                                    asset->id);
-
-    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "\r\n");
+    tkbc_message_write_end(&client->send_msg_buffer, offset);
     return true;
 }

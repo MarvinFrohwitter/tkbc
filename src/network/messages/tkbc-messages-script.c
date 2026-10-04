@@ -1,4 +1,3 @@
-#include "../../../external/lexer/tkbc-lexer.h"
 #include "../../../external/space/space.h"
 #include "../../choreographer/tkbc-script-api.h"
 #include "../../choreographer/tkbc-script-handler.h"
@@ -11,12 +10,24 @@
 
 #ifdef TKBC_SERVER
 #include "../tkbc-network-common.h"
+
+/**
+ * @brief The function combines the MESSAGE_SCRIPT_AMOUNT and a single
+ * MESSAGE_SCRIPT into one message that is send to all clients except the
+ * originator.
+ *
+ * @param space The arena style allocator.
+ * @param message The message structure where the data should be appended in.
+ * @param script_id The id of the script that should be send.
+ * @return True if the message could be constructed, otherwise false.
+ */
 static bool tkbc_combine_message_script_amount_and_message_script_for_one_id(Space *space, Message *message,
                                                                              UUID script_id) {
     size_t total_amount_to_send = 1;
-    space_dapf(space, message, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT, total_amount_to_send);
+    size_t amount_offset = tkbc_message_write_begin(message, space, MESSAGE_SCRIPT_AMOUNT);
+    tkbc_message_write_u64(message, space, (uint64_t) total_amount_to_send);
+    tkbc_message_write_end(message, amount_offset);
 
-    size_t saved_count = message->count;
     // The script has to be known at this point, otherwise it cannot be written
     // out below. Asserting the search for the id instead of only a non empty
     // scripts array keeps the invariant that used to be checked here intact
@@ -25,7 +36,6 @@ static bool tkbc_combine_message_script_amount_and_message_script_for_one_id(Spa
 
     if (!tkbc_message_append_script(space, message, script_id)) {
         tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
-        message->count = saved_count;
         return false;
     }
 
@@ -38,18 +48,17 @@ static bool tkbc_combine_message_script_amount_and_message_script_for_one_id(Spa
  * client.
  *
  * @param env The global state of the application.
- * @param lexer The lexer positioned at the message content.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @param client The client that sent the script.
  * @param script_alleady_there_parsing_skip Set to true if the script was
  * already known and parsing was skipped.
  * @return true If the script was parsed and registered successfully.
  * @return false If parsing failed or the script was already known.
  */
-bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_alleady_there_parsing_skip) {
+bool tkbc_messages_script(Env *env, Message *reader, Client *client, bool *script_alleady_there_parsing_skip) {
     bool ok = true;
     bool check_first_run = true;
-    Token token;
-    Content tmp_buffer = {0};
     Space *scb_space = &env->scratch_buf_script.space;
     Script *scb_script = &env->scratch_buf_script;
     Frames *scb_frames = &env->scratch_buf_frames;
@@ -65,18 +74,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
     env->scratch_buf_script.space = saved_space;
     memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));
 
-    token = lexer_next(lexer);
-    if (token.kind != STRINGLITERAL) {
-        check_return(false);
-    }
-
-    // To strip the quotes manipulate the token directly
-    if (token.size <= 2) {
-        check_return(false);
-    }
-    token.size -= 2;
-    token.content += 1;
-    if (!tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), &scb_script->id)) {
+    if (!tkbc_message_read_uuid(reader, &scb_script->id)) {
         check_return(false);
     }
 
@@ -88,46 +86,18 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
         check_return(false);
     }
 
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        check_return(false);
-    }
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
+    char *script_name = NULL;
+    size_t script_name_len = 0;
+    if (!tkbc_message_read_c_string(reader, scb_space, &script_name, &script_name_len)) {
         check_return(false);
     }
 
-    size_t name_len = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        check_return(false);
+    if (script_name != NULL && script_name_len > 0) {
+        tkbc_text_input_set_text(&scb_script->name_input, scb_space, script_name);
     }
 
-    if (name_len > 0) {
-        token = lexer_next(lexer);
-        if (token.kind != STRINGLITERAL) {
-            check_return(false);
-        }
-
-        char *name = space_calloc(scb_space, 1, name_len + 1);
-        if (name) {
-            memcpy(name, token.content + 1, token.size - 2);
-            // The name is stored only in name_input.text.
-            tkbc_text_input_set_text(&scb_script->name_input, scb_space, name);
-        }
-        token = lexer_next(lexer);
-        if (token.kind != PUNCT_COLON) {
-            check_return(false);
-        }
-    }
-
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        check_return(false);
-    }
-    size_t script_count = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
+    uint64_t script_count;
+    if (!tkbc_message_read_u64(reader, &script_count)) {
         check_return(false);
     }
 
@@ -142,221 +112,93 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
         //
         memset(scb_frames, 0, sizeof(*scb_frames));
 
-        token = lexer_next(lexer);
-        if (token.kind != NUMBER) {
-            check_return(false);
-        }
-        scb_frames->frames_index = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-        token = lexer_next(lexer);
-        if (token.kind != PUNCT_COLON) {
+        if (!tkbc_message_read_u64(reader, &scb_frames->frames_index)) {
             check_return(false);
         }
 
-        token = lexer_next(lexer);
-        if (token.kind != NUMBER) {
+        uint64_t frames_count;
+        if (!tkbc_message_read_u64(reader, &frames_count)) {
             check_return(false);
-        }
-        size_t frames_count = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-        token = lexer_next(lexer);
-        if (token.kind != PUNCT_COLON) {
-            check_return(false);
-        }
-
-        if (frames_count == 0) {
-            continue;
         }
 
         for (size_t j = 0; j < frames_count; ++j) {
             memset(&frame, 0, sizeof(frame));
 
-            token = lexer_next(lexer);
-            if (token.kind != NUMBER) {
+            if (!tkbc_message_read_u64(reader, &frame.index)) {
                 check_return(false);
             }
-            frame.index = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-            token = lexer_next(lexer);
-            if (token.kind != PUNCT_COLON) {
+            if (!tkbc_message_read_bool(reader, &frame.finished)) {
                 check_return(false);
             }
-            token = lexer_next(lexer);
-            if (token.kind != NUMBER) {
-                check_return(false);
-            }
-            frame.finished = !!atoi(lexer_token_to_cstr(lexer, &token));
-            token = lexer_next(lexer);
-            if (token.kind != PUNCT_COLON) {
-                check_return(false);
-            }
-            token = lexer_next(lexer);
-            if (token.kind != NUMBER) {
-                check_return(false);
-            }
-            frame.kind = atoi(lexer_token_to_cstr(lexer, &token));
-            token = lexer_next(lexer);
-            if (token.kind != PUNCT_COLON) {
+            if (!tkbc_message_read_u8(reader, (uint8_t *) &frame.kind)) {
                 check_return(false);
             }
 
-            char sign = '+';
             Action action = {0};
             static_assert(ACTION_KIND_COUNT == 9, "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
             switch (frame.kind) {
             case ACTION_KITE_QUIT:
             case ACTION_KITE_WAIT: {
             } break;
-
             case ACTION_KITE_MOVE:
             case ACTION_KITE_MOVE_ADD: {
-                token = lexer_next(lexer);
-                if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+                if (!tkbc_message_read_f32(reader, &action.as_move.position.x)) {
                     check_return(false);
                 }
-                if (token.kind == PUNCT_SUB) {
-                    sign = *(char *) token.content;
-                    tkbc_dap(&tmp_buffer, sign);
-                    token = lexer_next(lexer);
-                }
-                tkbc_dapc(&tmp_buffer, token.content, token.size);
-                tkbc_dap(&tmp_buffer, 0);
-                action.as_move.position.x = atof(tmp_buffer.elements);
-                tmp_buffer.count = 0;
-
-                token = lexer_next(lexer);
-                if (token.kind != PUNCT_COLON) {
+                if (!tkbc_message_read_f32(reader, &action.as_move.position.y)) {
                     check_return(false);
                 }
-
-                token = lexer_next(lexer);
-                if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
-                    check_return(false);
-                }
-                if (token.kind == PUNCT_SUB) {
-                    sign = *(char *) token.content;
-                    tkbc_dap(&tmp_buffer, sign);
-                    token = lexer_next(lexer);
-                }
-                tkbc_dapc(&tmp_buffer, token.content, token.size);
-                tkbc_dap(&tmp_buffer, 0);
-                action.as_move.position.y = atof(tmp_buffer.elements);
-                tmp_buffer.count = 0;
             } break;
-
             case ACTION_KITE_ROTATION:
             case ACTION_KITE_ROTATION_ADD: {
-                token = lexer_next(lexer);
-                if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
+                if (!tkbc_message_read_f32(reader, &action.as_rotation.angle)) {
                     check_return(false);
                 }
-                if (token.kind == PUNCT_SUB) {
-                    sign = *(char *) token.content;
-                    tkbc_dap(&tmp_buffer, sign);
-                    token = lexer_next(lexer);
-                }
-                tkbc_dapc(&tmp_buffer, token.content, token.size);
-                tkbc_dap(&tmp_buffer, 0);
-                action.as_rotation.angle = atof(tmp_buffer.elements);
-                tmp_buffer.count = 0;
             } break;
-
             case ACTION_KITE_TIP_ROTATION:
             case ACTION_KITE_TIP_ROTATION_ADD: {
-                token = lexer_next(lexer);
-                if (token.kind != NUMBER) {
+                if (!tkbc_message_read_u8(reader, (uint8_t *) &action.as_tip_rotation.tip)) {
                     check_return(false);
                 }
-                action.as_tip_rotation.tip = atoi(lexer_token_to_cstr(lexer, &token));
-
-                token = lexer_next(lexer);
-                if (token.kind != PUNCT_COLON) {
+                if (!tkbc_message_read_f32(reader, &action.as_tip_rotation.angle)) {
                     check_return(false);
                 }
-
-                token = lexer_next(lexer);
-                if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
-                    check_return(false);
-                }
-                if (token.kind == PUNCT_SUB) {
-                    sign = *(char *) token.content;
-                    tkbc_dap(&tmp_buffer, sign);
-                    token = lexer_next(lexer);
-                }
-                tkbc_dapc(&tmp_buffer, token.content, token.size);
-                tkbc_dap(&tmp_buffer, 0);
-                action.as_tip_rotation.angle = atof(tmp_buffer.elements);
-                tmp_buffer.count = 0;
             } break;
-
             default: assert(0 && "UNREACHABLE SCRIPT received_message_handler"); check_return(false);
             }
-
             frame.action = action;
 
-            if (frame.kind != ACTION_KITE_WAIT && frame.kind != ACTION_KITE_QUIT) {
-                token = lexer_next(lexer);
-                if (token.kind != PUNCT_COLON) {
-                    check_return(false);
-                }
-            }
-
-            token = lexer_next(lexer);
-            if (token.kind != NUMBER) {
+            if (!tkbc_message_read_f32(reader, &frame.duration)) {
                 check_return(false);
             }
-            frame.duration = atof(lexer_token_to_cstr(lexer, &token));
             frame.original_duration = frame.duration;
 
-            // These tow have no kites attached.
-            if (frame.kind != ACTION_KITE_WAIT && frame.kind != ACTION_KITE_QUIT) {
-                token = lexer_next(lexer);
-                if (token.kind != PUNCT_COLON) {
-                    check_return(false);
-                }
-                token = lexer_next(lexer);
-                if (token.kind != NUMBER) {
-                    check_return(false);
-                }
-                size_t kite_ids_count = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-                token = lexer_next(lexer);
-                if (token.kind != PUNCT_COLON) {
-                    check_return(false);
-                }
-                token = lexer_next(lexer);
-                if (token.kind != PUNCT_LPAREN) {
-                    check_return(false);
-                }
-                for (size_t k = 1; k <= kite_ids_count; ++k) {
-                    token = lexer_next(lexer);
-                    if (token.kind != NUMBER) {
-                        check_return(false);
-                    }
-
-                    size_t kite_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-                    bool contains = false;
-                    space_dap(scb_space, &frame.kite_id_array, kite_id);
-                    for (size_t id = 0; id < collected_kids.count; ++id) {
-                        if (collected_kids.elements[id] == kite_id) {
-                            contains = true;
-                            break;
-                        }
-                    }
-                    if (!contains) {
-                        tkbc_dap(&collected_kids, kite_id);
-                    }
-
-                    token = lexer_next(lexer);
-                    if (token.kind != PUNCT_COMMA && token.kind != PUNCT_RPAREN) {
-                        check_return(false);
-                    }
-                    if (token.kind == PUNCT_RPAREN && k != kite_ids_count) {
-                        check_return(false);
-                    }
-                }
-            }
-
-            token = lexer_next(lexer);
-            if (token.kind != PUNCT_COLON) {
+            // The kite ids count is always written for every kind, even when
+            // it is 0, so the list never has to be guessed. KITE_WAIT and
+            // KITE_QUIT carry no kites, so their count is 0.
+            uint64_t kite_ids_count;
+            if (!tkbc_message_read_u64(reader, &kite_ids_count)) {
                 check_return(false);
             }
+            for (uint64_t k = 0; k < kite_ids_count; ++k) {
+                uint64_t kite_id;
+                if (!tkbc_message_read_u64(reader, &kite_id)) {
+                    check_return(false);
+                }
+
+                bool contains = false;
+                space_dap(scb_space, &frame.kite_id_array, kite_id);
+                for (size_t id = 0; id < collected_kids.count; ++id) {
+                    if (collected_kids.elements[id] == kite_id) {
+                        contains = true;
+                        break;
+                    }
+                }
+                if (!contains) {
+                    tkbc_dap(&collected_kids, kite_id);
+                }
+            }
+
             space_dap(scb_space, scb_frames, frame);
         }
 
@@ -435,7 +277,7 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
         Message t_message = {0};
         {
             if (!tkbc_combine_message_script_amount_and_message_script_for_one_id(space_get_tspace(), &t_message,
-                                                                                 script_id)) {
+                                                                                  script_id)) {
                 space_reset_tspace();
                 check_return(false);
             }
@@ -448,18 +290,33 @@ bool tkbc_messages_script(Env *env, Lexer *lexer, Client *client, bool *script_a
             // sending side and have nothing to do with the ids in the kite array
             // of this side. Only the generated ones are known here and in the
             // kite arrays of the receiving clients.
-            space_tdapf(&t_message, "%d:%zu:", MESSAGE_CLIENTKITES, generated_kite_ids.count);
+            //
+            // The amount is counted up front so it always matches the number of
+            // kite values that follow it. A kite that cannot be resolved is
+            // skipped instead, which would otherwise leave the receiver reading
+            // past the end of the message.
+            size_t amount = 0;
             for (size_t i = 0; i < generated_kite_ids.count; ++i) {
-                Kite_State *kite_state = tkbc_get_kite_state_by_id(env, generated_kite_ids.elements[i]);
-                if (!kite_state) {
-                    tkbc_fprintf(stderr, "ERROR", "The generated kite id %zu was not found in the kite array.\n",
-                                 generated_kite_ids.elements[i]);
-                    continue;
+                if (tkbc_get_kite_state_by_id(env, generated_kite_ids.elements[i]) != NULL) {
+                    amount++;
                 }
-                tkbc_message_append_clientkite(kite_state->kite_id, &t_message, space_get_tspace());
             }
-            space_tdapf(&t_message, "\r\n");
-            tkbc_write_to_all_send_msg_buffers(t_message);
+
+            {
+                size_t offset = tkbc_message_write_begin(&t_message, space_get_tspace(), MESSAGE_CLIENTKITES);
+                tkbc_message_write_u64(&t_message, space_get_tspace(), (uint64_t) amount);
+                for (size_t i = 0; i < generated_kite_ids.count; ++i) {
+                    Kite_State *kite_state = tkbc_get_kite_state_by_id(env, generated_kite_ids.elements[i]);
+                    if (!kite_state) {
+                        tkbc_fprintf(stderr, "ERROR", "The generated kite id %zu was not found in the kite array.\n",
+                                     generated_kite_ids.elements[i]);
+                        continue;
+                    }
+                    tkbc_message_append_clientkite(kite_state->kite_id, &t_message, space_get_tspace());
+                }
+                tkbc_message_write_end(&t_message, offset);
+                tkbc_write_to_all_send_msg_buffers(t_message);
+            }
         }
         space_reset_tspace();
     }
@@ -471,7 +328,9 @@ parsing_skip:
         client->script_amount--;
     }
     if (was_expecting_script && client->script_amount == 0) {
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:\r\n", MESSAGE_SCRIPT_PARSED);
+        size_t offset =
+            tkbc_message_write_begin(&client->send_msg_buffer, &client->send_msg_buffer_space, MESSAGE_SCRIPT_PARSED);
+        tkbc_message_write_end(&client->send_msg_buffer, offset);
         // The sending is done automatically in the next section or in the client when the send call is performed.
     }
     tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT\n");
@@ -489,10 +348,6 @@ check:
     if (generated_kite_ids.elements) {
         free(generated_kite_ids.elements);
         generated_kite_ids.elements = NULL;
-    }
-    if (tmp_buffer.elements) {
-        free(tmp_buffer.elements);
-        tmp_buffer.elements = NULL;
     }
 
     return ok;

@@ -36,7 +36,7 @@ bool tkbc_close(int __fd);
 
 bool tkbc_base_execution(void);
 
-void tkbc_message_clientkites(Message *t_message, bool overwrite_is_active);
+void tkbc_message_clientkites(Message *t_message, Space *tspace, bool overwrite_is_active);
 void tkbc_message_clientkites_write_to_all_send_msg_buffers(bool overwrite_is_active);
 void tkbc_message_script_meta_data(Message *message, UUID script_id, size_t script_count, size_t frames_index);
 void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(UUID script_id, size_t script_count,

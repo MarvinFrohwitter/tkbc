@@ -86,19 +86,20 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float 
 
 /**
  * @brief The function extracts the values that should belong to a kite out of
- * the lexer data.
+ * a received message payload.
  *
- * @param lexer The current state and data of the string to parse.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @param id -1 if the parsed kite values should be updated, if the values
  * should not be updated pass the kite_id.
  * @param parsed_id The kite_id that is parsed out.
- * @return 1 if the kite values can be parsed out of the data the lexer
- * contains and is updated, 2 every thing like 1 but the assigned texture is
- * KITE_COLORIZER because the parsed texture was not available, if the kite
- * values are parsed not updated -1 is returned and 0 is returned if the
- * parsing has failed and no updates were made.
+ * @return 1 if the kite values can be parsed out of the payload and is
+ * updated, 2 every thing like 1 but the assigned texture is KITE_COLORIZER
+ * because the parsed texture was not available, if the kite values are parsed
+ * not updated -1 is returned and 0 is returned if the parsing has failed and no
+ * updates were made.
  */
-int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id, size_t *parsed_id) {
+int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parsed_id) {
     int ok = 1;
 
     float x, y, angle;
@@ -107,11 +108,11 @@ int tkbc_parse_single_kite_value(Lexer *lexer, ssize_t kite_id, size_t *parsed_i
 
     UUID texture_id;
     UUID inline_texture_id;
-    size_t texture_width, texture_height, texture_format;
+    int texture_width, texture_height, texture_format;
     Space *data_space = space_get_tspace();
     unsigned char *texture_data = NULL;
 
-    if (!tkbc_parse_message_kite_value(lexer, parsed_id, &x, &y, &angle, &color, &texture_id, &texture_width,
+    if (!tkbc_parse_message_kite_value(reader, parsed_id, &x, &y, &angle, &color, &texture_id, &texture_width,
                                        &texture_height, &texture_format, data_space, &texture_data, &inline_texture_id,
                                        &is_reversed, &is_active, &is_script_kite)) {
 
@@ -184,18 +185,21 @@ bool tkbc_message_script(Client *client, bool overwrite_was_send) {
         check_return(true);
     }
 
-    space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_AMOUNT,
-               total_amount_to_send);
+    {
+        size_t payload_offset =
+            tkbc_message_write_begin(&client->send_msg_buffer, &client->send_msg_buffer_space, MESSAGE_SCRIPT_AMOUNT);
+        tkbc_message_write_u64(&client->send_msg_buffer, &client->send_msg_buffer_space,
+                               (uint64_t) total_amount_to_send);
+        tkbc_message_write_end(&client->send_msg_buffer, payload_offset);
+    }
 
     for (size_t i = 0; i < env->scripts.count; ++i) {
         if (!overwrite_was_send) {
             if (env->scripts.elements[i].was_send) continue;
         }
-        size_t saved_count = client->send_msg_buffer.count;
         if (!tkbc_message_append_script(&client->send_msg_buffer_space, &client->send_msg_buffer,
                                         env->scripts.elements[i].id)) {
             tkbc_fprintf(stderr, "ERROR", "The script could not be appended to the message.\n");
-            client->send_msg_buffer.count = saved_count;
             check_return(false);
         }
 
@@ -220,8 +224,7 @@ check:
  * false.
  */
 bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) {
-
-    space_dapf(space, message, "%d:", MESSAGE_SCRIPT);
+    size_t payload_offset = tkbc_message_write_begin(message, space, MESSAGE_SCRIPT);
 
     for (size_t i = 0; i < env->scripts.count; ++i) {
         if (!tkbc_uuid_equals(env->scripts.elements[i].id, script_id)) {
@@ -229,16 +232,10 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
         }
         Script *script = &env->scripts.elements[i];
 
-        tkbc_message_append_uuid(space, message, script_id);
+        tkbc_message_write_uuid(message, space, script_id);
 
         const char *script_name = tkbc_script_name(script);
-        if (script_name[0] != '\0') {
-            size_t name_len = strlen(script_name);
-            space_dapf(space, message, "%zu:\"%s\":", name_len, script_name);
-        } else {
-            // To ensure the name_len can be 64 bit later.
-            space_dapf(space, message, "%zu:", (size_t) 0);
-        }
+        tkbc_message_write_c_string(message, space, script_name);
 
         // The original non-upscaled script: the receiver upscales and
         // bakes locally, so it can still be saved in its original form and
@@ -246,115 +243,95 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
         // live timeline holds.
 
         tkbc_redirect_script_elements(script);
-        space_dapf(space, message, "%zu:", script->original_count);
+        tkbc_message_write_u64(message, space, (uint64_t) script->original_count);
         for (size_t j = 0; j < script->original_count; ++j) {
             Frames *frames = &script->original_elements[j];
-            space_dapf(space, message, "%zu:%zu:", frames->frames_index, frames->count);
+            tkbc_message_write_u64(message, space, (uint64_t) frames->frames_index);
+            tkbc_message_write_u64(message, space, (uint64_t) frames->count);
 
             for (size_t k = 0; k < frames->count; ++k) {
-                space_dapf(space, message, "%zu:%d:%d:", frames->elements[k].index, frames->elements[k].finished,
-                           frames->elements[k].kind);
+                Frame *frame = &frames->elements[k];
+                tkbc_message_write_u64(message, space, (uint64_t) frame->index);
+                tkbc_message_write_bool(message, space, frame->finished);
+                tkbc_message_write_u8(message, space, (uint8_t) frame->kind);
 
                 static_assert(ACTION_KIND_COUNT == 9, "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
-                switch (frames->elements[k].kind) {
+                switch (frame->kind) {
                 case ACTION_KITE_QUIT:
                 case ACTION_KITE_WAIT: {
                 } break;
                 case ACTION_KITE_MOVE:
                 case ACTION_KITE_MOVE_ADD: {
-                    Move_Action action = frames->elements[k].action.as_move;
-                    space_dapf(space, message, "%f:%f:", action.position.x, action.position.y);
+                    Move_Action action = frame->action.as_move;
+                    tkbc_message_write_f32(message, space, action.position.x);
+                    tkbc_message_write_f32(message, space, action.position.y);
                 } break;
                 case ACTION_KITE_ROTATION:
                 case ACTION_KITE_ROTATION_ADD: {
-                    Rotation_Action action = frames->elements[k].action.as_rotation;
-                    space_dapf(space, message, "%f:", action.angle);
+                    Rotation_Action action = frame->action.as_rotation;
+                    tkbc_message_write_f32(message, space, action.angle);
                 } break;
                 case ACTION_KITE_TIP_ROTATION:
                 case ACTION_KITE_TIP_ROTATION_ADD: {
-                    Tip_Rotation_Action action = frames->elements[k].action.as_tip_rotation;
-                    space_dapf(space, message, "%d:%f:", action.tip, action.angle);
+                    Tip_Rotation_Action action = frame->action.as_tip_rotation;
+                    tkbc_message_write_u8(message, space, (uint8_t) action.tip);
+                    tkbc_message_write_f32(message, space, action.angle);
                 } break;
-                default:
-                    space_dapf(space, message, "UNKNOWN ACTION");
-                    assert(0 && "UNREACHABLE tkbc_message_append_script()");
+                default: assert(0 && "UNREACHABLE tkbc_message_append_script()");
                 }
 
-                space_dapf(space, message, "%f:", frames->elements[k].duration);
+                tkbc_message_write_f32(message, space, frame->duration);
 
-                Kite_Ids *kite_ids = &frames->elements[k].kite_id_array;
-                if (kite_ids->count) {
-                    space_dapf(space, message, "%zu:(", kite_ids->count);
-                    for (size_t id = 0; id < kite_ids->count; ++id) {
-                        space_dapf(space, message, "%zu,", kite_ids->elements[id]);
-                    }
-                    message->count--;
-                    space_dapf(space, message, "):");
+                // The kite ids count is always written, even when it is 0, so
+                // the receiver never has to guess whether the list is there.
+                Kite_Ids *kite_ids = &frame->kite_id_array;
+                tkbc_message_write_u64(message, space, (uint64_t) kite_ids->count);
+                for (size_t id = 0; id < kite_ids->count; ++id) {
+                    tkbc_message_write_u64(message, space, (uint64_t) kite_ids->elements[id]);
                 }
             }
         }
 
-        space_dapf(space, message, "\r\n");
-
         tkbc_remove_redirect_script_elements(script);
+
+        tkbc_message_write_end(message, payload_offset);
         return true;
     }
+
+    // Rewind the partially written message so the caller can abort cleanly.
+    message->count = payload_offset;
     return false;
 }
 
 /**
- * @brief The function parses image data from the lexer. It extracts the texture
- * id, width, height, format, and pixel data for a kite texture.
+ * @brief The function parses an image block out of a message payload. It
+ * extracts the uuid of the design, width, height, format and the raw pixel
+ * data.
  *
- * @param lexer The current lexer containing the message data.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @param data_space The space for allocating image data.
  * @param data Pointer to store the parsed image data.
  * @param width Pointer to store the image width.
  * @param height Pointer to store the image height.
  * @param format Pointer to store the pixel format.
- * @param texture_id Pointer to store the texture id.
+ * @param texture_id Pointer to store the uuid the originator assigned to the
+ * design.
  * @return True if the image was parsed successfully, otherwise false.
  */
-bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data, size_t *width, size_t *height,
-                      size_t *format, UUID *texture_id) {
-    bool ok = true;
-    Token token;
-
-    if (!tkbc_parse_uuid(lexer, texture_id)) {
-        return false;
-    }
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
+bool tkbc_parse_image(Message *reader, Space *data_space, unsigned char **data, int *width, int *height, int *format,
+                      UUID *texture_id) {
+    if (!tkbc_message_read_uuid(reader, texture_id)) {
         return false;
     }
 
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
+    if (!tkbc_message_read_s32(reader, width)) {
         return false;
     }
-    *width = atoll(lexer_token_to_cstr(lexer, &token));
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
+    if (!tkbc_message_read_s32(reader, height)) {
         return false;
     }
-
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        return false;
-    }
-    *height = atoll(lexer_token_to_cstr(lexer, &token));
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        return false;
-    }
-
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        return false;
-    }
-    *format = atoll(lexer_token_to_cstr(lexer, &token));
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
+    if (!tkbc_message_read_s32(reader, format)) {
         return false;
     }
 
@@ -367,45 +344,21 @@ bool tkbc_parse_image(Lexer *lexer, Space *data_space, unsigned char **data, siz
         // Other file format are not supported.
         return false;
     }
-    *data = space_malloc(data_space, *width * *height * 4 * sizeof(**data));
+
+    size_t pixel_bytes = *width * *height * sizeof(uint32_t);
+    *data = space_malloc(data_space, pixel_bytes * sizeof(**data));
     if (!*data) {
         return false;
     }
-
-    size_t offset = 0;
-    for (size_t y = 0; y < *height; y++) {
-        for (size_t x = 0; x < *width; x++) {
-            token = lexer_next(lexer);
-            if (token.kind != NUMBER) {
-                check_return(false);
-            }
-
-            uint32_t color_number = strtoull(lexer_token_to_cstr(lexer, &token), NULL, 10);
-            memcpy(*data + offset, &color_number, sizeof(color_number));
-
-            token = lexer_next(lexer);
-            if (token.kind != PUNCT_COLON) {
-                check_return(false);
-            }
-
-            offset += sizeof(color_number);
-        }
-    }
-
-check:
-    {
-    }
-    if (!ok) {
-        space_reset_space(data_space);
-    }
-    return ok;
+    return tkbc_message_read_bytes(reader, *data, pixel_bytes);
 }
 
 /**
- * @brief The function parses all values out of a single
- * MESSAGE_SINGLE_KITE_UPDATE that should be located in the lexer data.
+ * @brief The function parses all values of a single kite value block out of a
+ * message payload.
  *
- * @param lexer The current state and data of the string to parse.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @param kite_id The id the corresponding parsed value is assigned to.
  * @param x The x position the corresponding parsed value is assigned to.
  * @param y The y position the corresponding parsed value is assigned to.
@@ -430,240 +383,53 @@ check:
  * @return True if all values have been parsed correctly and are assigned,
  * otherwise false.
  */
-bool tkbc_parse_message_kite_value(Lexer *lexer, size_t *kite_id, float *x, float *y, float *angle, Color *color,
-                                   UUID *texture_id, size_t *texture_width, size_t *texture_height,
-                                   size_t *texture_format, Space *data_space, unsigned char **texture_data,
-                                   UUID *inline_texture_id, bool *is_reversed, bool *is_active, bool *is_script_kite) {
-    Content buffer = {0};
-    Token token;
-    bool ok = true;
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        check_return(false);
+bool tkbc_parse_message_kite_value(Message *reader, size_t *kite_id, float *x, float *y, float *angle, Color *color,
+                                   UUID *texture_id, int *texture_width, int *texture_height, int *texture_format,
+                                   Space *data_space, unsigned char **texture_data, UUID *inline_texture_id,
+                                   bool *is_reversed, bool *is_active, bool *is_script_kite) {
+    uint64_t kid;
+    if (!tkbc_message_read_u64(reader, &kid)) {
+        return false;
+    }
+    *kite_id = kid;
+
+    if (!tkbc_message_read_f32(reader, x)) {
+        return false;
+    }
+    if (!tkbc_message_read_f32(reader, y)) {
+        return false;
+    }
+    if (!tkbc_message_read_f32(reader, angle)) {
+        return false;
     }
 
-    *kite_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        check_return(false);
+    uint32_t color_number;
+    if (!tkbc_message_read_u32(reader, &color_number)) {
+        return false;
     }
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_LPAREN) {
-        check_return(false);
-    }
-
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
-        check_return(false);
-    }
-    if (token.kind == PUNCT_SUB) {
-        tkbc_dapc(&buffer, token.content, token.size);
-        token = lexer_next(lexer);
-        if (token.kind != NUMBER) {
-            check_return(false);
-        }
-    }
-    tkbc_dapc(&buffer, token.content, token.size);
-    tkbc_dap(&buffer, 0);
-    *x = atof(buffer.elements);
-    buffer.count = 0;
-
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COMMA) {
-        check_return(false);
-    }
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
-        check_return(false);
-    }
-    if (token.kind == PUNCT_SUB) {
-        tkbc_dapc(&buffer, token.content, token.size);
-        token = lexer_next(lexer);
-        if (token.kind != NUMBER) {
-            check_return(false);
-        }
-    }
-    tkbc_dapc(&buffer, token.content, token.size);
-    tkbc_dap(&buffer, 0);
-    *y = atof(buffer.elements);
-    buffer.count = 0;
-
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_RPAREN) {
-        check_return(false);
-    }
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        check_return(false);
-    }
-
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER && token.kind != PUNCT_SUB) {
-        check_return(false);
-    }
-    if (token.kind == PUNCT_SUB) {
-        tkbc_dapc(&buffer, token.content, token.size);
-        token = lexer_next(lexer);
-        if (token.kind != NUMBER) {
-            check_return(false);
-        }
-    }
-    tkbc_dapc(&buffer, token.content, token.size);
-    tkbc_dap(&buffer, 0);
-    *angle = atof(buffer.elements);
-    buffer.count = 0;
-
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        check_return(false);
-    }
-
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        check_return(false);
-    }
-    uint32_t color_number = atoll(lexer_token_to_cstr(lexer, &token));
     *color = tkbc_uint32_t_to_color(color_number);
 
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        check_return(false);
-    }
-
-    {
-        // The texture_id is a uuid. The nil uuid marks that the pixel data is
-        // transferred inline.
-        if (!tkbc_parse_uuid(lexer, texture_id)) {
-            check_return(false);
-        }
-
-        token = lexer_next(lexer);
-        if (token.kind != PUNCT_COLON) {
-            check_return(false);
-        }
+    if (!tkbc_message_read_uuid(reader, texture_id)) {
+        return false;
     }
 
     if (tkbc_uuid_is_nil(*texture_id)) {
         // The inlined image block carries the uuid of the originator. It is
         // handed back separately so the caller can store the image under that
         // very uuid instead of appending it as a brand new asset.
-        if (!tkbc_parse_image(lexer, data_space, texture_data, texture_width, texture_height, texture_format,
+        if (!tkbc_parse_image(reader, data_space, texture_data, texture_width, texture_height, texture_format,
                               inline_texture_id)) {
-            check_return(false);
+            return false;
         }
     } else {
         *inline_texture_id = tkbc_uuid_nil();
     }
 
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        check_return(false);
+    if (!tkbc_message_read_bool(reader, is_reversed)) {
+        return false;
     }
-    *is_reversed = !!atoi(lexer_token_to_cstr(lexer, &token));
-
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        check_return(false);
+    if (!tkbc_message_read_bool(reader, is_active)) {
+        return false;
     }
-
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        check_return(false);
-    }
-    *is_active = !!atoi(lexer_token_to_cstr(lexer, &token));
-
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        check_return(false);
-    }
-
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        check_return(false);
-    }
-    *is_script_kite = !!atoi(lexer_token_to_cstr(lexer, &token));
-
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        check_return(false);
-    }
-
-check:
-    if (buffer.elements) {
-        free(buffer.elements);
-        buffer.elements = NULL;
-    }
-    return ok;
-}
-
-/**
- * @brief The function tries to find \r\n in the message starting form the
- * given position without allocation in message the same way strstr does it.
- *
- * @param message The message structure the should hold the data.
- * @param position The position from where the search should start.
- * @return The pointer of the position where the needle starts or NULL.
- */
-inline char *tkbc_find_rn_in_message_from_position(Message *message, size_t position) {
-
-    if (!message || !message->elements || position >= message->count) {
-        return NULL;
-    }
-    if (message->count < 2) {
-        return NULL;
-    }
-
-    char message_last = message->elements[message->count - 1];
-    message->elements[message->count - 1] = '\0';
-    char *ptr = strstr(message->elements + position, "\r\n");
-    message->elements[message->count - 1] = message_last;
-    if (ptr == NULL) {
-        if (message->elements[message->count - 2] == '\r' && message->elements[message->count - 1] == '\n') {
-            return &message->elements[message->count - 2];
-        }
-
-        return NULL;
-    }
-
-    return ptr;
-}
-
-/**
- * @brief Handles parsing errors in received messages by skipping to the next
- * valid message delimiter.
- *
- * @param message The received message buffer.
- * @param lexer The lexer positioned at the error location.
- * @param reset Set to true if a delimiter was found and position was advanced.
- * @param display_errors If true, prints the error to stderr.
- * @return true If an error was handled and position was advanced.
- * @return false If no delimiter was found.
- */
-inline bool tkbc_error_handling_of_received_message_handler(Message *message, Lexer *lexer, bool *reset,
-                                                            bool display_errors) {
-
-    char *rn = tkbc_find_rn_in_message_from_position(message, lexer->position);
-    if (rn != NULL) {
-        *reset = true;
-        size_t jump_length = rn + 2 - (char *) &lexer->content[lexer->position];
-        //
-        // This assumes no logging is needed it destroys the correctness of a line
-        // and character reporting.
-        // use lexer_chop_char(lexer, jump_length); instead when logging is
-        // needed again..
-        lexer->position += jump_length;
-
-        if (display_errors) {
-            tkbc_fprintf(stderr, "WARNING", "Message: Parsing error: %.*s\n", jump_length,
-                         message->elements + message->i);
-        }
-        return true;
-    }
-
-    *reset = false;
-    if (display_errors) {
-        tkbc_fprintf(stderr, "WARNING", "Message unfinished: first read bytes: %zu\n", message->count - message->i);
-    }
-
-    return false;
+    return tkbc_message_read_bool(reader, is_script_kite);
 }

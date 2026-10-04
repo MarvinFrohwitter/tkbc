@@ -1,4 +1,3 @@
-#include "../../../external/lexer/tkbc-lexer.h"
 #include "../../../external/space/space.h"
 #include "../../choreographer/tkbc-asset-handler.h"
 #include "../../global/tkbc-types.h"
@@ -17,16 +16,17 @@ extern Assets assets;
  * design that is already known to this side is recognized instead of being
  * appended a second time under a different uuid.
  *
- * @param lexer The lexer that is used to read the message tokens.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @return Returns true if the image was parsed successfully, otherwise false.
  */
-bool tkbc_messages_send_texture(Lexer *lexer) {
-    size_t width, height, format;
+bool tkbc_messages_send_texture(Message *reader) {
+    int width, height, format;
     Space *data_space = space_get_tspace();
     unsigned char *data = NULL;
     UUID texture_id;
 
-    if (!tkbc_parse_image(lexer, data_space, &data, &width, &height, &format, &texture_id)) {
+    if (!tkbc_parse_image(reader, data_space, &data, &width, &height, &format, &texture_id)) {
         return false;
     }
 

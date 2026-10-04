@@ -1,4 +1,3 @@
-#include "../../../external/lexer/tkbc-lexer.h"
 #include "../../../external/space/space.h"
 #include "../../choreographer/tkbc-asset-handler.h"
 #include "../../choreographer/tkbc-script-handler.h"
@@ -16,24 +15,25 @@
  * parsed values, associating it with the client if it is the first kite.
  *
  * @param env The global state of the application.
- * @param lexer The lexer positioned at the message content.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @param client The client that sent the message and is possibly requested
  * for texture data.
  * @param client_kite Output parameter set to the client's kite on first add.
  * @return True if the kite was registered successfully, otherwise false.
  */
-bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client, Kite *client_kite) {
+bool tkbc_messages_single_kite_add(Env *env, Message *reader, Client *client, Kite *client_kite) {
     size_t kite_id;
     float x, y, angle;
     Color color;
     bool is_reversed, is_active, is_script_kite;
     UUID texture_id;
     UUID inline_texture_id;
-    size_t texture_width, texture_height, texture_format;
+    int texture_width, texture_height, texture_format;
     Space *data_space = space_get_tspace();
     unsigned char *texture_data = NULL;
 
-    if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle, &color, &texture_id, &texture_width,
+    if (!tkbc_parse_message_kite_value(reader, &kite_id, &x, &y, &angle, &color, &texture_id, &texture_width,
                                        &texture_height, &texture_format, data_space, &texture_data, &inline_texture_id,
                                        &is_reversed, &is_active, &is_script_kite)) {
         space_reset_tspace();
@@ -42,13 +42,20 @@ bool tkbc_messages_single_kite_add(Env *env, Lexer *lexer, Client *client, Kite 
 
     Asset *asset = tkbc_find_asset_from_id(texture_id);
     if (!asset && !tkbc_uuid_is_nil(texture_id)) {
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:", MESSAGE_GET_TEXTURE);
-        tkbc_message_append_uuid(&client->send_msg_buffer_space, &client->send_msg_buffer, texture_id);
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "\r\n");
+        {
+            size_t offset =
+                tkbc_message_write_begin(&client->send_msg_buffer, &client->send_msg_buffer_space, MESSAGE_GET_TEXTURE);
+            tkbc_message_write_uuid(&client->send_msg_buffer, &client->send_msg_buffer_space, texture_id);
+            tkbc_message_write_end(&client->send_msg_buffer, offset);
+        }
 
-        // requested texture id
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID,
-                   kite_id);
+        {
+            // requested texture id
+            size_t offset = tkbc_message_write_begin(&client->send_msg_buffer, &client->send_msg_buffer_space,
+                                                     MESSAGE_GET_TEXTURE_ID);
+            tkbc_message_write_u64(&client->send_msg_buffer, &client->send_msg_buffer_space, kite_id);
+            tkbc_message_write_end(&client->send_msg_buffer, offset);
+        }
 
         texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
     }

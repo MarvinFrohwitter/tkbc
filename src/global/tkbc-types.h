@@ -301,7 +301,7 @@ typedef enum {
     BOX_KEY = 2,
 } Key_Box;
 
-typedef enum {
+typedef enum {  // The underlying data type for the protocol is only a u8.
     LEFT_TIP = 1 << 0,
     RIGHT_TIP = 1 << 1,
 } TIP;                                   // The left and right tip of the leading edge.
@@ -469,7 +469,7 @@ typedef union {  // The collection of all the possible actions that can be used
     Quit_Action as_quit;
 } Action;
 
-typedef enum {
+typedef enum {  // The underlying data type for the protocol is only a u8.
     ACTION_KIND_NULL,
     ACTION_KITE_QUIT,
     ACTION_KITE_WAIT,

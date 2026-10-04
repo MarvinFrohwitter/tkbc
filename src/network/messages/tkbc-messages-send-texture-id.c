@@ -1,4 +1,3 @@
-#include "../../../external/lexer/tkbc-lexer.h"
 #include "../../../external/space/space.h"
 #include "../../choreographer/tkbc-asset-handler.h"
 #include "../../choreographer/tkbc-script-handler.h"
@@ -13,45 +12,43 @@
  * kite, requesting the texture data if not yet available.
  *
  * @param env The global state of the application.
- * @param lexer The lexer positioned at the message content.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @param client The client that sent the message.
  * @return True if the texture id was processed successfully, otherwise false.
  */
-bool tkbc_messages_send_texture_id(Env *env, Lexer *lexer, Client *client) {
-    Token token;
-    token = lexer_next(lexer);
-    if (token.kind != NUMBER) {
-        return false;
-    }
-    size_t kite_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
+bool tkbc_messages_send_texture_id(Env *env, Message *reader, Client *client) {
+    uint64_t kite_id;
+    if (!tkbc_message_read_u64(reader, &kite_id)) {
         return false;
     }
 
     // The nil uuid should not be send by the server. The server should always
     // send a valid texture_id.
     UUID texture_id;
-    if (!tkbc_parse_uuid(lexer, &texture_id)) {
+    if (!tkbc_message_read_uuid(reader, &texture_id)) {
         return false;
     }
     assert(!tkbc_uuid_is_nil(texture_id));
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
-        return false;
-    }
 
     Asset *asset = tkbc_find_asset_from_id(texture_id);
     if (asset == NULL) {
         // The message is split to allow getting a texture by its own at some
         // point. Maybe this is never needed, but it can be useful when a client
         // want to get all the available textures in the server.
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:", MESSAGE_GET_TEXTURE);
-        tkbc_message_append_uuid(&client->send_msg_buffer_space, &client->send_msg_buffer, texture_id);
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "\r\n");
+        {
+            size_t offset =
+                tkbc_message_write_begin(&client->send_msg_buffer, &client->send_msg_buffer_space, MESSAGE_GET_TEXTURE);
+            tkbc_message_write_uuid(&client->send_msg_buffer, &client->send_msg_buffer_space, texture_id);
+            tkbc_message_write_end(&client->send_msg_buffer, offset);
+        }
 
-        space_dapf(&client->send_msg_buffer_space, &client->send_msg_buffer, "%d:%zu:\r\n", MESSAGE_GET_TEXTURE_ID,
-                   kite_id);
+        {
+            size_t offset = tkbc_message_write_begin(&client->send_msg_buffer, &client->send_msg_buffer_space,
+                                                     MESSAGE_GET_TEXTURE_ID);
+            tkbc_message_write_u64(&client->send_msg_buffer, &client->send_msg_buffer_space, kite_id);
+            tkbc_message_write_end(&client->send_msg_buffer, offset);
+        }
 
     } else {
         // The kite_id should be present in the client, because it requested the

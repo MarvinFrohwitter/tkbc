@@ -36,7 +36,6 @@
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-popup.h"
 
-#include "../../external/lexer/tkbc-lexer.h"
 #include "../../tkbc_scripts/first.c"
 
 #ifdef _WIN32
@@ -343,8 +342,7 @@ bool send_message_send_handler() {
 #ifdef _WIN32
         int err_errno = WSAGetLastError();
         if (err_errno != WSAEWOULDBLOCK) {
-            tkbc_fprintf(stderr, "ERROR", "Could not broadcast message: %.*s\n", (int) client.send_msg_buffer.count,
-                         client.send_msg_buffer.elements);
+            tkbc_fprintf(stderr, "ERROR", "Could not broadcast message, unsent bytes: %zu\n", diff);
             tkbc_fprintf(stderr, "ERROR", "Write: %d\n", err_errno);
             check_return(false);
         } else {
@@ -352,8 +350,7 @@ bool send_message_send_handler() {
         }
 #else
         if (errno != EAGAIN) {
-            tkbc_fprintf(stderr, "ERROR", "Could not broadcast message: %.*s\n", (int) client.send_msg_buffer.count,
-                         client.send_msg_buffer.elements);
+            tkbc_fprintf(stderr, "ERROR", "Could not broadcast message, unsent bytes: %zu\n", diff);
             tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
 
             tkbc_fprintf(stderr, "ERROR", "Write: %s\n", strerror(errno));
@@ -395,48 +392,29 @@ check:
  * @brief The function parses the incoming messages from the server and handles
  * the resulting behavior.
  *
+ * A message is only handed to the handlers after its whole frame (length
+ * header + payload) has arrived. If a message is invalid the remaining frames
+ * of the buffer are dropped and the parser stops there as recovery.
+ *
  * @param message The message to parse and handle.
  * @return True if the parsing was successful an all resulting actions could be
  * handled, otherwise false and a parsing error has occurred.
  */
 bool received_message_handler(Message *message) {
-    bool reset = true;
-    Token token;
     bool ok = true;
     if (message->count == 0) {
         return ok;
     }
 
-    Lexer *lexer = lexer_new(__FILE__, message->elements, message->count, message->i);
-    do {
-        bool script_alleady_there_parsing_skip = false;
-        token = lexer_next(lexer);
-        if (token.kind == EOF_TOKEN) {
-            break;
-        }
-        if (token.kind == INVALID) {
-            break;
-        }
-        if (token.kind == NULL_TERMINATOR) {
-            // This is '\0' same as EOF in this case.
-            break;
-        }
-        if (token.kind == ERROR) {
+    static bool received_hello = false;
+    size_t pos = 0;
+    while (tkbc_is_message_complete(message, pos)) {
+        Message reader = tkbc_message_reader(message, pos);
+        uint8_t kind;
+        if (!tkbc_message_read_u8(&reader, &kind)) {
             goto err;
         }
 
-        if (token.kind != NUMBER) {
-            goto err;
-        }
-
-        int kind = atoi(lexer_token_to_cstr(lexer, &token));
-        size_t digits_count_of_kind = token.size;
-        token = lexer_next(lexer);
-        if (token.kind != PUNCT_COLON) {
-            goto err;
-        }
-
-        static bool received_hello = false;
         if (!client.handshake_passed) {
             if (!(kind == MESSAGE_HELLO_PASSED || kind == MESSAGE_HELLO)) {
                 goto err;
@@ -447,39 +425,38 @@ bool received_message_handler(Message *message) {
             }
         }
 
-        message->i = lexer->position - digits_count_of_kind - 1;
         static_assert(MESSAGE_COUNT == 21, "NEW MESSAGE_COUNT WAS INTRODUCED");
         switch (kind) {
         case MESSAGE_HELLO: {
-            if (!tkbc_messages_hello_verification(lexer, "\"Hello client from server!" PROTOCOL_VERSION "\"")) {
-                check_return(false);
+            if (!tkbc_messages_hello_verification(&reader, "Hello client from server!" PROTOCOL_VERSION)) {
+                goto err;
             }
 
-            {
-                const char quote = '\"';
-                space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%c%s" PROTOCOL_VERSION "%c:\r\n",
-                           MESSAGE_HELLO, quote, "Hello server from client!", quote);
-            }
+            size_t offset =
+                tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_HELLO);
+            tkbc_message_write_c_string(&client.send_msg_buffer, &client.send_msg_buffer_space,
+                                        "Hello server from client!" PROTOCOL_VERSION);
+            tkbc_message_write_end(&client.send_msg_buffer, offset);
 
             received_hello = true;
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO\n");
         } break;
         case MESSAGE_GET_TEXTURE: {
-            if (!tkbc_messages_get_texture(lexer, &client)) {
+            if (!tkbc_messages_get_texture(&reader, &client)) {
                 goto err;
             }
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "GET_TEXTURE\n");
         } break;
         case MESSAGE_SEND_TEXTURE: {
-            if (!tkbc_messages_send_texture(lexer)) {
+            if (!tkbc_messages_send_texture(&reader)) {
                 goto err;
             }
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SEND_TEXTURE\n");
         } break;
         case MESSAGE_SEND_TEXTURE_ID: {
-            if (!tkbc_messages_send_texture_id(env, lexer, &client)) {
+            if (!tkbc_messages_send_texture_id(env, &reader, &client)) {
                 goto err;
             }
 
@@ -491,7 +468,7 @@ bool received_message_handler(Message *message) {
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO_PASSED\n");
         } break;
         case MESSAGE_SINGLE_KITE_ADD: {
-            if (!tkbc_messages_single_kite_add(env, lexer, &client, &client_kite)) {
+            if (!tkbc_messages_single_kite_add(env, &reader, &client, &client_kite)) {
                 goto err;
             }
 
@@ -503,8 +480,8 @@ bool received_message_handler(Message *message) {
             assert(client.kite_id != -1);
             // Don't update my self the client is already more up to date than the
             // server sends. It is local and therefore faster.
-            int ok = tkbc_parse_single_kite_value(lexer, client.kite_id, &parsed_id);
-            if (!ok) {
+            int value_ok = tkbc_parse_single_kite_value(&reader, client.kite_id, &parsed_id);
+            if (!value_ok) {
                 goto err;
             }
 
@@ -516,37 +493,35 @@ bool received_message_handler(Message *message) {
             Kite *kite = tkbc_get_kite_by_id(env, parsed_id);
             if (kite) {
                 // The texture request for the kite.
-                if (ok == 2) {
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:", MESSAGE_GET_TEXTURE);
-                    tkbc_message_append_uuid(&client.send_msg_buffer_space, &client.send_msg_buffer, kite->texture_id);
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n",
-                               MESSAGE_GET_TEXTURE_ID, parsed_id);
+                if (value_ok == 2) {
+                    size_t text_offset = tkbc_message_write_begin(&client.send_msg_buffer,
+                                                                  &client.send_msg_buffer_space, MESSAGE_GET_TEXTURE);
+                    tkbc_message_write_uuid(&client.send_msg_buffer, &client.send_msg_buffer_space, kite->texture_id);
+                    tkbc_message_write_end(&client.send_msg_buffer, text_offset);
+                    size_t texture_id_offset = tkbc_message_write_begin(
+                        &client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_GET_TEXTURE_ID);
+                    tkbc_message_write_u64(&client.send_msg_buffer, &client.send_msg_buffer_space,
+                                           (uint64_t) parsed_id);
+                    tkbc_message_write_end(&client.send_msg_buffer, texture_id_offset);
                 }
             }
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
         } break;
         case MESSAGE_SCRIPT_META_DATA: {
-            if (!tkbc_messages_script_meta_data(lexer)) {
+            if (!tkbc_messages_script_meta_data(&reader)) {
                 goto err;
             }
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_META_DATA\n");
         } break;
         case MESSAGE_CLIENTKITES: {
-            token = lexer_next(lexer);
-            if (token.kind != NUMBER) {
+            uint64_t amount;
+            if (!tkbc_message_read_u64(&reader, &amount)) {
                 goto err;
             }
 
-            size_t amount = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-            token = lexer_next(lexer);
-            if (token.kind != PUNCT_COLON) {
-                goto err;
-            }
-
-            for (size_t i = 0; i < amount; ++i) {
+            for (uint64_t i = 0; i < amount; ++i) {
                 size_t kite_id;
                 float x, y, angle;
                 Color color;
@@ -554,26 +529,30 @@ bool received_message_handler(Message *message) {
 
                 UUID texture_id;
                 UUID inline_texture_id;
-                size_t texture_width, texture_height, texture_format;
+                int texture_width, texture_height, texture_format;
                 Space *data_space = space_get_tspace();
                 unsigned char *texture_data = NULL;
 
-                if (!tkbc_parse_message_kite_value(lexer, &kite_id, &x, &y, &angle, &color, &texture_id, &texture_width,
-                                                   &texture_height, &texture_format, data_space, &texture_data,
-                                                   &inline_texture_id, &is_reversed, &is_active, &is_script_kite)) {
+                if (!tkbc_parse_message_kite_value(&reader, &kite_id, &x, &y, &angle, &color, &texture_id,
+                                                   &texture_width, &texture_height, &texture_format, data_space,
+                                                   &texture_data, &inline_texture_id, &is_reversed, &is_active,
+                                                   &is_script_kite)) {
                     space_reset_tspace();
                     goto err;
                 }
 
                 Asset *found = tkbc_find_asset_from_id(texture_id);
                 if (!found && !tkbc_uuid_is_nil(texture_id)) {
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:", MESSAGE_GET_TEXTURE);
-                    tkbc_message_append_uuid(&client.send_msg_buffer_space, &client.send_msg_buffer, texture_id);
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
+                    size_t texture_offset = tkbc_message_write_begin(
+                        &client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_GET_TEXTURE);
+                    tkbc_message_write_uuid(&client.send_msg_buffer, &client.send_msg_buffer_space, texture_id);
+                    tkbc_message_write_end(&client.send_msg_buffer, texture_offset);
 
                     // requested texture id
-                    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n",
-                               MESSAGE_GET_TEXTURE_ID, kite_id);
+                    size_t texture_id_offset = tkbc_message_write_begin(
+                        &client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_GET_TEXTURE_ID);
+                    tkbc_message_write_u64(&client.send_msg_buffer, &client.send_msg_buffer_space, (uint64_t) kite_id);
+                    tkbc_message_write_end(&client.send_msg_buffer, texture_id_offset);
 
                     texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
                 }
@@ -622,13 +601,18 @@ bool received_message_handler(Message *message) {
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "CLIENTKITES\n");
         } break;
         case MESSAGE_SCRIPT: {
-            if (!tkbc_messages_script(env, lexer, &client, &script_alleady_there_parsing_skip)) {
-                goto err;
+            bool script_alleady_there_parsing_skip = false;
+            if (!tkbc_messages_script(env, &reader, &client, &script_alleady_there_parsing_skip)) {
+                if (!script_alleady_there_parsing_skip) {
+                    goto err;
+                }
+                // The script is already known on this side, so the rest of the
+                // frame was fast forwarded and never has to be read.
             }
 
         } break;
         case MESSAGE_SCRIPT_AMOUNT: {
-            if (!tkbc_messages_script_amount(&client, lexer)) {
+            if (!tkbc_messages_script_amount(&client, &reader)) {
                 goto err;
             }
 
@@ -648,54 +632,34 @@ bool received_message_handler(Message *message) {
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SCRIPT_FINISHED\n");
         } break;
         case MESSAGE_SCRIPT_DELETE: {
-            if (!tkbc_messages_script_delete(env, lexer, &client)) {
+            if (!tkbc_messages_script_delete(env, &reader, &client)) {
                 goto err;
             }
         } break;
         case MESSAGE_CLIENT_DISCONNECT: {
-            token = lexer_next(lexer);
-            if (token.kind != NUMBER) {
-                check_return(false);
+            uint64_t kite_id;
+            if (!tkbc_message_read_u64(&reader, &kite_id)) {
+                goto err;
             }
 
-            size_t kite_id = strtoul(lexer_token_to_cstr(lexer, &token), NULL, 10);
-            token = lexer_next(lexer);
-            if (token.kind != PUNCT_COLON) {
-                check_return(false);
-            }
-
-            tkbc_remove_unordered_kite_from_list(&env->kite_array, kite_id);
+            tkbc_remove_unordered_kite_from_list(&env->kite_array, (size_t) kite_id);
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "CLIENT_DISCONNET\n");
         } break;
         default: tkbc_fprintf(stderr, "ERROR", "Unknown KIND: %d\n", kind); goto err;
         }
+
+        pos += tkbc_get_complete_singe_message_size(message, pos);
         continue;
 
     err:
-        {
-            bool rerun = tkbc_error_handling_of_received_message_handler(message, lexer, &reset,
-                                                                         !script_alleady_there_parsing_skip);
-            if (rerun) {
-                continue;
-            }
-            break;
-        }
-    } while (token.kind != EOF_TOKEN);
-
-check:
-    // No lexer_del() for performant reuse of the message.
-    if (lexer->buffer.elements) {
-        free(lexer->buffer.elements);
-        lexer->buffer.elements = NULL;
+        ok = false;
+        break;
     }
-    free(lexer);
-    lexer = NULL;
 
-    if (reset) {
-        message->count = 0;
-        message->i = 0;
-    }
+    // Drop everything that has been handled and keep an incomplete frame that
+    // might get completed with the next recv().
+    tkbc_compact_message(message, pos);
 
     return ok;
 }
@@ -768,13 +732,9 @@ bool message_queue_handler() {
 
     if (!received_message_handler(&client.recv_msg_buffer)) {
         if (n > 0) {
-            tkbc_fprintf(stderr, "WARNING", "---------------------------------\n");
-            if (client.recv_msg_buffer.count < INT_MAX) {
-                fprintf(stderr, "%.*s", (int) client.recv_msg_buffer.count, client.recv_msg_buffer.elements);
-            } else {
-                fprintf(stderr, "Discarded message is to large to display!\n");
-            }
-            tkbc_fprintf(stderr, "WARNING", "---------------------------------\n");
+            // The buffer is binary, so only the amount of unparsed bytes is
+            // reported here.
+            tkbc_fprintf(stderr, "WARNING", "Parsing error, unparsed bytes: %zu\n", client.recv_msg_buffer.count);
         }
         return false;
     }
@@ -811,9 +771,10 @@ static bool tkbc_update_kites_input_handling_for_message_single_kite_update(Kite
         return false;
     }
 
-    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:", MESSAGE_SINGLE_KITE_UPDATE);
+    size_t offset =
+        tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SINGLE_KITE_UPDATE);
     tkbc_message_append_clientkite(kite_state->kite_id, &client.send_msg_buffer, &client.send_msg_buffer_space);
-    space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "\r\n");
+    tkbc_message_write_end(&client.send_msg_buffer, offset);
     return true;
 }
 
@@ -924,10 +885,11 @@ void tkbc_client_send_pending_script_deletes(void) {
         return;
     }
     for (size_t i = 0; i < env->pending_script_deletes.count; ++i) {
-        char uuid[37];
-        tkbc_uuid_to_string(env->pending_script_deletes.elements[i], uuid);
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:\"%s\":\r\n", MESSAGE_SCRIPT_DELETE,
-                   uuid);
+        size_t offset =
+            tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SCRIPT_DELETE);
+        tkbc_message_write_uuid(&client.send_msg_buffer, &client.send_msg_buffer_space,
+                                env->pending_script_deletes.elements[i]);
+        tkbc_message_write_end(&client.send_msg_buffer, offset);
     }
     env->pending_script_deletes.count = 0;
 }
@@ -946,25 +908,30 @@ void tkbc_client_input_handler_script(void) {
     // Hard reset to startposition angel 0
     // KEY_ENTER
     if (tkbc_check_keymaps_full(env->keymaps, KMH_SET_KITES_TO_START_POSITION, KEY_MAP_CHECK_KEY_PRESSED)) {
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:\r\n", MESSAGE_KITES_POSITIONS_RESET);
+        size_t offset = tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space,
+                                                 MESSAGE_KITES_POSITIONS_RESET);
+        tkbc_message_write_end(&client.send_msg_buffer, offset);
     }
 
     // KEY_SPACE
     if (tkbc_check_keymaps_full(env->keymaps, KMH_TOGGLE_SCRIPT_EXECUTION, KEY_MAP_CHECK_KEY_PRESSED)) {
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:\r\n", MESSAGE_SCRIPT_TOGGLE);
+        size_t offset =
+            tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SCRIPT_TOGGLE);
+        tkbc_message_write_end(&client.send_msg_buffer, offset);
     }
 
     // KEY_TAB
     if (env->new_script_selected) {
-        // Script ids start from 1 so +1 is needed.
-        char uuid[37];
-        if (env->script_menu_mouse_interaction_box == -1) {
-            tkbc_uuid_to_string(tkbc_uuid_nil(), uuid);
-        } else {
-            tkbc_uuid_to_string(env->scripts.elements[env->script_menu_mouse_interaction_box].id, uuid);
+        // A nil uuid selects "no script".
+        UUID script_id = tkbc_uuid_nil();
+        if (env->script_menu_mouse_interaction_box != -1) {
+            script_id = env->scripts.elements[env->script_menu_mouse_interaction_box].id;
         }
 
-        space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:\"%s\":\r\n", MESSAGE_SCRIPT_NEXT, uuid);
+        size_t offset =
+            tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SCRIPT_NEXT);
+        tkbc_message_write_uuid(&client.send_msg_buffer, &client.send_msg_buffer_space, script_id);
+        tkbc_message_write_end(&client.send_msg_buffer, offset);
         env->new_script_selected = false;
     }
 
@@ -987,16 +954,23 @@ void tkbc_client_input_handler_script(void) {
             }
             if (target != last_sent_scrub_target) {
                 last_sent_scrub_target = target;
-                space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%zu:\r\n", MESSAGE_SCRIPT_SCRUB,
-                           target);
+                size_t offset = tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space,
+                                                         MESSAGE_SCRIPT_SCRUB);
+                tkbc_message_write_u64(&client.send_msg_buffer, &client.send_msg_buffer_space, (uint64_t) target);
+                tkbc_message_write_end(&client.send_msg_buffer, offset);
             }
         } else {
             float slider = env->timeline_front.x + env->timeline_front.width;
             float c = mouse_x - slider;
             bool drag_left = c <= 0;
 
-            space_dapf(&client.send_msg_buffer_space, &client.send_msg_buffer, "%d:%d:\r\n", MESSAGE_SCRIPT_SCRUB,
-                       drag_left);
+            // NOTE: The server reads the scrub payload as an absolute frame
+            // index, so this fallback only ever jumps to frame 0 or 1. That is
+            // the behavior of the previous text protocol too.
+            size_t offset =
+                tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SCRIPT_SCRUB);
+            tkbc_message_write_u64(&client.send_msg_buffer, &client.send_msg_buffer_space, (uint64_t) drag_left);
+            tkbc_message_write_end(&client.send_msg_buffer, offset);
         }
     }
 }

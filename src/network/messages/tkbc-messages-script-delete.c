@@ -1,4 +1,3 @@
-#include "../../../external/lexer/tkbc-lexer.h"
 #include "../../../external/space/space.h"
 #include "../../choreographer/tkbc-script-handler.h"
 #include "../../global/tkbc-types.h"
@@ -24,30 +23,15 @@
  * not trigger the error recovery path.
  *
  * @param env The global state of the application.
- * @param lexer The lexer positioned at the message content.
+ * @param reader The Message that is scoped to the payload of one received
+ * message.
  * @param client The client that sent the message. On the server it is used
  * to exclude the originator from the broadcast. On the client it is unused.
  * @return True if the message was parsed successfully, otherwise false.
  */
-bool tkbc_messages_script_delete(Env *env, Lexer *lexer, Client *client) {
-    Token token;
-    token = lexer_next(lexer);
-    if (token.kind != STRINGLITERAL) {
-        return false;
-    }
-
-    // To strip the quotes manipulate the token directly
-    if (token.size <= 2) {
-        return false;
-    }
-    token.size -= 2;
-    token.content += 1;
+bool tkbc_messages_script_delete(Env *env, Message *reader, Client *client) {
     UUID script_id;
-    if (!tkbc_uuid_from_string(lexer_token_to_cstr(lexer, &token), &script_id)) {
-        return false;
-    }
-    token = lexer_next(lexer);
-    if (token.kind != PUNCT_COLON) {
+    if (!tkbc_message_read_uuid(reader, &script_id)) {
         return false;
     }
 
@@ -63,10 +47,10 @@ bool tkbc_messages_script_delete(Env *env, Lexer *lexer, Client *client) {
         return true;
     }
     {
-        char script_id_cstr[37];
-        tkbc_uuid_to_string(script_id, script_id_cstr);
         Message message = {0};
-        space_dapf(space_get_tspace(), &message, "%d:\"%s\":\r\n", MESSAGE_SCRIPT_DELETE, script_id_cstr);
+        size_t offset = tkbc_message_write_begin(&message, space_get_tspace(), MESSAGE_SCRIPT_DELETE);
+        tkbc_message_write_uuid(&message, space_get_tspace(), script_id);
+        tkbc_message_write_end(&message, offset);
         // The receiving (originating) client already deleted locally, so it
         // is excluded from the broadcast.
         tkbc_write_to_all_send_msg_buffers_except(message, client->socket_id);
