@@ -55,6 +55,10 @@ bool tkbc_messages_script_delete(Env *env, Message *reader, Client *client) {
         // is excluded from the broadcast.
         tkbc_write_to_all_send_msg_buffers_except(message, client->socket_id);
         space_reset_tspace();
+
+        if (ok == -1) {
+            tkbc_message_script_meta_data_write_to_all_send_msg_buffers(tkbc_uuid_nil(), 0, 0);
+        }
     }
 #else
     (void) client;
