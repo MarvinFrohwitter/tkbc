@@ -915,3 +915,10 @@ KeyboardKey tkbc_is_any_ascii_key_down() {
     }
     return KEY_NULL;
 }
+
+bool tkbc_activate_script_text_input(Text_Input *input, void *data) {
+    (void) data;
+    // Script names are only editable via right-click. Left-click just
+    // selects the row for CONFIRM/DOWNLOAD and must not start editing.
+    return IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && CheckCollisionPointRec(GetMousePosition(), input->box);
+}

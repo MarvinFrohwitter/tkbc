@@ -198,7 +198,8 @@ typedef struct {
     size_t capacity;
 } Text_Buffer;
 
-typedef struct {
+typedef struct Text_Input Text_Input;
+struct Text_Input {
     Rectangle box;
     Text_Buffer text;  // The buffer is grown with tkbc_text_input_reserve(),
                        // the owning Space is passed explicitly to each helper
@@ -218,8 +219,10 @@ typedef struct {
     float scroll_offset;     // Horizontal scroll offset of the text that does not fit the box.
     KeyboardKey (*key_constrained)(void);
 
+    bool (*activate)(Text_Input *text_input, void *user_data);
+    void *user_data;
     bool is_active;
-} Text_Input;
+};
 
 typedef enum {
     KMH_CHANGE_KEY_MAPPINGS = 1000,

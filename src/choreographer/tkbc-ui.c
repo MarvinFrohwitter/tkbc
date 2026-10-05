@@ -655,6 +655,10 @@ bool tkbc_ui_script_menu(Env *env) {
     }
 
     if (!env->script_menu_interaction) {
+        for (size_t i = 0; i < env->scripts.count; ++i) {
+            env->scripts.elements[i].name_input.is_active = false;
+            env->scripts.elements[i].name_input.selection_start = SIZE_MAX;
+        }
         return false;
     }
 
@@ -699,7 +703,7 @@ bool tkbc_ui_script_menu(Env *env) {
         DrawRectangleRounded(script_box, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
 
         if (CheckCollisionPointRec(mouse, script_box)) {
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
                 env->script_menu_mouse_interaction = true;
                 env->script_menu_mouse_interaction_box = box;
             }
@@ -780,15 +784,28 @@ bool tkbc_ui_script_menu(Env *env) {
         {
             script->name_input.box = text_element_box;
             script->name_input.font_size = font_size;
-            script->name_input.is_active = false;
-            if (env->script_menu_mouse_interaction && (size_t) env->script_menu_mouse_interaction_box == box) {
-                script->name_input.is_active = true;
-            }
-            if (env->script_menu_mouse_interaction_box == -1 ||
-                (size_t) env->script_menu_mouse_interaction_box != box) {
+
+            // Right-click inside the box activates via
+            // tkbc_activate_script_text_input. Any click outside the box
+            // deactivates again, clicks inside never deactivate so cursor
+            // placement and drag-selection keep working while active.
+            bool inside = CheckCollisionPointRec(mouse, script->name_input.box);
+            if (!inside &&
+                (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))) {
+                script->name_input.is_active = false;
                 script->name_input.selection_start = SIZE_MAX;
             }
+
             tkbc_handle_text_input(&script->name_input, &script->space);
+
+            if (script->name_input.is_active) {
+                if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
+                    script->name_input.is_active = false;
+                    script->name_input.selection_start = SIZE_MAX;
+                } else {
+                    env->text_input_active = true;
+                }
+            }
         }
 
         script_box.y += script_box.height + padding;
@@ -1990,7 +2007,9 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
     Vector2 text_size =
         tkbc_measure_text_sized_ex(input->font, cstr, (int) initial_char_amount, input->font_size, input->spacing);
 
-    if (CheckCollisionPointRec(GetMousePosition(), input->box) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if (input->activate
+            ? input->activate(input, input->user_data)
+            : (CheckCollisionPointRec(GetMousePosition(), input->box) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))) {
         input->cursor_pos = tkbc_get_char_at_x_pos(input, GetMousePosition().x);
         input->selection_start = input->cursor_pos;
         input->is_active = true;
