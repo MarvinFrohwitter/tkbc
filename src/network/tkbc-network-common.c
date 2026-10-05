@@ -169,6 +169,15 @@ check:
 bool tkbc_message_script(Client *client, bool overwrite_was_send) {
     bool ok = true;
 
+#ifdef TKBC_SERVER
+    // Scripts are never part of the handshake protocol. Defer them until the
+    // client answered HELLO and HELLO_PASSED was queued, without consuming
+    // the was_send flags so the HELLO handler can still send them afterwards.
+    if (!client->handshake_passed) {
+        return true;
+    }
+#endif
+
     size_t total_amount_to_send = 0;
     size_t saved_count = client->send_msg_buffer.count;
 

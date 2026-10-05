@@ -138,23 +138,72 @@ Kite_State *tkbc_check_for_orphan_kite_states(bool *orphan) {
  * @brief The function appends the given message to the client send messages
  * buffer that later is send in a batch to the client.
  *
+ * Until the handshake has passed (client answered the server HELLO and the
+ * server queued HELLO_PASSED) only the handshake protocol itself
+ * (MESSAGE_HELLO, MESSAGE_HELLO_PASSED) is queued. Any other framed message
+ * in @p message is dropped for that client so a joining client can never
+ * observe script, kite or texture traffic before HELLO_PASSED.
+ *
  * @param client The client where the message should be send to.
  * @param message The message that should be send to the given client.
  */
 void tkbc_write_to_send_msg_buffer(Client *client, Message message) {
-    space_dapc(&client->send_msg_buffer_space, &client->send_msg_buffer, message.elements, message.count);
+    if (message.count == 0 || message.elements == NULL) {
+        return;
+    }
 
-    tkbc_get_pollfd_by_fd(client->socket_id)->events = POLLWRNORM;
+    if (!client->handshake_passed) {
+        size_t pos = 0;
+        size_t appended = 0;
+        while (pos + sizeof(uint32_t) <= message.count) {
+            uint32_t payload_size;
+            memcpy(&payload_size, message.elements + pos, sizeof(payload_size));
+            size_t total = sizeof(uint32_t) + payload_size;
+            if (pos + total > message.count) {
+                break;
+            }
+            uint8_t kind = (uint8_t) message.elements[pos + sizeof(uint32_t)];
+            if (tkbc_server_message_kind_allowed_before_handshake(kind)) {
+                space_dapc(&client->send_msg_buffer_space, &client->send_msg_buffer, message.elements + pos,
+                           total);
+                appended += total;
+            } else {
+#ifdef TKBC_LOGGING_WARNING
+                tkbc_fprintf(stderr, "WARNING", "Dropped %u for " CLIENT_FMT " before handshake.\n", kind,
+                             CLIENT_ARG(*client));
+#endif
+            }
+            pos += total;
+        }
+        if (appended == 0) {
+            return;
+        }
+    } else {
+        space_dapc(&client->send_msg_buffer_space, &client->send_msg_buffer, message.elements, message.count);
+    }
+
+    struct pollfd *pollfd = tkbc_get_pollfd_by_fd(client->socket_id);
+    if (pollfd != NULL) {
+        pollfd->events = POLLWRNORM;
+    }
 }
 
 /**
  * @brief The function appends the given message to all the registered clients
  * send messages buffers that later are send in a batch to the clients.
  *
+ * Clients whose handshake has not passed yet are silently skipped unless the
+ * batch contains only handshake protocol frames (see
+ * tkbc_write_to_send_msg_buffer() which drops the rest per frame).
+ *
  * @param message The message that should be send to the given clients.
  */
 void tkbc_write_to_all_send_msg_buffers(Message message) {
+    bool handshake_only = tkbc_server_message_batch_allowed_before_handshake(&message);
     for (size_t i = 0; i < clients.count; ++i) {
+        if (!clients.elements[i].handshake_passed && !handshake_only) {
+            continue;
+        }
         tkbc_write_to_send_msg_buffer(&clients.elements[i], message);
     }
 }
@@ -163,13 +212,21 @@ void tkbc_write_to_all_send_msg_buffers(Message message) {
  * @brief The function appends the given message to all the registered clients
  * send message buffers except the one given by the fd.
  *
+ * Clients whose handshake has not passed yet are silently skipped unless the
+ * batch contains only handshake protocol frames (see
+ * tkbc_write_to_send_msg_buffer() which drops the rest per frame).
+ *
  * @param message The message that should be send to the clients except the
  * one specified with the fd..
  * @param fd The file descriptor where the message should not be send to.
  */
 void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd) {
+    bool handshake_only = tkbc_server_message_batch_allowed_before_handshake(&message);
     for (size_t i = 0; i < clients.count; ++i) {
         if (clients.elements[i].socket_id != fd) {
+            if (!clients.elements[i].handshake_passed && !handshake_only) {
+                continue;
+            }
             tkbc_write_to_send_msg_buffer(&clients.elements[i], message);
         }
     }
@@ -544,6 +601,7 @@ bool tkbc_server_accept(void) {
             .socket_id = client_socket_id,
             .client_address = client_address,
             .client_address_length = address_length,
+            .handshake_passed = false,
         };
 
         space_init_capacity(&client.send_msg_buffer_space, BUFFER_CAPACITY);
@@ -629,6 +687,60 @@ bool tkbc_sockets_read(Client *client) {
 }
 
 /**
+ * @brief Removes queued messages that are not part of the handshake protocol
+ * from a client whose handshake has not passed yet.
+ *
+ * This is the last line of defense before bytes hit the wire: it drops fully
+ * unsent frames whose kind is neither MESSAGE_HELLO nor MESSAGE_HELLO_PASSED.
+ * Already (partially) sent bytes are left untouched so the stream stays
+ * parseable. With the filtering in tkbc_write_to_send_msg_buffer() this
+ * should normally find nothing to drop; it only covers direct writes to
+ * @c client->send_msg_buffer that bypassed that filter.
+ *
+ * @param client The client whose unsent send buffer region is pruned.
+ */
+static void tkbc_server_prune_send_buffer_for_handshake(Client *client) {
+    if (client->handshake_passed) {
+        return;
+    }
+    Message *buffer = &client->send_msg_buffer;
+    if (buffer->count == 0 || buffer->elements == NULL) {
+        return;
+    }
+    size_t pos = 0;
+    while (pos + sizeof(uint32_t) <= buffer->count) {
+        uint32_t payload_size;
+        memcpy(&payload_size, buffer->elements + pos, sizeof(payload_size));
+        size_t total = sizeof(uint32_t) + payload_size;
+        if (pos + total > buffer->count) {
+            break;
+        }
+        if (pos + total <= buffer->i) {
+            pos += total;
+            continue;
+        }
+        if (pos < buffer->i) {
+            // Partially sent frame, the prefix already hit the wire and can
+            // no longer be recalled. Keep the remainder to keep the stream
+            // parseable.
+            pos += total;
+            continue;
+        }
+        uint8_t kind = (uint8_t) buffer->elements[pos + sizeof(uint32_t)];
+        if (tkbc_server_message_kind_allowed_before_handshake(kind)) {
+            pos += total;
+        } else {
+#ifdef TKBC_LOGGING_WARNING
+            tkbc_fprintf(stderr, "WARNING", "Dropped queued %u for " CLIENT_FMT " before handshake.\n", kind,
+                         CLIENT_ARG(*client));
+#endif
+            memmove(buffer->elements + pos, buffer->elements + pos + total, buffer->count - (pos + total));
+            buffer->count -= total;
+        }
+    }
+}
+
+/**
  * @brief The function manages sending the internal message stored in the
  * send_msg_buffer from the client to the client.
  *
@@ -638,6 +750,10 @@ bool tkbc_sockets_read(Client *client) {
  * an error occurred or -11 if the error was EAGAIN.
  */
 int tkbc_socket_write(Client *client) {
+    tkbc_server_prune_send_buffer_for_handshake(client);
+    if (client->send_msg_buffer.count <= client->send_msg_buffer.i) {
+        return 0;
+    }
     size_t length = BUFFER_CAPACITY;
     size_t diff = (client->send_msg_buffer.count - client->send_msg_buffer.i);
     size_t amount = diff < length ? diff : length;

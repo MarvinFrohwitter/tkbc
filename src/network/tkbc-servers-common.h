@@ -69,6 +69,65 @@ typedef struct {
     size_t capacity;
 } Clients;
 
+/**
+ * @brief Checks if a message kind may be sent to a client whose handshake has
+ * not passed yet.
+ *
+ * Only the handshake protocol itself (HELLO in both directions and the
+ * server's HELLO_PASSED) is allowed before the client answered the server
+ * HELLO with its own HELLO. Everything else has to wait until
+ * @c handshake_passed is true.
+ *
+ * @param kind The message kind byte as stored on the wire.
+ * @return True for MESSAGE_HELLO and MESSAGE_HELLO_PASSED, otherwise false.
+ */
+static inline bool tkbc_server_message_kind_allowed_before_handshake(uint8_t kind) {
+    return kind == MESSAGE_HELLO || kind == MESSAGE_HELLO_PASSED;
+}
+
+/**
+ * @brief Checks if the given client may currently receive the given kind.
+ *
+ * @param client The client the message should be sent to.
+ * @param kind The message kind byte as stored on the wire.
+ * @return True if the handshake already passed or the kind is part of the
+ * handshake protocol, otherwise false.
+ */
+static inline bool tkbc_server_client_may_receive_kind(const Client *client, uint8_t kind) {
+    return client->handshake_passed || tkbc_server_message_kind_allowed_before_handshake(kind);
+}
+
+/**
+ * @brief Checks if a batched message contains only handshake protocol frames.
+ *
+ * Used by the broadcast helpers to silently skip clients whose handshake has
+ * not passed yet instead of queuing (and then dropping) per frame.
+ *
+ * @param message The batched message as passed to tkbc_write_to_*().
+ * @return True if every complete frame is HELLO/HELLO_PASSED, false otherwise
+ * (including incomplete trailing bytes).
+ */
+static inline bool tkbc_server_message_batch_allowed_before_handshake(const Message *message) {
+    if (message->count == 0 || message->elements == NULL) {
+        return true;
+    }
+    size_t pos = 0;
+    while (pos + sizeof(uint32_t) <= message->count) {
+        uint32_t payload_size;
+        memcpy(&payload_size, message->elements + pos, sizeof(payload_size));
+        size_t total = sizeof(uint32_t) + payload_size;
+        if (pos + total > message->count) {
+            return false;
+        }
+        uint8_t kind = (uint8_t) message->elements[pos + sizeof(uint32_t)];
+        if (!tkbc_server_message_kind_allowed_before_handshake(kind)) {
+            return false;
+        }
+        pos += total;
+    }
+    return pos == message->count;
+}
+
 #define CLIENT_FMT "Index: %zu, Socket: %d, Address: (%s:%hu)"
 #define CLIENT_ARG(c)                                                                                                  \
     ((c).kite_id), ((c).socket_id), (inet_ntoa((c).client_address.sin_addr)), (ntohs((c).client_address.sin_port))
