@@ -722,7 +722,8 @@ bool received_message_handler(Message *message) {
  * @return True if the reading and parsing of the received messages from the
  * server was successful, otherwise false.
  */
-bool message_queue_handler() {
+bool message_queue_handler(bool *eof) {
+    *eof = false;
     if (client.recv_msg_buffer.count == 0 && client.recv_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
         tkbc_fprintf(stderr, "INFO", "realloced message: old capacity: %zu\n", client.recv_msg_buffer.capacity);
 
@@ -777,6 +778,7 @@ bool message_queue_handler() {
     }
 
     if (n == 0) {
+        *eof = true;
         return false;
     }
 
@@ -1221,16 +1223,38 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+static void offline_creation(Env *env) {
+    // Generate a base kite that you can fly. The server doesn't provide you a
+    // kite.
+    Kite_State s = tkbc_init_kite();
+    s.is_active = true;
+    s.kite_id = env->kite_id_counter++;
+    client.kite_id = s.kite_id;
+    s.is_kite_input_handler_active = true;
+    client_kite = *s.kite;
+    tkbc_dap(&env->kite_array, s);
+    sending_receiving = false;
+    loading.active = false;
+}
+
 bool tkbc_run(Env *env) {
     if (sending_receiving) {
-        if (!message_queue_handler()) {
-            disconnect.active = true;
-            assert(client.kite_id != -1);
-            tkbc_remove_non_script_kites_except(&env->kite_array, (size_t) client.kite_id);
-            tkbc_unload_script(env);
-            tkbc_change_visibility_to_non_script_kites(env);
-            tkbc_get_kite_state_by_id(env, client.kite_id)->is_kite_input_handler_active = true;
-            client.socket_id = -1;
+        bool eof;
+        if (!message_queue_handler(&eof)) {
+            if (client.kite_id == -1 && eof) {
+                // Discard wrong messages before handshake at RELEASE time when assert is removed.
+                // Currently that would be a bug in the server protocol implementation.
+                assert(client.kite_id != -1);
+                offline_creation(env);
+            }
+            if (eof) {
+                disconnect.active = true;
+                tkbc_remove_non_script_kites_except(&env->kite_array, (size_t) client.kite_id);
+                tkbc_unload_script(env);
+                tkbc_change_visibility_to_non_script_kites(env);
+                tkbc_get_kite_state_by_id(env, client.kite_id)->is_kite_input_handler_active = true;
+                client.socket_id = -1;
+            }
         }
         sending_receiving = send_message_send_handler();
     }
@@ -1307,17 +1331,7 @@ void tkbc_init_online_or_offline_state(Env *env, const char *host, const char *p
     // This is deferred to allow window creation, asset loading and env init.
     client.socket_id = tkbc_client_socket_creation(host, port);
     if (client.socket_id == -1) {
-        // Generate a base kite that you can fly. The server doesn't provide you a
-        // kite.
-        Kite_State s = tkbc_init_kite();
-        s.is_active = true;
-        s.kite_id = env->kite_id_counter++;
-        client.kite_id = s.kite_id;
-        s.is_kite_input_handler_active = true;
-        client_kite = *s.kite;
-        tkbc_dap(&env->kite_array, s);
-        sending_receiving = false;
-        loading.active = false;
+        offline_creation(env);
     } else {
         loading.active = true;
         space_init_capacity(&client.send_msg_buffer_space, BUFFER_CAPACITY);

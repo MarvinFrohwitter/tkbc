@@ -4,6 +4,7 @@
 #include "../global/tkbc-popup.h"
 #include "tkbc-network-common.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 void tkbc_client_usage(const char *program_name);
 bool tkbc_client_commandline_check(int argc, const char *program_name);
@@ -14,7 +15,7 @@ void tkbc_register_kite_from_values(size_t kite_id, float x, float y, float angl
 void sending_script_handler(void);
 bool send_message_handler(void);
 bool received_message_handler(Message *message);
-bool message_queue_handler();
+bool message_queue_handler(bool *eof);
 void tkbc_client_input_handler_kite(void);
 void tkbc_client_send_pending_script_deletes(void);
 void tkbc_client_file_handler(void);
