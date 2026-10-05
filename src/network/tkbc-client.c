@@ -294,6 +294,11 @@ void sending_script_handler(void) {
     if (!env->script_setup) {
         return;
     }
+    if (client.socket_id != -1 && !client.handshake_passed) {
+        // Handshake not done yet: only HELLO may be sent. Defer without
+        // consuming script_setup so the send is retried after HELLO_PASSED.
+        return;
+    }
     size_t prev_kite_array_count = env->kite_array.count;
     // For detection if the begin and end is called correctly.
     env->script_setup = false;
@@ -320,6 +325,55 @@ void sending_script_handler(void) {
 }
 
 /**
+ * @brief Removes queued messages that are not part of the handshake protocol
+ * while the handshake has not passed yet.
+ *
+ * This is the last line of defense before bytes hit the wire: it drops fully
+ * unsent frames whose kind is not MESSAGE_HELLO. Already (partially) sent
+ * bytes are left untouched so the stream stays parseable. With the producer
+ * guards below this should normally find nothing to drop.
+ */
+static void tkbc_client_prune_send_buffer_for_handshake(void) {
+    if (client.handshake_passed) {
+        return;
+    }
+    Message *buffer = &client.send_msg_buffer;
+    if (buffer->count == 0 || buffer->elements == NULL) {
+        return;
+    }
+    size_t pos = 0;
+    while (pos + sizeof(uint32_t) <= buffer->count) {
+        uint32_t payload_size;
+        memcpy(&payload_size, buffer->elements + pos, sizeof(payload_size));
+        size_t total = sizeof(uint32_t) + payload_size;
+        if (pos + total > buffer->count) {
+            break;
+        }
+        if (pos + total <= buffer->i) {
+            pos += total;
+            continue;
+        }
+        if (pos < buffer->i) {
+            // Partially sent frame, the prefix already hit the wire and can
+            // no longer be recalled. Keep the remainder to keep the stream
+            // parseable.
+            pos += total;
+            continue;
+        }
+        uint8_t kind = (uint8_t) buffer->elements[pos + sizeof(uint32_t)];
+        if (tkbc_client_message_kind_allowed_before_handshake(kind)) {
+            pos += total;
+        } else {
+#ifdef TKBC_LOGGING_WARNING
+            tkbc_fprintf(stderr, "WARNING", "Dropped queued %u before handshake.\n", kind);
+#endif
+            memmove(buffer->elements + pos, buffer->elements + pos + total, buffer->count - (pos + total));
+            buffer->count -= total;
+        }
+    }
+}
+
+/**
  * @brief The function sends all the messages in the send_message_queue to the
  * server.
  *
@@ -328,7 +382,8 @@ void sending_script_handler(void) {
  */
 bool send_message_send_handler() {
     bool ok = true;
-    if (client.send_msg_buffer.count == 0) {
+    tkbc_client_prune_send_buffer_for_handshake();
+    if (client.send_msg_buffer.count == 0 || client.send_msg_buffer.count <= client.send_msg_buffer.i) {
         check_return(true);
     }
 
@@ -757,6 +812,11 @@ static bool tkbc_update_kites_input_handling_for_message_single_kite_update(Kite
     if (client.socket_id == -1) {
         return true;
     }
+    if (!client.handshake_passed) {
+        // Handshake not done yet: only HELLO may be sent. Drop the update,
+        // the next frame re-evaluates the position anyway.
+        return false;
+    }
 
     // NOTE:
     // Rate limiting / data throttling
@@ -884,6 +944,11 @@ void tkbc_client_send_pending_script_deletes(void) {
         env->pending_script_deletes.count = 0;
         return;
     }
+    if (!client.handshake_passed) {
+        // Handshake not done yet: only HELLO may be sent. Keep the queue so
+        // the deletions are sent after HELLO_PASSED.
+        return;
+    }
     for (size_t i = 0; i < env->pending_script_deletes.count; ++i) {
         size_t offset =
             tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SCRIPT_DELETE);
@@ -899,6 +964,11 @@ void tkbc_client_send_pending_script_deletes(void) {
  * messages that are send to the server.
  */
 void tkbc_client_input_handler_script(void) {
+    if (client.socket_id != -1 && !client.handshake_passed) {
+        // Handshake not done yet: only HELLO may be sent. Defer without
+        // consuming new_script_selected or scrub state.
+        return;
+    }
     tkbc_client_send_pending_script_deletes();
 
     if (env->scripts.count <= 0) {

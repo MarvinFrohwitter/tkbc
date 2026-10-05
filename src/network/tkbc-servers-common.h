@@ -128,6 +128,33 @@ static inline bool tkbc_server_message_batch_allowed_before_handshake(const Mess
     return pos == message->count;
 }
 
+/**
+ * @brief Checks if a message kind may be sent by the client before its
+ * handshake has passed.
+ *
+ * The client side of the handshake is a single MESSAGE_HELLO reply to the
+ * server HELLO. Everything else has to wait until MESSAGE_HELLO_PASSED was
+ * received and @c handshake_passed is true.
+ *
+ * @param kind The message kind byte as stored on the wire.
+ * @return True for MESSAGE_HELLO, otherwise false.
+ */
+static inline bool tkbc_client_message_kind_allowed_before_handshake(uint8_t kind) {
+    return kind == MESSAGE_HELLO;
+}
+
+/**
+ * @brief Checks if the client may currently send the given kind.
+ *
+ * @param client The client holding the handshake state.
+ * @param kind The message kind byte as stored on the wire.
+ * @return True if the handshake already passed or the kind is the HELLO
+ * reply, otherwise false.
+ */
+static inline bool tkbc_client_may_send_kind(const Client *client, uint8_t kind) {
+    return client->handshake_passed || tkbc_client_message_kind_allowed_before_handshake(kind);
+}
+
 #define CLIENT_FMT "Index: %zu, Socket: %d, Address: (%s:%hu)"
 #define CLIENT_ARG(c)                                                                                                  \
     ((c).kite_id), ((c).socket_id), (inet_ntoa((c).client_address.sin_addr)), (ntohs((c).client_address.sin_port))
