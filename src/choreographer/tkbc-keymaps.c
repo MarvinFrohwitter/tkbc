@@ -34,22 +34,22 @@ int tkbc_load_keymaps_from_file(Key_Maps *keymaps, const char *filename) {
         if (t.kind != NUMBER) {
             check_return(1);
         }
-        int hash = atoi(lexer_token_to_cstr(lexer, &t));
+        int hash = atol(lexer_token_to_cstr(lexer, &t));
         t = lexer_next(lexer);
         if (t.kind != NUMBER) {
             check_return(1);
         }
-        int mod_key = atoi(lexer_token_to_cstr(lexer, &t));
+        int mod_key = atol(lexer_token_to_cstr(lexer, &t));
         t = lexer_next(lexer);
         if (t.kind != NUMBER) {
             check_return(1);
         }
-        int selection_key = atoi(lexer_token_to_cstr(lexer, &t));
+        int selection_key = atol(lexer_token_to_cstr(lexer, &t));
         t = lexer_next(lexer);
         if (t.kind != NUMBER) {
             check_return(1);
         }
-        int key = atoi(lexer_token_to_cstr(lexer, &t));
+        int key = atol(lexer_token_to_cstr(lexer, &t));
         t = lexer_next(lexer);
 
         for (size_t i = 0; i < keymaps->count; ++i) {
