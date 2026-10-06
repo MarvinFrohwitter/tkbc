@@ -499,8 +499,9 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
 
     } else {
         center = kite->center;
-        tkbc_set_kite_internals(kite, fly_speed, turn_speed, kite->body_color, top_color, overlap, inner_space, spread,
-                                width, height, angle, center, scale);
+        // All fields in the Kite_Config should not be changed. So the user can manually modify them.
+        tkbc_set_kite_internals(kite, fly_speed, turn_speed, kite->body_color, kite->top_color, overlap, inner_space,
+                                spread, width, height, angle, center, scale);
     }
 
     kite->old_center = kite->center;
