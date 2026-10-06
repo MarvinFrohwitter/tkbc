@@ -635,6 +635,24 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
 }
 
 /**
+ * @brief This function checks if the name input of any script menu row is
+ * currently active (the user is renaming a script). While that is the case the
+ * menu must not steal editing keys like delete or ctrl+a from the text input,
+ * which handles them for its own editing (e.g. its own select-all on ctrl+a).
+ *
+ * @param env The global state of the application.
+ * @return True if a name input is active, otherwise false.
+ */
+static bool tkbc_script_menu_name_input_active(Env *env) {
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        if (env->scripts.elements[i].name_input.is_active) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * @brief This function applies the click modifiers of the script menu to the
  * multi selection of the scripts. A plain click starts a new selection that
  * only contains the clicked row, a ctrl click toggles the clicked row and a
@@ -822,9 +840,20 @@ bool tkbc_ui_script_menu(Env *env) {
     // The delete key removes the marked rows of the multi selection (or just
     // the activated one when nothing is marked) without leaving the menu. The
     // name input owns its own editing keys, so it must not be active here.
-    if (!env->text_input_active && (IsKeyPressed(KEY_DELETE) || IsKeyPressed(KEY_BACKSPACE))) {
+    if (!env->text_input_active && !tkbc_script_menu_name_input_active(env) &&
+        (IsKeyPressed(KEY_DELETE) || IsKeyPressed(KEY_BACKSPACE))) {
         if (tkbc_script_menu_delete_selected(env) > 0) {
             is_the_same_box_as_last_double_click = -1;
+        }
+    }
+
+    // Ctrl+A marks every row of the multi selection without leaving the menu.
+    // Like the delete key above it stays suppressed while a name input is
+    // active, which uses ctrl+a for its own select-all.
+    if (!env->text_input_active && !tkbc_script_menu_name_input_active(env) &&
+        (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_A)) {
+        for (size_t i = 0; i < env->scripts.count; ++i) {
+            env->scripts.elements[i].selected = true;
         }
     }
 
