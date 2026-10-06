@@ -802,7 +802,13 @@ bool tkbc_ui_script_menu(Env *env) {
     // needed while the menu is drawn, but it has to survive the frames in
     // which rows get removed, so it lives at function scope.
     static ssize_t is_the_same_box_as_last_double_click = -1;
-    if (IsKeyPressed(KEY_ESCAPE)) {
+    // An active name input consumes ESC: tkbc_handle_text_input deactivates it
+    // in the row loop below and clears its selection. Row marks and the menu
+    // itself stay as they are, the next ESC press acts on them. This must not
+    // return early, otherwise the row loop below never runs and the field
+    // would stay active forever.
+    bool esc_consumed_by_edit_field = IsKeyPressed(KEY_ESCAPE) && tkbc_script_menu_name_input_active(env);
+    if (IsKeyPressed(KEY_ESCAPE) && !esc_consumed_by_edit_field) {
         if (tkbc_script_menu_has_selected_target(env)) {
             tkbc_script_menu_remove_all_selected_targets(env);
             env->script_menu_mouse_interaction = false;
@@ -812,8 +818,9 @@ bool tkbc_ui_script_menu(Env *env) {
         }
     }
 
-    if (IsKeyPressed(KEY_ESCAPE) ||
-        tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED)) {
+    if (!esc_consumed_by_edit_field &&
+        (IsKeyPressed(KEY_ESCAPE) ||
+         tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED))) {
 
         env->script_menu_interaction = false;
         return true;
@@ -1009,9 +1016,10 @@ bool tkbc_ui_script_menu(Env *env) {
             tkbc_handle_text_input(&script->name_input, &script->space);
 
             if (script->name_input.is_active) {
-                if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
+                // ESC is handled centrally in tkbc_handle_text_input, which
+                // deactivates the field and clears its selection above.
+                if (IsKeyPressed(KEY_ENTER)) {
                     script->name_input.is_active = false;
-                    script->name_input.selection_start = SIZE_MAX;
                 } else {
                     env->text_input_active = true;
                 }
@@ -1455,8 +1463,10 @@ void tkbc_ui_color_picker(Env *env) {
         if (env->color_picker_input.text.elements) {
             tkbc_strtoupper(env->color_picker_input.text.elements);
         }
+        // ESC is handled centrally in tkbc_handle_text_input, which
 
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
+        // deactivates the field and clears its selection.
+        if (IsKeyPressed(KEY_ENTER)) {
             env->color_picker_input.is_active = false;
         }
         env->color_picker_input_mouse_interaction = env->color_picker_input.is_active;
@@ -2279,6 +2289,10 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
             input->selection_start = char_amount;
         }
 
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            input->is_active = false;
+        }
+
         // Drag the mouse with the button pressed down to extend the selection.
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), input->box)) {
             input->cursor_pos = tkbc_get_char_at_x_pos(input, GetMousePosition().x);
@@ -2552,6 +2566,8 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
                 }
             }
         }
+    } else {
+        input->selection_start = SIZE_MAX;
     }
 
     cstr = tkbc_text_input_cstr(input);
