@@ -688,7 +688,7 @@ static void tkbc_script_menu_apply_click_selection(Env *env, size_t box) {
  * @param env The global state of the application.
  * @return True if at least one script would get deleted, otherwise false.
  */
-static bool tkbc_script_menu_has_delete_target(Env *env) {
+static bool tkbc_script_menu_has_selected_target(Env *env) {
     for (size_t i = 0; i < env->scripts.count; ++i) {
         if (env->scripts.elements[i].selected) {
             return true;
@@ -698,15 +698,14 @@ static bool tkbc_script_menu_has_delete_target(Env *env) {
            (size_t) env->script_menu_mouse_interaction_box < env->scripts.count;
 }
 
-/**
- * @brief This function deletes all scripts that are marked in the script menu
- * at once. When nothing is marked the activated row is the target, so the
- * delete button and the delete key always act on a row the user can see.
- *
- * @param env The global state of the application.
- * @return The number of scripts that got deleted.
- */
-static size_t tkbc_script_menu_delete_selected(Env *env) {
+static void tkbc_script_menu_remove_all_selected_targets(Env *env) {
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        env->scripts.elements[i].selected = false;
+    }
+}
+
+static void
+tkbc_script_menu_add__script_menu_mouse_interaction_box__to_selected_scripts_if_not_other_selection_exists(Env *env) {
     bool some_script_other_than_the_current_mouse_interaction_box_selection_is_selected = false;
     if (env->script_menu_mouse_interaction_box != -1) {
         for (size_t i = 0; i < env->scripts.count; ++i) {
@@ -724,6 +723,18 @@ static size_t tkbc_script_menu_delete_selected(Env *env) {
         env->script_menu_mouse_interaction_box != -1) {
         env->scripts.elements[env->script_menu_mouse_interaction_box].selected = true;
     }
+}
+
+/**
+ * @brief This function deletes all scripts that are marked in the script menu
+ * at once. When nothing is marked the activated row is the target, so the
+ * delete button and the delete key always act on a row the user can see.
+ *
+ * @param env The global state of the application.
+ * @return The number of scripts that got deleted.
+ */
+static size_t tkbc_script_menu_delete_selected(Env *env) {
+    tkbc_script_menu_add__script_menu_mouse_interaction_box__to_selected_scripts_if_not_other_selection_exists(env);
 
     size_t deleted = 0;
     for (;;) {
@@ -773,8 +784,19 @@ bool tkbc_ui_script_menu(Env *env) {
     // needed while the menu is drawn, but it has to survive the frames in
     // which rows get removed, so it lives at function scope.
     static ssize_t is_the_same_box_as_last_double_click = -1;
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        if (tkbc_script_menu_has_selected_target(env)) {
+            tkbc_script_menu_remove_all_selected_targets(env);
+            env->script_menu_mouse_interaction = false;
+            env->script_menu_mouse_interaction_box = -1;
+            env->script_menu_selection_anchor = -1;
+            return false;
+        }
+    }
 
-    if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED)) {
+    if (IsKeyPressed(KEY_ESCAPE) ||
+        tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED)) {
+
         env->script_menu_interaction = false;
         return true;
     }
@@ -990,7 +1012,7 @@ bool tkbc_ui_script_menu(Env *env) {
 
     // Without a delete target the button is drawn inactive, because the
     // deletion always needs a marked row or at least an activated one.
-    bool deletable = tkbc_script_menu_has_delete_target(env);
+    bool deletable = tkbc_script_menu_has_selected_target(env);
     if (!deletable) {
         DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_GRAY_ALPHA);
     } else if (CheckCollisionPointRec(mouse, outer_script_box)) {
@@ -1014,6 +1036,44 @@ bool tkbc_ui_script_menu(Env *env) {
     p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
     tkbc_BeginScissorMode(outer_script_box);
     DrawTextEx(env->font, delete_script, p, font_size, spacing, TKBC_UI_BLACK);
+    EndScissorMode();
+
+    /* ------------------------- Download key --------------------------------- */
+    outer_script_box.x += padding + outer_script_box.width;
+
+    bool downloadable = tkbc_script_menu_has_selected_target(env);
+    if (!downloadable) {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_GRAY_ALPHA);
+    } else if (CheckCollisionPointRec(mouse, outer_script_box)) {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+    } else {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
+    }
+
+    if (env->script_menu_mouse_interaction) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, outer_script_box)) {
+            DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+            assert(env->script_menu_mouse_interaction_box != -1);
+            assert(env->scripts.count >= (size_t) env->script_menu_mouse_interaction_box);
+
+            tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
+            tkbc_script_menu_add__script_menu_mouse_interaction_box__to_selected_scripts_if_not_other_selection_exists(
+                env);
+            tkbc_download_all_selected_scripts(env);
+
+            tkbc_script_menu_remove_all_selected_targets(env);
+            env->script_menu_mouse_interaction_box = -1;
+            env->script_menu_mouse_interaction = false;
+            env->script_menu_selection_anchor = -1;
+        }
+    }
+
+    const char *download = "DOWNLOAD";
+    text_size = tkbc_reduce_str_to_fit_box(env->font, download, &font_size, spacing, outer_script_box);
+    p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
+    p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
+    tkbc_BeginScissorMode(outer_script_box);
+    DrawTextEx(env->font, download, p, font_size, spacing, TKBC_UI_BLACK);
     EndScissorMode();
 
     /* ------------------------- NO_SCRIPT KEY -------------------------------- */
@@ -1043,40 +1103,6 @@ bool tkbc_ui_script_menu(Env *env) {
     p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
     tkbc_BeginScissorMode(outer_script_box);
     DrawTextEx(env->font, no_script, p, font_size, spacing, TKBC_UI_BLACK);
-    EndScissorMode();
-
-    /* ------------------------- Download key --------------------------------- */
-    outer_script_box.x += padding + outer_script_box.width;
-
-    if (CheckCollisionPointRec(mouse, outer_script_box)) {
-        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-    } else {
-        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
-    }
-
-    if (env->script_menu_mouse_interaction) {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, outer_script_box)) {
-            DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
-            assert(env->script_menu_mouse_interaction_box != -1);
-            assert(env->scripts.count >= (size_t) env->script_menu_mouse_interaction_box);
-
-            tkbc_make_dir_recursive_if_not_existis(env->tkbc_dir);
-            Script *script = &env->scripts.elements[env->script_menu_mouse_interaction_box];
-            const char *buf = space_tprintf("%s%s.kite", env->tkbc_dir, tkbc_script_name(script));
-            tkbc_export_script_to_dot_kite_file_from_mem(script, buf);
-            space_reset_tspace();
-
-            env->script_menu_mouse_interaction_box = -1;
-            env->script_menu_mouse_interaction = false;
-        }
-    }
-
-    const char *download = "DOWNLOAD";
-    text_size = tkbc_reduce_str_to_fit_box(env->font, download, &font_size, spacing, outer_script_box);
-    p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
-    p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
-    tkbc_BeginScissorMode(outer_script_box);
-    DrawTextEx(env->font, download, p, font_size, spacing, TKBC_UI_BLACK);
     EndScissorMode();
 
     /* ------------------------- Confirm key --------------------------------- */
@@ -1337,7 +1363,8 @@ void tkbc_ui_color_picker(Env *env) {
     }
 
     // KEY_ESCAPE
-    if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED)) {
+    if (IsKeyPressed(KEY_ESCAPE) ||
+        tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED)) {
         env->colorizer = false;
     }
     if (!env->color_picker_interaction) {
@@ -1848,6 +1875,11 @@ key_change_skip:
  * @param env The global state of the application.
  */
 void tkbc_ui_keymaps(Env *env) {
+    if (IsKeyPressed(KEY_ESCAPE) && env->keymaps_mouse_interaction) {
+        env->keymaps_mouse_interaction = false;
+        return;
+    }
+
     // This will ensure that the settings can always be left regardless to which
     // keybinding is set. For opening and closing.
     if (IsKeyPressed(KEY_ESCAPE) && tkbc_hash_to_key(env->keymaps, KMH_CHANGE_KEY_MAPPINGS) != KEY_ESCAPE) {

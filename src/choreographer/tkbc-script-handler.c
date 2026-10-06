@@ -8,6 +8,7 @@
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
 #include "tkbc-keymaps.h"
+#include "tkbc-script-converter.h"
 #include "tkbc-script-handler.h"
 #include "tkbc.h"
 
@@ -1169,6 +1170,24 @@ int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
     }
 
     return ok;
+}
+
+/**
+ * @brief The function can be used to export all scripts to disk that are tagged selected.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_download_all_selected_scripts(Env *env) {
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        Script *script = &env->scripts.elements[i];
+        if (!script->selected) continue;
+
+        const char *filepath = space_tprintf("%s%s.kite", env->tkbc_dir, tkbc_script_name(script));
+        int ok = tkbc_export_script_to_dot_kite_file_from_mem(script, filepath);
+        assert(ok == 0 &&
+               "tkbc_export_script_to_dot_kite_file_from_mem has failed in tkbc_download_all_selected_scripts");
+    }
+    space_reset_tspace();
 }
 
 /**
