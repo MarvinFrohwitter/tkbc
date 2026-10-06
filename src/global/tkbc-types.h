@@ -558,6 +558,9 @@ typedef struct {
     bool internal_redirect;  // Indicates if the original_elements are currently pointing at elements. This can be the
                              // case if no upscaling has happened jet.
     bool was_send;           // Indicates if this script was already send to a server.
+    bool selected;           // UI only: The script is marked in the script menu (ctrl/shift click) and gets deleted
+                             // together with all other marked scripts. tkbc_deep_copy_script does not copy it, so
+                             // every registered script starts unmarked.
 } Script;                    // A dynamic array collection that combined multiple frames to a
                              // single kite draw representation.
 
@@ -732,6 +735,8 @@ typedef struct {
                                                 // box.
     bool script_menu_mouse_interaction;         // Indicates if a box of the script menu
                                                 // is activated.
+    ssize_t script_menu_selection_anchor;       // The box the next shift click extends the multi selection of the
+                                                // script menu from. -1 while there is no anchor.
     bool show_grid_lines;                       // Indicates if the grid lines should be drawn.
     bool show_kite_information;                 // Draws the information like kite speed.
     bool text_input_active;                     // The status if a text input field is

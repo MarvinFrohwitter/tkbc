@@ -635,6 +635,133 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
 }
 
 /**
+ * @brief This function applies the click modifiers of the script menu to the
+ * multi selection of the scripts. A plain click starts a new selection that
+ * only contains the clicked row, a ctrl click toggles the clicked row and a
+ * shift click marks the complete range between the anchor and the clicked row.
+ *
+ * @param env The global state of the application.
+ * @param box The row of the script menu that got clicked.
+ */
+static void tkbc_script_menu_apply_click_selection(Env *env, size_t box) {
+    bool ctrl_down = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
+    bool shift_down = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
+
+    if (shift_down) {
+        size_t first = box;
+        size_t last = box;
+        ssize_t anchor = env->script_menu_selection_anchor;
+        if (anchor >= 0 && (size_t) anchor < env->scripts.count) {
+            first = (size_t) anchor < box ? (size_t) anchor : box;
+            last = (size_t) anchor < box ? box : (size_t) anchor;
+        }
+        for (size_t i = first; i <= last && i < env->scripts.count; ++i) {
+            env->scripts.elements[i].selected = true;
+        }
+        // The anchor only moves on plain and ctrl clicks, so consecutive
+        // shift clicks all extend the same range.
+        if (anchor == -1) {
+            env->script_menu_selection_anchor = (ssize_t) box;
+        }
+        return;
+    }
+
+    // Both remaining click kinds define the origin of the next shift click.
+    env->script_menu_selection_anchor = (ssize_t) box;
+
+    if (ctrl_down) {
+        env->scripts.elements[box].selected = !env->scripts.elements[box].selected;
+        return;
+    }
+
+    // A plain click activates exactly one row, so all previous marks go away.
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        env->scripts.elements[i].selected = false;
+    }
+}
+
+/**
+ * @brief This function checks if the script menu has something the delete
+ * button and the delete key can remove. That is either a marked row of the
+ * multi selection or, as a fallback, the currently activated row.
+ *
+ * @param env The global state of the application.
+ * @return True if at least one script would get deleted, otherwise false.
+ */
+static bool tkbc_script_menu_has_delete_target(Env *env) {
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        if (env->scripts.elements[i].selected) {
+            return true;
+        }
+    }
+    return env->script_menu_mouse_interaction && env->script_menu_mouse_interaction_box >= 0 &&
+           (size_t) env->script_menu_mouse_interaction_box < env->scripts.count;
+}
+
+/**
+ * @brief This function deletes all scripts that are marked in the script menu
+ * at once. When nothing is marked the activated row is the target, so the
+ * delete button and the delete key always act on a row the user can see.
+ *
+ * @param env The global state of the application.
+ * @return The number of scripts that got deleted.
+ */
+static size_t tkbc_script_menu_delete_selected(Env *env) {
+    bool some_script_other_than_the_current_mouse_interaction_box_selection_is_selected = false;
+    if (env->script_menu_mouse_interaction_box != -1) {
+        for (size_t i = 0; i < env->scripts.count; ++i) {
+            if (i == (size_t) env->script_menu_mouse_interaction_box) {
+                continue;
+            }
+            if (env->scripts.elements[i].selected) {
+                some_script_other_than_the_current_mouse_interaction_box_selection_is_selected = true;
+                break;
+            }
+        }
+    }
+
+    if (!some_script_other_than_the_current_mouse_interaction_box_selection_is_selected &&
+        env->script_menu_mouse_interaction_box != -1) {
+        env->scripts.elements[env->script_menu_mouse_interaction_box].selected = true;
+    }
+
+    size_t deleted = 0;
+    for (;;) {
+        ssize_t marked_box = -1;
+        // This way ensures that no bad behavior can happen when deleting and iterating at the same time.
+        // So first search for the next selection and then delete it.
+        for (size_t i = 0; i < env->scripts.count; ++i) {
+            if (env->scripts.elements[i].selected) {
+                marked_box = (ssize_t) i;
+                break;
+            }
+        }
+        if (marked_box == -1) {
+            break;
+        }
+
+        // The unload below frees the script's space and shrinks the array, so
+        // the id is taken before and every further iteration searches from
+        // scratch again.
+        UUID deleted_script_id = env->scripts.elements[marked_box].id;
+        tkbc_unload_script_from_memory(env, deleted_script_id);
+        // Queue the deletion so the client informs the server about it via
+        // MESSAGE_SCRIPT_DELETE. The server then deletes the script as well
+        // and broadcasts the same message to all other clients.
+        tkbc_dap(&env->pending_script_deletes, deleted_script_id);
+        deleted += 1;
+    }
+
+    if (deleted > 0) {
+        env->new_script_selected = true;
+        env->script_menu_mouse_interaction_box = -1;
+        env->script_menu_mouse_interaction = false;
+        env->script_menu_selection_anchor = -1;
+    }
+    return deleted;
+}
+
+/**
  * @brief This function is responsible for displaying all in memory loaded
  * scripts as a list. The user can then choose a script that should be executed.
  *
@@ -642,6 +769,10 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
  * @return True if menu was force closed, otherwise false.
  */
 bool tkbc_ui_script_menu(Env *env) {
+    // The row that took part in the last double click. The value is only
+    // needed while the menu is drawn, but it has to survive the frames in
+    // which rows get removed, so it lives at function scope.
+    static ssize_t is_the_same_box_as_last_double_click = -1;
 
     if (tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED)) {
         env->script_menu_interaction = false;
@@ -652,14 +783,27 @@ bool tkbc_ui_script_menu(Env *env) {
         env->script_menu_interaction = !env->script_menu_interaction;
         env->script_menu_mouse_interaction = false;
         env->script_menu_mouse_interaction_box = -1;
+        env->script_menu_selection_anchor = -1;
     }
 
     if (!env->script_menu_interaction) {
         for (size_t i = 0; i < env->scripts.count; ++i) {
             env->scripts.elements[i].name_input.is_active = false;
             env->scripts.elements[i].name_input.selection_start = SIZE_MAX;
+            env->scripts.elements[i].selected = false;
         }
+        env->script_menu_selection_anchor = -1;
+        is_the_same_box_as_last_double_click = -1;
         return false;
+    }
+
+    // The delete key removes the marked rows of the multi selection (or just
+    // the activated one when nothing is marked) without leaving the menu. The
+    // name input owns its own editing keys, so it must not be active here.
+    if (!env->text_input_active && (IsKeyPressed(KEY_DELETE) || IsKeyPressed(KEY_BACKSPACE))) {
+        if (tkbc_script_menu_delete_selected(env) > 0) {
+            is_the_same_box_as_last_double_click = -1;
+        }
     }
 
     env->script_menu_base = (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
@@ -693,11 +837,24 @@ bool tkbc_ui_script_menu(Env *env) {
     for (size_t box = env->script_menu_top_interaction_box;
          box < env->screen_items + env->script_menu_top_interaction_box && box < scripts_count; ++box) {
 
+        // The delete circle belongs to the row, so its geometry is needed
+        // before the click on the row itself gets handled.
+        const float delete_circle_radius = script_box.height / 2.0;
+        const Vector2 circle_center = {
+            .x = script_box.x + script_box.width - delete_circle_radius,
+            .y = script_box.y + delete_circle_radius,
+        };
+
         if (CheckCollisionPointRec(mouse, outer_script_box) && !env->script_menu_mouse_interaction) {
             DrawRectangleRec(outer_script_box, TKBC_UI_TEAL_ALPHA);
         }
         if (env->script_menu_mouse_interaction && (ssize_t) box == env->script_menu_mouse_interaction_box) {
             DrawRectangleRec(outer_script_box, TKBC_UI_TEAL_ALPHA);
+        }
+        if (env->scripts.elements[box].selected) {
+            // The marked rows of the multi selection get a full width band so
+            // they stay recognizable independent of the activated row.
+            DrawRectangleRec(outer_script_box, TKBC_UI_PURPLE_ALPHA);
         }
 
         DrawRectangleRounded(script_box, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
@@ -708,12 +865,18 @@ bool tkbc_ui_script_menu(Env *env) {
                 env->script_menu_mouse_interaction_box = box;
             }
 
+            // The delete circle is part of the row, a click on it only
+            // removes that row and must not change the multi selection.
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+                !CheckCollisionPointCircle(mouse, circle_center, delete_circle_radius)) {
+                tkbc_script_menu_apply_click_selection(env, box);
+            }
+
             if (!env->script_menu_mouse_interaction) {
                 DrawRectangleRounded(script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
             }
         }
 
-        static ssize_t is_the_same_box_as_last_double_click = -1;
         if (env->script_menu_mouse_interaction && (ssize_t) box == env->script_menu_mouse_interaction_box) {
 
             DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
@@ -725,13 +888,7 @@ bool tkbc_ui_script_menu(Env *env) {
             }
         }
 
-        float delete_circle_radius = script_box.height / 2.0;
         {
-            Vector2 circle_center = {
-                .x = script_box.x + script_box.width - delete_circle_radius,
-                .y = script_box.y + delete_circle_radius,
-            };
-
             tkbc_draw_circle_with_x(circle_center, delete_circle_radius, TKBC_UI_GRAY_ALPHA);
             if (CheckCollisionPointCircle(mouse, circle_center, delete_circle_radius)) {
                 if (env->script_menu_mouse_interaction) {
@@ -754,6 +911,9 @@ bool tkbc_ui_script_menu(Env *env) {
                     // message to all other clients.
                     tkbc_dap(&env->pending_script_deletes, deleted_script_id);
                     env->script_menu_mouse_interaction = false;
+                    // The rows below the deleted one moved up, so the anchor
+                    // of the multi selection would point at the wrong row.
+                    env->script_menu_selection_anchor = -1;
                     is_the_same_box_as_last_double_click = -1;
                     if (env->script_menu_top_interaction_box > 0) {
                         env->script_menu_top_interaction_box -= 1;
@@ -790,8 +950,7 @@ bool tkbc_ui_script_menu(Env *env) {
             // deactivates again, clicks inside never deactivate so cursor
             // placement and drag-selection keep working while active.
             bool inside = CheckCollisionPointRec(mouse, script->name_input.box);
-            if (!inside &&
-                (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))) {
+            if (!inside && (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))) {
                 script->name_input.is_active = false;
                 script->name_input.selection_start = SIZE_MAX;
             }
@@ -814,14 +973,51 @@ bool tkbc_ui_script_menu(Env *env) {
 
     /* ------------------------- Buttons ------------------------------------- */
 
-    const size_t interaction_buttons_count = 3;
+    const size_t interaction_buttons_count = 4;
     outer_script_box.width =
         (outer_script_box.width - (padding * interaction_buttons_count)) / interaction_buttons_count;
     outer_script_box.height = env->box_height * 0.5;
     outer_script_box.y = env->box_height * env->screen_items + env->box_height / 2.f;
 
+    const float spacing = 2;
+    Vector2 p;
+
+    // Subtract that to be consistent in the adding for all buttons this way they are easy to reorder.
+    outer_script_box.x -= outer_script_box.width;
+
+    /* ------------------------- Delete key ---------------------------------- */
+    outer_script_box.x += padding + outer_script_box.width;
+
+    // Without a delete target the button is drawn inactive, because the
+    // deletion always needs a marked row or at least an activated one.
+    bool deletable = tkbc_script_menu_has_delete_target(env);
+    if (!deletable) {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_GRAY_ALPHA);
+    } else if (CheckCollisionPointRec(mouse, outer_script_box)) {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+    } else {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_TEAL_ALPHA);
+    }
+
+    if (deletable && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, outer_script_box)) {
+        DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
+
+        if (tkbc_script_menu_delete_selected(env) > 0) {
+            // The rows shifted, so a remembered double click row is meaningless.
+            is_the_same_box_as_last_double_click = -1;
+        }
+    }
+
+    const char *delete_script = "DELETE";
+    text_size = tkbc_reduce_str_to_fit_box(env->font, delete_script, &font_size, spacing, outer_script_box);
+    p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
+    p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
+    tkbc_BeginScissorMode(outer_script_box);
+    DrawTextEx(env->font, delete_script, p, font_size, spacing, TKBC_UI_BLACK);
+    EndScissorMode();
+
     /* ------------------------- NO_SCRIPT KEY -------------------------------- */
-    outer_script_box.x += padding;
+    outer_script_box.x += padding + outer_script_box.width;
 
     if (CheckCollisionPointRec(mouse, outer_script_box)) {
         DrawRectangleRounded(outer_script_box, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
@@ -841,10 +1037,8 @@ bool tkbc_ui_script_menu(Env *env) {
         env->new_script_selected = true;
     }
 
-    const float spacing = 2;
     const char *no_script = "NO SCRIPT";
     text_size = tkbc_reduce_str_to_fit_box(env->font, no_script, &font_size, spacing, outer_script_box);
-    Vector2 p;
     p.x = outer_script_box.x + outer_script_box.width * 0.5 - text_size.x * 0.5;
     p.y = outer_script_box.y + outer_script_box.height * 0.5 - text_size.y * 0.5;
     tkbc_BeginScissorMode(outer_script_box);

@@ -80,6 +80,9 @@ Env *tkbc_init_env(void) {
 
     env->box_height = 80;
     env->keymaps_interaction_rec_number = -1;
+    // The script menu keeps the anchor of its multi selection in this field,
+    // -1 denotes that no shift click has an origin yet.
+    env->script_menu_selection_anchor = -1;
 
     // The color picker text lives directly in its space backed input, no
     // extra allocation.
