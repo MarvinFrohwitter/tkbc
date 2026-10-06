@@ -1155,15 +1155,30 @@ int main(int argc, char *argv[]) {
         // script menu are sent to the server immediately, while the menu is
         // still open. The queued message is flushed in the next tkbc_run().
         tkbc_client_send_pending_script_deletes();
-        if (!env->keymaps_interaction && !env->script_menu_interaction && !env->text_input_active) {
+        // Kite (de)selection via KEY_ONE..NINE must stay available while the
+        // keymaps/color-picker panel is open: the picker applies colors and
+        // designs to the selected kites, so blocking the toggle traps a kite
+        // in selected state, which in turn blocks timeline scrubbing (the
+        // timeline requires no selected kite). Only an active key rebinding
+        // (keymaps_mouse_interaction) or text editing still blocks it, so
+        // keys meant for bindings/text are not stolen.
+        if (!env->script_menu_interaction && !env->text_input_active && !env->keymaps_mouse_interaction) {
             tkbc_input_sound_handler(env);
             tkbc_client_input_handler_kite();
+        }
+        if (!env->keymaps_interaction && !env->script_menu_interaction && !env->text_input_active) {
             if (client.socket_id == -1) {
                 // tkbc_input_handler_kite_array(env);
                 tkbc_input_handler_script(env);
 
-                if (env->new_script_selected && env->script_menu_mouse_interaction_box == -1) {
-                    tkbc_get_kite_state_by_id(env, client.kite_id)->is_kite_input_handler_active = true;
+                if (env->new_script_selected) {
+                    if (env->script_menu_mouse_interaction_box == -1) {
+                        Kite_State *client_kite_state = tkbc_get_kite_state_by_id(env, client.kite_id);
+                        if (client_kite_state) {
+                            client_kite_state->is_kite_input_handler_active = true;
+                        }
+                    }
+                    env->new_script_selected = false;
                 }
             } else {
                 tkbc_client_input_handler_script();

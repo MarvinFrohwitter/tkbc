@@ -1406,6 +1406,11 @@ void tkbc_ui_color_picker(Env *env) {
         env->colorizer = false;
     }
     if (!env->color_picker_interaction) {
+        // Clear stale focus so a hex field that was active before the picker
+        // was closed can not block kite selection (KEY_ONE..NINE) and timeline
+        // scrubbing via a stuck text_input_active state.
+        // env->color_picker_input.is_active = false;
+        env->color_picker_input_mouse_interaction = false;
         return;
     }
 
@@ -1470,6 +1475,15 @@ void tkbc_ui_color_picker(Env *env) {
         if (IsKeyPressed(KEY_ENTER)) {
             env->color_picker_input.is_active = false;
         }
+        // Clicking outside the hex field releases focus again. Otherwise the
+        // field stays active forever (it only deactivates on ENTER/ESC), steals
+        // KEY_ONE..NINE as hex input instead of kite (de)selection and keeps
+        // text_input_active true, which blocks both the kite input handler and
+        // timeline scrubbing.
+        if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) &&
+            !CheckCollisionPointRec(mouse, input_box)) {
+            env->color_picker_input.is_active = false;
+        }
         env->color_picker_input_mouse_interaction = env->color_picker_input.is_active;
         env->text_input_active = env->color_picker_input.is_active;
 
@@ -1492,7 +1506,6 @@ void tkbc_ui_color_picker(Env *env) {
         DrawRectangleRoundedLinesEx(color_box, 1, 20, 1, BLACK);
 
         if (CheckCollisionPointRec(mouse, color_box) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            env->color_picker_input_mouse_interaction = false;
             tkbc_set_color_for_selected_kites(env, env->last_selected_color);
             env->favorite_colors.elements[env->current_favorite_colors_index++ % env->favorite_colors.count] =
                 env->last_selected_color;

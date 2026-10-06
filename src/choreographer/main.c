@@ -124,9 +124,11 @@ int main(void) {
         tkbc_ui_post_handler(env);
 
         tkbc_file_handler(env);
-        if (!env->keymaps_interaction && !env->script_menu_interaction && !env->text_input_active) {
+        if (!env->script_menu_interaction && !env->text_input_active && !env->keymaps_mouse_interaction) {
             tkbc_input_sound_handler(env);
             tkbc_input_handler_kite_array(env);
+        }
+        if (!env->keymaps_interaction && !env->script_menu_interaction && !env->text_input_active) {
             tkbc_input_handler_script(env);
         }
 
