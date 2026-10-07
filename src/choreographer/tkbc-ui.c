@@ -1767,7 +1767,7 @@ void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count) 
         env->timeline_interaction = false;
     }
 
-    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && env->timeline_hoverover) {
         // @Speed This should not be handled like this.
         bool is_at_least_one_acitv = false;
         for (size_t i = 0; i < env->kite_array.count; ++i) {

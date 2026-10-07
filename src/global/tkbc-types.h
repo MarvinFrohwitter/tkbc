@@ -685,7 +685,7 @@ typedef struct {
     Rectangle keymaps_base;                // The base bounding box of the keymaps settings.
     Key_Maps keymaps;                      // The current keymaps
 
-    bool timeline_hoverover;        // The status if the mouse is currently of the
+    bool timeline_hoverover;        // The status if the mouse is currently on the
                                     // timeline.
     bool timeline_interaction;      // The status if the user controls the timeline.
     Rectangle timeline_base;        // The rectangle that is below the slider.
