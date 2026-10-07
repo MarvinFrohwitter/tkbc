@@ -549,6 +549,17 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
         *top_interaction_box = items_count - screen_items;
     }
 
+    if (items_count <= screen_items) {
+        // When the whole list fits onto the screen there is nothing to scroll,
+        // so reset the offset to the top again. This must happen before any of
+        // the handle geometry below is calculated, otherwise the divisions by
+        // (items_count - screen_items) would divide by zero.
+        *top_interaction_box = 0;
+        scrollbar->inner_scrollbar = scrollbar->base;
+        DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+        return;
+    }
+
     size_t minimum_handle_height = (size_t) scrollbar->base.height >> 2;
     scrollbar->inner_scrollbar.height =
         minimum_handle_height + scrollbar->base.height / (float) (items_count - screen_items + 1);
@@ -565,15 +576,6 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
 
         // scrollbar->inner_scrollbar.y =
         //     before + (after - before) * tkbc_get_frame_time();
-    }
-
-    if (items_count <= screen_items) {
-        // When the whole list fits onto the screen there is nothing to scroll,
-        // so reset the offset to the top again.
-        *top_interaction_box = 0;
-        scrollbar->inner_scrollbar = scrollbar->base;
-        DrawRectangleRounded(scrollbar->inner_scrollbar, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-        return;
     }
 
     // This is just needed for window resizing problems. When the list of items
@@ -1955,8 +1957,16 @@ void tkbc_ui_keymaps(Env *env) {
     env->keymaps_base = (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
 
     env->screen_items = (env->window_height / env->box_height) - 1;
-    tkbc_scrollbar(&env->keymaps_scrollbar, env->keymaps_base, env->box_height, env->keymaps.count, env->screen_items,
-                   &env->keymaps_top_interaction_box);
+
+    size_t displayed_items_count = 0;
+    for (size_t i = 0; i < env->keymaps.count; ++i) {
+        if (!env->keymaps.elements[i].hide) displayed_items_count += 1;
+    }
+    // The scrollbar and the scroll offset below work on the amount of items
+    // that are actually shown. Otherwise hidden entries would leave empty rows
+    // and allow the offset to grow past the last visible entry.
+    tkbc_scrollbar(&env->keymaps_scrollbar, env->keymaps_base, env->box_height, displayed_items_count,
+                   env->screen_items, &env->keymaps_top_interaction_box);
 
     BeginScissorMode(env->keymaps_base.x, env->keymaps_base.y,
                      env->keymaps_base.width - env->keymaps_scrollbar.base.width, env->keymaps_base.height);
@@ -1966,9 +1976,24 @@ void tkbc_ui_keymaps(Env *env) {
     int padding = 10;
     env->keymaps_base.height = env->box_height;
     env->keymaps_base.width -= env->keymaps_scrollbar.base.width;
+
+    // `keymaps_top_interaction_box` counts visible entries, so every hidden
+    // entry is skipped before it. The loop stops after `screen_items` rows are
+    // drawn, which keeps the list from overflowing at the bottom no matter how
+    // many hidden entries exist.
+    size_t no_hidden_entries_index = 0;
+    size_t drawn_items = 0;
     Vector2 text_size;
-    for (size_t box = env->keymaps_top_interaction_box;
-         box < env->screen_items + env->keymaps_top_interaction_box && box < env->keymaps.count; ++box) {
+    for (size_t box = 0; box < env->keymaps.count && drawn_items < env->screen_items; ++box) {
+        if (env->keymaps.elements[box].hide) {
+            continue;
+        }
+        if (no_hidden_entries_index < env->keymaps_top_interaction_box) {
+            no_hidden_entries_index += 1;
+            continue;
+        }
+        no_hidden_entries_index += 1;
+        drawn_items += 1;
 
         static_assert(KEY_MODE_STORAGE_OPTION_COUNT == 3, "Amount has changed");
         size_t key_box_count = KEY_MODE_STORAGE_OPTION_COUNT;

@@ -184,6 +184,7 @@ typedef struct {
     int selection_key;
     int key;
     int hash;
+    bool hide;
 } Key_Map;
 
 typedef struct KeyMaps {

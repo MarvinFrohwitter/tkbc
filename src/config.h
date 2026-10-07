@@ -5,12 +5,14 @@ static Key_Map default_keymaps[] = {
         .description = "Change key mappings.",
         .key = KEY_ESCAPE,
         .hash = KMH_CHANGE_KEY_MAPPINGS,
+        .hide = true,
     },
 
     {
         .description = "Quits the Program.",
         .key = KEY_NULL,
         .hash = KMH_QUIT_PROGRAM,
+        .hide = true,
     },
 
     {
@@ -196,7 +198,7 @@ static Key_Map default_keymaps[] = {
 
     // Alternative mouse controlling.
     {
-        .description = "Switch to mouse control movement.",
+        .description = "Switch to keyboard only control movement.",
         .key = KEY_ZERO,
         .hash = KMH_SWITCH_MOUSE_CONTOL_MOVEMENT,
     },
