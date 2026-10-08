@@ -1964,6 +1964,8 @@ void tkbc_ui_keymaps(Env *env) {
     if (!env->keymaps_interaction) {
         return;
     }
+
+    Vector2 mouse = GetMousePosition();
     env->keymaps_base = (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
 
     // -1 Row for the buttons and -1 for the search bar
@@ -2018,7 +2020,7 @@ void tkbc_ui_keymaps(Env *env) {
             .height = env->box_height / 2.0 - padding,
         };
 
-        if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base) && !env->keymaps_mouse_interaction) {
+        if (CheckCollisionPointRec(mouse, env->keymaps_base) && !env->keymaps_mouse_interaction) {
             DrawRectangleRounded(env->keymaps_base, 0.25, 10, TKBC_UI_TEAL_ALPHA);
         }
         if (env->keymaps_mouse_interaction && box == env->keymaps_mouse_interaction_box) {
@@ -2065,7 +2067,7 @@ void tkbc_ui_keymaps(Env *env) {
     {
         env->keymaps_search_input.font_size = font_size;
         env->keymaps_search_input.box = env->keymaps_base;
-        env->keymaps_search_input.box.width = env->keymaps_base.width - 2 * padding;
+        env->keymaps_search_input.box.width = env->keymaps_base.width - padding;
 
         tkbc_reduce_str_to_fit_box(env->font, env->keymaps_search_input.text.elements,
                                    &env->keymaps_search_input.font_size, env->keymaps_search_input.spacing,
@@ -2074,6 +2076,31 @@ void tkbc_ui_keymaps(Env *env) {
         DrawRectangleRounded(env->keymaps_search_input.box, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
         env->keymaps_search_input.box.x += padding;
         env->keymaps_search_input.box.width -= 2 * padding;
+
+        float case_insensitive_circle_radius = env->keymaps_search_input.box.height / 2;
+        {
+
+            Vector2 case_insensitive_circle = {
+                .x = env->keymaps_search_input.box.x + padding + env->keymaps_search_input.box.width -
+                     case_insensitive_circle_radius,
+                .y = env->keymaps_search_input.box.y + env->keymaps_search_input.box.height / 2,
+            };
+
+            tkbc_draw_circle_with_check_box(case_insensitive_circle, case_insensitive_circle_radius,
+                                            env->case_insensitive_search, TKBC_UI_GRAY_ALPHA);
+
+            if (CheckCollisionPointCircle(mouse, case_insensitive_circle, case_insensitive_circle_radius)) {
+                tkbc_draw_circle_with_check_box(case_insensitive_circle, case_insensitive_circle_radius,
+                                                env->case_insensitive_search, TKBC_UI_DARKPURPLE_ALPHA);
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    tkbc_draw_circle_with_check_box(case_insensitive_circle, case_insensitive_circle_radius,
+                                                    env->case_insensitive_search, TKBC_UI_PURPLE_ALPHA);
+                    env->case_insensitive_search = !env->case_insensitive_search;
+                }
+            }
+        }
+
+        env->keymaps_search_input.box.width -= 2 * case_insensitive_circle_radius;
         tkbc_handle_text_input(&env->keymaps_search_input, &env->keymaps_search_input_space);
 
         if (env->keymaps_search_input.is_active) {
@@ -3079,6 +3106,40 @@ void tkbc_draw_circle_with_x(Vector2 center, float radius, Color color) {
             .y = center.y - radius + inner_padding,
         };
         DrawLineEx(start_position, end_position, 3, TKBC_UI_BLACK);
+    }
+}
+
+void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled, Color color) {
+    DrawCircleV(center, radius, color);
+
+    const float distance_center_corner = radius * 0.65;
+    Rectangle rectangle = {
+        .x = center.x - distance_center_corner,
+        .y = center.y - distance_center_corner,
+    };
+    rectangle.width = center.x + distance_center_corner - rectangle.x;
+    rectangle.height = rectangle.width;
+    DrawRectangleRoundedLinesEx(rectangle, 0.1, 20, 1, TKBC_UI_BLACK);
+
+    if (enabled) {
+        float inner_padding = radius * 0.2;
+        Vector2 start_position = {
+            .x = rectangle.x + inner_padding,
+            .y = rectangle.y + rectangle.height / 3,
+        };
+
+        Vector2 middle_position = {
+            .x = rectangle.x + rectangle.width / 3,
+            .y = rectangle.y + rectangle.height - inner_padding,
+        };
+
+        DrawLineEx(start_position, middle_position, 2, TKBC_UI_BLACK);
+
+        Vector2 end_position = {
+            .x = rectangle.x + rectangle.width - inner_padding,
+            .y = rectangle.y + inner_padding,
+        };
+        DrawLineEx(middle_position, end_position, 2, TKBC_UI_BLACK);
     }
 }
 
