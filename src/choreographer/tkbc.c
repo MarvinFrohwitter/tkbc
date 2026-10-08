@@ -84,6 +84,11 @@ Env *tkbc_init_env(void) {
     // -1 denotes that no shift click has an origin yet.
     env->script_menu_selection_anchor = -1;
 
+    env->keymaps_search_input.selection_start = SIZE_MAX;
+    env->keymaps_search_input.shadow_text = "Search:";
+    env->keymaps_search_input.spacing = 4;
+    env->keymaps_search_input.font = env->font;
+    env->keymaps_search_input.text_color = TKBC_UI_BLACK;
     // The color picker text lives directly in its space backed input, no
     // extra allocation.
     env->color_picker_input.selection_start = SIZE_MAX;
@@ -158,6 +163,7 @@ void tkbc_destroy_env(Env *env) {
         env->keymaps.elements = NULL;
     }
 
+    space_free_space(&env->keymaps_search_input_space);
     space_free_space(&env->color_picker_input_space);
     free(env->favorite_colors.elements);
     env->favorite_colors.elements = NULL;

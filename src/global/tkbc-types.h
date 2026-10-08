@@ -185,6 +185,7 @@ typedef struct {
     int key;
     int hash;
     bool hide;
+    bool search_excluded;
 } Key_Map;
 
 typedef struct KeyMaps {
@@ -685,6 +686,9 @@ typedef struct {
     size_t keymaps_top_interaction_box;    // The id the current first displayed box.
     Rectangle keymaps_base;                // The base bounding box of the keymaps settings.
     Key_Maps keymaps;                      // The current keymaps
+
+    Text_Input keymaps_search_input;
+    Space keymaps_search_input_space;
 
     bool timeline_hoverover;        // The status if the mouse is currently on the
                                     // timeline.

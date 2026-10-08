@@ -4,6 +4,7 @@
 #include "../global/tkbc-utils.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "../config.h"
 
@@ -542,4 +543,77 @@ bool tkbc_check_keymaps(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg, in
  */
 bool tkbc_check_keymaps_full(Key_Maps keymaps, int hash, Key_Map_Check_Config cfg) {
     return tkbc_check_keymaps(keymaps, hash, cfg, KEY | MOD_KEY | SELECTION_KEY);
+}
+
+static int tkbc_min3(int a, int b, int c) {
+    int m = a < b ? a : b;
+    return m < c ? m : c;
+}
+
+int tkbc_levenshtein(const char *s1, const char *s2) {
+    if (!s1) {
+        return s2 ? strlen(s2) : (abort(), -1);
+    }
+    if (!s2) {
+        return s1 ? strlen(s1) : (abort(), -1);
+    }
+
+    size_t len_s1 = strlen(s1), len_s2 = strlen(s2);
+    int *prev = malloc((len_s2 + 1) * sizeof(*prev));
+    int *curr = malloc((len_s2 + 1) * sizeof(*curr));
+    if (!prev || !curr) {
+        tkbc_fprintf(stderr, "ERROR", "Could not allocate any more memory\n");
+        abort();
+        // free(prev);
+        // free(curr);
+        // return -1;
+    }
+
+    for (size_t j = 0; j <= len_s2; ++j) prev[j] = (int) j;
+
+    for (size_t i = 1; i <= len_s1; ++i) {
+        curr[0] = (int) i;
+        for (size_t j = 1; j <= len_s2; ++j) {
+            int cost = (s1[i - 1] == s2[j - 1]) ? 0 : 1;
+            curr[j] = tkbc_min3(prev[j] + 1,          // deletion
+                                curr[j - 1] + 1,      // insertion
+                                prev[j - 1] + cost);  // substitution
+        }
+        int *tmp = prev;
+        prev = curr;
+        curr = tmp;
+    }
+
+    int dist = prev[len_s2];
+    free(prev);
+    free(curr);
+    return dist;
+}
+
+bool tkbc_search_in_keymap(Key_Map *km, const char *needle) {
+    bool match = false;
+    const int max_difference = 1;
+    // TODO: This can be improved by tokenising and doing sub matches.
+    if (tkbc_levenshtein(km->description, needle) - max_difference <= 0) {
+        match = true;
+    }
+    if (tkbc_levenshtein(km->key_str, needle) - max_difference <= 0) {
+        match = true;
+    }
+    if (tkbc_levenshtein(km->mod_key_str, needle) - max_difference <= 0) {
+        match = true;
+    }
+    if (tkbc_levenshtein(km->selection_key_str, needle) - max_difference <= 0) {
+        match = true;
+    }
+
+    return match;
+}
+
+void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle) {
+    for (size_t i = 0; i < keymaps->count; ++i) {
+        Key_Map *km = &keymaps->elements[i];
+        bool match = tkbc_search_in_keymap(km, needle);
+        km->search_excluded = !match;
+    }
 }

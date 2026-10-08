@@ -1930,8 +1930,18 @@ key_change_skip:
  * @param env The global state of the application.
  */
 void tkbc_ui_keymaps(Env *env) {
-    if (IsKeyPressed(KEY_ESCAPE) && env->keymaps_mouse_interaction) {
-        env->keymaps_mouse_interaction = false;
+    if (IsKeyPressed(KEY_ESCAPE) && (env->keymaps_mouse_interaction || env->keymaps_search_input.is_active)) {
+        if (env->keymaps_mouse_interaction) {
+            env->keymaps_mouse_interaction = false;
+        } else if (env->keymaps_search_input.is_active) {
+            env->keymaps_search_input.is_active = false;
+            env->keymaps_search_input.text.count = 0;
+            env->keymaps_search_input.text.elements[0] = '\0';
+            for (size_t i = 0; i < env->keymaps.count; ++i) {
+                env->keymaps.elements[i].search_excluded = false;
+            }
+        }
+
         return;
     }
 
@@ -1956,11 +1966,14 @@ void tkbc_ui_keymaps(Env *env) {
     }
     env->keymaps_base = (Rectangle){0, 0, env->window_width * 0.4, env->window_height};
 
-    env->screen_items = (env->window_height / env->box_height) - 1;
+    // -1 Row for the buttons and -1 for the search bar
+    env->screen_items = (env->window_height / env->box_height) - 1 - 1;
 
     size_t displayed_items_count = 0;
     for (size_t i = 0; i < env->keymaps.count; ++i) {
-        if (!env->keymaps.elements[i].hide) displayed_items_count += 1;
+        if (env->keymaps.elements[i].hide) continue;
+        if (env->keymaps.elements[i].search_excluded) continue;
+        displayed_items_count += 1;
     }
     // The scrollbar and the scroll offset below work on the amount of items
     // that are actually shown. Otherwise hidden entries would leave empty rows
@@ -1985,7 +1998,7 @@ void tkbc_ui_keymaps(Env *env) {
     size_t drawn_items = 0;
     Vector2 text_size;
     for (size_t box = 0; box < env->keymaps.count && drawn_items < env->screen_items; ++box) {
-        if (env->keymaps.elements[box].hide) {
+        if (env->keymaps.elements[box].hide || env->keymaps.elements[box].search_excluded) {
             continue;
         }
         if (no_hidden_entries_index < env->keymaps_top_interaction_box) {
@@ -2044,15 +2057,43 @@ void tkbc_ui_keymaps(Env *env) {
         env->keymaps_base.y += env->box_height;
     }
 
+    env->keymaps_base.height = env->box_height * 0.5;
+    env->keymaps_base.x += padding;
+    env->keymaps_base.y = env->box_height * env->screen_items + env->keymaps_base.height;
+    int font_size = env->keymaps_base.height * 0.75;
+
+    {
+        env->keymaps_search_input.font_size = font_size;
+        env->keymaps_search_input.box = env->keymaps_base;
+        env->keymaps_search_input.box.width = env->keymaps_base.width - 2 * padding;
+
+        tkbc_reduce_str_to_fit_box(env->font, env->keymaps_search_input.text.elements,
+                                   &env->keymaps_search_input.font_size, env->keymaps_search_input.spacing,
+                                   env->keymaps_search_input.box);
+
+        DrawRectangleRounded(env->keymaps_search_input.box, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
+        env->keymaps_search_input.box.x += padding;
+        env->keymaps_search_input.box.width -= 2 * padding;
+        tkbc_handle_text_input(&env->keymaps_search_input, &env->keymaps_search_input_space);
+
+        if (env->keymaps_search_input.is_active) {
+            if (env->keymaps_search_input.text.count) {
+                tkbc_search_in_keymaps(&env->keymaps, env->keymaps_search_input.text.elements);
+            } else {
+                for (size_t i = 0; i < env->keymaps.count; ++i) {
+                    env->keymaps.elements[i].search_excluded = false;
+                }
+            }
+        }
+    }
+
     //
     // Display of the load, reset and save buttons.
     const size_t interaction_buttons_count = 3;
     env->keymaps_base.width =
         (env->keymaps_base.width - (padding * (interaction_buttons_count * 1))) / interaction_buttons_count;
-    env->keymaps_base.height = env->box_height * 0.5;
-    env->keymaps_base.x += padding;
-    env->keymaps_base.y = env->box_height * env->screen_items + env->keymaps_base.height;
-    int font_size = env->keymaps_base.height * 0.75;
+    // Add more space to the buttons.
+    env->keymaps_base.y += env->box_height;
 
     if (CheckCollisionPointRec(GetMousePosition(), env->keymaps_base)) {
         DrawRectangleRounded(env->keymaps_base, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
