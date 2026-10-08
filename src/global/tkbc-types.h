@@ -691,6 +691,7 @@ typedef struct {
 
     Text_Input keymaps_search_input;
     Space keymaps_search_input_space;
+    bool case_insensitive_search;
 
     bool timeline_hoverover;        // The status if the mouse is currently on the
                                     // timeline.

@@ -550,7 +550,7 @@ static int tkbc_min3(int a, int b, int c) {
     return m < c ? m : c;
 }
 
-int tkbc_levenshtein(const char *s1, const char *s2) {
+int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive) {
     if (!s1) {
         return s2 ? (int) strlen(s2) : -1;
     }
@@ -572,7 +572,13 @@ int tkbc_levenshtein(const char *s1, const char *s2) {
     for (size_t i = 1; i <= len_s1; ++i) {
         curr[0] = (int) i;
         for (size_t j = 1; j <= len_s2; ++j) {
-            int cost = (s1[i - 1] == s2[j - 1]) ? 0 : 1;
+            int cost;
+            if (case_insensitive) {
+                cost = (tolower(s1[i - 1]) == tolower(s2[j - 1])) ? 0 : 1;
+            } else {
+                cost = (s1[i - 1] == s2[j - 1]) ? 0 : 1;
+            }
+
             curr[j] = tkbc_min3(prev[j] + 1,          // deletion
                                 curr[j - 1] + 1,      // insertion
                                 prev[j - 1] + cost);  // substitution
@@ -589,19 +595,19 @@ int tkbc_levenshtein(const char *s1, const char *s2) {
 }
 
 #include "sys/param.h"
-int tkbc_search_in_keymap(Key_Map *km, const char *needle) {
+int tkbc_search_in_keymap(Key_Map *km, const char *needle, bool case_insensitive) {
     int result = INT_MAX;
     int distance = INT_MAX;
 
     // TODO: This can be improved by tokenising and doing sub matches.
-    distance = tkbc_levenshtein(km->description, needle);
-    result = MIN(result, distance);
-    distance = tkbc_levenshtein(km->key_str, needle);
-    result = MIN(result, distance);
-    distance = tkbc_levenshtein(km->mod_key_str, needle);
-    result = MIN(result, distance);
-    distance = tkbc_levenshtein(km->selection_key_str, needle);
-    result = MIN(result, distance);
+    distance = tkbc_levenshtein(km->description, needle, case_insensitive);
+    result = result < distance ? result : distance;
+    distance = tkbc_levenshtein(km->key_str, needle, case_insensitive);
+    result = result < distance ? result : distance;
+    distance = tkbc_levenshtein(km->mod_key_str, needle, case_insensitive);
+    result = result < distance ? result : distance;
+    distance = tkbc_levenshtein(km->selection_key_str, needle, case_insensitive);
+    result = result < distance ? result : distance;
     return result;
 }
 
@@ -611,11 +617,11 @@ static int sort_keymaps_by_search_distance(const void *a, const void *b) {
     return aa->search_distance - bb->search_distance;
 }
 
-void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle) {
-    const int max_difference = 5;
+void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle, bool case_insensitive) {
+    const int max_difference = 0;
     for (size_t i = 0; i < keymaps->count; ++i) {
         Key_Map *km = &keymaps->elements[i];
-        int distance = tkbc_search_in_keymap(km, needle);
+        int distance = tkbc_search_in_keymap(km, needle, case_insensitive);
         assert(distance != -1);
         km->search_excluded = distance > max_difference;
         km->search_distance = distance;

@@ -2078,7 +2078,8 @@ void tkbc_ui_keymaps(Env *env) {
 
         if (env->keymaps_search_input.is_active) {
             if (env->keymaps_search_input.text.count) {
-                tkbc_search_in_keymaps(&env->keymaps, env->keymaps_search_input.text.elements);
+                tkbc_search_in_keymaps(&env->keymaps, env->keymaps_search_input.text.elements,
+                                       env->case_insensitive_search);
             } else {
                 for (size_t i = 0; i < env->keymaps.count; ++i) {
                     env->keymaps.elements[i].search_excluded = false;

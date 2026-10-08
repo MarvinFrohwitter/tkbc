@@ -84,6 +84,8 @@ Env *tkbc_init_env(void) {
     // -1 denotes that no shift click has an origin yet.
     env->script_menu_selection_anchor = -1;
 
+    env->case_insensitive_search = true;
+
     env->keymaps_search_input.selection_start = SIZE_MAX;
     env->keymaps_search_input.shadow_text = "Search:";
     env->keymaps_search_input.spacing = 4;

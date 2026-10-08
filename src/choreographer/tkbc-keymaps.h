@@ -63,8 +63,8 @@ static const Key_Map_Check_Config KEY_MAP_CHECK_KEY_PRESSED = {
     .selection_key = MODE_DOWN,  // Don't care for default behavior
 };
 
-int tkbc_levenshtein(const char *s1, const char *s2);
-int tkbc_search_in_keymap(Key_Map *km, const char *needle);
-void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle);
+int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive);
+int tkbc_search_in_keymap(Key_Map *km, const char *needle, bool case_insensitive);
+void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle, bool case_insensitive);
 
 #endif  // TKBC_KEYMAPS_H
