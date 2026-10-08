@@ -2402,6 +2402,7 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
 
         if (IsKeyPressed(KEY_ESCAPE)) {
             input->is_active = false;
+            input->selection_start = SIZE_MAX;
         }
 
         // Drag the mouse with the button pressed down to extend the selection.
