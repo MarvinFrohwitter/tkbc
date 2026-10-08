@@ -1936,7 +1936,10 @@ void tkbc_ui_keymaps(Env *env) {
         } else if (env->keymaps_search_input.is_active) {
             env->keymaps_search_input.is_active = false;
             env->keymaps_search_input.text.count = 0;
-            env->keymaps_search_input.text.elements[0] = '\0';
+            // This is needed in case the input was not yet used and therefore still NULL.
+            if (env->keymaps_search_input.text.elements) {
+                env->keymaps_search_input.text.elements[0] = '\0';
+            }
             for (size_t i = 0; i < env->keymaps.count; ++i) {
                 env->keymaps.elements[i].search_excluded = false;
             }
