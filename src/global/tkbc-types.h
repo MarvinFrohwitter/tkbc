@@ -184,6 +184,8 @@ typedef struct {
     int selection_key;
     int key;
     int hash;
+
+    int search_distance;
     bool hide;
     bool search_excluded;
 } Key_Map;

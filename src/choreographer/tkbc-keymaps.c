@@ -552,21 +552,19 @@ static int tkbc_min3(int a, int b, int c) {
 
 int tkbc_levenshtein(const char *s1, const char *s2) {
     if (!s1) {
-        return s2 ? strlen(s2) : (abort(), -1);
+        return s2 ? (int) strlen(s2) : -1;
     }
     if (!s2) {
-        return s1 ? strlen(s1) : (abort(), -1);
+        return s1 ? (int) strlen(s1) : -1;
     }
 
     size_t len_s1 = strlen(s1), len_s2 = strlen(s2);
     int *prev = malloc((len_s2 + 1) * sizeof(*prev));
     int *curr = malloc((len_s2 + 1) * sizeof(*curr));
     if (!prev || !curr) {
-        tkbc_fprintf(stderr, "ERROR", "Could not allocate any more memory\n");
-        abort();
-        // free(prev);
-        // free(curr);
-        // return -1;
+        free(prev);
+        free(curr);
+        return -1;
     }
 
     for (size_t j = 0; j <= len_s2; ++j) prev[j] = (int) j;
@@ -590,30 +588,38 @@ int tkbc_levenshtein(const char *s1, const char *s2) {
     return dist;
 }
 
-bool tkbc_search_in_keymap(Key_Map *km, const char *needle) {
-    bool match = false;
-    const int max_difference = 1;
-    // TODO: This can be improved by tokenising and doing sub matches.
-    if (tkbc_levenshtein(km->description, needle) - max_difference <= 0) {
-        match = true;
-    }
-    if (tkbc_levenshtein(km->key_str, needle) - max_difference <= 0) {
-        match = true;
-    }
-    if (tkbc_levenshtein(km->mod_key_str, needle) - max_difference <= 0) {
-        match = true;
-    }
-    if (tkbc_levenshtein(km->selection_key_str, needle) - max_difference <= 0) {
-        match = true;
-    }
+#include "sys/param.h"
+int tkbc_search_in_keymap(Key_Map *km, const char *needle) {
+    int result = INT_MAX;
+    int distance = INT_MAX;
 
-    return match;
+    // TODO: This can be improved by tokenising and doing sub matches.
+    distance = tkbc_levenshtein(km->description, needle);
+    result = MIN(result, distance);
+    distance = tkbc_levenshtein(km->key_str, needle);
+    result = MIN(result, distance);
+    distance = tkbc_levenshtein(km->mod_key_str, needle);
+    result = MIN(result, distance);
+    distance = tkbc_levenshtein(km->selection_key_str, needle);
+    result = MIN(result, distance);
+    return result;
+}
+
+static int sort_keymaps_by_search_distance(const void *a, const void *b) {
+    const Key_Map *aa = a;
+    const Key_Map *bb = b;
+    return aa->search_distance - bb->search_distance;
 }
 
 void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle) {
+    const int max_difference = 5;
     for (size_t i = 0; i < keymaps->count; ++i) {
         Key_Map *km = &keymaps->elements[i];
-        bool match = tkbc_search_in_keymap(km, needle);
-        km->search_excluded = !match;
+        int distance = tkbc_search_in_keymap(km, needle);
+        assert(distance != -1);
+        km->search_excluded = distance > max_difference;
+        km->search_distance = distance;
     }
+
+    qsort(keymaps->elements, keymaps->count, sizeof(*keymaps->elements), &sort_keymaps_by_search_distance);
 }

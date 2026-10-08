@@ -64,7 +64,7 @@ static const Key_Map_Check_Config KEY_MAP_CHECK_KEY_PRESSED = {
 };
 
 int tkbc_levenshtein(const char *s1, const char *s2);
-bool tkbc_search_in_keymap(Key_Map *km, const char *needle);
+int tkbc_search_in_keymap(Key_Map *km, const char *needle);
 void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle);
 
 #endif  // TKBC_KEYMAPS_H
