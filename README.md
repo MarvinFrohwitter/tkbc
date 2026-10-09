@@ -5,6 +5,12 @@
 - The dependency is version 6.2:
 - Original Raylib 6.2 Source Code: <https://github.com/raysan5/raylib/releases/tag/6.2>
 
+# Vendored FFmpeg 9.0.2 (static, minimal feature set)
+
+Source: https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz
+Upstream license: LGPL version 2.1 or later (no GPL components enabled:
+no libx264, no other --enable-gpl libraries).
+
 - The dependency is TCC 0.9.28rc:
 - Original Tiny C Compiler Source Code: <https://github.com/TinyCC/tinycc.git>
 - License LGPL-2.1
@@ -23,7 +29,8 @@ cc -o cb cb.c
 ./cb server windows
 ./cb test
 
-./build/<program>
+./build/<tkbc|client|server>
+./build/<tkbc-win64|client-win64|server-win64>
 ```
 
 ### Build with make
