@@ -67,11 +67,68 @@ Env *tkbc_init_env(void) {
     // const char *font_name = "iosevka-regular.ttf";
     // const char *font_name = "GreatVibes-Regular.ttf";
 #ifndef TKBC_SERVER
-    const char *font_name = "";
-    env->font = LoadFont(font_name);
+    env->needs_font_free = false;
+    const char *font_path = NULL;
+#ifdef _WIN32
+    // Common Windows system fonts
+    const char *win_fonts[] = {
+        "C:/Windows/Fonts/segoeui.ttf", "C:/Windows/Fonts/SegoeUI.ttf", "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/Arial.ttf",   "C:/Windows/Fonts/tahoma.ttf",  "C:/Windows/Fonts/verdana.ttf",
+        "C:/Windows/Fonts/calibri.ttf",
+    };
+    for (size_t i = 0; i < ARRAY_LENGTH(win_fonts); ++i) {
+        if (FileExists(win_fonts[i])) {
+            font_path = win_fonts[i];
+            break;
+        }
+    }
+#else
+    // Try to use fontconfig if available
+    // NOTE: This starts a shell
+    FILE *fc = popen("fc-match -f '%{file}' :family=Sans:style=Regular 2>/dev/null", "r");
+    if (fc) {
+        static char fc_path[512];
+        if (fgets(fc_path, sizeof(fc_path), fc)) {
+            // Remove trailing newline
+            size_t len = strlen(fc_path);
+            if (len > 0 && fc_path[len - 1] == '\n') {
+                fc_path[len - 1] = '\0';
+            }
+            if (fc_path[0] != '\0' && FileExists(fc_path)) {
+                font_path = fc_path;
+            }
+        }
+        pclose(fc);
+    }
+    // Fallback to common Linux fonts
+    if (font_path == NULL) {
+        const char *linux_fonts[] = {
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+            "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+            "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf",
+            "/usr/share/fonts/ubuntu-font-family/Ubuntu-R.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+            "/usr/share/fonts/gnu-free/FreeSans.ttf",
+        };
+        for (size_t i = 0; i < ARRAY_LENGTH(linux_fonts); ++i) {
+            if (FileExists(linux_fonts[i])) {
+                font_path = linux_fonts[i];
+                break;
+            }
+        }
+    }
+#endif
+    if (font_path != NULL) {
+        env->font = LoadFont(font_path);
+    }
 #endif
     if (!IsFontValid(env->font)) {
         env->font = GetFontDefault();
+    } else {
         env->needs_font_free = true;
     }
 #ifdef TKBC_SERVER
