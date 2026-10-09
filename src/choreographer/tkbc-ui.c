@@ -2297,18 +2297,6 @@ static void tkbc_draw_selection(Text_Input *input) {
     DrawRectangleRec(highlight, TKBC_UI_DARKPURPLE_ALPHA);
 }
 
-/**
- * @brief Deletes the selected text range of an input. The cursor is moved to
- * the start of the former selection.
- *
- * @param input The input that holds the selected text.
- */
-static bool tkbc_is_word_boundary(char c) {
-    return c == ' ' || c == '\t' || c == '.' || c == ',' || c == ';' || c == ':' || c == '(' || c == ')' || c == '[' ||
-           c == ']' || c == '{' || c == '}' || c == '"' || c == '\'' || c == '/' || c == '\\' || c == '-' || c == '_' ||
-           c == '+' || c == '=' || c == '<' || c == '>' || c == '|' || c == '&' || c == '^' || c == '%' || c == '#' ||
-           c == '@' || c == '!' || c == '?' || c == '~' || c == '`';
-}
 
 static size_t tkbc_find_word_left(Text_Input *input) {
     size_t pos = input->cursor_pos;

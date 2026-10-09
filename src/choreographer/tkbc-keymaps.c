@@ -2,9 +2,11 @@
 #include "../../external/lexer/tkbc-lexer.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include <ctype.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../config.h"
 
@@ -545,6 +547,16 @@ bool tkbc_check_keymaps_full(Key_Maps keymaps, int hash, Key_Map_Check_Config cf
     return tkbc_check_keymaps(keymaps, hash, cfg, KEY | MOD_KEY | SELECTION_KEY);
 }
 
+/**
+ * @brief Deletes the selected text range of an input. The cursor is moved to
+ * the start of the former selection.
+ *
+ * @param input The input that holds the selected text.
+ */
+bool tkbc_is_word_boundary(char c) {
+    return isspace(c) || ispunct(c);
+}
+
 static int tkbc_min3(int a, int b, int c) {
     int m = a < b ? a : b;
     return m < c ? m : c;
@@ -594,14 +606,61 @@ int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive) {
     return dist;
 }
 
-#include "sys/param.h"
+int tkbc_search_subwords_int_text(const char *str, const char *needle, bool case_insensitive) {
+    if (!str) {
+        return needle ? (int) strlen(needle) : -1;
+    }
+    if (!needle) {
+        return str ? (int) strlen(str) : -1;
+    }
+
+    int n = strlen(str);
+    int result = INT_MAX;
+    int distance = INT_MAX;
+    int needle_len = strlen(needle);
+    distance = result = needle_len < n ? n : needle_len;
+
+    char *base = malloc((n + 1) * sizeof(*base));
+    if (!base) {
+        return -1;
+    }
+    memcpy(base, str, n + 1);
+
+    const char *first = base;
+    char *last = base;
+
+    for (;;) {
+        while (*last && !tkbc_is_word_boundary(*last) && last++);
+
+        bool at_end = (*last == '\0');
+        *last = 0;
+
+        // Skip empty tokens produced by leading, trailing or repeated spaces.
+        if (first < last) {
+            distance = tkbc_levenshtein(first, needle, case_insensitive);
+            result = result < distance ? result : distance;
+        }
+
+        if (at_end) {
+            break;
+        }
+        first = ++last;
+    }
+
+    free(base);
+    return result;
+}
+
 int tkbc_search_in_keymap(Key_Map *km, const char *needle, bool case_insensitive) {
     int result = INT_MAX;
     int distance = INT_MAX;
 
-    // TODO: This can be improved by tokenising and doing sub matches.
     distance = tkbc_levenshtein(km->description, needle, case_insensitive);
     result = result < distance ? result : distance;
+
+    distance = tkbc_search_subwords_int_text(km->description, needle, case_insensitive);
+    result = result < distance ? result : distance;
+
     distance = tkbc_levenshtein(km->key_str, needle, case_insensitive);
     result = result < distance ? result : distance;
     distance = tkbc_levenshtein(km->mod_key_str, needle, case_insensitive);
@@ -618,7 +677,7 @@ static int sort_keymaps_by_search_distance(const void *a, const void *b) {
 }
 
 void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle, bool case_insensitive) {
-    const int max_difference = 0;
+    const int max_difference = 3;
     for (size_t i = 0; i < keymaps->count; ++i) {
         Key_Map *km = &keymaps->elements[i];
         int distance = tkbc_search_in_keymap(km, needle, case_insensitive);
