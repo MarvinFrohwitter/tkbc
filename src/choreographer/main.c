@@ -138,6 +138,9 @@ int main(void) {
     };
 
     tkbc_sound_destroy(env->sound);
+    if (env->rendering) {
+        tkbc_ffmpeg_end(env, false);
+    }
     tkbc_destroy_env(env);
     tkbc_assets_destroy();
 
