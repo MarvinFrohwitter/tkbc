@@ -2111,7 +2111,10 @@ void tkbc_ui_keymaps(Env *env) {
         tkbc_handle_text_input(&env->keymaps_search_input, &env->keymaps_search_input_space);
 
         if (env->keymaps_search_input.is_active) {
-            if (env->keymaps_search_input.text.count) {
+            static int last_search_count = 0;
+            bool is_equal = env->keymaps_search_input.text.count == last_search_count;
+            if (env->keymaps_search_input.text.count && is_equal) {
+                last_search_count = env->keymaps_search_input.text.count;
                 space_init_capacity(space_get_tspace(), 1024);
                 tkbc_search_in_keymaps(&env->keymaps, env->keymaps_search_input.text.elements,
                                        env->case_insensitive_search, space_get_tspace());
