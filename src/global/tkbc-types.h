@@ -665,7 +665,7 @@ typedef struct {
 
     // -------FFMPEG-------
     Sound sound;            // The current loaded sound.
-    Process *ffmpeg;        // The pipe and pid of the ffmpeg subprocess.
+    Process *ffmpeg;        // The in-process libav encoder state (NULL when not recording).
     char *sound_file_name;  // The name of the sound file that should be included
                             // in the rendered video.
     bool recording;         // The state if the recording of the window.

@@ -3,6 +3,8 @@
 // are fine like "Hello %s" with NULL.
 // printf("%s", NULL);
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #define CB_IMPLEMENTATION
 #include "cb.h"
@@ -16,6 +18,8 @@ Cmd cmd = {0};
 #define RESOURCES_PATH "resources/"
 #define RAYLIB_PATH_LINUX "external/raylib-6.0_linux_amd64/"
 #define RAYLIB_PATH_WINDOWS "external/raylib-6.0_win64_mingw-w64/"
+#define FFMPEG_PATH_LINUX "external/ffmpeg-9.0_linux_amd64/"
+#define FFMPEG_PATH_WINDOWS "external/ffmpeg-9.0_win64_mingw-w64/"
 #define TESTS_PATH "src/tests/"
 #define SCRIPT_PATH "tkbc_scripts/"
 #define CHOREOGRAPHER_PATH "src/choreographer/"
@@ -134,6 +138,7 @@ void cflags_opt(Cmd *cmd, Cflags_Opts opts) {
 
 typedef struct {
     bool raylib;
+    bool ffmpeg;
     bool LINUX;
     bool WINDOWS;
 } Include_Opts;
@@ -155,6 +160,16 @@ void include_opt(Cmd *cmd, Include_Opts opts) {
             exit(EXIT_FAILURE);
         }
     }
+    if (opts.ffmpeg) {
+        if (0) {
+        } else if (opts.LINUX) {
+            INCLUDE(cmd, "-I", FFMPEG_PATH_LINUX "include/");
+        } else if (opts.WINDOWS) {
+            INCLUDE(cmd, "-I", FFMPEG_PATH_WINDOWS "include/");
+        } else {
+            exit(EXIT_FAILURE);
+        }
+    }
 }
 
 typedef struct {
@@ -162,6 +177,7 @@ typedef struct {
     bool raylib;
     bool raylib_memory;
     bool X11;
+    bool ffmpeg;
 
     bool LINUX;
     bool WINDOWS;
@@ -173,6 +189,23 @@ typedef struct {
 void libs_opt(Cmd *cmd, Libs_Opts opts) {
     if (opts.math) {
         LIBS(cmd, "-lm");
+    }
+    // Vendored static FFmpeg (see external/ffmpeg-*/README.VENDOR.md). No
+    // system FFmpeg or external ffmpeg binary is needed.
+    if (opts.ffmpeg) {
+        if (0) {
+        } else if (opts.LINUX) {
+            LDFLAGS(cmd, "-L", FFMPEG_PATH_LINUX "lib/");
+            LIBS(cmd, "-l:libavformat.a", "-l:libavcodec.a", "-l:libswscale.a", "-l:libswresample.a", "-l:libavutil.a");
+            LIBS(cmd, "-latomic");
+            LIBS(cmd, "-pthread");
+        } else if (opts.WINDOWS) {
+            LDFLAGS(cmd, "-L", FFMPEG_PATH_WINDOWS "lib/");
+            LIBS(cmd, "-l:libavformat.a", "-l:libavcodec.a", "-l:libswscale.a", "-l:libswresample.a", "-l:libavutil.a");
+            LIBS(cmd, "-lbcrypt");
+        } else {
+            exit(EXIT_FAILURE);
+        }
     }
     if (0) {
     } else if (opts.LINUX) {
@@ -375,7 +408,7 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
     } else if (os.LINUX) {
         first_o(cmd, .LINUX = true);
         cb_cmd_push(cmd, CC);
-        include(cmd, .raylib = true, .LINUX = true);
+        include(cmd, .raylib = true, .ffmpeg = true, .LINUX = true);
         cflags(cmd);
         define(cmd, .include_raylib = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_mmap = true,
@@ -384,7 +417,7 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
     } else if (os.WINDOWS) {
         first_o(cmd, .WINDOWS = true);
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
-        include(cmd, .raylib = true, .WINDOWS = true);
+        include(cmd, .raylib = true, .ffmpeg = true, .WINDOWS = true);
         define(cmd, .include_raylib = true, .release = true, .ndebug = false);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
                .space_memory_layout_method_da = true);
@@ -398,10 +431,10 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
 
     if (0) {
     } else if (os.LINUX) {
-        libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
+        libs(cmd, .raylib = true, .X11 = true, .math = true, .ffmpeg = true, .LINUX = true);
     } else if (os.WINDOWS) {
         win_resource(cmd, BUILD_PATH "tkbc-res.o");
-        libs(cmd, .raylib = true, .WINDOWS = true);
+        libs(cmd, .raylib = true, .ffmpeg = true, .WINDOWS = true);
     } else {
         exit(EXIT_FAILURE);
     }
@@ -415,7 +448,7 @@ void client_opt(Cmd *cmd, OS_Opts os) {
     } else if (os.LINUX) {
         first_o(cmd, .LINUX = true);
         cb_cmd_push(cmd, CC);
-        include(cmd, .raylib = true, .LINUX = true);
+        include(cmd, .raylib = true, .ffmpeg = true, .LINUX = true);
         cflags(cmd);
         define(cmd, .include_raylib = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_mmap = true,
@@ -424,7 +457,7 @@ void client_opt(Cmd *cmd, OS_Opts os) {
     } else if (os.WINDOWS) {
         first_o(cmd, .WINDOWS = true);
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
-        include(cmd, .raylib = true, .WINDOWS = true);
+        include(cmd, .raylib = true, .ffmpeg = true, .WINDOWS = true);
         cflags(cmd, .WINDOWS = true);
         define(cmd, .include_raylib = true, .release = true, .ndebug = false);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
@@ -438,10 +471,10 @@ void client_opt(Cmd *cmd, OS_Opts os) {
 
     if (0) {
     } else if (os.LINUX) {
-        libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
+        libs(cmd, .raylib = true, .X11 = true, .math = true, .ffmpeg = true, .LINUX = true);
     } else if (os.WINDOWS) {
         win_resource(cmd, BUILD_PATH "tkbc-res.o");
-        libs(cmd, .raylib = true, .WINDOWS = true, .network = true);
+        libs(cmd, .raylib = true, .WINDOWS = true, .ffmpeg = true, .network = true);
     } else {
         exit(EXIT_FAILURE);
     }
@@ -574,10 +607,10 @@ void usage_opt(Usage_Opts opts) {
         fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_ASSETS);
     }
     if (opts.tkbc || opts.all) {
-        fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_TKBC);
+        fprintf(stderr, "       <%s> <%s> [%s|%s]\n", opts.prog_name, FLAG_TKBC, FLAG_LINUX, FLAG_WINDOWS);
     }
     if (opts.client || opts.all) {
-        fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_CLIENT);
+        fprintf(stderr, "       <%s> <%s> [%s|%s]\n", opts.prog_name, FLAG_CLIENT, FLAG_LINUX, FLAG_WINDOWS);
     }
     if (opts.server || opts.all) {
         fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_SERVER);
@@ -748,37 +781,34 @@ void flag_tkbc(char *flag, char ***argv, int *argc) {
     if (str_compare(flag, prev_flag)) {
         // defaults to linux when no other argument is specified.
         tkbc(&cmd, .LINUX = true);
-    } else {
-        char ***saved_argv = argv;
-        int saved_argc = *argc;
-        bool first = true;
-    second:
-        for (;;) {
-            prev_flag = flag;
-            if (0) {
-            } else if (str_compare(FLAG_LINUX, flag)) {
-                if (!first) {
-                    tkbc(&cmd, .LINUX = true);
-                }
-            } else if (str_compare(FLAG_WINDOWS, flag)) {
-                if (!first) {
-                    tkbc(&cmd, .WINDOWS = true);
-                }
-            } else {
-                usage(.prog_name = prog_name, .tkbc = true);
-            }
-
-            flag = get_next_or_last(argv, argc);
-            if (prev_flag == flag) {
-                if (first) {
-                    first = false;
-                    argv = saved_argv;
-                    *argc = saved_argc;
-                    goto second;
-                }
-                break;
-            }
+        return;
+    }
+    bool is_linux = false, is_windows = false;
+    for (;;) {
+        prev_flag = flag;
+        if (0) {
+        } else if (str_compare(FLAG_LINUX, flag)) {
+            is_linux = true;
+        } else if (str_compare(FLAG_WINDOWS, flag)) {
+            is_windows = true;
+        } else {
+            usage(.prog_name = prog_name, .tkbc = true);
         }
+
+        flag = get_next_or_last(argv, argc);
+        if (prev_flag == flag) {
+            break;
+        }
+    }
+    if (!is_linux && !is_windows) {
+        // defaults to linux when no OS argument is specified.
+        is_linux = true;
+    }
+    if (is_linux) {
+        tkbc(&cmd, .LINUX = true);
+    }
+    if (is_windows) {
+        tkbc(&cmd, .WINDOWS = true);
     }
 }
 
@@ -788,37 +818,34 @@ void flag_client(char *flag, char ***argv, int *argc) {
     if (str_compare(flag, prev_flag)) {
         // defaults to linux when no other argument is specified.
         client(&cmd, .LINUX = true);
-    } else {
-        char ***saved_argv = argv;
-        int saved_argc = *argc;
-        bool first = true;
-    second:
-        for (;;) {
-            prev_flag = flag;
-            if (0) {
-            } else if (str_compare(FLAG_LINUX, flag)) {
-                if (!first) {
-                    client(&cmd, .LINUX = true);
-                }
-            } else if (str_compare(FLAG_WINDOWS, flag)) {
-                if (!first) {
-                    client(&cmd, .WINDOWS = true);
-                }
-            } else {
-                usage(.prog_name = prog_name, .client = true);
-            }
-
-            flag = get_next_or_last(argv, argc);
-            if (prev_flag == flag) {
-                if (first) {
-                    first = false;
-                    argv = saved_argv;
-                    *argc = saved_argc;
-                    goto second;
-                }
-                break;
-            }
+        return;
+    }
+    bool is_linux = false, is_windows = false;
+    for (;;) {
+        prev_flag = flag;
+        if (0) {
+        } else if (str_compare(FLAG_LINUX, flag)) {
+            is_linux = true;
+        } else if (str_compare(FLAG_WINDOWS, flag)) {
+            is_windows = true;
+        } else {
+            usage(.prog_name = prog_name, .client = true);
         }
+
+        flag = get_next_or_last(argv, argc);
+        if (prev_flag == flag) {
+            break;
+        }
+    }
+    if (!is_linux && !is_windows) {
+        // defaults to linux when no OS argument is specified.
+        is_linux = true;
+    }
+    if (is_linux) {
+        client(&cmd, .LINUX = true);
+    }
+    if (is_windows) {
+        client(&cmd, .WINDOWS = true);
     }
 }
 
