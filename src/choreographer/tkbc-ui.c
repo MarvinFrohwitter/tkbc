@@ -1934,6 +1934,10 @@ void tkbc_ui_keymaps(Env *env) {
         if (env->keymaps_mouse_interaction) {
             env->keymaps_mouse_interaction = false;
         } else if (env->keymaps_search_input.is_active) {
+            if (env->keymaps_search_input.selection_start != SIZE_MAX) {
+                env->keymaps_search_input.selection_start = SIZE_MAX;
+                return;
+            }
             env->keymaps_search_input.is_active = false;
             env->keymaps_search_input.text.count = 0;
             // This is needed in case the input was not yet used and therefore still NULL.
