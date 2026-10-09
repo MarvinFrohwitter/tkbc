@@ -8,6 +8,13 @@
 - Original Raylib 5.5 Source Code: <https://github.com/raysan5/raylib/releases/tag/5.5>
 - For commits older than fb53c95 the used library is:
 - Original Raylib 5.0 Source Code: <https://github.com/raysan5/raylib/releases/tag/5.0>
+-
+
+# Vendored FFmpeg 9.0.2 (static, minimal feature set)
+
+Source: https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz
+Upstream license: LGPL version 2.1 or later (no GPL components enabled:
+no libx264, no other --enable-gpl libraries).
 
 - The dependency is TCC 0.9.28rc:
 - Original Tiny C Compiler Source Code: <https://github.com/TinyCC/tinycc.git>
@@ -27,7 +34,8 @@ cc -o cb cb.c
 ./cb server windows
 ./cb test
 
-./build/<program>
+./build/<tkbc|client|server>
+./build/<tkbc-win64|client-win64|server-win64>
 ```
 
 ### Build with make
