@@ -674,7 +674,7 @@ static int sort_keymaps_by_search_distance(const void *a, const void *b) {
 }
 
 void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle, bool case_insensitive, Space *space) {
-    const int max_difference = 3;
+    const int max_difference = 2;
     for (size_t i = 0; i < keymaps->count; ++i) {
         Key_Map *km = &keymaps->elements[i];
         int distance = tkbc_search_in_keymap(km, needle, case_insensitive, space);
