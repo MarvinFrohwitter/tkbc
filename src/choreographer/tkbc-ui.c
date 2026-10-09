@@ -2111,7 +2111,7 @@ void tkbc_ui_keymaps(Env *env) {
         tkbc_handle_text_input(&env->keymaps_search_input, &env->keymaps_search_input_space);
 
         if (env->keymaps_search_input.is_active) {
-            static int last_search_count = 0;
+            static size_t last_search_count = 0;
             bool is_equal = env->keymaps_search_input.text.count == last_search_count;
             if (env->keymaps_search_input.text.count && !is_equal) {
                 last_search_count = env->keymaps_search_input.text.count;
