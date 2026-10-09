@@ -2108,8 +2108,10 @@ void tkbc_ui_keymaps(Env *env) {
 
         if (env->keymaps_search_input.is_active) {
             if (env->keymaps_search_input.text.count) {
+                space_init_capacity(space_get_tspace(), 1024);
                 tkbc_search_in_keymaps(&env->keymaps, env->keymaps_search_input.text.elements,
-                                       env->case_insensitive_search);
+                                       env->case_insensitive_search, space_get_tspace());
+                space_reset_tspace();
             } else {
                 for (size_t i = 0; i < env->keymaps.count; ++i) {
                     env->keymaps.elements[i].search_excluded = false;
@@ -2296,7 +2298,6 @@ static void tkbc_draw_selection(Text_Input *input) {
 
     DrawRectangleRec(highlight, TKBC_UI_DARKPURPLE_ALPHA);
 }
-
 
 static size_t tkbc_find_word_left(Text_Input *input) {
     size_t pos = input->cursor_pos;

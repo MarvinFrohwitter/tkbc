@@ -64,9 +64,9 @@ static const Key_Map_Check_Config KEY_MAP_CHECK_KEY_PRESSED = {
 };
 
 bool tkbc_is_word_boundary(char c);
-int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive);
-int tkbc_search_subwords_int_text(const char *str, const char *needle, bool case_insensitive);
-int tkbc_search_in_keymap(Key_Map *km, const char *needle, bool case_insensitive);
-void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle, bool case_insensitive);
+int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive, Space *space);
+int tkbc_search_subwords_int_text(const char *str, const char *needle, bool case_insensitive, Space *space);
+int tkbc_search_in_keymap(Key_Map *km, const char *needle, bool case_insensitive, Space *space);
+void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle, bool case_insensitive, Space *space);
 
 #endif  // TKBC_KEYMAPS_H

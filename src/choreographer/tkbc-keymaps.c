@@ -562,7 +562,7 @@ static int tkbc_min3(int a, int b, int c) {
     return m < c ? m : c;
 }
 
-int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive) {
+int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive, Space *space) {
     if (!s1) {
         return s2 ? (int) strlen(s2) : -1;
     }
@@ -571,8 +571,8 @@ int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive) {
     }
 
     size_t len_s1 = strlen(s1), len_s2 = strlen(s2);
-    int *prev = malloc((len_s2 + 1) * sizeof(*prev));
-    int *curr = malloc((len_s2 + 1) * sizeof(*curr));
+    int *prev = space_malloc(space, (len_s2 + 1) * sizeof(*prev));
+    int *curr = space_malloc(space, (len_s2 + 1) * sizeof(*curr));
     if (!prev || !curr) {
         free(prev);
         free(curr);
@@ -601,12 +601,10 @@ int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive) {
     }
 
     int dist = prev[len_s2];
-    free(prev);
-    free(curr);
     return dist;
 }
 
-int tkbc_search_subwords_int_text(const char *str, const char *needle, bool case_insensitive) {
+int tkbc_search_subwords_int_text(const char *str, const char *needle, bool case_insensitive, Space *space) {
     if (!str) {
         return needle ? (int) strlen(needle) : -1;
     }
@@ -620,7 +618,7 @@ int tkbc_search_subwords_int_text(const char *str, const char *needle, bool case
     int needle_len = strlen(needle);
     distance = result = needle_len < n ? n : needle_len;
 
-    char *base = malloc((n + 1) * sizeof(*base));
+    char *base = space_malloc(space, (n + 1) * sizeof(*base));
     if (!base) {
         return -1;
     }
@@ -637,7 +635,7 @@ int tkbc_search_subwords_int_text(const char *str, const char *needle, bool case
 
         // Skip empty tokens produced by leading, trailing or repeated spaces.
         if (first < last) {
-            distance = tkbc_levenshtein(first, needle, case_insensitive);
+            distance = tkbc_levenshtein(first, needle, case_insensitive, space);
             result = result < distance ? result : distance;
         }
 
@@ -647,25 +645,24 @@ int tkbc_search_subwords_int_text(const char *str, const char *needle, bool case
         first = ++last;
     }
 
-    free(base);
     return result;
 }
 
-int tkbc_search_in_keymap(Key_Map *km, const char *needle, bool case_insensitive) {
+int tkbc_search_in_keymap(Key_Map *km, const char *needle, bool case_insensitive, Space *space) {
     int result = INT_MAX;
     int distance = INT_MAX;
 
-    distance = tkbc_levenshtein(km->description, needle, case_insensitive);
+    distance = tkbc_levenshtein(km->description, needle, case_insensitive, space);
     result = result < distance ? result : distance;
 
-    distance = tkbc_search_subwords_int_text(km->description, needle, case_insensitive);
+    distance = tkbc_search_subwords_int_text(km->description, needle, case_insensitive, space);
     result = result < distance ? result : distance;
 
-    distance = tkbc_levenshtein(km->key_str, needle, case_insensitive);
+    distance = tkbc_levenshtein(km->key_str, needle, case_insensitive, space);
     result = result < distance ? result : distance;
-    distance = tkbc_levenshtein(km->mod_key_str, needle, case_insensitive);
+    distance = tkbc_levenshtein(km->mod_key_str, needle, case_insensitive, space);
     result = result < distance ? result : distance;
-    distance = tkbc_levenshtein(km->selection_key_str, needle, case_insensitive);
+    distance = tkbc_levenshtein(km->selection_key_str, needle, case_insensitive, space);
     result = result < distance ? result : distance;
     return result;
 }
@@ -676,14 +673,15 @@ static int sort_keymaps_by_search_distance(const void *a, const void *b) {
     return aa->search_distance - bb->search_distance;
 }
 
-void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle, bool case_insensitive) {
+void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle, bool case_insensitive, Space *space) {
     const int max_difference = 3;
     for (size_t i = 0; i < keymaps->count; ++i) {
         Key_Map *km = &keymaps->elements[i];
-        int distance = tkbc_search_in_keymap(km, needle, case_insensitive);
+        int distance = tkbc_search_in_keymap(km, needle, case_insensitive, space);
         assert(distance != -1);
         km->search_excluded = distance > max_difference;
         km->search_distance = distance;
+        space_reset_tspace();
     }
 
     qsort(keymaps->elements, keymaps->count, sizeof(*keymaps->elements), &sort_keymaps_by_search_distance);
