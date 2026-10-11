@@ -1,9 +1,6 @@
 #ifndef TKBC_SCRIPT_API_H_
 #define TKBC_SCRIPT_API_H_
 
-#include "../../external/space/space.h"
-#include "../global/tkbc-types.h"
-#include "tkbc-script-handler.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -14,87 +11,83 @@
 // ========================== SCRIPT API =====================================
 // ===========================================================================
 
+#include "../global/tkbc-types.h"
+
+#define LIST_OF_API                                                                                                    \
+    X(void, tkbc__script_begin, Env *env)                                                                              \
+    X(void, tkbc__script_end, Env *env)                                                                                \
+    X(void, tkbc_set_script_name, Script *script, char *name)                                                          \
+    X(void, tkbc_set_script_name_if_not_exists, Script *script)                                                        \
+    X(const char *, tkbc_script_name, const Script *script)                                                            \
+    X(bool, tkbc_configure_kites, Env *env, Kite_Ids kis, Kite_Config first_config, ...)                               \
+    X(void *, space_vstrcat_impl, Space *, const char *, ...)                                                          \
+    X(void, tkbc_script_update_frames, Env *env)                                                                       \
+    X(bool, tkbc_script_finished, Env *env)                                                                            \
+                                                                                                                       \
+    X(Frame *, tkbc__frame_generate, Env *env, Action_Kind kind, Kite_Ids kite_ids, Action raw_action, float duration) \
+    X(void, tkbc__register_frames, Env *env, ...)                                                                      \
+    X(void, tkbc_register_frames_array, Env *env, Frames *frames)                                                      \
+    X(Kite_Ids, tkbc__indexs_append, Space *space, ...)                                                                \
+    X(Kite_Ids, tkbc_indexs_range, int start, int end)                                                                 \
+    X(Kite_Ids, tkbc_kite_array_generate, Env *env, size_t kite_count)                                                 \
+    X(void, tkbc_print_script, FILE *stream, Script *script)                                                           \
+    X(void, tkbc_debug_print_and_export_all_scripts, FILE *stream, Env *env, const char *path)                         \
+    X(void, tkbc_kite_bezier_quadratic, Env *env, Kite_Ids kite_index_array, Vector2 p1, Vector2 p2, Vector2 p3,       \
+      float move_duration, float angle, float rotation_duration)                                                       \
+    X(void, tkbc_kite_bezier_cubic, Env *env, Kite_Ids kite_index_array, Vector2 p1, Vector2 p2, Vector2 p3,           \
+      Vector2 p4, float move_duration, float angle, float rotation_duration)                                           \
+    X(void, tkbc_kite_bezier_quadratic_add, Env *env, Kite_Ids kite_index_array, Vector2 p2, Vector2 p3,               \
+      float move_duration, float angle, float rotation_duration)                                                       \
+    X(void, tkbc_kite_bezier_cubic_add, Env *env, Kite_Ids kite_index_array, Vector2 p2, Vector2 p3, Vector2 p4,       \
+      float move_duration, float angle, float rotation_duration)
+
+#define X(ret, name, ...) ret name(__VA_ARGS__);
+LIST_OF_API
+#undef X
+
+// This is manually declared to not inject it to the tcc symbol list and therefore get the new compiled version.
 void tkbc__script_input(Env *env);
-void tkbc__script_begin(Env *env);
-void tkbc__script_end(Env *env);
-void tkbc_set_script_name(Script *script, char *name);
-void tkbc_set_script_name_if_not_exists(Script *script);
-const char *tkbc_script_name(const Script *script);
-bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config, ...);
-
 #define tkbc_script_input void tkbc__script_input(Env *env)
-
 #define tkbc_script_begin(...)                                                                                         \
     do {                                                                                                               \
         tkbc__script_begin(env);                                                                                       \
-        char *tmp = space_vstrcat(&env->scratch_buf_script.space, NULL, ##__VA_ARGS__);                                \
+        char *tmp = space_vstrcat_impl(&env->scratch_buf_script.space, NULL, ##__VA_ARGS__, NULL);                     \
         tkbc_set_script_name(&env->scratch_buf_script, tmp);                                                           \
     } while (0)
-
 #define tkbc_script_end() tkbc__script_end(env)
-
-void tkbc_script_update_frames(Env *env);
-bool tkbc_script_finished(Env *env);
 
 // ===========================================================================
 // ========================== SCRIPT HANDLER API =============================
 // ===========================================================================
 
-Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids, Action raw_action, float duration);
 #define tkbc_frame_generate(kind, kite_ids, raw_action, duration)                                                      \
     tkbc__frame_generate(env, kind, kite_ids, (Action) raw_action, duration)
-void tkbc__register_frames(Env *env, ...);
 #define tkbc_register_frames(env, ...) tkbc__register_frames(env, __VA_ARGS__, NULL)
 #define SET(...) tkbc__register_frames(env, __VA_ARGS__, NULL)
 #define COLLECTION(...) SET(__VA_ARGS__)
 
 #define KITE_QUIT(duration) tkbc_frame_generate(ACTION_KITE_QUIT, ((Kite_Ids){0}), ((Quit_Action){}), (duration))
-
 #define KITE_WAIT(duration) tkbc_frame_generate(ACTION_KITE_WAIT, ((Kite_Ids){0}), ((Wait_Action){}), (duration))
-
 #define KITE_MOVE_ADD(kite_ids, pos_x, pos_y, duration)                                                                \
     tkbc_frame_generate(ACTION_KITE_MOVE_ADD, (kite_ids),                                                              \
                         ((Move_Add_Action){.position.x = (pos_x), .position.y = (pos_y)}), (duration))
-
 #define KITE_MOVE(kite_ids, pos_x, pos_y, duration)                                                                    \
     tkbc_frame_generate(ACTION_KITE_MOVE, (kite_ids), ((Move_Action){.position.x = (pos_x), .position.y = (pos_y)}),   \
                         (duration))
-
 #define KITE_ROTATION_ADD(kite_ids, new_angle, duration)                                                               \
     tkbc_frame_generate(ACTION_KITE_ROTATION_ADD, (kite_ids), ((Rotation_Add_Action){.angle = (new_angle)}), (duration))
-
 #define KITE_ROTATION(kite_ids, new_angle, duration)                                                                   \
     tkbc_frame_generate(ACTION_KITE_ROTATION, (kite_ids), ((Rotation_Action){.angle = (new_angle)}), (duration))
-
 #define KITE_TIP_ROTATION_ADD(kite_ids, new_angle, new_tip, duration)                                                  \
     tkbc_frame_generate(ACTION_KITE_TIP_ROTATION_ADD, (kite_ids),                                                      \
                         ((Tip_Rotation_Add_Action){.angle = (new_angle), .tip = (new_tip)}), (duration))
-
 #define KITE_TIP_ROTATION(kite_ids, new_angle, new_tip, duration)                                                      \
     tkbc_frame_generate(ACTION_KITE_TIP_ROTATION, (kite_ids),                                                          \
                         ((Tip_Rotation_Action){.angle = (new_angle), .tip = (new_tip)}), (duration))
 
-void tkbc_register_frames_array(Env *env, Frames *frames);
-
-Kite_Ids tkbc__indexs_append(Space *space, ...);
 #define tkbc_indexs_append(...) tkbc__indexs_append(&env->_id_space, __VA_ARGS__, UINT_MAX)
 #define ID(...) tkbc_indexs_append(__VA_ARGS__)
-
-Kite_Ids tkbc_indexs_range(int start, int end);
 #define tkbc_indexs_generate(count) tkbc_indexs_range(0, count)
-Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count);
-void tkbc_print_script(FILE *stream, Script *script);
-void tkbc_debug_print_and_export_all_scripts(FILE *stream, Env *env, const char *path);
-
-void tkbc_kite_bezier_quadratic(Env *env, Kite_Ids kite_index_array, Vector2 p1, Vector2 p2, Vector2 p3,
-                                float move_duration, float angle, float rotation_duration);
-void tkbc_kite_bezier_cubic(Env *env, Kite_Ids kite_index_array, Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4,
-                            float move_duration, float angle, float rotation_duration);
-
-void tkbc_kite_bezier_quadratic_add(Env *env, Kite_Ids kite_index_array, Vector2 p2, Vector2 p3, float move_duration,
-                                    float angle, float rotation_duration);
-void tkbc_kite_bezier_cubic_add(Env *env, Kite_Ids kite_index_array, Vector2 p2, Vector2 p3, Vector2 p4,
-                                float move_duration, float angle, float rotation_duration);
 
 #define KITE_SET_BEZIER_QUADRATIC(kite_ids, p1, p2, p3, move_duration, angle, rotation_duration)                       \
     tkbc_kite_bezier_quadratic(env, kite_ids, p1, p2, p3, move_duration, angle, rotation_duration)

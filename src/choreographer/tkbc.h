@@ -1,6 +1,7 @@
 #ifndef TKBC_H_
 #define TKBC_H_
 
+#include "tkbc-asset-handler.h"
 #include "../global/tkbc-types.h"
 #include "raylib.h"
 
@@ -110,7 +111,6 @@ void tkbc_draw_kite(Kite_State *state);
 void tkbc_draw_kite_array(Kite_States kite_states);
 void tkbc_update_kites_for_resize_window(Env *env);
 
-bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture);
 Color tkbc_get_random_color(void);
 
 #endif  // TKBC_H_

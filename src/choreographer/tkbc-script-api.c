@@ -4,11 +4,11 @@
 #include "../../external/space/space.h"
 #include "../global/tkbc-types.h"
 #include "../global/tkbc-utils.h"
+#include "raymath.h"
 #include "tkbc-script-converter.h"
 #include "tkbc-script-handler.h"
 #include "tkbc-ui.h"
 #include "tkbc.h"
-#include "raymath.h"
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -128,7 +128,7 @@ bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config, ...)
         }
 
     configure:
-        static_assert(168 == sizeof(Kite), "Possible more config options in the KITE");
+        static_assert(148 == sizeof(Kite), "Possible more config options in the KITE");
         state->kite->body_color = config.body_color;
         state->kite->top_color = config.top_color;
     }

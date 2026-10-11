@@ -284,7 +284,7 @@ int tkbc_fprintf(FILE *stream, const char *level, const char *fmt, ...) {
     }
 #endif  // TKBC_LOGGING_MESSAGEHANDLER
 
-no_prefix:
+no_prefix:;
     va_list args;
     va_start(args, fmt);
     if (vsnprintf(NULL, 0, fmt, args) == 0) {

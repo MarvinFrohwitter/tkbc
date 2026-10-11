@@ -14,9 +14,13 @@
 #include "tkbc-asset-handler.h"
 #include "tkbc-keymaps.h"
 #include "tkbc-parser.h"
+#include "tkbc-script-api.h"
 #include "tkbc-script-handler.h"
+#include "tkbc-team-figures-api.h"
 #include "tkbc-ui.h"
 #include "tkbc.h"
+
+#include "../../external/tinycc/libtcc.h"
 
 extern Assets assets;
 
@@ -199,13 +203,6 @@ Kite_State tkbc_init_kite(void) {
 
     Vector2 start_pos = {.y = tkbc_get_screen_height() - 2 * viewport_padding, .x = state.kite->center.x};
     tkbc_kite_update_position(state.kite, &start_pos);
-
-    // NOTE: For the server this should be ignored, thus no textures were loaded.
-#ifndef TKBC_SERVER
-    assert(assets.count);
-
-    tkbc_set_kite_texture(state.kite, &_tkbc_get_asset_kite_design(IMAGE_1).as.kite_texture);
-#endif
 
     return state;
 }
@@ -442,6 +439,69 @@ void tkbc_file_handler(Env *env) {
                                  strerror(errno));
                 }
                 tkbc_script_parser(env);
+            } else if (strcmp(extension, ".c") == 0 || strcmp(extension, ".h") == 0) {
+
+                TCCState *tcc = tcc_new();
+                int ok = tcc_set_output_type(tcc, TCC_OUTPUT_MEMORY);
+                if (ok == -1) {
+                    tkbc_fprintf(stderr, "ERROR", "Could not set output type to tcc: %s: %d\n", __FILE__, __LINE__);
+                }
+                ok = tcc_set_options(tcc, "-Wall -Wextra -std=gnu23");
+                if (ok == -1) {
+                    tkbc_fprintf(stderr, "ERROR", "Could not set compiler options for tcc: %s: %d\n", __FILE__,
+                                 __LINE__);
+                }
+
+                ok = tcc_set_options(tcc, "-Wl,-export-all-symbols");
+                if (ok == -1) {
+                    tkbc_fprintf(stderr, "ERROR", "Could not set compiler options for tcc: %s: %d\n", __FILE__,
+                                 __LINE__);
+                }
+
+                tcc_define_symbol(tcc, "SPACEDECL=", NULL);
+                tcc_define_symbol(tcc, "SPACEDEF=inline", NULL);
+                // tcc_define_symbol(tcc, "SPACE_IMPLEMENTATION", NULL);
+
+                ok = tcc_add_library(tcc, "m");
+                if (ok == -1) {
+                    tkbc_fprintf(stderr, "ERROR", "Could not add math lib: %s: %d\n", __FILE__, __LINE__);
+                }
+
+                ok = tcc_add_file(tcc, file_path);
+                if (ok == -1) {
+                    tkbc_fprintf(stderr, "ERROR", "Could not compile: %s in %s: %d\n", file_path, __FILE__, __LINE__);
+                } else {
+
+                    // Base API
+#define X(ret, name, ...) tcc_add_symbol(tcc, #name, name);
+                    LIST_OF_API
+#undef X
+
+                    // Team API
+
+#define X(ret, name, ...) tcc_add_symbol(tcc, #name, name);
+                    LIST_OF_TEAM_API
+#undef X
+
+                    ok = tcc_relocate(tcc);
+                    if (ok == -1) {
+                        tkbc_fprintf(stderr, "ERROR", "Could realloc symbols for: %s in %s: %d\n", file_path, __FILE__,
+                                     __LINE__);
+                    } else {
+                        const char *symbol_name = "tkbc__script_input";
+                        void *symbol = tcc_get_symbol(tcc, symbol_name);
+                        if (!symbol) {
+                            tkbc_fprintf(stderr, "ERROR", "Could not get entry symbol %s for script: %s in %s: %d\n",
+                                         symbol_name, file_path, __FILE__, __LINE__);
+                        } else {
+                            void (*tkbc__script_input_func)(Env *env) = symbol;
+                            tkbc__script_input_func(env);
+                        }
+                    }
+                }
+
+                tcc_delete(tcc);
+
             } else {
                 if (issound) {
                     continue;
@@ -791,8 +851,10 @@ void tkbc_draw_kite(Kite_State *state) {
 
     if (ColorIsEqual(state->kite->body_color, BLANK)) {
         /* texture kite */
-        float scale = state->kite->width / state->kite->texture.normal.width;
-        float len_to_center = (scale * state->kite->texture.normal.width) / 2.0f;
+        Asset *a = tkbc_find_asset_from_id(state->kite->texture_id);
+        Texture texture = a->as.kite_texture.normal;
+        float scale = state->kite->width / texture.width;
+        float len_to_center = (scale * texture.width) / 2.0f;
         len_to_center = floorf(len_to_center);
         float phi = (PI * (state->kite->angle) / 180);
         Vector2 position = state->kite->center;
@@ -800,7 +862,6 @@ void tkbc_draw_kite(Kite_State *state) {
         position.y += len_to_center * sinf(phi);
         if (state->is_kite_reversed) {
 
-            Texture texture = state->kite->texture.normal;
             Rectangle source = {0, 0, -texture.width, texture.height};
             Rectangle dest = {
                 position.x,
@@ -808,9 +869,9 @@ void tkbc_draw_kite(Kite_State *state) {
                 texture.width * scale,
                 texture.height * scale,
             };
-            DrawTexturePro(state->kite->texture.normal, source, dest, (Vector2){0}, -state->kite->angle, WHITE);
+            DrawTexturePro(texture, source, dest, (Vector2){0}, -state->kite->angle, WHITE);
         } else {
-            DrawTextureEx(state->kite->texture.normal, position, -state->kite->angle, scale, WHITE);
+            DrawTextureEx(texture, position, -state->kite->angle, scale, WHITE);
         }
     } else {
         /* color kite */
@@ -893,23 +954,6 @@ Color tkbc_get_random_color(void) {
     };
 
     return colors[rand() % ARRAY_LENGTH(colors)];
-}
-
-/**
- * @brief The function assignees the given textures for normal and flipped
- * version to the given kite..
- *
- * @param kite The kite where the texture should be switched out.
- * @param kite_texture The new textures that should be assigned to the
- * specified kite.
- * @return True if the loaded textures are valid, otherwise false.
- */
-bool tkbc_set_kite_texture(Kite *kite, Kite_Texture *kite_texture) {
-    if (!kite_texture) {
-        return false;
-    }
-    kite->texture.normal = kite_texture->normal;
-    return IsTextureValid(kite->texture.normal);
 }
 
 /**

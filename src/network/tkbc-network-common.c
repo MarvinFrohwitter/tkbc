@@ -66,21 +66,6 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float 
         state->is_kite_input_handler_active = false;
     }
 
-    // This is needed because in the server this step
-    // is meaningless. The server don't have to load assets to
-    // administrate them the ids of the assets should be enough.
-#ifndef TKBC_SERVER
-    // NOTE if the new designed texture was not send to the other client the
-    // client has a smaller textures.count,
-
-    Asset *asset = tkbc_find_asset_from_id(texture_id);
-    assert(asset != NULL);
-    assert(asset->type == ASSETS_KITE_DESIGN);
-    Kite_Texture *kite_texture = &asset->as.kite_texture;
-    assert(kite_texture != NULL);
-    tkbc_set_kite_texture(state->kite, kite_texture);
-#endif
-
     tkbc_kite_update_internal(state->kite);
 }
 

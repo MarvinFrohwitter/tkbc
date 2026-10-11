@@ -31,6 +31,7 @@
 #include "tkbc-input-handler.h"
 #include "tkbc-keymaps.h"
 #include "tkbc-script-api.h"
+#include "tkbc-script-handler.h"
 #include "tkbc-sound-handler.h"
 #include "tkbc-ui.h"
 #include "tkbc.h"

@@ -145,6 +145,7 @@ void include_opt(Cmd *cmd, Include_Opts opts) {
     INCLUDE(cmd, "-I", "src/network/");
     INCLUDE(cmd, "-I", "tkbc_scripts/");
     INCLUDE(cmd, "-I", BUILD_PATH);
+    INCLUDE(cmd, "-I", "external/tinycc/");
     if (opts.raylib) {
         if (0) {
         } else if (opts.LINUX) {
@@ -162,6 +163,7 @@ typedef struct {
     bool raylib;
     bool raylib_memory;
     bool X11;
+    bool tcc;
 
     bool LINUX;
     bool WINDOWS;
@@ -173,6 +175,10 @@ typedef struct {
 void libs_opt(Cmd *cmd, Libs_Opts opts) {
     if (opts.math) {
         LIBS(cmd, "-lm");
+    }
+    if (opts.tcc) {
+        LDFLAGS(cmd, "-L", "external/tinycc/");
+        LIBS(cmd, "-l:libtcc.a");
     }
     if (0) {
     } else if (opts.LINUX) {
@@ -398,10 +404,10 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
 
     if (0) {
     } else if (os.LINUX) {
-        libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
+        libs(cmd, .tcc = true, .raylib = true, .X11 = true, .math = true, .LINUX = true);
     } else if (os.WINDOWS) {
         win_resource(cmd, BUILD_PATH "tkbc-res.o");
-        libs(cmd, .raylib = true, .WINDOWS = true);
+        libs(cmd, .tcc = true, .raylib = true, .WINDOWS = true);
     } else {
         exit(EXIT_FAILURE);
     }
@@ -438,10 +444,10 @@ void client_opt(Cmd *cmd, OS_Opts os) {
 
     if (0) {
     } else if (os.LINUX) {
-        libs(cmd, .raylib = true, .X11 = true, .math = true, .LINUX = true);
+        libs(cmd, .tcc = true, .raylib = true, .X11 = true, .math = true, .LINUX = true);
     } else if (os.WINDOWS) {
         win_resource(cmd, BUILD_PATH "tkbc-res.o");
-        libs(cmd, .raylib = true, .WINDOWS = true, .network = true);
+        libs(cmd, .tcc = true, .raylib = true, .WINDOWS = true, .network = true);
     } else {
         exit(EXIT_FAILURE);
     }
@@ -477,9 +483,9 @@ void server_opt(Cmd *cmd, OS_Opts os) {
     if (0) {
     } else if (os.LINUX) {
         // TODO: Strip raylib dependency for the server completely.
-        libs(cmd, .raylib = true, .raylib_memory = true, .math = true, .LINUX = true);
+        libs(cmd, .tcc = true, .raylib = true, .raylib_memory = true, .math = true, .LINUX = true);
     } else if (os.WINDOWS) {
-        libs(cmd, .raylib = true, .WINDOWS = true, .network = true);
+        libs(cmd, .tcc = true, .raylib = true, .WINDOWS = true, .network = true);
     } else {
         exit(EXIT_FAILURE);
     }
@@ -513,7 +519,7 @@ void tests_opt(Cmd *cmd, Tests_Opts opts) {
     cb_cmd_push(cmd, "-o", BUILD_PATH "tests");
     cb_cmd_push(cmd, TESTS_PATH "tkbc_tests.c");
     files_for_test(cmd);
-    libs(cmd, .raylib = true, .raylib_memory = true, .math = true, .LINUX = true);
+    libs(cmd, .tcc = true, .raylib = true, .raylib_memory = true, .math = true, .LINUX = true);
 
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
 

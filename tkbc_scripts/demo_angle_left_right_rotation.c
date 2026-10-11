@@ -1,5 +1,6 @@
 #include "../src/choreographer/tkbc-script-api.h"
 #include "../src/choreographer/tkbc-team-figures-api.h"
+#include <stddef.h>
 
 void angle_left_right_rotation(Env *env, Kite_Ids ki) {
     size_t h_padding = 0;
