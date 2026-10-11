@@ -8,6 +8,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef thread_local
+#define thread_local _Thread_local
+#endif
+
 #define SPACE_METHOD_MALLOC (0x10)
 #define SPACE_METHOD_MMAP (0x20)
 #define SPACE_METHOD_VIRTUAL_ALLOC (0x40)
@@ -121,7 +125,11 @@ struct Big_Planet {
 #error "No valid default memory layout method could be set! Possible wrong value for SPACE_MEMORY_LAYOUT_METHOD"
 #endif
 
-typedef struct {
+// Forward declaration to allow others to declare it without including the file a the current time. This can be useful
+// for shared library situations.
+typedef struct Space Space;
+
+struct Space {
     union {
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
         Big_Planet *sun;
@@ -154,7 +162,7 @@ typedef struct {
     size_t id_counter;
     unsigned char alloc_method;
     unsigned char memory_layout;
-} Space;  // 64 Bytes
+};  // 64 Bytes
 
 SPACEDECL bool space_init_planet(Space *space, size_t size_in_bytes, Planet *planet);
 SPACEDECL void space_free_planet(Space *space, Planet planet);
@@ -1036,7 +1044,10 @@ layout_rerun:
     switch (space->alloc_method) {
     case 0: space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-    case SPACE_METHOD_MALLOC: free(buffer); break;
+    case SPACE_METHOD_MALLOC:
+        free(buffer);
+        break;
+        (void) size_in_bytes;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
     case SPACE_METHOD_MMAP: munmap(buffer, size_in_bytes); break;
@@ -1140,7 +1151,10 @@ rerun:
     switch (space->alloc_method) {
     case 0: space->alloc_method = SPACE_ALLOC_METHOD_DEFAULT; goto rerun;
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MALLOC
-    case SPACE_METHOD_MALLOC: result = realloc(buffer, new_size_in_bytes); break;
+    case SPACE_METHOD_MALLOC:
+        result = realloc(buffer, new_size_in_bytes);
+        break;
+        (void) old_size_in_bytes;
 #endif
 #if SPACE_ALLOC_METHOD & SPACE_METHOD_MMAP
     case SPACE_METHOD_MMAP:
