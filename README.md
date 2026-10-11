@@ -9,6 +9,12 @@
 - For commits older than fb53c95 the used library is:
 - Original Raylib 5.0 Source Code: <https://github.com/raysan5/raylib/releases/tag/5.0>
 
+- The dependency is TCC 0.9.28rc:
+- Original Tiny C Compiler Source Code: <https://github.com/TinyCC/tinycc.git>
+- License LGPL-2.1
+- License is located under external/tinycc/COPYING
+- Source is vendored under external/tinycc/
+
 ### Build with cb
 
 ```Shell
