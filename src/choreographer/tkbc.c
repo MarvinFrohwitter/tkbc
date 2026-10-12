@@ -16,7 +16,6 @@
 #include "tkbc-parser.h"
 #include "tkbc-script-api.h"
 #include "tkbc-script-handler.h"
-#include "tkbc-team-figures-api.h"
 #include "tkbc-ui.h"
 #include "tkbc.h"
 

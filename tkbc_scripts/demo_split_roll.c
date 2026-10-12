@@ -1,5 +1,4 @@
 #include "../src/choreographer/tkbc-script-api.h"
-#include "../src/choreographer/tkbc-team-figures-api.h"
 
 extern Id zero;
 extern Id one;

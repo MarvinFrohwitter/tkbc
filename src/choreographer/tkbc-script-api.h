@@ -101,4 +101,60 @@ void tkbc__script_input(Env *env);
 #define KITE_SET_BEZIER_CUBIC_ADD(kite_ids, p2, p3, p4, move_duration, angle, rotation_duration)                       \
     tkbc_kite_bezier_cubic_add(env, kite_ids, p2, p3, p4, move_duration, angle, rotation_duration)
 
+// ===========================================================================
+// ========================== Script Team Figures ============================
+// ===========================================================================
+
+typedef enum { LEFT, RIGHT } DIRECTION;
+typedef enum { ODD, EVEN } ODD_EVEN;
+
+#define LIST_OF_TEAM_API                                                                                               \
+    X(bool, tkbc_script_team_roll_two_diffrent_angle, Env *env, Kite_Ids kite_index_array, float radius,               \
+      size_t begin_angle_1, size_t end_angle_1, size_t begin_angle_2, size_t end_angle_2, float move_duration_1,       \
+      float move_duration_2)                                                                                           \
+    X(bool, tkbc_script_team_roll_split_up, Env *env, Kite_Ids kite_index_array, ODD_EVEN odd_even, float radius,      \
+      size_t begin_angle, size_t end_angle, float move_duration)                                                       \
+    X(bool, tkbc_script_team_roll_split_down, Env *env, Kite_Ids kite_index_array, ODD_EVEN odd_even, float radius,    \
+      size_t begin_angle, size_t end_angle, float move_duration)                                                       \
+    X(bool, tkbc_script_team_roll_up_anti_clockwise, Env *env, Kite_Ids kite_index_array, float radius,                \
+      size_t begin_angle, size_t end_angle, float move_duration)                                                       \
+    X(bool, tkbc_script_team_roll_up_clockwise, Env *env, Kite_Ids kite_index_array, float radius, size_t begin_angle, \
+      size_t end_angle, float move_duration)                                                                           \
+    X(bool, tkbc_script_team_roll_down_anti_clockwise, Env *env, Kite_Ids kite_index_array, float radius,              \
+      size_t begin_angle, size_t end_angle, float move_duration)                                                       \
+    X(bool, tkbc_script_team_roll_down_clockwise, Env *env, Kite_Ids kite_index_array, float radius,                   \
+      size_t begin_angle, size_t end_angle, float move_duration)                                                       \
+    X(bool, tkbc_script_team_line, Env *env, Kite_Ids kite_index_array, Vector2 position, Vector2 offset,              \
+      float h_padding, float move_duration)                                                                            \
+    X(bool, tkbc_script_team_grid, Env *env, Kite_Ids kite_index_array, Vector2 position, Vector2 offset,              \
+      float v_padding, float h_padding, size_t rows, size_t columns, float move_duration)                              \
+    X(bool, tkbc_script_team_ball, Env *env, Kite_Ids kite_index_array, Vector2 position, Vector2 offset,              \
+      float radius, float move_duration, float rotation_duration)                                                      \
+    X(bool, tkbc_script_team_mountain, Env *env, Kite_Ids kite_index_array, Vector2 position, Vector2 offset,          \
+      float v_padding, float h_padding, float move_duration, float rotation_duration)                                  \
+    X(bool, tkbc_script_team_valley, Env *env, Kite_Ids kite_index_array, Vector2 position, Vector2 offset,            \
+      float v_padding, float h_padding, float move_duration, float rotation_duration)                                  \
+    X(bool, tkbc_script_team_arc, Env *env, Kite_Ids kite_index_array, Vector2 position, Vector2 offset,               \
+      float v_padding, float h_padding, float angle, float move_duration, float rotation_duration)                     \
+    X(bool, tkbc_script_team_mouth, Env *env, Kite_Ids kite_index_array, Vector2 position, Vector2 offset,             \
+      float v_padding, float h_padding, float angle, float move_duration, float rotation_duration)                     \
+    X(void, tkbc_script_team_box, Env *env, Kite_Ids kite_index_array, DIRECTION direction, float angle,               \
+      float box_size, float move_duration, float rotation_duration)                                                    \
+    X(void, tkbc_script_team_box_left, Env *env, Kite_Ids kite_index_array, float box_size, float move_duration,       \
+      float rotation_duration)                                                                                         \
+    X(void, tkbc_script_team_box_right, Env *env, Kite_Ids kite_index_array, float box_size, float move_duration,      \
+      float rotation_duration)                                                                                         \
+    X(bool, tkbc_script_team_split_box_up, Env *env, Kite_Ids kite_index_array, ODD_EVEN odd_even, float box_size,     \
+      float move_duration, float rotation_duration)                                                                    \
+    X(void, tkbc_script_team_diamond, Env *env, Kite_Ids kite_index_array, DIRECTION direction, float angle,           \
+      float box_size, float move_duration, float rotation_duration)                                                    \
+    X(void, tkbc_script_team_diamond_left, Env *env, Kite_Ids kite_index_array, float box_size, float move_duration,   \
+      float rotation_duration)                                                                                         \
+    X(void, tkbc_script_team_diamond_right, Env *env, Kite_Ids kite_index_array, float box_size, float move_duration,  \
+      float rotation_duration)
+
+#define X(ret, name, ...) ret name(__VA_ARGS__);
+LIST_OF_TEAM_API
+#undef X
+
 #endif  // TKBC_SCRIPT_API_H_

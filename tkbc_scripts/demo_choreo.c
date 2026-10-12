@@ -1,6 +1,4 @@
 #include "../src/choreographer/tkbc-script-api.h"
-#include "../src/choreographer/tkbc-team-figures-api.h"
-#include <math.h>
 
 static Kite kite;
 static float wait_time = 0.5;

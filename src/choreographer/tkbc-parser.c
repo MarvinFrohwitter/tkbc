@@ -1,6 +1,5 @@
 #include "tkbc-parser.h"
 #include "tkbc-script-api.h"
-#include "tkbc-team-figures-api.h"
 #include <stdlib.h>
 #include <string.h>
 
