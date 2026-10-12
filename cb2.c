@@ -16,6 +16,9 @@ Cmd cmd = {0};
 #define RESOURCES_PATH "resources/"
 #define RAYLIB_PATH_LINUX "external/raylib-6.0_linux_amd64/"
 #define RAYLIB_PATH_WINDOWS "external/raylib-6.0_win64_mingw-w64/"
+#define TINYCC_PATH "external/tinycc/"
+#define LIBTCC_LINUX_PATH "external/libtcc-linux/"
+#define LIBTCC_WINDOWS_PATH "external/libtcc-windows/"
 #define TESTS_PATH "src/tests/"
 #define SCRIPT_PATH "tkbc_scripts/"
 #define CHOREOGRAPHER_PATH "src/choreographer/"
@@ -134,6 +137,7 @@ void cflags_opt(Cmd *cmd, Cflags_Opts opts) {
 
 typedef struct {
     bool raylib;
+    bool tcc;
     bool LINUX;
     bool WINDOWS;
 } Include_Opts;
@@ -145,7 +149,13 @@ void include_opt(Cmd *cmd, Include_Opts opts) {
     INCLUDE(cmd, "-I", "src/network/");
     INCLUDE(cmd, "-I", "tkbc_scripts/");
     INCLUDE(cmd, "-I", BUILD_PATH);
-    INCLUDE(cmd, "-I", "external/tinycc/");
+    if (opts.tcc) {
+        if (opts.WINDOWS) {
+            INCLUDE(cmd, "-I", LIBTCC_WINDOWS_PATH);
+        } else {
+            INCLUDE(cmd, "-I", LIBTCC_LINUX_PATH);
+        }
+    }
     if (opts.raylib) {
         if (0) {
         } else if (opts.LINUX) {
@@ -176,12 +186,14 @@ void libs_opt(Cmd *cmd, Libs_Opts opts) {
     if (opts.math) {
         LIBS(cmd, "-lm");
     }
-    if (opts.tcc) {
-        LDFLAGS(cmd, "-L", "external/tinycc/");
-        LIBS(cmd, "-l:libtcc.a");
-    }
     if (0) {
     } else if (opts.LINUX) {
+        if (opts.tcc) {
+            // NOTE: libtcc.a must be built for the linux target. Rebuild it
+            // with `./cb libtcc linux` after changes in external/tinycc/.
+            LDFLAGS(cmd, "-L", LIBTCC_LINUX_PATH);
+            LIBS(cmd, "-l:libtcc.a");
+        }
         if (opts.raylib) {
             LDFLAGS(cmd, "-L", RAYLIB_PATH_LINUX "lib/");
             if (opts.raylib_memory) {
@@ -194,6 +206,14 @@ void libs_opt(Cmd *cmd, Libs_Opts opts) {
             LIBS(cmd, "-lX11");
         }
     } else if (opts.WINDOWS) {
+        if (opts.tcc) {
+            // NOTE: libtcc.a must be built for the windows target with
+            // mingw. Rebuild it with `./cb libtcc windows` after changes
+            // in external/tinycc/. A linux-built libtcc.a references
+            // glibc/posix symbols and does not link into a windows binary.
+            LDFLAGS(cmd, "-L", LIBTCC_WINDOWS_PATH);
+            LIBS(cmd, "-l:libtcc.a");
+        }
         if (opts.raylib) {
             LDFLAGS(cmd, "-L", RAYLIB_PATH_WINDOWS "lib/");
             // Linking order is important because of collisions.
@@ -206,6 +226,10 @@ void libs_opt(Cmd *cmd, Libs_Opts opts) {
             LIBS(cmd, "-lws2_32");
         }
     } else {
+        if (opts.tcc) {
+            LDFLAGS(cmd, "-L", LIBTCC_LINUX_PATH);
+            LIBS(cmd, "-l:libtcc.a");
+        }
     }
 }
 
@@ -326,6 +350,71 @@ void win_icon(Cmd *cmd) {
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
 }
 
+void libtcc_export(Cmd *cmd, const char *dest_path, bool with_win32) {
+    char dest_include[512] = {0};
+    snprintf(dest_include, sizeof(dest_include), "%sinclude", dest_path);
+
+    cb_cmd_push(cmd, "mkdir", "-p", dest_path, dest_include);
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+
+    cb_cmd_push(cmd, "cp", TINYCC_PATH "libtcc.a", TINYCC_PATH "libtcc.h", TINYCC_PATH "tcclib.h", dest_path);
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+
+    // libtcc1.a is the runtime that tcc links into JIT compiled code, so it
+    // is exported as well when it was built.
+    {
+        Cmd probe = {0};
+        cb_cmd_push(&probe, "test", "-f", TINYCC_PATH "libtcc1.a");
+        if (cb_run_sync(&probe)) {
+            cb_cmd_push(cmd, "cp", TINYCC_PATH "libtcc1.a", dest_path);
+            if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+        } else {
+            fprintf(stderr, "[WARN] " TINYCC_PATH "libtcc1.a not found, skipping it.\n");
+        }
+    }
+
+    cb_cmd_push(cmd, "cp", "-r", TINYCC_PATH "include/.", dest_include);
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+
+    if (with_win32) {
+        char dest_win32_include[512] = {0};
+        char dest_win32_lib[512] = {0};
+        snprintf(dest_win32_include, sizeof(dest_win32_include), "%swin32/include", dest_path);
+        snprintf(dest_win32_lib, sizeof(dest_win32_lib), "%swin32/lib", dest_path);
+        cb_cmd_push(cmd, "mkdir", "-p", dest_win32_include, dest_win32_lib);
+        if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+        cb_cmd_push(cmd, "cp", "-r", TINYCC_PATH "win32/include/.", dest_win32_include);
+        if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+        cb_cmd_push(cmd, "cp", "-r", TINYCC_PATH "win32/lib/.", dest_win32_lib);
+        if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+    }
+}
+
+void libtcc_linux(Cmd *cmd) {
+    cb_cmd_push(cmd, "sh", "-c", "cd " TINYCC_PATH " && ./configure && make clean && make libtcc.a libtcc1.a");
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+    libtcc_export(cmd, LIBTCC_LINUX_PATH, false);
+}
+
+void libtcc_windows(Cmd *cmd) {
+    cb_cmd_push(cmd, "sh", "-c",
+                "cd " TINYCC_PATH " && ./configure --cpu=x86_64 --targetos=WIN32 "
+                "--cross-prefix=x86_64-w64-mingw32- && make clean && make libtcc.a");
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+    {
+        Cmd runtime = {0};
+        cb_cmd_push(&runtime, "sh", "-c", "cd " TINYCC_PATH " && make libtcc1.a");
+        if (!cb_run_sync(&runtime)) {
+            fprintf(stderr, "[WARN] The windows libtcc1.a could not be built"
+                            " (wine is needed to run the windows tcc.exe).\n");
+        }
+    }
+    libtcc_export(cmd, LIBTCC_WINDOWS_PATH, true);
+    // Leave the vendored tree configured for the native linux build again.
+    cb_cmd_push(cmd, "sh", "-c", "cd " TINYCC_PATH " && ./configure >/dev/null && make clean");
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+}
+
 void assets(Cmd *cmd) {
     cb_cmd_push(cmd, CC);
     cflags(cmd, .sanitize = true);
@@ -353,13 +442,13 @@ void first_o_opt(Cmd *cmd, OS_Opts os) {
     if (0) {
     } else if (os.LINUX) {
         cb_cmd_push(cmd, CC);
-        include(cmd, .raylib = true, .LINUX = true);
+        include(cmd, .tcc = true, .raylib = true, .LINUX = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_mmap = true,
                .space_memory_layout_method_da = true);
         cflags(cmd);
     } else if (os.WINDOWS) {
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
-        include(cmd, .raylib = true, .WINDOWS = true);
+        include(cmd, .tcc = true, .raylib = true, .WINDOWS = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
                .space_memory_layout_method_da = true);
         cflags(cmd, .WINDOWS = true);
@@ -381,7 +470,7 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
     } else if (os.LINUX) {
         first_o(cmd, .LINUX = true);
         cb_cmd_push(cmd, CC);
-        include(cmd, .raylib = true, .LINUX = true);
+        include(cmd, .tcc = true, .raylib = true, .LINUX = true);
         cflags(cmd);
         define(cmd, .include_raylib = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_mmap = true,
@@ -390,7 +479,7 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
     } else if (os.WINDOWS) {
         first_o(cmd, .WINDOWS = true);
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
-        include(cmd, .raylib = true, .WINDOWS = true);
+        include(cmd, .tcc = true, .raylib = true, .WINDOWS = true);
         define(cmd, .include_raylib = true, .release = true, .ndebug = false);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
                .space_memory_layout_method_da = true);
@@ -421,7 +510,7 @@ void client_opt(Cmd *cmd, OS_Opts os) {
     } else if (os.LINUX) {
         first_o(cmd, .LINUX = true);
         cb_cmd_push(cmd, CC);
-        include(cmd, .raylib = true, .LINUX = true);
+        include(cmd, .tcc = true, .raylib = true, .LINUX = true);
         cflags(cmd);
         define(cmd, .include_raylib = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_mmap = true,
@@ -430,7 +519,7 @@ void client_opt(Cmd *cmd, OS_Opts os) {
     } else if (os.WINDOWS) {
         first_o(cmd, .WINDOWS = true);
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
-        include(cmd, .raylib = true, .WINDOWS = true);
+        include(cmd, .tcc = true, .raylib = true, .WINDOWS = true);
         cflags(cmd, .WINDOWS = true);
         define(cmd, .include_raylib = true, .release = true, .ndebug = false);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
@@ -460,7 +549,7 @@ void server_opt(Cmd *cmd, OS_Opts os) {
     if (0) {
     } else if (os.LINUX) {
         cb_cmd_push(cmd, CC);
-        include(cmd, .raylib = true, .LINUX = true);
+        include(cmd, .tcc = true, .raylib = true, .LINUX = true);
         cflags(cmd);
         define(cmd, .include_raylib = true, .tkbc_server = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_mmap = true,
@@ -468,7 +557,7 @@ void server_opt(Cmd *cmd, OS_Opts os) {
         cb_cmd_push(cmd, "-o", BUILD_PATH "server");
     } else if (os.WINDOWS) {
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
-        include(cmd, .raylib = true, .WINDOWS = true);
+        include(cmd, .tcc = true, .raylib = true, .WINDOWS = true);
         cflags(cmd, .WINDOWS = true);
         define(cmd, .include_raylib = true, .tkbc_server = true, .release = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
@@ -502,7 +591,7 @@ typedef struct {
 #define tests(cmd, ...) tests_opt((cmd), ((Tests_Opts){__VA_ARGS__}))
 void tests_opt(Cmd *cmd, Tests_Opts opts) {
     cb_cmd_push(cmd, CC);
-    include(cmd, .raylib = true, .LINUX = true);
+    include(cmd, .tcc = true, .raylib = true, .LINUX = true);
     cflags(cmd, .sanitize = true);
     define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_mmap = true,
            .space_memory_layout_method_da = true);
@@ -545,6 +634,7 @@ typedef struct {
     bool tkbc;
     bool client;
     bool server;
+    bool libtcc;
 } Usage_Opts;
 
 #define FLAG_HELP "help"
@@ -558,6 +648,7 @@ typedef struct {
 #define FLAG_TKBC "tkbc"
 #define FLAG_CLIENT "client"
 #define FLAG_SERVER "server"
+#define FLAG_LIBTCC "libtcc"
 #define FLAG_LINUX "linux"
 #define FLAG_WINDOWS "windows"
 
@@ -587,6 +678,9 @@ void usage_opt(Usage_Opts opts) {
     }
     if (opts.server || opts.all) {
         fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_SERVER);
+    }
+    if (opts.libtcc || opts.all) {
+        fprintf(stderr, "       <%s> <%s> [%s|%s]\n", opts.prog_name, FLAG_LIBTCC, FLAG_LINUX, FLAG_WINDOWS);
     }
     exit(EXIT_FAILURE);
 }
@@ -631,6 +725,9 @@ int main(int argc, char *argv[]) {
         make_build_dir(&cmd);
         void flag_server(char *flag, char ***argv, int *argc);
         flag_server(flag, &argv, &argc);
+    } else if (str_compare(FLAG_LIBTCC, flag)) {
+        void flag_libtcc(char *flag, char ***argv, int *argc);
+        flag_libtcc(flag, &argv, &argc);
     } else {
         usage(.prog_name = prog_name, .all = true);
     }
@@ -852,6 +949,47 @@ void flag_server(char *flag, char ***argv, int *argc) {
                 }
             } else {
                 usage(.prog_name = prog_name, .server = true);
+            }
+
+            flag = get_next_or_last(argv, argc);
+            if (prev_flag == flag) {
+                if (first) {
+                    first = false;
+                    argv = saved_argv;
+                    *argc = saved_argc;
+                    goto second;
+                }
+                break;
+            }
+        }
+    }
+}
+
+void flag_libtcc(char *flag, char ***argv, int *argc) {
+    char *prev_flag = flag;
+    flag = get_next_or_last(argv, argc);
+    if (str_compare(flag, prev_flag)) {
+        // defaults to both targets when no other argument is specified.
+        libtcc_linux(&cmd);
+        libtcc_windows(&cmd);
+    } else {
+        char ***saved_argv = argv;
+        int saved_argc = *argc;
+        bool first = true;
+    second:
+        for (;;) {
+            prev_flag = flag;
+            if (0) {
+            } else if (str_compare(FLAG_LINUX, flag)) {
+                if (!first) {
+                    libtcc_linux(&cmd);
+                }
+            } else if (str_compare(FLAG_WINDOWS, flag)) {
+                if (!first) {
+                    libtcc_windows(&cmd);
+                }
+            } else {
+                usage(.prog_name = prog_name, .libtcc = true);
             }
 
             flag = get_next_or_last(argv, argc);

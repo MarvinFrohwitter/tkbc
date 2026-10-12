@@ -19,7 +19,7 @@
 #include "tkbc-ui.h"
 #include "tkbc.h"
 
-#include "../../external/tinycc/libtcc.h"
+#include "libtcc.h"
 
 extern Assets assets;
 

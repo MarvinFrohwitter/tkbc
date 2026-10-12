@@ -44,6 +44,16 @@ server-win64: build
 	./cb server windows
 
 
+libtcc: build
+	./cb libtcc
+
+libtcc-linux: build
+	./cb libtcc linux
+
+libtcc-windows: build
+	./cb libtcc windows
+
+
 
 test: build
 	./cb test
