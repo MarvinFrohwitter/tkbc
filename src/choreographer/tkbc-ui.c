@@ -2916,6 +2916,7 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
 
                     tkbc_set_colorizer_texture_insted_of_texture_id(&env->kite_array, uuid);
                     tkbc_removed_asset_by_id(uuid);
+                    break;
                 }
             }
         }
@@ -2941,7 +2942,7 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
             // The other ones do not fit because thy are blury and you kinda
             // want to preserve that. Also thy don't have a skeleton, they are
             // just perfectly blended.
-            if (i > KITE_DEFAULT_DESIGNS_END && assets.elements[i].type == ASSETS_KITE_DESIGN) {
+            if (!tkbc_is_default_kite_design(&assets, assets.elements[i].id)) {
                 Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
                 assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
                 assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);

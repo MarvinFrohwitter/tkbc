@@ -453,3 +453,21 @@ bool tkbc_image_already_exitst_in_assets(Image image, UUID *id) {
     }
     return false;
 }
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param assets [TODO:parameter]
+ * @param uuid [TODO:parameter]
+ * @return [TODO:return]
+ */
+bool tkbc_is_default_kite_design(Assets *assets, UUID uuid) {
+    for (size_t i = 1; i <= assets->default_assets_seq; ++i) {
+        if (tkbc_uuid_equals(uuid, tkbc_uuid_from_number(i))) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
