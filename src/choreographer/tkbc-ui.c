@@ -3198,6 +3198,17 @@ void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled,
  */
 void tkbc_draw_tool_tip(Env *env, Font font, Vector2 mouse, float width, float height, const char *text, int font_size,
                         float spacing, float padding) {
+#define TOOLTIP_COOLDOWN 3.0
+#define TOOLTIP_CONTINUOUS_THRESHOLD 0.25
+    static double last_display_time = -TOOLTIP_COOLDOWN;
+
+    double current_time = tkbc_get_time();
+    double since_last_display = current_time - last_display_time;
+    if (since_last_display >= TOOLTIP_CONTINUOUS_THRESHOLD && since_last_display < TOOLTIP_COOLDOWN) {
+        return;
+    }
+    last_display_time = current_time;
+
     Rectangle tooltip_box = {.height = height, .width = width};
     tooltip_box.x = mouse.x + padding;
     tooltip_box.y = mouse.y - tooltip_box.height - padding;
