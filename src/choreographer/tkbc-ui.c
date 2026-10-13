@@ -73,7 +73,6 @@ void tkbc_draw_ui(Env *env) {
         return;
     }
 
-    // TODO: The script bar is not displayed if another client triggered a script.
     if ((env->frames || !tkbc_uuid_is_nil(env->server_script_id)) &&
         !(env->script_menu_interaction || env->keymaps_interaction)) {
         // A script is currently executing.
