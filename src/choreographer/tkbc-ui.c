@@ -887,6 +887,7 @@ bool tkbc_ui_script_menu(Env *env) {
     Vector2 text_size;
     Vector2 mouse = GetMousePosition();
     bool double_click_confirm = false;
+    bool tooltip_deletion_x = false;
     for (size_t box = env->script_menu_top_interaction_box;
          box < env->screen_items + env->script_menu_top_interaction_box && box < scripts_count; ++box) {
 
@@ -945,11 +946,13 @@ bool tkbc_ui_script_menu(Env *env) {
         {
             tkbc_draw_circle_with_x(circle_center, delete_circle_radius, TKBC_UI_GRAY_ALPHA);
             if (CheckCollisionPointCircle(mouse, circle_center, delete_circle_radius)) {
+                tooltip_deletion_x = true;
                 if (env->script_menu_mouse_interaction) {
                     DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_DARKPURPLE_ALPHA);
                 } else {
                     DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_PURPLE_ALPHA);
                 }
+
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_PURPLE_ALPHA);
 
@@ -1184,6 +1187,16 @@ bool tkbc_ui_script_menu(Env *env) {
     EndScissorMode();
 
     EndScissorMode();
+
+    if (tooltip_deletion_x) {  // tooltip for the delete X circles
+        const char *tooltip_text = "delete";
+        const int font_size = 18;
+        const float spacing = 2;
+        Vector2 text_size = MeasureTextEx(env->font, tooltip_text, font_size, spacing);
+        tkbc_draw_tool_tip(env, env->font, mouse, text_size.x + padding, text_size.y, tooltip_text, font_size, spacing,
+                           padding / 2);
+    }
+
     return false;
 }
 
@@ -2205,10 +2218,8 @@ void tkbc_ui_keymaps(Env *env) {
         if (!env->case_insensitive_search) {
             tooltip_text = "switch case insensitive on";
         }
-        Vector2 p = mouse;
-        p.x += padding;
-        p.y -= padding;
-        tkbc_draw_tool_tip(env->font, p, text_size.x + padding, font_size, tooltip_text, font_size, 2, padding / 2);
+        tkbc_draw_tool_tip(env, env->font, mouse, text_size.x + padding, font_size, tooltip_text, font_size, 2,
+                           padding / 2);
     }
 }
 
@@ -2866,6 +2877,7 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     display_box.y += colorizer_stride;
     display_box.height -= colorizer_stride;
 
+    bool tooltip_deletion_x = false;
     Vector2 mouse = GetMousePosition();
     // The newest designs are appended at the end of the assets so the loop
     // iterates backwards to display them first.
@@ -2926,7 +2938,7 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
 
             if (CheckCollisionPointCircle(mouse, center, radius)) {
                 tkbc_draw_circle_with_x(center, radius, TKBC_UI_DARKPURPLE_ALPHA);
-
+                tooltip_deletion_x = true;
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     tkbc_draw_circle_with_x(center, radius, TKBC_UI_PURPLE_ALPHA);
                     UUID uuid = _tkbc_get_asset_kite_design(i).id;
@@ -3010,6 +3022,15 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     float scrollbar_row_step = (scrolled_content_height + 2 * padding) / visible_rows;
     tkbc_scrollbar(&env->kite_designs_scrollbar, base, scrollbar_row_step, scrollable_amount, visible_rows,
                    &env->kite_designs_top_interaction_box);
+
+    if (tooltip_deletion_x) {  // tooltip for the delete X circles
+        const char *tooltip_text = "delete";
+        const int font_size = 18;
+        const float spacing = 2;
+        Vector2 text_size = MeasureTextEx(env->font, tooltip_text, font_size, spacing);
+        tkbc_draw_tool_tip(env, env->font, mouse, text_size.x + padding, text_size.y, tooltip_text, font_size, spacing,
+                           padding / 2);
+    }
 }
 
 void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_radius, float padding) {
@@ -3148,6 +3169,7 @@ void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled,
 /**
  * @brief [TODO:description]
  *
+ * @param env [TODO:parameter]
  * @param font [TODO:parameter]
  * @param mouse [TODO:parameter]
  * @param width [TODO:parameter]
@@ -3157,15 +3179,31 @@ void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled,
  * @param spacing [TODO:parameter]
  * @param padding [TODO:parameter]
  */
-void tkbc_draw_tool_tip(Font font, Vector2 mouse, float width, float height, const char *text, int font_size,
+void tkbc_draw_tool_tip(Env *env, Font font, Vector2 mouse, float width, float height, const char *text, int font_size,
                         float spacing, float padding) {
     Rectangle tooltip_box = {.height = height, .width = width};
-    tooltip_box.x = mouse.x;
-    tooltip_box.y = mouse.y - tooltip_box.height;
+    tooltip_box.x = mouse.x + padding;
+    tooltip_box.y = mouse.y - tooltip_box.height - padding;
+
+    int padding_extra_to_be_outside_the_mouse = 2 * padding;
+    bool is_down = false;
+
+    if (tooltip_box.y - tooltip_box.height < 0) {
+        tooltip_box.y += 2 * tooltip_box.height;
+        is_down = true;
+        tooltip_box.x += padding_extra_to_be_outside_the_mouse;
+    }
+
+    if (tooltip_box.x + tooltip_box.width > env->window_width) {
+        tooltip_box.x -= tooltip_box.width + 2 * padding;
+        if (is_down) {
+            tooltip_box.x -= padding_extra_to_be_outside_the_mouse;
+        }
+    }
+
     DrawRectangleRounded(tooltip_box, 1, 10, TKBC_UI_BLACK_ALPHA);
     DrawRectangleRoundedLinesEx(tooltip_box, 1, 10, 1, TKBC_UI_BLACK);
 
-    // TODO: Implement automatic tooltip position adjustment, when the tooltip would go outside the screen.
     Vector2 p = {.x = tooltip_box.x + padding, .y = tooltip_box.y + tooltip_box.height / 2 - font_size / 2};
 
     tkbc_BeginScissorMode(tooltip_box);

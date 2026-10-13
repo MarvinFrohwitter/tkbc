@@ -51,7 +51,7 @@ void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_rad
 void tkbc_draw_circle_with_x(Vector2 center, float radius, Color color);
 void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled, Color color);
 bool tkbc_activate_script_text_input(Text_Input *input, void *data);
-void tkbc_draw_tool_tip(Font font, Vector2 mouse, float width, float height, const char *text, int font_size,
+void tkbc_draw_tool_tip(Env *env, Font font, Vector2 mouse, float width, float height, const char *text, int font_size,
                         float spacing, float padding);
 void tkbc_BeginScissorMode(Rectangle box);
 
