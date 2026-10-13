@@ -1,9 +1,9 @@
 #ifndef TKBC_H_
 #define TKBC_H_
 
-#include "tkbc-asset-handler.h"
 #include "../global/tkbc-types.h"
 #include "raylib.h"
+#include "tkbc-asset-handler.h"
 
 #define TEAL CLITERAL(Color){0, 128, 128, 255}  // Teal
 
@@ -57,6 +57,7 @@
 #define TKBC_UI_DARKPURPLE_ALPHA ColorAlpha(DARKPURPLE, ALPHA_RATIO)
 #define TKBC_UI_LIGHTGRAY_ALPHA ColorAlpha(GRAY, ALPHA_RATIO - 0.2)
 #define TKBC_UI_GRAY_ALPHA ColorAlpha(GRAY, ALPHA_RATIO - 0.2)
+#define TKBC_UI_BLACK_ALPHA ColorAlpha(BLACK, ALPHA_RATIO - 0.5)
 #define TKBC_UI_WHITE_ALPHA ColorAlpha(WHITE, ALPHA_RATIO)
 
 #define VECTOR2_FMT "(%f,%f)"

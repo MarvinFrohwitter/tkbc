@@ -997,7 +997,7 @@ Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size, f
     Vector2 text_size = {0};
     if (str) {
         text_size = MeasureTextEx(font, str, *font_size, spacing);
-        while (text_size.x > bounding_box.width / 2.0 && text_size.y > bounding_box.height / 2.0) {
+        while (text_size.x > (bounding_box.width / 2.0) && text_size.y > (bounding_box.height / 2.0)) {
             *font_size -= 1;
             text_size = MeasureTextEx(font, str, *font_size, spacing);
         }

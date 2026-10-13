@@ -2060,6 +2060,7 @@ void tkbc_ui_keymaps(Env *env) {
     env->keymaps_base.y = env->box_height * env->screen_items + env->keymaps_base.height;
     int font_size = env->keymaps_base.height * 0.75;
 
+    bool tooltip_case_insensitive = false;
     {
         env->keymaps_search_input.font_size = font_size;
         env->keymaps_search_input.box = env->keymaps_base;
@@ -2093,6 +2094,7 @@ void tkbc_ui_keymaps(Env *env) {
                                                     env->case_insensitive_search, TKBC_UI_PURPLE_ALPHA);
                     env->case_insensitive_search = !env->case_insensitive_search;
                 }
+                tooltip_case_insensitive = true;
             }
         }
 
@@ -2193,6 +2195,21 @@ void tkbc_ui_keymaps(Env *env) {
     EndScissorMode();
 
     EndScissorMode();
+
+    if (tooltip_case_insensitive) {
+        // tooltip case insensitive check mark
+        int font_size = 18;
+        const float spacing = 2;
+        const char *tooltip_text = "switch case insensitive off";
+        Vector2 text_size = MeasureTextEx(env->font, tooltip_text, font_size, spacing);
+        if (!env->case_insensitive_search) {
+            tooltip_text = "switch case insensitive on";
+        }
+        Vector2 p = mouse;
+        p.x += padding;
+        p.y -= padding;
+        tkbc_draw_tool_tip(env->font, p, text_size.x + padding, font_size, tooltip_text, font_size, 2, padding / 2);
+    }
 }
 
 /**
@@ -3126,6 +3143,33 @@ void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled,
         };
         DrawLineEx(middle_position, end_position, 2, TKBC_UI_BLACK);
     }
+}
+
+/**
+ * @brief [TODO:description]
+ *
+ * @param font [TODO:parameter]
+ * @param mouse [TODO:parameter]
+ * @param width [TODO:parameter]
+ * @param height [TODO:parameter]
+ * @param text [TODO:parameter]
+ * @param font_size [TODO:parameter]
+ * @param spacing [TODO:parameter]
+ * @param padding [TODO:parameter]
+ */
+void tkbc_draw_tool_tip(Font font, Vector2 mouse, float width, float height, const char *text, int font_size,
+                        float spacing, float padding) {
+    Rectangle tooltip_box = {.height = height, .width = width};
+    tooltip_box.x = mouse.x;
+    tooltip_box.y = mouse.y - tooltip_box.height;
+    DrawRectangleRounded(tooltip_box, 1, 10, TKBC_UI_BLACK_ALPHA);
+    DrawRectangleRoundedLinesEx(tooltip_box, 1, 10, 1, TKBC_UI_BLACK);
+
+    Vector2 p = {.x = tooltip_box.x + padding, .y = tooltip_box.y + tooltip_box.height / 2 - font_size / 2};
+
+    tkbc_BeginScissorMode(tooltip_box);
+    DrawTextEx(font, text, p, font_size, spacing, TKBC_UI_WHITE);
+    EndScissorMode();
 }
 
 void tkbc_BeginScissorMode(Rectangle box) {
