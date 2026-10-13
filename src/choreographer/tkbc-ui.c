@@ -525,7 +525,7 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
     scrollbar->base.x = outer_container.x + outer_container.width - scrollbar->base.width;
     scrollbar->base.y = outer_container.y;
 
-    DrawRectangleRounded(scrollbar->base, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
+    DrawRectangleRounded(scrollbar->base, 1, 10, TKBC_UI_GRAY_ALPHA);
 
     //
     // The inner scroll_bar handle
@@ -910,7 +910,7 @@ bool tkbc_ui_script_menu(Env *env) {
             DrawRectangleRec(outer_script_box, TKBC_UI_PURPLE_ALPHA);
         }
 
-        DrawRectangleRounded(script_box, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
+        DrawRectangleRounded(script_box, 1, 10, TKBC_UI_GRAY_ALPHA);
 
         if (CheckCollisionPointRec(mouse, script_box)) {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
@@ -1436,7 +1436,7 @@ void tkbc_ui_color_picker(Env *env) {
         position.x = input_box.x;
         position.y = env->color_picker_base.y + padding;
         DrawTextEx(env->font, description, position, font_size, 2, TKBC_UI_BLACK);
-        DrawRectangleRounded(input_box, 1, 20, WHITE);
+        DrawRectangleRounded(input_box, 1, 20, TKBC_UI_GRAY_ALPHA);
     }
 
     Vector2 mouse = GetMousePosition();
@@ -1453,7 +1453,7 @@ void tkbc_ui_color_picker(Env *env) {
                 .x = input_box.x + padding,
                 .y = input_box.y + input_box.height / 2 - font_size / 2.f,
             };
-            DrawTextEx(env->font, "#", hash_pos, font_size, 4, TKBC_UI_GRAY);
+            DrawTextEx(env->font, "#", hash_pos, font_size, 4, TKBC_UI_BLACK);
         }
 
         env->color_picker_input.box = text_box;
@@ -1836,7 +1836,7 @@ void tkbc_set_key_or_delete(int *dest_key, const char **dest_str, int key_value)
  * @param cur_major_box The base rectangle number of a single keymap.
  */
 void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration, size_t cur_major_box) {
-    DrawRectangleRounded(rectangle, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
+    DrawRectangleRounded(rectangle, 1, 10, TKBC_UI_GRAY_ALPHA);
 
     if (CheckCollisionPointRec(GetMousePosition(), rectangle)) {
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -2070,7 +2070,7 @@ void tkbc_ui_keymaps(Env *env) {
                                    &env->keymaps_search_input.font_size, env->keymaps_search_input.spacing,
                                    env->keymaps_search_input.box);
 
-        DrawRectangleRounded(env->keymaps_search_input.box, 1, 10, TKBC_UI_LIGHTGRAY_ALPHA);
+        DrawRectangleRounded(env->keymaps_search_input.box, 1, 10, TKBC_UI_GRAY_ALPHA);
         env->keymaps_search_input.box.x += padding;
         env->keymaps_search_input.box.width -= 2 * padding;
 
@@ -3165,6 +3165,7 @@ void tkbc_draw_tool_tip(Font font, Vector2 mouse, float width, float height, con
     DrawRectangleRounded(tooltip_box, 1, 10, TKBC_UI_BLACK_ALPHA);
     DrawRectangleRoundedLinesEx(tooltip_box, 1, 10, 1, TKBC_UI_BLACK);
 
+    // TODO: Implement automatic tooltip position adjustment, when the tooltip would go outside the screen.
     Vector2 p = {.x = tooltip_box.x + padding, .y = tooltip_box.y + tooltip_box.height / 2 - font_size / 2};
 
     tkbc_BeginScissorMode(tooltip_box);

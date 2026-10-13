@@ -1364,7 +1364,7 @@ void tkbc_connection_input(Env *env, Popup *popup, const char *host_default, con
         host_input_box.y = popup->base.y + popup->base.height / 2 - host_input_box.height / 2;
         host_input_box.width = box_width + adjust;
         host_input_box.x = popup->base.x + padding_width;
-        DrawRectangleRec(host_input_box, TKBC_UI_GRAY);
+        DrawRectangleRec(host_input_box, TKBC_UI_LIGHTGRAY);
     }
     Text_Input *host_input = &connection_host_input;
     Text_Input *port_input = &connection_port_input;
@@ -1389,7 +1389,7 @@ void tkbc_connection_input(Env *env, Popup *popup, const char *host_default, con
         port_input_box.y = popup->base.y + popup->base.height / 2 - port_input_box.height / 2;
         port_input_box.width = box_width - adjust;
         port_input_box.x = popup->base.x + popup->base.width - port_input_box.width - padding_width;
-        DrawRectangleRec(port_input_box, TKBC_UI_GRAY);
+        DrawRectangleRec(port_input_box, TKBC_UI_LIGHTGRAY);
     }
     {
         port_input->box = port_input_box;

@@ -144,7 +144,7 @@ Popup tkbc_popup_message(Font font, const char *message) {
 
     Popup frame = {
         .active = false,
-        .base_color = TKBC_UI_LIGHTGRAY,
+        .base_color = TKBC_UI_GRAY,
         .cross_color = TKBC_UI_RED,
         .option1_color = TKBC_UI_TEAL,
         .text = message,
