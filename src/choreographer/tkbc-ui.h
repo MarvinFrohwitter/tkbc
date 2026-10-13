@@ -46,7 +46,7 @@ void tkbc_text_input_set_text(Text_Input *input, Space *space, const char *str);
 void tkbc_text_input_init(Text_Input *input, Space *space, const char *initial);
 const char *tkbc_text_input_cstr(const Text_Input *input);
 void tkbc_handle_text_input(Text_Input *input, Space *space);
-void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding);
+bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding);
 void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_radius, float padding);
 void tkbc_draw_circle_with_x(Vector2 center, float radius, Color color);
 void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled, Color color);

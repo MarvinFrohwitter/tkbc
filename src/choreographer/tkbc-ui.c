@@ -1642,6 +1642,7 @@ void tkbc_ui_color_picker(Env *env) {
         tkbc_draw_pannels(env, &colorizer_view_background, &colorizer_view_scale, color_box);
     }
 
+    bool tooltip_kite_design_selection = false;
     if (env->color_picker_display_designs) {
         // forward.y += forward.height + color_circle_radius * 0.5;
 
@@ -1660,8 +1661,7 @@ void tkbc_ui_color_picker(Env *env) {
             .width = env->color_picker_base.width,
             .height = env->window_height - color_circle.y - padding,
         };
-
-        tkbc_display_kite_designs(env, kite_designs_container, padding);
+        tooltip_kite_design_selection = tkbc_display_kite_designs(env, kite_designs_container, padding);
     }
 
     if (env->colorizer) {
@@ -1684,6 +1684,15 @@ void tkbc_ui_color_picker(Env *env) {
         tkbc_display_color_pallet(env, palette_container, color_circle_radius, padding);
     }
     EndScissorMode();
+
+    if (tooltip_kite_design_selection) {  // tooltip for the kite_designs
+        const char *tooltip_text = "select and load";
+        const int font_size = 18;
+        const float spacing = 2;
+        Vector2 text_size = MeasureTextEx(env->font, tooltip_text, font_size, spacing);
+        tkbc_draw_tool_tip(env, env->font, mouse, text_size.x + padding, text_size.y, tooltip_text, font_size, spacing,
+                           padding / 2);
+    }
 }
 
 /**
@@ -2774,7 +2783,8 @@ static float tkbc_kite_design_stride(Env *env, Texture2D design, float scale_fac
  * @param env [TODO:parameter]
  * @param display_position [TODO:parameter]
  */
-void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
+bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
+    bool tooltip_kite_design_selection = false;
     Rectangle base = display_box;
     base.width -= padding / 2;  // for the scrollbar
     display_box.x += 2 * padding;
@@ -2848,26 +2858,29 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
 
         if (!env->color_picker_window_picking) {
             Vector2 mouse = GetMousePosition();
-            if (CheckCollisionPointRec(mouse, shadow) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                Image reference = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
-                Asset a = _tkbc_get_asset_kite_design(KITE_COLORIZER);
+            if (CheckCollisionPointRec(mouse, shadow)) {
+                tooltip_kite_design_selection = true;
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    Image reference = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
+                    Asset a = _tkbc_get_asset_kite_design(KITE_COLORIZER);
 
-                // This is needed because the UUIDs will be random and not the enum
-                // value.
-                UUID new_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
-                bool design_already_exists = false;
-                if (tkbc_is_same_image(a.as.kite_image.normal, reference)) {
-                    design_already_exists = true;
-                } else {
-                    design_already_exists = tkbc_image_already_exitst_in_assets(a.as.kite_image.normal, &new_id);
+                    // This is needed because the UUIDs will be random and not the enum
+                    // value.
+                    UUID new_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
+                    bool design_already_exists = false;
+                    if (tkbc_is_same_image(a.as.kite_image.normal, reference)) {
+                        design_already_exists = true;
+                    } else {
+                        design_already_exists = tkbc_image_already_exitst_in_assets(a.as.kite_image.normal, &new_id);
+                    }
+
+                    if (!design_already_exists) {
+                        tkbc_generate_new_kite_image_and_texture(a.as.kite_image, &new_id);
+                    }
+
+                    tkbc_set_texture_for_selected_kites(env, new_id, true);
+                    tkbc_set_color_for_selected_kites(env, BLANK);
                 }
-
-                if (!design_already_exists) {
-                    tkbc_generate_new_kite_image_and_texture(a.as.kite_image, &new_id);
-                }
-
-                tkbc_set_texture_for_selected_kites(env, new_id, true);
-                tkbc_set_color_for_selected_kites(env, BLANK);
             }
         }
     }
@@ -2963,41 +2976,44 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
             continue;
         }
 
-        if (CheckCollisionPointRec(mouse, collision_rectangle) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            tkbc_set_texture_for_selected_kites(env, _tkbc_get_asset_kite_design(i).id, false);
+        if (CheckCollisionPointRec(mouse, collision_rectangle)) {
+            tooltip_kite_design_selection = true;
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                tkbc_set_texture_for_selected_kites(env, _tkbc_get_asset_kite_design(i).id, false);
 
-            // Note just for the kites designed by the colorizer
-            // The other ones do not fit because thy are blury and you kinda
-            // want to preserve that. Also thy don't have a skeleton, they are
-            // just perfectly blended.
-            if (!tkbc_is_default_kite_design(&assets, assets.elements[i].id)) {
-                Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
-                assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-                assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
-                assert(im.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
+                // Note just for the kites designed by the colorizer
+                // The other ones do not fit because thy are blury and you kinda
+                // want to preserve that. Also thy don't have a skeleton, they are
+                // just perfectly blended.
+                if (!tkbc_is_default_kite_design(&assets, assets.elements[i].id)) {
+                    Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
+                    assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+                    assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
+                    assert(im.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
 
-                // Copy the panel into the KITE_COLORIZER texture
-                for (size_t y = 0; y < (size_t) im.height; ++y) {
-                    for (size_t x = 0; x < (size_t) im.width; ++x) {
-                        Vector2 pixel = {.x = x, .y = y};
-                        // This is needed to allow designs with alpha:
-                        // So that loading an already existing design in is properly
-                        // handled.
-                        tkbc_set_single_pixel_in_kite_image_colorizer(pixel, BLANK);
+                    // Copy the panel into the KITE_COLORIZER texture
+                    for (size_t y = 0; y < (size_t) im.height; ++y) {
+                        for (size_t x = 0; x < (size_t) im.width; ++x) {
+                            Vector2 pixel = {.x = x, .y = y};
+                            // This is needed to allow designs with alpha:
+                            // So that loading an already existing design in is properly
+                            // handled.
+                            tkbc_set_single_pixel_in_kite_image_colorizer(pixel, BLANK);
 
-                        Color c = *(Color *) tkbc_get_position_in_image(im, x, y);
-                        if (c.a <= 0) {
-                            continue;
+                            Color c = *(Color *) tkbc_get_position_in_image(im, x, y);
+                            if (c.a <= 0) {
+                                continue;
+                            }
+
+                            tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
                         }
-
-                        tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
                     }
-                }
 
-                tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
-                                         _tkbc_get_asset_kite_design(i).as.kite_image);
+                    tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
+                                             _tkbc_get_asset_kite_design(i).as.kite_image);
+                }
+                tkbc_set_color_for_selected_kites(env, BLANK);
             }
-            tkbc_set_color_for_selected_kites(env, BLANK);
         }
     }
 
@@ -3030,6 +3046,8 @@ void tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         tkbc_draw_tool_tip(env, env->font, mouse, text_size.x + padding, text_size.y, tooltip_text, font_size, spacing,
                            padding / 2);
     }
+
+    return tooltip_kite_design_selection;
 }
 
 void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_radius, float padding) {
