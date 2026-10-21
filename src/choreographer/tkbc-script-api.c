@@ -101,7 +101,8 @@ bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config, ...)
             }
         }
         if (!found) {
-            assert(false && "The give config id was not present in the kite_ids");
+            tkbc_fprintf(stderr, "WARNING", "Could not configure kite id:%zu\n", first_config.kite_id);
+            tkbc_fprintf(stderr, "WARNING", "The kite id was not found or is invalid.\n");
         }
     }
 
@@ -122,7 +123,8 @@ bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config, ...)
                 }
             }
             if (!found) {
-                assert(false && "The give config id was not present in the kite_ids");
+                tkbc_fprintf(stderr, "WARNING", "Could not configure kite id:%zu\n", config.kite_id);
+                tkbc_fprintf(stderr, "WARNING", "The kite id was not found or is invalid.\n");
             }
             continue;
         }

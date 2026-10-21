@@ -454,8 +454,9 @@ void to_center_slide_in(Env *env) {
 }
 
 void pair_change_90(Env *env, Kite_Ids ki) {
-    tkbc_script_team_roll_two_diffrent_angle(env, ki, 1.3, 180 + 45, 45, 45, 180 + 45, rotation_duration,
+    tkbc_script_team_roll_two_diffrent_angle(env, ID(zero, one), 1.3, 180 + 45, 45, 45, 180 + 45, rotation_duration,
                                              rotation_duration);
+    (void) ki;
 }
 
 // void pair_change_90(Env *env, Kite_Ids ki) {
@@ -469,7 +470,10 @@ void pair_change_90(Env *env, Kite_Ids ki) {
 
 void choreo(Env *env, Kite_Ids ki) {
     kite = *env->vanilla_kite;
-    bool ok = tkbc_configure_kites(env, ki,
+    // This is a hack to just configure the first two kites.
+    Kite_Ids ki_copy = ki;
+    ki_copy.count = 2;
+    bool ok = tkbc_configure_kites(env, ki_copy,
                                    (Kite_Config){
                                        .kite_id = zero,
                                        .body_color = RED,
