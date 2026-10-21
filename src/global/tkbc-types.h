@@ -188,10 +188,10 @@ typedef enum {
     BOX_KEY = 2,
 } Key_Box;
 
-typedef enum {  // The underlying data type for the protocol is only a u8.
+typedef enum : unsigned char {  // The underlying data type for the protocol is only a u8.
     LEFT_TIP = 1 << 0,
     RIGHT_TIP = 1 << 1,
-} TIP;                                   // The left and right tip of the leading edge.
+} TIP;  // The left and right tip of the leading edge.
 
 typedef struct {  // A representation for an internal kite geometric.
     Vector2 v1;
@@ -213,10 +213,10 @@ typedef struct {
 } Kite_Position;       // The combined position and rotation angle.
 
 typedef struct {
-    UUID texture_id;       // The uuid that identifies the kite texture asset
-                           // (Asset.id). The nil uuid represents the state
-                           // where the texture is newly created and still has
-                           // to be transferred to the other sides.
+    UUID texture_id;  // The uuid that identifies the kite texture asset
+                      // (Asset.id). The nil uuid represents the state
+                      // where the texture is newly created and still has
+                      // to be transferred to the other sides.
 
     bool is_texture_new;  // Indicates if the texture is currently newly created.
 
@@ -352,7 +352,7 @@ typedef union {  // The collection of all the possible actions that can be used
     Quit_Action as_quit;
 } Action;
 
-typedef enum {  // The underlying data type for the protocol is only a u8.
+typedef enum : unsigned char {  // The underlying data type for the protocol is only a u8.
     ACTION_KIND_NULL,
     ACTION_KITE_QUIT,
     ACTION_KITE_WAIT,
