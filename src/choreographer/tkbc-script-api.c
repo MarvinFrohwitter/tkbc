@@ -364,7 +364,13 @@ void tkbc_register_frames_array(Env *env, Frames *frames) {
             state->is_script_kite = true;
         }
     }
+
+    //
+    // TODO: Think about removing it is slow and bakeing will maybe work without it.
+    //
+    // Marvin Frohwitter 21.10.2026
     tkbc_patch_frames_kite_positions(env, frames, &env->scratch_buf_script.space);
+
     Frames copy_frames = tkbc_deep_copy_frames(&env->scratch_buf_script.space, frames);
     space_dap(&env->scratch_buf_script.space, &env->scratch_buf_script, copy_frames);
     tkbc_reset_frames_internal_data(frames);
