@@ -25,6 +25,21 @@
 
 extern Assets assets;
 
+/* custom error printer for runtime exceptions. Returning 0 stops backtrace */
+int tkbc_tcc_bt_func(void *udata, void *pc, const char *file, int line, const char *func, const char *msg) {
+
+    (void) udata;
+    (void) pc;
+    (void) func;
+    tkbc_fprintf(stderr, "TCC", "msg%s\n", file, line, msg);
+    return 0;
+}
+
+void tkbc_error_func(void *opaque, const char *msg) {
+    (void) opaque;
+    tkbc_fprintf(stderr, "TCC", "%s\n", msg);
+}
+
 /**
  * @brief The function initializes a new Env.
  *
@@ -443,11 +458,15 @@ void tkbc_file_handler(Env *env) {
             } else if (strcmp(extension, ".c") == 0 || strcmp(extension, ".h") == 0) {
 
                 TCCState *tcc = tcc_new();
+                tcc_set_backtrace_func(tcc, NULL, tkbc_tcc_bt_func);
+
+                tcc_set_error_func(tcc, NULL, tkbc_error_func);
+
                 int ok = tcc_set_output_type(tcc, TCC_OUTPUT_MEMORY);
                 if (ok == -1) {
                     tkbc_fprintf(stderr, "ERROR", "Could not set output type to tcc: %s: %d\n", __FILE__, __LINE__);
                 }
-                ok = tcc_set_options(tcc, "-Wall -Wextra -std=gnu23");
+                ok = tcc_set_options(tcc, "-Wall -Wextra -std=c11");
                 if (ok == -1) {
                     tkbc_fprintf(stderr, "ERROR", "Could not set compiler options for tcc: %s: %d\n", __FILE__,
                                  __LINE__);

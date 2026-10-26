@@ -443,7 +443,7 @@ void script_api_string(Cmd *cmd) {
 
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
 
-    cb_cmd_push(cmd, "./" BUILD_PATH "create_file_string_from_file",
+    cb_cmd_push(cmd, "./" BUILD_PATH "create_file_string_from_file", "-cc", CC,
                 CHOREOGRAPHER_PATH "tkbc-script-api-header-string.h", CHOREOGRAPHER_PATH "tkbc-script-api.h");
 
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);

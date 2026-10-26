@@ -403,7 +403,7 @@ Kite_Ids tkbc__indexs_append(Space *space, ...) {
         // compiler caching. So the option is to just use unsigned int instead.
         // unsigned int index = va_arg(args, unsigned int);
         Index index = va_arg(args, size_t);
-        if (UINT_MAX != index) {
+        if (SIZE_MAX != index) {
             space_dap(space, &ki, index);
         } else {
             break;

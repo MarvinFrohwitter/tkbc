@@ -610,22 +610,22 @@ typedef struct {
     size_t kite_designs_top_interaction_box;  // The current first displayed row of the
                                               // scrollable color pallet.
 
-    bool script_menu_interaction;               // The status if the menu that displays all the
-                                                // available scripts is currently displays.
-    Rectangle script_menu_base;                 // The bounding box of the complete script menu portion.
-    Scrollbar script_menu_scrollbar;            // The side scrollbar of the script menu.
-    ssize_t script_menu_mouse_interaction_box;  // The id of the box it is clicked.
-    size_t script_menu_top_interaction_box;     // The id the current first displayed
-                                                // box.
-    bool script_menu_mouse_interaction;         // Indicates if a box of the script menu
-                                                // is activated.
-    ssize_t script_menu_selection_anchor;       // The box the next shift click extends the multi selection of the
-                                                // script menu from. -1 while there is no anchor.
-    bool show_grid_lines;                       // Indicates if the grid lines should be drawn.
-    bool show_kite_information;                 // Draws the information like kite speed.
-    bool text_input_active;                     // The status if a text input field is
-                                                // currently focused and all keys should
-                                                // go to it.
+    bool script_menu_interaction;            // The status if the menu that displays all the
+                                             // available scripts is currently displays.
+    Rectangle script_menu_base;              // The bounding box of the complete script menu portion.
+    Scrollbar script_menu_scrollbar;         // The side scrollbar of the script menu.
+    long script_menu_mouse_interaction_box;  // The id of the box it is clicked.
+    size_t script_menu_top_interaction_box;  // The id the current first displayed
+                                             // box.
+    bool script_menu_mouse_interaction;      // Indicates if a box of the script menu
+                                             // is activated.
+    long script_menu_selection_anchor;       // The box the next shift click extends the multi selection of the
+                                             // script menu from. -1 while there is no anchor.
+    bool show_grid_lines;                    // Indicates if the grid lines should be drawn.
+    bool show_kite_information;              // Draws the information like kite speed.
+    bool text_input_active;                  // The status if a text input field is
+                                             // currently focused and all keys should
+                                             // go to it.
 
 } Env;  // The global state of the application.
 

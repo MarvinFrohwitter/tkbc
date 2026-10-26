@@ -1,12 +1,6 @@
 #ifndef TKBC_SCRIPT_API_H_
 #define TKBC_SCRIPT_API_H_
 
-#include <assert.h>
-#include <limits.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 // ===========================================================================
 // ========================== SCRIPT API =====================================
 // ===========================================================================
@@ -85,7 +79,7 @@ void tkbc__script_input(Env *env);
     tkbc_frame_generate(ACTION_KITE_TIP_ROTATION, (kite_ids),                                                          \
                         ((Tip_Rotation_Action){.angle = (new_angle), .tip = (new_tip)}), (duration))
 
-#define tkbc_indexs_append(...) tkbc__indexs_append(&env->_id_space, __VA_ARGS__, UINT_MAX)
+#define tkbc_indexs_append(...) tkbc__indexs_append(&env->_id_space, __VA_ARGS__, SIZE_MAX)
 #define ID(...) tkbc_indexs_append(__VA_ARGS__)
 #define tkbc_indexs_generate(count) tkbc_indexs_range(0, count)
 
