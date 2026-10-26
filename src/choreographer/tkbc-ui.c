@@ -987,11 +987,6 @@ bool tkbc_ui_script_menu(Env *env) {
         const char *name = tkbc_text_input_cstr(&script->name_input);
         text_size = tkbc_reduce_str_to_fit_box(env->font, name, &font_size, spacing, script_box);
 
-        // TODO: Implement centering text in the input filled.
-        // Vector2 p;
-        // p.x = script_box.x + script_box.width / 2 - text_size.x / 2;
-        // p.y = script_box.y + script_box.height / 2 - text_size.y / 2;
-
         Rectangle text_element_box = script_box;
         text_element_box.width -= delete_circle_radius * 2;
         text_element_box.width -= 2 * padding;
