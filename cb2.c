@@ -13,6 +13,7 @@ Cmd cmd = {0};
 #define CC "gcc"
 #define BUILD_PATH "build/"
 #define ASSETS_PATH "assets/"
+#define METAPROGRAMMING_PATH "metaprogramming/"
 #define RESOURCES_PATH "resources/"
 #define RAYLIB_PATH_LINUX "external/raylib-6.0_linux_amd64/"
 #define RAYLIB_PATH_WINDOWS "external/raylib-6.0_win64_mingw-w64/"
@@ -420,7 +421,7 @@ void assets(Cmd *cmd) {
     cflags(cmd, .sanitize = true);
 
     cb_cmd_push(cmd, "-o", BUILD_PATH "assets2h");
-    cb_cmd_push(cmd, ASSETS_PATH "assets2h.c");
+    cb_cmd_push(cmd, METAPROGRAMMING_PATH "assets2h.c");
     libs(cmd, .math = true);
 
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
@@ -430,6 +431,22 @@ void assets(Cmd *cmd) {
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
 
     win_icon(cmd);
+}
+
+void script_api_string(Cmd *cmd) {
+    cb_cmd_push(cmd, CC);
+    cflags(cmd);
+
+    cb_cmd_push(cmd, "-o", BUILD_PATH "create_file_string_from_file");
+    cb_cmd_push(cmd, METAPROGRAMMING_PATH "create_file_string_from_file.c");
+    libs(cmd, .math = true);
+
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+
+    cb_cmd_push(cmd, "./" BUILD_PATH "create_file_string_from_file",
+                CHOREOGRAPHER_PATH "tkbc-script-api-header-string.h", CHOREOGRAPHER_PATH "tkbc-script-api.h");
+
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
 }
 
 typedef struct {
@@ -630,6 +647,7 @@ typedef struct {
     bool first_o;
     bool test;
     bool assets;
+    bool script_api_string;
 
     bool tkbc;
     bool client;
@@ -643,6 +661,7 @@ typedef struct {
 #define FLAG_FIRST_O "first.o"
 #define FLAG_TEST "test"
 #define FLAG_ASSETS "assets"
+#define FLAG_SCRIPT_API_STRING "script_api_string"
 #define FLAG_TEST_VERBOSE "verbose"
 #define FLAG_TEST_SHORT "short"
 #define FLAG_TKBC "tkbc"
@@ -655,6 +674,9 @@ typedef struct {
 #define usage(...) usage_opt(((Usage_Opts){__VA_ARGS__}))
 void usage_opt(Usage_Opts opts) {
     fprintf(stderr, "Usage:\n");
+    if (opts.all) {
+        fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_HELP);
+    }
     if (opts.build_dir || opts.all) {
         fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_BUILD_DIR);
     }
@@ -669,6 +691,9 @@ void usage_opt(Usage_Opts opts) {
     }
     if (opts.assets || opts.all) {
         fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_ASSETS);
+    }
+    if (opts.script_api_string || opts.all) {
+        fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_SCRIPT_API_STRING);
     }
     if (opts.tkbc || opts.all) {
         fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_TKBC);
@@ -713,6 +738,10 @@ int main(int argc, char *argv[]) {
         make_build_dir(&cmd);
         void flag_assets(char *flag, char ***argv, int *argc);
         flag_assets(flag, &argv, &argc);
+    } else if (str_compare(FLAG_SCRIPT_API_STRING, flag)) {
+        make_build_dir(&cmd);
+        void flag_script_api_string(char *flag, char ***argv, int *argc);
+        flag_script_api_string(flag, &argv, &argc);
     } else if (str_compare(FLAG_TKBC, flag)) {
         make_build_dir(&cmd);
         void flag_tkbc(char *flag, char ***argv, int *argc);
@@ -833,6 +862,15 @@ void flag_test(char *flag, char ***argv, int *argc) {
                 break;
             }
         }
+    }
+}
+
+void flag_script_api_string(char *flag, char ***argv, int *argc) {
+    script_api_string(&cmd);
+    char *prev_flag = flag;
+    flag = get_next_or_last(argv, argc);
+    if (prev_flag != flag) {
+        usage(.prog_name = prog_name, .script_api_string = true);
     }
 }
 

@@ -21,6 +21,8 @@
 
 #include "libtcc.h"
 
+#include "tkbc-script-api-header-string.h"
+
 extern Assets assets;
 
 /**
@@ -466,39 +468,48 @@ void tkbc_file_handler(Env *env) {
                     tkbc_fprintf(stderr, "ERROR", "Could not add math lib: %s: %d\n", __FILE__, __LINE__);
                 }
 
-                ok = tcc_add_file(tcc, file_path);
-                if (ok == -1) {
-                    tkbc_fprintf(stderr, "ERROR", "Could not compile: %s in %s: %d\n", file_path, __FILE__, __LINE__);
+                Content content = {0};
+                {
+                    tkbc_dapc(&content, global_api_header_string, strlen(global_api_header_string));
+                    tkbc_dap(&content, '\n');
+                }
+                if (!tkbc_read_entire_file(file_path, &content)) {
+                    tkbc_fprintf(stderr, "ERROR", "Could not read: %s\n", file_path);
                 } else {
+                    ok = tcc_compile_string(tcc, content.elements);
 
-                    // Base API
-#define X(ret, name, ...) tcc_add_symbol(tcc, #name, name);
-                    LIST_OF_API
-#undef X
-
-                    // Team API
-
-#define X(ret, name, ...) tcc_add_symbol(tcc, #name, name);
-                    LIST_OF_TEAM_API
-#undef X
-
-                    ok = tcc_relocate(tcc);
                     if (ok == -1) {
-                        tkbc_fprintf(stderr, "ERROR", "Could realloc symbols for: %s in %s: %d\n", file_path, __FILE__,
+                        tkbc_fprintf(stderr, "ERROR", "Could not compile: %s in %s: %d\n", file_path, __FILE__,
                                      __LINE__);
                     } else {
-                        const char *symbol_name = "tkbc__script_input";
-                        void *symbol = tcc_get_symbol(tcc, symbol_name);
-                        if (!symbol) {
-                            tkbc_fprintf(stderr, "ERROR", "Could not get entry symbol %s for script: %s in %s: %d\n",
-                                         symbol_name, file_path, __FILE__, __LINE__);
+
+#define X(ret, name, ...) tcc_add_symbol(tcc, #name, name);
+                        LIST_OF_API
+                        LIST_OF_TEAM_API
+#undef X
+
+                        ok = tcc_relocate(tcc);
+                        if (ok == -1) {
+                            tkbc_fprintf(stderr, "ERROR", "Could realloc symbols for: %s in %s: %d\n", file_path,
+                                         __FILE__, __LINE__);
                         } else {
-                            void (*tkbc__script_input_func)(Env *env) = symbol;
-                            tkbc__script_input_func(env);
+                            const char *symbol_name = "tkbc__script_input";
+                            void *symbol = tcc_get_symbol(tcc, symbol_name);
+                            if (!symbol) {
+                                tkbc_fprintf(stderr, "ERROR",
+                                             "Could not get entry symbol %s for script: %s in %s: %d\n", symbol_name,
+                                             file_path, __FILE__, __LINE__);
+                            } else {
+                                void (*tkbc__script_input_func)(Env *env) = symbol;
+                                tkbc__script_input_func(env);
+                            }
                         }
                     }
                 }
 
+                if (content.elements) {
+                    free(content.elements);
+                }
                 tcc_delete(tcc);
 
             } else {

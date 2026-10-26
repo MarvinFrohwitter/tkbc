@@ -16,6 +16,9 @@ clean: build
 assets: build
 	./cb assets
 
+script_api_string: build
+	./cb script_api_string
+
 first.o: build
 	./cb first.o
 
