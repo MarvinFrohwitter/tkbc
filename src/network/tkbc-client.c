@@ -1123,6 +1123,12 @@ int main(int argc, char *argv[]) {
         BeginDrawing();
         ClearBackground(TKBC_UI_SKYBLUE);
 
+        // This is just so RELEASE builds on windows can not be debugged.
+#ifndef _WIN32
+        volatile Spaces *debug_array = space_get_debug_array();
+        (void) debug_array;
+#endif
+
         env->text_input_active = false;
 
         if (connection.active) {

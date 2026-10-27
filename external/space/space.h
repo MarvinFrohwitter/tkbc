@@ -12,6 +12,10 @@
 #define thread_local _Thread_local
 #endif
 
+#ifdef NDEBUG
+#undef SPACE_DEBUGGER
+#endif
+
 #define SPACE_METHOD_MALLOC (0x10)
 #define SPACE_METHOD_MMAP (0x20)
 #define SPACE_METHOD_VIRTUAL_ALLOC (0x40)
@@ -162,7 +166,19 @@ struct Space {
     size_t id_counter;
     unsigned char alloc_method;
     unsigned char memory_layout;
+#ifdef SPACE_DEBUGGER
+    unsigned char was_freed;
+    size_t last_count;
+    size_t last_capacity;
+    size_t debug_id;
+#endif  // SPACE_DEBUGGER
 };  // 64 Bytes
+
+typedef struct {
+    Space *elements;
+    size_t count;
+    size_t capacity;
+} Spaces;
 
 SPACEDECL bool space_init_planet(Space *space, size_t size_in_bytes, Planet *planet);
 SPACEDECL void space_free_planet(Space *space, Planet planet);
@@ -184,7 +200,11 @@ SPACEDECL void space_reset_space(Space *space);
 SPACEDECL void *space_malloc(Space *space, size_t size_in_bytes);
 SPACEDECL void *space_calloc(Space *space, size_t nmemb, size_t size);
 SPACEDECL void *space_realloc(Space *space, void *ptr, size_t old_size, size_t new_size);
-SPACEDECL void *space_alloc_planetid(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet);
+
+SPACEDECL void *space_alloc_planetid_impl(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet,
+                                          bool called_from_debuger);
+#define space_alloc_planetid(space, size_in_bytes, planet_id, force_new_planet)                                        \
+    space_alloc_planetid_impl(space, size_in_bytes, planet_id, force_new_planet, false)
 
 SPACEDECL void *space_malloc_planetid(Space *space, size_t size_in_bytes, size_t *planet_id);
 SPACEDECL void *space_calloc_planetid(Space *space, size_t nmemb, size_t size, size_t *planet_id);
@@ -401,11 +421,57 @@ SPACEDECL Space *space_get_tspace(void);
 
 // ===========================================================================
 
+#ifdef SPACE_DEBUGGER
+SPACEDECL Space *space_get_debug_space(void);
+SPACEDECL void space_free_debug_space(void);
+SPACEDECL Spaces *space_get_debug_array(void);
+SPACEDECL bool space_is_space_known(Spaces debug_array, Space *space);
+SPACEDECL bool space_update_debug_array(Spaces *debug_array, Space space);
+#endif  // SPACE_DEBUGGER
+
 #endif  // SPACE_H_
 
 // ===========================================================================
 
 #ifdef SPACE_IMPLEMENTATION
+
+#ifdef SPACE_DEBUGGER
+SPACEDEF Space *space_get_debug_space(void) {
+    thread_local static Space space = {0};
+    return &space;
+}
+
+SPACEDEF void space_free_debug_space(void) {
+    space_free_space(space_get_debug_space());
+}
+
+SPACEDEF Spaces *space_get_debug_array(void) {
+    thread_local static Spaces debug_array = {0};
+    return &debug_array;
+}
+
+SPACEDEF bool space_is_space_known(Spaces debug_array, Space *space) {
+    for (size_t i = 0; i < debug_array.count; ++i) {
+        if (debug_array.elements[i].debug_id == space->debug_id) {
+            return true;
+        }
+    }
+    return false;
+}
+
+SPACEDEF bool space_update_debug_array(Spaces *debug_array, Space space) {
+    if (!debug_array) {
+        return false;
+    }
+    for (size_t i = 0; i < debug_array->count; ++i) {
+        if (debug_array->elements[i].debug_id == space.debug_id) {
+            debug_array->elements[i] = space;
+            return true;
+        }
+    }
+    return false;
+}
+#endif  // SPACE_DEBUGGER
 
 /**
  * @brief Gets a pointer to the thread-local temporary space allocator.
@@ -1607,6 +1673,12 @@ layout_rerun:
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
     }
+
+#ifdef SPACE_DEBUGGER
+    space->was_freed = true;
+    Spaces *debug_array = space_get_debug_array();
+    space_update_debug_array(debug_array, *space);
+#endif  // SPACE_DEBUGGER
 }
 
 /**
@@ -2161,34 +2233,72 @@ static inline void *space__soa_alloc(Space *space, size_t size_in_bytes, size_t 
  * false, attempts to use existing planet space first.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_alloc_planetid(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet) {
+SPACEDEF void *space_alloc_planetid_impl(Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet,
+                                         bool called_from_debuger) {
     if (!space) {
         *planet_id = 0;
         return NULL;
     }
+
+    void *out_ptr = NULL;
 
 layout_rerun:
     switch (space->memory_layout) {
     case 0: space->memory_layout = SPACE_MEMORY_LAYOUT_METHOD_DEFAULT; goto layout_rerun;
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DOUBLE_LINKED_LIST
     case SPACE_MEMORY_DOUBLE_LINKED_LIST: {
-        return space__dll_alloc(space, size_in_bytes, planet_id, force_new_planet);
+        out_ptr = space__dll_alloc(space, size_in_bytes, planet_id, force_new_planet);
     } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_DYNAMIC_ARRAY
     case SPACE_MEMORY_DYNAMIC_ARRAY: {
-        return space__da_alloc(space, size_in_bytes, planet_id, force_new_planet);
+        out_ptr = space__da_alloc(space, size_in_bytes, planet_id, force_new_planet);
     } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
     case SPACE_MEMORY_STUCT_OF_ARRAYS: {
-        return space__soa_alloc(space, size_in_bytes, planet_id, force_new_planet);
+        out_ptr = space__soa_alloc(space, size_in_bytes, planet_id, force_new_planet);
     } break;
 #endif
     default: assert(false && "UNREACHABLE: This memory layout is not supported");
     }
 
-    return NULL;
+#ifdef SPACE_DEBUGGER
+    if (space->memory_layout == SPACE_MEMORY_DOUBLE_LINKED_LIST) {
+        space->last_capacity = space->count;
+    } else {
+        space->last_capacity = space->capacity;
+    }
+    space->last_count = space->count;
+    if (!called_from_debuger) {
+        Space *debug_space = space_get_debug_space();
+        Spaces *debug_array = space_get_debug_array();
+        if (!space_update_debug_array(debug_array, *space)) {
+            if (debug_array->capacity <= debug_array->count) {
+                size_t old_capacity = debug_array->capacity;
+                void *old_ptr = debug_array->elements;
+                debug_array->capacity = debug_array->capacity ? debug_array->capacity * 2 : 64;
+
+                size_t id;
+                debug_array->elements = space_alloc_planetid_impl(debug_space, debug_array->capacity, &id, false, true);
+                if (debug_array->elements == NULL) {
+                    fprintf(stderr, "The allocation for the dynamic array has failed in: %s: %d\n", __FILE__, __LINE__);
+                    abort();
+                }
+
+                if (old_capacity) {
+                    memcpy(debug_array->elements, old_ptr, old_capacity);
+                }
+            }
+            static size_t debug_id_counter = 0;
+            space->debug_id = ++debug_id_counter;
+            debug_array->elements[debug_array->count++] = *space;
+        }
+    }
+#endif  // SPACE_DEBUGGER
+    (void) called_from_debuger;
+
+    return out_ptr;
 }
 
 /**
