@@ -21,6 +21,9 @@
  * @param env The global state of the application.
  */
 void tkbc__script_begin(Env *env) {
+    if (!env) {
+        return;
+    }
     env->script_interrupt = true;
     env->script_setup = true;
     SET(KITE_WAIT(0));
@@ -145,6 +148,9 @@ bool tkbc_configure_kites(Env *env, Kite_Ids kis, Kite_Config first_config, ...)
  * @param env The global state of the application.
  */
 void tkbc__script_end(Env *env) {
+    if (!env) {
+        return;
+    }
     env->script_interrupt = false;
 
     // To ensure the script begin is called.
@@ -182,6 +188,9 @@ void tkbc__script_end(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_script_update_frames(Env *env) {
+    if (!env || !env->frames) {
+        return;
+    }
     for (size_t i = 0; i < env->frames->count; ++i) {
         Frame *frame = &env->frames->elements[i];
         assert(frame != NULL);
@@ -248,6 +257,9 @@ void tkbc_script_update_frames(Env *env) {
  * @return True if the script has finished successfully, otherwise false.
  */
 bool tkbc_script_finished(Env *env) {
+    if (!env) {
+        return false;
+    }
     return env->script_finished;
 }
 
@@ -270,7 +282,7 @@ bool tkbc_script_finished(Env *env) {
  * declaration.
  */
 Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids, Action raw_action, float duration) {
-    if (!env->script_setup) {
+    if (!env || !env->script_setup) {
         return NULL;
     }
 
@@ -605,7 +617,7 @@ static size_t tkbc_bezier_segment_count(float control_polygon_length) {
 static void tkbc_kite_bezier_emit(Env *env, Kite_Ids kite_index_array, Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4,
                                   Vector2 (*eval)(Vector2, Vector2, Vector2, Vector2, float), size_t segment_count,
                                   float move_duration, float angle, float rotation_duration, bool additive) {
-    if (!env->script_setup || kite_index_array.count == 0 || segment_count == 0) {
+    if (!env || !env->script_setup || kite_index_array.count == 0 || segment_count == 0) {
         return;
     }
 

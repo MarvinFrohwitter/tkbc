@@ -942,19 +942,23 @@ Test export_script_to_dot_kite_file_from_mem_writes_original(void) {
     cassert_int_eq(tkbc_export_script_to_dot_kite_file_from_mem(&script, path), 0);
     FILE *exported = fopen(path, "rb");
     cassert_ptr_neq(exported, NULL);
-    fseek(exported, 0, SEEK_END);
-    long export_size = ftell(exported);
-    cassert_bool_eq(export_size > 0, true);
-    fseek(exported, 0, SEEK_SET);
-    char *export_text = malloc((size_t) export_size + 1);
-    cassert_ptr_neq(export_text, NULL);
-    size_t export_read = fread(export_text, 1, (size_t) export_size, exported);
-    cassert_size_t_eq(export_read, (size_t) export_size);
-    export_text[export_size] = '\0';
-    fclose(exported);
-    cassert_size_t_eq(count_occurrences(export_text, "MOVE ("), (size_t) 1);
-    cassert_size_t_eq(count_occurrences(export_text, "QUIT"), (size_t) 1);
-    free(export_text);
+    if (exported) {
+        fseek(exported, 0, SEEK_END);
+        long export_size = ftell(exported);
+        cassert_bool_eq(export_size > 0, true);
+        fseek(exported, 0, SEEK_SET);
+        char *export_text = malloc((size_t) export_size + 1);
+        cassert_ptr_neq(export_text, NULL);
+        if (export_text) {
+            size_t export_read = fread(export_text, 1, (size_t) export_size, exported);
+            cassert_size_t_eq(export_read, (size_t) export_size);
+            export_text[export_size] = '\0';
+            cassert_size_t_eq(count_occurrences(export_text, "MOVE ("), (size_t) 1);
+            cassert_size_t_eq(count_occurrences(export_text, "QUIT"), (size_t) 1);
+            free(export_text);
+        }
+        fclose(exported);
+    }
 
     // Deep copies carry the originals along.
     Space copy_space = {0};

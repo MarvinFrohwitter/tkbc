@@ -50,6 +50,9 @@ static bool parser_test_parse_bezier(Env *env, Kite_Ids *script_kis, char *sourc
     Content tmp_buffer = {0};
     // The lexer takes ownership of the content and frees it in lexer_del.
     char *content = strdup(source);
+    if (!content) {
+        return false;
+    }
     Lexer *l = lexer_new("bezier-test", content, strlen(content), 0);
     bool ok = tkbc_parse_bezier_curve(env, l, cubic, add, script_kis, &remap, brace, &tmp_buffer);
     lexer_del(l);
