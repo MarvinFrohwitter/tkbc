@@ -172,7 +172,7 @@ struct Space {
     size_t last_capacity;
     size_t debug_id;
 
-    const size_t line_of_first_call;
+    size_t line_of_first_call;
     const char *file_of_first_call;
 #endif  // SPACE_DEBUGGER
 };  // 64 Bytes
@@ -203,22 +203,26 @@ SPACEDECL void space_reset_space(Space *space);
 
 SPACEDECL void *space_malloc_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes);
 SPACEDECL void *space_calloc_fl(const char *file, const size_t line, Space *space, size_t nmemb, size_t size);
-SPACEDECL void *space_realloc_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size, size_t new_size);
+SPACEDECL void *space_realloc_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size,
+                                 size_t new_size);
 #define space_malloc(space, size_in_bytes) space_malloc_fl(__FILE__, __LINE__, space, size_in_bytes)
 #define space_calloc(space, nmemb, size) space_calloc_fl(__FILE__, __LINE__, space, nmemb, size)
 #define space_realloc(space, ptr, old_size, new_size)                                                                  \
     space_realloc_fl(__FILE__, __LINE__, space, ptr, old_size, new_size)
 
-SPACEDECL void *space_alloc_planetid_impl(const char *file, const size_t line, Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet,
-                                          bool called_from_debuger);
+SPACEDECL void *space_alloc_planetid_impl(const char *file, const size_t line, Space *space, size_t size_in_bytes,
+                                          size_t *planet_id, bool force_new_planet, bool called_from_debuger);
 #define space_alloc_planetid_fl(file, line, space, size_in_bytes, planet_id, force_new_planet)                         \
     space_alloc_planetid_impl(file, line, space, size_in_bytes, planet_id, force_new_planet, false)
 #define space_alloc_planetid(space, size_in_bytes, planet_id, force_new_planet)                                        \
     space_alloc_planetid_fl(__FILE__, __LINE__, space, size_in_bytes, planet_id, force_new_planet)
 
-SPACEDECL void *space_malloc_planetid_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes, size_t *planet_id);
-SPACEDECL void *space_calloc_planetid_fl(const char *file, const size_t line, Space *space, size_t nmemb, size_t size, size_t *planet_id);
-SPACEDECL void *space_realloc_planetid_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size, size_t new_size, size_t *planet_id);
+SPACEDECL void *space_malloc_planetid_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes,
+                                         size_t *planet_id);
+SPACEDECL void *space_calloc_planetid_fl(const char *file, const size_t line, Space *space, size_t nmemb, size_t size,
+                                         size_t *planet_id);
+SPACEDECL void *space_realloc_planetid_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size,
+                                          size_t new_size, size_t *planet_id);
 #define space_malloc_planetid(space, size_in_bytes, planet_id)                                                         \
     space_malloc_planetid_fl(__FILE__, __LINE__, space, size_in_bytes, planet_id)
 #define space_calloc_planetid(space, nmemb, size, planet_id)                                                           \
@@ -226,9 +230,12 @@ SPACEDECL void *space_realloc_planetid_fl(const char *file, const size_t line, S
 #define space_realloc_planetid(space, ptr, old_size, new_size, planet_id)                                              \
     space_realloc_planetid_fl(__FILE__, __LINE__, space, ptr, old_size, new_size, planet_id)
 
-SPACEDECL void *space_malloc_force_new_planet_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes);
-SPACEDECL void *space_calloc_force_new_planet_fl(const char *file, const size_t line, Space *space, size_t nmemb, size_t size);
-SPACEDECL void *space_realloc_force_new_planet_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size, size_t new_size);
+SPACEDECL void *space_malloc_force_new_planet_fl(const char *file, const size_t line, Space *space,
+                                                 size_t size_in_bytes);
+SPACEDECL void *space_calloc_force_new_planet_fl(const char *file, const size_t line, Space *space, size_t nmemb,
+                                                 size_t size);
+SPACEDECL void *space_realloc_force_new_planet_fl(const char *file, const size_t line, Space *space, void *ptr,
+                                                  size_t old_size, size_t new_size);
 #define space_malloc_force_new_planet(space, size_in_bytes)                                                            \
     space_malloc_force_new_planet_fl(__FILE__, __LINE__, space, size_in_bytes)
 #define space_calloc_force_new_planet(space, nmemb, size)                                                              \
@@ -236,9 +243,12 @@ SPACEDECL void *space_realloc_force_new_planet_fl(const char *file, const size_t
 #define space_realloc_force_new_planet(space, ptr, old_size, new_size)                                                 \
     space_realloc_force_new_planet_fl(__FILE__, __LINE__, space, ptr, old_size, new_size)
 
-SPACEDECL void *space_malloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes, size_t *planet_id);
-SPACEDECL void *space_calloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space, size_t nmemb, size_t size, size_t *planet_id);
-SPACEDECL void *space_realloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size, size_t new_size, size_t *planet_id);
+SPACEDECL void *space_malloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space,
+                                                          size_t size_in_bytes, size_t *planet_id);
+SPACEDECL void *space_calloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space,
+                                                          size_t nmemb, size_t size, size_t *planet_id);
+SPACEDECL void *space_realloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space, void *ptr,
+                                                           size_t old_size, size_t new_size, size_t *planet_id);
 #define space_malloc_planetid_force_new_planet(space, size_in_bytes, planet_id)                                        \
     space_malloc_planetid_force_new_planet_fl(__FILE__, __LINE__, space, size_in_bytes, planet_id)
 #define space_calloc_planetid_force_new_planet(space, nmemb, size, planet_id)                                          \
@@ -247,7 +257,8 @@ SPACEDECL void *space_realloc_planetid_force_new_planet_fl(const char *file, con
     space_realloc_planetid_force_new_planet_fl(__FILE__, __LINE__, space, ptr, old_size, new_size, planet_id)
 
 SPACEDECL bool space_init_capacity_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes);
-SPACEDECL bool space_init_capacity_in_count_plantes_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes, size_t count);
+SPACEDECL bool space_init_capacity_in_count_plantes_fl(const char *file, const size_t line, Space *space,
+                                                       size_t size_in_bytes, size_t count);
 #define space_init_capacity(space, size_in_bytes) space_init_capacity_fl(__FILE__, __LINE__, space, size_in_bytes)
 #define space_init_capacity_in_count_plantes(space, size_in_bytes, count)                                              \
     space_init_capacity_in_count_plantes_fl(__FILE__, __LINE__, space, size_in_bytes, count)
@@ -386,7 +397,8 @@ SPACEDECL void *space_vcat_impl_fl(const char *file, const size_t line, Space *s
 
 #define space_printf(space, fmt, ...) space_printf_fl(__FILE__, __LINE__, space, fmt, ##__VA_ARGS__)
 #define space_snprintf(space, n, fmt, ...) space_snprintf_fl(__FILE__, __LINE__, space, n, fmt, ##__VA_ARGS__)
-#define space_catf(space, first, first_len, fmt, ...) space_catf_fl(__FILE__, __LINE__, space, first, first_len, fmt, ##__VA_ARGS__)
+#define space_catf(space, first, first_len, fmt, ...)                                                                  \
+    space_catf_fl(__FILE__, __LINE__, space, first, first_len, fmt, ##__VA_ARGS__)
 #define space_strcat(space, first, second) space_strcat_fl(__FILE__, __LINE__, space, first, second)
 #define space_strdup(space, buf) space_strdup_fl(__FILE__, __LINE__, space, buf)
 #define space_strcpy(space, buf) space_strcpy_fl(__FILE__, __LINE__, space, buf)
@@ -396,6 +408,7 @@ SPACEDECL void *space_vcat_impl_fl(const char *file, const size_t line, Space *s
 #define space_memcpy(space, buf, n) space_memcpy_fl(__FILE__, __LINE__, space, buf, n)
 #define space_memmove(space, buf, n) space_memmove_fl(__FILE__, __LINE__, space, buf, n)
 #define space_vstrcat_impl(space, first, ...) space_vstrcat_impl_fl(__FILE__, __LINE__, space, first, ##__VA_ARGS__)
+
 #define space_vcat_impl(space, ...) space_vcat_impl_fl(__FILE__, __LINE__, space, ##__VA_ARGS__)
 
 #define space_sprintf(space, fmt, ...) space_printf(space, fmt, ##__VA_ARGS__)
@@ -2310,8 +2323,8 @@ static inline void *space__soa_alloc(Space *space, size_t size_in_bytes, size_t 
  * @param called_from_debuger Flag indicating if called from debugger (internal use).
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_alloc_planetid_impl(const char *file, const size_t line, Space *space, size_t size_in_bytes, size_t *planet_id, bool force_new_planet,
-                                         bool called_from_debuger) {
+SPACEDEF void *space_alloc_planetid_impl(const char *file, const size_t line, Space *space, size_t size_in_bytes,
+                                         size_t *planet_id, bool force_new_planet, bool called_from_debuger) {
     if (!space) {
         *planet_id = 0;
         return NULL;
@@ -2379,6 +2392,8 @@ layout_rerun:
     }
 #endif  // SPACE_DEBUGGER
     (void) called_from_debuger;
+    (void) file;
+    (void) line;
 
     return out_ptr;
 }
@@ -2397,7 +2412,8 @@ layout_rerun:
  * @param planet_id Pointer to store the ID of the newly created planet.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_malloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes, size_t *planet_id) {
+SPACEDEF void *space_malloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space,
+                                                         size_t size_in_bytes, size_t *planet_id) {
     return space_alloc_planetid_fl(file, line, space, size_in_bytes, planet_id, true);
 }
 
@@ -2416,7 +2432,8 @@ SPACEDEF void *space_malloc_planetid_force_new_planet_fl(const char *file, const
  * @return Pointer to the allocated zero-initialized memory, or NULL on
  * failure.
  */
-SPACEDEF void *space_calloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space, size_t nmemb, size_t size, size_t *planet_id) {
+SPACEDEF void *space_calloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space,
+                                                         size_t nmemb, size_t size, size_t *planet_id) {
     size_t size_in_bytes = nmemb * size;
     void *ptr = space_malloc_planetid_force_new_planet_fl(file, line, space, size_in_bytes, planet_id);
     if (ptr) {
@@ -2435,7 +2452,8 @@ SPACEDEF void *space_calloc_planetid_force_new_planet_fl(const char *file, const
  * @param planet_id Pointer to store the ID of the newly created planet.
  * @return Pointer to the reallocated memory, or NULL on failure.
  */
-SPACEDEF void *space_realloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size, size_t new_size, size_t *planet_id) {
+SPACEDEF void *space_realloc_planetid_force_new_planet_fl(const char *file, const size_t line, Space *space, void *ptr,
+                                                          size_t old_size, size_t new_size, size_t *planet_id) {
 
     char *new_ptr = space_malloc_planetid_force_new_planet_fl(file, line, space, new_size, planet_id);
     if (new_ptr) {
@@ -2471,7 +2489,8 @@ SPACEDEF void *space_realloc_planetid_force_new_planet_fl(const char *file, cons
  * allocated; this value is set to 0 on failure.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_malloc_planetid_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes, size_t *planet_id) {
+SPACEDEF void *space_malloc_planetid_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes,
+                                        size_t *planet_id) {
     return space_alloc_planetid_fl(file, line, space, size_in_bytes, planet_id, false);
 }
 
@@ -2494,7 +2513,8 @@ SPACEDEF void *space_malloc_planetid_fl(const char *file, const size_t line, Spa
  * @return Pointer to the allocated zero-initialized memory, or NULL on
  * failure.
  */
-SPACEDEF void *space_calloc_planetid_fl(const char *file, const size_t line, Space *space, size_t nmemb, size_t size, size_t *planet_id) {
+SPACEDEF void *space_calloc_planetid_fl(const char *file, const size_t line, Space *space, size_t nmemb, size_t size,
+                                        size_t *planet_id) {
     size_t size_in_bytes = nmemb * size;
     void *ptr = space_malloc_planetid_fl(file, line, space, size_in_bytes, planet_id);
     if (ptr) {
@@ -2522,7 +2542,8 @@ SPACEDEF void *space_calloc_planetid_fl(const char *file, const size_t line, Spa
  * allocated; this value is set to 0 on failure.
  * @return Pointer to the resized memory, or NULL on failure.
  */
-SPACEDEF void *space_realloc_planetid_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size, size_t new_size, size_t *planet_id) {
+SPACEDEF void *space_realloc_planetid_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size,
+                                         size_t new_size, size_t *planet_id) {
     if (old_size >= new_size) {
         Planet p = space_find_planet_from_ptr(space, ptr);
         if (p.id) {
@@ -2592,7 +2613,8 @@ SPACEDEF void *space_realloc_planetid_fl(const char *file, const size_t line, Sp
  * @param size_in_bytes The number of bytes to allocate.
  * @return Pointer to the allocated memory, or NULL on failure.
  */
-SPACEDEF void *space_malloc_force_new_planet_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes) {
+SPACEDEF void *space_malloc_force_new_planet_fl(const char *file, const size_t line, Space *space,
+                                                size_t size_in_bytes) {
     size_t id = 0;
     return space_malloc_planetid_force_new_planet_fl(file, line, space, size_in_bytes, &id);
 }
@@ -2613,7 +2635,8 @@ SPACEDEF void *space_malloc_force_new_planet_fl(const char *file, const size_t l
  * @return Pointer to the allocated zero-initialized memory, or NULL on
  * failure.
  */
-SPACEDEF void *space_calloc_force_new_planet_fl(const char *file, const size_t line, Space *space, size_t nmemb, size_t size) {
+SPACEDEF void *space_calloc_force_new_planet_fl(const char *file, const size_t line, Space *space, size_t nmemb,
+                                                size_t size) {
     size_t id = 0;
     return space_calloc_planetid_force_new_planet_fl(file, line, space, nmemb, size, &id);
 }
@@ -2634,7 +2657,8 @@ SPACEDEF void *space_calloc_force_new_planet_fl(const char *file, const size_t l
  * @param new_size The new desired size.
  * @return Pointer to the resized memory, or NULL on failure.
  */
-SPACEDEF void *space_realloc_force_new_planet_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size, size_t new_size) {
+SPACEDEF void *space_realloc_force_new_planet_fl(const char *file, const size_t line, Space *space, void *ptr,
+                                                 size_t old_size, size_t new_size) {
     size_t id = 0;
     return space_realloc_planetid_force_new_planet_fl(file, line, space, ptr, old_size, new_size, &id);
 }
@@ -2696,7 +2720,8 @@ SPACEDEF void *space_calloc_fl(const char *file, const size_t line, Space *space
  * @param new_size The new desired size.
  * @return Pointer to the resized memory, or NULL on failure.
  */
-SPACEDEF void *space_realloc_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size, size_t new_size) {
+SPACEDEF void *space_realloc_fl(const char *file, const size_t line, Space *space, void *ptr, size_t old_size,
+                                size_t new_size) {
     size_t id = 0;
     return space_realloc_planetid_fl(file, line, space, ptr, old_size, new_size, &id);
 }
@@ -2745,7 +2770,8 @@ SPACEDEF bool space_init_capacity_fl(const char *file, const size_t line, Space 
  * @param count The number of planets to create and initialize.
  * @return true if all planets were successfully initialized, false otherwise.
  */
-SPACEDEF bool space_init_capacity_in_count_plantes_fl(const char *file, const size_t line, Space *space, size_t size_in_bytes, size_t count) {
+SPACEDEF bool space_init_capacity_in_count_plantes_fl(const char *file, const size_t line, Space *space,
+                                                      size_t size_in_bytes, size_t count) {
     if (!space || count == 0 || size_in_bytes == 0) {
         return false;
     }
