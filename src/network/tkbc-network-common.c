@@ -75,14 +75,15 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float 
  *
  * @param reader The Message that is scoped to the payload of one received
  * message.
- * @param id -1 if the parsed kite values should be updated, if the values
+ * @param kite_id -1 if the parsed kite values should be updated, if the values
  * should not be updated pass the kite_id.
  * @param parsed_id The kite_id that is parsed out.
  * @return 1 if the kite values can be parsed out of the payload and is
  * updated, 2 every thing like 1 but the assigned texture is KITE_COLORIZER
  * because the parsed texture was not available, if the kite values are parsed
- * not updated -1 is returned and 0 is returned if the parsing has failed and no
- * updates were made.
+ * not updated -3 is returned,-2 is returned if a new kite is created with it's texture set to KITE_COLORIZER, -1 is
+ * returned when a new kite is created out of the parsed_id with it's texture set to KITE_COLORIZER and 0 is returned if
+ * the parsing has failed and no updates were made.
  */
 int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parsed_id) {
     int ok = 1;
@@ -106,7 +107,7 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
 
     if (kite_id >= 0) {
         if ((size_t) kite_id == *parsed_id) {
-            check_return(-1);
+            check_return(-3);
         }
     }
 
@@ -125,15 +126,25 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
     }
 
     Kite_State *state = tkbc_get_kite_state_by_id(env, *parsed_id);
-    // NOTE: This ignores unknown kites and just sets the values for valid ones.
-    // Unknown kites are not a parsing error so true is returned.
-    // TODO: But for the client not the server the kite missing kite should be
-    // handled because the server expects the client to have it so the client
-    // lost it or hasn't registered one jet.
-    //
-    // // TODO: So for the client register the kite like single kite add kite.
     if (state) {
         tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id, is_reversed, is_active, is_script_kite);
+    } else {
+        // In the client the missing kite should be handled because the server expects the client to have it so the
+        // client lost it or hasn't registered one jet.
+        // So for the client a new kite is registered.
+
+        // This should never happen and is just for safety outer calling code relays on that handling.
+        Kite_State state = tkbc_init_kite();
+        tkbc_assign_values_to_kitestate(&state, x, y, angle, color, texture_id, is_reversed, is_active, is_script_kite);
+
+        if (kite_id == -1) {
+            state.kite_id = env->kite_id_counter++;
+            ok = -2;
+        } else {
+            state.kite_id = *parsed_id;
+            ok = -1;
+        }
+        tkbc_dap(&env->kite_array, state);
     }
 
 check:

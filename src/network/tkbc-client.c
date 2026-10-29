@@ -537,9 +537,6 @@ bool received_message_handler(Message *message) {
                 goto err;
             }
 
-            // TODO: This is still a todo in the method when removed remove this.
-            // Marvin Frohwitter 16.03.2026
-            //
             // If the kite is invalid it is handled and registered inside the
             // tkbc_parse_single_kite_value()
             Kite *kite = tkbc_get_kite_by_id(env, parsed_id);
