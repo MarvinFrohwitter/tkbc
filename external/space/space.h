@@ -2371,14 +2371,15 @@ layout_rerun:
 
                 size_t id;
                 debug_array->elements =
-                    space_alloc_planetid_impl(__FILE__, __LINE__, debug_space, debug_array->capacity, &id, false, true);
+                    space_alloc_planetid_impl(__FILE__, __LINE__, debug_space,
+                                              debug_array->capacity * sizeof(*debug_array->elements), &id, false, true);
                 if (debug_array->elements == NULL) {
                     fprintf(stderr, "The allocation for the dynamic array has failed in: %s: %d\n", __FILE__, __LINE__);
                     abort();
                 }
 
                 if (old_capacity) {
-                    memcpy(debug_array->elements, old_ptr, old_capacity);
+                    memcpy(debug_array->elements, old_ptr, old_capacity * sizeof(*debug_array->elements));
                 }
             }
             static size_t debug_id_counter = 0;
