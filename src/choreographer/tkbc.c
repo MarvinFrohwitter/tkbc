@@ -31,7 +31,7 @@ int tkbc_tcc_bt_func(void *udata, void *pc, const char *file, int line, const ch
     (void) udata;
     (void) pc;
     (void) func;
-    tkbc_fprintf(stderr, "TCC", "msg%s\n", file, line, msg);
+    tkbc_fprintf(stderr, "TCC", "%s:%d: %s\n", file, line, msg);
     return 0;
 }
 
@@ -478,10 +478,6 @@ void tkbc_file_handler(Env *env) {
                                  __LINE__);
                 }
 
-                tcc_define_symbol(tcc, "SPACEDECL=", NULL);
-                tcc_define_symbol(tcc, "SPACEDEF=inline", NULL);
-                // tcc_define_symbol(tcc, "SPACE_IMPLEMENTATION", NULL);
-
                 ok = tcc_add_library(tcc, "m");
                 if (ok == -1) {
                     tkbc_fprintf(stderr, "ERROR", "Could not add math lib: %s: %d\n", __FILE__, __LINE__);
@@ -492,9 +488,10 @@ void tkbc_file_handler(Env *env) {
                     tkbc_dapc(&content, global_api_header_string, strlen(global_api_header_string));
                     tkbc_dap(&content, '\n');
                 }
-                if (!tkbc_read_entire_file(file_path, &content)) {
+                if (tkbc_read_entire_file(file_path, &content) < 0) {
                     tkbc_fprintf(stderr, "ERROR", "Could not read: %s\n", file_path);
                 } else {
+                    tkbc_dap(&content, '\0');
                     ok = tcc_compile_string(tcc, content.elements);
 
                     if (ok == -1) {

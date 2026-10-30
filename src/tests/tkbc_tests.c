@@ -11,6 +11,7 @@
 #include "tkbc_test_script_handler.c"
 #include "tkbc_test_script_api.c"
 #include "tkbc_test_parser.c"
+#include "tkbc_test_utils.c"
 
 #define eps 0.01
 #define CASSERT_IMPLEMENTATION
@@ -23,6 +24,7 @@ Env *env = {0};
 int main(void) {
     append_assets();
     cassert_tests {
+        tkbc_test_utils(&tests);
         tkbc_test_geometrics(&tests);
         tkbc_test_kite_array(&tests);
         tkbc_test_script_handler(&tests);

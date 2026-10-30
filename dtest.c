@@ -1,5 +1,3 @@
-#include "../src/choreographer/tkbc-script-api.h"
-
 tkbc_script_input {
     Kite kite = *env->vanilla_kite;
 

@@ -8,8 +8,14 @@
 
 char *compiler = "gcc";
 
+struct {
+    const char **elements;
+    size_t count;
+    size_t capacity;
+} compiler_defines;
+
 void usage(const char *program_name) {
-    printf("Usage: %s [-cc <compiler>] <out_filepath> <filepath ...>\n", program_name);
+    printf("Usage: %s [-cc <compiler>] [-D<macro>[=<value>] ...] -o <out_filepath> <filepath ...>\n", program_name);
 }
 
 bool append_file_contente(const char *filepath, Content *out_content) {
@@ -18,8 +24,11 @@ bool append_file_contente(const char *filepath, Content *out_content) {
 
     Cmd cmd = {0};
     const char *temp_path = "___temp_file_string.h";
-    cb_cmd_push(&cmd, compiler, "-E", "-fdirectives-only", "-std=c11", "-I./external/raylib-6.0_linux_amd64/include/",
-                filepath, "-o", temp_path);
+    cb_cmd_push(&cmd, compiler, "-E", "-fdirectives-only", "-std=c11", "-I./external/raylib-6.0_linux_amd64/include/");
+    for (size_t i = 0; i < compiler_defines.count; ++i) {
+        cb_cmd_push(&cmd, compiler_defines.elements[i]);
+    }
+    cb_cmd_push(&cmd, filepath, "-o", temp_path);
     if (!cb_run_sync(&cmd)) {
         check_return(false);
     }
@@ -63,19 +72,48 @@ check:
 
 int main(int argc, char *argv[]) {
     const char *program_name = shift(argv, argc);
-    if (argc < 2) {
+    if (argc == 0) {
         printf("Error: no arguments are provided.\n");
         usage(program_name);
         return 1;
     }
 
     char *out_filepath = NULL;
-    char *next_arg = shift(argv, argc);
-    if (strcmp(next_arg, "-cc") == 0) {
-        compiler = shift(argv, argc);
-        out_filepath = shift(argv, argc);
-    } else {
-        out_filepath = next_arg;
+    while (argc > 0) {
+        char *arg = *argv;
+        if (strcmp(arg, "-cc") == 0) {
+            if (argc < 2) {
+                printf("Error: -cc requires a compiler.\n");
+                usage(program_name);
+                return 1;
+            }
+            shift(argv, argc);
+            compiler = shift(argv, argc);
+        } else if (strcmp(arg, "-o") == 0) {
+            if (argc < 2) {
+                printf("Error: -o requires an output filepath.\n");
+                usage(program_name);
+                return 1;
+            }
+            shift(argv, argc);
+            out_filepath = shift(argv, argc);
+        } else if (strncmp(arg, "-D", 2) == 0) {
+            tkbc_dap(&compiler_defines, shift(argv, argc));
+        } else {
+            break;
+        }
+    }
+
+    if (out_filepath == NULL) {
+        printf("Error: no output filepath is provided (use -o <filepath>).\n");
+        usage(program_name);
+        return 1;
+    }
+
+    if (argc == 0) {
+        printf("Error: no input filepath is provided.\n");
+        usage(program_name);
+        return 1;
     }
 
     Content out_content = {0};

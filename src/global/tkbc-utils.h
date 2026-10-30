@@ -458,21 +458,39 @@ long tkbc_read_entire_file(const char *filename, Content *content) {
         goto error;
     }
 
-    if (content->count + size > content->capacity) {
-        long size_pow2 = tkbc_next_pow2(size);
-        content->elements = realloc(content->elements, sizeof(*content->elements) * size_pow2);
-        if (content->elements == NULL) {
+    if ((size_t) size >= SIZE_MAX - content->count) {
+        tkbc_fprintf(stderr, "ERROR", "%s:%d:file %s is too large to read into memory\n", __FILE__, __LINE__, filename);
+        ok = -1;
+        goto error;
+    }
+
+    size_t required = content->count + size + 1;
+
+    if (required > content->capacity) {
+        size_t required_pow2 = tkbc_next_pow2(required);
+
+        if (required_pow2 < required) {
+            tkbc_fprintf(stderr, "ERROR", "%s:%d:allocation size overflow for file %s\n", __FILE__, __LINE__, filename);
+            ok = -1;
+            goto error;
+        }
+
+        char *new_elements = realloc(content->elements, sizeof(*content->elements) * required_pow2);
+        if (new_elements == NULL) {
             tkbc_fprintf(stderr, "ERROR", "%s:%d:allocation has failed for file %s\n", __FILE__, __LINE__, filename);
             ok = -1;
             goto error;
         }
-        content->capacity = size_pow2;
+
+        content->elements = new_elements;
+        content->capacity = required_pow2;
     }
 
     size_t read_count = fread(content->elements + content->count, sizeof(*content->elements), size, file);
     if ((long) read_count != size) {
         if (feof(file) != 0) {
             content->count += read_count;
+            content->elements[content->count] = '\0';
             ok = read_count;
             goto error;
         }
@@ -484,6 +502,7 @@ long tkbc_read_entire_file(const char *filename, Content *content) {
         }
     }
     content->count += read_count;
+    content->elements[content->count] = '\0';
     ok = read_count;
 
 error:

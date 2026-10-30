@@ -447,8 +447,14 @@ void script_api_string(Cmd *cmd) {
 
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
 
-    cb_cmd_push(cmd, "./" BUILD_PATH "create_file_string_from_file", "-cc", CC,
-                CHOREOGRAPHER_PATH "tkbc-script-api-header-string.h", CHOREOGRAPHER_PATH "tkbc-script-api.h");
+    cb_cmd_push(cmd, "./" BUILD_PATH "create_file_string_from_file", "-cc", CC);
+    // The generated header is compiled by the client via libtcc, so it has to
+    // use the same layout-affecting defines as the client build. Otherwise the
+    // Space/Env layout in dropped scripts differs from the host layout.
+    define(cmd, .include_raylib = true, .space_decl = true, .space_def = true, .space_memory_layout_method_da = true);
+    define(cmd, .space_debugger = true);
+    cb_cmd_push(cmd, "-o", CHOREOGRAPHER_PATH "tkbc-script-api-header-string.h",
+                CHOREOGRAPHER_PATH "tkbc-script-api.h");
 
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
 }
@@ -736,6 +742,7 @@ int main(int argc, char *argv[]) {
         flag_first_o(flag, &argv, &argc);
     } else if (str_compare(FLAG_TEST, flag)) {
         make_build_dir(&cmd);
+        script_api_string(&cmd);
         void flag_test(char *flag, char ***argv, int *argc);
         flag_test(flag, &argv, &argc);
     } else if (str_compare(FLAG_ASSETS, flag)) {
@@ -748,10 +755,12 @@ int main(int argc, char *argv[]) {
         flag_script_api_string(flag, &argv, &argc);
     } else if (str_compare(FLAG_TKBC, flag)) {
         make_build_dir(&cmd);
+        script_api_string(&cmd);
         void flag_tkbc(char *flag, char ***argv, int *argc);
         flag_tkbc(flag, &argv, &argc);
     } else if (str_compare(FLAG_CLIENT, flag)) {
         make_build_dir(&cmd);
+        script_api_string(&cmd);
         void flag_client(char *flag, char ***argv, int *argc);
         flag_client(flag, &argv, &argc);
     } else if (str_compare(FLAG_SERVER, flag)) {

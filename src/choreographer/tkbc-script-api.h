@@ -8,6 +8,9 @@
 #include "../global/tkbc-types.h"
 
 #define LIST_OF_API                                                                                                    \
+                                                                                                                       \
+    X(void *, space_vstrcat_impl_fl, const char *file, const size_t line, Space *space, const char *first, ...)        \
+                                                                                                                       \
     X(void, tkbc__script_begin, Env *env)                                                                              \
     X(void, tkbc__script_end, Env *env)                                                                                \
     X(void, tkbc_set_script_name, Script *script, char *name)                                                          \
