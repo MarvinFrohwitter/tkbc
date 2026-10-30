@@ -613,29 +613,6 @@ bool received_message_handler(Message *message) {
 
                 space_reset_tspace();
 
-                // TODO: FIXME The complete comment is bullshit
-                //
-                // Marvin Frohwitter 09.04.2026
-                //
-                // TODO: The received kites are all assumed active.
-                // The problem is that the client can't distinguish between
-                // script_kites and actual client_kites these are the same because
-                // the server sends all active ones. For the start the scripts kites
-                // has to be send to the client, so the client assumes them active
-                // even they are not.
-                //
-                // The solution send them through a different message or the better
-                // one just send the current active state_with them.
-                //
-                // NOTE: That is the reason why all kites are displayed in the
-                // beginning for the second client and on. The fist one is excluided
-                // because there is an algo that checks for already known kite ids.
-                // The fist client gives the initial kite ids and the more important
-                // part didn't received a client_kites_message without already
-                // having them placed.
-                //
-                // TODO: FIXME
-
                 Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
                 if (state == NULL) {
                     // If the kite_id is not registered.
