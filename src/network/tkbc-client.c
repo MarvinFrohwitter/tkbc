@@ -1,6 +1,3 @@
-// If a script is loaded and a kite is activeed by more than one client there exists positioning fights.
-// The kite than should not be updated from the server to the sender. So send client_kites_message_execpt.
-
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE

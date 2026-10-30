@@ -52,6 +52,26 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float 
     assert(!tkbc_uuid_is_nil(texture_id));
 
     assert(state);
+
+    // A locally controlled kite is authoritative for its position and angle.
+    // Otherwise the state echoed back by the server (a SINGLE_KITE_UPDATE of
+    // another controlling client or the per-tick CLIENTKITES snapshot) would
+    // fight with the local input handling. A remote deactivation is still
+    // applied, which also releases the local control below.
+    //
+    // This resolves all kinds of position fighting but when more that one client has
+    // is_kite_input_handler_active controlling the others can't see the update.
+    //
+    // TODO: Maybe introduce Gost-Kites for that situation so every client can see every adjustment.
+    //
+    // Marvin Frohwitter 30.10.2026
+    //
+    if (state->is_kite_input_handler_active && is_active) {
+        x = state->kite->center.x;
+        y = state->kite->center.y;
+        angle = state->kite->angle;
+    }
+
     state->kite->center.x = x;
     state->kite->center.y = y;
     state->kite->angle = angle;
