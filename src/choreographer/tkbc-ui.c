@@ -18,7 +18,7 @@
 #include "tkbc-asset-handler.h"
 
 extern Assets assets;
-extern bool sending_receiving;
+extern bool offline_mode;
 
 /**
  * @brief This function draws a grid of lines in the background so that when flying a kite you can orient yourself on
@@ -1155,9 +1155,7 @@ bool tkbc_ui_script_menu(Env *env) {
             // TODO: Display an icon on the left of the selection that does not reset
             // it if clicked.
 
-            bool offline = !sending_receiving;
-            if (offline) {
-
+            if (offline_mode) {
                 if (double_click_confirm) {
                     tkbc_load_script_id(env, env->scripts.elements[env->script_menu_mouse_interaction_box].id, false);
                 } else {

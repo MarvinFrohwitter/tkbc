@@ -74,7 +74,7 @@ Kite client_kite;
 static Popup connection = {0};
 static Popup loading = {0};
 static Popup disconnect = {0};
-bool sending_receiving = true;
+bool offline_mode = false;
 
 static Space connection_input_space = {0};
 static Text_Input connection_host_input = {
@@ -878,10 +878,7 @@ void tkbc_client_file_handler(void) {
     size_t prev_kite_array_count = env->kite_array.count;
 
     tkbc_file_handler(env);
-    if (client.socket_id == -1) {
-        // TODO: Find a cleaner alternative // Find other places where that happens.
-        //  It is a little bit of a hack.
-        // This allows for offline mode.
+    if (offline_mode) {
         return;
     }
     if (env->scripts.count > 0) {
@@ -912,7 +909,7 @@ void tkbc_client_send_pending_script_deletes(void) {
     if (env->pending_script_deletes.count == 0) {
         return;
     }
-    if (client.socket_id == -1) {
+    if (offline_mode) {
         // Offline: nobody to inform, the local deletion already happened.
         env->pending_script_deletes.count = 0;
         return;
@@ -1144,7 +1141,7 @@ int main(int argc, char *argv[]) {
         tkbc_input_sound_handler(env);
         tkbc_client_input_handler_kite();
 
-        if (client.socket_id == -1) {
+        if (offline_mode) {
             // tkbc_input_handler_kite_array(env);
             tkbc_input_handler_script(env);
 
@@ -1225,12 +1222,12 @@ static void offline_creation(Env *env) {
     s.is_kite_input_handler_active = true;
     client_kite = *s.kite;
     tkbc_dap(&env->kite_array, s);
-    sending_receiving = false;
+    offline_mode = true;
     loading.active = false;
 }
 
 bool tkbc_run(Env *env) {
-    if (sending_receiving) {
+    if (!offline_mode) {
         bool eof;
         if (!message_queue_handler(&eof)) {
             if (client.kite_id == -1 && eof) {
@@ -1248,7 +1245,7 @@ bool tkbc_run(Env *env) {
                 client.socket_id = -1;
             }
         }
-        sending_receiving = send_message_send_handler();
+        offline_mode = !send_message_send_handler();
     }
 
     if (tkbc_check_popup_interaction(&loading)) {
@@ -1268,7 +1265,7 @@ bool tkbc_run(Env *env) {
         tkbc_draw_popup(&loading);
     } else {
 
-        if (sending_receiving) {
+        if (!offline_mode) {
             sending_script_handler();
         } else {
             // Offline Mode.
@@ -1310,7 +1307,7 @@ bool tkbc_run(Env *env) {
     }
 
     if (disconnect.active) {
-        sending_receiving = false;
+        offline_mode = true;
         // Clearing for offline continuation.
         client.send_msg_buffer.count = 0;
         tkbc_popup_resize(&disconnect);
@@ -1323,6 +1320,10 @@ void tkbc_init_online_or_offline_state(Env *env, const char *host, const char *p
     // This is deferred to allow window creation, asset loading and env init.
     client.socket_id = tkbc_client_socket_creation(host, port);
     if (client.socket_id == -1) {
+        offline_mode = true;
+    }
+
+    if (offline_mode) {
         offline_creation(env);
     } else {
         loading.active = true;
