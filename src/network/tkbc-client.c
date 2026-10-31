@@ -1,5 +1,7 @@
-// If a script is loaded while having a connection with the server and then the server disconnects the original kites and the new ones are part of the script when it gets loaded.
-// Open a server with a client drag and drop a .kite file then disconnected the server and execute the drag and dropped script offline. More than the needed kites are displayed that has todo with remapping the script kite ids.
+// If a script is loaded while having a connection with the server and then the server disconnects the original kites
+// and the new ones are part of the script when it gets loaded. Open a server with a client drag and drop a .kite file
+// then disconnected the server and execute the drag and dropped script offline. More than the needed kites are
+// displayed that has todo with remapping the script kite ids.
 
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
@@ -1215,6 +1217,12 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+/**
+ * @brief Creates the local kite and state needed to run without a server
+ * connection.
+ *
+ * @param env The global state of the application.
+ */
 static void offline_creation(Env *env) {
     // Generate a base kite that you can fly. The server doesn't provide you a
     // kite.
@@ -1229,6 +1237,14 @@ static void offline_creation(Env *env) {
     loading.active = false;
 }
 
+/**
+ * @brief Runs one frame of the client by handling network messages, popups,
+ * script playback and rendering. It represents the old pure offline application
+ * that had no networking interface.
+ *
+ * @param env The global state of the application.
+ * @return False when the application should close, otherwise true.
+ */
 bool tkbc_run(Env *env) {
     if (!offline_mode) {
         bool eof;
@@ -1319,6 +1335,14 @@ bool tkbc_run(Env *env) {
     return true;
 }
 
+/**
+ * @brief Initializes the client either in online mode with a server connection
+ * or in offline mode.
+ *
+ * @param env The global state of the application.
+ * @param host The server host to connect to.
+ * @param port The server port to connect to.
+ */
 void tkbc_init_online_or_offline_state(Env *env, const char *host, const char *port) {
     // This is deferred to allow window creation, asset loading and env init.
     client.socket_id = tkbc_client_socket_creation(host, port);
@@ -1335,6 +1359,15 @@ void tkbc_init_online_or_offline_state(Env *env, const char *host, const char *p
     }
 }
 
+/**
+ * @brief Draws and handles the host and port text inputs of the connection
+ * popup.
+ *
+ * @param env The global state of the application.
+ * @param popup The connection popup that provides the layout and font.
+ * @param host_default The initial host text.
+ * @param port_default The initial port text.
+ */
 void tkbc_connection_input(Env *env, Popup *popup, const char *host_default, const char *port_default) {
     const int fields_count = 2;
 

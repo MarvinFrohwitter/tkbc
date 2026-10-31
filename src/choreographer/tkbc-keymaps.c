@@ -557,11 +557,29 @@ bool tkbc_is_word_boundary(char c) {
     return isspace(c) || ispunct(c);
 }
 
+/**
+ * @brief Returns the smallest of three integer values.
+ *
+ * @param a The first value.
+ * @param b The second value.
+ * @param c The third value.
+ * @return The smallest of the three values.
+ */
 static int tkbc_min3(int a, int b, int c) {
     int m = a < b ? a : b;
     return m < c ? m : c;
 }
 
+/**
+ * @brief Computes the Levenshtein edit distance between two strings.
+ *
+ * @param s1 The first string.
+ * @param s2 The second string.
+ * @param case_insensitive Whether characters are compared case-insensitively.
+ * @param space The allocator used for the temporary distance rows.
+ * @return The edit distance, or -1 on allocation failure or when both strings
+ * are NULL.
+ */
 int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive, Space *space) {
     if (!s1) {
         return s2 ? (int) strlen(s2) : -1;
@@ -604,6 +622,17 @@ int tkbc_levenshtein(const char *s1, const char *s2, bool case_insensitive, Spac
     return dist;
 }
 
+/**
+ * @brief Computes the smallest Levenshtein distance between the needle and any
+ * word of the given text.
+ *
+ * @param str The text that gets split into words at word boundaries.
+ * @param needle The search term.
+ * @param case_insensitive Whether characters are compared case-insensitively.
+ * @param space The allocator used for the temporary word buffer.
+ * @return The smallest distance found, or -1 on allocation failure or when
+ * both inputs are NULL.
+ */
 int tkbc_search_subwords_int_text(const char *str, const char *needle, bool case_insensitive, Space *space) {
     if (!str) {
         return needle ? (int) strlen(needle) : -1;
@@ -648,6 +677,16 @@ int tkbc_search_subwords_int_text(const char *str, const char *needle, bool case
     return result;
 }
 
+/**
+ * @brief Computes how well a keymap matches the given search needle by taking
+ * the smallest distance over its description, key and modifier strings.
+ *
+ * @param km The keymap that gets checked.
+ * @param needle The search term.
+ * @param case_insensitive Whether characters are compared case-insensitively.
+ * @param space The allocator used for temporary search data.
+ * @return The smallest distance found, or -1 on allocation failure.
+ */
 int tkbc_search_in_keymap(Key_Map *km, const char *needle, bool case_insensitive, Space *space) {
     int result = INT_MAX;
     int distance = INT_MAX;
@@ -667,12 +706,29 @@ int tkbc_search_in_keymap(Key_Map *km, const char *needle, bool case_insensitive
     return result;
 }
 
+/**
+ * @brief qsort comparator that orders keymaps by ascending search distance.
+ *
+ * @param a Pointer to the first keymap.
+ * @param b Pointer to the second keymap.
+ * @return A negative value, zero or a positive value when the first keymap is
+ * closer, equally close or farther away than the second one.
+ */
 static int sort_keymaps_by_search_distance(const void *a, const void *b) {
     const Key_Map *aa = a;
     const Key_Map *bb = b;
     return aa->search_distance - bb->search_distance;
 }
 
+/**
+ * @brief Computes the search distance of every keymap, marks far matches as
+ * excluded and sorts the collection by distance.
+ *
+ * @param keymaps The keymap collection that gets updated and sorted.
+ * @param needle The search term.
+ * @param case_insensitive Whether characters are compared case-insensitively.
+ * @param space The allocator used for temporary search data.
+ */
 void tkbc_search_in_keymaps(Key_Maps *keymaps, const char *needle, bool case_insensitive, Space *space) {
     const int max_difference = 2;
     for (size_t i = 0; i < keymaps->count; ++i) {

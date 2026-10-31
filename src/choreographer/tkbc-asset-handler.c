@@ -455,11 +455,13 @@ bool tkbc_image_already_exitst_in_assets(Image image, UUID *id) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief Checks whether the given uuid belongs to one of the baked in default
+ * kite designs.
  *
- * @param assets [TODO:parameter]
- * @param uuid [TODO:parameter]
- * @return [TODO:return]
+ * @param assets The assets collection holding the default asset sequence
+ * counter.
+ * @param uuid The uuid to check.
+ * @return True if the uuid is a default kite design, otherwise false.
  */
 bool tkbc_is_default_kite_design(Assets *assets, UUID uuid) {
     for (size_t i = 1; i <= assets->default_assets_seq; ++i) {

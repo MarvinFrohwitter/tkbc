@@ -910,6 +910,14 @@ void tkbc_message_clientkites_write_to_all_send_msg_buffers(bool overwrite_is_ac
     tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 }
 
+/**
+ * @brief Writes a script meta data message into the given message buffer.
+ *
+ * @param message The message buffer that receives the message.
+ * @param script_id The id of the script.
+ * @param script_count The number of scripts known to the server.
+ * @param frames_index The index of the frames block described by the message.
+ */
 void tkbc_message_script_meta_data(Message *message, UUID script_id, size_t script_count, size_t frames_index) {
     size_t off = tkbc_message_write_begin(message, space_get_tspace(), MESSAGE_SCRIPT_META_DATA);
     tkbc_message_write_uuid(message, space_get_tspace(), script_id);
@@ -918,6 +926,13 @@ void tkbc_message_script_meta_data(Message *message, UUID script_id, size_t scri
     tkbc_message_write_end(message, off);
 }
 
+/**
+ * @brief Sends script meta data to all connected clients.
+ *
+ * @param script_id The id of the script.
+ * @param script_count The number of scripts known to the server.
+ * @param frames_index The index of the frames block described by the message.
+ */
 void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(UUID script_id, size_t script_count,
                                                                  size_t frames_index) {
     tkbc_message_script_meta_data(&t_message, script_id, script_count, frames_index);
@@ -925,6 +940,14 @@ void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(UUID script_id,
     tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
 }
 
+/**
+ * @brief Sends script meta data to a single client.
+ *
+ * @param client The client that receives the message.
+ * @param script_id The id of the script.
+ * @param script_count The number of scripts known to the server.
+ * @param frames_index The index of the frames block described by the message.
+ */
 void tkbc_message_script_meta_data_write_to_send_msg_buffer(Client *client, UUID script_id, size_t script_count,
                                                             size_t frames_index) {
     tkbc_message_script_meta_data(&t_message, script_id, script_count, frames_index);

@@ -26,6 +26,18 @@
 extern Assets assets;
 
 /* custom error printer for runtime exceptions. Returning 0 stops backtrace */
+
+/**
+ * @brief Callback used by TinyCC to report an error with its source location.
+ *
+ * @param udata Unused user data.
+ * @param pc Unused program counter.
+ * @param file The source file in which the error occurred.
+ * @param line The source line in which the error occurred.
+ * @param func Unused function name.
+ * @param msg The error message.
+ * @return Always 0 so that only one iteration of the backtrace is reported.
+ */
 int tkbc_tcc_bt_func(void *udata, void *pc, const char *file, int line, const char *func, const char *msg) {
 
     (void) udata;
@@ -35,6 +47,12 @@ int tkbc_tcc_bt_func(void *udata, void *pc, const char *file, int line, const ch
     return 0;
 }
 
+/**
+ * @brief Callback used by TinyCC to report a plain error message.
+ *
+ * @param opaque Unused user data.
+ * @param msg The error message.
+ */
 void tkbc_error_func(void *opaque, const char *msg) {
     (void) opaque;
     tkbc_fprintf(stderr, "TCC", "%s\n", msg);
@@ -1003,9 +1021,10 @@ KeyboardKey tkbc_is_hex_color_key_down() {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief Returns the currently pressed key if it is valid for a port number.
  *
- * @return [TODO:return]
+ * @return The pressed digit or period key, or KEY_NULL if none of them was
+ * pressed.
  */
 KeyboardKey tkbc_is_port_number_key_down() {
     static KeyboardKey keys[] = {
@@ -1023,9 +1042,10 @@ KeyboardKey tkbc_is_port_number_key_down() {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief Returns the currently pressed key if it is valid for a domain name.
  *
- * @return [TODO:return]
+ * @return The pressed digit, letter, period or minus key, or KEY_NULL if none
+ * of them was pressed.
  */
 KeyboardKey tkbc_is_domain_name_key_down() {
     static KeyboardKey keys[] = {
@@ -1046,6 +1066,12 @@ KeyboardKey tkbc_is_domain_name_key_down() {
     return KEY_NULL;
 }
 
+/**
+ * @brief Returns the currently pressed printable ASCII key.
+ *
+ * @return The pressed key in the range from space to tilde, or KEY_NULL if
+ * none of them was pressed.
+ */
 KeyboardKey tkbc_is_any_ascii_key_down() {
     for (int key = ' '; key < 127; ++key) {
         if (IsKeyPressedRepeat(key) || IsKeyPressed(key)) {
@@ -1055,6 +1081,15 @@ KeyboardKey tkbc_is_any_ascii_key_down() {
     return KEY_NULL;
 }
 
+/**
+ * @brief Callback that activates script name editing when the input box is
+ * right-clicked.
+ *
+ * @param input The text input that gets activated.
+ * @param data Unused callback data.
+ * @return True if the right mouse button was pressed inside the input box,
+ * otherwise false.
+ */
 bool tkbc_activate_script_text_input(Text_Input *input, void *data) {
     (void) data;
     // Script names are only editable via right-click. Left-click just

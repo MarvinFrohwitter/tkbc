@@ -816,12 +816,26 @@ void tkbc_remap_frames_kite_ids(Frames *frames, Kite_Ids current_kite_ids, Kite_
     }
 }
 
+/**
+ * @brief Collects all unique kite ids that are used by the given script.
+ *
+ * @param space The allocator used to grow the id collection.
+ * @param script The script that gets inspected.
+ * @param current_kite_ids The collection that receives the ids.
+ */
 void tkbc_collect_script_kite_ids(Space *space, const Script *script, Kite_Ids *current_kite_ids) {
     for (size_t i = 0; i < script->count; ++i) {
         tkbc_collect_frames_kite_ids(space, &script->elements[i], current_kite_ids);
     }
 }
 
+/**
+ * @brief Collects all unique kite ids that are used by a single frames collection.
+ *
+ * @param space The allocator used to grow the id collection.
+ * @param frames The frames block that gets inspected.
+ * @param current_kite_ids The collection that receives the ids.
+ */
 void tkbc_collect_frames_kite_ids(Space *space, const Frames *frames, Kite_Ids *current_kite_ids) {
     // If the positions are available than it is faster to iterate the than looking into every frame individually. An
     // every kite id is part of the kite_frame_positions  if their are available.
@@ -848,6 +862,14 @@ void tkbc_collect_frames_kite_ids(Space *space, const Frames *frames, Kite_Ids *
     }
 }
 
+/**
+ * @brief Rewrites the kite ids in a script and its original blocks from the
+ * current ids to the given replacement ids.
+ *
+ * @param script The script that gets remapped.
+ * @param current_kite_ids The ids that currently appear in the script.
+ * @param kite_ids The replacement ids in the same order as current_kite_ids.
+ */
 void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script, Kite_Ids current_kite_ids, Kite_Ids kite_ids) {
     assert(script);
     assert(script->count > 0);
@@ -1298,6 +1320,13 @@ size_t tkbc_upscale_step_count(float duration, float fps) {
     return n;
 }
 
+/**
+ * @brief Finds an upscale kite by its id.
+ *
+ * @param upscale_kites The upscale kite collection to search.
+ * @param id The id of the kite to find.
+ * @return A pointer to the upscale kite, or NULL if it was not found.
+ */
 static Upscale_Kite *upscale_find_kite(const Upscale_Kites *upscale_kites, Id id) {
     for (size_t i = 0; i < upscale_kites->count; ++i) {
         if (upscale_kites->elements[i].id == id) {
@@ -1307,6 +1336,15 @@ static Upscale_Kite *upscale_find_kite(const Upscale_Kites *upscale_kites, Id id
     return NULL;
 }
 
+/**
+ * @brief Checks whether a frames block contains an absolute or relative move
+ * for the given kite.
+ *
+ * @param frames The frames block to inspect.
+ * @param id The id of the kite to look for.
+ * @return True if the block contains a MOVE or MOVE_ADD frame for the kite,
+ * otherwise false.
+ */
 static bool upscale_block_has_move(const Frames *frames, Id id) {
     for (size_t i = 0; i < frames->count; ++i) {
         const Frame *f = &frames->elements[i];
@@ -1470,6 +1508,17 @@ static float upscale_absolute_travel(float start_angle, float target_angle) {
     return dir * 360.0f;
 }
 
+/**
+ * @brief Adds a kite to the upscale list using its current or stored block
+ * start position.
+ *
+ * @param env The global state of the application.
+ * @param space The allocator used to grow the upscale kite collection.
+ * @param upscale_kites The upscale kite collection that receives the kite.
+ * @param id The id of the kite to add.
+ * @param frames The frames block whose stored start position is used when
+ * available.
+ */
 static void add_upscale_kite_with_current_frame_position(Env *env, Space *space, Upscale_Kites *upscale_kites, Id id,
                                                          const Frames *frames) {
     if (upscale_find_kite(upscale_kites, id)) {
@@ -1555,6 +1604,16 @@ static void upscale_apply_frames_action_instant(Upscale_Kites *upscale_kites, co
     }
 }
 
+/**
+ * @brief Appends a frame for a single kite to a frames block.
+ *
+ * @param space The allocator used to grow the frames block.
+ * @param frames The target frames block.
+ * @param kind The kind of the action.
+ * @param action The action data of the frame.
+ * @param duration The duration of the frame in seconds.
+ * @param kite_id The id of the kite affected by the frame.
+ */
 static void tkbc_push_one_id_frame(Space *space, Frames *frames, Action_Kind kind, Action action, float duration,
                                    Id kite_id) {
     Frame f = {0};
@@ -1572,6 +1631,16 @@ static void tkbc_push_one_id_frame(Space *space, Frames *frames, Action_Kind kin
     space_dap(space, frames, f);
 }
 
+/**
+ * @brief Appends a frame for multiple kites to a frames block.
+ *
+ * @param space The allocator used to grow the frames block.
+ * @param frames The target frames block.
+ * @param kind The kind of the action.
+ * @param action The action data of the frame.
+ * @param duration The duration of the frame in seconds.
+ * @param kite_ids The ids of the kites affected by the frame.
+ */
 static void tkbc_push_frame(Space *space, Frames *frames, Action_Kind kind, Action action, float duration,
                             Kite_Ids kite_ids) {
     Frame f = {0};

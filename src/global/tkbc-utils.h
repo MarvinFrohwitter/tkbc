@@ -1024,6 +1024,17 @@ Vector2 tkbc_reduce_str_to_fit_box(Font font, const char *str, int *font_size, f
     return text_size;
 }
 
+/**
+ * @brief Measures the size of a text with an explicit byte length using the
+ * glyph metrics of the given font.
+ *
+ * @param font The font that provides the glyph metrics.
+ * @param text The text that gets measured.
+ * @param size The number of bytes of text that get measured.
+ * @param fontSize The font size the text is displayed at.
+ * @param spacing The space between the characters.
+ * @return The width and height of the measured text.
+ */
 Vector2 tkbc_measure_text_sized_ex(Font font, const char *text, int size, float fontSize, float spacing) {
     Vector2 textSize = {0};
     if ((font.texture.id == 0) || (text == NULL)) return textSize;

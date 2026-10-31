@@ -710,12 +710,23 @@ static bool tkbc_script_menu_has_selected_target(Env *env) {
            (size_t) env->script_menu_mouse_interaction_box < env->scripts.count;
 }
 
+/**
+ * @brief Clears the selection flag of every script in the script menu.
+ *
+ * @param env The global state of the application.
+ */
 static void tkbc_script_menu_remove_all_selected_targets(Env *env) {
     for (size_t i = 0; i < env->scripts.count; ++i) {
         env->scripts.elements[i].selected = false;
     }
 }
 
+/**
+ * @brief Selects the script under the mouse interaction box if no other script
+ * is currently selected.
+ *
+ * @param env The global state of the application.
+ */
 static void
 tkbc_script_menu_add__script_menu_mouse_interaction_box__to_selected_scripts_if_not_other_selection_exists(Env *env) {
     bool some_script_other_than_the_current_mouse_interaction_box_selection_is_selected = false;
@@ -2225,11 +2236,12 @@ void tkbc_ui_keymaps(Env *env) {
 }
 
 /**
- * @brief [TODO:description]
+ * @brief Draws the text cursor at the end of the measured text inside a text
+ * box.
  *
- * @param text_box [TODO:parameter]
- * @param text_size [TODO:parameter]
- * @param padding [TODO:parameter]
+ * @param text_box The text box that contains the text.
+ * @param text_size The measured size of the text before the cursor.
+ * @param padding The horizontal padding between the text and the cursor.
  */
 void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding) {
     Rectangle cursor = text_box;
@@ -2326,6 +2338,12 @@ static void tkbc_draw_selection(Text_Input *input) {
     DrawRectangleRec(highlight, TKBC_UI_DARKPURPLE_ALPHA);
 }
 
+/**
+ * @brief Finds the cursor position at the beginning of the previous word.
+ *
+ * @param input The text input whose cursor is moved.
+ * @return The new cursor position.
+ */
 static size_t tkbc_find_word_left(Text_Input *input) {
     size_t pos = input->cursor_pos;
     if (pos == 0) return 0;
@@ -2341,6 +2359,12 @@ static size_t tkbc_find_word_left(Text_Input *input) {
     return pos;
 }
 
+/**
+ * @brief Finds the cursor position at the end of the next word.
+ *
+ * @param input The text input whose cursor is moved.
+ * @return The new cursor position.
+ */
 static size_t tkbc_find_word_right(Text_Input *input) {
     size_t pos = input->cursor_pos;
     size_t len = input->text.count;
@@ -2355,6 +2379,12 @@ static size_t tkbc_find_word_right(Text_Input *input) {
     return pos;
 }
 
+/**
+ * @brief Deletes the currently selected text and collapses the cursor to the
+ * start of the former selection.
+ *
+ * @param input The text input that holds the selection.
+ */
 static void tkbc_delete_selection(Text_Input *input) {
     if (!tkbc_has_selection(input)) {
         return;
@@ -2764,6 +2794,17 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
     EndScissorMode();
 }
 
+/**
+ * @brief Computes the vertical stride used to lay out a kite design in the
+ * color picker.
+ *
+ * @param env The global state of the application.
+ * @param design The texture of the kite design.
+ * @param scale_factor The scale relative to the color picker base width.
+ * @param padding The outer padding.
+ * @param actual_padding The additional padding.
+ * @return The height of the scaled design plus the padding.
+ */
 static float tkbc_kite_design_stride(Env *env, Texture2D design, float scale_factor, float padding,
                                      float actual_padding) {
     float scale = env->color_picker_base.width * scale_factor / design.width;
@@ -2771,10 +2812,14 @@ static float tkbc_kite_design_stride(Env *env, Texture2D design, float scale_fac
 }
 
 /**
- * @brief [TODO:description]
+ * @brief Draws the kite design gallery and handles selection, deletion and
+ * tooltips.
  *
- * @param env [TODO:parameter]
- * @param display_position [TODO:parameter]
+ * @param env The global state of the application.
+ * @param display_box The area available for the gallery.
+ * @param padding The spacing used for the layout.
+ * @return True if the mouse hovers a design and a tooltip should be shown,
+ * otherwise false.
  */
 bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     bool tooltip_kite_design_selection = false;
@@ -3043,6 +3088,15 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     return tooltip_kite_design_selection;
 }
 
+/**
+ * @brief Draws the default color palette and applies the clicked color to the
+ * selected kites.
+ *
+ * @param env The global state of the application.
+ * @param display_box The area available for the palette.
+ * @param circle_radius The radius of each color circle.
+ * @param padding The spacing between the circles.
+ */
 void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_radius, float padding) {
 
     float left_circle_center = display_box.x + circle_radius + padding;
@@ -3113,6 +3167,13 @@ void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_rad
     EndScissorMode();
 }
 
+/**
+ * @brief Draws a filled circle with an X inside it.
+ *
+ * @param center The center of the circle.
+ * @param radius The radius of the circle.
+ * @param color The fill color of the circle.
+ */
 void tkbc_draw_circle_with_x(Vector2 center, float radius, Color color) {
     DrawCircleV(center, radius, color);
     float inner_padding_both_sides = 2 * radius * 0.4;
@@ -3142,6 +3203,15 @@ void tkbc_draw_circle_with_x(Vector2 center, float radius, Color color) {
     }
 }
 
+/**
+ * @brief Draws a filled circle with a checkbox and shows a check mark when it
+ * is enabled.
+ *
+ * @param center The center of the circle.
+ * @param radius The radius of the circle.
+ * @param enabled Whether the check mark is drawn.
+ * @param color The fill color of the circle.
+ */
 void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled, Color color) {
     DrawCircleV(center, radius, color);
 
@@ -3177,17 +3247,18 @@ void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled,
 }
 
 /**
- * @brief [TODO:description]
+ * @brief Draws a tooltip near the mouse, keeping it inside the window and
+ * throttling repeated display.
  *
- * @param env [TODO:parameter]
- * @param font [TODO:parameter]
- * @param mouse [TODO:parameter]
- * @param width [TODO:parameter]
- * @param height [TODO:parameter]
- * @param text [TODO:parameter]
- * @param font_size [TODO:parameter]
- * @param spacing [TODO:parameter]
- * @param padding [TODO:parameter]
+ * @param env The global state of the application.
+ * @param font The font used to draw the text.
+ * @param mouse The current mouse position.
+ * @param width The width of the tooltip box.
+ * @param height The height of the tooltip box.
+ * @param text The tooltip text.
+ * @param font_size The font size of the text.
+ * @param spacing The character spacing of the text.
+ * @param padding The padding inside and around the tooltip box.
  */
 void tkbc_draw_tool_tip(Env *env, Font font, Vector2 mouse, float width, float height, const char *text, int font_size,
                         float spacing, float padding) {
@@ -3232,6 +3303,11 @@ void tkbc_draw_tool_tip(Env *env, Font font, Vector2 mouse, float width, float h
     EndScissorMode();
 }
 
+/**
+ * @brief Begins scissor mode for the given rectangle.
+ *
+ * @param box The rectangle that clips all following drawing operations.
+ */
 void tkbc_BeginScissorMode(Rectangle box) {
     BeginScissorMode(box.x, box.y, box.width, box.height);
 }

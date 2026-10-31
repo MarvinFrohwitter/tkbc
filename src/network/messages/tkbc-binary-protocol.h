@@ -45,51 +45,136 @@ static inline void tkbc_message_write_end(Message *message, size_t offset) {
     memcpy(message->elements + offset, &payload_size, sizeof(payload_size));
 }
 
+/**
+ * @brief Appends an unsigned 8-bit value to the message.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_u8(Message *message, Space *space, uint8_t value) {
     space_dapc(space, message, &value, sizeof(value));
 }
 
+/**
+ * @brief Appends an unsigned 16-bit value to the message.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_u16(Message *message, Space *space, uint16_t value) {
     space_dapc(space, message, &value, sizeof(value));
 }
 
+/**
+ * @brief Appends an unsigned 32-bit value to the message.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_u32(Message *message, Space *space, uint32_t value) {
     space_dapc(space, message, &value, sizeof(value));
 }
 
+/**
+ * @brief Appends an unsigned 64-bit value to the message.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_u64(Message *message, Space *space, uint64_t value) {
     space_dapc(space, message, &value, sizeof(value));
 }
 
+/**
+ * @brief Appends a signed 8-bit value to the message.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_s8(Message *message, Space *space, int8_t value) {
     space_dapc(space, message, &value, sizeof(value));
 }
 
+/**
+ * @brief Appends a signed 16-bit value to the message.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_s16(Message *message, Space *space, int16_t value) {
     space_dapc(space, message, &value, sizeof(value));
 }
 
+/**
+ * @brief Appends a signed 32-bit value to the message.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_s32(Message *message, Space *space, int32_t value) {
     space_dapc(space, message, &value, sizeof(value));
 }
 
+/**
+ * @brief Appends a signed 64-bit value to the message.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_s64(Message *message, Space *space, int64_t value) {
     space_dapc(space, message, &value, sizeof(value));
 }
 
+/**
+ * @brief Appends a single precision floating point value to the message.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_f32(Message *message, Space *space, float_t value) {
     space_dapc(space, message, &value, sizeof(value));
 }
 
+/**
+ * @brief Appends a double precision floating point value to the message.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_f64(Message *message, Space *space, double value) {
     space_dapc(space, message, &value, sizeof(value));
 }
 
+/**
+ * @brief Appends a boolean value to the message as one byte.
+ *
+ * @param message The message buffer that receives the value.
+ * @param space The allocator used to grow the buffer.
+ * @param value The value to append.
+ */
 static inline void tkbc_message_write_bool(Message *message, Space *space, bool value) {
     uint8_t v = value;
     space_dapc(space, message, &v, sizeof(v));
 }
 
+/**
+ * @brief Appends the given amount of raw bytes to the message.
+ *
+ * @param message The message buffer that receives the bytes.
+ * @param space The allocator used to grow the buffer.
+ * @param data The bytes to append.
+ * @param length The number of bytes to append.
+ */
 static inline void tkbc_message_write_bytes(Message *message, Space *space, const void *data, size_t length) {
     space_dapc(space, message, data, length);
 }
@@ -105,6 +190,14 @@ static inline void tkbc_message_write_string(Message *message, Space *space, con
     }
 }
 
+/**
+ * @brief Appends a NULL-terminated string as a length-prefixed byte sequence
+ * without the terminator.
+ *
+ * @param message The message buffer that receives the string.
+ * @param space The allocator used to grow the buffer.
+ * @param cstr The NUL terminated string to append.
+ */
 static inline void tkbc_message_write_c_string(Message *message, Space *space, const char *cstr) {
     tkbc_message_write_string(message, space, cstr, strlen(cstr));
 }
@@ -125,6 +218,14 @@ static inline bool tkbc_message_read_has_at_least_count_new_data(const Message *
     return message->i + count <= message->count;
 }
 
+/**
+ * @brief Reads an unsigned 8-bit value from the message and advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_u8(Message *message, uint8_t *out) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, sizeof(*out))) return false;
     memcpy(out, message->elements + message->i, sizeof(*out));
@@ -132,6 +233,14 @@ static inline bool tkbc_message_read_u8(Message *message, uint8_t *out) {
     return true;
 }
 
+/**
+ * @brief Reads an unsigned 16-bit value from the message and advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_u16(Message *message, uint16_t *out) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, sizeof(*out))) return false;
     memcpy(out, message->elements + message->i, sizeof(*out));
@@ -139,6 +248,14 @@ static inline bool tkbc_message_read_u16(Message *message, uint16_t *out) {
     return true;
 }
 
+/**
+ * @brief Reads an unsigned 32-bit value from the message and advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_u32(Message *message, uint32_t *out) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, sizeof(*out))) return false;
     memcpy(out, message->elements + message->i, sizeof(*out));
@@ -146,6 +263,14 @@ static inline bool tkbc_message_read_u32(Message *message, uint32_t *out) {
     return true;
 }
 
+/**
+ * @brief Reads an unsigned 64-bit value from the message and advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_u64(Message *message, uint64_t *out) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, sizeof(*out))) return false;
     memcpy(out, message->elements + message->i, sizeof(*out));
@@ -153,6 +278,14 @@ static inline bool tkbc_message_read_u64(Message *message, uint64_t *out) {
     return true;
 }
 
+/**
+ * @brief Reads a signed 8-bit value from the message and advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_s8(Message *message, int8_t *out) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, sizeof(*out))) return false;
     memcpy(out, message->elements + message->i, sizeof(*out));
@@ -160,6 +293,14 @@ static inline bool tkbc_message_read_s8(Message *message, int8_t *out) {
     return true;
 }
 
+/**
+ * @brief Reads a signed 16-bit value from the message and advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_s16(Message *message, int16_t *out) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, sizeof(*out))) return false;
     memcpy(out, message->elements + message->i, sizeof(*out));
@@ -167,6 +308,14 @@ static inline bool tkbc_message_read_s16(Message *message, int16_t *out) {
     return true;
 }
 
+/**
+ * @brief Reads a signed 32-bit value from the message and advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_s32(Message *message, int32_t *out) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, sizeof(*out))) return false;
     memcpy(out, message->elements + message->i, sizeof(*out));
@@ -174,6 +323,14 @@ static inline bool tkbc_message_read_s32(Message *message, int32_t *out) {
     return true;
 }
 
+/**
+ * @brief Reads a signed 64-bit value from the message and advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_s64(Message *message, int64_t *out) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, sizeof(*out))) return false;
     memcpy(out, message->elements + message->i, sizeof(*out));
@@ -181,6 +338,14 @@ static inline bool tkbc_message_read_s64(Message *message, int64_t *out) {
     return true;
 }
 
+/**
+ * @brief Reads a single precision floating point value from the message and advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_f32(Message *message, float *out) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, sizeof(*out))) return false;
     memcpy(out, message->elements + message->i, sizeof(*out));
@@ -188,10 +353,27 @@ static inline bool tkbc_message_read_f32(Message *message, float *out) {
     return true;
 }
 
+/**
+ * @brief Reads a single precision floating point value from the message and
+ * advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_float(Message *message, float *out) {
     return tkbc_message_read_f32(message, out);
 }
 
+/**
+ * @brief Reads a double precision floating point value from the message and advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_f64(Message *message, double *out) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, sizeof(*out))) return false;
     memcpy(out, message->elements + message->i, sizeof(*out));
@@ -199,10 +381,28 @@ static inline bool tkbc_message_read_f64(Message *message, double *out) {
     return true;
 }
 
+/**
+ * @brief Reads a double precision floating point value from the message and
+ * advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_double(Message *message, double *out) {
     return tkbc_message_read_f64(message, out);
 }
 
+/**
+ * @brief Reads a boolean value stored as one byte from the message and
+ * advances the read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The location that receives the value.
+ * @return True if a value was read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_bool(Message *message, bool *out) {
     uint8_t v;
     if (!tkbc_message_read_u8(message, &v)) return false;
@@ -210,6 +410,16 @@ static inline bool tkbc_message_read_bool(Message *message, bool *out) {
     return true;
 }
 
+/**
+ * @brief Reads the given amount of raw bytes from the message and advances the
+ * read cursor.
+ *
+ * @param message The message buffer to read from.
+ * @param out The buffer that receives the bytes.
+ * @param length The number of bytes to read.
+ * @return True if all bytes were read, otherwise false when not enough data is
+ * available.
+ */
 static inline bool tkbc_message_read_bytes(Message *message, void *out, size_t length) {
     if (!tkbc_message_read_has_at_least_count_new_data(message, length)) return false;
     memcpy(out, message->elements + message->i, length);
