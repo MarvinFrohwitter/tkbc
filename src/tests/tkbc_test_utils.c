@@ -29,9 +29,7 @@ Test read_entire_file_terminates_content(void) {
     cassert_long_eq(read_count, (long) strlen(file_content));
     cassert_size_t_eq(content.count, strlen(expected));
     cassert_char_eq(content.elements[content.count], '\0');
-    // TODO Add string allocation to cassert strdup in cassert_string_eq and cassert_string_neq to allow for freeing
-    // here and later printing via cassert internal reports.
-    cassert_eq(strcmp(content.elements, expected), 0);
+    cassert_string_eq(content.elements, expected);
 
     free(content.elements);
     cassert_bool_eq(tkbc_remove(path), true);
