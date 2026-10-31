@@ -7,7 +7,7 @@ tkbc_script_input {
     Id zero = ki.elements[0];
     Id one = ki.elements[1];
 
-    tkbc_script_begin("SECOND");
+    tkbc_script_begin("example");
     float rotation_duration = 1;
     SET(
 
