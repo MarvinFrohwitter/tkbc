@@ -1,8 +1,3 @@
-// If a script is loaded while having a connection with the server and then the server disconnects the original kites
-// and the new ones are part of the script when it gets loaded. Open a server with a client drag and drop a .kite file
-// then disconnected the server and execute the drag and dropped script offline. More than the needed kites are
-// displayed that has todo with remapping the script kite ids.
-
 #define WINDOW_SCALE 120
 #define SCREEN_WIDTH 16 * WINDOW_SCALE
 #define SCREEN_HEIGHT 9 * WINDOW_SCALE
