@@ -440,6 +440,8 @@ check:
     return ok;
 }
 
+static bool tkbc_client_send_single_kite_update(Kite_State *kite_state);
+
 /**
  * @brief The function parses the incoming messages from the server and handles
  * the resulting behavior.
@@ -691,6 +693,14 @@ bool received_message_handler(Message *message) {
                 // At most one controller is left: the original kite follows
                 // the live updates again and no ghost may linger.
                 tkbc_clear_ghost_kites_for_target(env, (size_t) kite_id);
+
+                // The remaining controller is authoritative again. Push its
+                // current local position so every client follows it right away
+                // instead of waiting for its next input change or snapshot.
+                Kite_State *remaining = tkbc_get_kite_state_by_id(env, (size_t) kite_id);
+                if (remaining && remaining->is_kite_input_handler_active && remaining->is_active) {
+                    tkbc_client_send_single_kite_update(remaining);
+                }
             }
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITE_SELECTION\n");
@@ -825,6 +835,29 @@ void tkbc_client_send_kite_selection(size_t kite_id, bool selected) {
 }
 
 /**
+ * @brief Queues a SINGLE_KITE_UPDATE for the given kite state.
+ *
+ * Unlike the input handling path this always sends, so callers can push an
+ * already known authoritative position on purpose.
+ *
+ * @param kite_state The kite state that should be sent.
+ * @return true if the message was queued, false if the client cannot send.
+ */
+static bool tkbc_client_send_single_kite_update(Kite_State *kite_state) {
+    if (client.socket_id == -1 || !client.handshake_passed) {
+        return false;
+    }
+
+    size_t offset =
+        tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SINGLE_KITE_UPDATE);
+    tkbc_message_append_clientkite(kite_state->kite_id, &client.send_msg_buffer, &client.send_msg_buffer_space);
+    // The receiving clients use this id to tell the remote ghosts apart.
+    tkbc_message_write_u64(&client.send_msg_buffer, &client.send_msg_buffer_space, (uint64_t) client.kite_id);
+    tkbc_message_write_end(&client.send_msg_buffer, offset);
+    return true;
+}
+
+/**
  * @brief Processes input handling for a kite state and sends a
  * SINGLE_KITE_UPDATE message if the kite position or angle changed
  * significantly.
@@ -859,13 +892,7 @@ static bool tkbc_update_kites_input_handling_for_message_single_kite_update(Kite
         return false;
     }
 
-    size_t offset =
-        tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SINGLE_KITE_UPDATE);
-    tkbc_message_append_clientkite(kite_state->kite_id, &client.send_msg_buffer, &client.send_msg_buffer_space);
-    // The receiving clients use this id to tell the remote ghosts apart.
-    tkbc_message_write_u64(&client.send_msg_buffer, &client.send_msg_buffer_space, (uint64_t) client.kite_id);
-    tkbc_message_write_end(&client.send_msg_buffer, offset);
-    return true;
+    return tkbc_client_send_single_kite_update(kite_state);
 }
 
 /**
