@@ -4,6 +4,7 @@
 #include "tkbc-messages.h"
 
 #include "../../choreographer/tkbc-script-handler.h"
+#include "../../choreographer/tkbc.h"
 
 #include <stdbool.h>
 extern Client client;
@@ -42,6 +43,7 @@ bool tkbc_messages_script_meta_data(Message *reader) {
     env->server_script_frames_index = parsed_index;
 
     if (tkbc_uuid_is_nil(parsed_id)) {
+        tkbc_clear_ghost_kites(env);
         for (size_t i = 0; i < env->kite_array.count; ++i) {
             Kite_State *kite_state = &env->kite_array.elements[i];
             if (kite_state->is_script_kite) {
@@ -57,6 +59,7 @@ bool tkbc_messages_script_meta_data(Message *reader) {
         // is server-driven, the per-tick snapshots show exactly the executing
         // kites. Start blank so stale local script kites (which use different
         // per-side ids) cannot linger next to them.
+        tkbc_clear_ghost_kites(env);
         for (size_t i = 0; i < env->kite_array.count; ++i) {
             env->kite_array.elements[i].is_active = false;
             env->kite_array.elements[i].is_kite_input_handler_active = false;

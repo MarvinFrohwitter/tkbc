@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.4.001"
+#define PROTOCOL_VERSION "0.4.003"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -61,6 +61,11 @@ typedef struct {
 
     size_t script_amount;
     bool handshake_passed;
+
+    // The script kites this client currently controls. The server uses this to
+    // tell a single controller (the original kite follows the updates) from
+    // multiple controllers (the remote edits are shown as ghosts).
+    Kite_Ids selected_kite_ids;
 } Client;
 
 typedef struct {

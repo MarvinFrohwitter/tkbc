@@ -268,6 +268,7 @@ void tkbc_destroy_env(Env *env) {
     free(env->vanilla_kite);
     env->vanilla_kite = NULL;
     tkbc_destroy_kite_array(&env->kite_array);
+    tkbc_destroy_kite_array(&env->ghost_kites);
 
     if (env->needs_font_free) {
         UnloadFont(env->font);
@@ -390,6 +391,151 @@ bool tkbc_remove_unordered_kite_from_list(Kite_States *kite_array, size_t kite_i
         }
     }
     return false;
+}
+
+/**
+ * @brief The function removes the ghost at the given index from the ghost array.
+ *
+ * @param env The global state of the application.
+ * @param index The index of the ghost that should be removed.
+ */
+static void tkbc_remove_ghost_at(Env *env, size_t index) {
+    if (!env || index >= env->ghost_kites.count) {
+        return;
+    }
+
+    Kite_State temp = env->ghost_kites.elements[index];
+    env->ghost_kites.elements[index] = env->ghost_kites.elements[env->ghost_kites.count - 1];
+    env->ghost_kites.elements[env->ghost_kites.count - 1] = temp;
+
+    free(env->ghost_kites.elements[env->ghost_kites.count - 1].kite);
+    env->ghost_kites.elements[env->ghost_kites.count - 1].kite = NULL;
+    env->ghost_kites.count -= 1;
+}
+
+/**
+ * @brief The function creates or updates the ghost of a remote client edit for
+ * the given target kite. Every remote client gets its own ghost.
+ *
+ * @param env The global state of the application.
+ * @param target The original script kite that is mirrored.
+ * @param source_kite_id The kite id of the remote client that produced the edit.
+ * @param x The remote x value of the kite center.
+ * @param y The remote y value of the kite center.
+ * @param angle The remote angle of the kite.
+ * @return The created or updated ghost state.
+ */
+Kite_State *tkbc_update_or_create_ghost_kite(Env *env, Kite_State *target, int64_t source_kite_id, float x, float y,
+                                             float angle) {
+    assert(env);
+    assert(target);
+
+    Kite_State *ghost = NULL;
+    for (size_t i = 0; i < env->ghost_kites.count; ++i) {
+        Kite_State *candidate = &env->ghost_kites.elements[i];
+        if (candidate->is_ghost && candidate->ghost_target_kite_id == target->kite_id &&
+            candidate->ghost_source_kite_id == source_kite_id) {
+            ghost = candidate;
+            break;
+        }
+    }
+
+    if (ghost == NULL) {
+        Kite_State new_ghost = tkbc_init_kite();
+        new_ghost.is_ghost = true;
+        new_ghost.ghost_target_kite_id = target->kite_id;
+        new_ghost.ghost_source_kite_id = source_kite_id;
+        new_ghost.is_active = true;
+        tkbc_dap(&env->ghost_kites, new_ghost);
+        ghost = &env->ghost_kites.elements[env->ghost_kites.count - 1];
+    }
+
+    // Keep the appearance in sync with the original kite while the position and
+    // angle always come from the remote client.
+    *ghost->kite = *target->kite;
+    ghost->is_kite_reversed = target->is_kite_reversed;
+    ghost->is_script_kite = target->is_script_kite;
+    ghost->is_active = true;
+    ghost->kite->center.x = x;
+    ghost->kite->center.y = y;
+    ghost->kite->angle = angle;
+    tkbc_kite_update_internal(ghost->kite);
+
+    return ghost;
+}
+
+/**
+ * @brief The function removes all ghost kites.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_clear_ghost_kites(Env *env) {
+    if (!env) {
+        return;
+    }
+
+    while (env->ghost_kites.count > 0) {
+        tkbc_remove_ghost_at(env, env->ghost_kites.count - 1);
+    }
+}
+
+/**
+ * @brief The function removes all ghosts that mirror the given target kite.
+ *
+ * @param env The global state of the application.
+ * @param target_kite_id The kite id of the original kite.
+ */
+void tkbc_clear_ghost_kites_for_target(Env *env, size_t target_kite_id) {
+    if (!env) {
+        return;
+    }
+
+    for (size_t i = env->ghost_kites.count; i > 0; --i) {
+        if (env->ghost_kites.elements[i - 1].ghost_target_kite_id == target_kite_id) {
+            tkbc_remove_ghost_at(env, i - 1);
+        }
+    }
+}
+
+/**
+ * @brief The function removes all ghosts that were produced by the given
+ * remote client.
+ *
+ * @param env The global state of the application.
+ * @param source_kite_id The kite id of the remote client.
+ */
+void tkbc_clear_ghost_kites_for_source(Env *env, int64_t source_kite_id) {
+    if (!env) {
+        return;
+    }
+
+    for (size_t i = env->ghost_kites.count; i > 0; --i) {
+        if (env->ghost_kites.elements[i - 1].ghost_source_kite_id == source_kite_id) {
+            tkbc_remove_ghost_at(env, i - 1);
+        }
+    }
+}
+
+/**
+ * @brief The function removes the ghost that belongs to the given target and
+ * remote source pair. Other sources of the same target and other targets stay
+ * untouched.
+ *
+ * @param env The global state of the application.
+ * @param target_kite_id The kite id of the original kite.
+ * @param source_kite_id The kite id of the remote client.
+ */
+void tkbc_clear_ghost_kites_for_target_and_source(Env *env, size_t target_kite_id, int64_t source_kite_id) {
+    if (!env) {
+        return;
+    }
+
+    for (size_t i = env->ghost_kites.count; i > 0; --i) {
+        Kite_State *ghost = &env->ghost_kites.elements[i - 1];
+        if (ghost->ghost_target_kite_id == target_kite_id && ghost->ghost_source_kite_id == source_kite_id) {
+            tkbc_remove_ghost_at(env, i - 1);
+        }
+    }
 }
 
 /**
@@ -874,12 +1020,29 @@ void tkbc_tip_rotation(Kite *kite, const Vector2 *position, float tip_deg_rotati
 // ===========================================================================
 
 /**
- * @brief The function draws all the components of the given kite.
+ * @brief Multiplies the rgb values of the given color by the given factor.
  *
- * @param kite_state The kite_state that contains the kite that is going to be
- * drawn.
+ * @param color The color that should be dimmed.
+ * @param factor The dim factor between 0 and 1.
+ * @return The dimmed color.
  */
-void tkbc_draw_kite(Kite_State *state) {
+static Color tkbc_dim_color(Color color, float factor) {
+    return (Color){
+        (unsigned char) (color.r * factor),
+        (unsigned char) (color.g * factor),
+        (unsigned char) (color.b * factor),
+        color.a,
+    };
+}
+
+/**
+ * @brief The function draws all the components of the given kite with the
+ * given dim factor.
+ *
+ * @param state The kite_state that contains the kite that is going to be drawn.
+ * @param factor The dim factor between 0 and 1, 1 means no dimming.
+ */
+static void tkbc_draw_kite_with_factor(Kite_State *state, float factor) {
     assert(state);
     assert(state->kite);
     {  // Clamping to the viewport
@@ -892,6 +1055,8 @@ void tkbc_draw_kite(Kite_State *state) {
         state->kite->center.x = tkbc_clamp(state->kite->center.x, window_padding, window.x);
         tkbc_kite_update_internal(state->kite);
     }
+
+    Color tint = tkbc_dim_color(WHITE, factor);
 
     if (ColorIsEqual(state->kite->body_color, BLANK)) {
         /* texture kite */
@@ -913,23 +1078,35 @@ void tkbc_draw_kite(Kite_State *state) {
                 texture.width * scale,
                 texture.height * scale,
             };
-            DrawTexturePro(texture, source, dest, (Vector2){0}, -state->kite->angle, WHITE);
+            DrawTexturePro(texture, source, dest, (Vector2){0}, -state->kite->angle, tint);
         } else {
-            DrawTextureEx(texture, position, -state->kite->angle, scale, WHITE);
+            DrawTextureEx(texture, position, -state->kite->angle, scale, tint);
         }
     } else {
         /* color kite */
         Vector2 origin = {0};
+        Color body_color = tkbc_dim_color(state->kite->body_color, factor);
+        Color top_color = tkbc_dim_color(state->kite->top_color, factor);
         // Draw a color-filled triangle (vertex in counter-clockwise order!)
-        DrawTriangle(state->kite->left.v1, state->kite->left.v2, state->kite->left.v3, WHITE);
-        DrawTriangle(state->kite->right.v1, state->kite->right.v2, state->kite->right.v3, WHITE);
-        DrawRectanglePro(state->kite->rec, origin, -state->kite->angle, WHITE);
+        DrawTriangle(state->kite->left.v1, state->kite->left.v2, state->kite->left.v3, tint);
+        DrawTriangle(state->kite->right.v1, state->kite->right.v2, state->kite->right.v3, tint);
+        DrawRectanglePro(state->kite->rec, origin, -state->kite->angle, tint);
 
-        DrawTriangle(state->kite->left.v1, state->kite->left.v2, state->kite->left.v3, state->kite->body_color);
-        DrawTriangle(state->kite->right.v1, state->kite->right.v2, state->kite->right.v3, state->kite->body_color);
+        DrawTriangle(state->kite->left.v1, state->kite->left.v2, state->kite->left.v3, body_color);
+        DrawTriangle(state->kite->right.v1, state->kite->right.v2, state->kite->right.v3, body_color);
 
-        DrawRectanglePro(state->kite->rec, origin, -state->kite->angle, state->kite->top_color);
+        DrawRectanglePro(state->kite->rec, origin, -state->kite->angle, top_color);
     }
+}
+
+/**
+ * @brief The function draws all the components of the given kite.
+ *
+ * @param state The kite_state that contains the kite that is going to be
+ * drawn.
+ */
+void tkbc_draw_kite(Kite_State *state) {
+    tkbc_draw_kite_with_factor(state, 1.0f);
 }
 
 /**
@@ -942,6 +1119,25 @@ void tkbc_draw_kite_array(Kite_States kite_states) {
     for (size_t i = 0; i < kite_states.count; ++i) {
         if (kite_states.elements[i].is_active) {
             tkbc_draw_kite(&kite_states.elements[i]);
+        }
+    }
+}
+
+/**
+ * @brief The function draws every ghost kite with the appearance of its
+ * original kite, dimmed so it can be distinguished from the local one.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_draw_ghost_kites(Env *env) {
+    if (!env) {
+        return;
+    }
+
+    for (size_t i = 0; i < env->ghost_kites.count; ++i) {
+        Kite_State *ghost = &env->ghost_kites.elements[i];
+        if (ghost->is_active) {
+            tkbc_draw_kite_with_factor(ghost, TKBC_GHOST_KITE_DIM);
         }
     }
 }

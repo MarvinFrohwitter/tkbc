@@ -291,7 +291,12 @@ typedef struct {
     bool is_rotating;            // Indicates if the kite currently rotates around
                                  // the center.
     bool is_kite_reversed;       // indicates if the kite faces away from the mouse.
-} Kite_State;                    // The current parametrized state of one kite.
+
+    bool is_ghost;                 // Marks a client side ghost kite that mirrors a
+                                   // remote client's edit of a script kite.
+    size_t ghost_target_kite_id;   // The kite id this ghost belongs to.
+    int64_t ghost_source_kite_id;  // The client kite id that produced the remote edit.
+} Kite_State;                      // The current parametrized state of one kite.
 
 typedef struct {
     Id id;
@@ -479,9 +484,11 @@ typedef struct {
     const char *tkbc_keymaps_path;  // The file path where the keymaps are stored.
     Kite *vanilla_kite;             // A representation of all the default kite values.
 
-    Kite_States kite_array;  // The kites that are generated for the current
-                             // session of the application.
-    size_t kite_id_counter;  // The identifier counter for the kite.
+    Kite_States kite_array;   // The kites that are generated for the current
+                              // session of the application.
+    Kite_States ghost_kites;  // Client side ghost kites that mirror remote edits
+                              // of script kites.
+    size_t kite_id_counter;   // The identifier counter for the kite.
 
     // NOTE: These views can be invalidated by pushing into scripts manually use
     //  tkbc_add_script() instead.

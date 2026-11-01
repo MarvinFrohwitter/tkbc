@@ -1056,6 +1056,8 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
         return false;
     }
 
+    tkbc_clear_ghost_kites(env);
+
     bool was_baked = false;
     if (!env->script->original_elements && env->script->original_count == 0) {
         // Upscale long blocks into per-tick slices so the timeline can scrub

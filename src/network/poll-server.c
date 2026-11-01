@@ -108,6 +108,183 @@ Client *tkbc_get_client_by_fd(int fd) {
 }
 
 /**
+ * @brief Checks if the given client currently controls the given kite.
+ *
+ * @param client The client to inspect.
+ * @param kite_id The id of the kite.
+ * @return True if the client has a selection for the kite, otherwise false.
+ */
+bool tkbc_server_client_has_kite_selection(const Client *client, size_t kite_id) {
+    if (!client) {
+        return false;
+    }
+    for (size_t i = 0; i < client->selected_kite_ids.count; ++i) {
+        if (client->selected_kite_ids.elements[i] == kite_id) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Adds the given kite to the selections of the client. Adding an
+ * already selected kite keeps the collection unchanged.
+ *
+ * @param client The client that selected the kite.
+ * @param kite_id The id of the kite.
+ * @return True if the selection was added, false if it already existed.
+ */
+bool tkbc_server_client_add_kite_selection(Client *client, size_t kite_id) {
+    if (!client || tkbc_server_client_has_kite_selection(client, kite_id)) {
+        return false;
+    }
+    tkbc_dap(&client->selected_kite_ids, kite_id);
+    return true;
+}
+
+/**
+ * @brief Removes the given kite from the selections of the client.
+ *
+ * @param client The client that deselected the kite.
+ * @param kite_id The id of the kite.
+ * @return True if the selection was removed, false if it did not exist.
+ */
+bool tkbc_server_client_remove_kite_selection(Client *client, size_t kite_id) {
+    if (!client) {
+        return false;
+    }
+    for (size_t i = 0; i < client->selected_kite_ids.count; ++i) {
+        if (client->selected_kite_ids.elements[i] == kite_id) {
+            client->selected_kite_ids.elements[i] =
+                client->selected_kite_ids.elements[client->selected_kite_ids.count - 1];
+            client->selected_kite_ids.count -= 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Counts how many clients currently control the given kite.
+ *
+ * @param kite_id The id of the kite.
+ * @return The amount of clients that have a selection for the kite.
+ */
+size_t tkbc_server_kite_controller_count(size_t kite_id) {
+    size_t count = 0;
+    for (size_t i = 0; i < clients.count; ++i) {
+        if (tkbc_server_client_has_kite_selection(&clients.elements[i], kite_id)) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+/**
+ * @brief Broadcasts one selection change to the clients.
+ *
+ * @param kite_id The id of the kite whose selection changed.
+ * @param source_kite_id The authenticated client kite id that made the change.
+ * @param selected True if the source selected the kite, false if it
+ * deselected it.
+ * @param controller_count The amount of clients that control the kite after
+ * the change.
+ * @param except_fd A socket that should be skipped, or -1 to send to all.
+ */
+void tkbc_server_broadcast_kite_selection(size_t kite_id, int64_t source_kite_id, bool selected,
+                                          size_t controller_count, int except_fd) {
+    size_t offset = tkbc_message_write_begin(&t_message, space_get_tspace(), MESSAGE_KITE_SELECTION);
+    tkbc_message_write_u64(&t_message, space_get_tspace(), (uint64_t) kite_id);
+    tkbc_message_write_u64(&t_message, space_get_tspace(), (uint64_t) source_kite_id);
+    tkbc_message_write_bool(&t_message, space_get_tspace(), selected);
+    tkbc_message_write_u64(&t_message, space_get_tspace(), (uint64_t) controller_count);
+    tkbc_message_write_end(&t_message, offset);
+
+    if (except_fd >= 0) {
+        tkbc_write_to_all_send_msg_buffers_except(t_message, except_fd);
+    } else {
+        tkbc_write_to_all_send_msg_buffers(t_message);
+    }
+
+    tkbc_reset_space_and_null_message(space_get_tspace(), &t_message);
+}
+
+/**
+ * @brief Removes every selection of one client, optionally informing the other
+ * clients about each deselection.
+ *
+ * The controller count is computed after the selection has been removed, so
+ * the receivers see the count that remains without this client.
+ *
+ * @param fd The socket of the client whose selections are cleared.
+ * @param broadcast True to broadcast the deselections.
+ * @param except_fd A socket that should be skipped during the broadcasts, or
+ * -1 to send to all.
+ */
+void tkbc_server_clear_client_kite_selections(int fd, bool broadcast, int except_fd) {
+    Client *client = tkbc_get_client_by_fd(fd);
+    if (!client) {
+        return;
+    }
+
+    while (client->selected_kite_ids.count > 0) {
+        size_t kite_id = client->selected_kite_ids.elements[client->selected_kite_ids.count - 1];
+        client->selected_kite_ids.count -= 1;
+
+        if (broadcast) {
+            tkbc_server_broadcast_kite_selection(kite_id, (int64_t) client->kite_id, false,
+                                                 tkbc_server_kite_controller_count(kite_id), except_fd);
+        }
+    }
+}
+
+/**
+ * @brief Removes every selection of every client, optionally informing the
+ * clients about the deselections.
+ *
+ * Used when a script is changed or unloaded/deleted, because the selections
+ * refer to kites of the previous script.
+ *
+ * @param broadcast True to broadcast the deselections.
+ * @param except_fd A socket that should be skipped during the broadcasts, or
+ * -1 to send to all.
+ */
+void tkbc_server_clear_all_kite_selections(bool broadcast, int except_fd) {
+    for (size_t i = 0; i < clients.count; ++i) {
+        tkbc_server_clear_client_kite_selections(clients.elements[i].socket_id, broadcast, except_fd);
+    }
+}
+
+/**
+ * @brief Removes every selection that points at a kite which no longer exists,
+ * optionally informing the other clients about each deselection.
+ *
+ * This keeps the selections of a still running script intact when another
+ * script (and with it only its own kites) is deleted.
+ *
+ * @param broadcast True to broadcast the deselections.
+ * @param except_fd A socket that should be skipped during the broadcasts, or
+ * -1 to send to all.
+ */
+void tkbc_server_clear_missing_kite_selections(bool broadcast, int except_fd) {
+    for (size_t client_index = 0; client_index < clients.count; ++client_index) {
+        Client *client = &clients.elements[client_index];
+        for (size_t i = client->selected_kite_ids.count; i > 0; --i) {
+            size_t kite_id = client->selected_kite_ids.elements[i - 1];
+            if (tkbc_get_kite_state_by_id(env, kite_id) != NULL) {
+                continue;
+            }
+
+            tkbc_server_client_remove_kite_selection(client, kite_id);
+            if (broadcast) {
+                tkbc_server_broadcast_kite_selection(kite_id, (int64_t) client->kite_id, false,
+                                                     tkbc_server_kite_controller_count(kite_id), except_fd);
+            }
+        }
+    }
+}
+
+/**
  * @brief The function checks for Kite_State's  that are hold in memory but
  * nobody is using them. This could occur if a client has disconnected and the
  * removal was just partially.
@@ -251,6 +428,11 @@ bool tkbc_remove_client_by_fd(int fd) {
             client_tmp.recv_msg_buffer.elements = NULL;
             client_tmp.send_msg_buffer.elements = NULL;
 
+            free(client_tmp.selected_kite_ids.elements);
+            client_tmp.selected_kite_ids.elements = NULL;
+            client_tmp.selected_kite_ids.count = 0;
+            client_tmp.selected_kite_ids.capacity = 0;
+
             tkbc_fprintf(stderr, "INFO", "Removed client:" CLIENT_FMT "\n", CLIENT_ARG(client_tmp));
 
             clients.elements[i] = clients.elements[clients.count - 1];
@@ -369,6 +551,10 @@ void tkbc_server_shutdown_client(Client client, bool force) {
     tkbc_close(client.socket_id);
 
     if (!force) {
+        // Release the selections before the client disappears so the other
+        // clients remove this client's ghosts and lower their controller count.
+        tkbc_server_clear_client_kite_selections(client.socket_id, true, client.socket_id);
+
         size_t offset = tkbc_message_write_begin(&t_message, space_get_tspace(), MESSAGE_CLIENT_DISCONNECT);
         tkbc_message_write_u64(&t_message, space_get_tspace(), (uint64_t) client.kite_id);
         tkbc_message_write_end(&t_message, offset);
@@ -964,12 +1150,17 @@ void tkbc_message_script_meta_data_write_to_send_msg_buffer(Client *client, UUID
  * @return True if the serialization has finished without errors, otherwise
  * false.
  */
-bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(size_t client_id, int fd) {
+bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(size_t client_id, size_t source_kite_id, int fd) {
     bool ok = true;
     size_t offset = tkbc_message_write_begin(&t_message, space_get_tspace(), MESSAGE_SINGLE_KITE_UPDATE);
     if (!tkbc_message_append_clientkite(client_id, &t_message, space_get_tspace())) {
         check_return(false);
     }
+    // The source id lets the receiving clients keep one ghost per remote client.
+    tkbc_message_write_u64(&t_message, space_get_tspace(), source_kite_id);
+    // More than one controller means the receiving clients must show this
+    // update as a ghost instead of moving their locally controlled original.
+    tkbc_message_write_u64(&t_message, space_get_tspace(), (uint64_t) tkbc_server_kite_controller_count(client_id));
     tkbc_message_write_end(&t_message, offset);
     tkbc_write_to_all_send_msg_buffers_except(t_message, fd);
 
@@ -1008,7 +1199,7 @@ bool tkbc_received_message_handler(Client *client) {
             goto err;
         }
 
-        static_assert(MESSAGE_COUNT == 21, "NEW MESSAGE_COUNT WAS INTRODUCED");
+        static_assert(MESSAGE_COUNT == 22, "NEW MESSAGE_COUNT WAS INTRODUCED");
         switch (kind) {
         case MESSAGE_HELLO: {
             if (!tkbc_messages_hello_verification(&reader, "Hello server from client!" PROTOCOL_VERSION)) {
@@ -1082,6 +1273,14 @@ bool tkbc_received_message_handler(Client *client) {
                 goto err;
             }
 
+            // The clients send their own kite id, but only the authenticated id
+            // of the connection is trusted for the ghost separation.
+            uint64_t claimed_source_kite_id = 0;
+            if (!tkbc_message_read_u64(&reader, &claimed_source_kite_id)) {
+                space_reset_tspace();
+                goto err;
+            }
+
             // With a correct client implementation the state should always be
             // available. No memory corruption on the server side implied.
             Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
@@ -1120,13 +1319,41 @@ bool tkbc_received_message_handler(Client *client) {
             tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id, is_reversed, is_active,
                                             is_script_kite);
 
-            if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(kite_id, client->socket_id)) {
+            if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(kite_id, (size_t) client->kite_id,
+                                                                               client->socket_id)) {
                 goto err;  // Disconnect the client.
             }
 
             state->kite->is_texture_new = false;
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "SINGLE_KITE_UPDATE\n");
+        } break;
+        case MESSAGE_KITE_SELECTION: {
+            uint64_t kite_id;
+            bool selected;
+            if (!tkbc_message_read_u64(&reader, &kite_id) || !tkbc_message_read_bool(&reader, &selected)) {
+                goto err;
+            }
+
+            Kite_State *state = tkbc_get_kite_state_by_id(env, (size_t) kite_id);
+            if (state == NULL) {
+                // The kite might just have been removed by a script change.
+                // There is nothing to track, so the message is ignored.
+                tkbc_fprintf(stderr, "WARNING", "KITE_SELECTION: unknown kite id: %llu\n",
+                             (unsigned long long) kite_id);
+                break;
+            }
+
+            if (selected) {
+                tkbc_server_client_add_kite_selection(client, (size_t) kite_id);
+            } else {
+                tkbc_server_client_remove_kite_selection(client, (size_t) kite_id);
+            }
+
+            tkbc_server_broadcast_kite_selection((size_t) kite_id, (int64_t) client->kite_id, selected,
+                                                 tkbc_server_kite_controller_count((size_t) kite_id), -1);
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITE_SELECTION\n");
         } break;
         case MESSAGE_KITES_POSITIONS_RESET: {
             // All parsing is already done above.

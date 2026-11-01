@@ -477,7 +477,7 @@ bool received_message_handler(Message *message) {
             }
         }
 
-        static_assert(MESSAGE_COUNT == 21, "NEW MESSAGE_COUNT WAS INTRODUCED");
+        static_assert(MESSAGE_COUNT == 22, "NEW MESSAGE_COUNT WAS INTRODUCED");
         switch (kind) {
         case MESSAGE_HELLO: {
             if (!tkbc_messages_hello_verification(&reader, "Hello client from server!" PROTOCOL_VERSION)) {
@@ -529,10 +529,13 @@ bool received_message_handler(Message *message) {
         case MESSAGE_SINGLE_KITE_UPDATE: {
 
             size_t parsed_id;
+            ssize_t source_kite_id = -1;
+            size_t controller_count = 0;
             assert(client.kite_id != -1);
             // Don't update my self the client is already more up to date than the
             // server sends. It is local and therefore faster.
-            int value_ok = tkbc_parse_single_kite_value(&reader, client.kite_id, &parsed_id);
+            int value_ok = tkbc_parse_single_kite_value(&reader, client.kite_id, &parsed_id, &source_kite_id,
+                                                        &controller_count);
             if (!value_ok) {
                 goto err;
             }
@@ -662,6 +665,37 @@ bool received_message_handler(Message *message) {
                 goto err;
             }
         } break;
+        case MESSAGE_KITE_SELECTION: {
+            uint64_t kite_id;
+            uint64_t source_kite_id;
+            uint64_t controller_count;
+            bool selected;
+
+            if (!tkbc_message_read_u64(&reader, &kite_id) ||
+                !tkbc_message_read_u64(&reader, &source_kite_id) ||
+                !tkbc_message_read_bool(&reader, &selected) ||
+                !tkbc_message_read_u64(&reader, &controller_count)) {
+                goto err;
+            }
+
+            // The server echoes the selection back to its source. The source
+            // never has a ghost of itself, so only the other clients react.
+            if ((ssize_t) source_kite_id != client.kite_id) {
+                if (!selected) {
+                    // The remote client stopped controlling this kite, its
+                    // ghost is stale.
+                    tkbc_clear_ghost_kites_for_target_and_source(env, (size_t) kite_id,
+                                                                 (int64_t) source_kite_id);
+                }
+                if (controller_count <= 1) {
+                    // At most one controller is left: the original kite follows
+                    // the live updates again and no ghost may linger.
+                    tkbc_clear_ghost_kites_for_target(env, (size_t) kite_id);
+                }
+            }
+
+            tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITE_SELECTION\n");
+        } break;
         case MESSAGE_CLIENT_DISCONNECT: {
             uint64_t kite_id;
             if (!tkbc_message_read_u64(&reader, &kite_id)) {
@@ -669,6 +703,7 @@ bool received_message_handler(Message *message) {
             }
 
             tkbc_remove_unordered_kite_from_list(&env->kite_array, (size_t) kite_id);
+            tkbc_clear_ghost_kites_for_source(env, (int64_t) kite_id);
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "CLIENT_DISCONNET\n");
         } break;
@@ -770,6 +805,27 @@ bool message_queue_handler(bool *eof) {
 }
 
 /**
+ * @brief Informs the server that this client selected or deselected a kite for
+ * local control. The server rebroadcasts the authenticated selection together
+ * with the resulting controller count so the other clients can create or clear
+ * their ghosts.
+ *
+ * @param kite_id The id of the kite whose selection changed.
+ * @param selected True when the kite is now controlled locally.
+ */
+void tkbc_client_send_kite_selection(size_t kite_id, bool selected) {
+    if (offline_mode || client.socket_id == -1 || !client.handshake_passed) {
+        return;
+    }
+
+    size_t offset =
+        tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_KITE_SELECTION);
+    tkbc_message_write_u64(&client.send_msg_buffer, &client.send_msg_buffer_space, (uint64_t) kite_id);
+    tkbc_message_write_bool(&client.send_msg_buffer, &client.send_msg_buffer_space, selected);
+    tkbc_message_write_end(&client.send_msg_buffer, offset);
+}
+
+/**
  * @brief Processes input handling for a kite state and sends a
  * SINGLE_KITE_UPDATE message if the kite position or angle changed
  * significantly.
@@ -807,6 +863,8 @@ static bool tkbc_update_kites_input_handling_for_message_single_kite_update(Kite
     size_t offset =
         tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SINGLE_KITE_UPDATE);
     tkbc_message_append_clientkite(kite_state->kite_id, &client.send_msg_buffer, &client.send_msg_buffer_space);
+    // The receiving clients use this id to tell the remote ghosts apart.
+    tkbc_message_write_u64(&client.send_msg_buffer, &client.send_msg_buffer_space, (uint64_t) client.kite_id);
     tkbc_message_write_end(&client.send_msg_buffer, offset);
     return true;
 }
@@ -836,6 +894,9 @@ void tkbc_client_input_handler_kite(void) {
 
             if (IsKeyPressed(9 - --max_contolling + 48)) {
                 s->is_kite_input_handler_active = !s->is_kite_input_handler_active;
+                // The server broadcast clears this client's ghost on the other
+                // clients and keeps ghosts of still controlling clients alive.
+                tkbc_client_send_kite_selection(s->kite_id, s->is_kite_input_handler_active);
             }
             if (!s->is_kite_input_handler_active) {
                 continue;
@@ -855,6 +916,9 @@ void tkbc_client_input_handler_kite(void) {
 
         if (IsKeyPressed(KEY_ONE)) {
             kite_state->is_kite_input_handler_active = !kite_state->is_kite_input_handler_active;
+            // Free-fly kites are unique per client, but the server still tracks
+            // the selection so its controller count stays consistent.
+            tkbc_client_send_kite_selection(kite_state->kite_id, kite_state->is_kite_input_handler_active);
         }
         if (!kite_state->is_kite_input_handler_active) {
             return;
@@ -1317,6 +1381,7 @@ bool tkbc_run(Env *env) {
         tkbc_update_kites_for_resize_window(env);
         tkbc_draw_grid_lines(env);
         tkbc_draw_kite_array(env->kite_array);
+        tkbc_draw_ghost_kites(env);
         tkbc_draw_ui(env);
     }
 

@@ -15,6 +15,16 @@ void tkbc_write_to_send_msg_buffer(Client *client, Message message);
 void tkbc_write_to_all_send_msg_buffers(Message message);
 void tkbc_write_to_all_send_msg_buffers_except(Message message, int fd);
 
+bool tkbc_server_client_has_kite_selection(const Client *client, size_t kite_id);
+bool tkbc_server_client_add_kite_selection(Client *client, size_t kite_id);
+bool tkbc_server_client_remove_kite_selection(Client *client, size_t kite_id);
+size_t tkbc_server_kite_controller_count(size_t kite_id);
+void tkbc_server_broadcast_kite_selection(size_t kite_id, int64_t source_kite_id, bool selected,
+                                          size_t controller_count, int except_fd);
+void tkbc_server_clear_client_kite_selections(int fd, bool broadcast, int except_fd);
+void tkbc_server_clear_all_kite_selections(bool broadcast, int except_fd);
+void tkbc_server_clear_missing_kite_selections(bool broadcast, int except_fd);
+
 Kite_State *tkbc_check_for_orphan_kite_states(bool *orphan);
 bool tkbc_remove_fd_unorderd(int fd);
 bool tkbc_remove_client_by_fd(int fd);
@@ -43,7 +53,7 @@ void tkbc_message_script_meta_data_write_to_all_send_msg_buffers(UUID script_id,
                                                                  size_t frames_index);
 void tkbc_message_script_meta_data_write_to_send_msg_buffer(Client *client, UUID script_id, size_t script_count,
                                                             size_t frames_index);
-bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(size_t client_id, int fd);
+bool tkbc_message_kite_value_write_to_all_send_msg_buffers_except(size_t client_id, size_t source_kite_id, int fd);
 void tkbc_message_kites_write_to_all_send_msg_buffers(void);
 bool tkbc_received_message_handler(Client *client);
 void exit_handler();

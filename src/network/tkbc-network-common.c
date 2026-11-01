@@ -46,6 +46,34 @@ void tkbc_reset_space_and_null_message(Space *space, Message *message) {
  */
 void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float angle, Color color, UUID texture_id,
                                      bool is_reversed, bool is_active, bool is_script_kite) {
+    tkbc_assign_values_to_kitestate_from_source(state, x, y, angle, color, texture_id, is_reversed, is_active,
+                                                is_script_kite, -1, 0);
+}
+
+/**
+ * @brief The function assigns the given values to the passed state and routes
+ * direct remote edits of script kites into ghost kites.
+ *
+ * @param state The kite_state that should be updated.
+ * @param x The new x value of the kite center.
+ * @param y The new y value of the kite center.
+ * @param angle The new angle of the kite.
+ * @param color The new color of the kite.
+ * @param texture_id The uuid of the asset that should be used to display the
+ * kite.
+ * @param is_reversed If the kite should fly reverse by default.
+ * @param is_active If the kite should be displayed on the screen.
+ * @param is_script_kite Indicates if the kite is part of a script.
+ * @param source_kite_id The kite id of the remote client that produced the
+ * update, or -1 if the update has no remote source.
+ * @param controller_count The amount of clients that control the script kite
+ * at the time the update was produced. A value of 2 or more turns a direct
+ * remote edit into a ghost, because the original kite then belongs to another
+ * local controller.
+ */
+void tkbc_assign_values_to_kitestate_from_source(Kite_State *state, float x, float y, float angle, Color color,
+                                                 UUID texture_id, bool is_reversed, bool is_active, bool is_script_kite,
+                                                 ssize_t source_kite_id, size_t controller_count) {
     // There should not be a single missing texture in here.
     // The nil uuid is reserved for the state where the pixel data is still
     // transferred inline, so it must never end up stored on a kite.
@@ -53,20 +81,48 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float 
 
     assert(state);
 
-    // A locally controlled kite is authoritative for its position and angle.
-    // Otherwise the state echoed back by the server (a SINGLE_KITE_UPDATE of
-    // another controlling client or the per-tick CLIENTKITES snapshot) would
-    // fight with the local input handling. A remote deactivation is still
-    // applied, which also releases the local control below.
+    // A direct remote edit of a script kite with more than one controller (a
+    // SINGLE_KITE_UPDATE with a source client) never moves the local original
+    // kite. The original is the kite this client displays and controls itself,
+    // while the remote edit is shown as a ghost on every client except the one
+    // that produced it (the server never echoes an update back to its sender).
+    // This way every controlling client keeps its own original and sees all
+    // other controlling clients as ghosts.
     //
-    // This resolves all kinds of position fighting but when more that one client has
-    // is_kite_input_handler_active controlling the others can't see the update.
+    // With only one controller no ghost exists: every client applies the
+    // update to the original kite as before. Free-fly kites are not shared
+    // between clients either, so those updates also keep moving the original.
     //
-    // TODO: Maybe introduce Gost-Kites for that situation so every client can see every adjustment.
+    // A per-tick CLIENTKITES snapshot has no source client and keeps driving
+    // the original kite, but it must never steal the local authority of a kite
+    // this client controls. It does not create or clear ghosts, so a ghost
+    // stays at the remote client's last position until it is explicitly
+    // cleared (remote deselect, remote disconnect or script change/unload).
+    //
+    // A remote deactivation is still applied, which also releases the local
+    // control below and removes the stale ghosts of that kite.
     //
     // Marvin Frohwitter 30.10.2026
     //
-    if (state->is_kite_input_handler_active && is_active) {
+    bool has_local_authority = is_script_kite && state->is_script_kite && state->is_kite_input_handler_active;
+    if (is_script_kite && source_kite_id >= 0 && controller_count >= 2) {
+        if (is_active) {
+            Kite_State *ghost = tkbc_update_or_create_ghost_kite(env, state, (int64_t) source_kite_id, x, y, angle);
+            if (ghost) {
+                // Mirror the appearance of the remote edit as well.
+                ghost->kite->body_color = color;
+                ghost->kite->texture_id = texture_id;
+                ghost->is_kite_reversed = is_reversed;
+            }
+        }
+        // The original stays at the position this client knows. The remote
+        // edit is represented by the ghost above.
+        x = state->kite->center.x;
+        y = state->kite->center.y;
+        angle = state->kite->angle;
+    } else if (has_local_authority) {
+        // A snapshot or a stale direct update must not overwrite a kite this
+        // client currently controls locally.
         x = state->kite->center.x;
         y = state->kite->center.y;
         angle = state->kite->angle;
@@ -84,6 +140,7 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float 
 
     if (!is_active) {
         state->is_kite_input_handler_active = false;
+        tkbc_clear_ghost_kites_for_target(env, state->kite_id);
     }
 
     tkbc_kite_update_internal(state->kite);
@@ -98,6 +155,10 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float 
  * @param kite_id -1 if the parsed kite values should be updated, if the values
  * should not be updated pass the kite_id.
  * @param parsed_id The kite_id that is parsed out.
+ * @param source_kite_id The kite id of the remote client that produced the
+ * update, or -1 if the payload did not carry one.
+ * @param controller_count The amount of clients that controlled the kite when
+ * the update was produced.
  * @return 1 if the kite values can be parsed out of the payload and is
  * updated, 2 every thing like 1 but the assigned texture is KITE_COLORIZER
  * because the parsed texture was not available, if the kite values are parsed
@@ -105,7 +166,8 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float 
  * returned when a new kite is created out of the parsed_id with it's texture set to KITE_COLORIZER and 0 is returned if
  * the parsing has failed and no updates were made.
  */
-int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parsed_id) {
+int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parsed_id, ssize_t *source_kite_id,
+                                 size_t *controller_count) {
     int ok = 1;
 
     float x, y, angle;
@@ -117,12 +179,29 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
     int texture_width, texture_height, texture_format;
     Space *data_space = space_get_tspace();
     unsigned char *texture_data = NULL;
+    uint64_t parsed_source_kite_id = 0;
+    uint64_t parsed_controller_count = 0;
 
     if (!tkbc_parse_message_kite_value(reader, parsed_id, &x, &y, &angle, &color, &texture_id, &texture_width,
                                        &texture_height, &texture_format, data_space, &texture_data, &inline_texture_id,
                                        &is_reversed, &is_active, &is_script_kite)) {
 
         check_return(0);
+    }
+
+    if (!tkbc_message_read_u64(reader, &parsed_source_kite_id)) {
+        check_return(0);
+    }
+
+    if (!tkbc_message_read_u64(reader, &parsed_controller_count)) {
+        check_return(0);
+    }
+
+    if (source_kite_id) {
+        *source_kite_id = (ssize_t) parsed_source_kite_id;
+    }
+    if (controller_count) {
+        *controller_count = (size_t) parsed_controller_count;
     }
 
     if (kite_id >= 0) {
@@ -147,7 +226,9 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
 
     Kite_State *state = tkbc_get_kite_state_by_id(env, *parsed_id);
     if (state) {
-        tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id, is_reversed, is_active, is_script_kite);
+        tkbc_assign_values_to_kitestate_from_source(state, x, y, angle, color, texture_id, is_reversed, is_active,
+                                                    is_script_kite, (ssize_t) parsed_source_kite_id,
+                                                    (size_t) parsed_controller_count);
     } else {
         // In the client the missing kite should be handled because the server expects the client to have it so the
         // client lost it or hasn't registered one jet.
@@ -155,8 +236,6 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
 
         // This should never happen and is just for safety outer calling code relays on that handling.
         Kite_State state = tkbc_init_kite();
-        tkbc_assign_values_to_kitestate(&state, x, y, angle, color, texture_id, is_reversed, is_active, is_script_kite);
-
         if (kite_id == -1) {
             state.kite_id = env->kite_id_counter++;
             ok = -2;
@@ -164,6 +243,7 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
             state.kite_id = *parsed_id;
             ok = -1;
         }
+        tkbc_assign_values_to_kitestate(&state, x, y, angle, color, texture_id, is_reversed, is_active, is_script_kite);
         tkbc_dap(&env->kite_array, state);
     }
 

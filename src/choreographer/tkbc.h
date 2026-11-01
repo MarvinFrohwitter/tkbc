@@ -60,6 +60,9 @@
 #define TKBC_UI_BLACK_ALPHA ColorAlpha(BLACK, ALPHA_RATIO - 0.35)
 #define TKBC_UI_WHITE_ALPHA ColorAlpha(WHITE, ALPHA_RATIO)
 
+// How strongly the ghost kites are dimmed compared to their original kite.
+#define TKBC_GHOST_KITE_DIM 0.6f
+
 #define VECTOR2_FMT "(%f,%f)"
 #define Vector2_FMT_ARGS(arg) (float) (arg).x, (float) (arg).y
 #define HEX_COLOR_LENGTH 8
@@ -86,6 +89,13 @@ void tkbc_destroy_kite_array(Kite_States *kite_states);
 void tkbc_remove_non_script_kites_except(Kite_States *kite_array, size_t kite_id);
 bool tkbc_remove_ordered_kite_from_list(Kite_States *kite_array, size_t kite_id);
 bool tkbc_remove_unordered_kite_from_list(Kite_States *kite_array, size_t kite_id);
+
+Kite_State *tkbc_update_or_create_ghost_kite(Env *env, Kite_State *target, int64_t source_kite_id, float x, float y,
+                                             float angle);
+void tkbc_clear_ghost_kites(Env *env);
+void tkbc_clear_ghost_kites_for_target(Env *env, size_t target_kite_id);
+void tkbc_clear_ghost_kites_for_source(Env *env, int64_t source_kite_id);
+void tkbc_clear_ghost_kites_for_target_and_source(Env *env, size_t target_kite_id, int64_t source_kite_id);
 Vector2 tkbc_calculate_start_position(Env *env, Kite_States *kite_states, size_t window_width, size_t window_height);
 void tkbc_kite_array_start_position(Env *env, Kite_States *kite_states, size_t window_width, size_t window_height,
                                     bool set_defaults);
@@ -110,6 +120,7 @@ void tkbc_tip_rotation(Kite *kite, const Vector2 *position, float tip_deg_rotati
 
 void tkbc_draw_kite(Kite_State *state);
 void tkbc_draw_kite_array(Kite_States kite_states);
+void tkbc_draw_ghost_kites(Env *env);
 void tkbc_update_kites_for_resize_window(Env *env);
 
 Color tkbc_get_random_color(void);

@@ -46,6 +46,12 @@ bool tkbc_messages_script_delete(Env *env, Message *reader, Client *client) {
     if (client == NULL) {
         return true;
     }
+
+    // The deletion can remove the kites of the script, so the selections that
+    // point at one of those kites have to be released. Selections of kites that
+    // still exist (a different running script) stay intact.
+    tkbc_server_clear_missing_kite_selections(true, -1);
+
     {
         Message message = {0};
         size_t offset = tkbc_message_write_begin(&message, space_get_tspace(), MESSAGE_SCRIPT_DELETE);

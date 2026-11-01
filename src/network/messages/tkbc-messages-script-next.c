@@ -27,6 +27,8 @@ bool tkbc_messages_script_next(Message *reader) {
         // This parsing function is just used in the server but liked in the client
         // as well so just a simple guard for compilation.
 #ifdef TKBC_SERVER
+        // Selections refer to kites of the script that just got unloaded.
+        tkbc_server_clear_all_kite_selections(true, -1);
         tkbc_message_script_meta_data_write_to_all_send_msg_buffers(tkbc_uuid_nil(), 0, 0);
 #endif
 
@@ -42,6 +44,13 @@ bool tkbc_messages_script_next(Message *reader) {
     }
 
     // TODO: Report possible failures of loading back to the client.
+
+    // The clients and the server release every selection of the previous
+    // script before the new script becomes active. The clients then clear their
+    // ghosts through the deselection broadcasts.
+#ifdef TKBC_SERVER
+    tkbc_server_clear_all_kite_selections(true, -1);
+#endif
 
     // NOTE: Partial played scripts should not save load there old state, because
     // more than one player could interact with the same script controlling and it

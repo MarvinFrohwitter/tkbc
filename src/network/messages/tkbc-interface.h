@@ -37,6 +37,11 @@ typedef enum {
     MESSAGE_GET_TEXTURE,
     MESSAGE_SEND_TEXTURE,
 
+    MESSAGE_KITE_SELECTION,  // Client -> server: the client selected or
+                             // deselected a kite it wants to control. Server ->
+                             // all: the authenticated selection change together
+                             // with the resulting controller count.
+
     MESSAGE_COUNT,
 } Message_Kind;  // Messages that are supported in the current PROTOCOL_VERSION.
 
@@ -185,8 +190,34 @@ typedef enum {
  * Server broadcasts to all other clients. When texture_id is the nil uuid,
  * inline image data is included.
  *
+ * The source client kite id is the id the sending client uses for itself. The
+ * server replaces it with the authenticated id of the connection before the
+ * update is rebroadcast, so every client can keep one ghost per remote source.
+ *
+ * The controller count tells the receivers whether the update belongs to the
+ * original kite (<= 1 client controls it) or has to be shown as a ghost (>= 2
+ * clients control the same script kite).
+ *
  *****
- * MESSAGE_SINGLE_KITE_UPDATE -> <kite value>
+ * MESSAGE_SINGLE_KITE_UPDATE -> <kite value> -> uint64 source_client_kite_id
+ *                            -> uint64 controller_count
+ *****
+ */
+
+/**
+ *
+ * MESSAGE_KITE_SELECTION: Reports that a client selected or deselected a kite
+ * for local control.
+ *
+ * The client only sends the kite id and the new selection state. The server
+ * ignores client supplied identities, applies the change to the authenticated
+ * connection and broadcasts the selection to everybody together with the
+ * resulting controller count.
+ *
+ *****
+ * MESSAGE_KITE_SELECTION -> uint64 kite_id -> bool selected
+ * MESSAGE_KITE_SELECTION -> uint64 kite_id -> uint64 source_client_kite_id
+ *                        -> bool selected -> uint64 controller_count
  *****
  */
 
