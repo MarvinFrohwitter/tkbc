@@ -534,8 +534,8 @@ bool received_message_handler(Message *message) {
             assert(client.kite_id != -1);
             // Don't update my self the client is already more up to date than the
             // server sends. It is local and therefore faster.
-            int value_ok = tkbc_parse_single_kite_value(&reader, client.kite_id, &parsed_id, &source_kite_id,
-                                                        &controller_count);
+            int value_ok =
+                tkbc_parse_single_kite_value(&reader, client.kite_id, &parsed_id, &source_kite_id, &controller_count);
             if (!value_ok) {
                 goto err;
             }
@@ -671,10 +671,8 @@ bool received_message_handler(Message *message) {
             uint64_t controller_count;
             bool selected;
 
-            if (!tkbc_message_read_u64(&reader, &kite_id) ||
-                !tkbc_message_read_u64(&reader, &source_kite_id) ||
-                !tkbc_message_read_bool(&reader, &selected) ||
-                !tkbc_message_read_u64(&reader, &controller_count)) {
+            if (!tkbc_message_read_u64(&reader, &kite_id) || !tkbc_message_read_u64(&reader, &source_kite_id) ||
+                !tkbc_message_read_bool(&reader, &selected) || !tkbc_message_read_u64(&reader, &controller_count)) {
                 goto err;
             }
 
@@ -684,8 +682,7 @@ bool received_message_handler(Message *message) {
                 if (!selected) {
                     // The remote client stopped controlling this kite, its
                     // ghost is stale.
-                    tkbc_clear_ghost_kites_for_target_and_source(env, (size_t) kite_id,
-                                                                 (int64_t) source_kite_id);
+                    tkbc_clear_ghost_kites_for_target_and_source(env, (size_t) kite_id, (int64_t) source_kite_id);
                 }
                 if (controller_count <= 1) {
                     // At most one controller is left: the original kite follows
@@ -1319,7 +1316,9 @@ bool tkbc_run(Env *env) {
                 tkbc_remove_non_script_kites_except(&env->kite_array, (size_t) client.kite_id);
                 tkbc_unload_script(env);
                 tkbc_change_visibility_to_non_script_kites(env);
+                tkbc_clear_ghost_kites(env);
                 tkbc_get_kite_state_by_id(env, client.kite_id)->is_kite_input_handler_active = true;
+
                 client.socket_id = -1;
             }
         }
