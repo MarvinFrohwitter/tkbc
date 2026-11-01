@@ -677,18 +677,20 @@ bool received_message_handler(Message *message) {
             }
 
             // The server echoes the selection back to its source. The source
-            // never has a ghost of itself, so only the other clients react.
-            if ((ssize_t) source_kite_id != client.kite_id) {
-                if (!selected) {
-                    // The remote client stopped controlling this kite, its
-                    // ghost is stale.
-                    tkbc_clear_ghost_kites_for_target_and_source(env, (size_t) kite_id, (int64_t) source_kite_id);
-                }
-                if (controller_count <= 1) {
-                    // At most one controller is left: the original kite follows
-                    // the live updates again and no ghost may linger.
-                    tkbc_clear_ghost_kites_for_target(env, (size_t) kite_id);
-                }
+            // never has a ghost of itself, so only the other clients have to
+            // remove the exact source ghost.
+            if ((ssize_t) source_kite_id != client.kite_id && !selected) {
+                // The remote client stopped controlling this kite, its ghost
+                // is stale.
+                tkbc_clear_ghost_kites_for_target_and_source(env, (size_t) kite_id, (int64_t) source_kite_id);
+            }
+            // This cleanup has to run for the source client as well: when it
+            // deselects, its own ghosts of the remaining controllers become
+            // stale as soon as only one controller is left.
+            if (controller_count <= 1) {
+                // At most one controller is left: the original kite follows
+                // the live updates again and no ghost may linger.
+                tkbc_clear_ghost_kites_for_target(env, (size_t) kite_id);
             }
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITE_SELECTION\n");
