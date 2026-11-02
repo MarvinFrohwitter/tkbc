@@ -24,6 +24,7 @@
     X(void, tkbc__register_frames, Env *env, ...)                                                                      \
     X(void, tkbc_register_frames_array, Env *env, Frames *frames)                                                      \
     X(Kite_Ids, tkbc__indexs_append, Space *space, ...)                                                                \
+    X(Kite_Ids, tkbc_indexs_range_space, Space *space, int start, int end)                                             \
     X(Kite_Ids, tkbc_indexs_range, int start, int end)                                                                 \
     X(Kite_Ids, tkbc_kite_array_generate, Env *env, size_t kite_count)                                                 \
     X(void, tkbc_print_script, FILE *stream, Script *script)                                                           \

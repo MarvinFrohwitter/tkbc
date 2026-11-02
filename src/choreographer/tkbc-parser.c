@@ -31,6 +31,7 @@ void tkbc_script_parser(Env *env) {
 
     bool script_begin = false;
     bool brace = false;
+    Kite_Ids destination_kis = {0};
     Kite_Ids ki = {0};
     Kite_Id_Remap remap = {0};
     Frames *frames = &env->scratch_buf_frames;
@@ -50,22 +51,16 @@ void tkbc_script_parser(Env *env) {
 
                 char *function_name = strdup(lexer_token_to_cstr(l, &t));
                 assert(function_name != NULL);
-                Kite_Ids kis = {0};
-                if (!tkbc_parse_kis_after_generation(env, l, &kis, &ki, &remap)) {
+                if (!tkbc_parse_kis_after_generation(env, l, &destination_kis, &ki, &remap)) {
                     check_return(false);
                 }
-                if (!tkbc_parse_team_figures(env, kis, l, function_name, &tmp_buffer)) {
+                if (!tkbc_parse_team_figures(env, destination_kis, l, function_name, &tmp_buffer)) {
                     check_return(false);
                 }
 
             check:
                 free(function_name);
                 function_name = NULL;
-                if (kis.elements) {
-                    free(kis.elements);
-                    // TODO: use maybe a space allocation in here
-                    kis.elements = NULL;
-                }
                 if (!ok) {
                     goto err;
                 }
@@ -89,73 +84,79 @@ void tkbc_script_parser(Env *env) {
                 t = lexer_next(l);
                 if (t.kind == NUMBER) {
                     size_t kite_number = strtoul(lexer_token_to_cstr(l, &t), NULL, 10);
-                    if (env->kite_array.count >= kite_number) {
-                        ki = tkbc_indexs_generate(kite_number);
+                    size_t prev_count = env->kite_array.count;
+                    if (prev_count >= kite_number) {
+                        ki = tkbc_indexs_range_space(space_get_tspace(), 0, (int) kite_number);
                         for (size_t i = 0; i < ki.count; ++i) {
                             ki.elements[i] = env->kite_array.elements[i].kite_id;
                         }
                         break;
                     }
-                    kite_number -= env->kite_array.count;
-                    {
-                        size_t prev_count = env->kite_array.count;
-                        ki = tkbc_kite_array_generate(env, kite_number);
 
-                        // Generated kites stay hidden until the script is loaded;
-                        // just tag them as script kites.
-                        for (size_t i = prev_count; i < env->kite_array.count; ++i) {
-                            env->kite_array.elements[i].is_script_kite = true;
-                        }
+                    kite_number -= prev_count;
+                    Kite_Ids generated_ki = tkbc_kite_array_generate(env, kite_number);
+                    ki.count = 0;
+                    space_tdapc(&ki, generated_ki.elements, generated_ki.count);
+                    free(generated_ki.elements);
+
+                    // Generated kites stay hidden until the script is loaded;
+                    // just tag them as script kites.
+                    for (size_t i = prev_count; i < env->kite_array.count; ++i) {
+                        env->kite_array.elements[i].is_script_kite = true;
                     }
                 }
                 break;
             } else if (strncmp("MOVE", t.content, t.size) == 0) {
-                if (!tkbc_parse_move(env, l, ACTION_KITE_MOVE, &ki, &remap, brace, &tmp_buffer)) {
+                if (!tkbc_parse_move(env, l, ACTION_KITE_MOVE, &destination_kis, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("MOVE_ADD", t.content, t.size) == 0) {
-                if (!tkbc_parse_move(env, l, ACTION_KITE_MOVE_ADD, &ki, &remap, brace, &tmp_buffer)) {
+                if (!tkbc_parse_move(env, l, ACTION_KITE_MOVE_ADD, &destination_kis, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("ROTATION", t.content, t.size) == 0) {
-                if (!tkbc_parse_rotation(env, l, ACTION_KITE_ROTATION, &ki, &remap, brace, &tmp_buffer)) {
+                if (!tkbc_parse_rotation(env, l, ACTION_KITE_ROTATION, &destination_kis, &ki, &remap, brace,
+                                         &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("ROTATION_ADD", t.content, t.size) == 0) {
-                if (!tkbc_parse_rotation(env, l, ACTION_KITE_ROTATION_ADD, &ki, &remap, brace, &tmp_buffer)) {
+                if (!tkbc_parse_rotation(env, l, ACTION_KITE_ROTATION_ADD, &destination_kis, &ki, &remap, brace,
+                                         &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("TIP_ROTATION", t.content, t.size) == 0) {
-                if (!tkbc_parse_tip_rotation(env, l, ACTION_KITE_TIP_ROTATION, &ki, &remap, brace, &tmp_buffer)) {
+                if (!tkbc_parse_tip_rotation(env, l, ACTION_KITE_TIP_ROTATION, &destination_kis, &ki, &remap, brace,
+                                             &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("TIP_ROTATION_ADD", t.content, t.size) == 0) {
-                if (!tkbc_parse_tip_rotation(env, l, ACTION_KITE_TIP_ROTATION_ADD, &ki, &remap, brace, &tmp_buffer)) {
+                if (!tkbc_parse_tip_rotation(env, l, ACTION_KITE_TIP_ROTATION_ADD, &destination_kis, &ki, &remap, brace,
+                                             &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("BEZIERCURVE_QUADRATIC", t.content, t.size) == 0) {
-                if (!tkbc_parse_bezier_curve(env, l, false, false, &ki, &remap, brace, &tmp_buffer)) {
+                if (!tkbc_parse_bezier_curve(env, l, false, false, &destination_kis, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("BEZIERCURVE_CUBIC", t.content, t.size) == 0) {
-                if (!tkbc_parse_bezier_curve(env, l, true, false, &ki, &remap, brace, &tmp_buffer)) {
+                if (!tkbc_parse_bezier_curve(env, l, true, false, &destination_kis, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("BEZIERCURVE_QUADRATIC_ADD", t.content, t.size) == 0) {
-                if (!tkbc_parse_bezier_curve(env, l, false, true, &ki, &remap, brace, &tmp_buffer)) {
+                if (!tkbc_parse_bezier_curve(env, l, false, true, &destination_kis, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
             } else if (strncmp("BEZIERCURVE_CUBIC_ADD", t.content, t.size) == 0) {
-                if (!tkbc_parse_bezier_curve(env, l, true, true, &ki, &remap, brace, &tmp_buffer)) {
+                if (!tkbc_parse_bezier_curve(env, l, true, true, &destination_kis, &ki, &remap, brace, &tmp_buffer)) {
                     goto err;
                 }
                 break;
@@ -217,16 +218,7 @@ void tkbc_script_parser(Env *env) {
     }
 
     lexer_del(l);
-    if (tmp_buffer.elements) free(tmp_buffer.elements);
-    tmp_buffer.elements = NULL;
-    if (ki.elements) free(ki.elements);
-
-    // TODO: use maybe a space allocation in here
-    ki.elements = NULL;
-    if (remap.file_ids.elements) free(remap.file_ids.elements);
-    remap.file_ids.elements = NULL;
-    if (remap.env_ids.elements) free(remap.env_ids.elements);
-    remap.env_ids.elements = NULL;
+    space_reset_tspace();
 }
 
 /**
@@ -275,14 +267,13 @@ bool tkbc_parsed_kis_is_in_env(Env *env, Index index) {
 bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis, Kite_Ids *orig_kis,
                                      Kite_Id_Remap *remap) {
 
+    dest_kis->count = 0;
     Token t = lexer_next(lexer);
     if (strncmp("KITES", t.content, t.size) == 0) {
         if (orig_kis->count == 0) {
             return false;
         }
-        for (size_t i = 0; i < orig_kis->count; ++i) {
-            tkbc_dap(dest_kis, orig_kis->elements[i]);
-        }
+        space_tdapc(dest_kis, orig_kis->elements, orig_kis->count);
 
     } else if (t.kind == PUNCT_LPAREN) {
         t = lexer_next(lexer);
@@ -317,12 +308,12 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
                     free(generated.elements);
                     // Generated kites stay hidden until the script is loaded;
                     // the frame registration below tags them as script kites.
-                    tkbc_dap(&remap->file_ids, file_id);
-                    tkbc_dap(&remap->env_ids, env_id);
-                    tkbc_dap(orig_kis, env_id);
+                    space_tdap(&remap->file_ids, file_id);
+                    space_tdap(&remap->env_ids, env_id);
+                    space_tdap(orig_kis, env_id);
                 }
             }
-            tkbc_dap(dest_kis, env_id);
+            space_tdap(dest_kis, env_id);
             t = lexer_next(lexer);
         }
 
@@ -345,6 +336,7 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
  * @param lexer The data to parse should be located in her.
  * @param kind The kind specifies if the adding or non adding version is
  * expected.
+ * @param destination_kis The output accumulated kite ids.
  * @param ki The already generated kite ids to compare to the possible new
  * parsed kite ids.
  * @param brace Represents if the parsing has happened inside a frame block.
@@ -355,15 +347,13 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
  * @return True if the parsing and frame construction has worked, otherwise
  * false.
  */
-bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap, bool brace,
-                     Content *tmp_buffer) {
-    bool ok = true;
-    Kite_Ids kis = {0};
+bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *destination_kis, Kite_Ids *ki,
+                     Kite_Id_Remap *remap, bool brace, Content *tmp_buffer) {
     float x, y, duration;
     Frame *frame = NULL;
 
-    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki, remap)) {
-        check_return(false);
+    if (!tkbc_parse_kis_after_generation(env, lexer, destination_kis, ki, remap)) {
+        return false;
     }
 
     if (!tkbc_parse_float(&x, lexer, tmp_buffer)) {
@@ -378,26 +368,20 @@ bool tkbc_parse_move(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kit
 
     if (kind == ACTION_KITE_MOVE_ADD) {
         if (brace) {
-            frame = KITE_MOVE_ADD(kis, x, y, duration);
+            frame = KITE_MOVE_ADD(*destination_kis, x, y, duration);
             space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
         } else {
-            SET(KITE_MOVE_ADD(kis, x, y, duration));
+            SET(KITE_MOVE_ADD(*destination_kis, x, y, duration));
         }
     } else if (kind == ACTION_KITE_MOVE) {
         if (brace) {
-            frame = KITE_MOVE(kis, x, y, duration);
+            frame = KITE_MOVE(*destination_kis, x, y, duration);
             space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
         } else {
-            SET(KITE_MOVE(kis, x, y, duration));
+            SET(KITE_MOVE(*destination_kis, x, y, duration));
         }
     }
-check:
-    if (kis.elements) {
-        free(kis.elements);
-        // TODO: use maybe a space allocation in here
-        kis.elements = NULL;
-    }
-    return ok;
+    return true;
 }
 
 /**
@@ -408,6 +392,7 @@ check:
  * @param lexer The data to parse should be located in her.
  * @param kind The kind specifies if the adding or non adding version is
  * expected.
+ * @param destination_kis The output accumulated kite ids.
  * @param ki The already generated kite ids to compare to the possible new
  * parsed kite ids.
  * @param brace Represents if the parsing has happened inside a frame block.
@@ -418,15 +403,13 @@ check:
  * @return True if the parsing and frame construction has worked, otherwise
  * false.
  */
-bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap, bool brace,
-                         Content *tmp_buffer) {
-    bool ok = true;
-    Kite_Ids kis = {0};
+bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *destination_kis, Kite_Ids *ki,
+                         Kite_Id_Remap *remap, bool brace, Content *tmp_buffer) {
     float angle, duration;
     Frame *frame = NULL;
 
-    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki, remap)) {
-        check_return(false);
+    if (!tkbc_parse_kis_after_generation(env, lexer, destination_kis, ki, remap)) {
+        return false;
     }
 
     if (!tkbc_parse_float(&angle, lexer, tmp_buffer)) {
@@ -438,27 +421,21 @@ bool tkbc_parse_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki,
 
     if (kind == ACTION_KITE_ROTATION_ADD) {
         if (brace) {
-            frame = KITE_ROTATION_ADD(kis, angle, duration);
+            frame = KITE_ROTATION_ADD(*destination_kis, angle, duration);
             space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
         } else {
-            SET(KITE_ROTATION_ADD(kis, angle, duration));
+            SET(KITE_ROTATION_ADD(*destination_kis, angle, duration));
         }
     } else if (kind == ACTION_KITE_ROTATION) {
         if (brace) {
-            frame = KITE_ROTATION(kis, angle, duration);
+            frame = KITE_ROTATION(*destination_kis, angle, duration);
             space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
         } else {
-            SET(KITE_ROTATION(kis, angle, duration));
+            SET(KITE_ROTATION(*destination_kis, angle, duration));
         }
     }
 
-check:
-    if (kis.elements) {
-        free(kis.elements);
-        // TODO: use maybe a space allocation in here
-        kis.elements = NULL;
-    }
-    return ok;
+    return true;
 }
 
 /**
@@ -471,6 +448,7 @@ check:
  * expected.
  * @param frames The out parameter is filled with the generated frame if the
  * parsing succeeds.
+ * @param destination_kis The output accumulated kite ids.
  * @param ki The already generated kite ids to compare to the possible new
  * parsed kite ids.
  * @param brace Represents if the parsing has happened inside a frame block.
@@ -481,16 +459,14 @@ check:
  * @return True if the parsing and frame construction has worked, otherwise
  * false.
  */
-bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *ki, Kite_Id_Remap *remap, bool brace,
-                             Content *tmp_buffer) {
-    bool ok = true;
-    Kite_Ids kis = {0};
+bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids *destination_kis, Kite_Ids *ki,
+                             Kite_Id_Remap *remap, bool brace, Content *tmp_buffer) {
     TIP tip;
     float angle, duration;
     Frame *frame = NULL;
 
-    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki, remap)) {
-        check_return(false);
+    if (!tkbc_parse_kis_after_generation(env, lexer, destination_kis, ki, remap)) {
+        return false;
     }
 
     if (!tkbc_parse_float(&angle, lexer, tmp_buffer)) {
@@ -503,7 +479,7 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids 
     } else if (strncmp("LEFT", t.content, t.size) == 0) {
         tip = LEFT_TIP;
     } else {
-        check_return(false);
+        return false;
     }
 
     if (!tkbc_parse_float(&duration, lexer, tmp_buffer)) {
@@ -512,27 +488,21 @@ bool tkbc_parse_tip_rotation(Env *env, Lexer *lexer, Action_Kind kind, Kite_Ids 
 
     if (kind == ACTION_KITE_TIP_ROTATION_ADD) {
         if (brace) {
-            frame = KITE_TIP_ROTATION_ADD(kis, angle, tip, duration);
+            frame = KITE_TIP_ROTATION_ADD(*destination_kis, angle, tip, duration);
             space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
         } else {
-            SET(KITE_TIP_ROTATION_ADD(kis, angle, tip, duration));
+            SET(KITE_TIP_ROTATION_ADD(*destination_kis, angle, tip, duration));
         }
     } else if (kind == ACTION_KITE_TIP_ROTATION) {
         if (brace) {
-            frame = KITE_TIP_ROTATION(kis, angle, tip, duration);
+            frame = KITE_TIP_ROTATION(*destination_kis, angle, tip, duration);
             space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, *frame);
         } else {
-            SET(KITE_TIP_ROTATION(kis, angle, tip, duration));
+            SET(KITE_TIP_ROTATION(*destination_kis, angle, tip, duration));
         }
     }
 
-check:
-    if (kis.elements) {
-        free(kis.elements);
-        // TODO: use maybe a space allocation in here
-        kis.elements = NULL;
-    }
-    return ok;
+    return true;
 }
 
 /**
@@ -552,6 +522,7 @@ check:
  * quadratic curve with one control point.
  * @param add True for the additive variant that uses the current kite position
  * as an implicit start point.
+ * @param destination_kis The output accumulated kite ids.
  * @param ki The already generated kite ids to compare to the possible new
  * parsed kite ids.
  * @param remap Script-wide file id to env id mapping for ids that need a
@@ -564,85 +535,74 @@ check:
  * @return True if the parsing and frame construction has worked, otherwise
  * false.
  */
-bool tkbc_parse_bezier_curve(Env *env, Lexer *lexer, bool cubic, bool add, Kite_Ids *ki, Kite_Id_Remap *remap,
-                             bool brace, Content *tmp_buffer) {
-    bool ok = true;
-    Kite_Ids kis = {0};
-    Vector2 p1 = {0};
-    Vector2 p2 = {0};
-    Vector2 p3 = {0};
-    Vector2 p4 = {0};
+bool tkbc_parse_bezier_curve(Env *env, Lexer *lexer, bool cubic, bool add, Kite_Ids *destination_kis, Kite_Ids *ki,
+                             Kite_Id_Remap *remap, bool brace, Content *tmp_buffer) {
+    Vector2 p1, p2, p3, p4;
     float move_duration, angle, rotation_duration;
 
     // A curve expands into multiple sequential frame blocks, which can not be
     // expressed inside a parallel frame block.
     if (brace) {
-        check_return(false);
+        return false;
     }
 
-    if (!tkbc_parse_kis_after_generation(env, lexer, &kis, ki, remap)) {
-        check_return(false);
+    if (!tkbc_parse_kis_after_generation(env, lexer, destination_kis, ki, remap)) {
+        return false;
     }
 
     if (!add) {
         if (!tkbc_parse_float(&p1.x, lexer, tmp_buffer)) {
-            check_return(false);
+            return false;
         }
         if (!tkbc_parse_float(&p1.y, lexer, tmp_buffer)) {
-            check_return(false);
+            return false;
         }
     }
     if (!tkbc_parse_float(&p2.x, lexer, tmp_buffer)) {
-        check_return(false);
+        return false;
     }
     if (!tkbc_parse_float(&p2.y, lexer, tmp_buffer)) {
-        check_return(false);
+        return false;
     }
     if (!tkbc_parse_float(&p3.x, lexer, tmp_buffer)) {
-        check_return(false);
+        return false;
     }
     if (!tkbc_parse_float(&p3.y, lexer, tmp_buffer)) {
-        check_return(false);
+        return false;
     }
     if (cubic) {
         if (!tkbc_parse_float(&p4.x, lexer, tmp_buffer)) {
-            check_return(false);
+            return false;
         }
         if (!tkbc_parse_float(&p4.y, lexer, tmp_buffer)) {
-            check_return(false);
+            return false;
         }
     }
     if (!tkbc_parse_float(&move_duration, lexer, tmp_buffer)) {
-        check_return(false);
+        return false;
     }
     if (!tkbc_parse_float(&angle, lexer, tmp_buffer)) {
-        check_return(false);
+        return false;
     }
     if (!tkbc_parse_float(&rotation_duration, lexer, tmp_buffer)) {
-        check_return(false);
+        return false;
     }
 
     if (cubic) {
         if (add) {
-            tkbc_kite_bezier_cubic_add(env, kis, p2, p3, p4, move_duration, angle, rotation_duration);
+            tkbc_kite_bezier_cubic_add(env, *destination_kis, p2, p3, p4, move_duration, angle, rotation_duration);
         } else {
-            tkbc_kite_bezier_cubic(env, kis, p1, p2, p3, p4, move_duration, angle, rotation_duration);
+            tkbc_kite_bezier_cubic(env, *destination_kis, p1, p2, p3, p4, move_duration, angle, rotation_duration);
         }
     } else {
         if (add) {
-            tkbc_kite_bezier_quadratic_add(env, kis, p2, p3, move_duration, angle, rotation_duration);
+            tkbc_kite_bezier_quadratic_add(env, *destination_kis, p2, p3, move_duration, angle, rotation_duration);
         } else {
-            tkbc_kite_bezier_quadratic(env, kis, p1, p2, p3, move_duration, angle, rotation_duration);
+            tkbc_kite_bezier_quadratic(env, *destination_kis, p1, p2, p3, move_duration, angle, rotation_duration);
         }
     }
 
-check:
-    if (kis.elements) {
-        free(kis.elements);
-        // TODO: use maybe a space allocation in here
-        kis.elements = NULL;
-    }
-    return ok;
+    return true;
 }
 
 /**
@@ -676,10 +636,10 @@ bool tkbc_parse_number_prolog(Lexer *lexer, Content *tmp_buffer) {
 
     tmp_buffer->count = 0;
     if (issign) {
-        tkbc_dap(tmp_buffer, sign);
+        space_tdap(tmp_buffer, sign);
     }
-    tkbc_dapc(tmp_buffer, token.content, token.size);
-    tkbc_dap(tmp_buffer, 0);
+    space_tdapc(tmp_buffer, token.content, token.size);
+    space_tdap(tmp_buffer, 0);
     return true;
 }
 

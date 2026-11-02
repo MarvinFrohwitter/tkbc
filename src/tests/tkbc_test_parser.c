@@ -29,7 +29,7 @@ static Kite_Ids parser_test_setup_env(Env **out_env) {
     tkbc_dap(&env->kite_array, s1);
 
     *out_env = env;
-    return tkbc_indexs_range(0, 2);
+    return tkbc_indexs_range_space(space_get_tspace(), 0, 2);
 }
 
 /**
@@ -47,6 +47,7 @@ static Kite_Ids parser_test_setup_env(Env **out_env) {
  */
 static bool parser_test_parse_bezier(Env *env, Kite_Ids *script_kis, char *source, bool cubic, bool add, bool brace) {
     Kite_Id_Remap remap = {0};
+    Kite_Ids destination_kis = {0};
     Content tmp_buffer = {0};
     // The lexer takes ownership of the content and frees it in lexer_del.
     char *content = strdup(source);
@@ -54,17 +55,12 @@ static bool parser_test_parse_bezier(Env *env, Kite_Ids *script_kis, char *sourc
         return false;
     }
     Lexer *l = lexer_new("bezier-test", content, strlen(content), 0);
-    bool ok = tkbc_parse_bezier_curve(env, l, cubic, add, script_kis, &remap, brace, &tmp_buffer);
+    bool ok =
+        tkbc_parse_bezier_curve(env, l, cubic, add, &destination_kis, script_kis, &remap, brace, &tmp_buffer);
     lexer_del(l);
-    if (tmp_buffer.elements) {
-        free(tmp_buffer.elements);
-    }
-    if (remap.file_ids.elements) {
-        free(remap.file_ids.elements);
-    }
-    if (remap.env_ids.elements) {
-        free(remap.env_ids.elements);
-    }
+    // The parser allocations (destination_kis, tmp_buffer and remap) are owned
+    // by the temporary space and are released by space_free_tspace() in the
+    // tests.
     return ok;
 }
 
@@ -92,7 +88,7 @@ Test parse_bezier_quadratic_curve(void) {
     cassert_float_eq(last->elements[0].action.as_move.position.x, 100.0f);
     cassert_float_eq(last->elements[0].action.as_move.position.y, 0.0f);
 
-    free(script_kis.elements);
+    space_free_tspace();
     tkbc_destroy_env(env);
     return test;
 }
@@ -118,7 +114,7 @@ Test parse_bezier_cubic_curve(void) {
     cassert_float_eq(last->elements[0].action.as_move.position.x, 100.0f);
     cassert_float_eq(last->elements[0].action.as_move.position.y, 0.0f);
 
-    free(script_kis.elements);
+    space_free_tspace();
     tkbc_destroy_env(env);
     return test;
 }
@@ -148,7 +144,7 @@ Test parse_bezier_quadratic_curve_add(void) {
     cassert_float_eq(displacement.x, 100.0f);
     cassert_float_eq(displacement.y, 0.0f);
 
-    free(script_kis.elements);
+    space_free_tspace();
     tkbc_destroy_env(env);
     return test;
 }
@@ -176,7 +172,7 @@ Test parse_bezier_cubic_curve_add(void) {
     cassert_float_eq(displacement.x, 100.0f);
     cassert_float_eq(displacement.y, 0.0f);
 
-    free(script_kis.elements);
+    space_free_tspace();
     tkbc_destroy_env(env);
     return test;
 }
@@ -191,7 +187,7 @@ Test parse_bezier_curve_inside_brace_is_rejected(void) {
     cassert_bool_eq(ok, false);
     cassert_size_t_eq(env->scratch_buf_script.count, (size_t) 0);
 
-    free(script_kis.elements);
+    space_free_tspace();
     tkbc_destroy_env(env);
     return test;
 }

@@ -425,6 +425,22 @@ Kite_Ids tkbc__indexs_append(Space *space, ...) {
 /**
  * @brief The function can be used to create indexes in the given range.
  *
+ * @param space Pointer to the Space structure where the allocations should happen.
+ * @param start The index where to start, it is inclusive.
+ * @param end The index where to end, it is exclusive.
+ * @return The list of generated indexes form the given range.
+ */
+Kite_Ids tkbc_indexs_range_space(Space *space, int start, int end) {
+    Kite_Ids ki = {0};
+    for (; start < end; ++start) {
+        space_dap(space, &ki, start);
+    }
+    return ki;
+}
+
+/**
+ * @brief The function can be used to create indexes in the given range.
+ *
  * @param start The index where to start, it is inclusive.
  * @param end The index where to end, it is exclusive.
  * @return The list of generated indexes form the given range.
