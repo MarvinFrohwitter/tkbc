@@ -1737,6 +1737,7 @@ layout_rerun:
         assert(space->count == 0);
         // This ensures that even when calling mmap the freed value is NULL.
         space->elements = NULL;
+        space->capacity = 0;
     } break;
 #endif
 #if SPACE_MEMORY_LAYOUT_METHOD & SPACE_MEMORY_STUCT_OF_ARRAYS
@@ -1755,6 +1756,7 @@ layout_rerun:
         space->planet_counts = NULL;
         space->planet_capacitys = NULL;
         space->planet_ids = NULL;
+        space->capacity = 0;
 
     } break;
 #endif
