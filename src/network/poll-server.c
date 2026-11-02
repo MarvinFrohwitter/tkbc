@@ -341,8 +341,7 @@ void tkbc_write_to_send_msg_buffer(Client *client, Message message) {
             }
             uint8_t kind = (uint8_t) message.elements[pos + sizeof(uint32_t)];
             if (tkbc_server_message_kind_allowed_before_handshake(kind)) {
-                space_dapc(&client->send_msg_buffer_space, &client->send_msg_buffer, message.elements + pos,
-                           total);
+                space_dapc(&client->send_msg_buffer_space, &client->send_msg_buffer, message.elements + pos, total);
                 appended += total;
             } else {
 #ifdef TKBC_LOGGING_WARNING
@@ -1320,7 +1319,7 @@ bool tkbc_received_message_handler(Client *client) {
                                             is_script_kite);
 
             if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(kite_id, (size_t) client->kite_id,
-                                                                               client->socket_id)) {
+                                                                              client->socket_id)) {
                 goto err;  // Disconnect the client.
             }
 
@@ -1513,11 +1512,14 @@ int main(int argc, char *argv[]) {
 
     for (;;) {
         //
-        // TODO: Set the TARGET_DT to 0.
+        // Set the TARGET_DT to 0 is to fast for the clients the amount of CLIENTKITES messages is allot so even though
+        // it is correct it is not needed to get a smooth enough execution.
         //
-        // The client has to collect the positions before displaying them, if the
-        // server is to fast.
+        // The client will batch all the incoming CLIENTKITES messages but the amount is to hight so just setting it to
+        // TARGET_DT is sufficient.
+        // The execution know is as fast as in an offline client.
         //
+        // Marvin Frohwitter 02.11.2026
         tkbc_make_frame_time(TARGET_DT);
         if (clients_visited >= SERVER_CONNETCTIONS) {
             break;
@@ -1539,18 +1541,20 @@ int main(int argc, char *argv[]) {
             // The second call of socket handling is related to the fact that the
             // base execution can set a POLLWRNORM for clients so a send call has to
             // be called and then poll can wait for reading events.
+            //
+            // Do not skip the rest of the loop when this second poll has no events:
+            // tkbc_make_frame_time() has already consumed this iteration's time
+            // slice, so skipping tkbc_base_execution() would throw that time away
+            // and make scripts run slower than wall-clock time.
             {
                 timeout = 0;  // immediately return
-                int poll_err = tkbc_poll(timeout);
-                if (poll_err == -1) {
+                int write_poll_err = tkbc_poll(timeout);
+                if (write_poll_err == -1) {
                     break;
-                } else if (poll_err == 0) {
-                    continue;
                 }
-            }
-
-            if (!tkbc_script_finished(env) && poll_err > 0) {
-                tkbc_socket_handling();
+                if (write_poll_err > 0 && !tkbc_script_finished(env)) {
+                    tkbc_socket_handling();
+                }
             }
         }
 
