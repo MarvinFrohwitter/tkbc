@@ -1045,7 +1045,7 @@ static Color tkbc_dim_color(Color color, float factor) {
 static void tkbc_draw_kite_with_factor(Kite_State *state, float factor) {
     assert(state);
     assert(state->kite);
-    {  // Clamping to the viewport
+    if (state->is_kite_input_handler_active) {  // Clamping to the viewport
         size_t window_padding = state->kite->width > state->kite->height ? state->kite->width / 2 : state->kite->height;
         Vector2 window = {
             tkbc_get_screen_width() - window_padding,
@@ -1170,7 +1170,11 @@ void tkbc_update_kites_for_resize_window(Env *env) {
 
     if (env->window_width != width || env->window_height != height) {
         for (size_t i = 0; i < env->kite_array.count; ++i) {
-            Kite *kite = env->kite_array.elements[i].kite;
+            Kite_State *kite_state = &env->kite_array.elements[i];
+            if (kite_state->is_script_kite) {
+                continue;
+            }
+            Kite *kite = kite_state->kite;
             kite->center.x = kite->center.x / (float) env->window_width * (float) width;
             kite->center.y = kite->center.y / (float) env->window_height * (float) height;
             kite->old_center.x = kite->old_center.x / (float) env->window_width * (float) width;
