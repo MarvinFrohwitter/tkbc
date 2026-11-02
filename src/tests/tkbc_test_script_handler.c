@@ -1013,7 +1013,7 @@ Test export_script_to_dot_kite_file_from_mem_writes_original(void) {
     }
     // Download the upscaled script: the file must contain the single
     // authored MOVE + QUIT, not twelve slice MOVEs.
-    const char *path = "export_original_test.kite";
+    const char *path = "build/export_original_test.kite";
     cassert_int_eq(tkbc_export_script_to_dot_kite_file_from_mem(&script, path), 0);
     FILE *exported = fopen(path, "rb");
     cassert_ptr_neq(exported, NULL);
