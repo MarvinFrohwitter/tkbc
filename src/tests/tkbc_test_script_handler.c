@@ -897,6 +897,78 @@ Test upscale_script_quit_alone_acts_global(void) {
     return test;
 }
 
+Test render_frame_duration_guard_finishes_fighting_moves(void) {
+    Test test = cassert_init_test("tkbc_render_frame_with_dt(DURATION_GUARD)");
+    Env *env = tkbc_init_env();
+    Kite_State s0 = tkbc_init_kite();
+    s0.kite_id = 0;
+    s0.is_active = true;
+    s0.is_script_kite = true;
+    Vector2 start = {.x = 0, .y = 0};
+    tkbc_center_rotation(s0.kite, &start, 0);
+    s0.kite->old_center = s0.kite->center;
+    s0.kite->old_angle = s0.kite->angle;
+    tkbc_dap(&env->kite_array, s0);
+
+    Script script = {0};
+    space_init_capacity(&script.space, 64);
+    Frames block = {0};
+    // An absolute move towards 100 and a relative move towards -100 fight
+    // over the same kite, so neither frame can ever report target reached.
+    {
+        Frame move = {0};
+        move.kind = ACTION_KITE_MOVE;
+        move.action.as_move.position = (Vector2){.x = 100.0f, .y = 0.0f};
+        move.duration = 1.0f;
+        move.original_duration = 1.0f;
+        move.index = 0;
+        space_dap(&script.space, &move.kite_id_array, (Id) 0);
+        space_dap(&script.space, &block, move);
+    }
+    {
+        Frame add = {0};
+        add.kind = ACTION_KITE_MOVE_ADD;
+        add.action.as_move_add.position = (Vector2){.x = -100.0f, .y = 0.0f};
+        add.duration = 1.0f;
+        add.original_duration = 1.0f;
+        add.index = 1;
+        space_dap(&script.space, &add.kite_id_array, (Id) 0);
+        space_dap(&script.space, &block, add);
+    }
+    block.frames_index = 0;
+    Kite_Position kp = {.kite_id = 0, .position = start, .angle = 0};
+    space_dap(&script.space, &block.kite_frame_positions, kp);
+    space_dap(&script.space, &script, block);
+
+    env->script = &script;
+    env->frames = &script.elements[0];
+
+    // Three quarters of the duration: still running, because no target is
+    // reached.
+    for (int i = 0; i < 3; ++i) {
+        tkbc_render_frame_with_dt(env, &env->frames->elements[0], 0.25f);
+        tkbc_render_frame_with_dt(env, &env->frames->elements[1], 0.25f);
+    }
+    cassert_bool_eq(env->frames->elements[0].finished, false);
+    cassert_bool_eq(env->frames->elements[1].finished, false);
+
+    // At the full duration both frames must finish, even though the kite is
+    // not at either target.
+    tkbc_render_frame_with_dt(env, &env->frames->elements[0], 0.25f);
+    tkbc_render_frame_with_dt(env, &env->frames->elements[1], 0.25f);
+    cassert_bool_eq(env->frames->elements[0].finished, true);
+    cassert_bool_eq(env->frames->elements[1].finished, true);
+    cassert_float_eq(env->frames->elements[0].duration, 0.0f);
+    cassert_float_eq(env->frames->elements[1].duration, 0.0f);
+    Kite *kite = tkbc_get_kite_by_id(env, 0);
+    cassert_bool_eq(fabsf(kite->center.x - 100.0f) < 0.01f, false);
+    cassert_bool_eq(fabsf(kite->center.x + 100.0f) < 0.01f, false);
+
+    space_free_space(&script.space);
+    tkbc_destroy_env(env);
+    return test;
+}
+
 static size_t count_occurrences(const char *haystack, const char *needle) {
     size_t n = 0;
     size_t len = strlen(needle);
@@ -1001,5 +1073,6 @@ void tkbc_test_script_handler(Tests *tests) {
     cassert_dap(tests, simulate_script_and_bake_positions_repairs_slice_chain());
     cassert_dap(tests, upscale_script_quit_mixed_block());
     cassert_dap(tests, upscale_script_quit_alone_acts_global());
+    cassert_dap(tests, render_frame_duration_guard_finishes_fighting_moves());
     cassert_dap(tests, export_script_to_dot_kite_file_from_mem_writes_original());
 }

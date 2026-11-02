@@ -544,6 +544,9 @@ static Vector2 tkbc_combined_move_destination(Kite *kite, Frame *tip_frame, Vect
 void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
     Kite *kite = NULL;
     Frame *env_frame = &env->frames->elements[frame->index];
+    // Interpolation keeps using the full action time while the remaining
+    // duration is counted down separately as the hard finish guard.
+    const float action_duration = frame->original_duration;
 
     assert(ACTION_KIND_COUNT == 9 && "NOT ALL THE Action_Kinds ARE IMPLEMENTED");
     switch (frame->kind) {
@@ -558,10 +561,7 @@ void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
         }
     } /* FALLTHROUGH */
     case ACTION_KITE_WAIT: {
-        if (frame->duration <= 0) {
-            frame->finished = true;
-            frame->duration = 0;
-        } else {
+        if (frame->duration > 0) {
             frame->duration -= dt;
         }
     } break;
@@ -578,13 +578,11 @@ void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
             if (tip_frame) {
                 dest_position = tkbc_combined_move_destination(kite, tip_frame, action->position);
             }
-            Vector2 d = tkbc_script_move_with_dt(kite, dest_position, frame->duration, dt);
+            Vector2 d = tkbc_script_move_with_dt(kite, dest_position, action_duration, dt);
 
             if (Vector2Equals(dest_position, kite->old_center)) {
-                frame->duration -= dt;
-                if (frame->duration <= 0) {
-                    frame->finished = true;
-                }
+                // The frame still has to wait out its duration. The countdown
+                // at the end of this function finishes it.
                 continue;
             }
 
@@ -605,18 +603,11 @@ void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
             Id id = env_frame->kite_id_array.elements[i];
             kite = tkbc_get_kite_by_id_unwrap(env, id);
 
-            Vector2 d = tkbc_script_move_with_dt(kite, action->position, frame->duration, dt);
+            Vector2 d = tkbc_script_move_with_dt(kite, action->position, action_duration, dt);
 
             if (Vector2Equals(action->position, Vector2Zero())) {
-                if (frame->duration > 0) {
-                    frame->duration -= dt;
-                    continue;
-                }
-                bool result = fabsf(action->position.x - kite->center.x) <= d.x &&
-                              fabsf(action->position.y - kite->center.y) <= d.y;
-                if (result) {
-                    frame->finished = true;
-                }
+                // A move to the origin is a timed hold; the countdown at the
+                // end of this function finishes it.
                 continue;
             }
 
@@ -637,12 +628,10 @@ void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
             Id id = env_frame->kite_id_array.elements[i];
             kite = tkbc_get_kite_by_id_unwrap(env, id);
 
-            float d = tkbc_script_rotate_with_dt(kite, action->angle, frame->duration, true, dt);
+            float d = tkbc_script_rotate_with_dt(kite, action->angle, action_duration, true, dt);
             if (action->angle == 0) {
-                frame->duration -= dt;
-                if (frame->duration <= 0) {
-                    frame->finished = true;
-                }
+                // A zero-angle rotation is a timed hold; the countdown at the
+                // end of this function finishes it.
                 continue;
             }
 
@@ -662,18 +651,12 @@ void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
             Id id = env_frame->kite_id_array.elements[i];
             kite = tkbc_get_kite_by_id_unwrap(env, id);
 
-            float intermediate_angle = tkbc_check_angle_zero(kite, frame->kind, *(Action *) action, frame->duration);
-            float d = tkbc_script_rotate_with_dt(kite, intermediate_angle, frame->duration, false, dt);
+            float intermediate_angle = tkbc_check_angle_zero(kite, frame->kind, *(Action *) action, action_duration);
+            float d = tkbc_script_rotate_with_dt(kite, intermediate_angle, action_duration, false, dt);
 
             if (action->angle == 0) {
-                if (frame->duration > 0) {
-                    frame->duration -= dt;
-                    continue;
-                }
-                bool result = fabsf(kite->angle) <= d * fmaxf(1.0f, fabsf(kite->angle));
-                if (result) {
-                    frame->finished = true;
-                }
+                // A zero-angle rotation is a timed hold; the countdown at the
+                // end of this function finishes it.
                 continue;
             }
 
@@ -700,15 +683,13 @@ void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
 
             float d;
             if (has_move) {
-                d = tkbc_script_rotate_with_dt(kite, action->angle, frame->duration, true, dt);
+                d = tkbc_script_rotate_with_dt(kite, action->angle, action_duration, true, dt);
             } else {
-                d = tkbc_script_rotate_tip_with_dt(kite, action->tip, action->angle, frame->duration, true, dt);
+                d = tkbc_script_rotate_tip_with_dt(kite, action->tip, action->angle, action_duration, true, dt);
             }
             if (action->angle == 0) {
-                frame->duration -= dt;
-                if (frame->duration <= 0) {
-                    frame->finished = true;
-                }
+                // A zero-angle rotation is a timed hold; the countdown at the
+                // end of this function finishes it.
                 continue;
             }
 
@@ -732,24 +713,18 @@ void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
             kite = tkbc_get_kite_by_id_unwrap(env, id);
 
             bool has_move = tkbc_kite_has_move_in_block(env, id);
-            float intermediate_angle = tkbc_check_angle_zero(kite, frame->kind, *(Action *) action, frame->duration);
+            float intermediate_angle = tkbc_check_angle_zero(kite, frame->kind, *(Action *) action, action_duration);
 
             float d;
             if (has_move) {
-                d = tkbc_script_rotate_with_dt(kite, intermediate_angle, frame->duration, false, dt);
+                d = tkbc_script_rotate_with_dt(kite, intermediate_angle, action_duration, false, dt);
             } else {
-                d = tkbc_script_rotate_tip_with_dt(kite, action->tip, intermediate_angle, frame->duration, false, dt);
+                d = tkbc_script_rotate_tip_with_dt(kite, action->tip, intermediate_angle, action_duration, false, dt);
             }
 
             if (action->angle == 0) {
-                if (frame->duration > 0) {
-                    frame->duration -= dt;
-                    continue;
-                }
-                bool result = fabsf(kite->angle) <= d * fmaxf(1.0f, fabsf(kite->angle));
-                if (result) {
-                    frame->finished = true;
-                }
+                // A zero-angle rotation is a timed hold; the countdown at the
+                // end of this function finishes it.
                 continue;
             }
 
@@ -767,6 +742,17 @@ void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
     } break;
 
     default: assert(0 && "UNREACHABLE tkbc_render_frame()");
+    }
+
+    // Count down every action frame exactly once per update. WAIT has its own
+    // countdown and QUIT uses the global quit timer.
+    if (frame->kind != ACTION_KITE_WAIT && frame->kind != ACTION_KITE_QUIT) {
+        frame->duration -= dt;
+    }
+
+    if (frame->duration <= 0) {
+        frame->duration = 0;
+        frame->finished = true;
     }
 }
 
