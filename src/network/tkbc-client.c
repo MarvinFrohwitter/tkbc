@@ -1313,7 +1313,7 @@ static void offline_creation(Env *env) {
     // kite.
     Kite_State s = tkbc_init_kite();
     s.is_active = true;
-    s.kite_id = env->kite_id_counter++;
+    s.kite_id = CLIENT_BASE_ID;  // This is needed so that when parsing .kite files this id can not land in a script.
     client.kite_id = s.kite_id;
     s.is_kite_input_handler_active = true;
     client_kite = *s.kite;

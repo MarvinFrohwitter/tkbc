@@ -286,7 +286,7 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
             }
             size_t file_id = (size_t) number;
             Id env_id;
-            if (tkbc_parsed_kis_is_in_env(env, file_id)) {
+            if (tkbc_parsed_kis_is_in_env(env, file_id) && file_id != CLIENT_BASE_ID) {
                 env_id = file_id;
             } else if (file_id < orig_kis->count) {
                 env_id = orig_kis->elements[file_id];
@@ -304,6 +304,7 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
                     if (generated.count == 0) {
                         return false;
                     }
+                    env->kite_array.elements[env->kite_array.count - 1].is_script_kite = true;
                     env_id = generated.elements[0];
                     free(generated.elements);
                     // Generated kites stay hidden until the script is loaded;
