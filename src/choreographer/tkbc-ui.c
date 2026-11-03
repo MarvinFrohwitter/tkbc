@@ -233,7 +233,7 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, 
 
     if (env->colorizer) {
         Rectangle shadow = *view_background;
-        tkbc_draw_shadow(shadow, *view_scale);
+        tkbc_draw_shadow(shadow);
 
         shadow.y -= shadow.height * 0.05;
         shadow.x -= shadow.width * 0.05;
@@ -1275,11 +1275,11 @@ void tkbc_set_input_text_to_hex_color(Text_Input *input, Space *space, Color col
  * @brief The function draws a shadow effect around a rectangle with multiple
  * layered opacity levels.
  *
- * @param shadow The rectangle to draw the shadow around.
- * @param original_scale The scale factor for the shadow.
+ * @param shadow The rectangle to draw the shadow around. This is the displayed
+ * size of the texture, independent of its source resolution.
  * @return The maximum Rectangle the shadow needs.
  */
-Rectangle tkbc_draw_shadow(Rectangle shadow, float original_scale) {
+Rectangle tkbc_draw_shadow(Rectangle shadow) {
     static float opacities[] = {0.08f,  0.089f, 0.098f, 0.107f, 0.116f, 0.125f, 0.134f, 0.143f, 0.152f, 0.161f,
                                 0.170f, 0.179f, 0.188f, 0.197f, 0.206f, 0.215f, 0.224f, 0.233f, 0.242f, 0.251f,
                                 0.260f, 0.269f, 0.278f, 0.287f, 0.296f, 0.305f, 0.314f, 0.323f, 0.332f, 0.35f};
@@ -1361,22 +1361,19 @@ Rectangle tkbc_draw_shadow(Rectangle shadow, float original_scale) {
         DrawSplineSegmentBezierCubic(p1, c2, c3, p4, thickness, ColorAlpha(TEAL, ALPHA_RATIO));
     }
 
-    float radius = floor.height * 0.4;
-    Vector2 displayment_top_center = {
-        .x = orig_shadow.x + orig_shadow.width / 2.0f,
-        .y = orig_shadow.y - floor.height / 2,
+    float radius = floor.height * 0.35;
+    // This factor is just for revolutions CE-NG for other kites it can be different.
+    float factor = 0.8825f;
+    Vector2 p1 = {
+        .x = floor.x + floor.width * factor,
+        .y = floor.y + floor.height / 2,
     };
-
-    Kite k = {0};
-    tkbc_set_kite_defaults(&k, false);
-
-    tkbc_kite_update_scale(&k, original_scale * 2.08);
-
-    tkbc_kite_update_position(&k, &displayment_top_center);
-
-    DrawCircleGradient(k.left.v2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
-
-    DrawCircleGradient(k.right.v2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
+    Vector2 p2 = {
+        .x = floor.x + floor.width - floor.width * factor,
+        .y = floor.y + floor.height / 2,
+    };
+    DrawCircleGradient(p1, radius, WHITE, TKBC_UI_GRAY_ALPHA);
+    DrawCircleGradient(p2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
 
     return box;
 }
@@ -2862,7 +2859,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         shadow.y = display_box.y;
         shadow.width = t.width * scale;
         shadow.height = t.height * scale;
-        tkbc_draw_shadow(shadow, scale);
+        tkbc_draw_shadow(shadow);
         DrawTextureEx(t, (Vector2){.x = display_box.x, .y = display_box.y}, 0, scale, WHITE);
 
         shadow.y -= ring_box_y_width;
@@ -2932,7 +2929,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         shadow.y = display_box.y;
         shadow.width = t.width * scale;
         shadow.height = t.height * scale;
-        Rectangle shadow_box = tkbc_draw_shadow(shadow, scale);
+        Rectangle shadow_box = tkbc_draw_shadow(shadow);
         DrawTextureEx(t, (Vector2){.x = display_box.x, .y = display_box.y}, 0, scale, WHITE);
 
         float shadow_thick_y = (shadow_box.y - display_box.y);
