@@ -1507,7 +1507,7 @@ void tkbc_connection_input(Env *env, Popup *popup, const char *host_default, con
     port_input->is_active = !host_input->is_active;
     tkbc_handle_text_input(port_input, &connection_input_space);
     host_input->is_active = !port_input->is_active;
-    env->text_input_active = host_input->is_active || port_input->is_active;
+    env->text_input_active |= host_input->is_active || port_input->is_active;
 }
 
 /**

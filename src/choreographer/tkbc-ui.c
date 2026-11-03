@@ -998,36 +998,17 @@ bool tkbc_ui_script_menu(Env *env) {
         const char *name = tkbc_text_input_cstr(&script->name_input);
         text_size = tkbc_reduce_str_to_fit_box(env->font, name, &font_size, spacing, script_box);
 
-        Rectangle text_element_box = script_box;
-        text_element_box.width -= delete_circle_radius * 2;
-        text_element_box.width -= 2 * padding;
-        text_element_box.x += padding;
-
         {
+            Rectangle text_element_box = script_box;
+            text_element_box.width -= delete_circle_radius * 2;
+            text_element_box.width -= 2 * padding;
+            text_element_box.x += padding;
+
             script->name_input.box = text_element_box;
             script->name_input.font_size = font_size;
 
-            // Right-click inside the box activates via
-            // tkbc_activate_script_text_input. Any click outside the box
-            // deactivates again, clicks inside never deactivate so cursor
-            // placement and drag-selection keep working while active.
-            bool inside = CheckCollisionPointRec(mouse, script->name_input.box);
-            if (!inside && (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))) {
-                script->name_input.is_active = false;
-                script->name_input.selection_start = SIZE_MAX;
-            }
-
             tkbc_handle_text_input(&script->name_input, &script->space);
-
-            if (script->name_input.is_active) {
-                // ESC is handled centrally in tkbc_handle_text_input, which
-                // deactivates the field and clears its selection above.
-                if (IsKeyPressed(KEY_ENTER)) {
-                    script->name_input.is_active = false;
-                } else {
-                    env->text_input_active = true;
-                }
-            }
+            env->text_input_active |= script->name_input.is_active;
         }
 
         script_box.y += script_box.height + padding;
@@ -1420,7 +1401,6 @@ void tkbc_ui_color_picker(Env *env) {
         // Clear stale focus so a hex field that was active before the picker
         // was closed can not block kite selection (KEY_ONE..NINE) and timeline
         // scrubbing via a stuck text_input_active state.
-        // env->color_picker_input.is_active = false;
         env->color_picker_input_mouse_interaction = false;
         return;
     }
@@ -1480,23 +1460,9 @@ void tkbc_ui_color_picker(Env *env) {
         if (env->color_picker_input.text.elements) {
             tkbc_strtoupper(env->color_picker_input.text.elements);
         }
-        // ESC is handled centrally in tkbc_handle_text_input, which
 
-        // deactivates the field and clears its selection.
-        if (IsKeyPressed(KEY_ENTER)) {
-            env->color_picker_input.is_active = false;
-        }
-        // Clicking outside the hex field releases focus again. Otherwise the
-        // field stays active forever (it only deactivates on ENTER/ESC), steals
-        // KEY_ONE..NINE as hex input instead of kite (de)selection and keeps
-        // text_input_active true, which blocks both the kite input handler and
-        // timeline scrubbing.
-        if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) &&
-            !CheckCollisionPointRec(mouse, input_box)) {
-            env->color_picker_input.is_active = false;
-        }
+        env->text_input_active |= env->color_picker_input.is_active;
         env->color_picker_input_mouse_interaction = env->color_picker_input.is_active;
-        env->text_input_active = env->color_picker_input.is_active;
 
         if (env->color_picker_input.text.count == HEX_COLOR_LENGTH) {
             env->last_selected_color =
@@ -2124,11 +2090,8 @@ void tkbc_ui_keymaps(Env *env) {
         }
 
         env->keymaps_search_input.box.width -= 2 * case_insensitive_circle_radius;
-        if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) &&
-            !CheckCollisionPointRec(mouse, env->keymaps_search_input.box)) {
-            env->keymaps_search_input.is_active = false;
-        }
         tkbc_handle_text_input(&env->keymaps_search_input, &env->keymaps_search_input_space);
+        env->text_input_active |= env->keymaps_search_input.is_active;
 
         if (env->keymaps_search_input.is_active) {
             if (env->keymaps_search_input.text.count) {
@@ -2432,6 +2395,16 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
     // cursor leaves the visible area.
     Vector2 text_size =
         tkbc_measure_text_sized_ex(input->font, cstr, (int) initial_char_amount, input->font_size, input->spacing);
+
+    if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) &&
+        !CheckCollisionPointRec(GetMousePosition(), input->box)) {
+        input->is_active = false;
+        input->selection_start = SIZE_MAX;
+    }
+
+    if (IsKeyPressed(KEY_ENTER)) {
+        input->is_active = false;
+    }
 
     if (input->activate
             ? input->activate(input, input->user_data)
