@@ -2124,6 +2124,10 @@ void tkbc_ui_keymaps(Env *env) {
         }
 
         env->keymaps_search_input.box.width -= 2 * case_insensitive_circle_radius;
+        if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) &&
+            !CheckCollisionPointRec(mouse, env->keymaps_search_input.box)) {
+            env->keymaps_search_input.is_active = false;
+        }
         tkbc_handle_text_input(&env->keymaps_search_input, &env->keymaps_search_input_space);
 
         if (env->keymaps_search_input.is_active) {
