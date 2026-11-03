@@ -275,6 +275,12 @@ void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id
         .normal = LoadTextureFromImage(kite_image.normal),
     };
     GenTextureMipmaps(&asset->as.kite_texture.normal);
+    // Kite textures are drawn at arbitrary (fractional) positions and scales.
+    // With the default repeat wrap the sampling of the outermost edge can wrap
+    // around to the opposite edge, which made the top pixel row of a texture
+    // show up at its bottom. Clamping keeps the edge pixels in place.
+    SetTextureWrap(asset->as.kite_texture.normal, TEXTURE_WRAP_CLAMP);
+    SetTextureFilter(asset->as.kite_texture.normal, TEXTURE_FILTER_BILINEAR);
 }
 
 /**
@@ -472,4 +478,3 @@ bool tkbc_is_default_kite_design(Assets *assets, UUID uuid) {
 
     return false;
 }
-
