@@ -10,7 +10,7 @@ Cmd cmd = {0};
 
 #define shift(array, size) (assert(0 < (size)), (size)--, *(array)++)
 // #define CC "gcc"
-#define CC "gcc"
+#define CC "clang"
 #define BUILD_PATH "build/"
 #define ASSETS_PATH "assets/"
 #define METAPROGRAMMING_PATH "metaprogramming/"

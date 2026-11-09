@@ -14,6 +14,10 @@
 #include "../global/tkbc-utils.h"
 #undef TKBC_UTILS_IMPLEMENTATION
 
+#define ORBIT_IMPLEMENTATION
+#include "../../external/orbit/orbit.h"
+#undef ORBIT_IMPLEMENTATION
+
 #include "tkbc-client.h"
 #include "tkbc-network-common.h"
 
