@@ -6,6 +6,10 @@
 #include "../global/tkbc-utils.h"
 #undef TKBC_UTILS_IMPLEMENTATION
 
+#define ORBIT_IMPLEMENTATION
+#include "../../external/orbit/orbit.h"
+#undef ORBIT_IMPLEMENTATION
+
 #include "tkbc_test_geometrics.c"
 #include "tkbc_test_kite_array.c"
 #include "tkbc_test_script_handler.c"
