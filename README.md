@@ -2,12 +2,8 @@
 
 - The choreography creator.
 
-- The dependency is version 6.0:
-- Original Raylib 6.0 Source Code: <https://github.com/raysan5/raylib/releases/tag/6.0>
-- For commits older than c4d20d8 the used library is:
-- Original Raylib 5.5 Source Code: <https://github.com/raysan5/raylib/releases/tag/5.5>
-- For commits older than fb53c95 the used library is:
-- Original Raylib 5.0 Source Code: <https://github.com/raysan5/raylib/releases/tag/5.0>
+- The dependency is version 6.2:
+- Original Raylib 6.2 Source Code: <https://github.com/raysan5/raylib/releases/tag/6.2>
 
 - The dependency is TCC 0.9.28rc:
 - Original Tiny C Compiler Source Code: <https://github.com/TinyCC/tinycc.git>
