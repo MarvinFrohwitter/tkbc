@@ -4,7 +4,9 @@
 #include <errno.h>
 
 #include <libgen.h>
+#include <pthread.h>
 
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,21 +14,34 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <unistd.h>
+
 #define TKBC_UTILS_IMPLEMENTATION
 #include "../src/global/tkbc-utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../external/stb/stb_image.h"
 
-bool transpile_png_to_h(const char *image_file_path, const char *name, Content *result) {
+bool transpile_png_to_h(const char *image_file_path, const char *name) {
     bool ok = true;
+    Content data = {0};
+    Content file_data = {0};
     fprintf(stderr, "INFO: .................................\n");
     fprintf(stderr, "INFO: Converting %s ...\n", image_file_path);
 
+    // Only the dimensions are needed at build time. The actual pixel data is
+    // kept in its compressed PNG form and decoded by raylib at runtime with
+    // LoadImageFromMemory. That keeps the generated headers (and therefore
+    // the binaries) small.
     int x, y, comp;
-    unsigned char *image_data = stbi_load(image_file_path, &x, &y, &comp, 4);
-    if (image_data == NULL) {
-        fprintf(stderr, "ERROR: could not load image data form file!\n");
+    if (!stbi_info(image_file_path, &x, &y, &comp)) {
+        fprintf(stderr, "ERROR: could not read image information from file!\n");
+        fprintf(stderr, "INFO: .................................\n");
+        check_return(false);
+    }
+
+    if (tkbc_read_entire_file(image_file_path, &file_data) < 0) {
+        fprintf(stderr, "ERROR: could not read image file!\n");
         fprintf(stderr, "INFO: .................................\n");
         check_return(false);
     }
@@ -39,29 +54,27 @@ bool transpile_png_to_h(const char *image_file_path, const char *name, Content *
     }
     *dot = '\0';
 
-    Content data = {0};
     char *name_upper = tkbc_strtoupper(strdup(name));
     char *name_lower = tkbc_strtolower(strdup(name));
     tkbc_dapf(&data, "#define IMAGE_%s_WIDTH %d\n", name_upper, x);
     tkbc_dapf(&data, "#define IMAGE_%s_HEIGHT %d\n", name_upper, y);
-    tkbc_dapf(&data, "#define IMAGE_%s_FORMAT %s\n", name_upper, STR(PIXELFORMAT_UNCOMPRESSED_R8G8B8A8));
+    // tkbc_dapf(&data, "#define IMAGE_%s_FORMAT %s\n", name_upper, STR(PIXELFORMAT_UNCOMPRESSED_R8G8B8A8));
+    tkbc_dapf(&data, "#define IMAGE_%s_FILE_TYPE \".png\"\n", name_upper);
 
-    tkbc_dapf(&data,
-              "\nstatic unsigned char "
-              "asset_image_%s[IMAGE_%s_WIDTH*IMAGE_%s_HEIGHT*%d] = {\n",
-              name_lower, name_upper, name_upper, comp);
+    tkbc_dapf(&data, "\nstatic const unsigned char asset_image_%s[%zu] = {\n", name_lower,
+              (size_t) file_data.count);
     free(name_upper);
     free(name_lower);
     *dot = '.';
 
     int line_comp = 15;
-    for (size_t i = 0; i < (size_t) x * y * comp; ++i) {
+    for (size_t i = 0; i < (size_t) file_data.count; ++i) {
         if (i == 0) {
             tkbc_dapf(&data, "    ");
         } else if (i % line_comp == 0) {
             tkbc_dapf(&data, "\n    ");
         }
-        tkbc_dapf(&data, "0x%02X,", image_data[i]);
+        tkbc_dapf(&data, "0x%02X,", (unsigned char) file_data.elements[i]);
     }
 
     if (data.elements[data.count - 1] == ',') {
@@ -81,7 +94,6 @@ bool transpile_png_to_h(const char *image_file_path, const char *name, Content *
     *(dot + 1) = 'h';
     *(dot + 2) = '\0';
 
-    tkbc_dapc(result, data.elements, data.count);
     int res = tkbc_write_file(image_file_path, data.elements, data.count);
     if (res < 0) {
         fprintf(stderr, "ERROR: could not write image data to file!\n");
@@ -99,9 +111,92 @@ bool transpile_png_to_h(const char *image_file_path, const char *name, Content *
     }
 
 check:
-    free(image_data);
+    free(file_data.elements);
     free(data.elements);
     return ok;
+}
+
+// ===========================================================================
+// Parallel asset conversion
+// ===========================================================================
+
+typedef struct {
+    const Dir_Entry *entry;
+    bool ok;
+} Transpile_Task;
+
+typedef struct {
+    Transpile_Task *tasks;
+    size_t task_count;
+    atomic_size_t next_task;
+
+    // Completion barrier: counts down for every finished task. The main thread
+    // waits here until all file handling is done.
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    size_t pending_tasks;
+} Transpile_Pool;
+
+typedef struct {
+    Transpile_Pool *pool;
+} Transpile_Worker_Args;
+
+static void transpile_pool_init(Transpile_Pool *pool, Transpile_Task *tasks, size_t task_count) {
+    pool->tasks = tasks;
+    pool->task_count = task_count;
+    atomic_init(&pool->next_task, 0);
+    pthread_mutex_init(&pool->mutex, NULL);
+    pthread_cond_init(&pool->cond, NULL);
+    pool->pending_tasks = task_count;
+}
+
+static void transpile_pool_destroy(Transpile_Pool *pool) {
+    pthread_mutex_destroy(&pool->mutex);
+    pthread_cond_destroy(&pool->cond);
+}
+
+static void transpile_pool_wait(Transpile_Pool *pool) {
+    pthread_mutex_lock(&pool->mutex);
+    while (pool->pending_tasks > 0) {
+        pthread_cond_wait(&pool->cond, &pool->mutex);
+    }
+    pthread_mutex_unlock(&pool->mutex);
+}
+
+static void *transpile_worker(void *arg) {
+    Transpile_Pool *pool = ((Transpile_Worker_Args *) arg)->pool;
+    for (;;) {
+        size_t i = atomic_fetch_add(&pool->next_task, 1);
+        if (i >= pool->task_count) {
+            break;
+        }
+
+        Transpile_Task *task = &pool->tasks[i];
+        task->ok = transpile_png_to_h(task->entry->full_path, task->entry->name);
+
+        pthread_mutex_lock(&pool->mutex);
+        pool->pending_tasks--;
+        if (pool->pending_tasks == 0) {
+            pthread_cond_signal(&pool->cond);
+        }
+        pthread_mutex_unlock(&pool->mutex);
+    }
+    return NULL;
+}
+
+static size_t transpile_thread_count(size_t task_count) {
+    size_t thread_count = 0;
+    long nproc = sysconf(_SC_NPROCESSORS_ONLN);
+    if (nproc > 0) {
+        thread_count = (size_t) nproc;
+    }
+    if (thread_count == 0) {
+        thread_count = 4;
+    }
+    if (thread_count > task_count) {
+        thread_count = task_count;
+    }
+    return thread_count;
 }
 
 #define BUILD_PATH "build/"
@@ -123,7 +218,6 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Usage: %s <path> [path..]\n", program_name);
         return 1;
     }
-    bool append = false;
     while (argc > 0) {
         char *path = shift(argv, argc);
         if (strcmp(path, "") == 0) {
@@ -142,8 +236,6 @@ int main(int argc, char **argv) {
                                    .full_path = strdup(path),
                                    .type = DT_REG,
                                }));
-
-            append = true;
         } else if (S_ISDIR(file_type)) {
             bool ok = read_dir_recursive(path, &entries);
             if (!ok) {
@@ -154,79 +246,70 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        Content combined = {0};
+        size_t png_count = 0;
         for (size_t i = 0; i < entries.count; ++i) {
-            if (0) {
-                if (strstr(entries.elements[i].full_path, ".h") != 0) {
-                    printf("removed: %s\n", entries.elements[i].full_path);
-                    // int rr = remove(dir_entrys.elements[i].full_path);
-                    // if (rr < 0) {
-                    //   printf("ERROR: could not remove %s: %s\n",
-                    //          dir_entrys.elements[i].full_path, strerror(errno));
-                    // }
+            const char *name = entries.elements[i].name;
+            if (strstr(name, ".png") && *name != '.') {
+                png_count++;
+            }
+        }
+
+        if (png_count > 0) {
+            Transpile_Task *tasks = calloc(png_count, sizeof(*tasks));
+            if (tasks == NULL) {
+                fprintf(stderr, "ERROR: could not allocate the asset tasks!\n");
+                free_dir_entrys(entries);
+                continue;
+            }
+
+            size_t task_count = 0;
+            for (size_t i = 0; i < entries.count; ++i) {
+                const char *name = entries.elements[i].name;
+                if (strstr(name, ".png") && *name != '.') {
+                    tasks[task_count].entry = &entries.elements[i];
+                    tasks[task_count].ok = false;
+                    task_count++;
                 }
             }
 
-            if (strstr(entries.elements[i].name, ".png") && *entries.elements[i].name != '.') {
-                transpile_png_to_h(entries.elements[i].full_path, entries.elements[i].name, &combined);
+            Transpile_Pool pool = {0};
+            transpile_pool_init(&pool, tasks, task_count);
+
+            size_t thread_count = transpile_thread_count(task_count);
+            pthread_t *threads = calloc(thread_count, sizeof(*threads));
+            Transpile_Worker_Args *worker_args = calloc(thread_count, sizeof(*worker_args));
+            size_t threads_started = 0;
+            if (threads != NULL && worker_args != NULL) {
+                for (size_t i = 0; i < thread_count; ++i) {
+                    worker_args[i].pool = &pool;
+                    if (pthread_create(&threads[i], NULL, transpile_worker, &worker_args[i]) != 0) {
+                        fprintf(stderr, "WARNING: could only start %zu worker threads!\n", threads_started);
+                        break;
+                    }
+                    threads_started++;
+                }
             }
+
+            // The main thread helps with the remaining tasks (and does all of
+            // the work if no worker thread could be started).
+            Transpile_Worker_Args main_args = {.pool = &pool};
+            transpile_worker(&main_args);
+
+            // Barrier: every worker has to finish its file handling before the
+            // worker threads are joined.
+            transpile_pool_wait(&pool);
+
+            for (size_t i = 0; i < threads_started; ++i) {
+                pthread_join(threads[i], NULL);
+            }
+
+            free(worker_args);
+            free(threads);
+            transpile_pool_destroy(&pool);
+            free(tasks);
         }
 
-        const char *combined_file_name = "combind_assets.h";
-        char *parent_full_path = realpath(path, NULL);
-        if (!parent_full_path) {
-            free(combined.elements);
-            free_dir_entrys(entries);
-            continue;
-        }
-
-        parent_full_path = dirname(parent_full_path);
-        int n;
-        if (append) {
-            n = snprintf(NULL, 0, "%s/%s", parent_full_path, combined_file_name);
-        } else {
-            n = snprintf(NULL, 0, "%s/%s", path, combined_file_name);
-        }
-        if (n < 0) {
-            free(combined.elements);
-            free_dir_entrys(entries);
-            continue;
-        }
-        n += 1;
-        char *final_path = malloc(n * sizeof(char));
-        if (!final_path) {
-            free(combined.elements);
-            free_dir_entrys(entries);
-            continue;
-        }
-        if (append) {
-            n = snprintf(final_path, n, "%s/%s", parent_full_path, combined_file_name);
-        } else {
-            n = snprintf(final_path, n, "%s/%s", path, combined_file_name);
-        }
-        free(parent_full_path);
-        if (n < 0) {
-            free(final_path);
-            free(combined.elements);
-            free_dir_entrys(entries);
-            continue;
-        }
-
-        int res = 0;
-        if (append) {
-            res = tkbc_append_file(final_path, combined.elements, combined.count);
-        } else {
-            res = tkbc_write_file(final_path, combined.elements, combined.count);
-        }
-        if (res < 0) {
-            fprintf(stderr, "ERROR: could not write combined data to file!\n");
-        } else {
-            fprintf(stderr, "Successfully written combined: %s\n", path);
-        }
-
-        free(final_path);
         free_dir_entrys(entries);
-        free(combined.elements);
     }
     return ok;
 }

@@ -69,7 +69,8 @@ typedef enum {
     IMAGE_2,
     IMAGE_3,
     IMAGE_4,
-    KITE_DEFAULT_DESIGNS_END = IMAGE_4,
+    IMAGE_5,
+    KITE_DEFAULT_DESIGNS_END = IMAGE_5,
 
     // --- New generated kite designs from the colorizer.
     //

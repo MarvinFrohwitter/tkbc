@@ -7,7 +7,65 @@
 
 extern Assets assets;
 
-#include "../../assets/combind_assets.h"
+
+#include "../../assets/Middle/Middle_05.h"
+#include "../../assets/Middle/Middle_09.h"
+#include "../../assets/Middle/Middle_12.h"
+
+#include "../../assets/Left/Left_01_1.h"
+#include "../../assets/Left/Left_02_1.h"
+#include "../../assets/Left/Left_03_1.h"
+#include "../../assets/Left/Left_04_1.h"
+#include "../../assets/Left/Left_05_1.h"
+#include "../../assets/Left/Left_06_1.h"
+#include "../../assets/Left/Left_07_1.h"
+#include "../../assets/Left/Left_08_1.h"
+#include "../../assets/Left/Left_09_1.h"
+#include "../../assets/Left/Left_10_1.h"
+#include "../../assets/Left/Left_11_1.h"
+#include "../../assets/Left/Left_12_1.h"
+#include "../../assets/Left/Left_13_1.h"
+#include "../../assets/Left/Left_14_1.h"
+#include "../../assets/Left/Left_15_1.h"
+
+#include "../../assets/Right/Right_01_2.h"
+#include "../../assets/Right/Right_02_2.h"
+#include "../../assets/Right/Right_03_2.h"
+#include "../../assets/Right/Right_04_2.h"
+#include "../../assets/Right/Right_05_2.h"
+#include "../../assets/Right/Right_06_2.h"
+#include "../../assets/Right/Right_07_2.h"
+#include "../../assets/Right/Right_08_2.h"
+#include "../../assets/Right/Right_09_2.h"
+#include "../../assets/Right/Right_10_2.h"
+#include "../../assets/Right/Right_11_2.h"
+#include "../../assets/Right/Right_12_2.h"
+#include "../../assets/Right/Right_13_2.h"
+#include "../../assets/Right/Right_14_2.h"
+#include "../../assets/Right/Right_15_2.h"
+
+#include "../../assets/Arround/Filled_Panel.h"
+#include "../../assets/Arround/Gaze.h"
+#include "../../assets/Arround/Leadingedge.h"
+#include "../../assets/Arround/Skeleton.h"
+#include "../../assets/Arround/Skeleton_Leadingedge.h"
+
+#include "../../assets/Kites/1.h"
+#include "../../assets/Kites/2.h"
+#include "../../assets/Kites/3.h"
+#include "../../assets/Kites/4.h"
+#include "../../assets/Kites/5.h"
+
+#include "../../assets/Logos/16x16_Logo.h"
+#include "../../assets/Logos/24x24_Logo.h"
+#include "../../assets/Logos/32x32_Logo.h"
+#include "../../assets/Logos/48x48_Logo.h"
+#include "../../assets/Logos/64x64_Logo.h"
+#include "../../assets/Logos/96x96_Logo.h"
+#include "../../assets/Logos/128x128_Logo.h"
+#include "../../assets/Logos/256x256_Logo.h"
+
+
 #include "tkbc-asset-handler.h"
 
 // Save and load kite designs from config files.
@@ -119,89 +177,116 @@ UUID tkbc_append_asset_image(unsigned char *data, int width, int height, int for
 }
 
 /**
+ * @brief Decodes one of the baked in image assets.
+ *
+ * The generated asset headers store the original PNG bytes instead of raw
+ * pixels. raylib decodes the compressed data from memory, which keeps the
+ * generated headers and the resulting binaries small.
+ *
+ * @param data The compressed image file data.
+ * @param data_size The size of the compressed image data in bytes.
+ * @param file_type The file extension used to select the decoder, e.g. ".png".
+ * @return The decoded image, or an invalid image on failure.
+ */
+static Image tkbc_load_compressed_asset_image(const unsigned char *data, int data_size, const char *file_type) {
+    Image image = LoadImageFromMemory(file_type, data, data_size);
+    if (!IsImageValid(image)) {
+        tkbc_fprintf(stderr, "ERROR", "Could not load baked in image asset (%s).\n", file_type);
+    }
+    return image;
+}
+
+/**
+ * @brief Appends a baked in asset image that is stored in a compressed format.
+ *
+ * @param data The compressed image file data.
+ * @param data_size The size of the compressed image data in bytes.
+ * @param file_type The file extension used to select the decoder, e.g. ".png".
+ * @return The uuid assigned to the newly appended asset.
+ */
+static UUID tkbc_append_compressed_asset_image(const unsigned char *data, int data_size, const char *file_type) {
+    Image image = tkbc_load_compressed_asset_image(data, data_size, file_type);
+    if (!IsImageValid(image)) {
+        return tkbc_uuid_nil();
+    }
+
+    UUID id = tkbc_append_asset_image(image.data, image.width, image.height, image.format);
+    UnloadImage(image);
+    return id;
+}
+
+/**
+ * @brief Appends a baked in kite image that is stored in a compressed format.
+ *
+ * @param data The compressed image file data.
+ * @param data_size The size of the compressed image data in bytes.
+ * @param file_type The file extension used to select the decoder, e.g. ".png".
+ * @return The uuid assigned to the newly appended kite image.
+ */
+static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int data_size, const char *file_type) {
+    Image image = tkbc_load_compressed_asset_image(data, data_size, file_type);
+    if (!IsImageValid(image)) {
+        return tkbc_uuid_nil();
+    }
+
+    UUID id = tkbc_append_kite_image(image.data, image.width, image.height, image.format);
+    UnloadImage(image);
+    return id;
+}
+
+#define tkbc_append_baked_asset_image(asset_symbol)                                                                    \
+    tkbc_append_compressed_asset_image((asset_symbol), (int) sizeof(asset_symbol), ".png")
+#define tkbc_append_baked_kite_image(asset_symbol)                                                                     \
+    tkbc_append_compressed_kite_image((asset_symbol), (int) sizeof(asset_symbol), ".png")
+
+/**
  * @brief Append all kite image assets to the global asset list.
  *
  * Registers the predefined kite panel kite images, Skeleton, Filled Panel,
  * Leadingedge, Gaze, etc.
  */
 void tkbc_append_kite_image_pannels() {
-    tkbc_append_asset_image(asset_image_skeleton, IMAGE_SKELETON_WIDTH, IMAGE_SKELETON_HEIGHT, IMAGE_SKELETON_FORMAT);
-    tkbc_append_asset_image(asset_image_filled_panel, IMAGE_FILLED_PANEL_WIDTH, IMAGE_FILLED_PANEL_HEIGHT,
-                            IMAGE_FILLED_PANEL_FORMAT);
-    tkbc_append_asset_image(asset_image_skeleton_leadingedge, IMAGE_SKELETON_LEADINGEDGE_WIDTH,
-                            IMAGE_SKELETON_LEADINGEDGE_HEIGHT, IMAGE_SKELETON_LEADINGEDGE_FORMAT);
-    tkbc_append_asset_image(asset_image_leadingedge, IMAGE_LEADINGEDGE_WIDTH, IMAGE_LEADINGEDGE_HEIGHT,
-                            IMAGE_LEADINGEDGE_FORMAT);
-    tkbc_append_asset_image(asset_image_gaze, IMAGE_GAZE_WIDTH, IMAGE_GAZE_HEIGHT, IMAGE_GAZE_FORMAT);
+    tkbc_append_baked_asset_image(asset_image_skeleton);
+    tkbc_append_baked_asset_image(asset_image_filled_panel);
+    tkbc_append_baked_asset_image(asset_image_skeleton_leadingedge);
+    tkbc_append_baked_asset_image(asset_image_leadingedge);
+    tkbc_append_baked_asset_image(asset_image_gaze);
 
-    tkbc_append_asset_image(asset_image_left_01_1, IMAGE_LEFT_01_1_WIDTH, IMAGE_LEFT_01_1_HEIGHT,
-                            IMAGE_LEFT_01_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_02_1, IMAGE_LEFT_02_1_WIDTH, IMAGE_LEFT_02_1_HEIGHT,
-                            IMAGE_LEFT_02_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_03_1, IMAGE_LEFT_03_1_WIDTH, IMAGE_LEFT_03_1_HEIGHT,
-                            IMAGE_LEFT_03_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_04_1, IMAGE_LEFT_04_1_WIDTH, IMAGE_LEFT_04_1_HEIGHT,
-                            IMAGE_LEFT_04_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_05_1, IMAGE_LEFT_05_1_WIDTH, IMAGE_LEFT_05_1_HEIGHT,
-                            IMAGE_LEFT_05_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_06_1, IMAGE_LEFT_06_1_WIDTH, IMAGE_LEFT_06_1_HEIGHT,
-                            IMAGE_LEFT_06_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_07_1, IMAGE_LEFT_07_1_WIDTH, IMAGE_LEFT_07_1_HEIGHT,
-                            IMAGE_LEFT_07_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_08_1, IMAGE_LEFT_08_1_WIDTH, IMAGE_LEFT_08_1_HEIGHT,
-                            IMAGE_LEFT_08_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_09_1, IMAGE_LEFT_09_1_WIDTH, IMAGE_LEFT_09_1_HEIGHT,
-                            IMAGE_LEFT_09_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_10_1, IMAGE_LEFT_10_1_WIDTH, IMAGE_LEFT_10_1_HEIGHT,
-                            IMAGE_LEFT_10_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_11_1, IMAGE_LEFT_11_1_WIDTH, IMAGE_LEFT_11_1_HEIGHT,
-                            IMAGE_LEFT_11_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_12_1, IMAGE_LEFT_12_1_WIDTH, IMAGE_LEFT_12_1_HEIGHT,
-                            IMAGE_LEFT_12_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_13_1, IMAGE_LEFT_13_1_WIDTH, IMAGE_LEFT_13_1_HEIGHT,
-                            IMAGE_LEFT_13_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_14_1, IMAGE_LEFT_14_1_WIDTH, IMAGE_LEFT_14_1_HEIGHT,
-                            IMAGE_LEFT_14_1_FORMAT);
-    tkbc_append_asset_image(asset_image_left_15_1, IMAGE_LEFT_15_1_WIDTH, IMAGE_LEFT_15_1_HEIGHT,
-                            IMAGE_LEFT_15_1_FORMAT);
+    tkbc_append_baked_asset_image(asset_image_left_01_1);
+    tkbc_append_baked_asset_image(asset_image_left_02_1);
+    tkbc_append_baked_asset_image(asset_image_left_03_1);
+    tkbc_append_baked_asset_image(asset_image_left_04_1);
+    tkbc_append_baked_asset_image(asset_image_left_05_1);
+    tkbc_append_baked_asset_image(asset_image_left_06_1);
+    tkbc_append_baked_asset_image(asset_image_left_07_1);
+    tkbc_append_baked_asset_image(asset_image_left_08_1);
+    tkbc_append_baked_asset_image(asset_image_left_09_1);
+    tkbc_append_baked_asset_image(asset_image_left_10_1);
+    tkbc_append_baked_asset_image(asset_image_left_11_1);
+    tkbc_append_baked_asset_image(asset_image_left_12_1);
+    tkbc_append_baked_asset_image(asset_image_left_13_1);
+    tkbc_append_baked_asset_image(asset_image_left_14_1);
+    tkbc_append_baked_asset_image(asset_image_left_15_1);
 
-    tkbc_append_asset_image(asset_image_right_01_2, IMAGE_RIGHT_01_2_WIDTH, IMAGE_RIGHT_01_2_HEIGHT,
-                            IMAGE_RIGHT_01_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_02_2, IMAGE_RIGHT_02_2_WIDTH, IMAGE_RIGHT_02_2_HEIGHT,
-                            IMAGE_RIGHT_02_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_03_2, IMAGE_RIGHT_03_2_WIDTH, IMAGE_RIGHT_03_2_HEIGHT,
-                            IMAGE_RIGHT_03_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_04_2, IMAGE_RIGHT_04_2_WIDTH, IMAGE_RIGHT_04_2_HEIGHT,
-                            IMAGE_RIGHT_04_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_05_2, IMAGE_RIGHT_05_2_WIDTH, IMAGE_RIGHT_05_2_HEIGHT,
-                            IMAGE_RIGHT_05_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_06_2, IMAGE_RIGHT_06_2_WIDTH, IMAGE_RIGHT_06_2_HEIGHT,
-                            IMAGE_RIGHT_06_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_07_2, IMAGE_RIGHT_07_2_WIDTH, IMAGE_RIGHT_07_2_HEIGHT,
-                            IMAGE_RIGHT_07_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_08_2, IMAGE_RIGHT_08_2_WIDTH, IMAGE_RIGHT_08_2_HEIGHT,
-                            IMAGE_RIGHT_08_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_09_2, IMAGE_RIGHT_09_2_WIDTH, IMAGE_RIGHT_09_2_HEIGHT,
-                            IMAGE_RIGHT_09_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_10_2, IMAGE_RIGHT_10_2_WIDTH, IMAGE_RIGHT_10_2_HEIGHT,
-                            IMAGE_RIGHT_10_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_11_2, IMAGE_RIGHT_11_2_WIDTH, IMAGE_RIGHT_11_2_HEIGHT,
-                            IMAGE_RIGHT_11_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_12_2, IMAGE_RIGHT_12_2_WIDTH, IMAGE_RIGHT_12_2_HEIGHT,
-                            IMAGE_RIGHT_12_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_13_2, IMAGE_RIGHT_13_2_WIDTH, IMAGE_RIGHT_13_2_HEIGHT,
-                            IMAGE_RIGHT_13_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_14_2, IMAGE_RIGHT_14_2_WIDTH, IMAGE_RIGHT_14_2_HEIGHT,
-                            IMAGE_RIGHT_14_2_FORMAT);
-    tkbc_append_asset_image(asset_image_right_15_2, IMAGE_RIGHT_15_2_WIDTH, IMAGE_RIGHT_15_2_HEIGHT,
-                            IMAGE_RIGHT_15_2_FORMAT);
+    tkbc_append_baked_asset_image(asset_image_right_01_2);
+    tkbc_append_baked_asset_image(asset_image_right_02_2);
+    tkbc_append_baked_asset_image(asset_image_right_03_2);
+    tkbc_append_baked_asset_image(asset_image_right_04_2);
+    tkbc_append_baked_asset_image(asset_image_right_05_2);
+    tkbc_append_baked_asset_image(asset_image_right_06_2);
+    tkbc_append_baked_asset_image(asset_image_right_07_2);
+    tkbc_append_baked_asset_image(asset_image_right_08_2);
+    tkbc_append_baked_asset_image(asset_image_right_09_2);
+    tkbc_append_baked_asset_image(asset_image_right_10_2);
+    tkbc_append_baked_asset_image(asset_image_right_11_2);
+    tkbc_append_baked_asset_image(asset_image_right_12_2);
+    tkbc_append_baked_asset_image(asset_image_right_13_2);
+    tkbc_append_baked_asset_image(asset_image_right_14_2);
+    tkbc_append_baked_asset_image(asset_image_right_15_2);
 
-    tkbc_append_asset_image(asset_image_middle_05, IMAGE_MIDDLE_05_WIDTH, IMAGE_MIDDLE_05_HEIGHT,
-                            IMAGE_MIDDLE_05_FORMAT);
-    tkbc_append_asset_image(asset_image_middle_09, IMAGE_MIDDLE_09_WIDTH, IMAGE_MIDDLE_09_HEIGHT,
-                            IMAGE_MIDDLE_09_FORMAT);
-    tkbc_append_asset_image(asset_image_middle_12, IMAGE_MIDDLE_12_WIDTH, IMAGE_MIDDLE_12_HEIGHT,
-                            IMAGE_MIDDLE_12_FORMAT);
+    tkbc_append_baked_asset_image(asset_image_middle_05);
+    tkbc_append_baked_asset_image(asset_image_middle_09);
+    tkbc_append_baked_asset_image(asset_image_middle_12);
 }
 
 /**
@@ -226,32 +311,25 @@ void append_assets(void) {
     // TODO: Make the asset loading depended on the enum.
     static_assert(ASSET_KITE_DESIGN_COUNT, "The static asset count has changed think about the order of appending");
 
-    tkbc_append_asset_image(asset_image_16x16_logo, IMAGE_16X16_LOGO_WIDTH, IMAGE_16X16_LOGO_HEIGHT,
-                            IMAGE_16X16_LOGO_FORMAT);
-    tkbc_append_asset_image(asset_image_24x24_logo, IMAGE_24X24_LOGO_WIDTH, IMAGE_24X24_LOGO_HEIGHT,
-                            IMAGE_24X24_LOGO_FORMAT);
-    tkbc_append_asset_image(asset_image_32x32_logo, IMAGE_32X32_LOGO_WIDTH, IMAGE_32X32_LOGO_HEIGHT,
-                            IMAGE_32X32_LOGO_FORMAT);
-    tkbc_append_asset_image(asset_image_48x48_logo, IMAGE_48X48_LOGO_WIDTH, IMAGE_48X48_LOGO_HEIGHT,
-                            IMAGE_48X48_LOGO_FORMAT);
-    tkbc_append_asset_image(asset_image_64x64_logo, IMAGE_64X64_LOGO_WIDTH, IMAGE_64X64_LOGO_HEIGHT,
-                            IMAGE_64X64_LOGO_FORMAT);
-    tkbc_append_asset_image(asset_image_96x96_logo, IMAGE_96X96_LOGO_WIDTH, IMAGE_96X96_LOGO_HEIGHT,
-                            IMAGE_96X96_LOGO_FORMAT);
-    tkbc_append_asset_image(asset_image_128x128_logo, IMAGE_128X128_LOGO_WIDTH, IMAGE_128X128_LOGO_HEIGHT,
-                            IMAGE_128X128_LOGO_FORMAT);
-    tkbc_append_asset_image(asset_image_256x256_logo, IMAGE_256X256_LOGO_WIDTH, IMAGE_256X256_LOGO_HEIGHT,
-                            IMAGE_256X256_LOGO_FORMAT);
+    tkbc_append_baked_asset_image(asset_image_16x16_logo);
+    tkbc_append_baked_asset_image(asset_image_24x24_logo);
+    tkbc_append_baked_asset_image(asset_image_32x32_logo);
+    tkbc_append_baked_asset_image(asset_image_48x48_logo);
+    tkbc_append_baked_asset_image(asset_image_64x64_logo);
+    tkbc_append_baked_asset_image(asset_image_96x96_logo);
+    tkbc_append_baked_asset_image(asset_image_128x128_logo);
+    tkbc_append_baked_asset_image(asset_image_256x256_logo);
 
     tkbc_append_kite_image_pannels();
 
     Image colorizer_image = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
     tkbc_append_kite_image(colorizer_image.data, colorizer_image.width, colorizer_image.height, colorizer_image.format);
 
-    tkbc_append_kite_image(asset_image_1, IMAGE_1_WIDTH, IMAGE_1_HEIGHT, IMAGE_1_FORMAT);
-    tkbc_append_kite_image(asset_image_2, IMAGE_2_WIDTH, IMAGE_2_HEIGHT, IMAGE_2_FORMAT);
-    tkbc_append_kite_image(asset_image_3, IMAGE_3_WIDTH, IMAGE_3_HEIGHT, IMAGE_3_FORMAT);
-    tkbc_append_kite_image(asset_image_4, IMAGE_4_WIDTH, IMAGE_4_HEIGHT, IMAGE_4_FORMAT);
+    tkbc_append_baked_kite_image(asset_image_1);
+    tkbc_append_baked_kite_image(asset_image_2);
+    tkbc_append_baked_kite_image(asset_image_3);
+    tkbc_append_baked_kite_image(asset_image_4);
+    tkbc_append_baked_kite_image(asset_image_5);
 
     assets.default_assets_setup = false;
 }
