@@ -134,7 +134,16 @@ void tkbc_draw_ui(Env *env) {
  * @param kite_image The image data to upload to the texture.
  */
 void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image) {
+    // UpdateTexture() only replaces mip level 0. Kite textures are drawn at
+    // arbitrary scales; when they are minified (the colorizer preview draws the
+    // 8000x2614 image far smaller than its native size) the sampler uses one of
+    // the coarser mip levels. Those were generated once during texture loading
+    // and still contained the old pixels, so the changes were invisible.
+    // Regenerate the whole mip chain from the freshly uploaded base level.
     UpdateTexture(kite_texture.normal, kite_image.normal.data);
+    if (kite_texture.normal.mipmaps > 1) {
+        GenTextureMipmaps(&kite_texture.normal);
+    }
 }
 
 /**
