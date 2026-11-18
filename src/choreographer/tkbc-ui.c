@@ -282,6 +282,83 @@ void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p, Color
 }
 
 /**
+ * @brief Cached bounding box of the non-transparent pixels of a panel image.
+ *
+ * The baked in panels are 8000x2614 but only a few percent of their pixels are
+ * opaque. The bounds are computed on the first use and reused afterwards so
+ * that colorization only has to walk the region that can contain pixels.
+ */
+typedef struct {
+    bool valid;
+    int x0, y0, x1, y1;  // inclusive pixel coordinates, x1 < x0 means empty
+} Panel_Opaque_Bounds;
+
+static Panel_Opaque_Bounds panel_opaque_bounds[IMAGE_PANNEL_PARTS_END + 1];
+
+/**
+ * @brief Paints the opaque pixels of one panel into the colorizer image.
+ *
+ * Pixels that are already filled in the colorizer image are left untouched.
+ * The panel bounds are cached on the first call and reused afterwards.
+ */
+static void tkbc_fill_panel_pixels(Image panel, unsigned char *dst, Color replace, char alpha_threshold,
+                                   size_t panel_index) {
+    assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+    assert(dst != NULL);
+
+    const unsigned char *src = (const unsigned char *) panel.data;
+    const int width = panel.width;
+    const int height = panel.height;
+    Panel_Opaque_Bounds *bounds = &panel_opaque_bounds[panel_index];
+
+    int x0 = bounds->valid ? bounds->x0 : 0;
+    int y0 = bounds->valid ? bounds->y0 : 0;
+    int x1 = bounds->valid ? bounds->x1 : width - 1;
+    int y1 = bounds->valid ? bounds->y1 : height - 1;
+
+    int new_x0 = width;
+    int new_y0 = height;
+    int new_x1 = -1;
+    int new_y1 = -1;
+
+    for (int y = y0; y <= y1; ++y) {
+        const unsigned char *src_row = src + (size_t) y * width * 4;
+        unsigned char *dst_row = dst + (size_t) y * width * 4;
+        for (int x = x0; x <= x1; ++x) {
+            const size_t pixel = (size_t) x * 4;
+            if (src_row[pixel + 3] <= alpha_threshold) {
+                continue;
+            }
+
+            // Remember all opaque panel pixels, even if this pixel is already
+            // filled. The cache describes the panel, not the current image, so
+            // it stays valid after the colorizer image is reset.
+            if (x < new_x0) new_x0 = x;
+            if (x > new_x1) new_x1 = x;
+            if (y < new_y0) new_y0 = y;
+            if (y > new_y1) new_y1 = y;
+
+            if (dst_row[pixel + 3] > alpha_threshold) {
+                continue;
+            }
+
+            dst_row[pixel + 0] = replace.r;
+            dst_row[pixel + 1] = replace.g;
+            dst_row[pixel + 2] = replace.b;
+            dst_row[pixel + 3] = replace.a;
+        }
+    }
+
+    if (!bounds->valid) {
+        bounds->x0 = new_x0;
+        bounds->y0 = new_y0;
+        bounds->x1 = new_x1;
+        bounds->y1 = new_y1;
+        bounds->valid = true;
+    }
+}
+
+/**
  * @brief The function handles the colorizer tool which allows painting on
  * kite images. It supports different modes: selecting colors, selecting
  * panels, and painting single pixels.
@@ -318,56 +395,53 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
 
     case SELECT_COLOR: {
         if (old_color.a <= alpha_threshold) {
-            Image colorizer_image = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.image;
+            Image colorizer_image = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
+            unsigned char *dst = (unsigned char *) colorizer_image.data;
 
-            bool empty_pannel_cliecked = false;
-            for (size_t y = 0; y < (size_t) filled.height; ++y) {
-                for (size_t x = 0; x < (size_t) filled.width; ++x) {
-
-                    for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_PANNEL_PARTS_END; ++i) {
-                        if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) || (i == IMAGE_MIDDLE_13) ||
-                            (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
-                            // Skip the middle once for now.
-                            continue;
-                        }
-
-                        if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
-                            // This is not a kite design.
-                            continue;
-                        }
-                        assert(assets.elements[i].type == ASSETS_IMAGE);
-
-                        Image panel = _tkbc_get_asset_image(i).as.image;
-                        assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-
-                        // Checks it the clicked part is inside of the kite.
-                        if (!empty_pannel_cliecked) {
-                            old_color = GetImageColor(panel, p.x, p.y);
-                            if (old_color.a <= alpha_threshold) {
-                                continue;
-                            }
-                            empty_pannel_cliecked = true;
-                        }
-
-                        assert(panel.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
-                        assert(panel.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
-
-                        // Copy the panel into the KITE_COLORIZER texture
-                        Color c = *(Color *) tkbc_get_position_in_image(panel, x, y);
-                        if (c.a <= alpha_threshold) {
-                            continue;
-                        }
-
-                        old_color = GetImageColor(panel, p.x, p.y);
-                        c = *(Color *) tkbc_get_position_in_image(colorizer_image, x, y);
-                        if (c.a > alpha_threshold) {
-                            continue;
-                        }
-
-                        Vector2 pixel = {.x = x, .y = y};
-                        tkbc_set_single_pixel_in_kite_image_colorizer(pixel, replace);
-                    }
+            // The original implementation checked inside the per-pixel loop
+            // which panel covers the click and then painted that panel and
+            // every eligible panel after it. Determine that first panel once.
+            size_t first_panel = IMAGE_PANNEL_PARTS_END + 1;
+            for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_PANNEL_PARTS_END; ++i) {
+                if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) || (i == IMAGE_MIDDLE_13) ||
+                    (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
+                    continue;
                 }
+                if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
+                    continue;
+                }
+                assert(assets.elements[i].type == ASSETS_IMAGE);
+
+                Image panel = _tkbc_get_asset_image(i).as.image;
+                assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+                assert(panel.width == filled.width);
+                assert(panel.height == filled.height);
+
+                if (GetImageColor(panel, p.x, p.y).a > alpha_threshold) {
+                    first_panel = i;
+                    break;
+                }
+            }
+
+            for (size_t i = first_panel; i <= IMAGE_PANNEL_PARTS_END; ++i) {
+                if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) || (i == IMAGE_MIDDLE_13) ||
+                    (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
+                    continue;
+                }
+                if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
+                    continue;
+                }
+                assert(assets.elements[i].type == ASSETS_IMAGE);
+
+                Image panel = _tkbc_get_asset_image(i).as.image;
+                assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+                assert(panel.width == filled.width);
+                assert(panel.height == filled.height);
+                if ((panel.width != filled.width) || (panel.height != filled.height)) {
+                    continue;
+                }
+
+                tkbc_fill_panel_pixels(panel, dst, replace, alpha_threshold, i);
             }
 
         } else {
@@ -377,40 +451,46 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
 
     } break;
     case SELECT_PANEL: {
-        for (size_t y = 0; y < (size_t) filled.height; ++y) {
-            for (size_t x = 0; x < (size_t) filled.width; ++x) {
-                for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_PANNEL_PARTS_END; ++i) {
-                    if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) || (i == IMAGE_MIDDLE_13) ||
-                        (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
-                        // Skip the middle once for now.
-                        continue;
-                    }
+        Image colorizer_image = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
+        unsigned char *dst = (unsigned char *) colorizer_image.data;
+        const size_t pixel_count = (size_t) filled.width * filled.height;
 
-                    if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
-                        // This is not a kite design.
-                        continue;
-                    }
+        for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_PANNEL_PARTS_END; ++i) {
+            if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) || (i == IMAGE_MIDDLE_13) ||
+                (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
+                // Skip the middle once for now.
+                continue;
+            }
 
-                    assert(assets.elements[i].type == ASSETS_IMAGE);
+            if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
+                // This is not a kite design.
+                continue;
+            }
+            assert(assets.elements[i].type == ASSETS_IMAGE);
 
-                    Image im = _tkbc_get_asset_image(i).as.image;
-                    assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+            Image panel = _tkbc_get_asset_image(i).as.image;
+            assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+            assert(panel.width == filled.width);
+            assert(panel.height == filled.height);
+            if ((panel.width != filled.width) || (panel.height != filled.height)) {
+                continue;
+            }
 
-                    old_color = GetImageColor(im, p.x, p.y);
-                    if (old_color.a <= alpha_threshold) {
-                        continue;
-                    }
-                    assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
-                    assert(im.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
-                    // Copy the panel into the KITE_COLORIZER texture
-                    Color c = *(Color *) tkbc_get_position_in_image(im, x, y);
-                    if (c.a <= alpha_threshold) {
-                        continue;
-                    }
+            // Only panels that contain the clicked pixel are selected.
+            if (GetImageColor(panel, p.x, p.y).a <= alpha_threshold) {
+                continue;
+            }
 
-                    Vector2 pixel = {.x = x, .y = y};
-                    tkbc_set_single_pixel_in_kite_image_colorizer(pixel, replace);
+            const unsigned char *src = (const unsigned char *) panel.data;
+            for (size_t pixel = 0; pixel < pixel_count; ++pixel) {
+                if (src[pixel * 4 + 3] <= alpha_threshold) {
+                    continue;
                 }
+                unsigned char *out = dst + pixel * 4;
+                out[0] = replace.r;
+                out[1] = replace.g;
+                out[2] = replace.b;
+                out[3] = replace.a;
             }
         }
 
@@ -3012,21 +3092,36 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                     assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
                     assert(im.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
 
-                    // Copy the panel into the KITE_COLORIZER texture
-                    for (size_t y = 0; y < (size_t) im.height; ++y) {
-                        for (size_t x = 0; x < (size_t) im.width; ++x) {
-                            Vector2 pixel = {.x = x, .y = y};
-                            // This is needed to allow designs with alpha:
-                            // So that loading an already existing design in is properly
-                            // handled.
-                            tkbc_set_single_pixel_in_kite_image_colorizer(pixel, BLANK);
+                    // Copy the selected design into the KITE_COLORIZER image.
+                    // The old version went through two
+                    // tkbc_set_single_pixel_in_kite_image_colorizer() calls and
+                    // a tkbc_get_position_in_image() call per pixel; with
+                    // 8000x2614 designs that is tens of millions of function
+                    // calls. Write the RGBA bytes directly instead.
+                    Image colorizer_image = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
+                    assert(colorizer_image.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
 
-                            Color c = *(Color *) tkbc_get_position_in_image(im, x, y);
-                            if (c.a <= 0) {
-                                continue;
-                            }
+                    const unsigned char *src = (const unsigned char *) im.data;
+                    unsigned char *dst = (unsigned char *) colorizer_image.data;
+                    const size_t pixel_count = (size_t) im.width * im.height;
+                    const Color blank = BLANK;
 
-                            tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
+                    for (size_t pixel = 0; pixel < pixel_count; ++pixel) {
+                        const size_t offset = pixel * 4;
+
+                        // This is needed to allow designs with alpha: So that
+                        // loading an already existing design in is properly
+                        // handled.
+                        if (src[offset + 3] > 0) {
+                            dst[offset + 0] = src[offset + 0];
+                            dst[offset + 1] = src[offset + 1];
+                            dst[offset + 2] = src[offset + 2];
+                            dst[offset + 3] = src[offset + 3];
+                        } else {
+                            dst[offset + 0] = blank.r;
+                            dst[offset + 1] = blank.g;
+                            dst[offset + 2] = blank.b;
+                            dst[offset + 3] = blank.a;
                         }
                     }
 
