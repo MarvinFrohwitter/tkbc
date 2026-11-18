@@ -12,53 +12,53 @@ extern Assets assets;
 
 static Image tkbc_copy_compressed_image(const unsigned char *data, int data_size, int width, int height);
 
-#include "../../assets/Middle/Middle_05.h"
-#include "../../assets/Middle/Middle_09.h"
-#include "../../assets/Middle/Middle_12.h"
+#include "../../assets/CE_NG/Middle/Middle_05.h"
+#include "../../assets/CE_NG/Middle/Middle_09.h"
+#include "../../assets/CE_NG/Middle/Middle_12.h"
 
-#include "../../assets/Left/Left_01_1.h"
-#include "../../assets/Left/Left_02_1.h"
-#include "../../assets/Left/Left_03_1.h"
-#include "../../assets/Left/Left_04_1.h"
-#include "../../assets/Left/Left_05_1.h"
-#include "../../assets/Left/Left_06_1.h"
-#include "../../assets/Left/Left_07_1.h"
-#include "../../assets/Left/Left_08_1.h"
-#include "../../assets/Left/Left_09_1.h"
-#include "../../assets/Left/Left_10_1.h"
-#include "../../assets/Left/Left_11_1.h"
-#include "../../assets/Left/Left_12_1.h"
-#include "../../assets/Left/Left_13_1.h"
-#include "../../assets/Left/Left_14_1.h"
-#include "../../assets/Left/Left_15_1.h"
+#include "../../assets/CE_NG/Left/Left_01_1.h"
+#include "../../assets/CE_NG/Left/Left_02_1.h"
+#include "../../assets/CE_NG/Left/Left_03_1.h"
+#include "../../assets/CE_NG/Left/Left_04_1.h"
+#include "../../assets/CE_NG/Left/Left_05_1.h"
+#include "../../assets/CE_NG/Left/Left_06_1.h"
+#include "../../assets/CE_NG/Left/Left_07_1.h"
+#include "../../assets/CE_NG/Left/Left_08_1.h"
+#include "../../assets/CE_NG/Left/Left_09_1.h"
+#include "../../assets/CE_NG/Left/Left_10_1.h"
+#include "../../assets/CE_NG/Left/Left_11_1.h"
+#include "../../assets/CE_NG/Left/Left_12_1.h"
+#include "../../assets/CE_NG/Left/Left_13_1.h"
+#include "../../assets/CE_NG/Left/Left_14_1.h"
+#include "../../assets/CE_NG/Left/Left_15_1.h"
 
-#include "../../assets/Right/Right_01_2.h"
-#include "../../assets/Right/Right_02_2.h"
-#include "../../assets/Right/Right_03_2.h"
-#include "../../assets/Right/Right_04_2.h"
-#include "../../assets/Right/Right_05_2.h"
-#include "../../assets/Right/Right_06_2.h"
-#include "../../assets/Right/Right_07_2.h"
-#include "../../assets/Right/Right_08_2.h"
-#include "../../assets/Right/Right_09_2.h"
-#include "../../assets/Right/Right_10_2.h"
-#include "../../assets/Right/Right_11_2.h"
-#include "../../assets/Right/Right_12_2.h"
-#include "../../assets/Right/Right_13_2.h"
-#include "../../assets/Right/Right_14_2.h"
-#include "../../assets/Right/Right_15_2.h"
+#include "../../assets/CE_NG/Right/Right_01_2.h"
+#include "../../assets/CE_NG/Right/Right_02_2.h"
+#include "../../assets/CE_NG/Right/Right_03_2.h"
+#include "../../assets/CE_NG/Right/Right_04_2.h"
+#include "../../assets/CE_NG/Right/Right_05_2.h"
+#include "../../assets/CE_NG/Right/Right_06_2.h"
+#include "../../assets/CE_NG/Right/Right_07_2.h"
+#include "../../assets/CE_NG/Right/Right_08_2.h"
+#include "../../assets/CE_NG/Right/Right_09_2.h"
+#include "../../assets/CE_NG/Right/Right_10_2.h"
+#include "../../assets/CE_NG/Right/Right_11_2.h"
+#include "../../assets/CE_NG/Right/Right_12_2.h"
+#include "../../assets/CE_NG/Right/Right_13_2.h"
+#include "../../assets/CE_NG/Right/Right_14_2.h"
+#include "../../assets/CE_NG/Right/Right_15_2.h"
 
-#include "../../assets/Arround/Filled_Panel.h"
-#include "../../assets/Arround/Gaze.h"
-#include "../../assets/Arround/Leadingedge.h"
-#include "../../assets/Arround/Skeleton.h"
-#include "../../assets/Arround/Skeleton_Leadingedge.h"
+#include "../../assets/CE_NG/Arround/Filled_Panel.h"
+#include "../../assets/CE_NG/Arround/Gaze.h"
+#include "../../assets/CE_NG/Arround/Leadingedge.h"
+#include "../../assets/CE_NG/Arround/Skeleton.h"
+#include "../../assets/CE_NG/Arround/Skeleton_Leadingedge.h"
 
-#include "../../assets/Kites/1.h"
-#include "../../assets/Kites/2.h"
-#include "../../assets/Kites/3.h"
-#include "../../assets/Kites/4.h"
-#include "../../assets/Kites/5.h"
+#include "../../assets/CE_NG/Kites/CE_NG_1.h"
+#include "../../assets/CE_NG/Kites/CE_NG_2.h"
+#include "../../assets/CE_NG/Kites/CE_NG_3.h"
+#include "../../assets/CE_NG/Kites/CE_NG_4.h"
+#include "../../assets/CE_NG/Kites/CE_NG_5.h"
 
 #include "../../assets/Logos/16x16_Logo.h"
 #include "../../assets/Logos/24x24_Logo.h"
@@ -457,11 +457,11 @@ void append_assets(void) {
     tkbc_append_kite_image(colorizer_image.data, colorizer_image.width, colorizer_image.height, colorizer_image.format);
 #endif
 
-    tkbc_append_baked_kite_image(asset_image_1);
-    tkbc_append_baked_kite_image(asset_image_2);
-    tkbc_append_baked_kite_image(asset_image_3);
-    tkbc_append_baked_kite_image(asset_image_4);
-    tkbc_append_baked_kite_image(asset_image_5);
+    tkbc_append_baked_kite_image(asset_image_ce_ng_1);
+    tkbc_append_baked_kite_image(asset_image_ce_ng_2);
+    tkbc_append_baked_kite_image(asset_image_ce_ng_3);
+    tkbc_append_baked_kite_image(asset_image_ce_ng_4);
+    tkbc_append_baked_kite_image(asset_image_ce_ng_5);
 
     assets.default_assets_setup = false;
 }
