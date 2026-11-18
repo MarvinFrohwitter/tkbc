@@ -21,18 +21,18 @@ extern Assets assets;
  * @return Returns true if the image was parsed successfully, otherwise false.
  */
 bool tkbc_messages_send_texture(Message *reader) {
-    int width, height, format;
+    int width, height, format, data_size = 0;
     Space *data_space = space_get_tspace();
     unsigned char *data = NULL;
     UUID texture_id;
 
-    if (!tkbc_parse_image(reader, data_space, &data, &width, &height, &format, &texture_id)) {
+    if (!tkbc_parse_image(reader, data_space, &data, &data_size, &width, &height, &format, &texture_id)) {
         return false;
     }
 
     Asset *asset = tkbc_find_asset_from_id(texture_id);
     if (!asset) {
-        tkbc_append_kite_image_and_kite_texture_with_id(data, width, height, format, texture_id);
+        tkbc_append_kite_image_and_kite_texture_with_id(data, data_size, width, height, format, texture_id);
     }
     space_reset_tspace();
     return true;

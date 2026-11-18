@@ -6,6 +6,7 @@
 #include "../global/tkbc-utils.h"
 #include "tkbc-servers-common.h"
 
+#include <limits.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -176,15 +177,15 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
 
     UUID texture_id;
     UUID inline_texture_id;
-    int texture_width, texture_height, texture_format;
+    int texture_width, texture_height, texture_format, texture_data_size = 0;
     Space *data_space = space_get_tspace();
     unsigned char *texture_data = NULL;
     uint64_t parsed_source_kite_id = 0;
     uint64_t parsed_controller_count = 0;
 
     if (!tkbc_parse_message_kite_value(reader, parsed_id, &x, &y, &angle, &color, &texture_id, &texture_width,
-                                       &texture_height, &texture_format, data_space, &texture_data, &inline_texture_id,
-                                       &is_reversed, &is_active, &is_script_kite)) {
+                                       &texture_height, &texture_format, data_space, &texture_data, &texture_data_size,
+                                       &inline_texture_id, &is_reversed, &is_active, &is_script_kite)) {
 
         check_return(0);
     }
@@ -214,8 +215,8 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
     // under a fresh uuid here would make this side believe the design is
     // unknown and add it a second time.
     if (tkbc_uuid_is_nil(texture_id)) {
-        texture_id = tkbc_append_kite_image_and_kite_texture_with_id(texture_data, texture_width, texture_height,
-                                                                     texture_format, inline_texture_id);
+        texture_id = tkbc_append_kite_image_and_kite_texture_with_id(texture_data, texture_data_size, texture_width,
+                                                                     texture_height, texture_format, inline_texture_id);
     }
 
     Asset *found = tkbc_find_asset_from_id(texture_id);
@@ -408,53 +409,87 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
 }
 
 /**
- * @brief The function parses an image block out of a message payload. It
- * extracts the uuid of the design, width, height, format and the raw pixel
- * data.
+ * @brief The function parses an image block out of a message payload.
+ *
+ * The wire always carries a compressed PNG. The client decodes it into raw
+ * RGBA8 because its colorizer works on those pixels; the server keeps the PNG
+ * bytes and only remembers the dimensions.
  *
  * @param reader The Message that is scoped to the payload of one received
  * message.
  * @param data_space The space for allocating image data.
  * @param data Pointer to store the parsed image data.
+ * @param data_size Pointer to store the byte count of data.
  * @param width Pointer to store the image width.
  * @param height Pointer to store the image height.
- * @param format Pointer to store the pixel format.
+ * @param format Pointer to store the resulting pixel format.
  * @param texture_id Pointer to store the uuid the originator assigned to the
  * design.
  * @return True if the image was parsed successfully, otherwise false.
  */
-bool tkbc_parse_image(Message *reader, Space *data_space, unsigned char **data, int *width, int *height, int *format,
-                      UUID *texture_id) {
+bool tkbc_parse_image(Message *reader, Space *data_space, unsigned char **data, int *data_size, int *width, int *height,
+                      int *format, UUID *texture_id) {
     if (!tkbc_message_read_uuid(reader, texture_id)) {
         return false;
     }
-
     if (!tkbc_message_read_s32(reader, width)) {
         return false;
     }
     if (!tkbc_message_read_s32(reader, height)) {
         return false;
     }
-    if (!tkbc_message_read_s32(reader, format)) {
+
+    int encoding = 0;
+    if (!tkbc_message_read_s32(reader, &encoding) || encoding != TKBC_IMAGE_ENCODING_PNG) {
+        return false;
+    }
+    if (!tkbc_message_read_s32(reader, data_size)) {
         return false;
     }
 
-    if (*width * *height > (300 * 300) * 16) {
-        // Prevent to much data.
-        // Just for safety.
+    if (*width <= 0 || *height <= 0 || *data_size <= 0 || *data_size > (64 * 1024 * 1024)) {
         return false;
     }
-    if (*format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
-        // Other file format are not supported.
+    uint64_t pixels = (uint64_t) (uint32_t) *width * (uint32_t) *height;
+    if (pixels > (uint64_t) INT_MAX / 4) {
         return false;
     }
 
-    size_t pixel_bytes = *width * *height * sizeof(uint32_t);
-    *data = space_malloc(data_space, pixel_bytes * sizeof(**data));
+    *data = space_malloc(data_space, (size_t) *data_size);
     if (!*data) {
         return false;
     }
-    return tkbc_message_read_bytes(reader, *data, pixel_bytes);
+    if (!tkbc_message_read_bytes(reader, *data, (size_t) *data_size)) {
+        return false;
+    }
+
+#ifdef TKBC_SERVER
+    *format = TKBC_IMAGE_FORMAT_COMPRESSED_PNG;
+    return true;
+#else
+    Image image = LoadImageFromMemory(".png", *data, *data_size);
+    if (!IsImageValid(image) || image.width != *width || image.height != *height) {
+        UnloadImage(image);
+        return false;
+    }
+    if (image.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+        ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+    }
+
+    size_t raw_size = pixels * 4;
+    unsigned char *raw = space_malloc(data_space, raw_size);
+    if (!raw) {
+        UnloadImage(image);
+        return false;
+    }
+    memcpy(raw, image.data, raw_size);
+    UnloadImage(image);
+
+    *data = raw;
+    *data_size = (int) raw_size;
+    *format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+    return true;
+#endif
 }
 
 /**
@@ -477,6 +512,7 @@ bool tkbc_parse_image(Message *reader, Space *data_space, unsigned char **data, 
  * @param texture_format The format of the texture.
  * @param data_space The space for allocating texture data.
  * @param texture_data Pointer to store the texture data.
+ * @param texture_data_size Pointer to store the byte count of texture_data.
  * @param inline_texture_id Pointer to store the uuid that the originator
  * assigned to the inlined image. It is only meaningful when texture_id came
  * back as the nil uuid, so the caller can store the image under that very uuid
@@ -489,8 +525,8 @@ bool tkbc_parse_image(Message *reader, Space *data_space, unsigned char **data, 
  */
 bool tkbc_parse_message_kite_value(Message *reader, size_t *kite_id, float *x, float *y, float *angle, Color *color,
                                    UUID *texture_id, int *texture_width, int *texture_height, int *texture_format,
-                                   Space *data_space, unsigned char **texture_data, UUID *inline_texture_id,
-                                   bool *is_reversed, bool *is_active, bool *is_script_kite) {
+                                   Space *data_space, unsigned char **texture_data, int *texture_data_size,
+                                   UUID *inline_texture_id, bool *is_reversed, bool *is_active, bool *is_script_kite) {
     uint64_t kid;
     if (!tkbc_message_read_u64(reader, &kid)) {
         return false;
@@ -521,8 +557,8 @@ bool tkbc_parse_message_kite_value(Message *reader, size_t *kite_id, float *x, f
         // The inlined image block carries the uuid of the originator. It is
         // handed back separately so the caller can store the image under that
         // very uuid instead of appending it as a brand new asset.
-        if (!tkbc_parse_image(reader, data_space, texture_data, texture_width, texture_height, texture_format,
-                              inline_texture_id)) {
+        if (!tkbc_parse_image(reader, data_space, texture_data, texture_data_size, texture_width, texture_height,
+                              texture_format, inline_texture_id)) {
             return false;
         }
     } else {

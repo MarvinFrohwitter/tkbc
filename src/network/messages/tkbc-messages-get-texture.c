@@ -37,8 +37,7 @@ bool tkbc_messages_get_texture(Message *reader, Client *client) {
 
     size_t offset =
         tkbc_message_write_begin(&client->send_msg_buffer, &client->send_msg_buffer_space, MESSAGE_SEND_TEXTURE);
-    tkbc_message_append_image_data(&client->send_msg_buffer_space, &client->send_msg_buffer, kite_image->normal,
-                                   asset->id);
+    tkbc_message_append_image_data(&client->send_msg_buffer_space, &client->send_msg_buffer, *kite_image, asset->id);
     tkbc_message_write_end(&client->send_msg_buffer, offset);
     return true;
 }

@@ -3,6 +3,9 @@
 
 #include "../tkbc-message.h"
 
+// Image encodings used by the wire "image" block.
+#define TKBC_IMAGE_ENCODING_PNG 1
+
 // name -> payload, see the PROTOCOL section below for the wire format.
 typedef enum {
     MESSAGE_ZERO = 0,
@@ -71,8 +74,9 @@ typedef enum {
 //   uuid                            the 16 raw bytes of the UUID, no quotes and
 //                                  no textual representation on the wire
 //   image                           uuid id, s32 width, s32 height,
-//                                  s32 format, then width * height * 4 raw
-//                                  RGBA bytes (row major, top to bottom)
+//                                  s32 encoding, s32 data_size,
+//                                  then data_size bytes of encoded image data
+//                                  (currently PNG only)
 //
 // SHARED BLOCKS
 //

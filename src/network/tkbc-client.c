@@ -587,14 +587,14 @@ bool received_message_handler(Message *message) {
 
                 UUID texture_id;
                 UUID inline_texture_id;
-                int texture_width, texture_height, texture_format;
+                int texture_width, texture_height, texture_format, texture_data_size = 0;
                 Space *data_space = space_get_tspace();
                 unsigned char *texture_data = NULL;
 
                 if (!tkbc_parse_message_kite_value(&reader, &kite_id, &x, &y, &angle, &color, &texture_id,
                                                    &texture_width, &texture_height, &texture_format, data_space,
-                                                   &texture_data, &inline_texture_id, &is_reversed, &is_active,
-                                                   &is_script_kite)) {
+                                                   &texture_data, &texture_data_size, &inline_texture_id, &is_reversed,
+                                                   &is_active, &is_script_kite)) {
                     space_reset_tspace();
                     goto err;
                 }
@@ -617,7 +617,8 @@ bool received_message_handler(Message *message) {
 
                 if (tkbc_uuid_is_nil(texture_id) && texture_data) {
                     texture_id = tkbc_append_kite_image_and_kite_texture_with_id(
-                        texture_data, texture_width, texture_height, texture_format, inline_texture_id);
+                        texture_data, texture_data_size, texture_width, texture_height, texture_format,
+                        inline_texture_id);
                 }
 
                 space_reset_tspace();

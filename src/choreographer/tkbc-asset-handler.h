@@ -88,8 +88,16 @@ typedef enum {
     ASSETS_KIND_COUNT,
 } Assets_Kind;
 
+// Internal marker for an Image whose data is a PNG file instead of raw pixels.
+// The server keeps kite designs in this form; the client converts them to
+// PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 when they arrive over the network.
+#define TKBC_IMAGE_FORMAT_COMPRESSED_PNG 1001
+
 typedef struct {
     Image normal;
+    // Byte count of normal.data when normal.format is
+    // TKBC_IMAGE_FORMAT_COMPRESSED_PNG. Zero for raw pixel data.
+    int compressed_size;
 } Kite_Image;
 
 typedef struct {
@@ -135,6 +143,7 @@ typedef struct {
 
 UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, int format, UUID id);
 UUID tkbc_append_kite_image(unsigned char *data, int width, int height, int format);
+UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int data_size, int width, int height, UUID id);
 
 #ifndef TKBC_SERVER
 void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id);
@@ -147,7 +156,8 @@ void tkbc_assets_destroy(void);
 void tkbc_removed_asset_by_id(UUID uuid);
 Asset *tkbc_find_asset_from_id(UUID id);
 size_t tkbc_get_current_kite_design_count();
-UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int width, int height, int format, UUID id);
+UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int data_size, int width, int height,
+                                                     int format, UUID id);
 bool tkbc_image_already_exitst_in_assets(Image image, UUID *id);
 bool tkbc_is_default_kite_design(Assets *assets, UUID uuid);
 

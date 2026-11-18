@@ -3,10 +3,14 @@
 #include "../global/tkbc-utils.h"
 #include "raylib.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 extern Assets assets;
 
+static Image tkbc_copy_compressed_image(const unsigned char *data, int data_size, int width, int height);
 
 #include "../../assets/Middle/Middle_05.h"
 #include "../../assets/Middle/Middle_09.h"
@@ -117,6 +121,42 @@ UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, 
     image_normal = ImageCopy(image_normal);
     Kite_Image kite_image = (Kite_Image){
         .normal = image_normal,
+        .compressed_size = 0,
+    };
+
+    space_dap(&assets.space, &assets,
+              ((Asset){
+                  .type = ASSETS_KITE_DESIGN,
+                  .as.kite_image = kite_image,
+                  .id = id,
+              }));
+
+    return id;
+}
+
+/**
+ * @brief Appends a kite image whose data is still a PNG file.
+ *
+ * This is the server-side representation of transferred kite designs. The
+ * server only needs the width, height and the compressed bytes to forward the
+ * design to clients, so decoding it to raw RGBA would waste memory.
+ *
+ * @param data The PNG file bytes.
+ * @param data_size The size of the PNG file in bytes.
+ * @param width The image width.
+ * @param height The image height.
+ * @param id The uuid the image is stored under.
+ * @return The uuid of the appended kite image.
+ */
+UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int data_size, int width, int height,
+                                               UUID id) {
+    if (tkbc_uuid_is_nil(id)) {
+        id = tkbc_uuid_generate();
+    }
+
+    Kite_Image kite_image = (Kite_Image){
+        .normal = tkbc_copy_compressed_image(data, data_size, width, height),
+        .compressed_size = data_size,
     };
 
     space_dap(&assets.space, &assets,
@@ -176,6 +216,61 @@ UUID tkbc_append_asset_image(unsigned char *data, int width, int height, int for
     return id;
 }
 
+#ifdef TKBC_SERVER
+/**
+ * @brief Reads the width and height from a PNG file header.
+ *
+ * @param data The PNG file bytes.
+ * @param data_size The size of the PNG file in bytes.
+ * @param width Pointer that receives the image width.
+ * @param height Pointer that receives the image height.
+ * @return True if a valid PNG IHDR was found, otherwise false.
+ */
+static bool tkbc_png_dimensions(const unsigned char *data, int data_size, int *width, int *height) {
+    static const unsigned char signature[8] = {0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a};
+
+    if (data == NULL || data_size < 24 || memcmp(data, signature, sizeof(signature)) != 0) {
+        return false;
+    }
+    if (memcmp(data + 12, "IHDR", 4) != 0) {
+        return false;
+    }
+
+    *width = (int) (((uint32_t) data[16] << 24) | ((uint32_t) data[17] << 16) | ((uint32_t) data[18] << 8) |
+                    (uint32_t) data[19]);
+    *height = (int) (((uint32_t) data[20] << 24) | ((uint32_t) data[21] << 16) | ((uint32_t) data[22] << 8) |
+                     (uint32_t) data[23]);
+    return *width > 0 && *height > 0;
+}
+#endif  // TKBC_SERVER
+
+/**
+ * @brief Copies PNG file bytes into an Image that keeps them compressed.
+ *
+ * @param data The PNG file bytes.
+ * @param data_size The size of the PNG file in bytes.
+ * @param width The image width.
+ * @param height The image height.
+ * @return An Image whose data is the PNG file, not decoded pixels.
+ */
+static Image tkbc_copy_compressed_image(const unsigned char *data, int data_size, int width, int height) {
+    unsigned char *copy = (unsigned char *) MemAlloc((size_t) data_size);
+    assert(copy != NULL && "Out of memory while storing a compressed image");
+    if (copy == NULL) {
+        return (Image){0};
+    }
+    memcpy(copy, data, (size_t) data_size);
+
+    return (Image){
+        .data = copy,
+        .width = width,
+        .height = height,
+        .mipmaps = 1,
+        .format = TKBC_IMAGE_FORMAT_COMPRESSED_PNG,
+    };
+}
+
+#ifndef TKBC_SERVER
 /**
  * @brief Decodes one of the baked in image assets.
  *
@@ -195,6 +290,7 @@ static Image tkbc_load_compressed_asset_image(const unsigned char *data, int dat
     }
     return image;
 }
+#endif  // !TKBC_SERVER
 
 /**
  * @brief Appends a baked in asset image that is stored in a compressed format.
@@ -205,6 +301,24 @@ static Image tkbc_load_compressed_asset_image(const unsigned char *data, int dat
  * @return The uuid assigned to the newly appended asset.
  */
 static UUID tkbc_append_compressed_asset_image(const unsigned char *data, int data_size, const char *file_type) {
+#ifdef TKBC_SERVER
+    (void) file_type;
+    int width = 0;
+    int height = 0;
+    if (!tkbc_png_dimensions(data, data_size, &width, &height)) {
+        return tkbc_uuid_nil();
+    }
+
+    Image image = tkbc_copy_compressed_image(data, data_size, width, height);
+    UUID id = tkbc_generate_uuid_for_asset();
+    space_dap(&assets.space, &assets,
+              ((Asset){
+                  .type = ASSETS_IMAGE,
+                  .as.image = image,
+                  .id = id,
+              }));
+    return id;
+#else
     Image image = tkbc_load_compressed_asset_image(data, data_size, file_type);
     if (!IsImageValid(image)) {
         return tkbc_uuid_nil();
@@ -213,6 +327,7 @@ static UUID tkbc_append_compressed_asset_image(const unsigned char *data, int da
     UUID id = tkbc_append_asset_image(image.data, image.width, image.height, image.format);
     UnloadImage(image);
     return id;
+#endif
 }
 
 /**
@@ -224,6 +339,16 @@ static UUID tkbc_append_compressed_asset_image(const unsigned char *data, int da
  * @return The uuid assigned to the newly appended kite image.
  */
 static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int data_size, const char *file_type) {
+#ifdef TKBC_SERVER
+    (void) file_type;
+    int width = 0;
+    int height = 0;
+    if (!tkbc_png_dimensions(data, data_size, &width, &height)) {
+        return tkbc_uuid_nil();
+    }
+    return tkbc_append_compressed_kite_image_with_id(data, data_size, width, height,
+                                                     tkbc_generate_uuid_for_asset());
+#else
     Image image = tkbc_load_compressed_asset_image(data, data_size, file_type);
     if (!IsImageValid(image)) {
         return tkbc_uuid_nil();
@@ -232,6 +357,7 @@ static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int dat
     UUID id = tkbc_append_kite_image(image.data, image.width, image.height, image.format);
     UnloadImage(image);
     return id;
+#endif
 }
 
 #define tkbc_append_baked_asset_image(asset_symbol)                                                                    \
@@ -322,8 +448,14 @@ void append_assets(void) {
 
     tkbc_append_kite_image_pannels();
 
+#ifdef TKBC_SERVER
+    // The colorizer starts as a copy of the filled panel. The server never
+    // paints on it, so keep the baked in PNG bytes instead of decoding them.
+    tkbc_append_compressed_kite_image(asset_image_filled_panel, (int) sizeof(asset_image_filled_panel), ".png");
+#else
     Image colorizer_image = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
     tkbc_append_kite_image(colorizer_image.data, colorizer_image.width, colorizer_image.height, colorizer_image.format);
+#endif
 
     tkbc_append_baked_kite_image(asset_image_1);
     tkbc_append_baked_kite_image(asset_image_2);
@@ -489,14 +621,16 @@ size_t tkbc_get_current_kite_design_count() {
  * register the design a second time under a fresh uuid and the kite referring
  * to the original uuid could not be resolved.
  *
- * @param data The raw pixel data of the kite image.
+ * @param data The pixel data of the kite image, either raw or a PNG file.
+ * @param data_size The size of data in bytes.
  * @param width The width of the image in pixels.
  * @param height The height of the image in pixels.
  * @param format The pixel format of the image data.
  * @param id The uuid the kite image is stored under.
  * @return The uuid of the appended kite image.
  */
-UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int width, int height, int format, UUID id) {
+UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int data_size, int width, int height,
+                                                     int format, UUID id) {
     if (tkbc_uuid_is_nil(id)) {
         // The id comes from the network, so a faulty or hostile peer could
         // claim the nil uuid. Fall back to a fresh uuid rather than storing an
@@ -504,7 +638,24 @@ UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int wi
         id = tkbc_uuid_generate();
     }
 
-    tkbc_append_kite_image_with_id(data, width, height, format, id);
+    if (format == TKBC_IMAGE_FORMAT_COMPRESSED_PNG) {
+#ifdef TKBC_SERVER
+        tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, id);
+#else
+        Image image = LoadImageFromMemory(".png", data, data_size);
+        if (!IsImageValid(image)) {
+            return id;
+        }
+        if (image.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+            ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+        }
+        tkbc_append_kite_image_with_id(image.data, image.width, image.height, image.format, id);
+        UnloadImage(image);
+#endif
+    } else {
+        (void) data_size;
+        tkbc_append_kite_image_with_id(data, width, height, format, id);
+    }
     // This is just for compilation the function is not used in
     // the server at all. Just the files in this dir are all
     // passed to the server compilations as well.

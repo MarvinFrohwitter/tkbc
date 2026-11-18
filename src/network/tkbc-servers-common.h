@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.4.003"
+#define PROTOCOL_VERSION "0.4.004"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -325,24 +325,43 @@ static inline bool tkbc_message_read_uuid(Message *reader, UUID *uuid) {
 }
 
 /**
- * @brief The function appends the pixel data of the given image to a message.
+ * @brief The function appends an image to a message in compressed PNG form.
+ *
+ * Raw images (the client colorizer) are exported to PNG here. Images that are
+ * already stored as PNG (the server) are forwarded without decoding them.
  *
  * @param space The space that is used for the message buffer.
  * @param message The Message struct that should contain the serialized image
  * data.
- * @param image The image whose pixel data should be appended.
+ * @param kite_image The image whose data should be appended.
  * @param id The uuid that is serialized in front of the image data. This is the
  * uuid of the originator so that the receiver stores the image under the very
  * same uuid and does not register it a second time.
  */
-static inline void tkbc_message_append_image_data(Space *space, Message *message, Image image, UUID id) {
+static inline void tkbc_message_append_image_data(Space *space, Message *message, Kite_Image kite_image, UUID id) {
+    Image image = kite_image.normal;
+
+    unsigned char *png_data = NULL;
+    int png_size = 0;
+    bool borrowed = false;
+    if (image.format == TKBC_IMAGE_FORMAT_COMPRESSED_PNG) {
+        png_data = (unsigned char *) image.data;
+        png_size = kite_image.compressed_size;
+        borrowed = true;
+    } else {
+        png_data = ExportImageToMemory(image, ".png", &png_size);
+    }
+
     tkbc_message_write_uuid(message, space, id);
     tkbc_message_write_s32(message, space, image.width);
     tkbc_message_write_s32(message, space, image.height);
-    tkbc_message_write_s32(message, space, image.format);
-    size_t size = image.width * image.height * sizeof(uint32_t);
-    uint32_t *pixels = (uint32_t *) image.data;
-    tkbc_message_write_bytes(message, space, pixels, size);
+    tkbc_message_write_s32(message, space, TKBC_IMAGE_ENCODING_PNG);
+    tkbc_message_write_s32(message, space, png_size);
+    tkbc_message_write_bytes(message, space, png_data, (size_t) png_size);
+
+    if (!borrowed && png_data != NULL) {
+        MemFree(png_data);
+    }
 }
 
 /**
@@ -383,7 +402,7 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state, Message *mes
 
         tkbc_message_write_uuid(message, space, tkbc_uuid_nil());
         Kite_Image *kite_image = &asset->as.kite_image;
-        tkbc_message_append_image_data(space, message, kite_image->normal, asset->id);
+        tkbc_message_append_image_data(space, message, *kite_image, asset->id);
         kite_state->kite->is_texture_new = false;
     } else {
         tkbc_message_write_uuid(message, space, texture_id);
