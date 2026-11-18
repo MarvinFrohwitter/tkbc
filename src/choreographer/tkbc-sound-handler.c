@@ -8,6 +8,24 @@
 #include <string.h>
 
 /**
+ * @brief Starts the music stream while keeping the position currently shown
+ * by the seek bar.
+ *
+ * @param env The environment that holds the current state of the application.
+ */
+static void tkbc_start_music_stream(Env *env) {
+    if (IsMusicStreamPlaying(env->music)) {
+        return;
+    }
+
+    float position = GetMusicTimePlayed(env->music);
+    PlayMusicStream(env->music);
+    if (position > 0) {
+        SeekMusicStream(env->music, position);
+    }
+}
+
+/**
  * @brief The function updates the music stream so the buffered audio keeps
  * playing. It has to be called once per frame while music is loaded.
  *
@@ -57,20 +75,21 @@ void tkbc_input_music_handler(Env *env) {
         }
     }
 
-    // Handles current loaded music stream.
-    // KEY_N && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
-    if (tkbc_check_keymaps_full(env->keymaps, KMH_STOPS_SOUND, KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {
-        StopMusicStream(env->music);
-        // KEY_N
-    } else if (tkbc_check_keymaps_full(env->keymaps, KMH_PLAYS_SOUND, KEY_MAP_CHECK_KEY_PRESSED)) {
-        PlayMusicStream(env->music);
-    }
-
-    // KEY_M && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
+    // SHIFT+KEY_M: restart from the beginning while playing, otherwise resume.
     if (tkbc_check_keymaps_full(env->keymaps, KMH_RESUMES_SOUND, KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {
-        ResumeMusicStream(env->music);
-        // KEY_M
-    } else if (tkbc_check_keymaps_full(env->keymaps, KMH_PAUSES_SOUND, KEY_MAP_CHECK_KEY_PRESSED)) {
-        PauseMusicStream(env->music);
+        if (IsMusicStreamPlaying(env->music)) {
+            StopMusicStream(env->music);
+            PlayMusicStream(env->music);
+        } else {
+            ResumeMusicStream(env->music);
+            StopMusicStream(env->music);
+        }
+        // KEY_M: pause a playing track, otherwise start it like KEY_N.
+    } else if (tkbc_check_keymaps_full(env->keymaps, KMH_PLAY_PAUSES_SOUND, KEY_MAP_CHECK_KEY_PRESSED)) {
+        if (IsMusicStreamPlaying(env->music)) {
+            PauseMusicStream(env->music);
+        } else {
+            tkbc_start_music_stream(env);
+        }
     }
 }

@@ -173,21 +173,9 @@ static Key_Map default_keymaps[] = {
     },
 
     {
-        .description = "Plays the currently loaded sound.",
-        .key = KEY_N,
-        .hash = KMH_PLAYS_SOUND,
-    },
-    {
-        .description = "Stops the current sound track.",
-        .mod_key = KEY_LEFT_SHIFT,
-        .key = KEY_N,
-        .hash = KMH_STOPS_SOUND,
-    },
-
-    {
-        .description = "Pauses the current sound track.",
+        .description = "Play/Pauses the current sound track.",
         .key = KEY_M,
-        .hash = KMH_PAUSES_SOUND,
+        .hash = KMH_PLAY_PAUSES_SOUND,
     },
     {
         .description = "Resumes the currently loaded sound track.",
