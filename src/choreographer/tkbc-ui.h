@@ -15,6 +15,7 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
                     size_t screen_items, size_t *top_interaction_box);
 bool tkbc_ui_script_menu(Env *env);
 void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count);
+void tkbc_ui_music_bar(Env *env);
 
 void tkbc_set_key_or_delete(int *dest_key, const char **dest_str, int key_value);
 void tkbc_draw_key_box(Env *env, Rectangle rectangle, Key_Box iteration, size_t cur_major_box);

@@ -586,6 +586,12 @@ typedef struct {
                                     // timeline.
     size_t timeline_segments;       // The amount of frames that the timeline displays.
 
+    bool music_bar_interaction;  // The status if the music seek bar is being dragged.
+    Rectangle music_bar_base;    // The rectangle that is below the music slider.
+    Rectangle music_bar_front;   // The rectangle that represents the played music.
+
+    double bottom_bars_visible_until;  // GetTime() deadline until the bottom bars stay visible after hover.
+
     bool colorizer;  // If the colorizer was selected.
 
     Rectangle color_picker_base;                // The base bounding box of the color selection menu.

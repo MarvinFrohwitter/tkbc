@@ -1,6 +1,7 @@
 // ========================== Sound Handler ==================================
 
 #include "../global/tkbc-types.h"
+#include "../global/tkbc-utils.h"
 #include "raylib.h"
 #include "tkbc-keymaps.h"
 #include <stdlib.h>
@@ -37,6 +38,25 @@ void tkbc_music_destroy(Music music) {
  * @param env The environment that holds the current state of the application.
  */
 void tkbc_input_music_handler(Env *env) {
+    if (!IsMusicValid(env->music)) {
+        env->music_bar_interaction = false;
+        return;
+    }
+
+    if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
+        env->music_bar_interaction = false;
+    }
+
+    if (env->music_bar_interaction && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        float length = GetMusicTimeLength(env->music);
+        if (length > 0 && env->music_bar_base.width > 0) {
+            Vector2 mouse_pos = GetMousePosition();
+            float t = (mouse_pos.x - env->music_bar_base.x) / env->music_bar_base.width;
+            t = tkbc_clamp(t, 0, 1);
+            SeekMusicStream(env->music, t * length);
+        }
+    }
+
     // Handles current loaded music stream.
     // KEY_N && KEY_LEFT_SHIFT && KEY_RIGHT_SHIFT
     if (tkbc_check_keymaps_full(env->keymaps, KMH_STOPS_SOUND, KEY_MAP_CHECK_KEY_PRESSED_MOD_DOWN)) {

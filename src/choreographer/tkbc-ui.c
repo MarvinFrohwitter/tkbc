@@ -94,6 +94,8 @@ void tkbc_draw_ui(Env *env) {
         }
     }
 
+    tkbc_ui_music_bar(env);
+
     if (!env->rendering) {
         Color color = TKBC_UI_TEAL;
         int fps = GetFPS();
@@ -1802,6 +1804,44 @@ void tkbc_set_colorizer_texture_insted_of_texture_id(Kite_States *kite_array, UU
 }
 
 /**
+ * @brief Computes the geometry for the bars stacked at the bottom of the
+ * window. Slot 0 is the lowest bar, slot 1 sits directly above it.
+ *
+ * @param env The global state of the application.
+ * @param bar The rectangle that receives the computed geometry.
+ * @param slot The zero-based slot counted from the bottom of the window.
+ */
+static void tkbc_ui_bottom_bar_layout(Env *env, Rectangle *bar, size_t slot) {
+    const float margin = 10;
+    const float gap = 4;
+
+    bar->width = env->window_width / 2.0f;
+    bar->height = env->window_height / 42.0f;
+    bar->x = (env->window_width - bar->width) / 2.0f;
+    bar->y = env->window_height - margin - bar->height - (float) slot * (bar->height + gap);
+}
+
+/**
+ * @brief Keeps both bottom bars visible for a short grace period after hover.
+ *
+ * @param env The global state of the application.
+ */
+static void tkbc_ui_bottom_bars_hold_visible(Env *env) {
+    const double hide_delay = 1.0;
+    env->bottom_bars_visible_until = GetTime() + hide_delay;
+}
+
+/**
+ * @brief Checks whether the shared bottom-bar hover grace period is active.
+ *
+ * @param env The global state of the application.
+ * @return True while either bottom bar should be visible.
+ */
+static bool tkbc_ui_bottom_bars_visible(Env *env) {
+    return GetTime() <= env->bottom_bars_visible_until;
+}
+
+/**
  * @brief The function provides the timeline UI slider to change the current
  * displayed frame of a script.
  *
@@ -1818,11 +1858,8 @@ void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count) 
         return;
     }
 
-    float margin = 10;
-    env->timeline_base.width = env->window_width / 2.0f;
-    env->timeline_base.height = env->window_height / 42.0f;
-    env->timeline_base.x = env->timeline_base.width / 2.0f;
-    env->timeline_base.y = env->window_height - env->timeline_base.height - margin;
+    size_t slot = IsMusicValid(env->music) ? 1 : 0;
+    tkbc_ui_bottom_bar_layout(env, &env->timeline_base, slot);
 
     env->timeline_front.height = env->timeline_base.height;
     env->timeline_front.x = env->timeline_base.x;
@@ -1874,12 +1911,57 @@ void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count) 
     }
 
     if (env->timeline_hoverover || env->timeline_interaction) {
+        tkbc_ui_bottom_bars_hold_visible(env);
+    }
+    if (tkbc_ui_bottom_bars_visible(env)) {
         DrawRectangleRec(env->timeline_base, TKBC_UI_GRAY);
         if (env->rendering) {
             DrawRectangleRec(env->timeline_front, TKBC_UI_RED);
         } else {
             DrawRectangleRec(env->timeline_front, TKBC_UI_TEAL);
         }
+    }
+}
+
+/**
+ * @brief Draws the music seek bar below the script timeline and arms mouse
+ * dragging while a music stream is loaded.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_ui_music_bar(Env *env) {
+    if (!IsMusicValid(env->music)) {
+        env->music_bar_interaction = false;
+        return;
+    }
+
+    tkbc_ui_bottom_bar_layout(env, &env->music_bar_base, 0);
+
+    env->music_bar_front.x = env->music_bar_base.x;
+    env->music_bar_front.y = env->music_bar_base.y;
+    env->music_bar_front.height = env->music_bar_base.height;
+
+    float length = GetMusicTimeLength(env->music);
+    float played = GetMusicTimePlayed(env->music);
+    float progress = length > 0 ? tkbc_clamp(played / length, 0, 1) : 0;
+    env->music_bar_front.width = progress * env->music_bar_base.width;
+
+    Vector2 mouse_pos = GetMousePosition();
+    bool hovered = CheckCollisionPointRec(mouse_pos, env->music_bar_base);
+
+    if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
+        env->music_bar_interaction = false;
+    }
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && hovered) {
+        env->music_bar_interaction = true;
+    }
+
+    if (hovered || env->music_bar_interaction) {
+        tkbc_ui_bottom_bars_hold_visible(env);
+    }
+    if (tkbc_ui_bottom_bars_visible(env)) {
+        DrawRectangleRec(env->music_bar_base, TKBC_UI_GRAY);
+        DrawRectangleRec(env->music_bar_front, DARKPURPLE);
     }
 }
 
