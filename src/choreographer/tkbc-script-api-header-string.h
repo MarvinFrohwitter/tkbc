@@ -5429,7 +5429,7 @@ static const char* global_api_header_string =
 "\n"
 "\n"
 "\n"
-"    Sound sound;\n"
+"    Music music;\n"
 "    Process *ffmpeg;\n"
 "    char *sound_file_name;\n"
 "\n"

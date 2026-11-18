@@ -1185,6 +1185,7 @@ int main(int argc, char *argv[]) {
     InitAudioDevice();
 
     while (!WindowShouldClose()) {
+        tkbc_update_music_stream(env);
         BeginDrawing();
         ClearBackground(TKBC_UI_SKYBLUE);
 
@@ -1232,7 +1233,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        tkbc_input_sound_handler(env);
+        tkbc_input_music_handler(env);
         tkbc_client_input_handler_kite();
 
         if (offline_mode) {
@@ -1291,7 +1292,7 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
-    tkbc_sound_destroy(env->sound);
+    tkbc_music_destroy(env->music);
     if (env->rendering) {
         tkbc_ffmpeg_end(env, false);
     }

@@ -91,6 +91,7 @@ int main(void) {
     InitAudioDevice();
 
     while (!WindowShouldClose()) {
+        tkbc_update_music_stream(env);
         BeginDrawing();
         ClearBackground(SKYBLUE);
 
@@ -133,7 +134,7 @@ int main(void) {
             continue;
         }
 
-        tkbc_input_sound_handler(env);
+        tkbc_input_music_handler(env);
         tkbc_input_handler_kite_array(env);
         tkbc_input_handler_script(env);
 
@@ -142,7 +143,7 @@ int main(void) {
         tkbc_ffmpeg_handler(env);
     };
 
-    tkbc_sound_destroy(env->sound);
+    tkbc_music_destroy(env->music);
     if (env->rendering) {
         tkbc_ffmpeg_end(env, false);
     }

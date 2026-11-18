@@ -547,7 +547,7 @@ typedef struct {
                                 // construct a script.
 
     // -------FFMPEG-------
-    Sound sound;            // The current loaded sound.
+    Music music;            // The current loaded music stream.
     Process *ffmpeg;        // The pipe and pid of the ffmpeg subprocess.
     char *sound_file_name;  // The name of the sound file that should be included
                             // in the rendered video.

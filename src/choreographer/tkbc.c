@@ -696,12 +696,12 @@ void tkbc_file_handler(Env *env) {
                 if (issound) {
                     continue;
                 }
-                if (IsSoundValid(env->sound)) {
-                    StopSound(env->sound);
-                    UnloadSound(env->sound);
+                if (IsMusicValid(env->music)) {
+                    StopMusicStream(env->music);
+                    UnloadMusicStream(env->music);
                 }
-                env->sound = LoadSound(file_path);
-                if (!IsSoundValid(env->sound)) {
+                env->music = LoadMusicStream(file_path);
+                if (!IsMusicValid(env->music)) {
                     // No valid sound file or any other file.
                     continue;
                 }
