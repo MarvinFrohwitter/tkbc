@@ -14,7 +14,7 @@
 #include <stddef.h>
 
 #ifdef __TINYC__
-#define static_assert(expr, message) _Static_assert(expr, msg)
+#define static_assert(expr, message) _Static_assert((expr), message)
 #endif
 
 // ===========================================================================

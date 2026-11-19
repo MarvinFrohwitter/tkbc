@@ -447,7 +447,16 @@ void script_api_string(Cmd *cmd) {
 
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
 
-    cb_cmd_push(cmd, "./" BUILD_PATH "create_file_string_from_file", "-cc", CC);
+    // The compiler has to be explicitly gcc because it doesn't give the
+    //
+    // typedef _Complex float __cfloat128 __attribute__ ((__mode__ (__TC__)));
+    //
+    // and this line is not compilable with tcc.
+    // you can't use tcc to create this file because it removes the needed macros.
+    //
+    // Marvin Frohwitter 20.11.2026
+    //
+    cb_cmd_push(cmd, "./" BUILD_PATH "create_file_string_from_file", "-cc", "gcc");
     // The generated header is compiled by the client via libtcc, so it has to
     // use the same layout-affecting defines as the client build. Otherwise the
     // Space/Env layout in dropped scripts differs from the host layout.
