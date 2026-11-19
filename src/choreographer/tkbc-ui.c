@@ -122,7 +122,7 @@ static void tkbc_draw_colorizer_button(Env *env, Rectangle button, bool is_dual_
 
     const char *label = "RESET";
     if (!tkbc_is_colorizer_active(env, is_dual_line)) {
-        label = is_dual_line ? "COLORIZER 111" : "COLORIZER";
+        label = is_dual_line ? "Dualline" : "Quadline";
     }
 
     const float spacing = 2;
@@ -346,7 +346,8 @@ void tkbc_dispatch_colorizer_mode(Env *env, bool is_dual_line, Image image, Rect
  * @param view_scale Pointer to store the calculated view scale.
  * @param color_box The rectangle for the color selection box.
  */
-void tkbc_draw_pannels(Env *env, bool is_dual_line, Rectangle *view_background, float *view_scale, Rectangle color_box) {
+void tkbc_draw_pannels(Env *env, bool is_dual_line, Rectangle *view_background, float *view_scale,
+                       Rectangle color_box) {
     Vector2 view;
 
     Asset *colorizer = tkbc_get_colorizer_asset(is_dual_line);
@@ -363,7 +364,7 @@ void tkbc_draw_pannels(Env *env, bool is_dual_line, Rectangle *view_background, 
 
     if (tkbc_is_colorizer_active(env, is_dual_line)) {
         Rectangle shadow = *view_background;
-        tkbc_draw_shadow(shadow);
+        tkbc_draw_shadow(shadow, is_dual_line);
 
         shadow.y -= shadow.height * 0.05;
         shadow.x -= shadow.width * 0.05;
@@ -1486,7 +1487,7 @@ void tkbc_set_input_text_to_hex_color(Text_Input *input, Space *space, Color col
  * size of the texture, independent of its source resolution.
  * @return The maximum Rectangle the shadow needs.
  */
-Rectangle tkbc_draw_shadow(Rectangle shadow) {
+Rectangle tkbc_draw_shadow(Rectangle shadow, bool is_dual_line) {
     static float opacities[] = {0.08f,  0.089f, 0.098f, 0.107f, 0.116f, 0.125f, 0.134f, 0.143f, 0.152f, 0.161f,
                                 0.170f, 0.179f, 0.188f, 0.197f, 0.206f, 0.215f, 0.224f, 0.233f, 0.242f, 0.251f,
                                 0.260f, 0.269f, 0.278f, 0.287f, 0.296f, 0.305f, 0.314f, 0.323f, 0.332f, 0.35f};
@@ -1568,19 +1569,21 @@ Rectangle tkbc_draw_shadow(Rectangle shadow) {
         DrawSplineSegmentBezierCubic(p1, c2, c3, p4, thickness, ColorAlpha(TEAL, ALPHA_RATIO));
     }
 
-    float radius = floor.height * 0.35;
-    // This factor is just for revolutions CE-NG for other kites it can be different.
-    float factor = 0.8825f;
-    Vector2 p1 = {
-        .x = floor.x + floor.width * factor,
-        .y = floor.y + floor.height / 2,
-    };
-    Vector2 p2 = {
-        .x = floor.x + floor.width - floor.width * factor,
-        .y = floor.y + floor.height / 2,
-    };
-    DrawCircleGradient(p1, radius, WHITE, TKBC_UI_GRAY_ALPHA);
-    DrawCircleGradient(p2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
+    if (!is_dual_line) {
+        float radius = floor.height * 0.35;
+        // This factor is just for revolutions CE-NG for other kites it can be different.
+        float factor = 0.8825f;
+        Vector2 p1 = {
+            .x = floor.x + floor.width * factor,
+            .y = floor.y + floor.height / 2,
+        };
+        Vector2 p2 = {
+            .x = floor.x + floor.width - floor.width * factor,
+            .y = floor.y + floor.height / 2,
+        };
+        DrawCircleGradient(p1, radius, WHITE, TKBC_UI_GRAY_ALPHA);
+        DrawCircleGradient(p2, radius, WHITE, TKBC_UI_GRAY_ALPHA);
+    }
 
     return box;
 }
@@ -3120,7 +3123,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         shadow.y = display_box.y;
         shadow.width = t.width * scale;
         shadow.height = t.height * scale;
-        tkbc_draw_shadow(shadow);
+        tkbc_draw_shadow(shadow, active_colorizer->as.is_dual_line);
         DrawTextureEx(t, (Vector2){.x = display_box.x, .y = display_box.y}, 0, scale, WHITE);
 
         shadow.y -= ring_box_y_width;
@@ -3191,7 +3194,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         shadow.y = display_box.y;
         shadow.width = t.width * scale;
         shadow.height = t.height * scale;
-        Rectangle shadow_box = tkbc_draw_shadow(shadow);
+        Rectangle shadow_box = tkbc_draw_shadow(shadow, _tkbc_get_asset(i).as.is_dual_line);
         DrawTextureEx(t, (Vector2){.x = display_box.x, .y = display_box.y}, 0, scale, WHITE);
 
         float shadow_thick_y = (shadow_box.y - display_box.y);
@@ -3230,7 +3233,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                     UUID uuid = _tkbc_get_asset_kite_design(i).id;
 
                     tkbc_set_colorizer_texture_insted_of_texture_id(&env->kite_array, uuid,
-                                                                   _tkbc_get_asset(i).as.is_dual_line);
+                                                                    _tkbc_get_asset(i).as.is_dual_line);
                     tkbc_removed_asset_by_id(uuid);
                     break;
                 }
