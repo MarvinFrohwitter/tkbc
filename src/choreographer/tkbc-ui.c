@@ -21,6 +21,123 @@ extern Assets assets;
 extern bool offline_mode;
 
 /**
+ * @brief Checks whether one of the two colorizers is currently active.
+ */
+static bool tkbc_any_colorizer_active(Env *env) {
+    return env->colorizer || env->colorizer_111;
+}
+
+/**
+ * @brief Checks whether the colorizer for the given kite design type is active.
+ */
+static bool tkbc_is_colorizer_active(Env *env, bool is_dual_line) {
+    return is_dual_line ? env->colorizer_111 : env->colorizer;
+}
+
+/**
+ * @brief Activates one colorizer and deactivates the other one.
+ *
+ * Only one colorizer can be displayed and edited at a time.
+ */
+static void tkbc_activate_colorizer(Env *env, bool is_dual_line) {
+    env->colorizer = !is_dual_line;
+    env->colorizer_111 = is_dual_line;
+}
+
+/**
+ * @brief Returns the enum id of the filled panel a colorizer starts from.
+ */
+static Asset_Id_Kind tkbc_colorizer_filled_panel_id(bool is_dual_line) {
+    return is_dual_line ? IMAGE_111_FILLED_PANEL : IMAGE_CE_NG_FILLED_PANEL;
+}
+
+/**
+ * @brief Returns the first panel that belongs to a colorizer's design type.
+ */
+static size_t tkbc_colorizer_panel_begin(bool is_dual_line) {
+    return is_dual_line ? IMAGE_111_PANNEL_PARTS_BEGIN : IMAGE_PANNEL_PARTS_BEGIN;
+}
+
+/**
+ * @brief Returns the last panel that belongs to a colorizer's design type.
+ */
+static size_t tkbc_colorizer_panel_end(bool is_dual_line) {
+    return is_dual_line ? IMAGE_PANNEL_PARTS_END : IMAGE_CE_NG_PANNEL_PARTS_END;
+}
+
+/**
+ * @brief Checks whether a panel should be skipped while colorizing.
+ *
+ * The filled panel is never paintable. The skeleton is skipped in SELECT_PANEL
+ * mode. The CE_NG leading edge and middle panels are omitted as well, which
+ * keeps the original behavior of both modes.
+ */
+static bool tkbc_skip_colorizer_panel(bool is_dual_line, size_t panel, bool is_select_panel_mode) {
+    if (is_dual_line) {
+        return panel == IMAGE_111_FILLED_PANEL || (is_select_panel_mode && panel == IMAGE_111_SKELETON);
+    }
+
+    if (panel == IMAGE_CE_NG_FILLED_PANEL || panel == IMAGE_CE_NG_SKELETON_LEADINGEDGE ||
+        panel == IMAGE_CE_NG_MIDDLE_05 || panel == IMAGE_CE_NG_MIDDLE_09 || panel == IMAGE_CE_NG_MIDDLE_12) {
+        return true;
+    }
+    return is_select_panel_mode && panel == IMAGE_CE_NG_SKELETON;
+}
+
+/**
+ * @brief Resets a colorizer image back to its filled panel.
+ */
+static void tkbc_reset_colorizer(bool is_dual_line) {
+    Asset *colorizer = tkbc_get_colorizer_asset(is_dual_line);
+    Image filled = _tkbc_get_asset_image(tkbc_colorizer_filled_panel_id(is_dual_line)).as.image;
+
+    if (!tkbc_is_same_image(colorizer->as.kite_image.normal, filled)) {
+        UnloadImage(colorizer->as.kite_image.normal);
+        colorizer->as.kite_image.normal = ImageCopy(filled);
+        tkbc_update_kite_texture(colorizer->as.kite_texture, colorizer->as.kite_image);
+    }
+}
+
+/**
+ * @brief Draws and handles one COLORIZER / RESET button of the color picker.
+ */
+static void tkbc_draw_colorizer_button(Env *env, Rectangle button, bool is_dual_line, Vector2 mouse, int font_size) {
+    if (CheckCollisionPointRec(mouse, button)) {
+        if (!env->color_picker_window_picking) {
+            DrawRectangleRounded(button, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
+        }
+    } else {
+        DrawRectangleRounded(button, 1, 10, TKBC_UI_TEAL_ALPHA);
+    }
+
+    if (!env->color_picker_window_picking && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+        CheckCollisionPointRec(mouse, button)) {
+        DrawRectangleRounded(button, 1, 10, TKBC_UI_PURPLE_ALPHA);
+        if (!tkbc_is_colorizer_active(env, is_dual_line)) {
+            tkbc_activate_colorizer(env, is_dual_line);
+        } else {
+            tkbc_reset_colorizer(is_dual_line);
+        }
+    }
+
+    const char *label = "RESET";
+    if (!tkbc_is_colorizer_active(env, is_dual_line)) {
+        label = is_dual_line ? "COLORIZER 111" : "COLORIZER";
+    }
+
+    const float spacing = 2;
+    int label_font_size = font_size;
+    Vector2 text_size = tkbc_reduce_str_to_fit_box(env->font, label, &label_font_size, spacing, button);
+    Vector2 p = {
+        .x = button.x + button.width * 0.5f - text_size.x * 0.5f,
+        .y = button.y + button.height * 0.5f - text_size.y * 0.5f,
+    };
+    tkbc_BeginScissorMode(button);
+    DrawTextEx(env->font, label, p, label_font_size, spacing, TKBC_UI_BLACK);
+    EndScissorMode();
+}
+
+/**
  * @brief This function draws a grid of lines in the background so that when flying a kite you can orient yourself on
  * that. It is also useful for scripts to get and understanding of a correct position.
  *
@@ -117,7 +234,7 @@ void tkbc_draw_ui(Env *env) {
     }
 
     if (!env->script_menu_interaction) {
-        if (!env->colorizer) {
+        if (!tkbc_any_colorizer_active(env)) {
             tkbc_ui_keymaps(env);
         }
         tkbc_ui_color_picker(env);
@@ -202,7 +319,7 @@ void tkbc_generate_new_kite_image_and_texture(Asset asset, UUID *new_id) {
  * @param collision_rec The bounding rectangle for the colorizer.
  * @param scale The current view scale.
  */
-void tkbc_dispatch_colorizer_mode(Env *env, Image image, Rectangle collision_rec, float scale) {
+void tkbc_dispatch_colorizer_mode(Env *env, bool is_dual_line, Image image, Rectangle collision_rec, float scale) {
 
     if (tkbc_check_key(KEY_LEFT_CONTROL, MODE_DOWN)) {
         return;
@@ -212,11 +329,11 @@ void tkbc_dispatch_colorizer_mode(Env *env, Image image, Rectangle collision_rec
     }
 
     if (tkbc_check_key(KEY_LEFT_SHIFT, MODE_DOWN) && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        tkbc_colorizer(env, image, collision_rec, scale, SELECT_COLOR);
+        tkbc_colorizer(env, is_dual_line, image, collision_rec, scale, SELECT_COLOR);
     } else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        tkbc_colorizer(env, image, collision_rec, scale, SELECT_PANEL);
+        tkbc_colorizer(env, is_dual_line, image, collision_rec, scale, SELECT_PANEL);
     } else if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-        tkbc_colorizer(env, image, collision_rec, scale, SINGLE_PIXEL);
+        tkbc_colorizer(env, is_dual_line, image, collision_rec, scale, SINGLE_PIXEL);
     }
 }
 
@@ -229,10 +346,11 @@ void tkbc_dispatch_colorizer_mode(Env *env, Image image, Rectangle collision_rec
  * @param view_scale Pointer to store the calculated view scale.
  * @param color_box The rectangle for the color selection box.
  */
-void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, Rectangle color_box) {
+void tkbc_draw_pannels(Env *env, bool is_dual_line, Rectangle *view_background, float *view_scale, Rectangle color_box) {
     Vector2 view;
 
-    Texture2D view_texture = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture.normal;
+    Asset *colorizer = tkbc_get_colorizer_asset(is_dual_line);
+    Texture2D view_texture = colorizer->as.kite_texture.normal;
     *view_scale = (env->window_width - env->color_picker_base.width - env->keymaps_base.width) / view_texture.width;
     view.x = env->color_picker_base.x - (env->window_width - env->color_picker_base.width) / 2 -
              *view_scale * view_texture.width / 2;
@@ -243,7 +361,7 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, 
     view_background->width = view_texture.width * *view_scale;
     view_background->height = view_texture.height * *view_scale;
 
-    if (env->colorizer) {
+    if (tkbc_is_colorizer_active(env, is_dual_line)) {
         Rectangle shadow = *view_background;
         tkbc_draw_shadow(shadow);
 
@@ -254,7 +372,6 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, 
         float thick = 3;
         DrawRectangleRoundedLinesEx(shadow, 0.25, 20, thick, TKBC_UI_BLACK);
 
-        view_texture = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture.normal;
         DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
     }
 }
@@ -266,8 +383,8 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, 
  * @param p The position of the pixel to set.
  * @param replace The color to set at the position.
  */
-void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace) {
-    Kite_Image *kite_image = &_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image;
+void tkbc_set_single_pixel_in_kite_image_colorizer(bool is_dual_line, Vector2 p, Color replace) {
+    Kite_Image *kite_image = &tkbc_get_colorizer_asset(is_dual_line)->as.kite_image;
     tkbc_set_single_pixel_in_kite_image(*kite_image, p, replace);
 }
 
@@ -372,17 +489,21 @@ static void tkbc_fill_panel_pixels(Image panel, unsigned char *dst, Color replac
  * @param rec_scale The scale of the rectangle.
  * @param mode The colorizer mode to use.
  */
-void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_scale, Colorizer_Mode mode) {
+void tkbc_colorizer(Env *env, bool is_dual_line, Image image, Rectangle collision_rec, float rec_scale,
+                    Colorizer_Mode mode) {
 
-    env->colorizer = true;
+    tkbc_activate_colorizer(env, is_dual_line);
     Vector2 mouse = GetMousePosition();
     Vector2 p = tkbc_get_position_in_rect(collision_rec, rec_scale, mouse);
 
-    Image filled = _tkbc_get_asset_image(IMAGE_CE_NG_FILLED_PANEL).as.image;
+    Asset *colorizer = tkbc_get_colorizer_asset(is_dual_line);
+    Image filled = _tkbc_get_asset_image(tkbc_colorizer_filled_panel_id(is_dual_line)).as.image;
+    size_t panel_begin = tkbc_colorizer_panel_begin(is_dual_line);
+    size_t panel_end = tkbc_colorizer_panel_end(is_dual_line);
 
     assert(filled.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-    assert(filled.width == _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal.width);
-    assert(filled.height == _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal.height);
+    assert(filled.width == colorizer->as.kite_image.normal.width);
+    assert(filled.height == colorizer->as.kite_image.normal.height);
 
     Color old_color = GetImageColor(image, p.x, p.y);
     char alpha_threshold = 0;
@@ -393,21 +514,20 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
     Color replace = env->last_selected_color;
     switch (mode) {
     case SINGLE_PIXEL: {
-        tkbc_set_single_pixel_in_kite_image_colorizer(p, replace);
+        tkbc_set_single_pixel_in_kite_image_colorizer(is_dual_line, p, replace);
     } break;
 
     case SELECT_COLOR: {
         if (old_color.a <= alpha_threshold) {
-            Image colorizer_image = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal;
+            Image colorizer_image = colorizer->as.kite_image.normal;
             unsigned char *dst = (unsigned char *) colorizer_image.data;
 
             // The original implementation checked inside the per-pixel loop
             // which panel covers the click and then painted that panel and
             // every eligible panel after it. Determine that first panel once.
-            size_t first_panel = IMAGE_PANNEL_PARTS_END + 1;
-            for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_CE_NG_PANNEL_PARTS_END; ++i) {
-                if ((i == IMAGE_CE_NG_MIDDLE_05) || (i == IMAGE_CE_NG_MIDDLE_09) || (i == IMAGE_CE_NG_MIDDLE_12) ||
-                    (i == IMAGE_CE_NG_FILLED_PANEL) || (i == IMAGE_CE_NG_SKELETON_LEADINGEDGE)) {
+            size_t first_panel = panel_end + 1;
+            for (size_t i = panel_begin; i <= panel_end; ++i) {
+                if (tkbc_skip_colorizer_panel(is_dual_line, i, false)) {
                     continue;
                 }
                 if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
@@ -426,9 +546,8 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
                 }
             }
 
-            for (size_t i = first_panel; i <= IMAGE_CE_NG_PANNEL_PARTS_END; ++i) {
-                if ((i == IMAGE_CE_NG_MIDDLE_05) || (i == IMAGE_CE_NG_MIDDLE_09) || (i == IMAGE_CE_NG_MIDDLE_12) ||
-                    (i == IMAGE_CE_NG_FILLED_PANEL) || (i == IMAGE_CE_NG_SKELETON_LEADINGEDGE)) {
+            for (size_t i = first_panel; i <= panel_end; ++i) {
+                if (tkbc_skip_colorizer_panel(is_dual_line, i, false)) {
                     continue;
                 }
                 if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
@@ -448,21 +567,17 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
             }
 
         } else {
-            tkbc_update_kite_image_color(&_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image, old_color,
-                                         replace);
+            tkbc_update_kite_image_color(&colorizer->as.kite_image, old_color, replace);
         }
 
     } break;
     case SELECT_PANEL: {
-        Image colorizer_image = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal;
+        Image colorizer_image = colorizer->as.kite_image.normal;
         unsigned char *dst = (unsigned char *) colorizer_image.data;
         const size_t pixel_count = (size_t) filled.width * filled.height;
 
-        for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_CE_NG_PANNEL_PARTS_END; ++i) {
-            if ((i == IMAGE_CE_NG_MIDDLE_05) || (i == IMAGE_CE_NG_MIDDLE_09) || (i == IMAGE_CE_NG_MIDDLE_12) ||
-                (i == IMAGE_CE_NG_FILLED_PANEL) || (i == IMAGE_CE_NG_SKELETON) ||
-                (i == IMAGE_CE_NG_SKELETON_LEADINGEDGE)) {
-                // Skip the middle once for now.
+        for (size_t i = panel_begin; i <= panel_end; ++i) {
+            if (tkbc_skip_colorizer_panel(is_dual_line, i, true)) {
                 continue;
             }
 
@@ -513,7 +628,7 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
         //     }
 
         //     Vector2 pixel = {.x = x, .y = y};
-        //     tkbc_set_single_pixel_in_kite_image_colorizer(pixel, c);
+        //     tkbc_set_single_pixel_in_kite_image_colorizer(is_dual_line, pixel, c);
         //   }
         // }
 
@@ -521,8 +636,7 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
     default: assert(0 && "UNREACHABLE tkbc_colorizer");
     }
 
-    tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture,
-                             _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image);
+    tkbc_update_kite_texture(colorizer->as.kite_texture, colorizer->as.kite_image);
 }
 
 /**
@@ -1486,6 +1600,7 @@ void tkbc_ui_color_picker(Env *env) {
     if (IsKeyPressed(KEY_ESCAPE) ||
         tkbc_check_keymaps_full(env->keymaps, KMH_CHANGE_KEY_MAPPINGS, KEY_MAP_CHECK_KEY_PRESSED)) {
         env->colorizer = false;
+        env->colorizer_111 = false;
     }
     if (!env->color_picker_interaction) {
         // Clear stale focus so a hex field that was active before the picker
@@ -1616,6 +1731,14 @@ void tkbc_ui_color_picker(Env *env) {
         .height = color_circle_radius,
     };
 
+    if (env->color_picker_display_designs) {
+        // Fit the designs toggle and both colorizer buttons into the sidebar.
+        float available_width = env->color_picker_base.x + env->color_picker_base.width - forward.x - 2 * padding;
+        if (available_width > 0) {
+            forward.width = available_width / 3;
+        }
+    }
+
     if (CheckCollisionPointRec(mouse, forward)) {
         if (!env->color_picker_window_picking) {
             DrawRectangleRounded(forward, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
@@ -1635,50 +1758,11 @@ void tkbc_ui_color_picker(Env *env) {
         Rectangle colorizer_button = forward;
         colorizer_button.x += forward.width + padding;
 
-        if (CheckCollisionPointRec(mouse, colorizer_button)) {
-            if (!env->color_picker_window_picking) {
-                DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_DARKPURPLE_ALPHA);
-            }
-        } else {
-            DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_TEAL_ALPHA);
-        }
+        Rectangle colorizer_111_button = colorizer_button;
+        colorizer_111_button.x += colorizer_button.width + padding;
 
-        // Reset the COLORIZER
-        if (!env->color_picker_window_picking) {
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mouse, colorizer_button)) {
-                DrawRectangleRounded(colorizer_button, 1, 10, TKBC_UI_PURPLE_ALPHA);
-                if (!env->colorizer) {
-                    env->colorizer = true;
-                } else {
-
-                    Image a = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal;
-                    Image b = _tkbc_get_asset_image(IMAGE_CE_NG_FILLED_PANEL).as.image;
-                    bool same = tkbc_is_same_image(a, b);
-
-                    if (!same) {
-                        UnloadImage(_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal);
-                        _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal = ImageCopy(b);
-                        tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture,
-                                                 _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image);
-                    }
-                }
-            }
-        }
-        const char *colorizer = NULL;
-        if (!env->colorizer) {
-            colorizer = "COLORIZER";
-        } else {
-            colorizer = "RESET";
-        }
-
-        const float spacing = 2;
-        text_size = tkbc_reduce_str_to_fit_box(env->font, colorizer, &font_size, spacing, colorizer_button);
-        Vector2 p;
-        p.x = colorizer_button.x + colorizer_button.width * 0.5 - text_size.x * 0.5;
-        p.y = colorizer_button.y + colorizer_button.height * 0.5 - text_size.y * 0.5;
-        tkbc_BeginScissorMode(colorizer_button);
-        DrawTextEx(env->font, colorizer, p, font_size, spacing, TKBC_UI_BLACK);
-        EndScissorMode();
+        tkbc_draw_colorizer_button(env, colorizer_button, false, mouse, font_size);
+        tkbc_draw_colorizer_button(env, colorizer_111_button, true, mouse, font_size);
     }
 
     Rectangle colorizer_view_background;
@@ -1699,7 +1783,7 @@ void tkbc_ui_color_picker(Env *env) {
         DrawTextEx(env->font, designs, position, font_size, spacing, TKBC_UI_BLACK);
         EndScissorMode();
 
-        tkbc_draw_pannels(env, &colorizer_view_background, &colorizer_view_scale, color_box);
+        tkbc_draw_pannels(env, env->colorizer_111, &colorizer_view_background, &colorizer_view_scale, color_box);
     }
 
     bool tooltip_kite_design_selection = false;
@@ -1724,9 +1808,11 @@ void tkbc_ui_color_picker(Env *env) {
         tooltip_kite_design_selection = tkbc_display_kite_designs(env, kite_designs_container, padding);
     }
 
-    if (env->colorizer) {
-        tkbc_dispatch_colorizer_mode(env, _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal,
-                                     colorizer_view_background, 1 / colorizer_view_scale);
+    if (tkbc_any_colorizer_active(env)) {
+        bool is_dual_line = env->colorizer_111;
+        Asset *colorizer = tkbc_get_colorizer_asset(is_dual_line);
+        tkbc_dispatch_colorizer_mode(env, is_dual_line, colorizer->as.kite_image.normal, colorizer_view_background,
+                                     1 / colorizer_view_scale);
     }
 
     if (!env->color_picker_display_designs) {
@@ -1793,13 +1879,14 @@ void tkbc_set_texture_for_selected_kites(Env *env, UUID texture_id, bool is_text
  * @brief This function can be used to switch all kites that have a missing texture back to the colorizer texture.
  *
  * @param kite_array The Kite_States that should be checked.
- * @param texture_id The id where the
+ * @param texture_id The id of the deleted design.
+ * @param is_dual_line The type of the deleted design, used to pick the matching colorizer.
  */
-void tkbc_set_colorizer_texture_insted_of_texture_id(Kite_States *kite_array, UUID texture_id) {
-    Asset colorizer = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER);
+void tkbc_set_colorizer_texture_insted_of_texture_id(Kite_States *kite_array, UUID texture_id, bool is_dual_line) {
+    UUID colorizer_id = tkbc_get_colorizer_asset(is_dual_line)->id;
     for (size_t i = 0; i < kite_array->count; ++i) {
         if (tkbc_uuid_equals(kite_array->elements[i].kite->texture_id, texture_id)) {
-            tkbc_set_kite_texture_id(kite_array->elements[i].kite, colorizer.id);
+            tkbc_set_kite_texture_id(kite_array->elements[i].kite, colorizer_id);
             kite_array->elements[i].kite->is_texture_new = false;
         }
     }
@@ -2983,7 +3070,8 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
 
     float actual_padding = padding * 2;
 
-    Texture2D t = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture.normal;
+    Asset *active_colorizer = tkbc_get_colorizer_asset(env->colorizer_111);
+    Texture2D t = active_colorizer->as.kite_texture.normal;
     const float scale_factor = 0.7;
     float scale = env->color_picker_base.width * scale_factor / t.width;
 
@@ -3046,12 +3134,13 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
             if (CheckCollisionPointRec(mouse, shadow)) {
                 tooltip_kite_design_selection = true;
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    Image reference = _tkbc_get_asset_image(IMAGE_CE_NG_FILLED_PANEL).as.image;
-                    Asset a = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER);
+                    Image reference =
+                        _tkbc_get_asset_image(tkbc_colorizer_filled_panel_id(env->colorizer_111)).as.image;
+                    Asset a = *active_colorizer;
 
                     // This is needed because the UUIDs will be random and not the enum
                     // value.
-                    UUID new_id = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).id;
+                    UUID new_id = active_colorizer->id;
                     bool design_already_exists = false;
                     if (tkbc_is_same_image(a.as.kite_image.normal, reference)) {
                         design_already_exists = true;
@@ -3140,7 +3229,8 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                     tkbc_draw_circle_with_x(center, radius, TKBC_UI_PURPLE_ALPHA);
                     UUID uuid = _tkbc_get_asset_kite_design(i).id;
 
-                    tkbc_set_colorizer_texture_insted_of_texture_id(&env->kite_array, uuid);
+                    tkbc_set_colorizer_texture_insted_of_texture_id(&env->kite_array, uuid,
+                                                                   _tkbc_get_asset(i).as.is_dual_line);
                     tkbc_removed_asset_by_id(uuid);
                     break;
                 }
@@ -3171,18 +3261,22 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                 // want to preserve that. Also thy don't have a skeleton, they are
                 // just perfectly blended.
                 if (!tkbc_is_default_kite_design(&assets, assets.elements[i].id)) {
+                    bool design_dual = _tkbc_get_asset(i).as.is_dual_line;
+                    tkbc_activate_colorizer(env, design_dual);
+                    Asset *target_colorizer = tkbc_get_colorizer_asset(design_dual);
+
                     Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
                     assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-                    assert(im.width == _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal.width);
-                    assert(im.height == _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal.height);
+                    assert(im.width == target_colorizer->as.kite_image.normal.width);
+                    assert(im.height == target_colorizer->as.kite_image.normal.height);
 
-                    // Copy the selected design into the KITE_COLORIZER image.
+                    // Copy the selected design into the matching colorizer image.
                     // The old version went through two
                     // tkbc_set_single_pixel_in_kite_image_colorizer() calls and
                     // a tkbc_get_position_in_image() call per pixel; with
                     // 8000x2614 designs that is tens of millions of function
                     // calls. Write the RGBA bytes directly instead.
-                    Image colorizer_image = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal;
+                    Image colorizer_image = target_colorizer->as.kite_image.normal;
                     assert(colorizer_image.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
 
                     const unsigned char *src = (const unsigned char *) im.data;
@@ -3209,8 +3303,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                         }
                     }
 
-                    tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture,
-                                             _tkbc_get_asset_kite_design(i).as.kite_image);
+                    tkbc_update_kite_texture(target_colorizer->as.kite_texture, target_colorizer->as.kite_image);
                 }
                 tkbc_set_color_for_selected_kites(env, BLANK);
             }

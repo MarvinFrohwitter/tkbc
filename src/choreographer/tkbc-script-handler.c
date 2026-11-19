@@ -2380,7 +2380,7 @@ void tkbc_input_handler_script(Env *env) {
     }
 
     // TODO: Change condition to something like UI interaction.
-    if (!env->keymaps_interaction && !env->script_menu_interaction && !env->colorizer) {
+    if (!env->keymaps_interaction && !env->script_menu_interaction && !env->colorizer && !env->colorizer_111) {
         env->script_loading = false;
     }
 }

@@ -30,17 +30,18 @@ KeyboardKey tkbc_is_any_ascii_key_down();
 void tkbc_ui_color_picker(Env *env);
 void tkbc_set_color_for_selected_kites(Env *env, Color color);
 void tkbc_set_texture_for_selected_kites(Env *env, UUID texture_id, bool is_texture_new);
-void tkbc_set_colorizer_texture_insted_of_texture_id(Kite_States *kite_array, UUID texture_id);
+void tkbc_set_colorizer_texture_insted_of_texture_id(Kite_States *kite_array, UUID texture_id, bool is_dual_line);
 
 Rectangle tkbc_draw_shadow(Rectangle shadow);
 void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image);
 void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old, Color replace);
 
-void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, Rectangle color_box);
+void tkbc_draw_pannels(Env *env, bool is_dual_line, Rectangle *view_background, float *view_scale, Rectangle color_box);
 
-void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace);
+void tkbc_set_single_pixel_in_kite_image_colorizer(bool is_dual_line, Vector2 p, Color replace);
 void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p, Color replace);
-void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_scale, Colorizer_Mode mode);
+void tkbc_colorizer(Env *env, bool is_dual_line, Image image, Rectangle collision_rec, float rec_scale,
+                    Colorizer_Mode mode);
 void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding);
 bool tkbc_text_input_reserve(Space *space, Text_Buffer *buffer, size_t needed_count);
 void tkbc_text_input_set_text(Text_Input *input, Space *space, const char *str);

@@ -178,6 +178,7 @@ void tkbc_asset_destroy(Asset *asset);
 void tkbc_assets_destroy(void);
 void tkbc_removed_asset_by_id(UUID uuid);
 Asset *tkbc_find_asset_from_id(UUID id);
+Asset *tkbc_get_colorizer_asset(bool is_dual_line);
 size_t tkbc_get_current_kite_design_count();
 UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int data_size, int width, int height,
                                                      int format, UUID id, bool is_dual_line);

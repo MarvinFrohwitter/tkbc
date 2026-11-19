@@ -222,7 +222,7 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
 
     Asset *found = tkbc_find_asset_from_id(texture_id);
     if (!found) {
-        texture_id = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).id;
+        texture_id = tkbc_get_colorizer_asset(is_dual_line)->id;
         ok = 2;
     }
 

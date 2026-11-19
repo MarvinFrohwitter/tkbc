@@ -603,7 +603,8 @@ typedef struct {
 
     double bottom_bars_visible_until;  // GetTime() deadline until the bottom bars stay visible after hover.
 
-    bool colorizer;  // If the colorizer was selected.
+    bool colorizer;      // If the CE_NG colorizer was selected.
+    bool colorizer_111;  // If the 111 (dual line) colorizer was selected.
 
     Rectangle color_picker_base;                // The base bounding box of the color selection menu.
     Text_Input color_picker_input;              // The hex color text field, owns its buffer

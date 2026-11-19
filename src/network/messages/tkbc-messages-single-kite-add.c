@@ -57,7 +57,7 @@ bool tkbc_messages_single_kite_add(Env *env, Message *reader, Client *client, Ki
             tkbc_message_write_end(&client->send_msg_buffer, offset);
         }
 
-        texture_id = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).id;
+        texture_id = tkbc_get_colorizer_asset(is_dual_line)->id;
     }
 
     if (tkbc_uuid_is_nil(texture_id)) {

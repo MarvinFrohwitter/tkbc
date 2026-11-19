@@ -496,7 +496,7 @@ void append_assets(void) {
     // paints on it, so keep the baked in PNG bytes instead of decoding them.
     tkbc_append_compressed_kite_image(asset_image_filled_panel, (int) sizeof(asset_image_filled_panel), ".png", false);
     tkbc_append_compressed_kite_image(asset_image_111_base_white, (int) sizeof(asset_image_111_base_white), ".png",
-                                      false);
+                                      true);
 #else
     Image colorizer_image_ce_ng = _tkbc_get_asset_image(IMAGE_CE_NG_FILLED_PANEL).as.image;
     tkbc_append_kite_image(colorizer_image_ce_ng.data, colorizer_image_ce_ng.width, colorizer_image_ce_ng.height,
@@ -645,6 +645,19 @@ Asset *tkbc_find_asset_from_id(UUID id) {
         }
     }
     return NULL;
+}
+
+/**
+ * @brief Returns the colorizer asset for the given kite design type.
+ *
+ * Non dual line designs belong to the CE_NG colorizer, dual line designs to
+ * the 111 colorizer.
+ *
+ * @param is_dual_line The type of kite design the colorizer is needed for.
+ * @return The matching colorizer asset.
+ */
+Asset *tkbc_get_colorizer_asset(bool is_dual_line) {
+    return &_tkbc_get_asset_kite_design(is_dual_line ? KITE_111_COLORIZER : KITE_CE_NG_COLORIZER);
 }
 
 /**
