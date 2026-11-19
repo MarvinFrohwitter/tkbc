@@ -767,9 +767,23 @@ UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int da
  */
 bool tkbc_image_already_exitst_in_assets(Image image, UUID *id) {
     for (size_t i = KITE_DEFAULT_DESIGNS_BEGIN; i < assets.count; ++i) {
-        if (tkbc_is_same_image(image, assets.elements[i].as.image)) {
-            *id = assets.elements[i].id;
-            return true;
+        Asset *asset = &assets.elements[i];
+        switch (asset->type) {
+        case ASSETS_IMAGE: {
+            if (tkbc_is_same_image(image, assets.elements[i].as.image)) {
+                *id = assets.elements[i].id;
+                return true;
+            }
+        } break;
+        case ASSETS_KITE_DESIGN: {
+            if (tkbc_is_same_image(image, assets.elements[i].as.kite_image.normal)) {
+                *id = assets.elements[i].id;
+                return true;
+            }
+
+        } break;
+        case ASSETS_KIND_COUNT:
+        default: assert(false && "UNREACHABLE tkbc_image_already_exitst_in_assets()"); return false;
         }
     }
     return false;

@@ -138,9 +138,9 @@ typedef struct {
         Image image;
 
         struct {
-            bool is_dual_line;
             Kite_Image kite_image;
             Kite_Texture kite_texture;
+            bool is_dual_line;
         };
     } as;
 
