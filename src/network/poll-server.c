@@ -1311,7 +1311,7 @@ bool tkbc_received_message_handler(Client *client) {
                                                                  &client->send_msg_buffer_space, MESSAGE_GET_TEXTURE);
                 tkbc_message_write_uuid(&client->send_msg_buffer, &client->send_msg_buffer_space, texture_id);
                 tkbc_message_write_end(&client->send_msg_buffer, texture_offset);
-                texture_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
+                texture_id = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).id;
                 state->kite->texture_id = texture_id;
             }
 

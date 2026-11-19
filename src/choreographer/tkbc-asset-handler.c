@@ -439,6 +439,7 @@ void tkbc_append_ce_ng_kite_image_pannels() {
 void tkbc_append_111_kite_image_pannels() {
 
     tkbc_append_baked_asset_image(asset_image_111_skeleton);
+    tkbc_append_baked_asset_image(asset_image_111_base_white);
 
     tkbc_append_baked_asset_image(asset_image_111_left_01_1);
     tkbc_append_baked_asset_image(asset_image_111_left_02_1);
@@ -494,10 +495,17 @@ void append_assets(void) {
     // The colorizer starts as a copy of the filled panel. The server never
     // paints on it, so keep the baked in PNG bytes instead of decoding them.
     tkbc_append_compressed_kite_image(asset_image_filled_panel, (int) sizeof(asset_image_filled_panel), ".png", false);
+    tkbc_append_compressed_kite_image(asset_image_111_base_white, (int) sizeof(asset_image_111_base_white), ".png",
+                                      false);
 #else
-    Image colorizer_image = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
-    tkbc_append_kite_image(colorizer_image.data, colorizer_image.width, colorizer_image.height, colorizer_image.format,
-                           false);
+    Image colorizer_image_ce_ng = _tkbc_get_asset_image(IMAGE_CE_NG_FILLED_PANEL).as.image;
+    tkbc_append_kite_image(colorizer_image_ce_ng.data, colorizer_image_ce_ng.width, colorizer_image_ce_ng.height,
+                           colorizer_image_ce_ng.format, false);
+
+    Image colorizer_image_111 = _tkbc_get_asset_image(IMAGE_111_FILLED_PANEL).as.image;
+    tkbc_append_kite_image(colorizer_image_111.data, colorizer_image_111.width, colorizer_image_111.height,
+                           colorizer_image_111.format, true);
+
 #endif
 
     tkbc_append_baked_kite_image(asset_image_ce_ng_1, false);
@@ -724,7 +732,7 @@ UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int da
  * false.
  */
 bool tkbc_image_already_exitst_in_assets(Image image, UUID *id) {
-    for (size_t i = KITE_COLORIZER + 1; i < assets.count; ++i) {
+    for (size_t i = KITE_DEFAULT_DESIGNS_BEGIN; i < assets.count; ++i) {
         if (tkbc_is_same_image(image, assets.elements[i].as.image)) {
             *id = assets.elements[i].id;
             return true;

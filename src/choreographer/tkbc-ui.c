@@ -232,7 +232,7 @@ void tkbc_dispatch_colorizer_mode(Env *env, Image image, Rectangle collision_rec
 void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, Rectangle color_box) {
     Vector2 view;
 
-    Texture2D view_texture = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture.normal;
+    Texture2D view_texture = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture.normal;
     *view_scale = (env->window_width - env->color_picker_base.width - env->keymaps_base.width) / view_texture.width;
     view.x = env->color_picker_base.x - (env->window_width - env->color_picker_base.width) / 2 -
              *view_scale * view_texture.width / 2;
@@ -254,7 +254,7 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, 
         float thick = 3;
         DrawRectangleRoundedLinesEx(shadow, 0.25, 20, thick, TKBC_UI_BLACK);
 
-        view_texture = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture.normal;
+        view_texture = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture.normal;
         DrawTextureEx(view_texture, view, 0, *view_scale, WHITE);
     }
 }
@@ -267,7 +267,7 @@ void tkbc_draw_pannels(Env *env, Rectangle *view_background, float *view_scale, 
  * @param replace The color to set at the position.
  */
 void tkbc_set_single_pixel_in_kite_image_colorizer(Vector2 p, Color replace) {
-    Kite_Image *kite_image = &_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image;
+    Kite_Image *kite_image = &_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image;
     tkbc_set_single_pixel_in_kite_image(*kite_image, p, replace);
 }
 
@@ -378,11 +378,11 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
     Vector2 mouse = GetMousePosition();
     Vector2 p = tkbc_get_position_in_rect(collision_rec, rec_scale, mouse);
 
-    Image filled = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
+    Image filled = _tkbc_get_asset_image(IMAGE_CE_NG_FILLED_PANEL).as.image;
 
     assert(filled.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-    assert(filled.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
-    assert(filled.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
+    assert(filled.width == _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal.width);
+    assert(filled.height == _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal.height);
 
     Color old_color = GetImageColor(image, p.x, p.y);
     char alpha_threshold = 0;
@@ -398,7 +398,7 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
 
     case SELECT_COLOR: {
         if (old_color.a <= alpha_threshold) {
-            Image colorizer_image = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
+            Image colorizer_image = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal;
             unsigned char *dst = (unsigned char *) colorizer_image.data;
 
             // The original implementation checked inside the per-pixel loop
@@ -406,8 +406,8 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
             // every eligible panel after it. Determine that first panel once.
             size_t first_panel = IMAGE_PANNEL_PARTS_END + 1;
             for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_CE_NG_PANNEL_PARTS_END; ++i) {
-                if ((i == IMAGE_MIDDLE_05) || (i == IMAGE_MIDDLE_09) || (i == IMAGE_MIDDLE_12) ||
-                    (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
+                if ((i == IMAGE_CE_NG_MIDDLE_05) || (i == IMAGE_CE_NG_MIDDLE_09) || (i == IMAGE_CE_NG_MIDDLE_12) ||
+                    (i == IMAGE_CE_NG_FILLED_PANEL) || (i == IMAGE_CE_NG_SKELETON_LEADINGEDGE)) {
                     continue;
                 }
                 if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
@@ -427,8 +427,8 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
             }
 
             for (size_t i = first_panel; i <= IMAGE_CE_NG_PANNEL_PARTS_END; ++i) {
-                if ((i == IMAGE_MIDDLE_05) || (i == IMAGE_MIDDLE_09) || (i == IMAGE_MIDDLE_12) ||
-                    (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
+                if ((i == IMAGE_CE_NG_MIDDLE_05) || (i == IMAGE_CE_NG_MIDDLE_09) || (i == IMAGE_CE_NG_MIDDLE_12) ||
+                    (i == IMAGE_CE_NG_FILLED_PANEL) || (i == IMAGE_CE_NG_SKELETON_LEADINGEDGE)) {
                     continue;
                 }
                 if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
@@ -448,19 +448,20 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
             }
 
         } else {
-            tkbc_update_kite_image_color(&_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image, old_color,
+            tkbc_update_kite_image_color(&_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image, old_color,
                                          replace);
         }
 
     } break;
     case SELECT_PANEL: {
-        Image colorizer_image = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
+        Image colorizer_image = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal;
         unsigned char *dst = (unsigned char *) colorizer_image.data;
         const size_t pixel_count = (size_t) filled.width * filled.height;
 
         for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_CE_NG_PANNEL_PARTS_END; ++i) {
-            if ((i == IMAGE_MIDDLE_05) || (i == IMAGE_MIDDLE_09) || (i == IMAGE_MIDDLE_12) ||
-                (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
+            if ((i == IMAGE_CE_NG_MIDDLE_05) || (i == IMAGE_CE_NG_MIDDLE_09) || (i == IMAGE_CE_NG_MIDDLE_12) ||
+                (i == IMAGE_CE_NG_FILLED_PANEL) || (i == IMAGE_CE_NG_SKELETON) ||
+                (i == IMAGE_CE_NG_SKELETON_LEADINGEDGE)) {
                 // Skip the middle once for now.
                 continue;
             }
@@ -520,8 +521,8 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
     default: assert(0 && "UNREACHABLE tkbc_colorizer");
     }
 
-    tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
-                             _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image);
+    tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture,
+                             _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image);
 }
 
 /**
@@ -1650,15 +1651,15 @@ void tkbc_ui_color_picker(Env *env) {
                     env->colorizer = true;
                 } else {
 
-                    Image a = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
-                    Image b = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
+                    Image a = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal;
+                    Image b = _tkbc_get_asset_image(IMAGE_CE_NG_FILLED_PANEL).as.image;
                     bool same = tkbc_is_same_image(a, b);
 
                     if (!same) {
-                        UnloadImage(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal);
-                        _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal = ImageCopy(b);
-                        tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
-                                                 _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image);
+                        UnloadImage(_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal);
+                        _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal = ImageCopy(b);
+                        tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture,
+                                                 _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image);
                     }
                 }
             }
@@ -1724,7 +1725,7 @@ void tkbc_ui_color_picker(Env *env) {
     }
 
     if (env->colorizer) {
-        tkbc_dispatch_colorizer_mode(env, _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal,
+        tkbc_dispatch_colorizer_mode(env, _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal,
                                      colorizer_view_background, 1 / colorizer_view_scale);
     }
 
@@ -1795,7 +1796,7 @@ void tkbc_set_texture_for_selected_kites(Env *env, UUID texture_id, bool is_text
  * @param texture_id The id where the
  */
 void tkbc_set_colorizer_texture_insted_of_texture_id(Kite_States *kite_array, UUID texture_id) {
-    Asset colorizer = _tkbc_get_asset_kite_design(KITE_COLORIZER);
+    Asset colorizer = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER);
     for (size_t i = 0; i < kite_array->count; ++i) {
         if (tkbc_uuid_equals(kite_array->elements[i].kite->texture_id, texture_id)) {
             kite_array->elements[i].kite->texture_id = colorizer.id;
@@ -2982,7 +2983,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
 
     float actual_padding = padding * 2;
 
-    Texture2D t = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture.normal;
+    Texture2D t = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture.normal;
     const float scale_factor = 0.7;
     float scale = env->color_picker_base.width * scale_factor / t.width;
 
@@ -3045,12 +3046,12 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
             if (CheckCollisionPointRec(mouse, shadow)) {
                 tooltip_kite_design_selection = true;
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    Image reference = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
-                    Asset a = _tkbc_get_asset_kite_design(KITE_COLORIZER);
+                    Image reference = _tkbc_get_asset_image(IMAGE_CE_NG_FILLED_PANEL).as.image;
+                    Asset a = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER);
 
                     // This is needed because the UUIDs will be random and not the enum
                     // value.
-                    UUID new_id = _tkbc_get_asset_kite_design(KITE_COLORIZER).id;
+                    UUID new_id = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).id;
                     bool design_already_exists = false;
                     if (tkbc_is_same_image(a.as.kite_image.normal, reference)) {
                         design_already_exists = true;
@@ -3172,8 +3173,8 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                 if (!tkbc_is_default_kite_design(&assets, assets.elements[i].id)) {
                     Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
                     assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-                    assert(im.width == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.width);
-                    assert(im.height == _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal.height);
+                    assert(im.width == _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal.width);
+                    assert(im.height == _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal.height);
 
                     // Copy the selected design into the KITE_COLORIZER image.
                     // The old version went through two
@@ -3181,7 +3182,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                     // a tkbc_get_position_in_image() call per pixel; with
                     // 8000x2614 designs that is tens of millions of function
                     // calls. Write the RGBA bytes directly instead.
-                    Image colorizer_image = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
+                    Image colorizer_image = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_image.normal;
                     assert(colorizer_image.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
 
                     const unsigned char *src = (const unsigned char *) im.data;
@@ -3208,7 +3209,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                         }
                     }
 
-                    tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_texture,
+                    tkbc_update_kite_texture(_tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).as.kite_texture,
                                              _tkbc_get_asset_kite_design(i).as.kite_image);
                 }
                 tkbc_set_color_for_selected_kites(env, BLANK);
