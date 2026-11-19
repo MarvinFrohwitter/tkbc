@@ -810,7 +810,7 @@ void tkbc_set_kite_defaults(Kite *kite, bool is_generated) {
         center.y = tkbc_get_screen_height() / 2.0f;
         tkbc_set_kite_internals(kite, fly_speed, turn_speed, body_color, top_color, overlap, inner_space, spread, width,
                                 height, angle, center, scale);
-        kite->texture_id = _tkbc_get_asset_kite_design(IMAGE_CE_NG_1).id;
+        tkbc_set_kite_texture_id(kite, _tkbc_get_asset_kite_design(IMAGE_CE_NG_1).id);
 
     } else {
         center = kite->center;

@@ -1783,7 +1783,7 @@ void tkbc_set_color_for_selected_kites(Env *env, Color color) {
 void tkbc_set_texture_for_selected_kites(Env *env, UUID texture_id, bool is_texture_new) {
     for (size_t i = 0; i < env->kite_array.count; ++i) {
         if (env->kite_array.elements[i].is_kite_input_handler_active) {
-            env->kite_array.elements[i].kite->texture_id = texture_id;
+            tkbc_set_kite_texture_id(env->kite_array.elements[i].kite, texture_id);
             env->kite_array.elements[i].kite->is_texture_new = is_texture_new;
         }
     }
@@ -1799,7 +1799,7 @@ void tkbc_set_colorizer_texture_insted_of_texture_id(Kite_States *kite_array, UU
     Asset colorizer = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER);
     for (size_t i = 0; i < kite_array->count; ++i) {
         if (tkbc_uuid_equals(kite_array->elements[i].kite->texture_id, texture_id)) {
-            kite_array->elements[i].kite->texture_id = colorizer.id;
+            tkbc_set_kite_texture_id(kite_array->elements[i].kite, colorizer.id);
             kite_array->elements[i].kite->is_texture_new = false;
         }
     }

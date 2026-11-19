@@ -1299,7 +1299,7 @@ bool tkbc_received_message_handler(Client *client) {
                 texture_id = tkbc_append_kite_image_and_kite_texture_with_id(
                     texture_data, texture_data_size, texture_width, texture_height, texture_format, inline_texture_id,
                     is_dual_line);
-                state->kite->texture_id = texture_id;
+                tkbc_set_kite_texture_id(state->kite, texture_id);
                 space_reset_tspace();
             }
 
@@ -1312,7 +1312,7 @@ bool tkbc_received_message_handler(Client *client) {
                 tkbc_message_write_uuid(&client->send_msg_buffer, &client->send_msg_buffer_space, texture_id);
                 tkbc_message_write_end(&client->send_msg_buffer, texture_offset);
                 texture_id = _tkbc_get_asset_kite_design(KITE_CE_NG_COLORIZER).id;
-                state->kite->texture_id = texture_id;
+                tkbc_set_kite_texture_id(state->kite, texture_id);
             }
 
             // While a script is loaded (playing or paused) only script kites

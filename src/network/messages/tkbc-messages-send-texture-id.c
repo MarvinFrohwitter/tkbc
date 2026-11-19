@@ -55,7 +55,7 @@ bool tkbc_messages_send_texture_id(Env *env, Message *reader, Client *client) {
         // texture_id with that kite_id before.
         Kite *kite = tkbc_get_kite_by_id(env, kite_id);
         assert(kite != NULL);
-        kite->texture_id = texture_id;
+        tkbc_set_kite_texture_id(kite, texture_id);
     }
     return true;
 }

@@ -5165,6 +5165,8 @@ static const char* global_api_header_string =
 "    float fly_speed;\n"
 "    float turn_speed;\n"
 "} Kite;\n"
+"# 264 \"src/choreographer/../global/tkbc-types.h\"\n"
+"void tkbc_set_kite_texture_id(Kite *kite, UUID texture_id);\n"
 "\n"
 "typedef struct {\n"
 "    Kite *kite;\n"

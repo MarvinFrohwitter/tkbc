@@ -251,6 +251,18 @@ typedef struct {
     float turn_speed;  // Kite turn speed set from 0 to 100.
 } Kite;                // The kite internal geometric design.
 
+/**
+ * @brief Assigns a texture to a kite and keeps the kite's is_dual_line flag in
+ * sync with the referenced asset.
+ *
+ * Every write to Kite.texture_id has to go through this function so that
+ * Kite.is_dual_line always describes the texture that is currently assigned.
+ *
+ * @param kite The kite that receives the texture.
+ * @param texture_id The uuid of the kite design asset to assign.
+ */
+void tkbc_set_kite_texture_id(Kite *kite, UUID texture_id);
+
 typedef struct {
     Kite *kite;      // The kite that holds its geometric and positioning stats.
     size_t kite_id;  // The unique universal identifier for the kite.

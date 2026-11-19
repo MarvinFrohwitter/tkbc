@@ -112,7 +112,7 @@ void tkbc_assign_values_to_kitestate_from_source(Kite_State *state, float x, flo
             if (ghost) {
                 // Mirror the appearance of the remote edit as well.
                 ghost->kite->body_color = color;
-                ghost->kite->texture_id = texture_id;
+                tkbc_set_kite_texture_id(ghost->kite, texture_id);
                 ghost->is_kite_reversed = is_reversed;
             }
         }
@@ -133,7 +133,7 @@ void tkbc_assign_values_to_kitestate_from_source(Kite_State *state, float x, flo
     state->kite->center.y = y;
     state->kite->angle = angle;
     state->kite->body_color = color;
-    state->kite->texture_id = texture_id;
+    tkbc_set_kite_texture_id(state->kite, texture_id);
     state->is_kite_reversed = is_reversed;
 
     state->is_active = is_active;

@@ -648,6 +648,27 @@ Asset *tkbc_find_asset_from_id(UUID id) {
 }
 
 /**
+ * @brief Assigns a texture to a kite and mirrors the asset's is_dual_line flag
+ * onto the kite.
+ *
+ * The asset is the single source of truth for the flag, so every texture
+ * assignment derives the kite value from it. A missing id (or an id that does
+ * not belong to a kite design) means there is no dual line information and
+ * therefore resets the flag to false.
+ *
+ * @param kite The kite that receives the texture.
+ * @param texture_id The uuid of the kite design asset to assign.
+ */
+void tkbc_set_kite_texture_id(Kite *kite, UUID texture_id) {
+    assert(kite != NULL);
+
+    kite->texture_id = texture_id;
+
+    Asset *asset = tkbc_find_asset_from_id(texture_id);
+    kite->is_dual_line = (asset != NULL && asset->type == ASSETS_KITE_DESIGN) ? asset->as.is_dual_line : false;
+}
+
+/**
  * @brief This function calculates the current number of assets that is related
  * to the kite designs.
  *

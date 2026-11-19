@@ -179,7 +179,7 @@ static Kite_State ghost_test_target(size_t kite_id) {
     target.kite->angle = 10.0f;
     target.kite->body_color = (Color){10, 20, 30, 255};
     target.kite->top_color = (Color){40, 50, 60, 255};
-    target.kite->texture_id = tkbc_uuid_from_number(kite_id);
+    tkbc_set_kite_texture_id(target.kite, tkbc_uuid_from_number(kite_id));
     tkbc_kite_update_internal(target.kite);
     return target;
 }
@@ -302,7 +302,7 @@ Test ghost_upsert_refreshes_appearance_of_existing_ghost(void) {
     // must mirror the new appearance.
     target.kite->body_color = (Color){70, 80, 90, 255};
     target.kite->top_color = (Color){100, 110, 120, 255};
-    target.kite->texture_id = tkbc_uuid_from_number(99);
+    tkbc_set_kite_texture_id(target.kite, tkbc_uuid_from_number(99));
 
     Kite_State *ghost = tkbc_update_or_create_ghost_kite(&test_env, &target, 9, 70.0f, 80.0f, 15.0f);
 
