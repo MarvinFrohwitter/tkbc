@@ -173,7 +173,7 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
 
     float x, y, angle;
     Color color;
-    bool is_reversed, is_active, is_script_kite;
+    bool is_reversed, is_active, is_script_kite, is_dual_line;
 
     UUID texture_id;
     UUID inline_texture_id;
@@ -185,7 +185,7 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
 
     if (!tkbc_parse_message_kite_value(reader, parsed_id, &x, &y, &angle, &color, &texture_id, &texture_width,
                                        &texture_height, &texture_format, data_space, &texture_data, &texture_data_size,
-                                       &inline_texture_id, &is_reversed, &is_active, &is_script_kite)) {
+                                       &inline_texture_id, &is_reversed, &is_active, &is_script_kite, &is_dual_line)) {
 
         check_return(0);
     }
@@ -216,7 +216,8 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
     // unknown and add it a second time.
     if (tkbc_uuid_is_nil(texture_id)) {
         texture_id = tkbc_append_kite_image_and_kite_texture_with_id(texture_data, texture_data_size, texture_width,
-                                                                     texture_height, texture_format, inline_texture_id);
+                                                                     texture_height, texture_format, inline_texture_id,
+                                                                     is_dual_line);
     }
 
     Asset *found = tkbc_find_asset_from_id(texture_id);
@@ -428,10 +429,15 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
  * @return True if the image was parsed successfully, otherwise false.
  */
 bool tkbc_parse_image(Message *reader, Space *data_space, unsigned char **data, int *data_size, int *width, int *height,
-                      int *format, UUID *texture_id) {
+                      int *format, UUID *texture_id, bool *is_dual_line) {
     if (!tkbc_message_read_uuid(reader, texture_id)) {
         return false;
     }
+
+    if (!tkbc_message_read_bool(reader, is_dual_line)) {
+        return false;
+    }
+
     if (!tkbc_message_read_s32(reader, width)) {
         return false;
     }
@@ -526,7 +532,8 @@ bool tkbc_parse_image(Message *reader, Space *data_space, unsigned char **data, 
 bool tkbc_parse_message_kite_value(Message *reader, size_t *kite_id, float *x, float *y, float *angle, Color *color,
                                    UUID *texture_id, int *texture_width, int *texture_height, int *texture_format,
                                    Space *data_space, unsigned char **texture_data, int *texture_data_size,
-                                   UUID *inline_texture_id, bool *is_reversed, bool *is_active, bool *is_script_kite) {
+                                   UUID *inline_texture_id, bool *is_reversed, bool *is_active, bool *is_script_kite,
+                                   bool *is_dual_line) {
     uint64_t kid;
     if (!tkbc_message_read_u64(reader, &kid)) {
         return false;
@@ -558,7 +565,7 @@ bool tkbc_parse_message_kite_value(Message *reader, size_t *kite_id, float *x, f
         // handed back separately so the caller can store the image under that
         // very uuid instead of appending it as a brand new asset.
         if (!tkbc_parse_image(reader, data_space, texture_data, texture_data_size, texture_width, texture_height,
-                              texture_format, inline_texture_id)) {
+                              texture_format, inline_texture_id, is_dual_line)) {
             return false;
         }
     } else {

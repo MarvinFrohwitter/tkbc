@@ -25,14 +25,16 @@ bool tkbc_messages_send_texture(Message *reader) {
     Space *data_space = space_get_tspace();
     unsigned char *data = NULL;
     UUID texture_id;
+    bool is_dual_line;
 
-    if (!tkbc_parse_image(reader, data_space, &data, &data_size, &width, &height, &format, &texture_id)) {
+    if (!tkbc_parse_image(reader, data_space, &data, &data_size, &width, &height, &format, &texture_id, &is_dual_line)) {
         return false;
     }
 
     Asset *asset = tkbc_find_asset_from_id(texture_id);
     if (!asset) {
-        tkbc_append_kite_image_and_kite_texture_with_id(data, data_size, width, height, format, texture_id);
+        tkbc_append_kite_image_and_kite_texture_with_id(data, data_size, width, height, format, texture_id,
+                                                        is_dual_line);
     }
     space_reset_tspace();
     return true;

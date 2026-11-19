@@ -135,6 +135,7 @@ typedef struct {
         Image image;
 
         struct {
+            bool is_dual_line;
             Kite_Image kite_image;
             Kite_Texture kite_texture;
         };
@@ -159,10 +160,10 @@ typedef struct {
     Space space;
 } Assets;
 
-UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, int format, UUID id);
-UUID tkbc_append_kite_image(unsigned char *data, int width, int height, int format);
-UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int data_size, int width, int height,
-                                               UUID id);
+UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, int format, UUID id, bool is_dual_line);
+UUID tkbc_append_kite_image(unsigned char *data, int width, int height, int format, bool is_dual_line);
+UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int data_size, int width, int height, UUID id,
+                                               bool is_dual_line);
 
 #ifndef TKBC_SERVER
 void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id);
@@ -176,7 +177,7 @@ void tkbc_removed_asset_by_id(UUID uuid);
 Asset *tkbc_find_asset_from_id(UUID id);
 size_t tkbc_get_current_kite_design_count();
 UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int data_size, int width, int height,
-                                                     int format, UUID id);
+                                                     int format, UUID id, bool is_dual_line);
 bool tkbc_image_already_exitst_in_assets(Image image, UUID *id);
 bool tkbc_is_default_kite_design(Assets *assets, UUID uuid);
 

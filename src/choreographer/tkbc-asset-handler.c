@@ -126,7 +126,8 @@ static inline UUID tkbc_generate_uuid_for_asset(void) {
  * @param id The uuid the kite image is stored under.
  * @return The uuid of the newly appended kite image.
  */
-UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, int format, UUID id) {
+UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, int format, UUID id,
+                                    bool is_dual_line) {
     Image image_normal = {
         .data = data,
         .width = width,
@@ -145,6 +146,7 @@ UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, 
               ((Asset){
                   .type = ASSETS_KITE_DESIGN,
                   .as.kite_image = kite_image,
+                  .as.is_dual_line = is_dual_line,
                   .id = id,
               }));
 
@@ -165,8 +167,8 @@ UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, 
  * @param id The uuid the image is stored under.
  * @return The uuid of the appended kite image.
  */
-UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int data_size, int width, int height,
-                                               UUID id) {
+UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int data_size, int width, int height, UUID id,
+                                               bool is_dual_line) {
     if (tkbc_uuid_is_nil(id)) {
         id = tkbc_uuid_generate();
     }
@@ -180,6 +182,7 @@ UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int da
               ((Asset){
                   .type = ASSETS_KITE_DESIGN,
                   .as.kite_image = kite_image,
+                  .as.is_dual_line = is_dual_line,
                   .id = id,
               }));
 
@@ -197,8 +200,8 @@ UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int da
  * @param format The pixel format of the image.
  * @return The uuid assigned to the newly appended kite image.
  */
-UUID tkbc_append_kite_image(unsigned char *data, int width, int height, int format) {
-    return tkbc_append_kite_image_with_id(data, width, height, format, tkbc_generate_uuid_for_asset());
+UUID tkbc_append_kite_image(unsigned char *data, int width, int height, int format, bool is_dual_line) {
+    return tkbc_append_kite_image_with_id(data, width, height, format, tkbc_generate_uuid_for_asset(), is_dual_line);
 }
 
 /**
@@ -355,7 +358,8 @@ static UUID tkbc_append_compressed_asset_image(const unsigned char *data, int da
  * @param file_type The file extension used to select the decoder, e.g. ".png".
  * @return The uuid assigned to the newly appended kite image.
  */
-static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int data_size, const char *file_type) {
+static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int data_size, const char *file_type,
+                                              bool is_dual_line) {
 #ifdef TKBC_SERVER
     (void) file_type;
     int width = 0;
@@ -363,14 +367,15 @@ static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int dat
     if (!tkbc_png_dimensions(data, data_size, &width, &height)) {
         return tkbc_uuid_nil();
     }
-    return tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, tkbc_generate_uuid_for_asset());
+    return tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, tkbc_generate_uuid_for_asset(),
+                                                     is_dual_line);
 #else
     Image image = tkbc_load_compressed_asset_image(data, data_size, file_type);
     if (!IsImageValid(image)) {
         return tkbc_uuid_nil();
     }
 
-    UUID id = tkbc_append_kite_image(image.data, image.width, image.height, image.format);
+    UUID id = tkbc_append_kite_image(image.data, image.width, image.height, image.format, is_dual_line);
     UnloadImage(image);
     return id;
 #endif
@@ -378,8 +383,8 @@ static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int dat
 
 #define tkbc_append_baked_asset_image(asset_symbol)                                                                    \
     tkbc_append_compressed_asset_image((asset_symbol), (int) sizeof(asset_symbol), ".png")
-#define tkbc_append_baked_kite_image(asset_symbol)                                                                     \
-    tkbc_append_compressed_kite_image((asset_symbol), (int) sizeof(asset_symbol), ".png")
+#define tkbc_append_baked_kite_image(asset_symbol, is_dual_line)                                                       \
+    tkbc_append_compressed_kite_image((asset_symbol), (int) sizeof(asset_symbol), ".png", (is_dual_line))
 
 /**
  * @brief Append all kite image assets to the global asset list.
@@ -488,18 +493,19 @@ void append_assets(void) {
 #ifdef TKBC_SERVER
     // The colorizer starts as a copy of the filled panel. The server never
     // paints on it, so keep the baked in PNG bytes instead of decoding them.
-    tkbc_append_compressed_kite_image(asset_image_filled_panel, (int) sizeof(asset_image_filled_panel), ".png");
+    tkbc_append_compressed_kite_image(asset_image_filled_panel, (int) sizeof(asset_image_filled_panel), ".png", false);
 #else
     Image colorizer_image = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
-    tkbc_append_kite_image(colorizer_image.data, colorizer_image.width, colorizer_image.height, colorizer_image.format);
+    tkbc_append_kite_image(colorizer_image.data, colorizer_image.width, colorizer_image.height, colorizer_image.format,
+                           false);
 #endif
 
-    tkbc_append_baked_kite_image(asset_image_ce_ng_1);
-    tkbc_append_baked_kite_image(asset_image_ce_ng_2);
-    tkbc_append_baked_kite_image(asset_image_ce_ng_3);
-    tkbc_append_baked_kite_image(asset_image_ce_ng_4);
-    tkbc_append_baked_kite_image(asset_image_ce_ng_5);
-    tkbc_append_baked_kite_image(asset_image_111_base_white);
+    tkbc_append_baked_kite_image(asset_image_ce_ng_1, false);
+    tkbc_append_baked_kite_image(asset_image_ce_ng_2, false);
+    tkbc_append_baked_kite_image(asset_image_ce_ng_3, false);
+    tkbc_append_baked_kite_image(asset_image_ce_ng_4, false);
+    tkbc_append_baked_kite_image(asset_image_ce_ng_5, false);
+    tkbc_append_baked_kite_image(asset_image_111_base_white, true);
 
     assets.default_assets_setup = false;
 }
@@ -668,7 +674,7 @@ size_t tkbc_get_current_kite_design_count() {
  * @return The uuid of the appended kite image.
  */
 UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int data_size, int width, int height,
-                                                     int format, UUID id) {
+                                                     int format, UUID id, bool is_dual_line) {
     if (tkbc_uuid_is_nil(id)) {
         // The id comes from the network, so a faulty or hostile peer could
         // claim the nil uuid. Fall back to a fresh uuid rather than storing an
@@ -678,7 +684,7 @@ UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int da
 
     if (format == TKBC_IMAGE_FORMAT_COMPRESSED_PNG) {
 #ifdef TKBC_SERVER
-        tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, id);
+        tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, id, is_dual_line);
 #else
         Image image = LoadImageFromMemory(".png", data, data_size);
         if (!IsImageValid(image)) {
@@ -687,12 +693,12 @@ UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int da
         if (image.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
             ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
         }
-        tkbc_append_kite_image_with_id(image.data, image.width, image.height, image.format, id);
+        tkbc_append_kite_image_with_id(image.data, image.width, image.height, image.format, id, is_dual_line);
         UnloadImage(image);
 #endif
     } else {
         (void) data_size;
-        tkbc_append_kite_image_with_id(data, width, height, format, id);
+        tkbc_append_kite_image_with_id(data, width, height, format, id, is_dual_line);
     }
     // This is just for compilation the function is not used in
     // the server at all. Just the files in this dir are all

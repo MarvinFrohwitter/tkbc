@@ -168,15 +168,16 @@ void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old, Color repla
  * @param new_id Pointer to store the new uuid assigned to the copied image.
  * @return Pointer to the newly created kite image.
  */
-Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image, UUID *new_id) {
+Kite_Image *tkbc_copy_kite_image(Asset asset_in, UUID *new_id) {
+    Kite_Image kite_image = asset_in.as.kite_image;
     Image image = kite_image.normal;
-    *new_id = tkbc_append_kite_image(image.data, image.width, image.height, image.format);
+    *new_id = tkbc_append_kite_image(image.data, image.width, image.height, image.format, asset_in.as.is_dual_line);
 
     // NOTE: This is the last element in the dynamic array, but for future prove switch of the data structure.
     // We will find it explicitly.
-    Asset *asset = tkbc_find_asset_from_id(*new_id);
-    assert(asset != NULL);
-    return &asset->as.kite_image;
+    Asset *asset_out = tkbc_find_asset_from_id(*new_id);
+    assert(asset_out != NULL);
+    return &asset_out->as.kite_image;
 }
 
 /**
@@ -186,8 +187,8 @@ Kite_Image *tkbc_copy_kite_image(Kite_Image kite_image, UUID *new_id) {
  * @param kite_image The source kite image to copy.
  * @param new_id Pointer to store the new uuid.
  */
-void tkbc_generate_new_kite_image_and_texture(Kite_Image kite_image, UUID *new_id) {
-    Kite_Image *new_kite_image = tkbc_copy_kite_image(kite_image, new_id);
+void tkbc_generate_new_kite_image_and_texture(Asset asset, UUID *new_id) {
+    Kite_Image *new_kite_image = tkbc_copy_kite_image(asset, new_id);
     tkbc_load_kite_texture_from_kite_image(*new_kite_image, *new_id);
 }
 
@@ -1650,7 +1651,7 @@ void tkbc_ui_color_picker(Env *env) {
                 } else {
 
                     Image a = _tkbc_get_asset_kite_design(KITE_COLORIZER).as.kite_image.normal;
-                    Image b = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.kite_image.normal;
+                    Image b = _tkbc_get_asset_image(IMAGE_FILLED_PANEL).as.image;
                     bool same = tkbc_is_same_image(a, b);
 
                     if (!same) {
@@ -3058,7 +3059,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                     }
 
                     if (!design_already_exists) {
-                        tkbc_generate_new_kite_image_and_texture(a.as.kite_image, &new_id);
+                        tkbc_generate_new_kite_image_and_texture(a, &new_id);
                     }
 
                     tkbc_set_texture_for_selected_kites(env, new_id, true);

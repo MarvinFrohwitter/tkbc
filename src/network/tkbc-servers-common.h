@@ -2,7 +2,7 @@
 #define TKBC_SERVERS_COMMON_H
 
 //////////////////////////////////////////////////////////////////////////////
-#define PROTOCOL_VERSION "0.4.004"
+#define PROTOCOL_VERSION "0.4.005"
 #define SERVER_CONNETCTIONS 64
 
 #define TKBC_LOGGING
@@ -338,7 +338,8 @@ static inline bool tkbc_message_read_uuid(Message *reader, UUID *uuid) {
  * uuid of the originator so that the receiver stores the image under the very
  * same uuid and does not register it a second time.
  */
-static inline void tkbc_message_append_image_data(Space *space, Message *message, Kite_Image kite_image, UUID id) {
+static inline void tkbc_message_append_image_data(Space *space, Message *message, const Asset *asset) {
+    Kite_Image kite_image = asset->as.kite_image;
     Image image = kite_image.normal;
 
     unsigned char *png_data = NULL;
@@ -352,7 +353,8 @@ static inline void tkbc_message_append_image_data(Space *space, Message *message
         png_data = ExportImageToMemory(image, ".png", &png_size);
     }
 
-    tkbc_message_write_uuid(message, space, id);
+    tkbc_message_write_uuid(message, space, asset->id);
+    tkbc_message_write_bool(message, space, asset->as.is_dual_line);
     tkbc_message_write_s32(message, space, image.width);
     tkbc_message_write_s32(message, space, image.height);
     tkbc_message_write_s32(message, space, TKBC_IMAGE_ENCODING_PNG);
@@ -401,8 +403,7 @@ static inline void tkbc_message_append_kite(Kite_State *kite_state, Message *mes
         assert(asset->type == ASSETS_KITE_DESIGN);
 
         tkbc_message_write_uuid(message, space, tkbc_uuid_nil());
-        Kite_Image *kite_image = &asset->as.kite_image;
-        tkbc_message_append_image_data(space, message, *kite_image, asset->id);
+        tkbc_message_append_image_data(space, message, asset);
         kite_state->kite->is_texture_new = false;
     } else {
         tkbc_message_write_uuid(message, space, texture_id);

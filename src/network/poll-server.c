@@ -605,7 +605,7 @@ void tkbc_message_kite_designs_write_to_send_msg_buffer(Client *client) {
         Asset *asset = &_tkbc_get_asset_kite_design(i);
 
         size_t offset = tkbc_message_write_begin(&t_message, space_get_tspace(), MESSAGE_SEND_TEXTURE);
-        tkbc_message_append_image_data(space_get_tspace(), &t_message, asset->as.kite_image, asset->id);
+        tkbc_message_append_image_data(space_get_tspace(), &t_message, asset);
         tkbc_message_write_end(&t_message, offset);
     }
 
@@ -1266,12 +1266,12 @@ bool tkbc_received_message_handler(Client *client) {
             unsigned char *texture_data = NULL;
             float x, y, angle;
             Color color;
-            bool is_reversed, is_active, is_script_kite;
+            bool is_reversed, is_active, is_script_kite, is_dual_line;
 
             if (!tkbc_parse_message_kite_value(&reader, &kite_id, &x, &y, &angle, &color, &texture_id, &texture_width,
                                                &texture_height, &texture_format, data_space, &texture_data,
                                                &texture_data_size, &inline_texture_id, &is_reversed, &is_active,
-                                               &is_script_kite)) {
+                                               &is_script_kite, &is_dual_line)) {
 
                 space_reset_tspace();
                 goto err;
@@ -1297,7 +1297,8 @@ bool tkbc_received_message_handler(Client *client) {
                 // the server and the other clients recognize the very same
                 // design instead of adding a second entry for it.
                 texture_id = tkbc_append_kite_image_and_kite_texture_with_id(
-                    texture_data, texture_data_size, texture_width, texture_height, texture_format, inline_texture_id);
+                    texture_data, texture_data_size, texture_width, texture_height, texture_format, inline_texture_id,
+                    is_dual_line);
                 state->kite->texture_id = texture_id;
                 space_reset_tspace();
             }
