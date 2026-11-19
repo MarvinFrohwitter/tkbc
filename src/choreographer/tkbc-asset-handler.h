@@ -24,6 +24,7 @@ typedef enum {
     IMAGE_LEADINGEDGE,
     IMAGE_GAZE,
 
+    IMAGE_LEFT_01_1,
     IMAGE_LEFT_02_1,
     IMAGE_LEFT_03_1,
     IMAGE_LEFT_04_1,
@@ -38,8 +39,8 @@ typedef enum {
     IMAGE_LEFT_13_1,
     IMAGE_LEFT_14_1,
     IMAGE_LEFT_15_1,
-    IMAGE_LEFT_16_1,
 
+    IMAGE_RIGHT_01_2,
     IMAGE_RIGHT_02_2,
     IMAGE_RIGHT_03_2,
     IMAGE_RIGHT_04_2,
@@ -54,13 +55,29 @@ typedef enum {
     IMAGE_RIGHT_13_2,
     IMAGE_RIGHT_14_2,
     IMAGE_RIGHT_15_2,
-    IMAGE_RIGHT_16_2,
 
-    IMAGE_MIDDLE_06,
-    IMAGE_MIDDLE_10,
-    IMAGE_MIDDLE_13,
+    IMAGE_MIDDLE_05,
+    IMAGE_MIDDLE_09,
+    IMAGE_MIDDLE_12,
+    IMAGE_CE_NG_PANNEL_PARTS_END = IMAGE_MIDDLE_12,
 
-    IMAGE_PANNEL_PARTS_END = IMAGE_MIDDLE_13,
+    IMAGE_111_PANNEL_PARTS_BEGIN,
+    IMAGE_111_SKELETON = IMAGE_111_PANNEL_PARTS_BEGIN,
+    IMAGE_111_LEFT_01_1,
+    IMAGE_111_LEFT_02_1,
+    IMAGE_111_LEFT_03_1,
+    IMAGE_111_LEFT_04_1,
+    IMAGE_111_LEFT_05_1,
+    IMAGE_111_LEFT_06_1,
+
+    IMAGE_111_RIGHT_01_2,
+    IMAGE_111_RIGHT_02_2,
+    IMAGE_111_RIGHT_03_2,
+    IMAGE_111_RIGHT_04_2,
+    IMAGE_111_RIGHT_05_2,
+    IMAGE_111_RIGHT_06_2,
+
+    IMAGE_PANNEL_PARTS_END = IMAGE_111_RIGHT_06_2,
 
     KITE_COLORIZER,
 
@@ -70,7 +87,8 @@ typedef enum {
     IMAGE_3,
     IMAGE_4,
     IMAGE_5,
-    KITE_DEFAULT_DESIGNS_END = IMAGE_5,
+    IMAGE_111_DEFAULT,
+    KITE_DEFAULT_DESIGNS_END = IMAGE_111_DEFAULT,
 
     // --- New generated kite designs from the colorizer.
     //
@@ -143,7 +161,8 @@ typedef struct {
 
 UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, int format, UUID id);
 UUID tkbc_append_kite_image(unsigned char *data, int width, int height, int format);
-UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int data_size, int width, int height, UUID id);
+UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int data_size, int width, int height,
+                                               UUID id);
 
 #ifndef TKBC_SERVER
 void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id);

@@ -12,6 +12,24 @@ extern Assets assets;
 
 static Image tkbc_copy_compressed_image(const unsigned char *data, int data_size, int width, int height);
 
+#include "../../assets/Kite_111/Kites/111_Base_White.h"
+
+#include "../../assets/Kite_111/Around/111_Skeleton.h"
+
+#include "../../assets/Kite_111/Left/111_Left_01_1.h"
+#include "../../assets/Kite_111/Left/111_Left_02_1.h"
+#include "../../assets/Kite_111/Left/111_Left_03_1.h"
+#include "../../assets/Kite_111/Left/111_Left_04_1.h"
+#include "../../assets/Kite_111/Left/111_Left_05_1.h"
+#include "../../assets/Kite_111/Left/111_Left_06_1.h"
+
+#include "../../assets/Kite_111/Right/111_Right_01_2.h"
+#include "../../assets/Kite_111/Right/111_Right_02_2.h"
+#include "../../assets/Kite_111/Right/111_Right_03_2.h"
+#include "../../assets/Kite_111/Right/111_Right_04_2.h"
+#include "../../assets/Kite_111/Right/111_Right_05_2.h"
+#include "../../assets/Kite_111/Right/111_Right_06_2.h"
+
 #include "../../assets/CE_NG/Middle/Middle_05.h"
 #include "../../assets/CE_NG/Middle/Middle_09.h"
 #include "../../assets/CE_NG/Middle/Middle_12.h"
@@ -48,11 +66,11 @@ static Image tkbc_copy_compressed_image(const unsigned char *data, int data_size
 #include "../../assets/CE_NG/Right/Right_14_2.h"
 #include "../../assets/CE_NG/Right/Right_15_2.h"
 
-#include "../../assets/CE_NG/Arround/Filled_Panel.h"
-#include "../../assets/CE_NG/Arround/Gaze.h"
-#include "../../assets/CE_NG/Arround/Leadingedge.h"
-#include "../../assets/CE_NG/Arround/Skeleton.h"
-#include "../../assets/CE_NG/Arround/Skeleton_Leadingedge.h"
+#include "../../assets/CE_NG/Around/Filled_Panel.h"
+#include "../../assets/CE_NG/Around/Gaze.h"
+#include "../../assets/CE_NG/Around/Leadingedge.h"
+#include "../../assets/CE_NG/Around/Skeleton.h"
+#include "../../assets/CE_NG/Around/Skeleton_Leadingedge.h"
 
 #include "../../assets/CE_NG/Kites/CE_NG_1.h"
 #include "../../assets/CE_NG/Kites/CE_NG_2.h"
@@ -60,15 +78,14 @@ static Image tkbc_copy_compressed_image(const unsigned char *data, int data_size
 #include "../../assets/CE_NG/Kites/CE_NG_4.h"
 #include "../../assets/CE_NG/Kites/CE_NG_5.h"
 
+#include "../../assets/Logos/128x128_Logo.h"
 #include "../../assets/Logos/16x16_Logo.h"
 #include "../../assets/Logos/24x24_Logo.h"
+#include "../../assets/Logos/256x256_Logo.h"
 #include "../../assets/Logos/32x32_Logo.h"
 #include "../../assets/Logos/48x48_Logo.h"
 #include "../../assets/Logos/64x64_Logo.h"
 #include "../../assets/Logos/96x96_Logo.h"
-#include "../../assets/Logos/128x128_Logo.h"
-#include "../../assets/Logos/256x256_Logo.h"
-
 
 #include "tkbc-asset-handler.h"
 
@@ -346,8 +363,7 @@ static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int dat
     if (!tkbc_png_dimensions(data, data_size, &width, &height)) {
         return tkbc_uuid_nil();
     }
-    return tkbc_append_compressed_kite_image_with_id(data, data_size, width, height,
-                                                     tkbc_generate_uuid_for_asset());
+    return tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, tkbc_generate_uuid_for_asset());
 #else
     Image image = tkbc_load_compressed_asset_image(data, data_size, file_type);
     if (!IsImageValid(image)) {
@@ -371,7 +387,7 @@ static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int dat
  * Registers the predefined kite panel kite images, Skeleton, Filled Panel,
  * Leadingedge, Gaze, etc.
  */
-void tkbc_append_kite_image_pannels() {
+void tkbc_append_ce_ng_kite_image_pannels() {
     tkbc_append_baked_asset_image(asset_image_skeleton);
     tkbc_append_baked_asset_image(asset_image_filled_panel);
     tkbc_append_baked_asset_image(asset_image_skeleton_leadingedge);
@@ -415,6 +431,25 @@ void tkbc_append_kite_image_pannels() {
     tkbc_append_baked_asset_image(asset_image_middle_12);
 }
 
+void tkbc_append_111_kite_image_pannels() {
+
+    tkbc_append_baked_asset_image(asset_image_111_skeleton);
+
+    tkbc_append_baked_asset_image(asset_image_111_left_01_1);
+    tkbc_append_baked_asset_image(asset_image_111_left_02_1);
+    tkbc_append_baked_asset_image(asset_image_111_left_03_1);
+    tkbc_append_baked_asset_image(asset_image_111_left_04_1);
+    tkbc_append_baked_asset_image(asset_image_111_left_05_1);
+    tkbc_append_baked_asset_image(asset_image_111_left_06_1);
+
+    tkbc_append_baked_asset_image(asset_image_111_right_01_2);
+    tkbc_append_baked_asset_image(asset_image_111_right_02_2);
+    tkbc_append_baked_asset_image(asset_image_111_right_03_2);
+    tkbc_append_baked_asset_image(asset_image_111_right_04_2);
+    tkbc_append_baked_asset_image(asset_image_111_right_05_2);
+    tkbc_append_baked_asset_image(asset_image_111_right_06_2);
+}
+
 /**
  * @brief The function loads all the predefined kite assets into the
  * asset collection. This includes left, right, middle, skeleton,
@@ -446,7 +481,9 @@ void append_assets(void) {
     tkbc_append_baked_asset_image(asset_image_128x128_logo);
     tkbc_append_baked_asset_image(asset_image_256x256_logo);
 
-    tkbc_append_kite_image_pannels();
+    tkbc_append_ce_ng_kite_image_pannels();
+
+    tkbc_append_111_kite_image_pannels();
 
 #ifdef TKBC_SERVER
     // The colorizer starts as a copy of the filled panel. The server never
@@ -462,6 +499,7 @@ void append_assets(void) {
     tkbc_append_baked_kite_image(asset_image_ce_ng_3);
     tkbc_append_baked_kite_image(asset_image_ce_ng_4);
     tkbc_append_baked_kite_image(asset_image_ce_ng_5);
+    tkbc_append_baked_kite_image(asset_image_111_base_white);
 
     assets.default_assets_setup = false;
 }

@@ -404,8 +404,8 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
             // which panel covers the click and then painted that panel and
             // every eligible panel after it. Determine that first panel once.
             size_t first_panel = IMAGE_PANNEL_PARTS_END + 1;
-            for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_PANNEL_PARTS_END; ++i) {
-                if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) || (i == IMAGE_MIDDLE_13) ||
+            for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_CE_NG_PANNEL_PARTS_END; ++i) {
+                if ((i == IMAGE_MIDDLE_05) || (i == IMAGE_MIDDLE_09) || (i == IMAGE_MIDDLE_12) ||
                     (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
                     continue;
                 }
@@ -425,8 +425,8 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
                 }
             }
 
-            for (size_t i = first_panel; i <= IMAGE_PANNEL_PARTS_END; ++i) {
-                if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) || (i == IMAGE_MIDDLE_13) ||
+            for (size_t i = first_panel; i <= IMAGE_CE_NG_PANNEL_PARTS_END; ++i) {
+                if ((i == IMAGE_MIDDLE_05) || (i == IMAGE_MIDDLE_09) || (i == IMAGE_MIDDLE_12) ||
                     (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
                     continue;
                 }
@@ -457,8 +457,8 @@ void tkbc_colorizer(Env *env, Image image, Rectangle collision_rec, float rec_sc
         unsigned char *dst = (unsigned char *) colorizer_image.data;
         const size_t pixel_count = (size_t) filled.width * filled.height;
 
-        for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_PANNEL_PARTS_END; ++i) {
-            if ((i == IMAGE_MIDDLE_06) || (i == IMAGE_MIDDLE_10) || (i == IMAGE_MIDDLE_13) ||
+        for (size_t i = IMAGE_PANNEL_PARTS_BEGIN; i <= IMAGE_CE_NG_PANNEL_PARTS_END; ++i) {
+            if ((i == IMAGE_MIDDLE_05) || (i == IMAGE_MIDDLE_09) || (i == IMAGE_MIDDLE_12) ||
                 (i == IMAGE_FILLED_PANEL) || (i == IMAGE_SKELETON) || (i == IMAGE_SKELETON_LEADINGEDGE)) {
                 // Skip the middle once for now.
                 continue;

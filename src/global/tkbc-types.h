@@ -217,6 +217,7 @@ typedef struct {
                       // to be transferred to the other sides.
 
     bool is_texture_new;  // Indicates if the texture is currently newly created.
+    bool is_dual_line;    // Indicates if the kite is a dual_line kite.
 
     float old_angle;     // The rotation angle before the frame interpolation has
                          // stated.
