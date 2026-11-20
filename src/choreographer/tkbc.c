@@ -1069,6 +1069,18 @@ static void tkbc_draw_kite_with_factor(Kite_State *state, float factor) {
         Vector2 position = state->kite->center;
         position.x -= len_to_center * cosf(phi);
         position.y += len_to_center * sinf(phi);
+
+        if (a->as.is_dual_line) {
+            // Dual line kites are anchored at the bottom center of their texture
+            // instead of the top center. Shift the draw origin by the rotated
+            // distance from the top center to the bottom center so that the
+            // bottom center ends up at the kite's center. This only affects
+            // drawing; the kite's logical center stays unchanged.
+            float drawn_height = texture.height * scale;
+            position.x -= drawn_height * sinf(phi);
+            position.y -= drawn_height * cosf(phi);
+        }
+
         if (state->is_kite_reversed) {
 
             Rectangle source = {0, 0, -texture.width, texture.height};
