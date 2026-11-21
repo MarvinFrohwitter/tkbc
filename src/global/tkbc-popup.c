@@ -23,6 +23,11 @@ int tkbc_check_popup_interaction(Popup *popup) {
             return 1;
         }
     }
+    if (popup->option2_text && CheckCollisionPointRec(GetMousePosition(), popup->option2)) {
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            return 2;
+        }
+    }
     return 0;
 }
 
@@ -60,6 +65,19 @@ void tkbc_popup_resize(Popup *popup) {
     popup->option1.y = popup->base.y + popup->base.height - cross_box_size;
     popup->option1.width = option1_box_size;
     popup->option1.height = cross_box_size;
+
+    int option2_box_size = option1_box_size;
+    if (popup->option2_text) {
+        Vector2 option2_text_size = MeasureTextEx(popup->font, popup->option2_text, popup->option1.height, 2);
+        option2_box_size = (int) (option2_text_size.x + popup->option1.height * 0.6f);
+        if (option2_box_size < option1_box_size) {
+            option2_box_size = option1_box_size;
+        }
+    }
+    popup->option2.width = option2_box_size;
+    popup->option2.height = cross_box_size;
+    popup->option2.y = popup->option1.y;
+    popup->option2.x = popup->option1.x - popup->option2.width - cross_box_size * 0.25f;
 }
 
 /**
@@ -82,9 +100,16 @@ bool tkbc_draw_popup(Popup *popup) {
     if (CheckCollisionPointRec(GetMousePosition(), popup->option1)) {
         popup->option1_color = ColorBrightness(popup->option1_color, -0.2);
     }
+    const Color save_option2_color = popup->option2_color;
+    if (popup->option2_text && CheckCollisionPointRec(GetMousePosition(), popup->option2)) {
+        popup->option2_color = ColorBrightness(popup->option2_color, -0.2);
+    }
 
     DrawRectangleRec(popup->base, popup->base_color);
     DrawRectangleRec(popup->option1, popup->option1_color);
+    if (popup->option2_text) {
+        DrawRectangleRec(popup->option2, popup->option2_color);
+    }
 
     if (popup->option1_text == NULL) {
         popup->option1_text = "OK";
@@ -98,6 +123,16 @@ bool tkbc_draw_popup(Popup *popup) {
     p.x = popup->option1.x + popup->option1.width / 2.0 - opt1_text_size.x / 2.0;
     p.y = popup->option1.y + popup->option1.height / 2.0 - opt1_text_size.y / 2.0;
     DrawTextEx(popup->font, popup->option1_text, p, opt1_font_size, spacing, TKBC_UI_BLACK);
+
+    if (popup->option2_text) {
+        int opt2_font_size = popup->option2.height;
+        Vector2 opt2_text_size = tkbc_reduce_str_to_fit_box(popup->font, popup->option2_text, &opt2_font_size, spacing,
+                                                            popup->option2);
+        Vector2 p2 = {0};
+        p2.x = popup->option2.x + popup->option2.width / 2.0 - opt2_text_size.x / 2.0;
+        p2.y = popup->option2.y + popup->option2.height / 2.0 - opt2_text_size.y / 2.0;
+        DrawTextEx(popup->font, popup->option2_text, p2, opt2_font_size, spacing, TKBC_UI_BLACK);
+    }
 
     DrawRectangleRec(popup->cross, popup->cross_color);
     Vector2 start_pos = {.x = popup->cross.x, .y = popup->cross.y};
@@ -120,6 +155,7 @@ bool tkbc_draw_popup(Popup *popup) {
 
     popup->cross_color = save_cross_color;
     popup->option1_color = save_opiton1_color;
+    popup->option2_color = save_option2_color;
     return true;
 }
 
@@ -147,6 +183,7 @@ Popup tkbc_popup_message(Font font, const char *message) {
         .base_color = TKBC_UI_GRAY,
         .cross_color = TKBC_UI_RED,
         .option1_color = TKBC_UI_TEAL,
+        .option2_color = TKBC_UI_TEAL,
         .text = message,
         .font_size = font_size,
         .text_width = size.x,

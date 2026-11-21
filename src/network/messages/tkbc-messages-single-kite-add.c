@@ -73,20 +73,15 @@ bool tkbc_messages_single_kite_add(Env *env, Message *reader, Client *client, Ki
     tkbc_register_kite_from_values(kite_id, x, y, angle, color, texture_id, is_reversed, is_active, is_script_kite);
 #endif
 
-    static _Atomic bool first_message_kite_add = true;
-    if (first_message_kite_add) {
-        // This assumes the server sends the first SINGLE_KITE_ADD to the
-        // client, that contains his own kite;
-        if (client->kite_id == -1) {
-            client->kite_id = kite_id;
-        }
+    // The first SINGLE_KITE_ADD for a fresh/reconnected client is its own kite.
+    if (client->kite_id == -1) {
+        client->kite_id = kite_id;
 
         Kite_State *kite_state = tkbc_get_kite_state_by_id(env, kite_id);
         if (kite_state) {
             kite_state->is_kite_input_handler_active = true;
             *client_kite = *kite_state->kite;
         }
-        first_message_kite_add = false;
     }
     return true;
 }

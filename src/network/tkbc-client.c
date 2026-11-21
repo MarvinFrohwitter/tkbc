@@ -79,6 +79,7 @@ static Popup connection = {0};
 static Popup loading = {0};
 static Popup disconnect = {0};
 bool offline_mode = false;
+static bool received_hello = false;
 
 static Space connection_input_space = {0};
 static Text_Input connection_host_input = {
@@ -464,7 +465,6 @@ bool received_message_handler(Message *message) {
         return ok;
     }
 
-    static bool received_hello = false;
     size_t pos = 0;
     while (tkbc_is_message_complete(message, pos)) {
         Message reader = tkbc_message_reader(message, pos);
@@ -523,6 +523,9 @@ bool received_message_handler(Message *message) {
         case MESSAGE_HELLO_PASSED: {
             loading.active = false;
             client.handshake_passed = true;
+            if (env->scripts.count > 0) {
+                tkbc_message_script(&client, true);
+            }
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "HELLO_PASSED\n");
         } break;
         case MESSAGE_SINGLE_KITE_ADD: {
@@ -537,9 +540,10 @@ bool received_message_handler(Message *message) {
             size_t parsed_id;
             ssize_t source_kite_id = -1;
             size_t controller_count = 0;
-            assert(client.kite_id != -1);
             // Don't update my self the client is already more up to date than the
-            // server sends. It is local and therefore faster.
+            // server sends. It is local and therefore faster. During reconnect,
+            // our own kite id may not be known yet when other clients' updates
+            // arrive after the handshake.
             int value_ok =
                 tkbc_parse_single_kite_value(&reader, client.kite_id, &parsed_id, &source_kite_id, &controller_count);
             if (!value_ok) {
@@ -1176,6 +1180,7 @@ int main(int argc, char *argv[]) {
     connection.active = true;
     disconnect = tkbc_popup_message(env->font, "The server has disconnected!");
     disconnect.option1_text = "QUIT";
+    disconnect.option2_text = "RECONNECT";
     loading = tkbc_popup_message(env->font, "Waiting for server.");
     loading.option1_text = "QUIT";
 
@@ -1308,6 +1313,51 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+static void tkbc_close_client_socket(void) {
+    if (client.socket_id <= 0) {
+        return;
+    }
+#ifdef _WIN32
+    shutdown(client.socket_id, SHUT_WR);
+    closesocket(client.socket_id);
+#else
+    shutdown(client.socket_id, SHUT_WR);
+    close(client.socket_id);
+#endif
+    client.socket_id = -1;
+}
+
+static void tkbc_client_reset_for_reconnect(Env *env) {
+    tkbc_close_client_socket();
+
+    space_free_space(&client.send_msg_buffer_space);
+    space_free_space(&client.recv_msg_buffer_space);
+    client.send_msg_buffer = (Message){0};
+    client.recv_msg_buffer = (Message){0};
+    client.send_msg_buffer_space = (Space){0};
+    client.recv_msg_buffer_space = (Space){0};
+
+    free(client.selected_kite_ids.elements);
+    client.selected_kite_ids = (Kite_Ids){0};
+
+    client.handshake_passed = false;
+    client.script_amount = 0;
+    client.kite_id = -1;
+    received_hello = false;
+
+    offline_mode = false;
+    loading.active = false;
+    disconnect.active = false;
+
+    tkbc_unload_script(env);
+    tkbc_clear_ghost_kites(env);
+    for (size_t i = 0; i < env->kite_array.count; ++i) {
+        free(env->kite_array.elements[i].kite);
+        env->kite_array.elements[i].kite = NULL;
+    }
+    env->kite_array.count = 0;
+}
+
 /**
  * @brief Creates the local kite and state needed to run without a server
  * connection.
@@ -1352,9 +1402,12 @@ bool tkbc_run(Env *env) {
                 tkbc_unload_script(env);
                 tkbc_change_visibility_to_non_script_kites(env);
                 tkbc_clear_ghost_kites(env);
-                tkbc_get_kite_state_by_id(env, client.kite_id)->is_kite_input_handler_active = true;
+                Kite_State *local_kite_state = tkbc_get_kite_state_by_id(env, client.kite_id);
+                if (local_kite_state) {
+                    local_kite_state->is_kite_input_handler_active = true;
+                }
 
-                client.socket_id = -1;
+                tkbc_close_client_socket();
             }
         }
         offline_mode = !send_message_send_handler();
@@ -1370,6 +1423,10 @@ bool tkbc_run(Env *env) {
     } else if (interaction == -1) {
         disconnect.active = false;
         loading.active = false;
+    } else if (interaction == 2) {
+        tkbc_client_reset_for_reconnect(env);
+        connection.active = true;
+        return true;
     }
 
     if (loading.active) {
