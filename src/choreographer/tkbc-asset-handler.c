@@ -39,10 +39,6 @@ static UUID tkbc_append_colorizer_from_baked_png(const unsigned char *data, int 
 #include "../../assets/Kite_111/Right/111_Right_05_2.h"
 #include "../../assets/Kite_111/Right/111_Right_06_2.h"
 
-#include "../../assets/CE_NG/Middle/Middle_05.h"
-#include "../../assets/CE_NG/Middle/Middle_09.h"
-#include "../../assets/CE_NG/Middle/Middle_12.h"
-
 #include "../../assets/CE_NG/Left/Left_01_1.h"
 #include "../../assets/CE_NG/Left/Left_02_1.h"
 #include "../../assets/CE_NG/Left/Left_03_1.h"
@@ -79,7 +75,6 @@ static UUID tkbc_append_colorizer_from_baked_png(const unsigned char *data, int 
 #include "../../assets/CE_NG/Around/Gaze.h"
 #include "../../assets/CE_NG/Around/Leadingedge.h"
 #include "../../assets/CE_NG/Around/Skeleton.h"
-#include "../../assets/CE_NG/Around/Skeleton_Leadingedge.h"
 
 #include "../../assets/CE_NG/Kites/CE_NG_1.h"
 #include "../../assets/CE_NG/Kites/CE_NG_2.h"
@@ -720,7 +715,6 @@ void tkbc_append_ce_ng_kite_image_pannels() {
     // The filled panel is the template for reset/duplicate detection and needs
     // its RGB values, so it stays a decoded ASSETS_IMAGE.
     tkbc_append_baked_asset_image(asset_image_filled_panel);
-    tkbc_append_baked_panel_mask(skeleton_leadingedge);
     tkbc_append_baked_panel_mask(leadingedge);
     tkbc_append_baked_panel_mask(gaze);
 
@@ -755,10 +749,6 @@ void tkbc_append_ce_ng_kite_image_pannels() {
     tkbc_append_baked_panel_mask(right_13_2);
     tkbc_append_baked_panel_mask(right_14_2);
     tkbc_append_baked_panel_mask(right_15_2);
-
-    tkbc_append_baked_panel_mask(middle_05);
-    tkbc_append_baked_panel_mask(middle_09);
-    tkbc_append_baked_panel_mask(middle_12);
 }
 
 void tkbc_append_111_kite_image_pannels() {

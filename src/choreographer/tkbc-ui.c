@@ -69,16 +69,14 @@ static size_t tkbc_colorizer_panel_end(bool is_dual_line) {
  * @brief Checks whether a panel should be skipped while colorizing.
  *
  * The filled panel is never paintable. The skeleton is skipped in SELECT_PANEL
- * mode. The CE_NG leading edge and middle panels are omitted as well, which
- * keeps the original behavior of both modes.
+ * mode, which keeps the original behavior of both modes.
  */
 static bool tkbc_skip_colorizer_panel(bool is_dual_line, size_t panel, bool is_select_panel_mode) {
     if (is_dual_line) {
         return panel == IMAGE_111_FILLED_PANEL || (is_select_panel_mode && panel == IMAGE_111_SKELETON);
     }
 
-    if (panel == IMAGE_CE_NG_FILLED_PANEL || panel == IMAGE_CE_NG_SKELETON_LEADINGEDGE ||
-        panel == IMAGE_CE_NG_MIDDLE_05 || panel == IMAGE_CE_NG_MIDDLE_09 || panel == IMAGE_CE_NG_MIDDLE_12) {
+    if (panel == IMAGE_CE_NG_FILLED_PANEL) {
         return true;
     }
     return is_select_panel_mode && panel == IMAGE_CE_NG_SKELETON;
