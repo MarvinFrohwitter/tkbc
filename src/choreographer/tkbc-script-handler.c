@@ -1193,7 +1193,7 @@ void tkbc_download_all_selected_scripts(Env *env) {
         if (!script->selected) continue;
 
         const char *filepath = space_tprintf("%s%s.kite", env->tkbc_dir, tkbc_script_name(script));
-        int err = tkbc_export_script_to_dot_kite_file_from_mem(script, filepath);
+        int err = tkbc_export_script_to_dot_kite_file_from_mem(space_get_tspace(), script, filepath);
         if (err) {
             tkbc_fprintf(stderr, "WARNING", "Failed to download all selected scripts!");
         }

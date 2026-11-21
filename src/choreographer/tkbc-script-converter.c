@@ -49,6 +49,10 @@ void tkbc_print_kites(Content *buffer, Kite_Ids ids, Orbit_HT(Id, Id) * all_ids)
     tkbc_dapf(buffer, ")");
 }
 
+static void *alloc_space_callback(void *alloc_data, size_t size) {
+    return space_malloc(alloc_data, size);
+}
+
 /**
  * @brief The function serializes the provided script in memory form to a .kite
  * file.
@@ -59,9 +63,13 @@ void tkbc_print_kites(Content *buffer, Kite_Ids ids, Orbit_HT(Id, Id) * all_ids)
  * writing of the header failed and -1 if the writing of the main program has
  * failed.
  */
-int tkbc_export_script_to_dot_kite_file_from_mem(Script *script, const char *filepath) {
+int tkbc_export_script_to_dot_kite_file_from_mem(Space *tspace, Script *script, const char *filepath) {
     int ok = 0;
-    Orbit_HT(Id, Id) ids = {0};
+    Orbit_HT(Id, Id) ids = {
+        .init_size = 16,
+        .allocator.alloc = alloc_space_callback,
+        .allocator.alloc_data = tspace,
+    };
     Content out = {0};
 
     tkbc_redirect_script_elements(script);
@@ -177,7 +185,6 @@ check:
 
     tkbc_remove_redirect_script_elements(script);
     free(out.elements);
-    orbit_free(&ids);
     return ok;
 }
 
@@ -202,7 +209,7 @@ int tkbc_export_all_scripts_to_dot_kite_file_from_mem(Env *env, const char *path
         assert(tkbc_script_name(&env->scripts.elements[i])[0] != '\0');
         space_reset_tspace();
         const char *buf = space_tprintf("%s%s.kite", path, tkbc_script_name(&env->scripts.elements[i]));
-        err = tkbc_export_script_to_dot_kite_file_from_mem(&env->scripts.elements[i], buf);
+        err = tkbc_export_script_to_dot_kite_file_from_mem(space_get_tspace(), &env->scripts.elements[i], buf);
 
         if (err) {
             break;
