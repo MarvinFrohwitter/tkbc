@@ -1014,7 +1014,9 @@ Test export_script_to_dot_kite_file_from_mem_writes_original(void) {
     // Download the upscaled script: the file must contain the single
     // authored MOVE + QUIT, not twelve slice MOVEs.
     const char *path = "build/export_original_test.kite";
-    cassert_int_eq(tkbc_export_script_to_dot_kite_file_from_mem(&script, path), 0);
+    Space export_space = upscale_test_temp_space();
+    cassert_int_eq(tkbc_export_script_to_dot_kite_file_from_mem(&export_space, &script, path), 0);
+    space_free_space(&export_space);
     FILE *exported = fopen(path, "rb");
     cassert_ptr_neq(exported, NULL);
     if (exported) {
@@ -1029,6 +1031,9 @@ Test export_script_to_dot_kite_file_from_mem_writes_original(void) {
             cassert_size_t_eq(export_read, (size_t) export_size);
             export_text[export_size] = '\0';
             cassert_size_t_eq(count_occurrences(export_text, "MOVE ("), (size_t) 1);
+            cassert_size_t_eq(count_occurrences(export_text, "MOVE (0)"), (size_t) 1);
+            cassert_size_t_eq(count_occurrences(export_text, "KITES 1\n"), (size_t) 1);
+            cassert_size_t_eq(count_occurrences(export_text, "KITES 0"), (size_t) 0);
             cassert_size_t_eq(count_occurrences(export_text, "QUIT"), (size_t) 1);
             free(export_text);
         }
@@ -1045,6 +1050,66 @@ Test export_script_to_dot_kite_file_from_mem_writes_original(void) {
 
     space_free_space(&script.space);
     tkbc_destroy_env(env);
+    return test;
+}
+
+Test export_script_maps_kite_ids_to_file_indices(void) {
+    Test test = cassert_init_test("tkbc_export_script_to_dot_kite_file_from_mem(kite id remap)");
+
+    Script script = {0};
+    space_init_capacity(&script.space, 64);
+
+    Frames block = {0};
+    block.frames_index = 0;
+
+    Frame move = {0};
+    move.kind = ACTION_KITE_MOVE;
+    move.action.as_move.position = (Vector2){.x = 10, .y = 20};
+    move.duration = 1.0f;
+    move.original_duration = 1.0f;
+    move.index = 0;
+    space_dap(&script.space, &move.kite_id_array, (Id) 7);
+    space_dap(&script.space, &move.kite_id_array, (Id) 42);
+    space_dap(&script.space, &block, move);
+
+    Frame move_add = {0};
+    move_add.kind = ACTION_KITE_MOVE_ADD;
+    move_add.action.as_move_add.position = (Vector2){.x = 5, .y = -5};
+    move_add.duration = 2.0f;
+    move_add.original_duration = 2.0f;
+    move_add.index = 1;
+    space_dap(&script.space, &move_add.kite_id_array, (Id) 42);
+    space_dap(&script.space, &block, move_add);
+
+    space_dap(&script.space, &script, block);
+
+    const char *path = "build/export_id_remap_test.kite";
+    Space export_space = upscale_test_temp_space();
+    cassert_int_eq(tkbc_export_script_to_dot_kite_file_from_mem(&export_space, &script, path), 0);
+    space_free_space(&export_space);
+
+    FILE *exported = fopen(path, "rb");
+    cassert_ptr_neq(exported, NULL);
+    if (exported) {
+        fseek(exported, 0, SEEK_END);
+        long export_size = ftell(exported);
+        cassert_bool_eq(export_size > 0, true);
+        fseek(exported, 0, SEEK_SET);
+        char *export_text = malloc((size_t) export_size + 1);
+        cassert_ptr_neq(export_text, NULL);
+        if (export_text) {
+            size_t export_read = fread(export_text, 1, (size_t) export_size, exported);
+            cassert_size_t_eq(export_read, (size_t) export_size);
+            export_text[export_size] = '\0';
+            cassert_size_t_eq(count_occurrences(export_text, "KITES 2\n"), (size_t) 1);
+            cassert_size_t_eq(count_occurrences(export_text, "MOVE (0 1)"), (size_t) 1);
+            cassert_size_t_eq(count_occurrences(export_text, "MOVE_ADD (1)"), (size_t) 1);
+            free(export_text);
+        }
+        fclose(exported);
+    }
+
+    space_free_space(&script.space);
     return test;
 }
 
@@ -1075,4 +1140,5 @@ void tkbc_test_script_handler(Tests *tests) {
     cassert_dap(tests, upscale_script_quit_alone_acts_global());
     cassert_dap(tests, render_frame_duration_guard_finishes_fighting_moves());
     cassert_dap(tests, export_script_to_dot_kite_file_from_mem_writes_original());
+    cassert_dap(tests, export_script_maps_kite_ids_to_file_indices());
 }

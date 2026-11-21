@@ -18,38 +18,27 @@
  * kite ids are higher than a fresh session knows (e.g. after networking or
  * previous script loads). The parser resolves them back to env kites.
  *
+ * @param tspace The temporary space used for the output buffer allocations.
  * @param buffer The buffer where to print the kites.
  * @param ids The kite ids of a single frame that should be serialized.
- * @param all_ids The distinct kite ids of the whole script in first
- * appearance order, used for the index mapping.
+ * @param all_ids Maps every distinct kite id of the whole script to its
+ * file-local index (assigned in first appearance order).
  */
-void tkbc_print_kites(Content *buffer, Kite_Ids ids, Orbit_HT(Id, Id) * all_ids) {
-    if (ids.count > 0) {
-        size_t index = 0;
-        orbit_foreach(it, all_ids) {
-            if (it->key == ids.elements[0]) {
-                break;
-            }
-            ++index;
+void tkbc_print_kites(Space *tspace, Content *buffer, Kite_Ids ids, Orbit_HT(Id, Id) * all_ids) {
+    space_dapf(tspace, buffer, "(");
+    for (size_t i = 0; i < ids.count; ++i) {
+        if (i > 0) {
+            space_dapf(tspace, buffer, " ");
         }
-        tkbc_dapf(buffer, "(%zu", index);
-        for (size_t id = 1; id < ids.count; ++id) {
-            index = 0;
-            orbit_foreach(it, all_ids) {
-                if (it->key == ids.elements[id]) {
-                    break;
-                }
-                ++index;
-            }
-            tkbc_dapf(buffer, " %zu", index);
-        }
-    } else {
-        tkbc_dapf(buffer, "(");
+        Id *index = orbit_get(all_ids, ids.elements[i]);
+        // Every id of a frame is collected before serialization, so a lookup
+        // must succeed. Falling back to 0 keeps the output well formed.
+        space_dapf(tspace, buffer, "%zu", index ? *index : 0);
     }
-    tkbc_dapf(buffer, ")");
+    space_dapf(tspace, buffer, ")");
 }
 
-static void *alloc_space_callback(void *alloc_data, size_t size) {
+static inline void *alloc_space_callback(void *alloc_data, size_t size) {
     return space_malloc(alloc_data, size);
 }
 
@@ -57,6 +46,7 @@ static void *alloc_space_callback(void *alloc_data, size_t size) {
  * @brief The function serializes the provided script in memory form to a .kite
  * file.
  *
+ * @param tspace The temporary space used for the serialization allocations.
  * @param script A memory representation of a script.
  * @param filepath The file path where the script should be saved to.
  * @return 0 If the saving and serialization of the file has succeeded. 1 if
@@ -85,18 +75,20 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Space *tspace, Script *script, 
             Frame *f = &script->original_elements[frames].elements[frame];
             for (size_t i = 0; i < f->kite_id_array.count; ++i) {
                 Id id = f->kite_id_array.elements[i];
-                if (NULL != orbit_get(&ids, id)) {
-                    orbit_put(&ids, id, id);
+                if (NULL == orbit_get(&ids, id)) {
+                    // The value is the file-local index in first appearance
+                    // order; the hash table iteration order is unspecified.
+                    orbit_put(&ids, id, ids.count);
                 }
             }
         }
     }
 
-    tkbc_dapf(&out, "BEGIN\n");
+    space_dapf(tspace, &out, "BEGIN\n");
     for (size_t frames = 0; frames < script->original_count; ++frames) {
 
         if (script->original_elements[frames].count > 1) {
-            tkbc_dapf(&out, "{\n");
+            space_dapf(tspace, &out, "{\n");
         }
 
         for (size_t frame = 0; frame < script->original_elements[frames].count; ++frame) {
@@ -104,73 +96,73 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Space *tspace, Script *script, 
 
             switch (f->kind) {
             case ACTION_KITE_QUIT: {
-                tkbc_dapf(&out, "QUIT");
+                space_dapf(tspace, &out, "QUIT");
             } break;
 
             case ACTION_KITE_WAIT: {
-                tkbc_dapf(&out, "WAIT");
+                space_dapf(tspace, &out, "WAIT");
             } break;
 
             case ACTION_KITE_MOVE: {
                 Move_Action action = f->action.as_move;
-                tkbc_dapf(&out, "MOVE ");
-                tkbc_print_kites(&out, f->kite_id_array, (void *) &ids);
-                tkbc_dapf(&out, " %G %G", action.position.x, action.position.y);
+                space_dapf(tspace, &out, "MOVE ");
+                tkbc_print_kites(tspace, &out, f->kite_id_array, (void *) &ids);
+                space_dapf(tspace, &out, " %G %G", action.position.x, action.position.y);
 
             } break;
 
             case ACTION_KITE_MOVE_ADD: {
                 Move_Add_Action action = f->action.as_move_add;
-                tkbc_dapf(&out, "MOVE_ADD ");
-                tkbc_print_kites(&out, f->kite_id_array, (void *) &ids);
-                tkbc_dapf(&out, " %G %G", action.position.x, action.position.y);
+                space_dapf(tspace, &out, "MOVE_ADD ");
+                tkbc_print_kites(tspace, &out, f->kite_id_array, (void *) &ids);
+                space_dapf(tspace, &out, " %G %G", action.position.x, action.position.y);
 
             } break;
 
             case ACTION_KITE_ROTATION: {
                 Rotation_Action action = f->action.as_rotation;
-                tkbc_dapf(&out, "ROTATION ");
-                tkbc_print_kites(&out, f->kite_id_array, (void *) &ids);
-                tkbc_dapf(&out, " %G", action.angle);
+                space_dapf(tspace, &out, "ROTATION ");
+                tkbc_print_kites(tspace, &out, f->kite_id_array, (void *) &ids);
+                space_dapf(tspace, &out, " %G", action.angle);
 
             } break;
 
             case ACTION_KITE_ROTATION_ADD: {
                 Rotation_Add_Action action = f->action.as_rotation_add;
-                tkbc_dapf(&out, "ROTATION_ADD ");
-                tkbc_print_kites(&out, f->kite_id_array, (void *) &ids);
-                tkbc_dapf(&out, " %G", action.angle);
+                space_dapf(tspace, &out, "ROTATION_ADD ");
+                tkbc_print_kites(tspace, &out, f->kite_id_array, (void *) &ids);
+                space_dapf(tspace, &out, " %G", action.angle);
 
             } break;
 
             case ACTION_KITE_TIP_ROTATION: {
                 Tip_Rotation_Action action = f->action.as_tip_rotation;
-                tkbc_dapf(&out, "TIP_ROTATION ");
-                tkbc_print_kites(&out, f->kite_id_array, (void *) &ids);
-                tkbc_dapf(&out, " %G %s", action.angle, action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
+                space_dapf(tspace, &out, "TIP_ROTATION ");
+                tkbc_print_kites(tspace, &out, f->kite_id_array, (void *) &ids);
+                space_dapf(tspace, &out, " %G %s", action.angle, action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
             } break;
 
             case ACTION_KITE_TIP_ROTATION_ADD: {
                 Tip_Rotation_Add_Action action = f->action.as_tip_rotation_add;
-                tkbc_dapf(&out, "TIP_ROTATION_ADD ");
-                tkbc_print_kites(&out, f->kite_id_array, (void *) &ids);
-                tkbc_dapf(&out, " %G %s", action.angle, action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
+                space_dapf(tspace, &out, "TIP_ROTATION_ADD ");
+                tkbc_print_kites(tspace, &out, f->kite_id_array, (void *) &ids);
+                space_dapf(tspace, &out, " %G %s", action.angle, action.tip == LEFT_TIP ? "LEFT" : "RIGHT");
 
             } break;
 
             default: assert(0 && "UNREACHABLE tkbc_export_script_to_dot_kite_file_from_mem");
             }
 
-            tkbc_dapf(&out, " %G", f->duration);
-            tkbc_dapf(&out, "\n");
+            space_dapf(tspace, &out, " %G", f->duration);
+            space_dapf(tspace, &out, "\n");
         }
 
         if (script->original_elements[frames].count > 1) {
-            tkbc_dapf(&out, "}\n");
+            space_dapf(tspace, &out, "}\n");
         }
     }
-    tkbc_dapf(&out, "END\n");
+    space_dapf(tspace, &out, "END\n");
 
     char buf[32];
     snprintf(buf, sizeof(buf), "KITES %zu\n", ids.count);
@@ -184,7 +176,6 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Space *tspace, Script *script, 
 check:
 
     tkbc_remove_redirect_script_elements(script);
-    free(out.elements);
     return ok;
 }
 
