@@ -127,10 +127,13 @@ typedef struct {
 
 #define cflags(cmd, ...) cflags_opt(cmd, ((Cflags_Opts){__VA_ARGS__}))
 void cflags_opt(Cmd *cmd, Cflags_Opts opts) {
-    CFLAGS(cmd, "-fPIC", "-O0", "-Wall", "-Wextra", "-g", "-std=gnu23");
+    CFLAGS(cmd, "-fPIC", "-Wall", "-Wextra", "-std=gnu23");
     if (opts.WINDOWS) {
+        CFLAGS(cmd, "-O3");
         CFLAGS(cmd, "-static");
         CFLAGS(cmd, "-mwindows");
+    } else {
+        CFLAGS(cmd, "-O0", "-ggdb");
     }
 
     if (opts.sanitize) {
