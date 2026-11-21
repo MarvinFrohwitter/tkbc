@@ -8,6 +8,7 @@
 
 #include <stdatomic.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,10 +23,117 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../external/stb/stb_image.h"
 
+// Compact alpha-mask format shared with tkbc-asset-handler.c.
+//
+//   'T' 'M' 'S' 'K' | version | kind | width | height | x0 | y0 | x1 | y1 | RLE
+//   (all multi-byte fields are u32 little endian)
+//
+// kind 1: one bit per pixel (alpha is only 0 or 255), bits packed LSB first.
+// kind 2: one byte per pixel with the original alpha value.
+// x0..y1 is the inclusive bounding box of all opaque pixels, precomputed here
+// so the colorizer never has to scan 20 million pixels to find it at runtime.
+// An empty mask has x1 < x0.
+// The RLE stream is a sequence of (count as ULEB128, value byte) runs over the
+// packed representation. The colorizer only ever tests alpha > 0, so a binary
+// mask reproduces its behaviour exactly while using 1/32 of the RGBA memory.
+#define TKBC_MASK_HEADER_SIZE 30
+#define TKBC_MASK_KIND_BINARY 1
+#define TKBC_MASK_KIND_ALPHA8 2
+
+static void tkbc_mask_push_uleb128(Content *out, uint64_t value) {
+    do {
+        unsigned char byte = (unsigned char) (value & 0x7f);
+        value >>= 7;
+        if (value != 0) {
+            byte |= 0x80;
+        }
+        tkbc_dap(out, byte);
+    } while (value != 0);
+}
+
+static bool tkbc_build_panel_mask(const char *image_file_path, int width, int height, Content *out) {
+    int w = 0;
+    int h = 0;
+    int comp = 0;
+    unsigned char *pixels = stbi_load(image_file_path, &w, &h, &comp, 4);
+    if (pixels == NULL || w != width || h != height) {
+        stbi_image_free(pixels);
+        return false;
+    }
+
+    const size_t pixel_count = (size_t) w * (size_t) h;
+    bool binary = true;
+    int x0 = w;
+    int y0 = h;
+    int x1 = -1;
+    int y1 = -1;
+    for (size_t i = 0; i < pixel_count; ++i) {
+        unsigned char alpha = pixels[i * 4 + 3];
+        if (alpha != 0 && alpha != 255) {
+            binary = false;
+        }
+        if (alpha > 0) {
+            int x = (int) (i % (size_t) w);
+            int y = (int) (i / (size_t) w);
+            if (x < x0) x0 = x;
+            if (x > x1) x1 = x;
+            if (y < y0) y0 = y;
+            if (y > y1) y1 = y;
+        }
+    }
+
+    tkbc_dap(out, 'T');
+    tkbc_dap(out, 'M');
+    tkbc_dap(out, 'S');
+    tkbc_dap(out, 'K');
+    tkbc_dap(out, 1);  // version
+    tkbc_dap(out, binary ? TKBC_MASK_KIND_BINARY : TKBC_MASK_KIND_ALPHA8);
+    uint32_t header_values[6] = {(uint32_t) w, (uint32_t) h, (uint32_t) x0, (uint32_t) y0, (uint32_t) x1,
+                                 (uint32_t) y1};
+    for (int i = 0; i < 6; ++i) {
+        for (int byte = 0; byte < 4; ++byte) {
+            tkbc_dap(out, (unsigned char) (header_values[i] >> (byte * 8)));
+        }
+    }
+
+    size_t i = 0;
+    while (i < pixel_count) {
+        unsigned char value = binary ? (pixels[i * 4 + 3] != 0 ? 1 : 0) : pixels[i * 4 + 3];
+        uint64_t run = 1;
+        while (i + run < pixel_count && run < UINT64_MAX) {
+            unsigned char next = binary ? (pixels[(i + run) * 4 + 3] != 0 ? 1 : 0) : pixels[(i + run) * 4 + 3];
+            if (next != value) {
+                break;
+            }
+            ++run;
+        }
+        tkbc_mask_push_uleb128(out, run);
+        tkbc_dap(out, value);
+        i += (size_t) run;
+    }
+
+    stbi_image_free(pixels);
+    return true;
+}
+
+static void tkbc_append_mask_byte_array(Content *data, const char *name_lower, const Content *mask) {
+    tkbc_dapf(data, "\nstatic const unsigned char asset_mask_%s[%zu] = {\n", name_lower, mask->count);
+    for (size_t i = 0; i < mask->count; ++i) {
+        if (i == 0) {
+            tkbc_dapf(data, "    ");
+        } else if (i % 15 == 0) {
+            tkbc_dapf(data, "\n    ");
+        }
+        tkbc_dapf(data, "0x%02X,", (unsigned char) mask->elements[i]);
+    }
+    tkbc_dapf(data, "\n};\n");
+}
+
 bool transpile_png_to_h(const char *image_file_path, const char *name) {
     bool ok = true;
     Content data = {0};
     Content file_data = {0};
+    Content mask = {0};
     fprintf(stderr, "INFO: .................................\n");
     fprintf(stderr, "INFO: Converting %s ...\n", image_file_path);
 
@@ -63,9 +171,6 @@ bool transpile_png_to_h(const char *image_file_path, const char *name) {
 
     tkbc_dapf(&data, "\nstatic const unsigned char asset_image_%s[%zu] = {\n", name_lower,
               (size_t) file_data.count);
-    free(name_upper);
-    free(name_lower);
-    *dot = '.';
 
     int line_comp = 15;
     for (size_t i = 0; i < (size_t) file_data.count; ++i) {
@@ -83,6 +188,23 @@ bool transpile_png_to_h(const char *image_file_path, const char *name) {
         data.count -= 2;
     }
     tkbc_dapf(&data, "\n};\n");
+
+    // Emit a compact alpha mask as well. The colorizer only needs to know
+    // which pixels of a panel are opaque; keeping full RGBA panels in memory
+    // cost several gigabytes while the mask is only a few hundred kilobytes
+    // compressed for all panels together.
+    if (!tkbc_build_panel_mask(image_file_path, x, y, &mask)) {
+        fprintf(stderr, "ERROR: could not build the alpha mask for %s!\n", image_file_path);
+        free(name_upper);
+        free(name_lower);
+        *dot = '.';
+        check_return(false);
+    }
+    tkbc_append_mask_byte_array(&data, name_lower, &mask);
+
+    free(name_upper);
+    free(name_lower);
+    *dot = '.';
 
     dot = (char *) strrchr(image_file_path, '.');
     char save[3];
@@ -112,6 +234,7 @@ bool transpile_png_to_h(const char *image_file_path, const char *name) {
 
 check:
     free(file_data.elements);
+    free(mask.elements);
     free(data.elements);
     return ok;
 }

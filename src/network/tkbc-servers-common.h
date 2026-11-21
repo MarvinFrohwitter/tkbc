@@ -350,7 +350,7 @@ static inline void tkbc_message_append_image_data(Space *space, Message *message
         png_size = kite_image.compressed_size;
         borrowed = true;
     } else {
-        png_data = ExportImageToMemory(image, ".png", &png_size);
+        png_data = tkbc_export_image_png_fast(image, &png_size);
     }
 
     tkbc_message_write_uuid(message, space, asset->id);

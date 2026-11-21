@@ -203,6 +203,13 @@ float tkbc_get_frame_time(void);
 #ifdef INCLUDE_RAYLIB
 bool is_mouse_double_click(int mouse_button);
 bool tkbc_is_same_image(Image a, Image b);
+uint64_t tkbc_image_content_hash(Image image);
+// Much faster PNG encoder for the RGBA kite images. The produced files are
+// regular PNGs, so the network protocol and every image loader stay unchanged.
+unsigned char *tkbc_export_image_png_fast(Image image, int *data_size);
+// Same encoder, but also returns the FNV-1a content hash computed while the
+// pixels are copied into the filtered buffer (no extra pass over the image).
+unsigned char *tkbc_export_image_png_fast_with_hash(Image image, int *data_size, uint64_t *content_hash);
 bool tkbc_vector2_equals_epsilon(Vector2 p, Vector2 q, float epsilon);
 bool tkbc_is_rectangle_equal(Rectangle r1, Rectangle r2);
 uint32_t tkbc_color_to_uint32_t(Color color);
@@ -888,6 +895,508 @@ static int bytes_per_pixel_from_format(PixelFormat format) {
 
     default: return -1;
     }
+}
+
+#define TKBC_FNV1A_OFFSET 14695981039346656037ULL
+
+/** @brief Continues an FNV-1a hash over @p count bytes. */
+static inline __attribute__((always_inline)) uint64_t tkbc_fnv1a_update(uint64_t hash, const unsigned char *data,
+                                                                        size_t count) {
+    const uint64_t prime = 1099511628211ULL;
+    size_t i = 0;
+    // FNV-1a is sequential, but unrolling removes most of the loop overhead on
+    // the 84 MB buffers used for kite designs.
+    for (; i + 8 <= count; i += 8) {
+        hash = (hash ^ data[i + 0]) * prime;
+        hash = (hash ^ data[i + 1]) * prime;
+        hash = (hash ^ data[i + 2]) * prime;
+        hash = (hash ^ data[i + 3]) * prime;
+        hash = (hash ^ data[i + 4]) * prime;
+        hash = (hash ^ data[i + 5]) * prime;
+        hash = (hash ^ data[i + 6]) * prime;
+        hash = (hash ^ data[i + 7]) * prime;
+    }
+    for (; i < count; ++i) {
+        hash = (hash ^ data[i]) * prime;
+    }
+    return hash;
+}
+
+/**
+ * @brief FNV-1a hash over the decoded RGBA pixels of an image.
+ *
+ * Used to compare kite designs by their content without keeping a full pixel
+ * buffer for every design. Only uncompressed images are supported.
+ */
+uint64_t tkbc_image_content_hash(Image image) {
+    if (image.data == NULL) return 0;
+
+    const unsigned char *data = (const unsigned char *) image.data;
+    size_t count = 0;
+    if (bytes_per_pixel_from_format(image.format) > 0) {
+        count = (size_t) image.width * (size_t) image.height * (size_t) bytes_per_pixel_from_format(image.format);
+    }
+    if (count == 0) return 0;
+    return tkbc_fnv1a_update(TKBC_FNV1A_OFFSET, data, count);
+}
+
+// ---------------------------------------------------------------------------
+// Fast PNG export
+//
+// ExportImageToMemory()/stb expensive LZ77 matcher spends seconds on an
+// 8000x2614 kite image, which made creating a new colorizer design feel like a
+// freeze. The encoder below writes a standard PNG with a simple greedy LZ77
+// matcher and fixed Huffman codes. It is several times faster than stb while
+// producing comparable file sizes. Only RGBA8 images are handled here; other
+// formats fall back to raylib's exporter.
+// ---------------------------------------------------------------------------
+
+typedef struct {
+    unsigned char *data;
+    size_t size;
+    size_t capacity;
+    unsigned bit_buffer;
+    int bit_count;
+    bool failed;
+} Tkbc_Png_Bits;
+
+static inline __attribute__((always_inline)) void tkbc_png_bits_reserve(Tkbc_Png_Bits *writer, size_t extra) {
+    if (writer->failed || writer->size + extra <= writer->capacity) {
+        return;
+    }
+
+    size_t capacity = writer->capacity != 0 ? writer->capacity : 4096;
+    while (capacity < writer->size + extra) {
+        capacity *= 2;
+    }
+
+    unsigned char *data = (unsigned char *) MemRealloc(writer->data, (unsigned int) capacity);
+    if (data == NULL) {
+        writer->failed = true;
+        return;
+    }
+    writer->data = data;
+    writer->capacity = capacity;
+}
+
+static inline __attribute__((always_inline)) void tkbc_png_bits_put(Tkbc_Png_Bits *writer, unsigned value, int bits) {
+    tkbc_png_bits_reserve(writer, 1 + (size_t) bits / 8);
+    if (writer->failed) {
+        return;
+    }
+
+    writer->bit_buffer |= (value & ((1u << bits) - 1u)) << writer->bit_count;
+    writer->bit_count += bits;
+    while (writer->bit_count >= 8) {
+        writer->data[writer->size++] = (unsigned char) writer->bit_buffer;
+        writer->bit_buffer >>= 8;
+        writer->bit_count -= 8;
+    }
+}
+
+static inline __attribute__((always_inline)) unsigned tkbc_png_hash(const unsigned char *data, size_t available) {
+    const unsigned b0 = data[0];
+    const unsigned b1 = available > 1 ? data[1] : 0;
+    const unsigned b2 = available > 2 ? data[2] : 0;
+    return ((b0 << 8) ^ (b1 << 4) ^ b2) & 0xffffu;
+}
+
+static inline __attribute__((always_inline)) unsigned tkbc_png_reverse_bits(unsigned value, int bits) {
+    unsigned result = 0;
+    while (bits-- > 0) {
+        result = (result << 1) | (value & 1u);
+        value >>= 1;
+    }
+    return result;
+}
+
+static inline __attribute__((always_inline)) void tkbc_png_huffman(Tkbc_Png_Bits *writer, int symbol) {
+    // Fixed Huffman literal/length alphabet.
+    if (symbol <= 143) {
+        tkbc_png_bits_put(writer, tkbc_png_reverse_bits(0x30u + (unsigned) symbol, 8), 8);
+    } else if (symbol <= 255) {
+        tkbc_png_bits_put(writer, tkbc_png_reverse_bits(0x190u + (unsigned) symbol - 144u, 9), 9);
+    } else if (symbol <= 279) {
+        tkbc_png_bits_put(writer, tkbc_png_reverse_bits((unsigned) symbol - 256u, 7), 7);
+    } else {
+        tkbc_png_bits_put(writer, tkbc_png_reverse_bits(0xc0u + (unsigned) symbol - 280u, 8), 8);
+    }
+}
+
+static inline __attribute__((always_inline)) size_t tkbc_png_match_length(const unsigned char *a,
+                                                                          const unsigned char *b, size_t max) {
+    // Compare eight bytes at a time. Kite images have very long runs of
+    // identical bytes, so this removes most of the per-byte loop overhead.
+    size_t n = 0;
+    while (n + 8 <= max) {
+        uint64_t av, bv;
+        memcpy(&av, a + n, sizeof(av));
+        memcpy(&bv, b + n, sizeof(bv));
+        if (av != bv) {
+            break;
+        }
+        n += 8;
+    }
+    while (n < max && a[n] == b[n]) {
+        ++n;
+    }
+    return n;
+}
+
+typedef struct {
+    uint64_t a;
+    uint64_t b;
+    size_t count;  // Bytes accumulated since the last reduction.
+} Tkbc_Png_Adler_State;
+
+static inline __attribute__((always_inline)) void tkbc_png_adler_state_update(Tkbc_Png_Adler_State *state,
+                                                                              const unsigned char *data, size_t size) {
+    // Accumulate in blocks without per-byte branches/modulos, then reduce.
+    // A 64-bit accumulator keeps a and b from overflowing even for 4096
+    // unreduced bytes; unrolling removes most of the loop overhead at -O0.
+    while (size > 0) {
+        size_t block = 4096 - state->count;
+        if (block > size) block = size;
+        size_t i = 0;
+        for (; i + 8 <= block; i += 8) {
+            state->a += data[i + 0]; state->b += state->a;
+            state->a += data[i + 1]; state->b += state->a;
+            state->a += data[i + 2]; state->b += state->a;
+            state->a += data[i + 3]; state->b += state->a;
+            state->a += data[i + 4]; state->b += state->a;
+            state->a += data[i + 5]; state->b += state->a;
+            state->a += data[i + 6]; state->b += state->a;
+            state->a += data[i + 7]; state->b += state->a;
+        }
+        for (; i < block; ++i) {
+            state->a += data[i];
+            state->b += state->a;
+        }
+        state->count += block;
+        if (state->count == 4096) {
+            state->a %= 65521u;
+            state->b %= 65521u;
+            state->count = 0;
+        }
+        data += block;
+        size -= block;
+    }
+}
+
+// Computes the FNV-1a hash and the PNG Adler32 checksum in the same pass over
+// the pixels. This replaces two separate 84 MB scans when a design is saved.
+static inline __attribute__((always_inline)) uint64_t
+tkbc_fnv1a_and_adler_update(uint64_t hash, Tkbc_Png_Adler_State *adler, const unsigned char *data, size_t size) {
+    const uint64_t prime = 1099511628211ULL;
+    while (size > 0) {
+        size_t block = 4096 - adler->count;
+        if (block > size) block = size;
+        size_t i = 0;
+        for (; i + 8 <= block; i += 8) {
+            uint64_t a = adler->a;
+            uint64_t b = adler->b;
+            hash = (hash ^ data[i + 0]) * prime; a += data[i + 0]; b += a;
+            hash = (hash ^ data[i + 1]) * prime; a += data[i + 1]; b += a;
+            hash = (hash ^ data[i + 2]) * prime; a += data[i + 2]; b += a;
+            hash = (hash ^ data[i + 3]) * prime; a += data[i + 3]; b += a;
+            hash = (hash ^ data[i + 4]) * prime; a += data[i + 4]; b += a;
+            hash = (hash ^ data[i + 5]) * prime; a += data[i + 5]; b += a;
+            hash = (hash ^ data[i + 6]) * prime; a += data[i + 6]; b += a;
+            hash = (hash ^ data[i + 7]) * prime; a += data[i + 7]; b += a;
+            adler->a = a;
+            adler->b = b;
+        }
+        for (; i < block; ++i) {
+            hash = (hash ^ data[i]) * prime;
+            adler->a += data[i];
+            adler->b += adler->a;
+        }
+        adler->count += block;
+        if (adler->count == 4096) {
+            adler->a %= 65521u;
+            adler->b %= 65521u;
+            adler->count = 0;
+        }
+        data += block;
+        size -= block;
+    }
+    return hash;
+}
+
+static uint32_t tkbc_png_adler32(const unsigned char *data, size_t size) {
+    // Accumulate in blocks without per-byte branches/modulos, then reduce.
+    // A 64-bit accumulator keeps a and b from overflowing even for 4096
+    // unreduced bytes; unrolling removes most of the loop overhead at -O0.
+    uint64_t a = 1;
+    uint64_t b = 0;
+    while (size > 0) {
+        const size_t block = size < 4096 ? size : 4096;
+        size -= block;
+        size_t i = 0;
+        for (; i + 8 <= block; i += 8) {
+            a += data[i + 0]; b += a;
+            a += data[i + 1]; b += a;
+            a += data[i + 2]; b += a;
+            a += data[i + 3]; b += a;
+            a += data[i + 4]; b += a;
+            a += data[i + 5]; b += a;
+            a += data[i + 6]; b += a;
+            a += data[i + 7]; b += a;
+        }
+        for (; i < block; ++i) {
+            a += data[i];
+            b += a;
+        }
+        a %= 65521u;
+        b %= 65521u;
+        data += block;
+    }
+    return (uint32_t) ((b << 16) | a);
+}
+
+static uint32_t tkbc_png_crc32(const unsigned char *data, size_t size) {
+    static uint32_t table[256];
+    static bool initialized = false;
+    if (!initialized) {
+        for (uint32_t i = 0; i < 256; ++i) {
+            uint32_t value = i;
+            for (int bit = 0; bit < 8; ++bit) {
+                value = (value & 1u) ? (0xedb88320u ^ (value >> 1)) : (value >> 1);
+            }
+            table[i] = value;
+        }
+        initialized = true;
+    }
+
+    uint32_t crc = 0xffffffffu;
+    for (size_t i = 0; i < size; ++i) {
+        crc = table[(crc ^ data[i]) & 0xffu] ^ (crc >> 8);
+    }
+    return crc ^ 0xffffffffu;
+}
+
+static void tkbc_png_write_u32(unsigned char *data, uint32_t value) {
+    data[0] = (unsigned char) (value >> 24);
+    data[1] = (unsigned char) (value >> 16);
+    data[2] = (unsigned char) (value >> 8);
+    data[3] = (unsigned char) value;
+}
+
+unsigned char *tkbc_export_image_png_fast_with_hash(Image image, int *data_size, uint64_t *content_hash) {
+    *data_size = 0;
+    if (image.data == NULL || image.width <= 0 || image.height <= 0) {
+        return NULL;
+    }
+    if (image.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+        unsigned char *png = ExportImageToMemory(image, ".png", data_size);
+        if (content_hash != NULL) {
+            *content_hash = tkbc_image_content_hash(image);
+        }
+        return png;
+    }
+
+    const size_t row_size = (size_t) image.width * 4;
+    const size_t filtered_size = (row_size + 1) * (size_t) image.height;
+    unsigned char *filtered = (unsigned char *) MemAlloc((unsigned int) filtered_size);
+    if (filtered == NULL) {
+        return NULL;
+    }
+
+    const unsigned char *pixels = (const unsigned char *) image.data;
+    uint64_t hash = TKBC_FNV1A_OFFSET;
+    Tkbc_Png_Adler_State adler = {.a = 1, .b = 0, .count = 0};
+    static const unsigned char filter_none = 0;
+    for (int y = 0; y < image.height; ++y) {
+        unsigned char *row = filtered + (size_t) y * (row_size + 1);
+        row[0] = 0;  // PNG filter type: None
+        const unsigned char *src = pixels + (size_t) y * row_size;
+        memcpy(row + 1, src, row_size);
+        if (content_hash != NULL) {
+            // Adler32 covers the filtered bytes, including the per-row filter
+            // byte. Fuse it with the content hash so neither needs a separate
+            // 84 MB pass when a design is saved.
+            tkbc_png_adler_state_update(&adler, &filter_none, 1);
+            // Hash the same pixels that were copied, in the same order as
+            // tkbc_image_content_hash(), so the value matches stored designs.
+            hash = tkbc_fnv1a_and_adler_update(hash, &adler, src, row_size);
+        }
+    }
+    if (content_hash != NULL) {
+        *content_hash = hash;
+    }
+    // The fused path already accumulated Adler32; the plain path computes it
+    // from the filtered buffer afterwards (faster when no hash is needed).
+    uint32_t adler32;
+    if (content_hash != NULL) {
+        adler.a %= 65521u;
+        adler.b %= 65521u;
+        adler32 = (uint32_t) ((adler.b << 16) | adler.a);
+    } else {
+        adler32 = tkbc_png_adler32(filtered, filtered_size);
+    }
+
+    Tkbc_Png_Bits writer = {0};
+    // zlib header: 32K window, fastest algorithm (compression is done below).
+    tkbc_png_bits_put(&writer, 0x78, 8);
+    tkbc_png_bits_put(&writer, 0x01, 8);
+    tkbc_png_bits_put(&writer, 1, 1);  // BFINAL
+    tkbc_png_bits_put(&writer, 1, 2);  // BTYPE = fixed Huffman
+
+    static const unsigned short length_base[] = {
+        3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51,
+        59, 67, 83, 99, 115, 131, 163, 195, 227, 258,
+    };
+    static const unsigned char length_extra[] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3,
+        3, 4, 4, 4, 4, 5, 5, 5, 5, 0,
+    };
+    static const unsigned short distance_base[] = {
+        1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385,
+        513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
+    };
+    static const unsigned char distance_extra[] = {
+        0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
+        7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13,
+    };
+
+    // A short predecessor chain per 3-byte hash keeps the matcher linear in
+    // the image size. A longer chain only saves a few percent of compressed
+    // size here.
+    static int hash_head[1 << 16];
+    static int hash_prev[1 << 15];
+    for (size_t i = 0; i < sizeof(hash_head) / sizeof(hash_head[0]); ++i) hash_head[i] = -1;
+    for (size_t i = 0; i < sizeof(hash_prev) / sizeof(hash_prev[0]); ++i) hash_prev[i] = -1;
+
+    for (size_t i = 0; i < filtered_size && !writer.failed;) {
+        const unsigned hash = tkbc_png_hash(filtered + i, filtered_size - i);
+        int candidate = hash_head[hash];
+        int best_length = 0;
+        int best_distance = 0;
+        const size_t max_length = filtered_size - i < 258 ? filtered_size - i : 258;
+
+        for (int chain = 0; chain < 2 && candidate >= 0 && candidate < (int) i &&
+                            (int) i - candidate <= 32768;
+             ++chain) {
+            const size_t pos = (size_t) candidate;
+            const size_t length = tkbc_png_match_length(filtered + pos, filtered + i, max_length);
+            if ((int) length > best_length) {
+                best_length = (int) length;
+                best_distance = (int) (i - pos);
+            }
+            const int next = hash_prev[pos & 32767u];
+            if (next < 0 || next >= (int) pos) {
+                break;
+            }
+            candidate = next;
+        }
+
+        hash_prev[i & 32767u] = hash_head[hash];
+        hash_head[hash] = (int) i;
+
+        if (best_length >= 3) {
+            int length_code = 0;
+            while (length_code < 28 && length_base[length_code + 1] - 1 < best_length) {
+                ++length_code;
+            }
+            tkbc_png_huffman(&writer, 257 + length_code);
+            if (length_extra[length_code] != 0) {
+                tkbc_png_bits_put(&writer, (unsigned) (best_length - length_base[length_code]),
+                                  length_extra[length_code]);
+            }
+
+            int distance_code = 0;
+            while (distance_code < 29 && distance_base[distance_code + 1] - 1 < best_distance) {
+                ++distance_code;
+            }
+            tkbc_png_bits_put(&writer, tkbc_png_reverse_bits((unsigned) distance_code, 5), 5);
+            if (distance_extra[distance_code] != 0) {
+                tkbc_png_bits_put(&writer, (unsigned) (best_distance - distance_base[distance_code]),
+                                  distance_extra[distance_code]);
+            }
+
+            i += (size_t) best_length;
+        } else {
+            tkbc_png_huffman(&writer, filtered[i]);
+            ++i;
+        }
+    }
+
+    // End of the single deflate block, then pad to a byte boundary.
+    tkbc_png_huffman(&writer, 256);
+    if (!writer.failed && writer.bit_count > 0) {
+        tkbc_png_bits_put(&writer, 0, 8 - writer.bit_count);
+    }
+    if (!writer.failed) {
+        tkbc_png_bits_reserve(&writer, 4);
+        if (!writer.failed) {
+            writer.data[writer.size++] = (unsigned char) (adler32 >> 24);
+            writer.data[writer.size++] = (unsigned char) (adler32 >> 16);
+            writer.data[writer.size++] = (unsigned char) (adler32 >> 8);
+            writer.data[writer.size++] = (unsigned char) adler32;
+        }
+    }
+    MemFree(filtered);
+
+    if (writer.failed) {
+        MemFree(writer.data);
+        return NULL;
+    }
+
+    const size_t png_size = 8 + (12 + 13) + (12 + writer.size) + 12;
+    unsigned char *png = (unsigned char *) MemAlloc((unsigned int) png_size);
+    if (png == NULL) {
+        MemFree(writer.data);
+        return NULL;
+    }
+
+    static const unsigned char signature[] = {137, 80, 78, 71, 13, 10, 26, 10};
+    size_t offset = 0;
+    memcpy(png + offset, signature, sizeof(signature));
+    offset += sizeof(signature);
+
+    tkbc_png_write_u32(png + offset, 13);
+    offset += 4;
+    memcpy(png + offset, "IHDR", 4);
+    offset += 4;
+    tkbc_png_write_u32(png + offset, (uint32_t) image.width);
+    offset += 4;
+    tkbc_png_write_u32(png + offset, (uint32_t) image.height);
+    offset += 4;
+    png[offset++] = 8;  // bit depth
+    png[offset++] = 6;  // RGBA
+    png[offset++] = 0;  // compression
+    png[offset++] = 0;  // filtering
+    png[offset++] = 0;  // no interlace
+    const unsigned char *ihdr_chunk = png + offset - 17;  // "IHDR" + 13 data bytes
+    tkbc_png_write_u32(png + offset, tkbc_png_crc32(ihdr_chunk, 17));
+    offset += 4;
+
+    const size_t idat_type = offset;
+    tkbc_png_write_u32(png + offset, (uint32_t) writer.size);
+    offset += 4;
+    memcpy(png + offset, "IDAT", 4);
+    offset += 4;
+    memcpy(png + offset, writer.data, writer.size);
+    offset += writer.size;
+    tkbc_png_write_u32(png + offset, tkbc_png_crc32(png + idat_type + 4, 4 + writer.size));
+    offset += 4;
+
+    const size_t iend_type = offset;
+    tkbc_png_write_u32(png + offset, 0);
+    offset += 4;
+    memcpy(png + offset, "IEND", 4);
+    offset += 4;
+    tkbc_png_write_u32(png + offset, tkbc_png_crc32(png + iend_type + 4, 4));
+    offset += 4;
+
+    MemFree(writer.data);
+    assert(offset == png_size);
+    *data_size = (int) png_size;
+    return png;
+}
+
+unsigned char *tkbc_export_image_png_fast(Image image, int *data_size) {
+    return tkbc_export_image_png_fast_with_hash(image, data_size, NULL);
 }
 
 /**

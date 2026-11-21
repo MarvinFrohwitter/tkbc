@@ -33,7 +33,9 @@ void tkbc_set_texture_for_selected_kites(Env *env, UUID texture_id, bool is_text
 void tkbc_set_colorizer_texture_insted_of_texture_id(Kite_States *kite_array, UUID texture_id, bool is_dual_line);
 
 Rectangle tkbc_draw_shadow(Rectangle shadow, bool is_dual_line);
-void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image);
+void tkbc_update_kite_texture(Kite_Texture *kite_texture, Kite_Image kite_image);
+void tkbc_update_kite_texture_region(Kite_Texture *kite_texture, Kite_Image kite_image, int x0, int y0, int x1,
+                                     int y1);
 void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old, Color replace);
 
 void tkbc_draw_pannels(Env *env, bool is_dual_line, Rectangle *view_background, float *view_scale, Rectangle color_box);

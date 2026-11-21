@@ -11,6 +11,14 @@
 extern Assets assets;
 
 static Image tkbc_copy_compressed_image(const unsigned char *data, int data_size, int width, int height);
+#ifndef TKBC_SERVER
+static Image tkbc_load_compressed_asset_image(const unsigned char *data, int data_size, const char *file_type);
+#endif
+static UUID tkbc_append_owned_kite_image(unsigned char *data, int width, int height, int format, UUID id,
+                                         bool is_dual_line);
+#ifndef TKBC_SERVER
+static UUID tkbc_append_colorizer_from_baked_png(const unsigned char *data, int data_size, bool is_dual_line);
+#endif
 
 #include "../../assets/Kite_111/Kites/111_Base_White.h"
 
@@ -116,30 +124,25 @@ static inline UUID tkbc_generate_uuid_for_asset(void) {
 }
 
 /**
- * @brief The function appends a new kite image under the given uuid to the
- * global kite_images collection. The image data is copied and stored.
+ * @brief Appends a raw kite image and takes ownership of its pixel buffer.
  *
- * @param data The raw image data.
- * @param width The width of the image.
- * @param height The height of the image.
- * @param format The pixel format of the image.
- * @param id The uuid the kite image is stored under.
- * @return The uuid of the newly appended kite image.
+ * The buffer must have been allocated with raylib's MemAlloc (as returned by
+ * LoadImageFromMemory/ImageCopy), because it is eventually released with
+ * UnloadImage(). This avoids an otherwise redundant full-size ImageCopy.
  */
-UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, int format, UUID id,
-                                    bool is_dual_line) {
-    Image image_normal = {
-        .data = data,
-        .width = width,
-        .height = height,
-        .mipmaps = 1,
-        .format = format,
-    };
-
-    image_normal = ImageCopy(image_normal);
+static UUID tkbc_append_owned_kite_image(unsigned char *data, int width, int height, int format, UUID id,
+                                         bool is_dual_line) {
     Kite_Image kite_image = (Kite_Image){
-        .normal = image_normal,
+        .normal =
+            {
+                .data = data,
+                .width = width,
+                .height = height,
+                .mipmaps = 1,
+                .format = format,
+            },
         .compressed_size = 0,
+        .content_hash = 0,
     };
 
     space_dap(&assets.space, &assets,
@@ -153,22 +156,69 @@ UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, 
     return id;
 }
 
+#ifndef TKBC_SERVER
+/**
+ * @brief Decodes one of the baked in kite PNGs directly into the colorizer
+ * buffer. Only the two colorizers keep raw pixels; all other designs stay
+ * compressed.
+ */
+static UUID tkbc_append_colorizer_from_baked_png(const unsigned char *data, int data_size, bool is_dual_line) {
+    Image image = tkbc_load_compressed_asset_image(data, data_size, ".png");
+    if (!IsImageValid(image)) {
+        return tkbc_uuid_nil();
+    }
+    if (image.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+        ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+    }
+    return tkbc_append_owned_kite_image(image.data, image.width, image.height, image.format,
+                                        tkbc_generate_uuid_for_asset(), is_dual_line);
+}
+#endif  // !TKBC_SERVER
+
+/**
+ * @brief The function appends a new kite image under the given uuid to the
+ * global kite_images collection. The image data is copied and stored.
+ *
+ * Callers that already own a raylib-allocated pixel buffer should use the
+ * internal tkbc_append_owned_kite_image() instead to avoid a full-size copy.
+ *
+ * @param data The raw image data.
+ * @param width The width of the image.
+ * @param height The height of the image.
+ * @param format The pixel format of the image.
+ * @param id The uuid the kite image is stored under.
+ * @return The uuid of the newly appended kite image.
+ */
+UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, int format, UUID id,
+                                    bool is_dual_line) {
+    Image copy = ImageCopy((Image){
+        .data = data,
+        .width = width,
+        .height = height,
+        .mipmaps = 1,
+        .format = format,
+    });
+    return tkbc_append_owned_kite_image(copy.data, copy.width, copy.height, copy.format, id, is_dual_line);
+}
+
 /**
  * @brief Appends a kite image whose data is still a PNG file.
  *
- * This is the server-side representation of transferred kite designs. The
- * server only needs the width, height and the compressed bytes to forward the
- * design to clients, so decoding it to raw RGBA would waste memory.
+ * This is the canonical representation of every non-editable kite design.
+ * The PNG bytes are kept for network transfer; pixels are only decoded
+ * temporarily when a GPU texture is created. That way one saved design costs
+ * a few hundred kilobytes instead of ~84 MB of raw RGBA per client.
  *
  * @param data The PNG file bytes.
  * @param data_size The size of the PNG file in bytes.
  * @param width The image width.
  * @param height The image height.
+ * @param content_hash Hash of the decoded RGBA pixels, or 0 if unknown.
  * @param id The uuid the image is stored under.
  * @return The uuid of the appended kite image.
  */
-UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int data_size, int width, int height, UUID id,
-                                               bool is_dual_line) {
+UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int data_size, int width, int height,
+                                               uint64_t content_hash, UUID id, bool is_dual_line) {
     if (tkbc_uuid_is_nil(id)) {
         id = tkbc_uuid_generate();
     }
@@ -176,6 +226,7 @@ UUID tkbc_append_compressed_kite_image_with_id(const unsigned char *data, int da
     Kite_Image kite_image = (Kite_Image){
         .normal = tkbc_copy_compressed_image(data, data_size, width, height),
         .compressed_size = data_size,
+        .content_hash = content_hash,
     };
 
     space_dap(&assets.space, &assets,
@@ -206,9 +257,10 @@ UUID tkbc_append_kite_image(unsigned char *data, int width, int height, int form
 
 /**
  * @brief The function appends a new asset image to the global assets
- * collection. The image data is copied and stored.
+ * collection. Ownership of the decoded pixel buffer is transferred to the
+ * asset, so no extra full-size copy is made.
  *
- * @param data The raw image data.
+ * @param data The raw image data (raylib allocated).
  * @param width The width of the image.
  * @param height The height of the image.
  * @param format The pixel format of the image.
@@ -223,8 +275,6 @@ UUID tkbc_append_asset_image(unsigned char *data, int width, int height, int for
         .format = format,
     };
 
-    image = ImageCopy(image);
-
     UUID id = tkbc_generate_uuid_for_asset();
     space_dap(&assets.space, &assets,
               ((Asset){
@@ -236,7 +286,6 @@ UUID tkbc_append_asset_image(unsigned char *data, int width, int height, int for
     return id;
 }
 
-#ifdef TKBC_SERVER
 /**
  * @brief Reads the width and height from a PNG file header.
  *
@@ -262,7 +311,6 @@ static bool tkbc_png_dimensions(const unsigned char *data, int data_size, int *w
                      (uint32_t) data[23]);
     return *width > 0 && *height > 0;
 }
-#endif  // TKBC_SERVER
 
 /**
  * @brief Copies PNG file bytes into an Image that keeps them compressed.
@@ -288,6 +336,287 @@ static Image tkbc_copy_compressed_image(const unsigned char *data, int data_size
         .mipmaps = 1,
         .format = TKBC_IMAGE_FORMAT_COMPRESSED_PNG,
     };
+}
+
+static uint32_t tkbc_mask_read_u32_le(const unsigned char *data) {
+    return (uint32_t) data[0] | ((uint32_t) data[1] << 8) | ((uint32_t) data[2] << 16) | ((uint32_t) data[3] << 24);
+}
+
+/**
+ * @brief Registers a baked in RLE alpha mask as ASSETS_PANEL_MASK.
+ *
+ * The compressed bytes live in the generated header (static read-only memory),
+ * while the unpacked bit/alpha buffer is only allocated on first use.
+ */
+UUID tkbc_append_panel_mask(const unsigned char *data, int data_size) {
+    if (data == NULL || data_size < TKBC_MASK_HEADER_SIZE || memcmp(data, "TMSK", 4) != 0 || data[4] != 1 ||
+        (data[5] != TKBC_MASK_KIND_BINARY && data[5] != TKBC_MASK_KIND_ALPHA8)) {
+        tkbc_fprintf(stderr, "ERROR", "Invalid baked in panel mask.\n");
+        return tkbc_uuid_nil();
+    }
+
+    Panel_Mask mask = {
+        .compressed = data,
+        .compressed_size = data_size,
+        .width = (int) tkbc_mask_read_u32_le(data + 6),
+        .height = (int) tkbc_mask_read_u32_le(data + 10),
+        .kind = data[5],
+        .x0 = (int) tkbc_mask_read_u32_le(data + 14),
+        .y0 = (int) tkbc_mask_read_u32_le(data + 18),
+        .x1 = (int) tkbc_mask_read_u32_le(data + 22),
+        .y1 = (int) tkbc_mask_read_u32_le(data + 26),
+    };
+    if (mask.width <= 0 || mask.height <= 0) {
+        return tkbc_uuid_nil();
+    }
+
+    UUID id = tkbc_generate_uuid_for_asset();
+    space_dap(&assets.space, &assets, ((Asset){
+                                          .type = ASSETS_PANEL_MASK,
+                                          .as.panel_mask = mask,
+                                          .id = id,
+                                      }));
+    return id;
+}
+
+/** @brief Tests one bit of an already unpacked binary mask. */
+static inline bool tkbc_panel_mask_bit_set(const Panel_Mask *mask, int x, int y) {
+    const size_t index = (size_t) y * (size_t) mask->width + (size_t) x;
+    return (mask->bits[index >> 3] & (1u << (index & 7))) != 0;
+}
+
+/**
+ * @brief Builds a run list for a binary mask so painting can skip transparent
+ * pixels without visiting them at all.
+ */
+static void tkbc_panel_mask_build_runs(Panel_Mask *mask) {
+    if (mask->kind != TKBC_MASK_KIND_BINARY || mask->x1 < mask->x0 || mask->y1 < mask->y0) {
+        return;
+    }
+
+    size_t count = 0;
+    for (int y = mask->y0; y <= mask->y1; ++y) {
+        bool in_run = false;
+        for (int x = mask->x0; x <= mask->x1; ++x) {
+            if (tkbc_panel_mask_bit_set(mask, x, y)) {
+                if (!in_run) {
+                    ++count;
+                    in_run = true;
+                }
+            } else {
+                in_run = false;
+            }
+        }
+    }
+    if (count == 0) {
+        return;
+    }
+
+    mask->runs = (uint32_t *) MemAlloc(count * 3 * sizeof(uint32_t));
+    assert(mask->runs != NULL && "Out of memory while building panel mask runs");
+    if (mask->runs == NULL) {
+        return;
+    }
+    mask->run_count = count;
+
+    size_t r = 0;
+    for (int y = mask->y0; y <= mask->y1; ++y) {
+        int run_x0 = -1;
+        for (int x = mask->x0; x <= mask->x1; ++x) {
+            if (tkbc_panel_mask_bit_set(mask, x, y)) {
+                if (run_x0 < 0) {
+                    run_x0 = x;
+                }
+            } else if (run_x0 >= 0) {
+                mask->runs[r * 3 + 0] = (uint32_t) y;
+                mask->runs[r * 3 + 1] = (uint32_t) run_x0;
+                mask->runs[r * 3 + 2] = (uint32_t) (x - 1);
+                ++r;
+                run_x0 = -1;
+            }
+        }
+        if (run_x0 >= 0) {
+            mask->runs[r * 3 + 0] = (uint32_t) y;
+            mask->runs[r * 3 + 1] = (uint32_t) run_x0;
+            mask->runs[r * 3 + 2] = (uint32_t) mask->x1;
+            ++r;
+        }
+    }
+    assert(r == count && "Panel mask run count mismatch");
+}
+
+/** @brief Expands the RLE stream into a directly indexable mask. */
+void tkbc_panel_mask_unpack(Panel_Mask *mask) {
+    if (mask == NULL || mask->bits != NULL) {
+        return;
+    }
+
+    const size_t pixel_count = (size_t) mask->width * (size_t) mask->height;
+    size_t output_size = mask->kind == TKBC_MASK_KIND_BINARY ? (pixel_count + 7) / 8 : pixel_count;
+    mask->bits = (unsigned char *) MemAlloc(output_size);
+    assert(mask->bits != NULL && "Out of memory while unpacking a panel mask");
+    if (mask->bits == NULL) {
+        return;
+    }
+    memset(mask->bits, 0, output_size);
+    mask->bits_size = output_size;
+
+    size_t pos = TKBC_MASK_HEADER_SIZE;
+    size_t output = 0;
+    while (pos < (size_t) mask->compressed_size && output < pixel_count) {
+        uint64_t run = 0;
+        unsigned int shift = 0;
+        unsigned char byte = 0;
+        do {
+            byte = mask->compressed[pos++];
+            run |= (uint64_t) (byte & 0x7f) << shift;
+            shift += 7;
+        } while ((byte & 0x80) != 0 && pos < (size_t) mask->compressed_size);
+
+        if (pos >= (size_t) mask->compressed_size) {
+            break;
+        }
+        const unsigned char value = mask->compressed[pos++];
+        const size_t count = run > pixel_count - output ? pixel_count - output : (size_t) run;
+
+        if (mask->kind == TKBC_MASK_KIND_BINARY) {
+            if (value != 0) {
+                for (size_t i = 0; i < count; ++i) {
+                    const size_t bit = output + i;
+                    mask->bits[bit / 8] |= (unsigned char) (1u << (bit % 8));
+                }
+            }
+        } else {
+            memset(mask->bits + output, value, count);
+        }
+        output += count;
+    }
+    assert(output == pixel_count && "Panel mask RLE stream is incomplete");
+    tkbc_panel_mask_build_runs(mask);
+}
+
+/** @brief Returns the alpha value (0..255) of one mask pixel. */
+unsigned char tkbc_panel_mask_alpha_at(Panel_Mask *mask, int x, int y) {
+    assert(mask != NULL);
+    // Hit-testing can be the first access to a mask, so make sure it is ready.
+    tkbc_panel_mask_unpack(mask);
+    assert(mask->bits != NULL);
+    assert(x >= 0 && y >= 0 && x < mask->width && y < mask->height);
+    if (x < 0 || y < 0 || x >= mask->width || y >= mask->height) {
+        return 0;
+    }
+
+    const size_t index = (size_t) y * (size_t) mask->width + (size_t) x;
+    if (mask->kind == TKBC_MASK_KIND_BINARY) {
+        return (mask->bits[index / 8] & (1u << (index % 8))) != 0 ? 255 : 0;
+    }
+    return mask->bits[index];
+}
+
+/**
+ * @brief Paints one horizontal opaque span and expands the dirty rectangle.
+ *
+ * @p changed is shared across all spans of a mask. The first written pixel of
+ * the whole mask initializes the rectangle; every later span only expands it.
+ * Using a per-span flag would overwrite the rectangle with the last span and
+ * leave the rest of the painted panel invisible on the GPU.
+ */
+static void tkbc_panel_mask_paint_span(const Panel_Mask *mask, unsigned char *dst, Color replace, char alpha_threshold,
+                                       bool overwrite, int y, int x0, int x1, bool *changed, int *dx0, int *dy0,
+                                       int *dx1, int *dy1) {
+    const size_t row = (size_t) y * (size_t) mask->width;
+    for (int x = x0; x <= x1; ++x) {
+        unsigned char *out = dst + (row + (size_t) x) * 4;
+        if (!overwrite && out[3] > alpha_threshold) {
+            continue;
+        }
+        out[0] = replace.r;
+        out[1] = replace.g;
+        out[2] = replace.b;
+        out[3] = replace.a;
+
+        if (!*changed) {
+            *dx0 = *dx1 = x;
+            *dy0 = *dy1 = y;
+            *changed = true;
+        } else {
+            if (x < *dx0) *dx0 = x;
+            if (x > *dx1) *dx1 = x;
+            if (y < *dy0) *dy0 = y;
+            if (y > *dy1) *dy1 = y;
+        }
+    }
+}
+
+/**
+ * @brief Paints every opaque mask pixel into the RGBA buffer of the colorizer.
+ *
+ * This is the hot path of the colorizer. The opaque bounds come from the
+ * generated header, the mask is unpacked only once, and binary masks are
+ * painted through a precomputed run list so transparent areas are skipped
+ * entirely. When @p overwrite is false, pixels that are already filled in the
+ * destination are left alone.
+ *
+ * @return True if at least one pixel was written. The touched pixels are
+ *         reported through the dirty rectangle pointers.
+ */
+bool tkbc_panel_mask_paint(Panel_Mask *mask, unsigned char *dst, Color replace, char alpha_threshold, bool overwrite,
+                           int *dx0, int *dy0, int *dx1, int *dy1) {
+    assert(mask != NULL && dst != NULL);
+    if (mask->x1 < mask->x0 || mask->y1 < mask->y0) {
+        return false;
+    }
+
+    tkbc_panel_mask_unpack(mask);
+    assert(mask->bits != NULL);
+
+    const unsigned char *bits = mask->bits;
+    const int stride = mask->width;
+    const bool binary = mask->kind == TKBC_MASK_KIND_BINARY;
+    bool changed = false;
+
+    if (binary && mask->runs != NULL) {
+        for (size_t r = 0; r < mask->run_count; ++r) {
+            const int y = (int) mask->runs[r * 3 + 0];
+            const int x0 = (int) mask->runs[r * 3 + 1];
+            const int x1 = (int) mask->runs[r * 3 + 2];
+            tkbc_panel_mask_paint_span(mask, dst, replace, alpha_threshold, overwrite, y, x0, x1, &changed, dx0, dy0,
+                                       dx1, dy1);
+        }
+        return changed;
+    }
+
+    // Alpha8 masks (anti-aliased edges) need the exact alpha value per pixel.
+    for (int y = mask->y0; y <= mask->y1; ++y) {
+        const size_t row = (size_t) y * (size_t) stride;
+        for (int x = mask->x0; x <= mask->x1; ++x) {
+            const size_t index = row + (size_t) x;
+            if (bits[index] <= alpha_threshold) {
+                continue;
+            }
+
+            unsigned char *out = dst + index * 4;
+            if (!overwrite && out[3] > alpha_threshold) {
+                continue;
+            }
+            out[0] = replace.r;
+            out[1] = replace.g;
+            out[2] = replace.b;
+            out[3] = replace.a;
+
+            if (!changed) {
+                *dx0 = *dx1 = x;
+                *dy0 = *dy1 = y;
+                changed = true;
+            } else {
+                if (x < *dx0) *dx0 = x;
+                if (x > *dx1) *dx1 = x;
+                if (y < *dy0) *dy0 = y;
+                if (y > *dy1) *dy1 = y;
+            }
+        }
+    }
+    return changed;
 }
 
 #ifndef TKBC_SERVER
@@ -344,9 +673,9 @@ static UUID tkbc_append_compressed_asset_image(const unsigned char *data, int da
         return tkbc_uuid_nil();
     }
 
-    UUID id = tkbc_append_asset_image(image.data, image.width, image.height, image.format);
-    UnloadImage(image);
-    return id;
+    // tkbc_append_asset_image() takes ownership of the decoded buffer, so no
+    // UnloadImage() here and no redundant ImageCopy() inside the append.
+    return tkbc_append_asset_image(image.data, image.width, image.height, image.format);
 #endif
 }
 
@@ -360,29 +689,20 @@ static UUID tkbc_append_compressed_asset_image(const unsigned char *data, int da
  */
 static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int data_size, const char *file_type,
                                               bool is_dual_line) {
-#ifdef TKBC_SERVER
     (void) file_type;
     int width = 0;
     int height = 0;
     if (!tkbc_png_dimensions(data, data_size, &width, &height)) {
         return tkbc_uuid_nil();
     }
-    return tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, tkbc_generate_uuid_for_asset(),
-                                                     is_dual_line);
-#else
-    Image image = tkbc_load_compressed_asset_image(data, data_size, file_type);
-    if (!IsImageValid(image)) {
-        return tkbc_uuid_nil();
-    }
-
-    UUID id = tkbc_append_kite_image(image.data, image.width, image.height, image.format, is_dual_line);
-    UnloadImage(image);
-    return id;
-#endif
+    return tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, 0,
+                                                     tkbc_generate_uuid_for_asset(), is_dual_line);
 }
 
 #define tkbc_append_baked_asset_image(asset_symbol)                                                                    \
     tkbc_append_compressed_asset_image((asset_symbol), (int) sizeof(asset_symbol), ".png")
+#define tkbc_append_baked_panel_mask(asset_symbol)                                                                     \
+    tkbc_append_panel_mask(asset_mask_##asset_symbol, (int) sizeof(asset_mask_##asset_symbol))
 #define tkbc_append_baked_kite_image(asset_symbol, is_dual_line)                                                       \
     tkbc_append_compressed_kite_image((asset_symbol), (int) sizeof(asset_symbol), ".png", (is_dual_line))
 
@@ -393,67 +713,71 @@ static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int dat
  * Leadingedge, Gaze, etc.
  */
 void tkbc_append_ce_ng_kite_image_pannels() {
-    tkbc_append_baked_asset_image(asset_image_skeleton);
+    tkbc_append_baked_panel_mask(skeleton);
+    // The filled panel is the template for reset/duplicate detection and needs
+    // its RGB values, so it stays a decoded ASSETS_IMAGE.
     tkbc_append_baked_asset_image(asset_image_filled_panel);
-    tkbc_append_baked_asset_image(asset_image_skeleton_leadingedge);
-    tkbc_append_baked_asset_image(asset_image_leadingedge);
-    tkbc_append_baked_asset_image(asset_image_gaze);
+    tkbc_append_baked_panel_mask(skeleton_leadingedge);
+    tkbc_append_baked_panel_mask(leadingedge);
+    tkbc_append_baked_panel_mask(gaze);
 
-    tkbc_append_baked_asset_image(asset_image_left_01_1);
-    tkbc_append_baked_asset_image(asset_image_left_02_1);
-    tkbc_append_baked_asset_image(asset_image_left_03_1);
-    tkbc_append_baked_asset_image(asset_image_left_04_1);
-    tkbc_append_baked_asset_image(asset_image_left_05_1);
-    tkbc_append_baked_asset_image(asset_image_left_06_1);
-    tkbc_append_baked_asset_image(asset_image_left_07_1);
-    tkbc_append_baked_asset_image(asset_image_left_08_1);
-    tkbc_append_baked_asset_image(asset_image_left_09_1);
-    tkbc_append_baked_asset_image(asset_image_left_10_1);
-    tkbc_append_baked_asset_image(asset_image_left_11_1);
-    tkbc_append_baked_asset_image(asset_image_left_12_1);
-    tkbc_append_baked_asset_image(asset_image_left_13_1);
-    tkbc_append_baked_asset_image(asset_image_left_14_1);
-    tkbc_append_baked_asset_image(asset_image_left_15_1);
+    tkbc_append_baked_panel_mask(left_01_1);
+    tkbc_append_baked_panel_mask(left_02_1);
+    tkbc_append_baked_panel_mask(left_03_1);
+    tkbc_append_baked_panel_mask(left_04_1);
+    tkbc_append_baked_panel_mask(left_05_1);
+    tkbc_append_baked_panel_mask(left_06_1);
+    tkbc_append_baked_panel_mask(left_07_1);
+    tkbc_append_baked_panel_mask(left_08_1);
+    tkbc_append_baked_panel_mask(left_09_1);
+    tkbc_append_baked_panel_mask(left_10_1);
+    tkbc_append_baked_panel_mask(left_11_1);
+    tkbc_append_baked_panel_mask(left_12_1);
+    tkbc_append_baked_panel_mask(left_13_1);
+    tkbc_append_baked_panel_mask(left_14_1);
+    tkbc_append_baked_panel_mask(left_15_1);
 
-    tkbc_append_baked_asset_image(asset_image_right_01_2);
-    tkbc_append_baked_asset_image(asset_image_right_02_2);
-    tkbc_append_baked_asset_image(asset_image_right_03_2);
-    tkbc_append_baked_asset_image(asset_image_right_04_2);
-    tkbc_append_baked_asset_image(asset_image_right_05_2);
-    tkbc_append_baked_asset_image(asset_image_right_06_2);
-    tkbc_append_baked_asset_image(asset_image_right_07_2);
-    tkbc_append_baked_asset_image(asset_image_right_08_2);
-    tkbc_append_baked_asset_image(asset_image_right_09_2);
-    tkbc_append_baked_asset_image(asset_image_right_10_2);
-    tkbc_append_baked_asset_image(asset_image_right_11_2);
-    tkbc_append_baked_asset_image(asset_image_right_12_2);
-    tkbc_append_baked_asset_image(asset_image_right_13_2);
-    tkbc_append_baked_asset_image(asset_image_right_14_2);
-    tkbc_append_baked_asset_image(asset_image_right_15_2);
+    tkbc_append_baked_panel_mask(right_01_2);
+    tkbc_append_baked_panel_mask(right_02_2);
+    tkbc_append_baked_panel_mask(right_03_2);
+    tkbc_append_baked_panel_mask(right_04_2);
+    tkbc_append_baked_panel_mask(right_05_2);
+    tkbc_append_baked_panel_mask(right_06_2);
+    tkbc_append_baked_panel_mask(right_07_2);
+    tkbc_append_baked_panel_mask(right_08_2);
+    tkbc_append_baked_panel_mask(right_09_2);
+    tkbc_append_baked_panel_mask(right_10_2);
+    tkbc_append_baked_panel_mask(right_11_2);
+    tkbc_append_baked_panel_mask(right_12_2);
+    tkbc_append_baked_panel_mask(right_13_2);
+    tkbc_append_baked_panel_mask(right_14_2);
+    tkbc_append_baked_panel_mask(right_15_2);
 
-    tkbc_append_baked_asset_image(asset_image_middle_05);
-    tkbc_append_baked_asset_image(asset_image_middle_09);
-    tkbc_append_baked_asset_image(asset_image_middle_12);
+    tkbc_append_baked_panel_mask(middle_05);
+    tkbc_append_baked_panel_mask(middle_09);
+    tkbc_append_baked_panel_mask(middle_12);
 }
 
 void tkbc_append_111_kite_image_pannels() {
 
-    tkbc_append_baked_asset_image(asset_image_111_skeleton);
+    tkbc_append_baked_panel_mask(111_skeleton);
+    // Same as above: the base white panel doubles as the 111 colorizer
+    // template, so it keeps its decoded pixels.
     tkbc_append_baked_asset_image(asset_image_111_base_white);
 
-    tkbc_append_baked_asset_image(asset_image_111_left_01_1);
-    tkbc_append_baked_asset_image(asset_image_111_left_02_1);
-    tkbc_append_baked_asset_image(asset_image_111_left_03_1);
-    tkbc_append_baked_asset_image(asset_image_111_left_04_1);
-    tkbc_append_baked_asset_image(asset_image_111_left_05_1);
-    tkbc_append_baked_asset_image(asset_image_111_left_06_1);
+    tkbc_append_baked_panel_mask(111_left_01_1);
+    tkbc_append_baked_panel_mask(111_left_02_1);
+    tkbc_append_baked_panel_mask(111_left_03_1);
+    tkbc_append_baked_panel_mask(111_left_04_1);
+    tkbc_append_baked_panel_mask(111_left_05_1);
+    tkbc_append_baked_panel_mask(111_left_06_1);
 
-    tkbc_append_baked_asset_image(asset_image_111_right_01_2);
-    tkbc_append_baked_asset_image(asset_image_111_right_02_2);
-    tkbc_append_baked_asset_image(asset_image_111_right_03_2);
-    tkbc_append_baked_asset_image(asset_image_111_right_04_2);
-    tkbc_append_baked_asset_image(asset_image_111_right_05_2);
-    tkbc_append_baked_asset_image(asset_image_111_right_06_2);
+    tkbc_append_baked_panel_mask(111_right_01_2);
+    tkbc_append_baked_panel_mask(111_right_02_2);
+    tkbc_append_baked_panel_mask(111_right_03_2);
+    tkbc_append_baked_panel_mask(111_right_04_2);
+    tkbc_append_baked_panel_mask(111_right_05_2);
+    tkbc_append_baked_panel_mask(111_right_06_2);
 }
 
 /**
@@ -498,14 +822,10 @@ void append_assets(void) {
     tkbc_append_compressed_kite_image(asset_image_111_base_white, (int) sizeof(asset_image_111_base_white), ".png",
                                       true);
 #else
-    Image colorizer_image_ce_ng = _tkbc_get_asset_image(IMAGE_CE_NG_FILLED_PANEL).as.image;
-    tkbc_append_kite_image(colorizer_image_ce_ng.data, colorizer_image_ce_ng.width, colorizer_image_ce_ng.height,
-                           colorizer_image_ce_ng.format, false);
-
-    Image colorizer_image_111 = _tkbc_get_asset_image(IMAGE_111_FILLED_PANEL).as.image;
-    tkbc_append_kite_image(colorizer_image_111.data, colorizer_image_111.width, colorizer_image_111.height,
-                           colorizer_image_111.format, true);
-
+    // Decode straight into the colorizer buffer instead of copying the already
+    // decoded filled panel image once more (that cost another ~96 MB).
+    tkbc_append_colorizer_from_baked_png(asset_image_filled_panel, (int) sizeof(asset_image_filled_panel), false);
+    tkbc_append_colorizer_from_baked_png(asset_image_111_base_white, (int) sizeof(asset_image_111_base_white), true);
 #endif
 
     tkbc_append_baked_kite_image(asset_image_ce_ng_1, false);
@@ -533,8 +853,29 @@ void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id
     }
 
     assert(asset->type == ASSETS_KITE_DESIGN);
+
+    Image image = kite_image.normal;
+    bool temporary_decode = false;
+    if (image.format == TKBC_IMAGE_FORMAT_COMPRESSED_PNG) {
+        // Designs are stored as PNG bytes. Decode only long enough to compute
+        // the content hash and to upload the texture, then release the pixels.
+        image = LoadImageFromMemory(".png", image.data, kite_image.compressed_size);
+        if (!IsImageValid(image)) {
+            tkbc_fprintf(stderr, "ERROR", "Could not decode kite design texture.\n");
+            return;
+        }
+        if (image.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+            ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+        }
+        temporary_decode = true;
+    }
+
+    if (asset->as.kite_image.content_hash == 0) {
+        asset->as.kite_image.content_hash = tkbc_image_content_hash(image);
+    }
+
     asset->as.kite_texture = (Kite_Texture){
-        .normal = LoadTextureFromImage(kite_image.normal),
+        .normal = LoadTextureFromImage(image),
     };
     GenTextureMipmaps(&asset->as.kite_texture.normal);
     // Kite textures are drawn at arbitrary (fractional) positions and scales.
@@ -543,6 +884,10 @@ void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id
     // show up at its bottom. Clamping keeps the edge pixels in place.
     SetTextureWrap(asset->as.kite_texture.normal, TEXTURE_WRAP_CLAMP);
     SetTextureFilter(asset->as.kite_texture.normal, TEXTURE_FILTER_BILINEAR);
+
+    if (temporary_decode) {
+        UnloadImage(image);
+    }
 }
 
 /**
@@ -560,6 +905,12 @@ void tkbc_load_assets(void) {
             if (!IsImageValid(_tkbc_get_asset_image(i).as.image)) {
                 tkbc_fprintf(stderr, "ERROR", "Could not load image asset: %zu.\n", i);
             }
+            continue;
+        }
+
+        // Panel masks have no GPU texture; they are expanded on demand by the
+        // colorizer.
+        if (assets.elements[i].type == ASSETS_PANEL_MASK) {
             continue;
         }
 
@@ -591,6 +942,18 @@ void tkbc_load_assets(void) {
 void tkbc_asset_destroy(Asset *asset) {
     switch (asset->type) {
     case ASSETS_IMAGE: UnloadImage(asset->as.image); break;
+    case ASSETS_PANEL_MASK:
+        // compressed points into a static generated header; only the lazy
+        // unpacked buffer and run list are owned by the asset.
+        if (asset->as.panel_mask.bits != NULL) {
+            MemFree(asset->as.panel_mask.bits);
+            asset->as.panel_mask.bits = NULL;
+        }
+        if (asset->as.panel_mask.runs != NULL) {
+            MemFree(asset->as.panel_mask.runs);
+            asset->as.panel_mask.runs = NULL;
+        }
+        break;
     case ASSETS_KITE_DESIGN: UnloadImage(asset->as.kite_image.normal);
 
 #ifndef TKBC_SERVER
@@ -725,19 +1088,9 @@ UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int da
     }
 
     if (format == TKBC_IMAGE_FORMAT_COMPRESSED_PNG) {
-#ifdef TKBC_SERVER
-        tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, id, is_dual_line);
-#else
-        Image image = LoadImageFromMemory(".png", data, data_size);
-        if (!IsImageValid(image)) {
-            return id;
-        }
-        if (image.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
-            ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-        }
-        tkbc_append_kite_image_with_id(image.data, image.width, image.height, image.format, id, is_dual_line);
-        UnloadImage(image);
-#endif
+        // The wire always carries PNG bytes. Keep them compressed on both
+        // sides; the client decodes only while creating the GPU texture.
+        tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, 0, id, is_dual_line);
     } else {
         (void) data_size;
         tkbc_append_kite_image_with_id(data, width, height, format, id, is_dual_line);
@@ -766,24 +1119,46 @@ UUID tkbc_append_kite_image_and_kite_texture_with_id(unsigned char *data, int da
  * false.
  */
 bool tkbc_image_already_exitst_in_assets(Image image, UUID *id) {
+    return tkbc_image_already_exitst_in_assets_with_hash(image, tkbc_image_content_hash(image), id);
+}
+
+bool tkbc_image_already_exitst_in_assets_with_hash(Image image, uint64_t hash, UUID *id) {
+    if (hash == 0) {
+        return false;
+    }
+
     for (size_t i = KITE_DEFAULT_DESIGNS_BEGIN; i < assets.count; ++i) {
         Asset *asset = &assets.elements[i];
-        switch (asset->type) {
-        case ASSETS_IMAGE: {
-            if (tkbc_is_same_image(image, assets.elements[i].as.image)) {
-                *id = assets.elements[i].id;
-                return true;
-            }
-        } break;
-        case ASSETS_KITE_DESIGN: {
-            if (tkbc_is_same_image(image, assets.elements[i].as.kite_image.normal)) {
-                *id = assets.elements[i].id;
-                return true;
-            }
+        if (asset->type != ASSETS_KITE_DESIGN) {
+            continue;
+        }
+        if (asset->as.kite_image.normal.width != image.width ||
+            asset->as.kite_image.normal.height != image.height) {
+            continue;
+        }
 
-        } break;
-        case ASSETS_KIND_COUNT:
-        default: assert(false && "UNREACHABLE tkbc_image_already_exitst_in_assets()"); return false;
+        // The hash is filled when the texture is created. Compute it lazily if
+        // that has not happened yet (e.g. for a design that was never drawn).
+        if (asset->as.kite_image.content_hash == 0) {
+            Kite_Image *design = &asset->as.kite_image;
+            if (design->normal.format == TKBC_IMAGE_FORMAT_COMPRESSED_PNG) {
+                Image decoded = LoadImageFromMemory(".png", design->normal.data, design->compressed_size);
+                if (!IsImageValid(decoded)) {
+                    continue;
+                }
+                if (decoded.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+                    ImageFormat(&decoded, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+                }
+                design->content_hash = tkbc_image_content_hash(decoded);
+                UnloadImage(decoded);
+            } else {
+                design->content_hash = tkbc_image_content_hash(design->normal);
+            }
+        }
+
+        if (asset->as.kite_image.content_hash == hash) {
+            *id = asset->id;
+            return true;
         }
     }
     return false;

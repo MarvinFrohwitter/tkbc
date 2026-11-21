@@ -90,11 +90,16 @@ static bool tkbc_skip_colorizer_panel(bool is_dual_line, size_t panel, bool is_s
 static void tkbc_reset_colorizer(bool is_dual_line) {
     Asset *colorizer = tkbc_get_colorizer_asset(is_dual_line);
     Image filled = _tkbc_get_asset_image(tkbc_colorizer_filled_panel_id(is_dual_line)).as.image;
+    Image dst = colorizer->as.kite_image.normal;
 
-    if (!tkbc_is_same_image(colorizer->as.kite_image.normal, filled)) {
-        UnloadImage(colorizer->as.kite_image.normal);
-        colorizer->as.kite_image.normal = ImageCopy(filled);
-        tkbc_update_kite_texture(colorizer->as.kite_texture, colorizer->as.kite_image);
+    if (!tkbc_is_same_image(dst, filled)) {
+        assert(dst.width == filled.width && dst.height == filled.height);
+        assert(dst.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+        assert(filled.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+        // The buffers never change size; reusing the existing one avoids a
+        // full-size UnloadImage()/ImageCopy() pair on every reset.
+        memcpy(dst.data, filled.data, (size_t) dst.width * (size_t) dst.height * 4);
+        tkbc_update_kite_texture(&colorizer->as.kite_texture, colorizer->as.kite_image);
     }
 }
 
@@ -252,17 +257,89 @@ void tkbc_draw_ui(Env *env) {
  * @param kite_texture The texture to update.
  * @param kite_image The image data to upload to the texture.
  */
-void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image) {
+void tkbc_update_kite_texture(Kite_Texture *kite_texture, Kite_Image kite_image) {
     // UpdateTexture() only replaces mip level 0. Kite textures are drawn at
     // arbitrary scales; when they are minified (the colorizer preview draws the
     // 8000x2614 image far smaller than its native size) the sampler uses one of
     // the coarser mip levels. Those were generated once during texture loading
     // and still contained the old pixels, so the changes were invisible.
     // Regenerate the whole mip chain from the freshly uploaded base level.
-    UpdateTexture(kite_texture.normal, kite_image.normal.data);
-    if (kite_texture.normal.mipmaps > 1) {
-        GenTextureMipmaps(&kite_texture.normal);
+    // The texture is passed by pointer so the mipmap count written by
+    // GenTextureMipmaps() stays in the asset instead of a temporary copy.
+    tkbc_update_kite_texture_region(kite_texture, kite_image, 0, 0, kite_image.normal.width - 1,
+                                    kite_image.normal.height - 1);
+}
+
+/**
+ * @brief Uploads only the part of the image that was actually modified.
+ *
+ * A colorizer image is 8000x2614 (~84 MB). Uploading all of it on every frame
+ * while a mouse button is held down is far more expensive than the few pixels
+ * that change. Small edits use UpdateTextureRec(), large ones fall back to a
+ * full upload because extracting an equally large temporary buffer would not
+ * save anything.
+ */
+void tkbc_update_kite_texture_region(Kite_Texture *kite_texture, Kite_Image kite_image, int x0, int y0, int x1,
+                                     int y1) {
+    if (x1 < x0 || y1 < y0) {
+        return;
     }
+
+    const int width = kite_image.normal.width;
+    const int height = kite_image.normal.height;
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 >= width) x1 = width - 1;
+    if (y1 >= height) y1 = height - 1;
+    if (x1 < x0 || y1 < y0) {
+        return;
+    }
+
+    const int region_width = x1 - x0 + 1;
+    const int region_height = y1 - y0 + 1;
+    const size_t full_size = (size_t) width * (size_t) height * 4;
+    const size_t region_size = (size_t) region_width * (size_t) region_height * 4;
+
+    if (region_size >= full_size / 2) {
+        UpdateTexture(kite_texture->normal, kite_image.normal.data);
+    } else {
+        unsigned char *pixels = (unsigned char *) MemAlloc(region_size);
+        assert(pixels != NULL && "Out of memory while updating a kite texture region");
+        if (pixels == NULL) {
+            return;
+        }
+        const unsigned char *src = (const unsigned char *) kite_image.normal.data;
+        for (int y = 0; y < region_height; ++y) {
+            memcpy(pixels + (size_t) y * region_width * 4,
+                   src + ((size_t) (y0 + y) * (size_t) width + (size_t) x0) * 4, (size_t) region_width * 4);
+        }
+        UpdateTextureRec(kite_texture->normal,
+                         (Rectangle){(float) x0, (float) y0, (float) region_width, (float) region_height}, pixels);
+        MemFree(pixels);
+    }
+
+    // UpdateTextureRec()/UpdateTexture() only replace mip level 0.
+    if (kite_texture->normal.mipmaps > 1) {
+        GenTextureMipmaps(&kite_texture->normal);
+    }
+}
+
+/** @brief Expands a dirty rectangle. An empty rectangle has x1 < x0. */
+static void tkbc_dirty_union(int *dx0, int *dy0, int *dx1, int *dy1, int x0, int y0, int x1, int y1) {
+    if (x1 < x0 || y1 < y0) {
+        return;
+    }
+    if (*dx1 < *dx0) {
+        *dx0 = x0;
+        *dy0 = y0;
+        *dx1 = x1;
+        *dy1 = y1;
+        return;
+    }
+    if (x0 < *dx0) *dx0 = x0;
+    if (y0 < *dy0) *dy0 = y0;
+    if (x1 > *dx1) *dx1 = x1;
+    if (y1 > *dy1) *dy1 = y1;
 }
 
 /**
@@ -275,38 +352,6 @@ void tkbc_update_kite_texture(Kite_Texture kite_texture, Kite_Image kite_image) 
  */
 void tkbc_update_kite_image_color(Kite_Image *kite_image, Color old, Color replace) {
     ImageColorReplace(&kite_image->normal, old, replace);
-}
-
-/**
- * @brief The function creates a copy of a kite image and adds it to the
- * kite images collection.
- *
- * @param kite_image The kite image to copy.
- * @param new_id Pointer to store the new uuid assigned to the copied image.
- * @return Pointer to the newly created kite image.
- */
-Kite_Image *tkbc_copy_kite_image(Asset asset_in, UUID *new_id) {
-    Kite_Image kite_image = asset_in.as.kite_image;
-    Image image = kite_image.normal;
-    *new_id = tkbc_append_kite_image(image.data, image.width, image.height, image.format, asset_in.as.is_dual_line);
-
-    // NOTE: This is the last element in the dynamic array, but for future prove switch of the data structure.
-    // We will find it explicitly.
-    Asset *asset_out = tkbc_find_asset_from_id(*new_id);
-    assert(asset_out != NULL);
-    return &asset_out->as.kite_image;
-}
-
-/**
- * @brief The function creates a new kite image and its corresponding texture
- * from an existing kite image.
- *
- * @param kite_image The source kite image to copy.
- * @param new_id Pointer to store the new uuid.
- */
-void tkbc_generate_new_kite_image_and_texture(Asset asset, UUID *new_id) {
-    Kite_Image *new_kite_image = tkbc_copy_kite_image(asset, new_id);
-    tkbc_load_kite_texture_from_kite_image(*new_kite_image, *new_id);
 }
 
 /**
@@ -403,83 +448,6 @@ void tkbc_set_single_pixel_in_kite_image(Kite_Image kite_image, Vector2 p, Color
 }
 
 /**
- * @brief Cached bounding box of the non-transparent pixels of a panel image.
- *
- * The baked in panels are 8000x2614 but only a few percent of their pixels are
- * opaque. The bounds are computed on the first use and reused afterwards so
- * that colorization only has to walk the region that can contain pixels.
- */
-typedef struct {
-    bool valid;
-    int x0, y0, x1, y1;  // inclusive pixel coordinates, x1 < x0 means empty
-} Panel_Opaque_Bounds;
-
-static Panel_Opaque_Bounds panel_opaque_bounds[IMAGE_PANNEL_PARTS_END + 1];
-
-/**
- * @brief Paints the opaque pixels of one panel into the colorizer image.
- *
- * Pixels that are already filled in the colorizer image are left untouched.
- * The panel bounds are cached on the first call and reused afterwards.
- */
-static void tkbc_fill_panel_pixels(Image panel, unsigned char *dst, Color replace, char alpha_threshold,
-                                   size_t panel_index) {
-    assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-    assert(dst != NULL);
-
-    const unsigned char *src = (const unsigned char *) panel.data;
-    const int width = panel.width;
-    const int height = panel.height;
-    Panel_Opaque_Bounds *bounds = &panel_opaque_bounds[panel_index];
-
-    int x0 = bounds->valid ? bounds->x0 : 0;
-    int y0 = bounds->valid ? bounds->y0 : 0;
-    int x1 = bounds->valid ? bounds->x1 : width - 1;
-    int y1 = bounds->valid ? bounds->y1 : height - 1;
-
-    int new_x0 = width;
-    int new_y0 = height;
-    int new_x1 = -1;
-    int new_y1 = -1;
-
-    for (int y = y0; y <= y1; ++y) {
-        const unsigned char *src_row = src + (size_t) y * width * 4;
-        unsigned char *dst_row = dst + (size_t) y * width * 4;
-        for (int x = x0; x <= x1; ++x) {
-            const size_t pixel = (size_t) x * 4;
-            if (src_row[pixel + 3] <= alpha_threshold) {
-                continue;
-            }
-
-            // Remember all opaque panel pixels, even if this pixel is already
-            // filled. The cache describes the panel, not the current image, so
-            // it stays valid after the colorizer image is reset.
-            if (x < new_x0) new_x0 = x;
-            if (x > new_x1) new_x1 = x;
-            if (y < new_y0) new_y0 = y;
-            if (y > new_y1) new_y1 = y;
-
-            if (dst_row[pixel + 3] > alpha_threshold) {
-                continue;
-            }
-
-            dst_row[pixel + 0] = replace.r;
-            dst_row[pixel + 1] = replace.g;
-            dst_row[pixel + 2] = replace.b;
-            dst_row[pixel + 3] = replace.a;
-        }
-    }
-
-    if (!bounds->valid) {
-        bounds->x0 = new_x0;
-        bounds->y0 = new_y0;
-        bounds->x1 = new_x1;
-        bounds->y1 = new_y1;
-        bounds->valid = true;
-    }
-}
-
-/**
  * @brief The function handles the colorizer tool which allows painting on
  * kite images. It supports different modes: selecting colors, selecting
  * panels, and painting single pixels.
@@ -513,9 +481,20 @@ void tkbc_colorizer(Env *env, bool is_dual_line, Image image, Rectangle collisio
     }
 
     Color replace = env->last_selected_color;
+    // The dispatch calls this once per frame while a button is held down. Only
+    // touch the GPU texture when pixels really changed, and only upload the
+    // region that was modified.
+    int dx0 = 0, dy0 = 0, dx1 = -1, dy1 = -1;
+
     switch (mode) {
     case SINGLE_PIXEL: {
-        tkbc_set_single_pixel_in_kite_image_colorizer(is_dual_line, p, replace);
+        if (old_color.r != replace.r || old_color.g != replace.g || old_color.b != replace.b ||
+            old_color.a != replace.a) {
+            tkbc_set_single_pixel_in_kite_image_colorizer(is_dual_line, p, replace);
+            int px = (int) p.x;
+            int py = (int) p.y;
+            tkbc_dirty_union(&dx0, &dy0, &dx1, &dy1, px, py, px, py);
+        }
     } break;
 
     case SELECT_COLOR: {
@@ -531,17 +510,13 @@ void tkbc_colorizer(Env *env, bool is_dual_line, Image image, Rectangle collisio
                 if (tkbc_skip_colorizer_panel(is_dual_line, i, false)) {
                     continue;
                 }
-                if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
-                    continue;
-                }
-                assert(assets.elements[i].type == ASSETS_IMAGE);
+                assert(assets.elements[i].type == ASSETS_PANEL_MASK);
 
-                Image panel = _tkbc_get_asset_image(i).as.image;
-                assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-                assert(panel.width == filled.width);
-                assert(panel.height == filled.height);
+                Panel_Mask *mask = &_tkbc_get_asset_panel_mask(i).as.panel_mask;
+                assert(mask->width == filled.width);
+                assert(mask->height == filled.height);
 
-                if (GetImageColor(panel, p.x, p.y).a > alpha_threshold) {
+                if (tkbc_panel_mask_alpha_at(mask, p.x, p.y) > alpha_threshold) {
                     first_panel = i;
                     break;
                 }
@@ -551,66 +526,53 @@ void tkbc_colorizer(Env *env, bool is_dual_line, Image image, Rectangle collisio
                 if (tkbc_skip_colorizer_panel(is_dual_line, i, false)) {
                     continue;
                 }
-                if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
-                    continue;
-                }
-                assert(assets.elements[i].type == ASSETS_IMAGE);
+                assert(assets.elements[i].type == ASSETS_PANEL_MASK);
 
-                Image panel = _tkbc_get_asset_image(i).as.image;
-                assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-                assert(panel.width == filled.width);
-                assert(panel.height == filled.height);
-                if ((panel.width != filled.width) || (panel.height != filled.height)) {
+                Panel_Mask *mask = &_tkbc_get_asset_panel_mask(i).as.panel_mask;
+                assert(mask->width == filled.width);
+                assert(mask->height == filled.height);
+                if ((mask->width != filled.width) || (mask->height != filled.height)) {
                     continue;
                 }
 
-                tkbc_fill_panel_pixels(panel, dst, replace, alpha_threshold, i);
+                int mx0 = 0, my0 = 0, mx1 = -1, my1 = -1;
+                if (tkbc_panel_mask_paint(mask, dst, replace, alpha_threshold, false, &mx0, &my0, &mx1, &my1)) {
+                    tkbc_dirty_union(&dx0, &dy0, &dx1, &dy1, mx0, my0, mx1, my1);
+                }
             }
 
         } else {
             tkbc_update_kite_image_color(&colorizer->as.kite_image, old_color, replace);
+            tkbc_dirty_union(&dx0, &dy0, &dx1, &dy1, 0, 0, image.width - 1, image.height - 1);
         }
 
     } break;
     case SELECT_PANEL: {
         Image colorizer_image = colorizer->as.kite_image.normal;
         unsigned char *dst = (unsigned char *) colorizer_image.data;
-        const size_t pixel_count = (size_t) filled.width * filled.height;
 
         for (size_t i = panel_begin; i <= panel_end; ++i) {
             if (tkbc_skip_colorizer_panel(is_dual_line, i, true)) {
                 continue;
             }
 
-            if (assets.elements[i].type == ASSETS_KITE_DESIGN) {
-                // This is not a kite design.
-                continue;
-            }
-            assert(assets.elements[i].type == ASSETS_IMAGE);
+            assert(assets.elements[i].type == ASSETS_PANEL_MASK);
 
-            Image panel = _tkbc_get_asset_image(i).as.image;
-            assert(panel.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-            assert(panel.width == filled.width);
-            assert(panel.height == filled.height);
-            if ((panel.width != filled.width) || (panel.height != filled.height)) {
+            Panel_Mask *mask = &_tkbc_get_asset_panel_mask(i).as.panel_mask;
+            assert(mask->width == filled.width);
+            assert(mask->height == filled.height);
+            if ((mask->width != filled.width) || (mask->height != filled.height)) {
                 continue;
             }
 
             // Only panels that contain the clicked pixel are selected.
-            if (GetImageColor(panel, p.x, p.y).a <= alpha_threshold) {
+            if (tkbc_panel_mask_alpha_at(mask, p.x, p.y) <= alpha_threshold) {
                 continue;
             }
 
-            const unsigned char *src = (const unsigned char *) panel.data;
-            for (size_t pixel = 0; pixel < pixel_count; ++pixel) {
-                if (src[pixel * 4 + 3] <= alpha_threshold) {
-                    continue;
-                }
-                unsigned char *out = dst + pixel * 4;
-                out[0] = replace.r;
-                out[1] = replace.g;
-                out[2] = replace.b;
-                out[3] = replace.a;
+            int mx0 = 0, my0 = 0, mx1 = -1, my1 = -1;
+            if (tkbc_panel_mask_paint(mask, dst, replace, alpha_threshold, true, &mx0, &my0, &mx1, &my1)) {
+                tkbc_dirty_union(&dx0, &dy0, &dx1, &dy1, mx0, my0, mx1, my1);
             }
         }
 
@@ -637,7 +599,7 @@ void tkbc_colorizer(Env *env, bool is_dual_line, Image image, Rectangle collisio
     default: assert(0 && "UNREACHABLE tkbc_colorizer");
     }
 
-    tkbc_update_kite_texture(colorizer->as.kite_texture, colorizer->as.kite_image);
+    tkbc_update_kite_texture_region(&colorizer->as.kite_texture, colorizer->as.kite_image, dx0, dy0, dx1, dy1);
 }
 
 /**
@@ -3140,19 +3102,38 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                     Image reference =
                         _tkbc_get_asset_image(tkbc_colorizer_filled_panel_id(env->colorizer_111)).as.image;
                     Asset a = *active_colorizer;
-
-                    // This is needed because the UUIDs will be random and not the enum
-                    // value.
                     UUID new_id = active_colorizer->id;
-                    bool design_already_exists = false;
-                    if (tkbc_is_same_image(a.as.kite_image.normal, reference)) {
-                        design_already_exists = true;
-                    } else {
-                        design_already_exists = tkbc_image_already_exitst_in_assets(a.as.kite_image.normal, &new_id);
-                    }
 
-                    if (!design_already_exists) {
-                        tkbc_generate_new_kite_image_and_texture(a, &new_id);
+                    if (!tkbc_is_same_image(a.as.kite_image.normal, reference)) {
+                        // Encode and hash in one pass over the 84 MB image. Doing
+                        // the hash separately would add another full scan.
+                        int png_size = 0;
+                        uint64_t hash = 0;
+                        unsigned char *png =
+                            tkbc_export_image_png_fast_with_hash(a.as.kite_image.normal, &png_size, &hash);
+                        if (png != NULL && png_size > 0) {
+                            UUID existing_id = tkbc_uuid_nil();
+                            if (tkbc_image_already_exitst_in_assets_with_hash(a.as.kite_image.normal, hash,
+                                                                               &existing_id)) {
+                                new_id = existing_id;
+                            } else {
+                                Image image = a.as.kite_image.normal;
+                                new_id = tkbc_append_compressed_kite_image_with_id(
+                                    png, png_size, image.width, image.height, hash, tkbc_uuid_generate(),
+                                    a.as.is_dual_line);
+                                if (!tkbc_uuid_is_nil(new_id)) {
+                                    // Upload the original pixels directly instead
+                                    // of decoding the PNG again.
+                                    Kite_Image upload = {
+                                        .normal = image,
+                                        .compressed_size = 0,
+                                        .content_hash = hash,
+                                    };
+                                    tkbc_load_kite_texture_from_kite_image(upload, new_id);
+                                }
+                            }
+                            MemFree(png);
+                        }
                     }
 
                     tkbc_set_texture_for_selected_kites(env, new_id, true);
@@ -3268,45 +3249,53 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                     tkbc_activate_colorizer(env, design_dual);
                     Asset *target_colorizer = tkbc_get_colorizer_asset(design_dual);
 
-                    Image im = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
+                    Asset *design = &_tkbc_get_asset_kite_design(i);
+                    Image stored = design->as.kite_image.normal;
+                    Image im = stored;
+                    bool temporary_decode = false;
+                    if (stored.format == TKBC_IMAGE_FORMAT_COMPRESSED_PNG) {
+                        // Colorizer designs are stored as PNG bytes. Decode
+                        // once, use it for both the CPU buffer and the texture,
+                        // then release it again.
+                        im = LoadImageFromMemory(".png", stored.data, design->as.kite_image.compressed_size);
+                        if (!IsImageValid(im)) {
+                            tkbc_fprintf(stderr, "ERROR", "Could not decode the selected kite design.\n");
+                            tkbc_set_color_for_selected_kites(env, BLANK);
+                            continue;
+                        }
+                        if (im.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+                            ImageFormat(&im, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+                        }
+                        temporary_decode = true;
+                    }
                     assert(im.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
                     assert(im.width == target_colorizer->as.kite_image.normal.width);
                     assert(im.height == target_colorizer->as.kite_image.normal.height);
 
-                    // Copy the selected design into the matching colorizer image.
-                    // The old version went through two
-                    // tkbc_set_single_pixel_in_kite_image_colorizer() calls and
-                    // a tkbc_get_position_in_image() call per pixel; with
-                    // 8000x2614 designs that is tens of millions of function
-                    // calls. Write the RGBA bytes directly instead.
+                    // Copy the selected design into the matching colorizer
+                    // image. One bulk memcpy plus a cheap alpha-only pass is
+                    // much faster than branching on every single RGBA pixel.
                     Image colorizer_image = target_colorizer->as.kite_image.normal;
                     assert(colorizer_image.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
 
-                    const unsigned char *src = (const unsigned char *) im.data;
                     unsigned char *dst = (unsigned char *) colorizer_image.data;
+                    const unsigned char *src = (const unsigned char *) im.data;
                     const size_t pixel_count = (size_t) im.width * im.height;
-                    const Color blank = BLANK;
+                    memcpy(dst, src, pixel_count * 4);
 
+                    // Transparent source pixels become BLANK (all zero) so an
+                    // already existing design loads back into the colorizer
+                    // exactly as it was saved.
                     for (size_t pixel = 0; pixel < pixel_count; ++pixel) {
-                        const size_t offset = pixel * 4;
-
-                        // This is needed to allow designs with alpha: So that
-                        // loading an already existing design in is properly
-                        // handled.
-                        if (src[offset + 3] > 0) {
-                            dst[offset + 0] = src[offset + 0];
-                            dst[offset + 1] = src[offset + 1];
-                            dst[offset + 2] = src[offset + 2];
-                            dst[offset + 3] = src[offset + 3];
-                        } else {
-                            dst[offset + 0] = blank.r;
-                            dst[offset + 1] = blank.g;
-                            dst[offset + 2] = blank.b;
-                            dst[offset + 3] = blank.a;
+                        if (src[pixel * 4 + 3] == 0) {
+                            memset(dst + pixel * 4, 0, 4);
                         }
                     }
 
-                    tkbc_update_kite_texture(target_colorizer->as.kite_texture, target_colorizer->as.kite_image);
+                    tkbc_update_kite_texture(&target_colorizer->as.kite_texture, target_colorizer->as.kite_image);
+                    if (temporary_decode) {
+                        UnloadImage(im);
+                    }
                 }
                 tkbc_set_color_for_selected_kites(env, BLANK);
             }

@@ -412,9 +412,10 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
 /**
  * @brief The function parses an image block out of a message payload.
  *
- * The wire always carries a compressed PNG. The client decodes it into raw
- * RGBA8 because its colorizer works on those pixels; the server keeps the PNG
- * bytes and only remembers the dimensions.
+ * The wire always carries a compressed PNG. Both sides keep those bytes: the
+ * server only forwards them, and the client decodes them temporarily when it
+ * creates the GPU texture. Keeping them compressed avoids a full RGBA buffer
+ * (~84 MB per CE_NG design) for every received design.
  *
  * @param reader The Message that is scoped to the payload of one received
  * message.
@@ -469,33 +470,8 @@ bool tkbc_parse_image(Message *reader, Space *data_space, unsigned char **data, 
         return false;
     }
 
-#ifdef TKBC_SERVER
     *format = TKBC_IMAGE_FORMAT_COMPRESSED_PNG;
     return true;
-#else
-    Image image = LoadImageFromMemory(".png", *data, *data_size);
-    if (!IsImageValid(image) || image.width != *width || image.height != *height) {
-        UnloadImage(image);
-        return false;
-    }
-    if (image.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
-        ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-    }
-
-    size_t raw_size = pixels * 4;
-    unsigned char *raw = space_malloc(data_space, raw_size);
-    if (!raw) {
-        UnloadImage(image);
-        return false;
-    }
-    memcpy(raw, image.data, raw_size);
-    UnloadImage(image);
-
-    *data = raw;
-    *data_size = (int) raw_size;
-    *format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-    return true;
-#endif
 }
 
 /**
