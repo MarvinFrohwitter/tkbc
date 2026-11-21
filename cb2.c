@@ -288,6 +288,7 @@ void win_resource(Cmd *cmd, const char *out_path) {
 }
 
 void files_for_test(Cmd *cmd) {
+    cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-libtcc-runtime.c");
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc.c");
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-api.c");
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-team-figures-api.c");
@@ -301,6 +302,7 @@ void files_for_test(Cmd *cmd) {
 }
 
 void files_for_choreographer(Cmd *cmd) {
+    cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-libtcc-runtime.c");
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc.c");
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-api.c");
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-team-figures-api.c");
@@ -505,6 +507,25 @@ void script_api_string(Cmd *cmd) {
     if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
 }
 
+void libtcc1_string(Cmd *cmd) {
+    cb_cmd_push(cmd, CC);
+    cflags(cmd);
+
+    cb_cmd_push(cmd, "-o", BUILD_PATH "libtcc1_2h");
+    cb_cmd_push(cmd, METAPROGRAMMING_PATH "libtcc1_2h.c");
+
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+
+    // The runtime archives are embedded so a system tcc installation is not
+    // needed when a C script is dragged onto the client/tkbc.
+    cb_cmd_push(cmd, "./" BUILD_PATH "libtcc1_2h");
+    cb_cmd_push(cmd, "-o", BUILD_PATH "tkbc-libtcc1-header.h");
+    cb_cmd_push(cmd, "--linux", LIBTCC_LINUX_PATH "libtcc1.a");
+    cb_cmd_push(cmd, "--windows", LIBTCC_WINDOWS_PATH "libtcc1.a");
+
+    if (!cb_run_sync(cmd)) exit(EXIT_FAILURE);
+}
+
 typedef struct {
     bool LINUX;
     bool WINDOWS;
@@ -704,6 +725,7 @@ typedef struct {
     bool test;
     bool assets;
     bool script_api_string;
+    bool libtcc1_string;
 
     bool tkbc;
     bool client;
@@ -718,6 +740,7 @@ typedef struct {
 #define FLAG_TEST "test"
 #define FLAG_ASSETS "assets"
 #define FLAG_SCRIPT_API_STRING "script_api_string"
+#define FLAG_LIBTCC1_STRING "libtcc1_string"
 #define FLAG_TEST_VERBOSE "verbose"
 #define FLAG_TEST_SHORT "short"
 #define FLAG_TKBC "tkbc"
@@ -750,6 +773,9 @@ void usage_opt(Usage_Opts opts) {
     }
     if (opts.script_api_string || opts.all) {
         fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_SCRIPT_API_STRING);
+    }
+    if (opts.libtcc1_string || opts.all) {
+        fprintf(stderr, "       <%s> <%s>\n", opts.prog_name, FLAG_LIBTCC1_STRING);
     }
     if (opts.tkbc || opts.all) {
         fprintf(stderr, "       <%s> <%s> [%s|%s]\n", opts.prog_name, FLAG_TKBC, FLAG_LINUX, FLAG_WINDOWS);
@@ -789,6 +815,7 @@ int main(int argc, char *argv[]) {
     } else if (str_compare(FLAG_TEST, flag)) {
         make_build_dir(&cmd);
         script_api_string(&cmd);
+        libtcc1_string(&cmd);
         void flag_test(char *flag, char ***argv, int *argc);
         flag_test(flag, &argv, &argc);
     } else if (str_compare(FLAG_ASSETS, flag)) {
@@ -802,20 +829,26 @@ int main(int argc, char *argv[]) {
     } else if (str_compare(FLAG_TKBC, flag)) {
         make_build_dir(&cmd);
         script_api_string(&cmd);
+        libtcc1_string(&cmd);
         void flag_tkbc(char *flag, char ***argv, int *argc);
         flag_tkbc(flag, &argv, &argc);
     } else if (str_compare(FLAG_CLIENT, flag)) {
         make_build_dir(&cmd);
         script_api_string(&cmd);
+        libtcc1_string(&cmd);
         void flag_client(char *flag, char ***argv, int *argc);
         flag_client(flag, &argv, &argc);
     } else if (str_compare(FLAG_SERVER, flag)) {
         make_build_dir(&cmd);
+        libtcc1_string(&cmd);
         void flag_server(char *flag, char ***argv, int *argc);
         flag_server(flag, &argv, &argc);
     } else if (str_compare(FLAG_LIBTCC, flag)) {
         void flag_libtcc(char *flag, char ***argv, int *argc);
         flag_libtcc(flag, &argv, &argc);
+    } else if (str_compare(FLAG_LIBTCC1_STRING, flag)) {
+        void flag_libtcc1_string(char *flag, char ***argv, int *argc);
+        flag_libtcc1_string(flag, &argv, &argc);
     } else {
         usage(.prog_name = prog_name, .all = true);
     }
@@ -930,6 +963,15 @@ void flag_script_api_string(char *flag, char ***argv, int *argc) {
     flag = get_next_or_last(argv, argc);
     if (prev_flag != flag) {
         usage(.prog_name = prog_name, .script_api_string = true);
+    }
+}
+
+void flag_libtcc1_string(char *flag, char ***argv, int *argc) {
+    libtcc1_string(&cmd);
+    char *prev_flag = flag;
+    flag = get_next_or_last(argv, argc);
+    if (prev_flag != flag) {
+        usage(.prog_name = prog_name, .libtcc1_string = true);
     }
 }
 
@@ -1095,4 +1137,7 @@ void flag_libtcc(char *flag, char ***argv, int *argc) {
             }
         }
     }
+    // Keep the embedded runtime in sync with the freshly exported archives.
+    make_build_dir(&cmd);
+    libtcc1_string(&cmd);
 }

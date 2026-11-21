@@ -13,6 +13,7 @@
 #include "../global/tkbc-utils.h"
 #include "tkbc-asset-handler.h"
 #include "tkbc-keymaps.h"
+#include "tkbc-libtcc-runtime.h"
 #include "tkbc-parser.h"
 #include "tkbc-script-api.h"
 #include "tkbc-script-handler.h"
@@ -622,6 +623,9 @@ void tkbc_file_handler(Env *env) {
             } else if (strcmp(extension, ".c") == 0 || strcmp(extension, ".h") == 0) {
 
                 TCCState *tcc = tcc_new();
+                // The TCC runtime is embedded in this executable. Extract it
+                // once and let this state find it before any other path.
+                tkbc_tcc_add_embedded_runtime(tcc);
                 tcc_set_backtrace_func(tcc, NULL, tkbc_tcc_bt_func);
 
                 tcc_set_error_func(tcc, NULL, tkbc_error_func);

@@ -17,6 +17,17 @@ no libx264, no other --enable-gpl libraries).
 - License is located under external/tinycc/COPYING
 - Source is vendored under external/tinycc/
 
+The `libtcc` JIT compiler and its runtime `libtcc1.a` are both vendored and
+linked/embedded into `tkbc`, `client` and `server`. The runtime archive is
+converted into a C byte array by `metaprogramming/libtcc1_2h.c` during every
+build and written to a private temporary directory on first use. No system TCC
+installation is needed to drag and drop a `.c`/`.h` script.
+
+The generated header lives in `build/tkbc-libtcc1-header.h` and can be
+regenerated on its own with `./cb libtcc1_string`. After rebuilding the
+archives with `./cb libtcc`, the next executable build refreshes it
+automatically.
+
 ### Build with cb
 
 ```Shell
