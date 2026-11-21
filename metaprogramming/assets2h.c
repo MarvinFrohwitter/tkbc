@@ -40,6 +40,17 @@
 #define TKBC_MASK_KIND_BINARY 1
 #define TKBC_MASK_KIND_ALPHA8 2
 
+// Keep in sync with tkbc_fnv1a_update()/TKBC_FNV1A_OFFSET in tkbc-utils.h.
+#define TKBC_ASSET_HASH_OFFSET 14695981039346656037ULL
+static uint64_t tkbc_asset_content_hash(const unsigned char *data, size_t count) {
+    uint64_t hash = TKBC_ASSET_HASH_OFFSET;
+    const uint64_t prime = 1099511628211ULL;
+    for (size_t i = 0; i < count; ++i) {
+        hash = (hash ^ data[i]) * prime;
+    }
+    return hash;
+}
+
 static void tkbc_mask_push_uleb128(Content *out, uint64_t value) {
     do {
         unsigned char byte = (unsigned char) (value & 0x7f);
@@ -51,7 +62,8 @@ static void tkbc_mask_push_uleb128(Content *out, uint64_t value) {
     } while (value != 0);
 }
 
-static bool tkbc_build_panel_mask(const char *image_file_path, int width, int height, Content *out) {
+static bool tkbc_build_panel_mask(const char *image_file_path, int width, int height, Content *out,
+                                  uint64_t *content_hash) {
     int w = 0;
     int h = 0;
     int comp = 0;
@@ -62,6 +74,12 @@ static bool tkbc_build_panel_mask(const char *image_file_path, int width, int he
     }
 
     const size_t pixel_count = (size_t) w * (size_t) h;
+    // The pixels are already decoded for the mask. Hash them here so the
+    // runtime never has to decode an 84 MB design again just to detect
+    // duplicate colorizer results. stb_image produces the same RGBA bytes as
+    // raylib's loader, so this is the same hash tkbc_image_content_hash()
+    // computes for newly created designs.
+    *content_hash = tkbc_asset_content_hash(pixels, pixel_count * 4);
     bool binary = true;
     int x0 = w;
     int y0 = h;
@@ -134,6 +152,7 @@ bool transpile_png_to_h(const char *image_file_path, const char *name) {
     Content data = {0};
     Content file_data = {0};
     Content mask = {0};
+    uint64_t content_hash = 0;
     fprintf(stderr, "INFO: .................................\n");
     fprintf(stderr, "INFO: Converting %s ...\n", image_file_path);
 
@@ -193,7 +212,7 @@ bool transpile_png_to_h(const char *image_file_path, const char *name) {
     // which pixels of a panel are opaque; keeping full RGBA panels in memory
     // cost several gigabytes while the mask is only a few hundred kilobytes
     // compressed for all panels together.
-    if (!tkbc_build_panel_mask(image_file_path, x, y, &mask)) {
+    if (!tkbc_build_panel_mask(image_file_path, x, y, &mask, &content_hash)) {
         fprintf(stderr, "ERROR: could not build the alpha mask for %s!\n", image_file_path);
         free(name_upper);
         free(name_lower);
@@ -201,6 +220,12 @@ bool transpile_png_to_h(const char *image_file_path, const char *name) {
         check_return(false);
     }
     tkbc_append_mask_byte_array(&data, name_lower, &mask);
+
+    // FNV-1a of the decoded RGBA pixels. Emission next to the image bytes keeps
+    // the hash in lockstep with the generated asset data. The token-pasted name
+    // lets the asset handler pass it without another lookup at runtime.
+    tkbc_dapf(&data, "\n#define IMAGE_%s_HASH 0x%016llXULL\n", name_upper, (unsigned long long) content_hash);
+    tkbc_dapf(&data, "static const uint64_t asset_image_%s_hash = IMAGE_%s_HASH;\n", name_lower, name_upper);
 
     free(name_upper);
     free(name_lower);

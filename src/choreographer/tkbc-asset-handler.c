@@ -15,9 +15,10 @@ static Image tkbc_copy_compressed_image(const unsigned char *data, int data_size
 static Image tkbc_load_compressed_asset_image(const unsigned char *data, int data_size, const char *file_type);
 #endif
 static UUID tkbc_append_owned_kite_image(unsigned char *data, int width, int height, int format, UUID id,
-                                         bool is_dual_line);
+                                         uint64_t content_hash, bool is_dual_line);
 #ifndef TKBC_SERVER
-static UUID tkbc_append_colorizer_from_baked_png(const unsigned char *data, int data_size, bool is_dual_line);
+static UUID tkbc_append_colorizer_from_baked_png(const unsigned char *data, int data_size, uint64_t content_hash,
+                                                 bool is_dual_line);
 #endif
 
 #include "../../assets/Kite_111/Kites/111_Base_White.h"
@@ -131,7 +132,7 @@ static inline UUID tkbc_generate_uuid_for_asset(void) {
  * UnloadImage(). This avoids an otherwise redundant full-size ImageCopy.
  */
 static UUID tkbc_append_owned_kite_image(unsigned char *data, int width, int height, int format, UUID id,
-                                         bool is_dual_line) {
+                                         uint64_t content_hash, bool is_dual_line) {
     Kite_Image kite_image = (Kite_Image){
         .normal =
             {
@@ -142,7 +143,7 @@ static UUID tkbc_append_owned_kite_image(unsigned char *data, int width, int hei
                 .format = format,
             },
         .compressed_size = 0,
-        .content_hash = 0,
+        .content_hash = content_hash,
     };
 
     space_dap(&assets.space, &assets,
@@ -162,7 +163,8 @@ static UUID tkbc_append_owned_kite_image(unsigned char *data, int width, int hei
  * buffer. Only the two colorizers keep raw pixels; all other designs stay
  * compressed.
  */
-static UUID tkbc_append_colorizer_from_baked_png(const unsigned char *data, int data_size, bool is_dual_line) {
+static UUID tkbc_append_colorizer_from_baked_png(const unsigned char *data, int data_size, uint64_t content_hash,
+                                                 bool is_dual_line) {
     Image image = tkbc_load_compressed_asset_image(data, data_size, ".png");
     if (!IsImageValid(image)) {
         return tkbc_uuid_nil();
@@ -171,7 +173,7 @@ static UUID tkbc_append_colorizer_from_baked_png(const unsigned char *data, int 
         ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
     }
     return tkbc_append_owned_kite_image(image.data, image.width, image.height, image.format,
-                                        tkbc_generate_uuid_for_asset(), is_dual_line);
+                                        tkbc_generate_uuid_for_asset(), content_hash, is_dual_line);
 }
 #endif  // !TKBC_SERVER
 
@@ -198,7 +200,7 @@ UUID tkbc_append_kite_image_with_id(unsigned char *data, int width, int height, 
         .mipmaps = 1,
         .format = format,
     });
-    return tkbc_append_owned_kite_image(copy.data, copy.width, copy.height, copy.format, id, is_dual_line);
+    return tkbc_append_owned_kite_image(copy.data, copy.width, copy.height, copy.format, id, 0, is_dual_line);
 }
 
 /**
@@ -688,14 +690,14 @@ static UUID tkbc_append_compressed_asset_image(const unsigned char *data, int da
  * @return The uuid assigned to the newly appended kite image.
  */
 static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int data_size, const char *file_type,
-                                              bool is_dual_line) {
+                                              uint64_t content_hash, bool is_dual_line) {
     (void) file_type;
     int width = 0;
     int height = 0;
     if (!tkbc_png_dimensions(data, data_size, &width, &height)) {
         return tkbc_uuid_nil();
     }
-    return tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, 0,
+    return tkbc_append_compressed_kite_image_with_id(data, data_size, width, height, content_hash,
                                                      tkbc_generate_uuid_for_asset(), is_dual_line);
 }
 
@@ -704,7 +706,8 @@ static UUID tkbc_append_compressed_kite_image(const unsigned char *data, int dat
 #define tkbc_append_baked_panel_mask(asset_symbol)                                                                     \
     tkbc_append_panel_mask(asset_mask_##asset_symbol, (int) sizeof(asset_mask_##asset_symbol))
 #define tkbc_append_baked_kite_image(asset_symbol, is_dual_line)                                                       \
-    tkbc_append_compressed_kite_image((asset_symbol), (int) sizeof(asset_symbol), ".png", (is_dual_line))
+    tkbc_append_compressed_kite_image((asset_symbol), (int) sizeof(asset_symbol), ".png", (asset_symbol##_hash),        \
+                                      (is_dual_line))
 
 /**
  * @brief Append all kite image assets to the global asset list.
@@ -818,14 +821,17 @@ void append_assets(void) {
 #ifdef TKBC_SERVER
     // The colorizer starts as a copy of the filled panel. The server never
     // paints on it, so keep the baked in PNG bytes instead of decoding them.
-    tkbc_append_compressed_kite_image(asset_image_filled_panel, (int) sizeof(asset_image_filled_panel), ".png", false);
+    tkbc_append_compressed_kite_image(asset_image_filled_panel, (int) sizeof(asset_image_filled_panel), ".png",
+                                      asset_image_filled_panel_hash, false);
     tkbc_append_compressed_kite_image(asset_image_111_base_white, (int) sizeof(asset_image_111_base_white), ".png",
-                                      true);
+                                      asset_image_111_base_white_hash, true);
 #else
     // Decode straight into the colorizer buffer instead of copying the already
     // decoded filled panel image once more (that cost another ~96 MB).
-    tkbc_append_colorizer_from_baked_png(asset_image_filled_panel, (int) sizeof(asset_image_filled_panel), false);
-    tkbc_append_colorizer_from_baked_png(asset_image_111_base_white, (int) sizeof(asset_image_111_base_white), true);
+    tkbc_append_colorizer_from_baked_png(asset_image_filled_panel, (int) sizeof(asset_image_filled_panel),
+                                         asset_image_filled_panel_hash, false);
+    tkbc_append_colorizer_from_baked_png(asset_image_111_base_white, (int) sizeof(asset_image_111_base_white),
+                                         asset_image_111_base_white_hash, true);
 #endif
 
     tkbc_append_baked_kite_image(asset_image_ce_ng_1, false);
@@ -857,8 +863,10 @@ void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id
     Image image = kite_image.normal;
     bool temporary_decode = false;
     if (image.format == TKBC_IMAGE_FORMAT_COMPRESSED_PNG) {
-        // Designs are stored as PNG bytes. Decode only long enough to compute
-        // the content hash and to upload the texture, then release the pixels.
+        // Designs are stored as PNG bytes. Decode only long enough to upload
+        // the texture, then release the pixels. Hashes are baked into the
+        // generated asset headers for the default designs and computed lazily
+        // for designs created at runtime.
         image = LoadImageFromMemory(".png", image.data, kite_image.compressed_size);
         if (!IsImageValid(image)) {
             tkbc_fprintf(stderr, "ERROR", "Could not decode kite design texture.\n");
@@ -868,10 +876,6 @@ void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id
             ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
         }
         temporary_decode = true;
-    }
-
-    if (asset->as.kite_image.content_hash == 0) {
-        asset->as.kite_image.content_hash = tkbc_image_content_hash(image);
     }
 
     asset->as.kite_texture = (Kite_Texture){
@@ -888,6 +892,24 @@ void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id
     if (temporary_decode) {
         UnloadImage(image);
     }
+}
+
+/**
+ * @brief Returns the GPU texture of a kite design, creating it on first use.
+ *
+ * Decoding a default design uploads an 84 MB texture, so doing that for all of
+ * them during startup made the program take about two seconds to appear. The
+ * colorizers are still created up front because the UI always shows them.
+ *
+ * @param asset The kite design asset.
+ * @return The design's texture.
+ */
+Texture2D tkbc_get_kite_texture(Asset *asset) {
+    assert(asset != NULL && asset->type == ASSETS_KITE_DESIGN);
+    if (!IsTextureValid(asset->as.kite_texture.normal)) {
+        tkbc_load_kite_texture_from_kite_image(asset->as.kite_image, asset->id);
+    }
+    return asset->as.kite_texture.normal;
 }
 
 /**
@@ -924,6 +946,12 @@ void tkbc_load_assets(void) {
             continue;
         }
 
+        // Default designs are decoded when they are first drawn or shown in
+        // the design picker. Only the two colorizers are needed immediately.
+        if (i > KITE_111_COLORIZER) {
+            continue;
+        }
+
         tkbc_load_kite_texture_from_kite_image(_tkbc_get_asset_kite_design(i).as.kite_image,
                                                _tkbc_get_asset_kite_design(i).id);
 
@@ -931,6 +959,13 @@ void tkbc_load_assets(void) {
             tkbc_fprintf(stderr, "ERROR", "Could not load normal kite texture: %zu.\n", i);
         }
     }
+}
+#endif
+
+#ifdef TKBC_SERVER
+Texture2D tkbc_get_kite_texture(Asset *asset) {
+    assert(asset != NULL && asset->type == ASSETS_KITE_DESIGN);
+    return asset->as.kite_texture.normal;
 }
 #endif
 
@@ -957,7 +992,11 @@ void tkbc_asset_destroy(Asset *asset) {
     case ASSETS_KITE_DESIGN: UnloadImage(asset->as.kite_image.normal);
 
 #ifndef TKBC_SERVER
-        UnloadTexture(asset->as.kite_texture.normal);
+        // Default designs may never have been drawn, so their texture can be
+        // invalid here. Only unload textures that were actually created.
+        if (IsTextureValid(asset->as.kite_texture.normal)) {
+            UnloadTexture(asset->as.kite_texture.normal);
+        }
 #endif
         break;
     case ASSETS_KIND_COUNT:

@@ -1061,7 +1061,7 @@ static void tkbc_draw_kite_with_factor(Kite_State *state, float factor) {
     if (ColorIsEqual(state->kite->body_color, BLANK)) {
         /* texture kite */
         Asset *a = tkbc_find_asset_from_id(state->kite->texture_id);
-        Texture texture = a->as.kite_texture.normal;
+        Texture texture = tkbc_get_kite_texture(a);
         float scale = state->kite->width / texture.width;
         float len_to_center = (scale * texture.width) / 2.0f;
         len_to_center = floorf(len_to_center);

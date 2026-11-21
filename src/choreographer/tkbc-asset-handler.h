@@ -211,6 +211,7 @@ unsigned char tkbc_panel_mask_alpha_at(Panel_Mask *mask, int x, int y);
 bool tkbc_panel_mask_paint(Panel_Mask *mask, unsigned char *dst, Color replace, char alpha_threshold, bool overwrite,
                            int *dx0, int *dy0, int *dx1, int *dy1);
 
+Texture2D tkbc_get_kite_texture(Asset *asset);
 #ifndef TKBC_SERVER
 void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id);
 void tkbc_load_assets(void);

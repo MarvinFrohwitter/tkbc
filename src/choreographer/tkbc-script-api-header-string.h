@@ -9174,6 +9174,7 @@ static const char* global_api_header_string =
 "bool tkbc_panel_mask_paint(Panel_Mask *mask, unsigned char *dst, Color replace, char alpha_threshold, bool overwrite,\n"
 "                           int *dx0, int *dy0, int *dx1, int *dy1);\n"
 "\n"
+"Texture2D tkbc_get_kite_texture(Asset *asset);\n"
 "\n"
 "void tkbc_load_kite_texture_from_kite_image(Kite_Image kite_image, UUID asset_id);\n"
 "void tkbc_load_assets(void);\n"

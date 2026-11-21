@@ -396,7 +396,7 @@ void tkbc_draw_pannels(Env *env, bool is_dual_line, Rectangle *view_background, 
     Vector2 view;
 
     Asset *colorizer = tkbc_get_colorizer_asset(is_dual_line);
-    Texture2D view_texture = colorizer->as.kite_texture.normal;
+    Texture2D view_texture = tkbc_get_kite_texture(colorizer);
     *view_scale = (env->window_width - env->color_picker_base.width - env->keymaps_base.width) / view_texture.width;
     view.x = env->color_picker_base.x - (env->window_width - env->color_picker_base.width) / 2 -
              *view_scale * view_texture.width / 2;
@@ -2998,16 +2998,17 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
  * color picker.
  *
  * @param env The global state of the application.
- * @param design The texture of the kite design.
+ * @param design_width The width of the kite design in pixels.
+ * @param design_height The height of the kite design in pixels.
  * @param scale_factor The scale relative to the color picker base width.
  * @param padding The outer padding.
  * @param actual_padding The additional padding.
  * @return The height of the scaled design plus the padding.
  */
-static float tkbc_kite_design_stride(Env *env, Texture2D design, float scale_factor, float padding,
+static float tkbc_kite_design_stride(Env *env, int design_width, int design_height, float scale_factor, float padding,
                                      float actual_padding) {
-    float scale = env->color_picker_base.width * scale_factor / design.width;
-    return design.height * scale + padding + actual_padding;
+    float scale = env->color_picker_base.width * scale_factor / design_width;
+    return design_height * scale + padding + actual_padding;
 }
 
 /**
@@ -3036,7 +3037,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     float actual_padding = padding * 2;
 
     Asset *active_colorizer = tkbc_get_colorizer_asset(env->colorizer_111);
-    Texture2D t = active_colorizer->as.kite_texture.normal;
+    Texture2D t = tkbc_get_kite_texture(active_colorizer);
     const float scale_factor = 0.7;
     float scale = env->color_picker_base.width * scale_factor / t.width;
 
@@ -3048,7 +3049,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     display_box.width -= ring_box_x_width;
     display_box.x += ring_box_x_width;
 
-    float colorizer_stride = tkbc_kite_design_stride(env, t, scale_factor, padding, actual_padding);
+    float colorizer_stride = tkbc_kite_design_stride(env, t.width, t.height, scale_factor, padding, actual_padding);
 
     // The largest row stride is used so that no design can ever reach past the
     // bottom of the display box.
@@ -3057,8 +3058,10 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         if (_tkbc_get_asset(i).type != ASSETS_KITE_DESIGN) {
             continue;
         }
-        Texture2D design = _tkbc_get_asset_kite_design(i).as.kite_texture.normal;
-        float stride = tkbc_kite_design_stride(env, design, scale_factor, padding, actual_padding);
+        // Image dimensions come from the PNG header; using them here avoids
+        // decoding every design just to compute the row layout.
+        Image design = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
+        float stride = tkbc_kite_design_stride(env, design.width, design.height, scale_factor, padding, actual_padding);
         if (stride > max_row_stride) {
             max_row_stride = stride;
         }
@@ -3164,7 +3167,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
             break;
         }
 
-        t = _tkbc_get_asset_kite_design(i).as.kite_texture.normal;
+        t = tkbc_get_kite_texture(&_tkbc_get_asset_kite_design(i));
         scale = env->color_picker_base.width * scale_factor / t.width;
 
         if (display_box.y + t.height * scale > base.y + base.height) {
@@ -3228,7 +3231,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         // This can not be done in the for(;; advance) advance part because the
         // short-circuiting for not kite designs should not increase the
         // display.
-        display_box.y += tkbc_kite_design_stride(env, t, scale_factor, padding, actual_padding);
+        display_box.y += tkbc_kite_design_stride(env, t.width, t.height, scale_factor, padding, actual_padding);
         row++;
 
         if (env->color_picker_window_picking) {
@@ -3313,8 +3316,9 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
             continue;
         }
         if (row >= top_box) {
-            scrolled_content_height += tkbc_kite_design_stride(
-                env, _tkbc_get_asset_kite_design(i).as.kite_texture.normal, scale_factor, padding, actual_padding);
+            Image design = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
+            scrolled_content_height += tkbc_kite_design_stride(env, design.width, design.height, scale_factor, padding,
+                                                              actual_padding);
         }
         row++;
     }
