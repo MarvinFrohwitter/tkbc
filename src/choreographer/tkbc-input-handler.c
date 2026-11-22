@@ -33,13 +33,13 @@ static Vector2 tkbc_scene_mouse_position(const Camera2D *camera) {
 }
 
 /**
- * @brief Handles ALT + mouse wheel zooming and ALT + WASD/arrow key panning of
- * the kite scene. The UI is not affected by the camera.
+ * @brief Handles F3 resetting, ALT + mouse wheel zooming and ALT + WASD/arrow
+ * key panning of the kite scene. The UI is not affected by the camera.
  *
  * @param env The global state of the application.
  */
 void tkbc_input_handler_camera(Env *env) {
-    if (!env || !tkbc_alt_is_down()) {
+    if (!env) {
         return;
     }
 
@@ -47,6 +47,16 @@ void tkbc_input_handler_camera(Env *env) {
     size_t width = tkbc_get_screen_width();
     size_t height = tkbc_get_screen_height();
     tkbc_camera_sync_viewport(camera, width, height);
+
+    if (IsKeyPressed(KEY_F3)) {
+        camera->target = env->grid_center;
+        camera->zoom = 1.0f;
+        return;
+    }
+
+    if (!tkbc_alt_is_down()) {
+        return;
+    }
 
     Vector2 mouse = GetMousePosition();
     Vector2 world_before_zoom = GetScreenToWorld2D(mouse, *camera);
