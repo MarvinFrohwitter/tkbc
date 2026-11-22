@@ -1285,12 +1285,17 @@ bool tkbc_received_message_handler(Client *client) {
                 goto err;
             }
 
-            // With a correct client implementation the state should always be
-            // available. No memory corruption on the server side implied.
             Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
             if (state == NULL) {
+                // A script deletion removes its kites on the server while
+                // other clients can still have updates for them in flight.
+                // Those updates are stale, not a protocol error: ignoring them
+                // keeps the lagging client connected until it processes the
+                // SCRIPT_DELETE/SCRIPT_META_DATA broadcasts.
                 space_reset_tspace();
-                goto err;  // Disconnect the client.
+                tkbc_fprintf(stderr, "WARNING", "SINGLE_KITE_UPDATE: unknown kite id %zu, ignoring stale update.\n",
+                             kite_id);
+                break;
             }
             if (tkbc_uuid_is_nil(texture_id)) {
                 // Store the image under the uuid the client assigned to it, so

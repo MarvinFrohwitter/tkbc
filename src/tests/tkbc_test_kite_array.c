@@ -1,6 +1,7 @@
 #include "../../external/cassert/cassert.h"
 
 #include "../choreographer/tkbc.h"
+#include "../choreographer/tkbc-script-handler.h"
 #include "../global/tkbc-types.h"
 #include "../network/tkbc-network-common.h"
 
@@ -503,6 +504,37 @@ Test ghost_remote_edit_needs_active_target(void) {
     return test;
 }
 
+Test script_delete_clears_ghosts_of_running_script(void) {
+    Test test = cassert_init_test("tkbc_unload_script_from_memory(clears ghosts of running script)");
+
+    Env test_env = {0};
+    Script script = {0};
+    script.id = tkbc_uuid_from_number(77);
+    tkbc_dap(&test_env.scripts, script);
+    test_env.script = &test_env.scripts.elements[0];
+    test_env.server_script_id = script.id;
+
+    Kite_State target = ghost_test_target(12);
+    tkbc_dap(&test_env.kite_array, target);
+    Kite_State *ghost = tkbc_update_or_create_ghost_kite(&test_env, &target, 13, 100.0f, 200.0f, 0.0f);
+    cassert_bool_eq(ghost != NULL, true);
+    cassert_size_t_eq(test_env.ghost_kites.count, (size_t) 1);
+
+    // Deleting the running script hides it and must not leave ghosts behind.
+    // A ghost would otherwise answer the following deselection broadcasts
+    // with a stale update for a kite the server has already removed.
+    tkbc_unload_script_from_memory(&test_env, script.id);
+
+    cassert_size_t_eq(test_env.ghost_kites.count, (size_t) 0);
+    cassert_bool_eq(test_env.script == NULL, true);
+    cassert_bool_eq(tkbc_uuid_is_nil(test_env.server_script_id), true);
+
+    free(test_env.scripts.elements);
+    tkbc_destroy_kite_array(&test_env.kite_array);
+    tkbc_destroy_kite_array(&test_env.ghost_kites);
+    return test;
+}
+
 /**
  * @brief Run all kite array unit tests.
  *
@@ -526,4 +558,5 @@ void tkbc_test_kite_array(Tests *tests) {
     cassert_dap(tests, ghost_clear_all_removes_every_ghost());
     cassert_dap(tests, ghost_remote_edit_ignored_without_loaded_script());
     cassert_dap(tests, ghost_remote_edit_needs_active_target());
+    cassert_dap(tests, script_delete_clears_ghosts_of_running_script());
 }

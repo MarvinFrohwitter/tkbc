@@ -47,11 +47,6 @@ bool tkbc_messages_script_delete(Env *env, Message *reader, Client *client) {
         return true;
     }
 
-    // The deletion can remove the kites of the script, so the selections that
-    // point at one of those kites have to be released. Selections of kites that
-    // still exist (a different running script) stay intact.
-    tkbc_server_clear_missing_kite_selections(true, -1);
-
     {
         Message message = {0};
         size_t offset = tkbc_message_write_begin(&message, space_get_tspace(), MESSAGE_SCRIPT_DELETE);
@@ -63,9 +58,18 @@ bool tkbc_messages_script_delete(Env *env, Message *reader, Client *client) {
         space_reset_tspace();
 
         if (ok == -1) {
+            // Announce the unload before the deselections below. Otherwise a
+            // receiving client can still see the deleted script kites as
+            // active and answer a deselection with an update for a kite the
+            // server has already removed.
             tkbc_message_script_meta_data_write_to_all_send_msg_buffers(tkbc_uuid_nil(), 0, 0);
         }
     }
+
+    // The deletion can remove the kites of the script, so the selections that
+    // point at one of those kites have to be released. Selections of kites that
+    // still exist (a different running script) stay intact.
+    tkbc_server_clear_missing_kite_selections(true, -1);
 #else
     (void) client;
 #endif

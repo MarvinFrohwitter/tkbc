@@ -712,12 +712,15 @@ bool received_message_handler(Message *message) {
                 // the live updates again and no ghost may linger.
                 tkbc_clear_ghost_kites_for_target(env, (size_t) kite_id);
 
-                // The remaining controller is authoritative again. Push its
-                // current local position so every client follows it right away
-                // instead of waiting for its next input change or snapshot.
-                Kite_State *remaining = tkbc_get_kite_state_by_id(env, (size_t) kite_id);
-                if (remaining && remaining->is_kite_input_handler_active && remaining->is_active) {
-                    tkbc_client_send_single_kite_update(remaining);
+                // Only a single remaining controller is authoritative. With
+                // zero controllers the kite was just unloaded/deleted, so
+                // pushing its last position would send a stale update for a
+                // kite that the server may already have removed.
+                if (controller_count == 1) {
+                    Kite_State *remaining = tkbc_get_kite_state_by_id(env, (size_t) kite_id);
+                    if (remaining && remaining->is_kite_input_handler_active && remaining->is_active) {
+                        tkbc_client_send_single_kite_update(remaining);
+                    }
                 }
             }
 

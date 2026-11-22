@@ -1107,6 +1107,10 @@ void tkbc_unload_script(Env *env) {
  * @param script_id The id of the script that should be unloaded.
  * @return 0 if the unloading was successful, otherwise 1 if the script could not be found or -1 if the currently loaded
  * script was deleted in the middle of unloading the given one.
+ *
+ * Unloading the currently running script also clears its ghost kites, so a
+ * following deselection cannot push an update for a kite that is no longer
+ * part of the active view.
  */
 int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
     Index loaded_frames_index = 0;
@@ -1129,6 +1133,7 @@ int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
         if (tkbc_uuid_equals(script_id, env->scripts.elements[i].id)) {
             if (env->script && tkbc_uuid_equals(script_id, env->script->id)) {
                 tkbc_unload_script(env);
+                tkbc_clear_ghost_kites(env);
                 tkbc_change_visibility_to_non_script_kites(env);
             }
             // TODO: Remove guard TKBC_SERVER, when the client in offline mode also generates kites for each script
