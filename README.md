@@ -597,5 +597,14 @@ END
 | `KEY_KP_1`              | Set kite to angle top left in precision mode                      |
 | `KEY_KP_5`              | EASTER EGG!                                                       |
 | `KEY_LESS_THAN`         | Toggle reverse mouse follow                                       |
+| `ALT + MOUSE_WHEEL`     | Zoom the kite scene in/out, centered on the mouse cursor.         |
+| `ALT + W/A/S/D`         | Move the view up/left/down/right (the scene moves oppositely).    |
+| `ALT + ARROW_KEYS`      | Move the view up/left/down/right (the scene moves oppositely).    |
+
+The camera controls only transform the kite scene and its grid; the UI stays in
+place. With the grid enabled (`KEY_F2`), the grid is laid out from the original
+scene center, which is marked by a red horizontal and a green vertical middle
+line. While ALT is held, kite movement keys and mouse wheel speed changes are
+ignored so panning and zooming do not move the kites.
 
 ---

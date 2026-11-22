@@ -8,23 +8,26 @@
 // ========================== KEYBOARD INPUT =================================
 // ===========================================================================
 
-void tkbc_input_handler(Key_Maps keymaps, Kite_State *state);
+bool tkbc_alt_is_down(void);
+void tkbc_input_handler_camera(Env *env);
+
+void tkbc_input_handler(Key_Maps keymaps, Kite_State *state, const Camera2D *camera);
 void tkbc_input_handler_kite_array(Env *env);
 void tkbc_input_check_rotation(Key_Maps keymaps, Kite_State *s);
 void tkbc_input_check_tip_turn(Key_Maps keymaps, Kite_State *s);
 void tkbc_input_check_movement(Key_Maps keymaps, Kite_State *state);
 void tkbc_input_check_speed(Key_Maps keymaps, Kite_State *state);
-void tkbc_input_check_mouse(Kite_State *state);
+void tkbc_input_check_mouse(Kite_State *state, const Camera2D *camera);
 
 void tkbc_input_check_locked_angle(Kite_State *state);
-void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state);
+void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state, const Camera2D *camera);
 void tkbc_input_check_rotation_mouse_control(Key_Maps keymaps, Kite_State *s);
 void tkbc_input_check_tip_rotation_mouse_control(Key_Maps keymaps, Kite_State *s);
 
-void tkbc_calculate_and_update_face_mouse_angle(Kite_State *state);
-void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state);
+void tkbc_calculate_and_update_face_mouse_angle(Kite_State *state, const Camera2D *camera);
+void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state, const Camera2D *camera);
 void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps, Kite_State *state);
 bool tkbc_calculate_and_update_locked_angles(Key_Maps keymaps, Kite_State *state);
-bool tkbc_check_is_mouse_in_dead_zone(Kite_State *state, size_t dead_zone_radius);
+bool tkbc_check_is_mouse_in_dead_zone(Kite_State *state, size_t dead_zone_radius, const Camera2D *camera);
 
 #endif  // TKBC_INPUT_HANDLER_H_

@@ -89,6 +89,15 @@ Env *tkbc_init_env(void) {
     env->script_setup = true;
     env->window_width = tkbc_get_screen_width();
     env->window_height = tkbc_get_screen_height();
+    // The camera starts out as an identity transform: the world origin is the
+    // screen origin and one world unit is one screen pixel.
+    env->camera.target = (Vector2){env->window_width / 2.0f, env->window_height / 2.0f};
+    env->camera.offset = (Vector2){env->window_width / 2.0f, env->window_height / 2.0f};
+    env->camera.rotation = 0;
+    env->camera.zoom = 1.0f;
+    // The center of the initial view stays a fixed world position even when
+    // the window is resized or the camera is moved around.
+    env->grid_center = env->camera.target;
     env->script_finished = true;
     env->fps = TARGET_FPS;
     env->show_kite_information = true;
@@ -214,6 +223,35 @@ Env *tkbc_init_env(void) {
     // of room before the allocations become slower.
     space_init_capacity(&env->scratch_buf_script.space, SCIRPT_CREATION_INIT_SIZE * 64);
     return env;
+}
+
+/**
+ * @brief Keeps the camera centered on the current window size. The offset is
+ * the screen point the camera target is drawn at, so it has to follow window
+ * resizes to keep panning and zooming predictable.
+ *
+ * @param camera The camera of the kite scene.
+ * @param width The current window width.
+ * @param height The current window height.
+ */
+void tkbc_camera_sync_viewport(Camera2D *camera, size_t width, size_t height) {
+    assert(camera);
+    camera->offset = (Vector2){width / 2.0f, height / 2.0f};
+}
+
+/**
+ * @brief Converts a screen position into scene coordinates without depending
+ * on raylib runtime functions, so this stays usable in server builds.
+ *
+ * @param screen The position in window pixels.
+ * @param camera The camera of the kite scene.
+ * @return The corresponding position in scene coordinates.
+ */
+static Vector2 tkbc_camera_screen_to_world(Vector2 screen, const Camera2D *camera) {
+    return (Vector2){
+        (screen.x - camera->offset.x) / camera->zoom + camera->target.x,
+        (screen.y - camera->offset.y) / camera->zoom + camera->target.y,
+    };
 }
 
 /**
@@ -1045,18 +1083,39 @@ static Color tkbc_dim_color(Color color, float factor) {
  *
  * @param state The kite_state that contains the kite that is going to be drawn.
  * @param factor The dim factor between 0 and 1, 1 means no dimming.
+ * @param camera The camera of the kite scene, used to clamp to the visible area.
  */
-static void tkbc_draw_kite_with_factor(Kite_State *state, float factor) {
+static void tkbc_draw_kite_with_factor(Kite_State *state, float factor, const Camera2D *camera) {
     assert(state);
     assert(state->kite);
-    if (state->is_kite_input_handler_active) {  // Clamping to the viewport
+    if (state->is_kite_input_handler_active) {  // Clamping to the visible scene area
         size_t window_padding = state->kite->width > state->kite->height ? state->kite->width / 2 : state->kite->height;
-        Vector2 window = {
-            tkbc_get_screen_width() - window_padding,
-            tkbc_get_screen_height() - window_padding,
+        float padding = (float) window_padding;
+        Vector2 top_left = {0};
+        Vector2 bottom_right = {
+            (float) tkbc_get_screen_width(),
+            (float) tkbc_get_screen_height(),
         };
-        state->kite->center.y = tkbc_clamp(state->kite->center.y, window_padding, window.y);
-        state->kite->center.x = tkbc_clamp(state->kite->center.x, window_padding, window.x);
+        if (camera) {
+            top_left = tkbc_camera_screen_to_world(top_left, camera);
+            bottom_right = tkbc_camera_screen_to_world(bottom_right, camera);
+        }
+
+        // With a very small kite and a heavily zoomed in view the padded range
+        // can collapse; in that case keep the kite at the center of the range.
+        float min_x = top_left.x + padding;
+        float max_x = bottom_right.x - padding;
+        float min_y = top_left.y + padding;
+        float max_y = bottom_right.y - padding;
+        if (min_x > max_x) {
+            min_x = max_x = (min_x + max_x) / 2.0f;
+        }
+        if (min_y > max_y) {
+            min_y = max_y = (min_y + max_y) / 2.0f;
+        }
+
+        state->kite->center.y = tkbc_clamp(state->kite->center.y, min_y, max_y);
+        state->kite->center.x = tkbc_clamp(state->kite->center.x, min_x, max_x);
         tkbc_kite_update_internal(state->kite);
     }
 
@@ -1120,9 +1179,10 @@ static void tkbc_draw_kite_with_factor(Kite_State *state, float factor) {
  *
  * @param state The kite_state that contains the kite that is going to be
  * drawn.
+ * @param camera The camera of the kite scene.
  */
-void tkbc_draw_kite(Kite_State *state) {
-    tkbc_draw_kite_with_factor(state, 1.0f);
+void tkbc_draw_kite(Kite_State *state, const Camera2D *camera) {
+    tkbc_draw_kite_with_factor(state, 1.0f, camera);
 }
 
 /**
@@ -1130,11 +1190,12 @@ void tkbc_draw_kite(Kite_State *state) {
  * with its corresponding position on the screen.
  *
  * @param kite_states The given kite array.
+ * @param camera The camera of the kite scene.
  */
-void tkbc_draw_kite_array(Kite_States kite_states) {
+void tkbc_draw_kite_array(Kite_States kite_states, const Camera2D *camera) {
     for (size_t i = 0; i < kite_states.count; ++i) {
         if (kite_states.elements[i].is_active) {
-            tkbc_draw_kite(&kite_states.elements[i]);
+            tkbc_draw_kite(&kite_states.elements[i], camera);
         }
     }
 }
@@ -1153,7 +1214,7 @@ void tkbc_draw_ghost_kites(Env *env) {
     for (size_t i = 0; i < env->ghost_kites.count; ++i) {
         Kite_State *ghost = &env->ghost_kites.elements[i];
         if (ghost->is_active) {
-            tkbc_draw_kite_with_factor(ghost, TKBC_GHOST_KITE_DIM);
+            tkbc_draw_kite_with_factor(ghost, TKBC_GHOST_KITE_DIM, &env->camera);
         }
     }
 }

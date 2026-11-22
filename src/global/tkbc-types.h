@@ -552,6 +552,12 @@ typedef struct {
     size_t window_width;   // The window width of the application.
     size_t window_height;  // The window height of the application.
 
+    Camera2D camera;  // The view onto the kite scene. Only the scene is
+                      // transformed; the UI is drawn in screen coordinates.
+    Vector2 grid_center;  // World position of the original scene center. The
+                          // grid marks it with a red horizontal and a green
+                          // vertical line so panning can be reoriented.
+
     Space _id_space;            // A temporal allocation buffer for script ids.
     Frames scratch_buf_frames;  // A buffer that can be used to construct frames.
     Script scratch_buf_script;  // A buffer that can be used to

@@ -878,7 +878,7 @@ static bool tkbc_client_send_single_kite_update(Kite_State *kite_state) {
 static bool tkbc_update_kites_input_handling_for_message_single_kite_update(Kite_State *kite_state) {
     Vector2 pos = kite_state->kite->center;
     float angle = kite_state->kite->angle;
-    tkbc_input_handler(env->keymaps, kite_state);
+    tkbc_input_handler(env->keymaps, kite_state, &env->camera);
     if (client.socket_id == -1) {
         return true;
     }
@@ -910,6 +910,10 @@ static bool tkbc_update_kites_input_handling_for_message_single_kite_update(Kite
  * send_message_queue.
  */
 void tkbc_client_input_handler_kite(void) {
+    // Alt modifies the camera; don't toggle kite selections while panning.
+    if (tkbc_alt_is_down()) {
+        return;
+    }
     if (!tkbc_uuid_is_nil(env->server_script_id) || env->script) {
 
         {  ///////////////////////////////////////////////////////////////////////
@@ -1239,6 +1243,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
+        tkbc_input_handler_camera(env);
         tkbc_input_music_handler(env);
         tkbc_client_input_handler_kite();
 
@@ -1470,9 +1475,12 @@ bool tkbc_run(Env *env) {
         }
 
         tkbc_update_kites_for_resize_window(env);
+        tkbc_camera_sync_viewport(&env->camera, tkbc_get_screen_width(), tkbc_get_screen_height());
+        BeginMode2D(env->camera);
         tkbc_draw_grid_lines(env);
-        tkbc_draw_kite_array(env->kite_array);
+        tkbc_draw_kite_array(env->kite_array, &env->camera);
         tkbc_draw_ghost_kites(env);
+        EndMode2D();
         tkbc_draw_ui(env);
     }
 

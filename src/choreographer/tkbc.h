@@ -118,8 +118,9 @@ void tkbc_tip_rotation(Kite *kite, const Vector2 *position, float tip_deg_rotati
 
 // ========================== KITE DISPLAY ===================================
 
-void tkbc_draw_kite(Kite_State *state);
-void tkbc_draw_kite_array(Kite_States kite_states);
+void tkbc_camera_sync_viewport(Camera2D *camera, size_t width, size_t height);
+void tkbc_draw_kite(Kite_State *state, const Camera2D *camera);
+void tkbc_draw_kite_array(Kite_States kite_states, const Camera2D *camera);
 void tkbc_draw_ghost_kites(Env *env);
 void tkbc_update_kites_for_resize_window(Env *env);
 

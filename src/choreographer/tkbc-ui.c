@@ -8,6 +8,7 @@
 #include "../global/tkbc-utils.h"
 #include "raylib.h"
 #include "rlgl.h"
+#include "tkbc-input-handler.h"
 #include "tkbc-keymaps.h"
 #include "tkbc-script-api.h"
 #include "tkbc-script-converter.h"
@@ -163,20 +164,48 @@ void tkbc_draw_grid_lines(Env *env) {
     size_t segment_height;
     segment_width = segment_height = (size_t) env->vanilla_kite->width >> 1;
 
-    size_t horizontall_amount = env->window_width / segment_width;
-    size_t vertical_amount = env->window_height / segment_height;
+    if (segment_width == 0 || segment_height == 0) {
+        return;
+    }
 
-    for (size_t x = 0; x <= segment_width * horizontall_amount; x += segment_width) {
-        Vector2 start_position = {.x = x, .y = 0};
-        Vector2 end_position = {.x = x, .y = env->window_height};
+    // Draw over the currently visible part of the scene, not just the original
+    // window-sized area, so the grid follows panning and zooming.
+    Vector2 top_left = GetScreenToWorld2D((Vector2){0, 0}, env->camera);
+    Vector2 bottom_right = GetScreenToWorld2D(
+        (Vector2){(float) tkbc_get_screen_width(), (float) tkbc_get_screen_height()}, env->camera);
+
+    // Lay the grid out from the original scene center so the red/green lines
+    // are the actual middle grid lines instead of a separate overlay.
+    float first_x = env->grid_center.x + floorf((top_left.x - env->grid_center.x) / segment_width) * segment_width;
+    float last_x = env->grid_center.x + ceilf((bottom_right.x - env->grid_center.x) / segment_width) * segment_width;
+    float first_y = env->grid_center.y + floorf((top_left.y - env->grid_center.y) / segment_height) * segment_height;
+    float last_y = env->grid_center.y + ceilf((bottom_right.y - env->grid_center.y) / segment_height) * segment_height;
+
+    // Guard against drawing an unreasonable number of lines for very small
+    // kite widths combined with a zoomed out view.
+    if ((last_x - first_x) / segment_width > 2048 || (last_y - first_y) / segment_height > 2048) {
+        return;
+    }
+
+    for (float x = first_x; x <= last_x; x += segment_width) {
+        Vector2 start_position = {.x = x, .y = top_left.y};
+        Vector2 end_position = {.x = x, .y = bottom_right.y};
         DrawLineEx(start_position, end_position, thick, color);
     }
 
-    for (size_t y = 0; y <= segment_height * vertical_amount; y += segment_height) {
-        Vector2 start_position = {.x = 0, .y = y};
-        Vector2 end_position = {.x = env->window_width, .y = y};
+    for (float y = first_y; y <= last_y; y += segment_height) {
+        Vector2 start_position = {.x = top_left.x, .y = y};
+        Vector2 end_position = {.x = bottom_right.x, .y = y};
         DrawLineEx(start_position, end_position, thick, color);
     }
+
+    // Mark the center of the original view so it stays recognizable after
+    // panning and zooming. Keep the lines equally thick on screen at any zoom.
+    float center_thick = 3.0f / env->camera.zoom;
+    DrawLineEx((Vector2){top_left.x, env->grid_center.y}, (Vector2){bottom_right.x, env->grid_center.y}, center_thick,
+               RED);
+    DrawLineEx((Vector2){env->grid_center.x, top_left.y}, (Vector2){env->grid_center.x, bottom_right.y}, center_thick,
+               GREEN);
 }
 
 /**
@@ -782,7 +811,8 @@ void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t item
     }
 
     if (CheckCollisionPointRec(mouse, outer_container)) {
-        if (GetMouseWheelMove()) {
+        // With Alt held the wheel belongs to the scene camera, not the list.
+        if (!tkbc_alt_is_down() && GetMouseWheelMove()) {
             if (GetMouseWheelMoveV().y < 0) {
                 if (*top_interaction_box < items_count - screen_items) {
                     *top_interaction_box += 1;
@@ -2655,7 +2685,7 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
 
         bool shift_down = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
 
-        if (IsKeyPressedRepeat(KEY_RIGHT) || IsKeyPressed(KEY_RIGHT)) {
+        if (!tkbc_alt_is_down() && (IsKeyPressedRepeat(KEY_RIGHT) || IsKeyPressed(KEY_RIGHT))) {
             if (shift_down) {
                 if (input->selection_start == SIZE_MAX) {
                     input->selection_start = input->cursor_pos;
@@ -2673,7 +2703,7 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
                 input->cursor_pos += 1;
             }
         }
-        if (IsKeyPressedRepeat(KEY_LEFT) || IsKeyPressed(KEY_LEFT)) {
+        if (!tkbc_alt_is_down() && (IsKeyPressedRepeat(KEY_LEFT) || IsKeyPressed(KEY_LEFT))) {
             if (shift_down) {
                 if (input->selection_start == SIZE_MAX) {
                     input->selection_start = input->cursor_pos;
@@ -2728,7 +2758,7 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
 
         bool ctrl_down = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
 
-        if (ctrl_down && (IsKeyPressed(KEY_LEFT))) {
+        if (!tkbc_alt_is_down() && ctrl_down && (IsKeyPressed(KEY_LEFT))) {
             if (shift_down) {
                 if (input->selection_start == SIZE_MAX) {
                     input->selection_start = input->cursor_pos;
@@ -2744,7 +2774,7 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
             }
             input->cursor_pos = tkbc_find_word_left(input);
         }
-        if (ctrl_down && (IsKeyPressed(KEY_RIGHT))) {
+        if (!tkbc_alt_is_down() && ctrl_down && (IsKeyPressed(KEY_RIGHT))) {
             if (shift_down) {
                 if (input->selection_start == SIZE_MAX) {
                     input->selection_start = input->cursor_pos;

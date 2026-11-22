@@ -7,6 +7,75 @@
 #include "tkbc.h"
 #include <math.h>
 
+#define TKBC_CAMERA_MIN_ZOOM 0.25f
+#define TKBC_CAMERA_MAX_ZOOM 8.0f
+#define TKBC_CAMERA_ZOOM_STEP 1.1f
+#define TKBC_CAMERA_PAN_SPEED 800.0f  // Screen pixels per second at zoom 1.
+
+/**
+ * @brief Checks if either alt key is held down. Alt is the modifier for all
+ * camera (scene pan and zoom) controls.
+ */
+bool tkbc_alt_is_down(void) {
+    return IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT);
+}
+
+/**
+ * @brief Returns the mouse position in scene coordinates instead of window
+ * coordinates, so mouse interaction keeps working after panning and zooming.
+ */
+static Vector2 tkbc_scene_mouse_position(const Camera2D *camera) {
+    Vector2 mouse = GetMousePosition();
+    if (!camera) {
+        return mouse;
+    }
+    return GetScreenToWorld2D(mouse, *camera);
+}
+
+/**
+ * @brief Handles ALT + mouse wheel zooming and ALT + WASD/arrow key panning of
+ * the kite scene. The UI is not affected by the camera.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_input_handler_camera(Env *env) {
+    if (!env || !tkbc_alt_is_down()) {
+        return;
+    }
+
+    Camera2D *camera = &env->camera;
+    size_t width = tkbc_get_screen_width();
+    size_t height = tkbc_get_screen_height();
+    tkbc_camera_sync_viewport(camera, width, height);
+
+    Vector2 mouse = GetMousePosition();
+    Vector2 world_before_zoom = GetScreenToWorld2D(mouse, *camera);
+
+    float wheel = GetMouseWheelMoveV().y;
+    if (fabsf(wheel) > 0.0001f) {
+        float zoom = tkbc_clamp(camera->zoom * powf(TKBC_CAMERA_ZOOM_STEP, wheel), TKBC_CAMERA_MIN_ZOOM,
+                                TKBC_CAMERA_MAX_ZOOM);
+        // Move the target so the scene point under the cursor stays under it.
+        Vector2 center = {width / 2.0f, height / 2.0f};
+        camera->target.x = world_before_zoom.x - (mouse.x - center.x) / zoom;
+        camera->target.y = world_before_zoom.y - (mouse.y - center.y) / zoom;
+        camera->zoom = zoom;
+    }
+
+    Vector2 pan = {0};
+    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) pan.x -= 1;
+    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) pan.x += 1;
+    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) pan.y -= 1;
+    if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) pan.y += 1;
+
+    if (pan.x != 0 || pan.y != 0) {
+        pan = Vector2Normalize(pan);
+        float distance = TKBC_CAMERA_PAN_SPEED * tkbc_get_frame_time() / camera->zoom;
+        camera->target.x += pan.x * distance;
+        camera->target.y += pan.y * distance;
+    }
+}
+
 // ========================== KEYBOARD INPUT =================================
 
 /**
@@ -15,8 +84,13 @@
  *
  * @param keymaps The current set keymaps.
  * @param state The current state of a kite that should be handled.
+ * @param camera The camera of the kite scene, used to convert mouse input.
  */
-void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
+void tkbc_input_handler(Key_Maps keymaps, Kite_State *state, const Camera2D *camera) {
+    // Alt is reserved for camera controls; kites must not move while panning.
+    if (tkbc_alt_is_down()) {
+        return;
+    }
     if (!state->is_kite_input_handler_active) {
         return;
     }
@@ -88,7 +162,7 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
         state->interrupt_smoothness = false;
     }
 
-    tkbc_mouse_control(keymaps, state);
+    tkbc_mouse_control(keymaps, state, camera);
     if (!state->is_mouse_control) {
         if (state->interrupt_smoothness) {  // This is possibly not needed but while
                                             // implementing the mouse control i don't
@@ -99,7 +173,7 @@ void tkbc_input_handler(Key_Maps keymaps, Kite_State *state) {
 
             return;
         }
-        tkbc_input_check_mouse(state);
+        tkbc_input_check_mouse(state, camera);
         tkbc_input_check_rotation(keymaps, state);
         tkbc_input_check_tip_turn(keymaps, state);
     }
@@ -156,7 +230,7 @@ void tkbc_input_handler_kite_array(Env *env) {
             continue;
         }
 
-        tkbc_input_handler(env->keymaps, s);
+        tkbc_input_handler(env->keymaps, s, &env->camera);
     }
 }
 
@@ -346,9 +420,10 @@ void tkbc_input_check_speed(Key_Maps keymaps, Kite_State *state) {
  * current mouse position and action.
  *
  * @param state The current state of a kite that should be handled.
+ * @param camera The camera of the kite scene, used to convert mouse input.
  */
-void tkbc_input_check_mouse(Kite_State *state) {
-    Vector2 mouse_pos = GetMousePosition();
+void tkbc_input_check_mouse(Kite_State *state, const Camera2D *camera) {
+    Vector2 mouse_pos = tkbc_scene_mouse_position(camera);
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
         tkbc_kite_update_position(state->kite, &mouse_pos);
@@ -366,8 +441,9 @@ void tkbc_input_check_mouse(Kite_State *state) {
  *
  * @param keymaps The current set keymaps.
  * @param state The current state of a kite that should be handled.
+ * @param camera The camera of the kite scene, used to convert mouse input.
  */
-void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
+void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state, const Camera2D *camera) {
     // KEY_ZERO
 
     if (tkbc_check_keymaps_full(keymaps, KMH_SWITCH_MOUSE_CONTOL_MOVEMENT, KEY_MAP_CHECK_KEY_PRESSED)) {
@@ -403,11 +479,11 @@ void tkbc_mouse_control(Key_Maps keymaps, Kite_State *state) {
     state->is_rotating = false;
 
     Kite *kite = state->kite;
-    tkbc_check_is_mouse_in_dead_zone(state, kite->height / 2);
+    tkbc_check_is_mouse_in_dead_zone(state, kite->height / 2, camera);
     tkbc_calculate_and_update_locked_angles(keymaps, state);
-    tkbc_calculate_and_update_face_mouse_angle(state);
+    tkbc_calculate_and_update_face_mouse_angle(state, camera);
     tkbc_calculate_and_update_snapping_angle(keymaps, state);
-    tkbc_calculate_new_kite_position(keymaps, state);
+    tkbc_calculate_new_kite_position(keymaps, state, camera);
 
     tkbc_kite_update_internal(state->kite);
 }
@@ -572,11 +648,12 @@ void tkbc_input_check_tip_rotation_mouse_control(Key_Maps keymaps, Kite_State *s
  *
  * @param keymaps The current set keymaps.
  * @param state The current state of a kite that should be handled.
+ * @param camera The camera of the kite scene, used to convert mouse input.
  */
-void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state) {
+void tkbc_calculate_new_kite_position(Key_Maps keymaps, Kite_State *state, const Camera2D *camera) {
     // Movement corresponding to the mouse position.
     Kite *kite = state->kite;
-    Vector2 mouse_pos = GetMousePosition();
+    Vector2 mouse_pos = tkbc_scene_mouse_position(camera);
     Vector2 face = {
         .x = kite->right.v3.x - kite->left.v1.x,
         .y = kite->right.v3.y - kite->left.v1.y,
@@ -793,10 +870,11 @@ void tkbc_calculate_and_update_snapping_angle(Key_Maps keymaps, Kite_State *stat
  * @param state The current state of a kite that should be handled.
  * @param dead_zone_radius Represents the radius where the kite can't move any
  * closer to the mouse.
+ * @param camera The camera of the kite scene, used to convert mouse input.
  * @return True if the mouse is to close to the kite, otherwise false.
  */
-bool tkbc_check_is_mouse_in_dead_zone(Kite_State *state, size_t dead_zone_radius) {
-    Vector2 mouse_position = GetMousePosition();
+bool tkbc_check_is_mouse_in_dead_zone(Kite_State *state, size_t dead_zone_radius, const Camera2D *camera) {
+    Vector2 mouse_position = tkbc_scene_mouse_position(camera);
     if (fabsf(mouse_position.x - state->kite->center.x) <= dead_zone_radius &&
         fabsf(mouse_position.y - state->kite->center.y) <= dead_zone_radius) {
         state->is_mouse_in_dead_zone = true;
@@ -843,8 +921,9 @@ bool tkbc_calculate_and_update_locked_angles(Key_Maps keymaps, Kite_State *state
  * @brief The function computes the new angle in respect to the mouse position.
  *
  * @param state The current state of a kite that should be handled.
+ * @param camera The camera of the kite scene, used to convert mouse input.
  */
-void tkbc_calculate_and_update_face_mouse_angle(Kite_State *state) {
+void tkbc_calculate_and_update_face_mouse_angle(Kite_State *state, const Camera2D *camera) {
     if (state->is_rotating) {
         return;
     }
@@ -854,7 +933,7 @@ void tkbc_calculate_and_update_face_mouse_angle(Kite_State *state) {
         .x = kite->right.v3.x - kite->left.v1.x,
         .y = kite->right.v3.y - kite->left.v1.y,
     };
-    Vector2 mouse_pos = GetMousePosition();
+    Vector2 mouse_pos = tkbc_scene_mouse_position(camera);
     Vector2 distance_to_mouse = {
         .x = mouse_pos.x - kite->center.x,
         .y = mouse_pos.y - kite->center.y,

@@ -123,8 +123,11 @@ int main(void) {
         }
 
         tkbc_update_kites_for_resize_window(env);
-        tkbc_draw_kite_array(env->kite_array);
+        tkbc_camera_sync_viewport(&env->camera, tkbc_get_screen_width(), tkbc_get_screen_height());
+        BeginMode2D(env->camera);
+        tkbc_draw_kite_array(env->kite_array, &env->camera);
         tkbc_draw_grid_lines(env);
+        EndMode2D();
         tkbc_draw_ui(env);
         EndDrawing();
         tkbc_ui_post_handler(env);
@@ -134,6 +137,7 @@ int main(void) {
             continue;
         }
 
+        tkbc_input_handler_camera(env);
         tkbc_input_music_handler(env);
         tkbc_input_handler_kite_array(env);
         tkbc_input_handler_script(env);
