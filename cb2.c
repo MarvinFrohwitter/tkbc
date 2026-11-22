@@ -297,6 +297,7 @@ void files_for_test(Cmd *cmd) {
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-asset-handler.c");
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-parser.c");
     cb_cmd_push(cmd, CHOREOGRAPHER_PATH "tkbc-script-converter.c");
+    cb_cmd_push(cmd, NETWORK_PATH "tkbc-network-common.c");
 
     cb_cmd_push(cmd, GLOBAL_PATH "tkbc-uuid.c");
 }

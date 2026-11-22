@@ -105,8 +105,20 @@ void tkbc_assign_values_to_kitestate_from_source(Kite_State *state, float x, flo
     //
     // Marvin Frohwitter 30.10.2026
     //
+    // A direct remote edit is the only message that can revive a kite through
+    // its is_active flag. Only kites of the view that is currently active are
+    // allowed to become visible: script kites while a script is loaded,
+    // free-fly kites after NO SCRIPT. This mirrors the server side guard and
+    // also protects clients that are still draining updates sent before the
+    // unload. env->script is the local source when a script was loaded here,
+    // server_script_id covers scripts that arrived from the server.
+    bool script_active = env != NULL && (env->script != NULL || !tkbc_uuid_is_nil(env->server_script_id));
+    if (source_kite_id >= 0 && is_script_kite != script_active) {
+        is_active = false;
+    }
+
     bool has_local_authority = is_script_kite && state->is_script_kite && state->is_kite_input_handler_active;
-    if (is_script_kite && source_kite_id >= 0 && controller_count >= 2) {
+    if (is_script_kite && source_kite_id >= 0 && controller_count >= 2 && is_active && state->is_active) {
         if (is_active) {
             Kite_State *ghost = tkbc_update_or_create_ghost_kite(env, state, (int64_t) source_kite_id, x, y, angle);
             if (ghost) {

@@ -1315,10 +1315,14 @@ bool tkbc_received_message_handler(Client *client) {
                 tkbc_set_kite_texture_id(state->kite, texture_id);
             }
 
-            // While a script is loaded (playing or paused) only script kites
-            // are displayed, so a free-fly kite must not become visible
-            // through its own updates.
-            if (env->script != NULL && !state->is_script_kite) {
+            // Only kites of the currently active view may be made visible by
+            // an update: while a script is loaded that means script kites,
+            // after NO SCRIPT it means the free-fly kites. A client that has
+            // not processed the unload yet keeps sending updates for kites of
+            // the old script. Without the reverse guard those updates would
+            // reactivate the old script kites on the server and, through the
+            // rebroadcast, on every other client as well.
+            if ((env->script != NULL) != state->is_script_kite) {
                 is_active = false;
             }
             tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id, is_reversed, is_active,

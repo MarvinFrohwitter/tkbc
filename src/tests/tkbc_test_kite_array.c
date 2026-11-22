@@ -2,10 +2,13 @@
 
 #include "../choreographer/tkbc.h"
 #include "../global/tkbc-types.h"
+#include "../network/tkbc-network-common.h"
 
 #include "../../external/space/space.h"
 
 #include <stdlib.h>
+
+extern Env *env;
 
 /**
  * @brief Fills the given kite array with one kite per given is_script_kite
@@ -449,6 +452,57 @@ Test ghost_clear_all_removes_every_ghost(void) {
     return test;
 }
 
+Test ghost_remote_edit_ignored_without_loaded_script(void) {
+    Test test = cassert_init_test("tkbc_assign_values_to_kitestate_from_source(no ghost without script)");
+
+    Env *saved_env = env;
+    Env test_env = {0};
+    env = &test_env;
+    Kite_State target = ghost_test_target(8);
+
+    // A client that has not processed NO SCRIPT yet can still send an update
+    // with is_active and a controller count from the unloaded script. With no
+    // script active the edit must neither revive the old script kite nor
+    // create a ghost for it.
+    tkbc_assign_values_to_kitestate_from_source(&target, 500.0f, 600.0f, 60.0f, target.kite->body_color,
+                                                target.kite->texture_id, false, true, true, 7, 2);
+
+    cassert_size_t_eq(test_env.ghost_kites.count, (size_t) 0);
+    cassert_bool_eq(target.is_active, false);
+
+    tkbc_destroy_kite_array(&test_env.ghost_kites);
+    free(target.kite);
+    env = saved_env;
+    return test;
+}
+
+Test ghost_remote_edit_needs_active_target(void) {
+    Test test = cassert_init_test("tkbc_assign_values_to_kitestate_from_source(ghost needs active target)");
+
+    Env *saved_env = env;
+    Env test_env = {0};
+    test_env.server_script_id = tkbc_uuid_from_number(42);
+    env = &test_env;
+    Kite_State target = ghost_test_target(9);
+
+    // Normal script playback: an active script kite with two controllers gets
+    // a ghost for the remote client.
+    tkbc_assign_values_to_kitestate_from_source(&target, 300.0f, 400.0f, 30.0f, target.kite->body_color,
+                                                target.kite->texture_id, false, true, true, 7, 2);
+    cassert_size_t_eq(test_env.ghost_kites.count, (size_t) 1);
+
+    // A hidden target must not gain another ghost from a stale edit.
+    target.is_active = false;
+    tkbc_assign_values_to_kitestate_from_source(&target, 500.0f, 600.0f, 60.0f, target.kite->body_color,
+                                                target.kite->texture_id, false, true, true, 7, 2);
+    cassert_size_t_eq(test_env.ghost_kites.count, (size_t) 1);
+
+    tkbc_destroy_kite_array(&test_env.ghost_kites);
+    free(target.kite);
+    env = saved_env;
+    return test;
+}
+
 /**
  * @brief Run all kite array unit tests.
  *
@@ -470,4 +524,6 @@ void tkbc_test_kite_array(Tests *tests) {
     cassert_dap(tests, ghost_clear_for_source_keeps_other_sources());
     cassert_dap(tests, ghost_clear_for_target_and_source_keeps_other_sources());
     cassert_dap(tests, ghost_clear_all_removes_every_ghost());
+    cassert_dap(tests, ghost_remote_edit_ignored_without_loaded_script());
+    cassert_dap(tests, ghost_remote_edit_needs_active_target());
 }

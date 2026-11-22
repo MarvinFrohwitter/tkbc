@@ -1310,6 +1310,10 @@ bool tkbc_ui_script_menu(Env *env) {
 
         tkbc_unload_script(env);
         tkbc_change_visibility_to_non_script_kites(env);
+        // The server broadcasts the unload as well, but drop the local ghosts
+        // right away so no dimmed copy of the just unloaded script kites can
+        // be drawn while those messages are still in flight.
+        tkbc_clear_ghost_kites(env);
         env->script_menu_mouse_interaction_box = -1;
         env->keymaps_interaction = false;
         env->color_picker_interaction = false;
