@@ -171,8 +171,8 @@ void tkbc_draw_grid_lines(Env *env) {
     // Draw over the currently visible part of the scene, not just the original
     // window-sized area, so the grid follows panning and zooming.
     Vector2 top_left = GetScreenToWorld2D((Vector2){0, 0}, env->camera);
-    Vector2 bottom_right = GetScreenToWorld2D(
-        (Vector2){(float) tkbc_get_screen_width(), (float) tkbc_get_screen_height()}, env->camera);
+    Vector2 bottom_right =
+        GetScreenToWorld2D((Vector2){(float) tkbc_get_screen_width(), (float) tkbc_get_screen_height()}, env->camera);
 
     // Lay the grid out from the original scene center so the red/green lines
     // are the actual middle grid lines instead of a separate overlay.
@@ -337,8 +337,8 @@ void tkbc_update_kite_texture_region(Kite_Texture *kite_texture, Kite_Image kite
         }
         const unsigned char *src = (const unsigned char *) kite_image.normal.data;
         for (int y = 0; y < region_height; ++y) {
-            memcpy(pixels + (size_t) y * region_width * 4,
-                   src + ((size_t) (y0 + y) * (size_t) width + (size_t) x0) * 4, (size_t) region_width * 4);
+            memcpy(pixels + (size_t) y * region_width * 4, src + ((size_t) (y0 + y) * (size_t) width + (size_t) x0) * 4,
+                   (size_t) region_width * 4);
         }
         UpdateTextureRec(kite_texture->normal,
                          (Rectangle){(float) x0, (float) y0, (float) region_width, (float) region_height}, pixels);
@@ -3064,7 +3064,8 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
     display_box.width -= padding / 2;  // for the scrollbar
 
     size_t total_amount = tkbc_get_current_kite_design_count();
-    size_t scrollable_amount = total_amount - 1;
+    // Subtract Quadline colorizer and Dualline colorizer.
+    size_t scrollable_amount = total_amount - 1 - 1;
 
     float actual_padding = padding * 2;
 
@@ -3149,7 +3150,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                         if (png != NULL && png_size > 0) {
                             UUID existing_id = tkbc_uuid_nil();
                             if (tkbc_image_already_exitst_in_assets_with_hash(a.as.kite_image.normal, hash,
-                                                                               &existing_id)) {
+                                                                              &existing_id)) {
                                 new_id = existing_id;
                             } else {
                                 Image image = a.as.kite_image.normal;
@@ -3349,8 +3350,8 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
         }
         if (row >= top_box) {
             Image design = _tkbc_get_asset_kite_design(i).as.kite_image.normal;
-            scrolled_content_height += tkbc_kite_design_stride(env, design.width, design.height, scale_factor, padding,
-                                                              actual_padding);
+            scrolled_content_height +=
+                tkbc_kite_design_stride(env, design.width, design.height, scale_factor, padding, actual_padding);
         }
         row++;
     }
