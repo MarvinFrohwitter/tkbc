@@ -379,11 +379,21 @@ static void tkbc_client_prune_send_buffer_for_handshake(void) {
  * @brief The function sends all the messages in the send_message_queue to the
  * server.
  *
- * @return The amount send to the client socket, 0 if not data was send, -1 if
- * an error occurred or -11 if the error was EAGAIN.
+ * The socket is non-blocking, so a large script or image transfer regularly
+ * makes send() accept fewer bytes than requested or return EAGAIN while the
+ * kernel send buffer drains. That is not a disconnect: the unsent bytes stay
+ * in client.send_msg_buffer (i marks how much was already handed to the
+ * kernel) and are retried on the next call. Only a real socket error means
+ * the connection is gone.
+ *
+ * @return True while the client should stay online, false on a real socket
+ * error or when there is no connection.
  */
 bool send_message_send_handler() {
     bool ok = true;
+    if (client.socket_id == -1) {
+        return false;
+    }
     tkbc_client_prune_send_buffer_for_handshake();
     if (client.send_msg_buffer.count == 0 || client.send_msg_buffer.count <= client.send_msg_buffer.i) {
         check_return(true);
@@ -398,29 +408,28 @@ bool send_message_send_handler() {
     if (n < 0) {
 #ifdef _WIN32
         int err_errno = WSAGetLastError();
-        if (err_errno != WSAEWOULDBLOCK) {
-            tkbc_fprintf(stderr, "ERROR", "Could not broadcast message, unsent bytes: %zu\n", diff);
-            tkbc_fprintf(stderr, "ERROR", "Write: %d\n", err_errno);
-            check_return(false);
-        } else {
-            check_return(false);
+        if (err_errno == WSAEWOULDBLOCK) {
+            // Send buffer is full, try the remaining bytes next frame.
+            check_return(true);
         }
+        tkbc_fprintf(stderr, "ERROR", "Could not broadcast message, unsent bytes: %zu\n", diff);
+        tkbc_fprintf(stderr, "ERROR", "Write: %d\n", err_errno);
+        check_return(false);
 #else
-        if (errno != EAGAIN) {
-            tkbc_fprintf(stderr, "ERROR", "Could not broadcast message, unsent bytes: %zu\n", diff);
-            tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-
-            tkbc_fprintf(stderr, "ERROR", "Write: %s\n", strerror(errno));
-            check_return(false);
-        } else {
-            check_return(false);
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // Send buffer is full, try the remaining bytes next frame.
+            check_return(true);
         }
+        tkbc_fprintf(stderr, "ERROR", "Could not broadcast message, unsent bytes: %zu\n", diff);
+        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+        check_return(false);
 #endif  // _WIN32
     }
 
     if (n == 0) {
-        tkbc_fprintf(stderr, "ERROR", "No bytes where send to the server!\n");
-        ok = false;
+        // No progress on a non-blocking socket is not a failed transfer. Keep
+        // the bytes queued so they are retried instead of going offline.
+        check_return(true);
     }
 
     assert(n != -1);
@@ -754,7 +763,7 @@ bool message_queue_handler(bool *eof) {
     if (client.recv_msg_buffer.count == 0 && client.recv_msg_buffer.capacity > MAX_BUFFER_CAPACITY) {
         tkbc_fprintf(stderr, "INFO", "realloced message: old capacity: %zu\n", client.recv_msg_buffer.capacity);
 
-        Planet planet = space_find_planet_from_ptr(&client.recv_msg_buffer_space, &client.recv_msg_buffer.elements);
+        Planet planet = space_find_planet_from_ptr(&client.recv_msg_buffer_space, client.recv_msg_buffer.elements);
         space_free_planet(&client.recv_msg_buffer_space, planet);
 
         client.recv_msg_buffer.elements = NULL;
