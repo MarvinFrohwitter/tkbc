@@ -202,7 +202,7 @@ Env *tkbc_init_env(void) {
     env->color_picker_input.spacing = 4;
     tkbc_text_input_init(&env->color_picker_input, &env->color_picker_input_space, "");
     env->color_picker_input.shadow_text = "008080FF";
-    env->color_picker_input.key_constrained = tkbc_is_hex_color_key_down;
+    env->color_picker_input.char_allowed = tkbc_is_hex_color_codepoint;
     env->color_picker_input.max_char = HEX_COLOR_LENGTH;
     env->color_picker_input.font = env->font;
     env->color_picker_input.text_color = TKBC_UI_BLACK;
@@ -1278,92 +1278,48 @@ Color tkbc_get_random_color(void) {
 }
 
 /**
- * @brief Checks for all keys that can be a valid hex key. If there are pressed
- * one or pressed repeat.
+ * @brief Checks if a typed codepoint is valid for a hex color input.
  *
- * @return The hex color key that is down or 0 if no color key is down.
+ * @param codepoint The typed Unicode codepoint.
+ * @return True if the codepoint is a hexadecimal digit.
  */
-KeyboardKey tkbc_is_hex_color_key_down() {
-    static KeyboardKey keys[] = {
-        KEY_ZERO,  KEY_ONE,  KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE, KEY_SIX, KEY_SEVEN,
-        KEY_EIGHT, KEY_NINE, KEY_A,   KEY_B,     KEY_C,    KEY_D,    KEY_E,   KEY_F,
-    };
-
-    for (KeyboardKey key = 0; key < ARRAY_LENGTH(keys); ++key) {
-        if (IsKeyPressedRepeat(keys[key]) || IsKeyPressed(keys[key])) {
-            return keys[key];
-        }
-    }
-    return KEY_NULL;
+bool tkbc_is_hex_color_codepoint(int codepoint) {
+    return (codepoint >= '0' && codepoint <= '9') || (codepoint >= 'a' && codepoint <= 'f') ||
+           (codepoint >= 'A' && codepoint <= 'F');
 }
 
 /**
- * @brief Returns the currently pressed key if it is valid for a port number.
+ * @brief Checks if a typed codepoint is valid for a port number input.
  *
- * @return The pressed digit or period key, or KEY_NULL if none of them was
- * pressed.
+ * @param codepoint The typed Unicode codepoint.
+ * @return True if the codepoint is a digit or period.
  */
-KeyboardKey tkbc_is_port_number_key_down() {
-    static KeyboardKey keys[] = {
-        KEY_ZERO,   KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE, KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE,
-
-        KEY_PERIOD,
-    };
-
-    for (KeyboardKey key = 0; key < ARRAY_LENGTH(keys); ++key) {
-        if (IsKeyPressedRepeat(keys[key]) || IsKeyPressed(keys[key])) {
-            return keys[key];
-        }
-    }
-    return KEY_NULL;
+bool tkbc_is_port_number_codepoint(int codepoint) {
+    return (codepoint >= '0' && codepoint <= '9') || codepoint == '.';
 }
 
 /**
- * @brief Returns the currently pressed key if it is valid for a host name.
+ * @brief Checks if a typed codepoint is valid for a host name input.
  *
  * In addition to host names this accepts the characters needed for IPv6
- * literals. Raylib has no key constant for ':' (it is shift + semicolon), so
- * the shifted semicolon is reported as the character code of ':'.
+ * literals, such as ':' and brackets.
  *
- * @return The pressed key or KEY_NULL if none of them was pressed.
+ * @param codepoint The typed Unicode codepoint.
+ * @return True if the codepoint is allowed in a host name.
  */
-KeyboardKey tkbc_is_domain_name_key_down() {
-    static KeyboardKey keys[] = {
-        KEY_ZERO,   KEY_ONE,   KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE, KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE,
-
-        KEY_A,      KEY_B,     KEY_C,   KEY_D,     KEY_E,    KEY_F,    KEY_G,   KEY_H,     KEY_I,     KEY_J,
-        KEY_K,      KEY_L,     KEY_M,   KEY_N,     KEY_O,    KEY_P,    KEY_Q,   KEY_R,     KEY_S,     KEY_T,
-        KEY_U,      KEY_V,     KEY_W,   KEY_X,     KEY_Y,    KEY_Z,
-
-        KEY_PERIOD, KEY_MINUS, KEY_LEFT_BRACKET, KEY_RIGHT_BRACKET,
-    };
-
-    if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) && IsKeyPressed(KEY_SEMICOLON)) {
-        return (KeyboardKey) ':';
-    }
-
-    for (KeyboardKey key = 0; key < ARRAY_LENGTH(keys); ++key) {
-        if (IsKeyPressedRepeat(keys[key]) || IsKeyPressed(keys[key])) {
-            return keys[key];
-        }
-    }
-    return KEY_NULL;
+bool tkbc_is_domain_name_codepoint(int codepoint) {
+    return (codepoint >= '0' && codepoint <= '9') || (codepoint >= 'a' && codepoint <= 'z') ||
+           (codepoint >= 'A' && codepoint <= 'Z') || codepoint == '.' || codepoint == '-' || codepoint == '[' ||
+           codepoint == ']' || codepoint == ':';
 }
 
 /**
- * @brief Returns the currently pressed printable ASCII key.
+ * @brief Checks if a typed codepoint is printable ASCII.
  *
- * @return The pressed key in the range from space to tilde, or KEY_NULL if
- * none of them was pressed.
+ * @param codepoint The typed Unicode codepoint.
+ * @return True if the codepoint is in the printable ASCII range.
  */
-KeyboardKey tkbc_is_any_ascii_key_down() {
-    for (int key = ' '; key < 127; ++key) {
-        if (IsKeyPressedRepeat(key) || IsKeyPressed(key)) {
-            return key;
-        }
-    }
-    return KEY_NULL;
-}
+bool tkbc_is_any_ascii_codepoint(int codepoint) { return codepoint >= ' ' && codepoint < 127; }
 
 /**
  * @brief Callback that activates script name editing when the input box is

@@ -229,57 +229,40 @@ const char *tkbc_key_to_str(int key) {
     case KEY_EQUAL:  // Key: =
         return "equal";
     case KEY_A:  // Key: A | a
-        return "a";
     case KEY_B:  // Key: B | b
-        return "b";
     case KEY_C:  // Key: C | c
-        return "c";
     case KEY_D:  // Key: D | d
-        return "d";
     case KEY_E:  // Key: E | e
-        return "e";
     case KEY_F:  // Key: F | f
-        return "f";
     case KEY_G:  // Key: G | g
-        return "g";
     case KEY_H:  // Key: H | h
-        return "h";
     case KEY_I:  // Key: I | i
-        return "i";
     case KEY_J:  // Key: J | j
-        return "j";
     case KEY_K:  // Key: K | k
-        return "k";
     case KEY_L:  // Key: L | l
-        return "l";
     case KEY_M:  // Key: M | m
-        return "m";
     case KEY_N:  // Key: N | n
-        return "n";
     case KEY_O:  // Key: O | o
-        return "o";
     case KEY_P:  // Key: P | p
-        return "p";
     case KEY_Q:  // Key: Q | q
-        return "q";
     case KEY_R:  // Key: R | r
-        return "r";
     case KEY_S:  // Key: S | s
-        return "s";
     case KEY_T:  // Key: T | t
-        return "t";
     case KEY_U:  // Key: U | u
-        return "u";
     case KEY_V:  // Key: V | v
-        return "v";
     case KEY_W:  // Key: W | w
-        return "w";
     case KEY_X:  // Key: X | x
-        return "x";
     case KEY_Y:  // Key: Y | y
-        return "de_z";
-    case KEY_Z:  // Key: Z | z
-        return "de_y";
+    case KEY_Z: {  // Key: Z | z
+        const char *name = GetKeyName(key);
+        if (name && name[0] != '\0') {
+            return name;
+        }
+        // Fallback to US layout names.
+        static const char *us[] = {"a","b","c","d","e","f","g","h","i","j","k","l","m",
+                                   "n","o","p","q","r","s","t","u","v","w","x","y","z"};
+        return us[key - KEY_A];
+    }
     case KEY_LEFT_BRACKET:  // Key: [
         return "left_bracket";
     case KEY_BACKSLASH:  // Key: '\'
@@ -416,10 +399,18 @@ const char *tkbc_key_to_str(int key) {
     case KEY_VOLUME_DOWN:  // Key: Android volume down button
         return "volume_down";
     case 161:  // GLFW_KEY_WORLD_1
-        return "de_less_than1";
-    case 162:  // GLFW_KEY_WORLD_2
-        return "de_less_than2";
+    case 162: {  // GLFW_KEY_WORLD_2
+        const char *name = GetKeyName(key);
+        if (name && name[0] != '\0') {
+            return name;
+        }
+        return key == 161 ? "world_1" : "world_2";
+    }
     default: {
+        const char *name = GetKeyName(key);
+        if (name && name[0] != '\0') {
+            return name;
+        }
         // This leaks memory.
         char *buffer = malloc(sizeof(int));
         sprintf(buffer, "%d", key);
@@ -553,7 +544,12 @@ bool tkbc_check_keymaps_full(Key_Maps keymaps, int hash, Key_Map_Check_Config cf
  *
  * @param input The input that holds the selected text.
  */
-bool tkbc_is_word_boundary(char c) {
+bool tkbc_is_word_boundary(unsigned char c) {
+    if (c >= 128) {
+        // UTF-8 multibyte bytes are treated as word characters so layout-local
+        // names (e.g. umlauts from GetKeyName) are not split.
+        return false;
+    }
     return isspace(c) || ispunct(c);
 }
 

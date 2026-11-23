@@ -84,7 +84,7 @@ static bool received_hello = false;
 static Space connection_input_space = {0};
 static Text_Input connection_host_input = {
     .shadow_text = "localhost",
-    .key_constrained = tkbc_is_domain_name_key_down,
+    .char_allowed = tkbc_is_domain_name_codepoint,
     .max_char = 255,
     .selection_start = SIZE_MAX,
     .is_active = true,
@@ -92,7 +92,7 @@ static Text_Input connection_host_input = {
 };
 static Text_Input connection_port_input = {
     .shadow_text = "8080",
-    .key_constrained = tkbc_is_port_number_key_down,
+    .char_allowed = tkbc_is_port_number_codepoint,
     .max_char = 6,
     .selection_start = SIZE_MAX,
     .is_active = true,

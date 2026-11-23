@@ -2477,12 +2477,58 @@ void tkbc_draw_cursor(Rectangle text_box, Vector2 text_size, size_t padding) {
 }
 
 /**
- * @brief Returns the character index within the text of the input that is
- * located closest to the given x position in relation to the text box.
+ * @brief Returns the byte size of the UTF-8 codepoint starting at text[pos].
+ */
+static size_t tkbc_utf8_next_size(const char *text, size_t len, size_t pos) {
+    if (pos >= len) {
+        return 0;
+    }
+    int next = 0;
+    GetCodepointNext(&text[pos], &next);
+    if (next <= 0) {
+        next = 1;
+    }
+    if (pos + (size_t) next > len) {
+        next = (int) (len - pos);
+    }
+    return (size_t) next;
+}
+
+/**
+ * @brief Returns the byte size of the UTF-8 codepoint ending at text[pos].
+ */
+static size_t tkbc_utf8_prev_size(const char *text, size_t pos) {
+    if (pos == 0) {
+        return 0;
+    }
+    int prev = 0;
+    GetCodepointPrevious(&text[pos], &prev);
+    if (prev <= 0) {
+        prev = 1;
+    }
+    if ((size_t) prev > pos) {
+        prev = (int) pos;
+    }
+    return (size_t) prev;
+}
+
+static bool tkbc_text_input_is_word_boundary_char(const char *text, size_t pos) {
+    unsigned char c = (unsigned char) text[pos];
+    if (c >= 128) {
+        // Treat non-ASCII UTF-8 lead/continuation bytes as word characters so
+        // umlauts and other layout characters are not split into tiny words.
+        return false;
+    }
+    return isspace(c) || ispunct(c);
+}
+
+/**
+ * @brief Returns the byte index within the text of the input that is located
+ * closest to the given x position in relation to the text box.
  *
  * @param input The input that holds the text.
  * @param mouse_x The absolute x position of the mouse.
- * @return size_t The character index that matches the given position.
+ * @return size_t The byte index that matches the given position.
  */
 static size_t tkbc_get_char_at_x_pos(Text_Input *input, float mouse_x) {
     size_t char_amount = input->text.count;
@@ -2494,13 +2540,15 @@ static size_t tkbc_get_char_at_x_pos(Text_Input *input, float mouse_x) {
     float text_x = input->box.x + input->spacing - input->scroll_offset;
     float prev_width = 0;
 
-    for (size_t i = 0; i < char_amount; i++) {
-        float cur = tkbc_measure_text_sized_ex(input->font, cstr, i + 1, input->font_size, input->spacing).x;
+    for (size_t i = 0; i < char_amount;) {
+        size_t next = i + tkbc_utf8_next_size(cstr, char_amount, i);
+        float cur = tkbc_measure_text_sized_ex(input->font, cstr, (int) next, input->font_size, input->spacing).x;
         float char_center = prev_width + (cur - prev_width) / 2.0f;
         if (mouse_x < text_x + char_center) {
             return i;
         }
         prev_width = cur;
+        i = next;
     }
     return char_amount;
 }
@@ -2570,12 +2618,19 @@ static size_t tkbc_find_word_left(Text_Input *input) {
     if (pos == 0) return 0;
     const char *input_cstr = tkbc_text_input_cstr(input);
 
-    pos--;
-    while (pos > 0 && tkbc_is_word_boundary(input_cstr[pos])) {
-        pos--;
+    size_t prev = tkbc_utf8_prev_size(input_cstr, pos);
+    pos -= prev;
+    while (pos > 0 && tkbc_text_input_is_word_boundary_char(input_cstr, pos)) {
+        prev = tkbc_utf8_prev_size(input_cstr, pos);
+        pos -= prev;
     }
-    while (pos > 0 && !tkbc_is_word_boundary(input_cstr[pos - 1])) {
-        pos--;
+    while (pos > 0) {
+        prev = tkbc_utf8_prev_size(input_cstr, pos);
+        size_t prev_pos = pos - prev;
+        if (tkbc_text_input_is_word_boundary_char(input_cstr, prev_pos)) {
+            break;
+        }
+        pos = prev_pos;
     }
     return pos;
 }
@@ -2591,11 +2646,11 @@ static size_t tkbc_find_word_right(Text_Input *input) {
     size_t len = input->text.count;
     const char *cstr = tkbc_text_input_cstr(input);
 
-    while (pos < len && tkbc_is_word_boundary(cstr[pos])) {
-        pos++;
+    while (pos < len && tkbc_text_input_is_word_boundary_char(cstr, pos)) {
+        pos += tkbc_utf8_next_size(cstr, len, pos);
     }
-    while (pos < len && !tkbc_is_word_boundary(cstr[pos])) {
-        pos++;
+    while (pos < len && !tkbc_text_input_is_word_boundary_char(cstr, pos)) {
+        pos += tkbc_utf8_next_size(cstr, len, pos);
     }
     return pos;
 }
@@ -2704,7 +2759,7 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
                 input->selection_start = SIZE_MAX;
             }
             if (input->cursor_pos < char_amount) {
-                input->cursor_pos += 1;
+                input->cursor_pos += tkbc_utf8_next_size(tkbc_text_input_cstr(input), char_amount, input->cursor_pos);
             }
         }
         if (!tkbc_alt_is_down() && (IsKeyPressedRepeat(KEY_LEFT) || IsKeyPressed(KEY_LEFT))) {
@@ -2722,7 +2777,7 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
                 input->selection_start = SIZE_MAX;
             }
             if (input->cursor_pos > 0) {
-                input->cursor_pos -= 1;
+                input->cursor_pos -= tkbc_utf8_prev_size(tkbc_text_input_cstr(input), input->cursor_pos);
             }
         }
 
@@ -2823,10 +2878,11 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
                     input->selection_start = SIZE_MAX;
                 }
             } else if (input->cursor_pos > 0) {
+                size_t prev = tkbc_utf8_prev_size(tkbc_text_input_cstr(input), input->cursor_pos);
                 size_t n = char_amount - input->cursor_pos + 1;
-                memmove(&elements[input->cursor_pos - 1], &elements[input->cursor_pos], n * sizeof(*elements));
-                input->text.count = char_amount - 1;
-                input->cursor_pos -= 1;
+                memmove(&elements[input->cursor_pos - prev], &elements[input->cursor_pos], n * sizeof(*elements));
+                input->text.count = char_amount - prev;
+                input->cursor_pos -= prev;
                 input->selection_start = SIZE_MAX;
             }
         }
@@ -2845,9 +2901,10 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
                     input->selection_start = SIZE_MAX;
                 }
             } else if (input->cursor_pos < char_amount) {
-                size_t n = char_amount - input->cursor_pos + 1;
-                memmove(&elements[input->cursor_pos], &elements[input->cursor_pos + 1], n * sizeof(*elements));
-                input->text.count = char_amount - 1;
+                size_t next = tkbc_utf8_next_size(tkbc_text_input_cstr(input), char_amount, input->cursor_pos);
+                size_t n = char_amount - input->cursor_pos - next + 1;
+                memmove(&elements[input->cursor_pos], &elements[input->cursor_pos + next], n * sizeof(*elements));
+                input->text.count = char_amount - next;
                 input->selection_start = SIZE_MAX;
             }
         }
@@ -2928,31 +2985,34 @@ void tkbc_handle_text_input(Text_Input *input, Space *space) {
         }
 
         if (!is_spcial_action) {
-            KeyboardKey key = input->key_constrained ? input->key_constrained() : tkbc_is_any_ascii_key_down();
-
-            if (key != KEY_NULL) {
-                if (tkbc_has_selection(input)) {
-                    tkbc_delete_selection(input);
-                }
-                // No live selection survives the delete above; clear a stale
-                // anchor too so the inserted char can not select anything.
-                input->selection_start = SIZE_MAX;
-                char_amount = input->text.count;
-                // Grow the buffer when there is not enough space; max_char only
-                // guards how much the user may input (0 = unlimited).
-                if ((input->max_char == 0 || char_amount < input->max_char) &&
-                    tkbc_text_input_reserve(space, &input->text, char_amount + 1)) {
-                    char *elements = input->text.elements;
-                    size_t n = char_amount - input->cursor_pos + 1;
-                    memmove(&elements[input->cursor_pos + 1], &elements[input->cursor_pos], n * sizeof(*elements));
-                    if ((key <= KEY_Z && key >= KEY_A) && (IsKeyUp(KEY_LEFT_SHIFT) && IsKeyUp(KEY_RIGHT_SHIFT))) {
-                        key += 'a' - 'A';
+            int codepoint = GetCharPressed();
+            while (codepoint > 0) {
+                if (codepoint >= 32 && (!input->char_allowed || input->char_allowed(codepoint))) {
+                    if (tkbc_has_selection(input)) {
+                        tkbc_delete_selection(input);
                     }
-                    elements[input->cursor_pos] = (char) key;
-                    input->text.count = char_amount + 1;
-                    input->cursor_pos += 1;
                     input->selection_start = SIZE_MAX;
+                    char_amount = input->text.count;
+
+                    int utf8_size = 0;
+                    const char *utf8 = CodepointToUTF8(codepoint, &utf8_size);
+                    if (utf8 && utf8_size > 0 &&
+                        (input->max_char == 0 || char_amount + (size_t) utf8_size <= input->max_char) &&
+                        tkbc_text_input_reserve(space, &input->text, char_amount + (size_t) utf8_size)) {
+                        char *elements = input->text.elements;
+                        size_t n = char_amount - input->cursor_pos + 1;
+                        memmove(&elements[input->cursor_pos + (size_t) utf8_size], &elements[input->cursor_pos],
+                                n * sizeof(*elements));
+                        memcpy(&elements[input->cursor_pos], utf8, (size_t) utf8_size);
+                        input->text.count = char_amount + (size_t) utf8_size;
+                        input->cursor_pos += (size_t) utf8_size;
+                        input->selection_start = SIZE_MAX;
+                    }
                 }
+                codepoint = GetCharPressed();
+            }
+        } else {
+            while (GetCharPressed() > 0) {
             }
         }
     } else {

@@ -23,10 +23,10 @@ void tkbc_ui_keymaps(Env *env);
 
 void tkbc_set_input_text_to_hex_color(Text_Input *input, Space *space, Color color);
 
-KeyboardKey tkbc_is_hex_color_key_down();
-KeyboardKey tkbc_is_port_number_key_down();
-KeyboardKey tkbc_is_domain_name_key_down();
-KeyboardKey tkbc_is_any_ascii_key_down();
+bool tkbc_is_hex_color_codepoint(int codepoint);
+bool tkbc_is_port_number_codepoint(int codepoint);
+bool tkbc_is_domain_name_codepoint(int codepoint);
+bool tkbc_is_any_ascii_codepoint(int codepoint);
 void tkbc_ui_color_picker(Env *env);
 void tkbc_set_color_for_selected_kites(Env *env, Color color);
 void tkbc_set_texture_for_selected_kites(Env *env, UUID texture_id, bool is_texture_new);

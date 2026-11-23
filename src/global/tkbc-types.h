@@ -101,7 +101,7 @@ struct Text_Input {
                              // Independent from the reallocation: the buffer still grows via space_realloc,
                              // the guard only limits what typing/paste may insert.
     float scroll_offset;     // Horizontal scroll offset of the text that does not fit the box.
-    KeyboardKey (*key_constrained)(void);
+    bool (*char_allowed)(int codepoint);
 
     bool (*activate)(Text_Input *text_input, void *user_data);
     void *user_data;

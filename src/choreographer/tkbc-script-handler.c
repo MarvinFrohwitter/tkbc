@@ -359,7 +359,7 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
     new_script.name_input.selection_start = script->name_input.selection_start;
     new_script.name_input.max_char = script->name_input.max_char;
     new_script.name_input.scroll_offset = script->name_input.scroll_offset;
-    new_script.name_input.key_constrained = script->name_input.key_constrained;
+    new_script.name_input.char_allowed = script->name_input.char_allowed;
     new_script.name_input.activate = script->name_input.activate;
     new_script.name_input.user_data = script->name_input.user_data;
     new_script.name_input.is_active = script->name_input.is_active;
@@ -2305,7 +2305,7 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
 
         {
             s_copy.name_input.shadow_text = "";
-            s_copy.name_input.key_constrained = NULL;
+            s_copy.name_input.char_allowed = NULL;
             s_copy.name_input.max_char = 255;
             s_copy.name_input.selection_start = SIZE_MAX;
             s_copy.name_input.activate = tkbc_activate_script_text_input;

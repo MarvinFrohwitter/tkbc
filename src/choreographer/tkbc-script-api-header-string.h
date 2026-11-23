@@ -9473,7 +9473,7 @@ static const char* global_api_header_string =
 "                             // Independent from the reallocation: the buffer still grows via space_realloc,\n"
 "                             // the guard only limits what typing/paste may insert.\n"
 "    float scroll_offset;     // Horizontal scroll offset of the text that does not fit the box.\n"
-"    KeyboardKey (*key_constrained)(void);\n"
+"    bool (*char_allowed)(int codepoint);\n"
 "\n"
 "    bool (*activate)(Text_Input *text_input, void *user_data);\n"
 "    void *user_data;\n"
