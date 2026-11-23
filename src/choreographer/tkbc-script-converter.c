@@ -58,6 +58,7 @@ int tkbc_export_script_to_dot_kite_file_from_mem(Space *tspace, Script *script, 
     Orbit_HT(Id, Id) ids = {
         .init_size = 16,
         .allocator.alloc = alloc_space_callback,
+        .allocator.free = NULL,
         .allocator.alloc_data = tspace,
     };
     Content out = {0};

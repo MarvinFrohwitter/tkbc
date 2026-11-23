@@ -15,6 +15,7 @@
 #include "tkbc_test_script_handler.c"
 #include "tkbc_test_script_api.c"
 #include "tkbc_test_parser.c"
+#include "tkbc_test_orbit.c"
 #include "tkbc_test_utils.c"
 
 #define eps 0.01
@@ -53,6 +54,7 @@ int main(void) {
         tkbc_test_script_handler(&tests);
         tkbc_test_script_api(&tests);
         tkbc_test_parser(&tests);
+        tkbc_test_orbit(&tests);
         cassert_dap(&tests, baked_design_hash_matches_decoded_pixels());
     }
 

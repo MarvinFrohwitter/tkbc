@@ -13,8 +13,16 @@
 #define ORBIT_MALLOC malloc
 #endif
 
+#ifndef ORBIT_FREE
+#define ORBIT_FREE free
+#endif
+
 #ifndef ORBIT_DEFAULT_ALLOC
 #define ORBIT_DEFAULT_ALLOC orbit_alloc
+#endif
+
+#ifndef ORBIT_DEFAULT_FREE
+#define ORBIT_DEFAULT_FREE orbit_dealloc
 #endif
 
 #ifndef ORBIT_HT_INIT_DEFAULT_CAPACITY
@@ -41,6 +49,7 @@
         int (*compare)(const void *, const void *, size_t n);                                                          \
         uintptr_t (*hash)(const void *data, size_t size);                                                              \
         struct {                                                                                                       \
+            void (*free)(void *alloc_data, void *ptr);                                                                 \
             void *(*alloc)(void *alloc_data, size_t size);                                                             \
             void *alloc_data;                                                                                          \
         } allocator;                                                                                                   \
@@ -170,11 +179,11 @@ bool orbit__delete(Orbit_Generic_HT *ht, int (*key_compare)(const void *, const 
                     typeof(*(ht)->elements) *current_satellite = (ht)->elements[i]._next;                              \
                     while (current_satellite && current_satellite->occupied) {                                         \
                         void *_next = current_satellite->_next;                                                        \
-                        free(current_satellite);                                                                       \
+                        orbit__dealloc((Orbit_Generic_HT *) (ht), current_satellite);                                  \
                         current_satellite = _next;                                                                     \
                     }                                                                                                  \
                 }                                                                                                      \
-                free((ht)->elements);                                                                                  \
+                orbit__dealloc((Orbit_Generic_HT *) (ht), (ht)->elements);                                             \
             }                                                                                                          \
             (ht)->elements = NULL;                                                                                     \
             (ht)->count = 0;                                                                                           \
@@ -237,8 +246,8 @@ bool orbit__delete(Orbit_Generic_HT *ht, int (*key_compare)(const void *, const 
         if (!(ht)) {                                                                                                   \
             break;                                                                                                     \
         }                                                                                                              \
-        orbit__free_chain_nodes((ht)->elements, (ht)->capacity, offsetof(typeof(*(ht)->elements), _next),              \
-                                sizeof(*(ht)->elements));                                                              \
+        orbit__free_chain_nodes((Orbit_Generic_HT *) (ht), (ht)->elements, (ht)->capacity,                            \
+                                offsetof(typeof(*(ht)->elements), _next), sizeof(*(ht)->elements));                   \
         memset((ht)->elements, 0, (ht)->capacity * sizeof(*(ht)->elements));                                           \
         if (default_value) {                                                                                           \
             for (size_t i = 0; i < (ht)->capacity; ++i) {                                                              \
@@ -262,7 +271,8 @@ void *orbit__ht_insert(Orbit_Generic_HT *ht, int (*key_compare)(const void *, co
                        void *value, void *default_value, size_t sizeof_key, size_t sizeof_value, size_t offsetof__next,
                        size_t offsetof_occupied, size_t offsetof_key, size_t offsetof_value, size_t offsetof_kv,
                        size_t sizeof_comparison, size_t satellite_size, size_t hash_index);
-void orbit__free_chain_nodes(void *elements, size_t capacity, size_t offsetof__next, size_t satellite_size);
+void orbit__free_chain_nodes(Orbit_Generic_HT *ht, void *elements, size_t capacity, size_t offsetof__next,
+                             size_t satellite_size);
 size_t orbit_strlen(const char *str);
 int orbit_strcmp(const void *s1, const void *s2, size_t n);
 
@@ -287,6 +297,24 @@ static inline size_t orbit__key_size_bytes(const void *key_object, size_t key_fi
 static inline void *orbit_alloc(void *alloc_data, size_t size) {
     (void) alloc_data;
     return ORBIT_MALLOC(size);
+}
+
+static inline void orbit_dealloc(void *alloc_data, void *ptr) {
+    (void) alloc_data;
+    ORBIT_FREE(ptr);
+}
+
+/* A custom allocator that does not provide a matching free callback is treated
+ * as an arena: individual allocations are not freed (they die with the arena). */
+static inline void orbit__dealloc(Orbit_Generic_HT *ht, void *ptr) {
+    if (!ptr) {
+        return;
+    }
+    if (ht->allocator.free) {
+        ht->allocator.free(ht->allocator.alloc_data, ptr);
+    } else if (!ht->allocator.alloc) {
+        ORBIT_DEFAULT_FREE(ht->allocator.alloc_data, ptr);
+    }
 }
 
 #endif  // ORBIT_H_
@@ -314,7 +342,8 @@ size_t orbit_hash(uintptr_t (*hash)(const void *data, size_t size), void *buffer
     return hash(buffer, size) % max_index;
 }
 
-void orbit__free_chain_nodes(void *elements, size_t capacity, size_t offsetof__next, size_t satellite_size) {
+void orbit__free_chain_nodes(Orbit_Generic_HT *ht, void *elements, size_t capacity, size_t offsetof__next,
+                             size_t satellite_size) {
     if (!elements) {
         return;
     }
@@ -324,7 +353,7 @@ void orbit__free_chain_nodes(void *elements, size_t capacity, size_t offsetof__n
         while (next) {
             char *node = (char *) next;
             next = *(void **) (node + offsetof__next);
-            free(node);
+            orbit__dealloc(ht, node);
         }
     }
 }
@@ -433,8 +462,8 @@ void *orbit__put(Orbit_Generic_HT *ht, int (*key_compare)(const void *, const vo
                     if (orbit__ht_insert(&new_ht, key_compare, key_ptr, value_ptr, default_value, sizeof_key,
                                          sizeof_value, offsetof__next, offsetof_occupied, offsetof_key, offsetof_value,
                                          offsetof_kv, hash_size, satellite_size, new_hash_index) == NULL) {
-                        orbit__free_chain_nodes(new_ht.elements, new_capacity, offsetof__next, satellite_size);
-                        free(new_ht.elements);
+                        orbit__free_chain_nodes(ht, new_ht.elements, new_capacity, offsetof__next, satellite_size);
+                        orbit__dealloc(ht, new_ht.elements);
                         orbit_iterator_reset(ht);
                         return NULL;
                     }
@@ -445,8 +474,8 @@ void *orbit__put(Orbit_Generic_HT *ht, int (*key_compare)(const void *, const vo
 
         *ht = new_ht;
 
-        orbit__free_chain_nodes(old_elements, old_capacity, offsetof__next, satellite_size);
-        if (old_elements) free(old_elements);
+        orbit__free_chain_nodes(ht, old_elements, old_capacity, offsetof__next, satellite_size);
+        orbit__dealloc(ht, old_elements);
         orbit_iterator_reset(ht);
     }
 
@@ -561,7 +590,7 @@ bool orbit__delete(Orbit_Generic_HT *ht, int (*key_compare)(const void *, const 
             memcpy(head + offsetof_key, next_satellite + offsetof_key, sizeof_key);
             memcpy(head + offsetof_value, next_satellite + offsetof_value, sizeof_value);
             *(void **) (head + offsetof__next) = *(void **) (next_satellite + offsetof__next);
-            free(next_satellite);
+            orbit__dealloc(ht, next_satellite);
         }
         ht->count--;
         return true;
@@ -579,7 +608,7 @@ bool orbit__delete(Orbit_Generic_HT *ht, int (*key_compare)(const void *, const 
     }
 
     *(void **) (prev + offsetof__next) = *(void **) ((char *) current_node + offsetof__next);
-    free(current_node);
+    orbit__dealloc(ht, current_node);
     ht->count--;
 
     return true;
