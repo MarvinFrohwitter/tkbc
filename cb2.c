@@ -575,7 +575,7 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
         first_o(cmd, .WINDOWS = true);
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
         include(cmd, .tcc = true, .raylib = true, .ffmpeg = true, .WINDOWS = true);
-        define(cmd, .include_raylib = true, .release = true, .ndebug = false);
+        define(cmd, .include_raylib = true, .release = true, .ndebug = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
                .space_memory_layout_method_da = true);
         cflags(cmd, .WINDOWS = true);
@@ -616,7 +616,7 @@ void client_opt(Cmd *cmd, OS_Opts os) {
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
         include(cmd, .tcc = true, .raylib = true, .ffmpeg = true, .WINDOWS = true);
         cflags(cmd, .WINDOWS = true);
-        define(cmd, .include_raylib = true, .release = true, .ndebug = false);
+        define(cmd, .include_raylib = true, .release = true, .ndebug = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
                .space_memory_layout_method_da = true);
         cb_cmd_push(cmd, "-o", BUILD_PATH "skystep-client");
@@ -654,7 +654,7 @@ void server_opt(Cmd *cmd, OS_Opts os) {
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
         include(cmd, .tcc = true, .raylib = true, .WINDOWS = true);
         cflags(cmd, .WINDOWS = true);
-        define(cmd, .include_raylib = true, .tkbc_server = true, .release = true);
+        define(cmd, .include_raylib = true, .tkbc_server = true, .release = true, .ndebug = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
                .space_memory_layout_method_da = true);
         cb_cmd_push(cmd, "-o", BUILD_PATH "skystep-server");
