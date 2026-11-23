@@ -268,6 +268,9 @@ typedef struct {
     size_t kite_id;  // The unique universal identifier for the kite.
 
     bool is_script_kite;
+    UUID owner_script_id;  // The script that generated this kite. Nil for free-fly kites.
+                           // Remote edits from a script that is no longer active must not
+                           // revive the kite after a script change.
 
     bool is_active;                     // If the kite should be drawn.
     bool is_kite_input_handler_active;  // Representation of a manual user control
@@ -450,6 +453,9 @@ typedef struct {
                             // place the name is stored. The buffer is owned by
                             // the containing Script.space, which callers pass
                             // explicitly to the text helpers.
+
+    Kite_Ids owned_kite_ids;  // Kites generated for this script. Authoritative ownership set used for activation,
+                              // serialization and deletion. Positions are only geometry, never ownership.
 
     bool internal_redirect;  // Indicates if the original_elements are currently pointing at elements. This can be the
                              // case if no upscaling has happened jet.

@@ -710,6 +710,18 @@ bool received_message_handler(Message *message) {
                 // is stale.
                 tkbc_clear_ghost_kites_for_target_and_source(env, (size_t) kite_id, (int64_t) source_kite_id);
             }
+
+            // A deselection that names this client was forced by the server
+            // (script change/unload). Drop local authority immediately instead
+            // of waiting for SCRIPT_META_DATA; otherwise the still-active input
+            // handler can push one last update for the old script.
+            if (!selected && ((ssize_t) source_kite_id == client.kite_id || controller_count == 0)) {
+                Kite_State *deselected = tkbc_get_kite_state_by_id(env, (size_t) kite_id);
+                if (deselected) {
+                    deselected->is_kite_input_handler_active = false;
+                }
+            }
+
             // This cleanup has to run for the source client as well: when it
             // deselects, its own ghosts of the remaining controllers become
             // stale as soon as only one controller is left.
@@ -1051,6 +1063,42 @@ void tkbc_client_send_pending_script_deletes(void) {
 }
 
 /**
+ * @brief Sends the queued script selection to the server.
+ *
+ * This is deliberately separate from the rest of the script input handling so
+ * it can run while the script menu is still open. Deleting the running script
+ * queues a "no script" selection, and the server has to switch the view even
+ * if the user keeps the menu open.
+ */
+void tkbc_client_send_selected_script(void) {
+    if (offline_mode) {
+        // Offline has no server to notify; the local deletion already switched
+        // the view and the offline activation happens after the menu closes.
+        return;
+    }
+    if (client.socket_id != -1 && !client.handshake_passed) {
+        return;
+    }
+    if (!env->new_script_selected) {
+        return;
+    }
+
+    // A nil uuid selects "no script". A deletion clears the hovered box, so no
+    // row is selected and the nil id is the intended target.
+    UUID script_id = tkbc_uuid_nil();
+    if (env->script_menu_mouse_interaction_box != -1 &&
+        (size_t) env->script_menu_mouse_interaction_box < env->scripts.count) {
+        script_id = env->scripts.elements[env->script_menu_mouse_interaction_box].id;
+    }
+
+    size_t offset =
+        tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SCRIPT_NEXT);
+    tkbc_message_write_uuid(&client.send_msg_buffer, &client.send_msg_buffer_space, script_id);
+    tkbc_message_write_end(&client.send_msg_buffer, offset);
+    env->new_script_selected = false;
+}
+
+/**
  * @brief The function warps the user key inputs for script control into
  * messages that are send to the server.
  */
@@ -1079,21 +1127,6 @@ void tkbc_client_input_handler_script(void) {
         size_t offset =
             tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SCRIPT_TOGGLE);
         tkbc_message_write_end(&client.send_msg_buffer, offset);
-    }
-
-    // KEY_TAB
-    if (env->new_script_selected) {
-        // A nil uuid selects "no script".
-        UUID script_id = tkbc_uuid_nil();
-        if (env->script_menu_mouse_interaction_box != -1) {
-            script_id = env->scripts.elements[env->script_menu_mouse_interaction_box].id;
-        }
-
-        size_t offset =
-            tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SCRIPT_NEXT);
-        tkbc_message_write_uuid(&client.send_msg_buffer, &client.send_msg_buffer_space, script_id);
-        tkbc_message_write_end(&client.send_msg_buffer, offset);
-        env->new_script_selected = false;
     }
 
     static size_t last_sent_scrub_target = (size_t) -1;
@@ -1258,6 +1291,10 @@ int main(int argc, char *argv[]) {
         // script menu are sent to the server immediately, while the menu is
         // still open. The queued message is flushed in the next tkbc_run().
         tkbc_client_send_pending_script_deletes();
+        // Deleting the running script sets new_script_selected while the menu
+        // is still open. Send that selection now instead of waiting for the UI
+        // to close, so the displayed kites switch to the non-script view.
+        tkbc_client_send_selected_script();
 
         if (env->script_menu_interaction || env->text_input_active || env->keymaps_interaction) {
             continue;

@@ -1,6 +1,7 @@
 #include "../../../external/space/space.h"
 #include "../../choreographer/tkbc-script-api.h"
 #include "../../choreographer/tkbc-script-handler.h"
+#include "../../choreographer/tkbc.h"
 #include "../../global/tkbc-types.h"
 #include "../poll-server.h"
 #include "../tkbc-servers-common.h"
@@ -65,6 +66,7 @@ bool tkbc_messages_script(Env *env, Message *reader, Client *client, bool *scrip
     Frame frame = {0};
     Kite_Ids collected_kids = {0};
     Kite_Ids generated_kite_ids = {0};
+    Kite_Positions orphan_positions = {0};
 
     space_reset_space(&env->scratch_buf_script.space);
     // Reset the whole struct but keep the space so that its planets remain
@@ -210,6 +212,40 @@ bool tkbc_messages_script(Env *env, Message *reader, Client *client, bool *scrip
         space_dap(scb_space, scb_script, frames);
     }
 
+    // Orphan kites belong to the script but are never referenced by a frame
+    // action, so they are absent from collected_kids. Read them and add their
+    // ids to the collection so a kite is generated for each one below; their
+    // transmitted start position is applied after the id remap.
+    uint64_t orphan_count;
+    if (!tkbc_message_read_u64(reader, &orphan_count)) {
+        check_return(false);
+    }
+    for (uint64_t oi = 0; oi < orphan_count; ++oi) {
+        uint64_t orphan_id;
+        float ox, oy, oangle;
+        if (!tkbc_message_read_u64(reader, &orphan_id)) {
+            check_return(false);
+        }
+        if (!tkbc_message_read_f32(reader, &ox)) {
+            check_return(false);
+        }
+        if (!tkbc_message_read_f32(reader, &oy)) {
+            check_return(false);
+        }
+        if (!tkbc_message_read_f32(reader, &oangle)) {
+            check_return(false);
+        }
+        Kite_Position op = {
+            .kite_id = (Id) orphan_id,
+            .position = (Vector2){ox, oy},
+            .angle = oangle,
+        };
+        tkbc_dap(&orphan_positions, op);
+        if (!tkbc_contains_id(collected_kids, (Id) orphan_id)) {
+            tkbc_dap(&collected_kids, (Id) orphan_id);
+        }
+    }
+
     // Post parsing
     size_t kite_count = collected_kids.count;
     size_t prev_count = env->kite_array.count;
@@ -231,6 +267,45 @@ bool tkbc_messages_script(Env *env, Message *reader, Client *client, bool *scrip
     // the ids of the kites that were just created and they are needed for the
     // CLIENTKITES message further down. It is freed in the cleanup section,
     // which also covers the error paths.
+
+    // Apply the transmitted start positions of the orphan kites. The remap
+    // above maps collected_kids[i] -> generated_kite_ids[i]; orphans are not in
+    // any frame, so only their generated kite state needs the stored position.
+    // Record them in every block so the script owns them (activation, deletion,
+    // serialization) without relying on the global unclaimed-kite heuristic.
+    for (size_t oi = 0; oi < orphan_positions.count; ++oi) {
+        const Kite_Position *op = &orphan_positions.elements[oi];
+        Id generated_id = op->kite_id;
+        for (size_t ci = 0; ci < collected_kids.count; ++ci) {
+            if (collected_kids.elements[ci] != op->kite_id) {
+                continue;
+            }
+            generated_id = generated_kite_ids.elements[ci];
+            Kite_State *state = tkbc_get_kite_state_by_id(env, generated_id);
+            if (state) {
+                tkbc_center_rotation(state->kite, &op->position, op->angle);
+            }
+            break;
+        }
+        Kite_Position remapped = {
+            .kite_id = generated_id,
+            .position = op->position,
+            .angle = op->angle,
+        };
+        for (size_t bi = 0; bi < scb_script->count; ++bi) {
+            Frames *block = &scb_script->elements[bi];
+            bool contains = false;
+            for (size_t pi = 0; pi < block->kite_frame_positions.count; ++pi) {
+                if (block->kite_frame_positions.elements[pi].kite_id == generated_id) {
+                    contains = true;
+                    break;
+                }
+            }
+            if (!contains) {
+                space_dap(scb_space, &block->kite_frame_positions, remapped);
+            }
+        }
+    }
 
     // Set the first kite positions
     tkbc_patch_script_kite_positions(env, scb_script, scb_space);
@@ -348,6 +423,10 @@ check:
     if (generated_kite_ids.elements) {
         free(generated_kite_ids.elements);
         generated_kite_ids.elements = NULL;
+    }
+    if (orphan_positions.elements) {
+        free(orphan_positions.elements);
+        orphan_positions.elements = NULL;
     }
 
     return ok;

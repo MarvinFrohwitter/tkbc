@@ -50,6 +50,11 @@ bool tkbc_messages_script_next(Message *reader) {
     // ghosts through the deselection broadcasts.
 #ifdef TKBC_SERVER
     tkbc_server_clear_all_kite_selections(true, -1);
+    // Force a client-side view reset even when the same script is requested
+    // again. SCRIPT_META_DATA only blanks the local kites when the script uuid
+    // changes, so an explicit nil meta first removes stale script kites and
+    // ghosts that would otherwise remain visible next to the new snapshot.
+    tkbc_message_script_meta_data_write_to_all_send_msg_buffers(tkbc_uuid_nil(), 0, 0);
 #endif
 
     // NOTE: Partial played scripts should not save load there old state, because
@@ -67,7 +72,11 @@ bool tkbc_messages_script_next(Message *reader) {
     // This parsing function is just used in the server but liked in the client
     // as well so just a simple guard for compilation.
 #ifdef TKBC_SERVER
-    tkbc_message_clientkites_write_to_all_send_msg_buffers(true);
+    if (env->script && env->frames) {
+        tkbc_message_script_meta_data_write_to_all_send_msg_buffers(env->script->id, env->script->count,
+                                                                    env->frames->frames_index);
+    }
+    tkbc_message_clientkites_write_to_all_send_msg_buffers(false);
 #endif
 
     return true;

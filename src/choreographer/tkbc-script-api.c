@@ -486,8 +486,20 @@ Kite_Ids tkbc_kite_array_generate(Env *env, size_t kite_count) {
         // The id starts from 0.
         assert(env->kite_id_counter < CLIENT_BASE_ID);
         Id next_kite_id = env->kite_id_counter++;
-        env->kite_array.elements[env->kite_array.count - 1].kite_id = next_kite_id;
-        env->kite_array.elements[env->kite_array.count - 1].kite->body_color = tkbc_get_random_color();
+        Kite_State *state = &env->kite_array.elements[env->kite_array.count - 1];
+        state->kite_id = next_kite_id;
+        state->kite->body_color = tkbc_get_random_color();
+        state->is_script_kite = true;
+        // Generation happens while a script is being built, so remember which
+        // script this kite belongs to. This lets stale remote edits be rejected
+        // after the view switches to another script.
+        state->owner_script_id = env->scratch_buf_script.id;
+
+        // Record ownership on the script currently being built. Generated kites
+        // are not necessarily referenced by a frame action (orphans), and
+        // positions are geometry only, so this is the authoritative ownership
+        // set used for activation, serialization and deletion.
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_script.owned_kite_ids, next_kite_id);
 
         tkbc_dap(&ids, next_kite_id);
     }

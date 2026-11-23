@@ -504,6 +504,69 @@ Test ghost_remote_edit_needs_active_target(void) {
     return test;
 }
 
+Test ghost_remote_edit_ignored_after_script_change(void) {
+    Test test = cassert_init_test("tkbc_assign_values_to_kitestate_from_source(stale script change)");
+
+    Env *saved_env = env;
+    Env test_env = {0};
+    test_env.server_script_id = tkbc_uuid_from_number(42);
+    env = &test_env;
+    Kite_State target = ghost_test_target(9);
+    // This kite was generated for the previous script and is hidden now.
+    target.owner_script_id = tkbc_uuid_from_number(41);
+    target.is_active = false;
+
+    // A ghost of the old script keeps remote updates in flight. When the view
+    // has already switched to script 42, that late edit must neither revive the
+    // old kite nor create a new ghost for it.
+    tkbc_assign_values_to_kitestate_from_source(&target, 500.0f, 600.0f, 60.0f, target.kite->body_color,
+                                                 target.kite->texture_id, false, true, true, 7, 2);
+
+    cassert_bool_eq(target.is_active, false);
+    cassert_bool_eq(target.is_kite_input_handler_active, false);
+    cassert_size_t_eq(test_env.ghost_kites.count, (size_t) 0);
+    cassert_float_eq(target.kite->center.x, 111.0f);
+    cassert_float_eq(target.kite->center.y, 222.0f);
+
+    tkbc_destroy_kite_array(&test_env.ghost_kites);
+    free(target.kite);
+    env = saved_env;
+    return test;
+}
+
+Test ghost_remote_edit_ignored_after_server_script_change(void) {
+    Test test = cassert_init_test("tkbc_assign_values_to_kitestate_from_source(server script change)");
+
+    Env *saved_env = env;
+    Env test_env = {0};
+    Script active_script = {0};
+    active_script.id = tkbc_uuid_from_number(52);
+    test_env.script = &active_script;
+    env = &test_env;
+    Kite_State target = ghost_test_target(10);
+    // On the server the active view comes from env->script, not
+    // server_script_id. The kite still belongs to the previous script.
+    target.owner_script_id = tkbc_uuid_from_number(51);
+    target.is_active = false;
+
+    // This is the SINGLE_KITE_UPDATE path on the server. The source id must be
+    // honored by the ownership check, otherwise the server reactivates the old
+    // kite and the next CLIENTKITES snapshot shows it on every client.
+    tkbc_assign_values_to_kitestate_from_source(&target, 500.0f, 600.0f, 60.0f, target.kite->body_color,
+                                                 target.kite->texture_id, false, true, true, 7, 2);
+
+    cassert_bool_eq(target.is_active, false);
+    cassert_bool_eq(target.is_kite_input_handler_active, false);
+    cassert_size_t_eq(test_env.ghost_kites.count, (size_t) 0);
+    cassert_float_eq(target.kite->center.x, 111.0f);
+    cassert_float_eq(target.kite->center.y, 222.0f);
+
+    tkbc_destroy_kite_array(&test_env.ghost_kites);
+    free(target.kite);
+    env = saved_env;
+    return test;
+}
+
 Test script_delete_clears_ghosts_of_running_script(void) {
     Test test = cassert_init_test("tkbc_unload_script_from_memory(clears ghosts of running script)");
 
@@ -558,5 +621,7 @@ void tkbc_test_kite_array(Tests *tests) {
     cassert_dap(tests, ghost_clear_all_removes_every_ghost());
     cassert_dap(tests, ghost_remote_edit_ignored_without_loaded_script());
     cassert_dap(tests, ghost_remote_edit_needs_active_target());
+    cassert_dap(tests, ghost_remote_edit_ignored_after_script_change());
+    cassert_dap(tests, ghost_remote_edit_ignored_after_server_script_change());
     cassert_dap(tests, script_delete_clears_ghosts_of_running_script());
 }

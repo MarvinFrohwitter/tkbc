@@ -85,15 +85,9 @@ void tkbc_script_parser(Env *env) {
                 if (t.kind == NUMBER) {
                     size_t kite_number = strtoul(lexer_token_to_cstr(l, &t), NULL, 10);
                     size_t prev_count = env->kite_array.count;
-                    if (prev_count >= kite_number) {
-                        ki = tkbc_indexs_range_space(space_get_tspace(), 0, (int) kite_number);
-                        for (size_t i = 0; i < ki.count; ++i) {
-                            ki.elements[i] = env->kite_array.elements[i].kite_id;
-                        }
-                        break;
-                    }
-
-                    kite_number -= prev_count;
+                    // Every script gets its own kites. Reusing the first n kites
+                    // of the environment made independently loaded scripts share
+                    // ids, so an orphan of one script showed up in another one.
                     Kite_Ids generated_ki = tkbc_kite_array_generate(env, kite_number);
                     ki.count = 0;
                     space_tdapc(&ki, generated_ki.elements, generated_ki.count);
@@ -245,12 +239,13 @@ bool tkbc_parsed_kis_is_in_env(Env *env, Index index) {
  * File-local ids are resolved to the kites of the current environment so
  * that scripts stay loadable even if their ids are higher than (or otherwise
  * different from) the currently known kite ids:
- * 1. ids that already exist in the env are used as is,
- * 2. ids smaller than the script kite count are treated as an index into
+ * 1. ids smaller than the script kite count are treated as an index into
  *    the script kite list (the documented `KITES n` + `(0 ... n-1)` form),
+ * 2. ids of existing client kites are used as is,
  * 3. all other ids get a freshly generated kite that is remembered in the
  *    remap for the whole script, so the same file id always maps to the
- *    same kite instead of failing the parse.
+ *    same kite instead of failing the parse. Existing script kites are never
+ *    reused, so scripts cannot accidentally share an orphan kite.
  *
  * @param env The global state of the application.
  * @param lexer The data to parse should be located in her.
@@ -286,10 +281,14 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
             }
             size_t file_id = (size_t) number;
             Id env_id;
-            if (tkbc_parsed_kis_is_in_env(env, file_id) && file_id != CLIENT_BASE_ID) {
-                env_id = file_id;
-            } else if (file_id < orig_kis->count) {
+            // File-local ids first address this script's own kites. Only real
+            // client kites may be referenced by their absolute id; reusing an
+            // arbitrary existing script kite would make two scripts share (and
+            // activate and delete) the same kite.
+            if (file_id < orig_kis->count) {
                 env_id = orig_kis->elements[file_id];
+            } else if (file_id >= CLIENT_BASE_ID && tkbc_parsed_kis_is_in_env(env, file_id)) {
+                env_id = file_id;
             } else {
                 bool mapped = false;
                 for (size_t i = 0; i < remap->file_ids.count; ++i) {
@@ -304,11 +303,8 @@ bool tkbc_parse_kis_after_generation(Env *env, Lexer *lexer, Kite_Ids *dest_kis,
                     if (generated.count == 0) {
                         return false;
                     }
-                    env->kite_array.elements[env->kite_array.count - 1].is_script_kite = true;
                     env_id = generated.elements[0];
                     free(generated.elements);
-                    // Generated kites stay hidden until the script is loaded;
-                    // the frame registration below tags them as script kites.
                     space_tdap(&remap->file_ids, file_id);
                     space_tdap(&remap->env_ids, env_id);
                     space_tdap(orig_kis, env_id);

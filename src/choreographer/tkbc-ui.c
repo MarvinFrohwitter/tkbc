@@ -958,6 +958,7 @@ static size_t tkbc_script_menu_delete_selected(Env *env) {
     tkbc_script_menu_add__script_menu_mouse_interaction_box__to_selected_scripts_if_not_other_selection_exists(env);
 
     size_t deleted = 0;
+    bool deleted_running_script = false;
     for (;;) {
         ssize_t marked_box = -1;
         // This way ensures that no bad behavior can happen when deleting and iterating at the same time.
@@ -976,6 +977,12 @@ static size_t tkbc_script_menu_delete_selected(Env *env) {
         // the id is taken before and every further iteration searches from
         // scratch again.
         UUID deleted_script_id = env->scripts.elements[marked_box].id;
+        // Only deleting the running script may switch the view. Deleting any
+        // other script must not unload the script that is currently displayed.
+        if ((env->script && tkbc_uuid_equals(env->script->id, deleted_script_id)) ||
+            tkbc_uuid_equals(env->server_script_id, deleted_script_id)) {
+            deleted_running_script = true;
+        }
         tkbc_unload_script_from_memory(env, deleted_script_id);
         // Queue the deletion so the client informs the server about it via
         // MESSAGE_SCRIPT_DELETE. The server then deletes the script as well
@@ -985,7 +992,9 @@ static size_t tkbc_script_menu_delete_selected(Env *env) {
     }
 
     if (deleted > 0) {
-        env->new_script_selected = true;
+        // Queue the "no script" switch only when the displayed script was
+        // removed. It is sent immediately while the menu stays open.
+        env->new_script_selected = deleted_running_script;
         env->script_menu_mouse_interaction_box = -1;
         env->script_menu_mouse_interaction = false;
         env->script_menu_selection_anchor = -1;
@@ -1165,8 +1174,15 @@ bool tkbc_ui_script_menu(Env *env) {
                     DrawCircleV(circle_center, delete_circle_radius, TKBC_UI_PURPLE_ALPHA);
 
                     UUID deleted_script_id = env->scripts.elements[box].id;
+                    bool deleted_running_script =
+                        (env->script && tkbc_uuid_equals(env->script->id, deleted_script_id)) ||
+                        tkbc_uuid_equals(env->server_script_id, deleted_script_id);
 
-                    env->new_script_selected = true;
+                    // If the displayed script is gone, queue the immediate
+                    // switch to the non-script view. The client sends it while
+                    // this menu is still open. Deleting another script leaves
+                    // the current view untouched.
+                    env->new_script_selected = deleted_running_script;
                     env->script_menu_mouse_interaction_box = -1;
 
                     tkbc_unload_script_from_memory(env, deleted_script_id);

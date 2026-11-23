@@ -1113,6 +1113,168 @@ Test export_script_maps_kite_ids_to_file_indices(void) {
     return test;
 }
 
+Test remap_frames_kite_ids_overlapping_ranges(void) {
+    Test test = cassert_init_test("tkbc_remap_frames_kite_ids(overlapping ids)");
+
+    Frames frames = {0};
+    Frame frame = {0};
+    frame.kind = ACTION_KITE_MOVE;
+    for (Id id = 0; id < 4; ++id) {
+        tkbc_dap(&frame.kite_id_array, id);
+    }
+    tkbc_dap(&frames, frame);
+    for (Id id = 0; id < 4; ++id) {
+        tkbc_dap(&frames.kite_frame_positions, ((Kite_Position){.kite_id = id}));
+    }
+
+    Kite_Ids current = {0};
+    Kite_Ids replacement = {0};
+    for (Id id = 0; id < 4; ++id) {
+        tkbc_dap(&current, id);
+        tkbc_dap(&replacement, (Id) (id + 2));
+    }
+
+    // An in-place walk would cascade here: 0->2 followed by 2->4 would also
+    // rewrite the value just produced for id 0.
+    tkbc_remap_frames_kite_ids(&frames, current, replacement);
+
+    for (size_t i = 0; i < 4; ++i) {
+        cassert_size_t_eq(frames.elements[0].kite_id_array.elements[i], (size_t) (i + 2));
+        cassert_size_t_eq(frames.kite_frame_positions.elements[i].kite_id, (size_t) (i + 2));
+    }
+
+    free(current.elements);
+    free(replacement.elements);
+    free(frames.elements[0].kite_id_array.elements);
+    free(frames.elements);
+    free(frames.kite_frame_positions.elements);
+    return test;
+}
+
+static Kite_Position *find_kite_position(Frames *frames, Id kite_id) {
+    for (size_t i = 0; i < frames->kite_frame_positions.count; ++i) {
+        if (frames->kite_frame_positions.elements[i].kite_id == kite_id) {
+            return &frames->kite_frame_positions.elements[i];
+        }
+    }
+    return NULL;
+}
+
+Test fresh_load_clears_previous_kite_positions(void) {
+    Test test = cassert_init_test("tkbc_load_script_id(fresh clears previous kites)");
+
+    Env *env = tkbc_init_env();
+
+    Kite_State action_kite = tkbc_init_kite();
+    action_kite.kite_id = 0;
+    action_kite.is_active = true;
+    action_kite.is_script_kite = true;
+    Vector2 live_action = {.x = 777.0f, .y = 0};
+    tkbc_center_rotation(action_kite.kite, &live_action, 0);
+    action_kite.kite->old_center = action_kite.kite->center;
+    action_kite.kite->old_angle = action_kite.kite->angle;
+    tkbc_dap(&env->kite_array, action_kite);
+
+    Kite_State orphan_kite = tkbc_init_kite();
+    orphan_kite.kite_id = 1;
+    orphan_kite.is_active = true;
+    orphan_kite.is_script_kite = true;
+    Vector2 live_orphan = {.x = 888.0f, .y = 0};
+    tkbc_center_rotation(orphan_kite.kite, &live_orphan, 0);
+    tkbc_dap(&env->kite_array, orphan_kite);
+
+    // One action kite (0) and one orphan (1). Both are owned by this script.
+    Script *scratch = &env->scratch_buf_script;
+    scratch->id = tkbc_uuid_from_number(1);
+    space_dap(&scratch->space, &scratch->owned_kite_ids, (Id) 0);
+    space_dap(&scratch->space, &scratch->owned_kite_ids, (Id) 1);
+
+    Frames block = {0};
+    Frame move = {0};
+    move.kind = ACTION_KITE_MOVE;
+    move.action.as_move.position = (Vector2){.x = 10.0f, .y = 0};
+    move.duration = 0.2f;
+    move.original_duration = 0.2f;
+    move.index = 0;
+    space_dap(&scratch->space, &move.kite_id_array, (Id) 0);
+    space_dap(&scratch->space, &block, move);
+    space_dap(&scratch->space, &block.kite_frame_positions,
+              ((Kite_Position){.kite_id = 0, .position = {.x = 0.0f, .y = 0}, .angle = 0}));
+    space_dap(&scratch->space, &block.kite_frame_positions,
+              ((Kite_Position){.kite_id = 1, .position = {.x = 100.0f, .y = 0}, .angle = 0}));
+    block.frames_index = 0;
+    space_dap(&scratch->space, scratch, block);
+
+    tkbc_add_script(env, *scratch, false);
+    cassert_size_t_eq(env->scripts.count, (size_t) 1);
+
+    UUID script_id = env->scripts.elements[0].id;
+    bool loaded = tkbc_load_script_id(env, script_id, true);
+    cassert_bool_eq(loaded, true);
+    cassert_ptr_neq(env->script, NULL);
+    cassert_ptr_neq(env->frames, NULL);
+
+    // A CONFIRM load is fresh: the action kite is re-anchored to its current
+    // live position instead of keeping the stale baked start, while the orphan
+    // is restored from its stored start (it has no action to re-anchor to).
+    Kite *action = tkbc_get_kite_by_id(env, 0);
+    Kite *orphan = tkbc_get_kite_by_id(env, 1);
+    cassert_bool_eq(fabsf(action->center.x - live_action.x) < 0.01f, true);
+    cassert_bool_eq(fabsf(orphan->center.x - 100.0f) < 0.01f, true);
+
+    Kite_Position *first_action = find_kite_position(env->frames, 0);
+    Kite_Position *first_orphan = find_kite_position(env->frames, 1);
+    cassert_ptr_neq(first_action, NULL);
+    cassert_ptr_neq(first_orphan, NULL);
+    cassert_bool_eq(fabsf(first_action->position.x - live_action.x) < 0.01f, true);
+    cassert_bool_eq(fabsf(first_orphan->position.x - 100.0f) < 0.01f, true);
+
+    tkbc_destroy_env(env);
+    return test;
+}
+
+Test script_kite_ownership_is_not_position_based(void) {
+    Test test = cassert_init_test("script kite ownership(isolated orphans)");
+
+    Script script = {0};
+    script.owned_kite_ids = tkbc_indexs_range(0, 2);  // This script owns 0 and 1.
+
+    Frames frames = {0};
+    Frame frame = {0};
+    frame.kind = ACTION_KITE_MOVE;
+    frame.kite_id_array = tkbc_indexs_range(0, 1);  // Only kite 0 is used.
+    tkbc_dap(&frames, frame);
+
+    // Position 100 belongs to another script and must never be collected.
+    tkbc_dap(&frames.kite_frame_positions, ((Kite_Position){.kite_id = 0}));
+    tkbc_dap(&frames.kite_frame_positions, ((Kite_Position){.kite_id = 1}));
+    tkbc_dap(&frames.kite_frame_positions, ((Kite_Position){.kite_id = 100}));
+    tkbc_dap(&script, frames);
+
+    Space space = {.alloc_method = SPACE_METHOD_MALLOC};
+    Kite_Ids ids = {0};
+    tkbc_collect_script_kite_ids(&space, &script, &ids);
+    cassert_size_t_eq(ids.count, (size_t) 2);
+    cassert_bool_eq(tkbc_contains_id(ids, 0), true);
+    cassert_bool_eq(tkbc_contains_id(ids, 1), true);
+    cassert_bool_eq(tkbc_contains_id(ids, 100), false);
+
+    Kite_Positions orphans = {0};
+    tkbc_collect_script_orphan_kite_positions(&space, &script, &orphans);
+    cassert_size_t_eq(orphans.count, (size_t) 1);
+    cassert_size_t_eq(orphans.elements[0].kite_id, (size_t) 1);
+
+    free(ids.elements);
+    free(orphans.elements);
+    free(script.owned_kite_ids.elements);
+    free(script.elements);
+    free(frames.elements[0].kite_id_array.elements);
+    free(frames.elements);
+    free(frames.kite_frame_positions.elements);
+    space_free_space_internals_without_freeing_data(&space);
+    return test;
+}
+
 /**
  * @brief Run all script handler unit tests.
  *
@@ -1125,6 +1287,7 @@ void tkbc_test_script_handler(Tests *tests) {
     cassert_dap(tests, contains_id());
     cassert_dap(tests, deep_copy_frame());
     cassert_dap(tests, deep_copy_frames());
+    cassert_dap(tests, remap_frames_kite_ids_overlapping_ranges());
     cassert_dap(tests, deep_copy_script());
     cassert_dap(tests, destroy_frames_internal_data());
     cassert_dap(tests, reset_frames_internal_data());
@@ -1141,4 +1304,6 @@ void tkbc_test_script_handler(Tests *tests) {
     cassert_dap(tests, render_frame_duration_guard_finishes_fighting_moves());
     cassert_dap(tests, export_script_to_dot_kite_file_from_mem_writes_original());
     cassert_dap(tests, export_script_maps_kite_ids_to_file_indices());
+    cassert_dap(tests, script_kite_ownership_is_not_position_based());
+    cassert_dap(tests, fresh_load_clears_previous_kite_positions());
 }

@@ -336,6 +336,12 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
     new_script.id = script->id;
     new_script.was_send = script->was_send;
 
+    // Owned kite ids live in the script's space and must travel with it.
+    if (script->owned_kite_ids.count) {
+        space_dapc(space, &new_script.owned_kite_ids, script->owned_kite_ids.elements,
+                   script->owned_kite_ids.count);
+    }
+
     // Deep copy the name buffer into the new allocation. The name is stored
     // only in name_input.text.
     const char *src_name = tkbc_script_name(script);
@@ -774,32 +780,57 @@ void tkbc_render_frame_with_dt(Env *env, Frame *frame, float dt) {
 void tkbc_remap_frames_kite_ids(Frames *frames, Kite_Ids current_kite_ids, Kite_Ids kite_ids) {
     assert(frames);
     assert(frames->elements || frames->count == 0);
-    for (size_t new_id = 0; new_id < current_kite_ids.count; ++new_id) {
-        for (size_t j = 0; j < frames->count; ++j) {
-            if (frames->elements[j].kind == ACTION_KITE_WAIT || frames->elements[j].kind == ACTION_KITE_QUIT) {
-                continue;
-            }
-            Kite_Ids *ids = &frames->elements[j].kite_id_array;
-            assert(ids->elements);
-            for (size_t k = 0; k < ids->count; ++k) {
-                Id *id = &ids->elements[k];
 
-                if (current_kite_ids.elements[new_id] == *id) {
-                    *id = kite_ids.elements[new_id];
+    // The replacement ids can overlap the ids they replace (e.g. a server that
+    // already owns kites generates ids 2..5 for an incoming script that used
+    // 0..3). Rewriting in place while walking the mapping would cascade: 0->2
+    // followed by 2->4 would also change the value just written. Snapshot every
+    // id first, then write the whole array back in one pass.
+    for (size_t j = 0; j < frames->count; ++j) {
+        if (frames->elements[j].kind == ACTION_KITE_WAIT || frames->elements[j].kind == ACTION_KITE_QUIT) {
+            continue;
+        }
+        Kite_Ids *ids = &frames->elements[j].kite_id_array;
+        assert(ids->elements || ids->count == 0);
+        if (ids->count == 0) {
+            continue;
+        }
+
+        Id *mapped = malloc(ids->count * sizeof(*mapped));
+        assert(mapped);
+        for (size_t k = 0; k < ids->count; ++k) {
+            Id original = ids->elements[k];
+            mapped[k] = original;
+            for (size_t ci = 0; ci < current_kite_ids.count; ++ci) {
+                if (current_kite_ids.elements[ci] == original) {
+                    mapped[k] = kite_ids.elements[ci];
                     break;
                 }
             }
         }
+        memcpy(ids->elements, mapped, ids->count * sizeof(*mapped));
+        free(mapped);
+    }
 
-        for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
-            Id *id = &frames->kite_frame_positions.elements[j].kite_id;
-
-            if (current_kite_ids.elements[new_id] == *id) {
-                *id = kite_ids.elements[new_id];
+    if (frames->kite_frame_positions.count == 0) {
+        return;
+    }
+    Id *mapped_positions = malloc(frames->kite_frame_positions.count * sizeof(*mapped_positions));
+    assert(mapped_positions);
+    for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
+        Id original = frames->kite_frame_positions.elements[j].kite_id;
+        mapped_positions[j] = original;
+        for (size_t ci = 0; ci < current_kite_ids.count; ++ci) {
+            if (current_kite_ids.elements[ci] == original) {
+                mapped_positions[j] = kite_ids.elements[ci];
                 break;
             }
         }
     }
+    for (size_t j = 0; j < frames->kite_frame_positions.count; ++j) {
+        frames->kite_frame_positions.elements[j].kite_id = mapped_positions[j];
+    }
+    free(mapped_positions);
 }
 
 /**
@@ -810,8 +841,39 @@ void tkbc_remap_frames_kite_ids(Frames *frames, Kite_Ids current_kite_ids, Kite_
  * @param current_kite_ids The collection that receives the ids.
  */
 void tkbc_collect_script_kite_ids(Space *space, const Script *script, Kite_Ids *current_kite_ids) {
+    if (!script) {
+        return;
+    }
+
+    // Ownership is explicit: kites generated while this script was built.
+    for (size_t i = 0; i < script->owned_kite_ids.count; ++i) {
+        if (!tkbc_contains_id(*current_kite_ids, script->owned_kite_ids.elements[i])) {
+            space_dap(space, current_kite_ids, script->owned_kite_ids.elements[i]);
+        }
+    }
+
+    // Kites referenced by this script's own frame actions also belong to its
+    // view. They can be reused ids from another creation path, so they are not
+    // necessarily in owned_kite_ids. Frame actions (not positions) are used on
+    // purpose: positions are geometry and may carry stale or foreign ids.
     for (size_t i = 0; i < script->count; ++i) {
-        tkbc_collect_frames_kite_ids(space, &script->elements[i], current_kite_ids);
+        const Frames *frames = &script->elements[i];
+        for (size_t fi = 0; fi < frames->count; ++fi) {
+            const Kite_Ids *ids = &frames->elements[fi].kite_id_array;
+            for (size_t ki = 0; ki < ids->count; ++ki) {
+                if (!tkbc_contains_id(*current_kite_ids, ids->elements[ki])) {
+                    space_dap(space, current_kite_ids, ids->elements[ki]);
+                }
+            }
+        }
+    }
+
+    // Legacy scripts created without an ownership set have to fall back to the
+    // position-based collection so they keep working.
+    if (script->owned_kite_ids.count == 0) {
+        for (size_t i = 0; i < script->count; ++i) {
+            tkbc_collect_frames_kite_ids(space, &script->elements[i], current_kite_ids);
+        }
     }
 }
 
@@ -884,6 +946,141 @@ void tkbc_patch_script_kite_positions(Env *env, Script *script, Space *space) {
     for (size_t i = 0; i < script->count; ++i) {
         tkbc_patch_frames_kite_positions(env, &script->elements[i], space);
     }
+}
+
+/**
+ * @brief Records a start position for every kite owned by the given script in
+ * every block. Kites generated for a script are not necessarily referenced by
+ * a frame action, but they still need a geometry entry so scrubbing, baking and
+ * serialization see them. Ownership is taken from the script itself; no global
+ * "unclaimed kite" heuristic is used, because that would assign a kite to
+ * scripts it does not belong to.
+ *
+ * @param env The global state of the application, used for live kite geometry.
+ * @param script The script whose blocks should get the positions.
+ */
+static void tkbc_ensure_script_kite_positions(Env *env, Script *script) {
+    if (!env || !script || script->count == 0) {
+        return;
+    }
+
+    Space temp_space = {0};
+    Kite_Ids script_kite_ids = {0};
+    tkbc_collect_script_kite_ids(&temp_space, script, &script_kite_ids);
+
+    for (size_t si = 0; si < script_kite_ids.count; ++si) {
+        Id id = script_kite_ids.elements[si];
+
+        // Prefer an already stored position (e.g. transmitted orphan position)
+        // over the live kite state.
+        Kite_Position position = {0};
+        bool found = false;
+        for (size_t bi = 0; bi < script->count && !found; ++bi) {
+            Frames *block = &script->elements[bi];
+            for (size_t pi = 0; pi < block->kite_frame_positions.count; ++pi) {
+                if (block->kite_frame_positions.elements[pi].kite_id == id) {
+                    position = block->kite_frame_positions.elements[pi];
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found) {
+            Kite_State *state = tkbc_get_kite_state_by_id(env, id);
+            if (!state) {
+                continue;
+            }
+            position = (Kite_Position){
+                .kite_id = id,
+                .position = state->kite->center,
+                .angle = state->kite->angle,
+            };
+        }
+
+        for (size_t bi = 0; bi < script->count; ++bi) {
+            Frames *block = &script->elements[bi];
+            bool contains = false;
+            for (size_t pi = 0; pi < block->kite_frame_positions.count; ++pi) {
+                if (block->kite_frame_positions.elements[pi].kite_id == id) {
+                    contains = true;
+                    break;
+                }
+            }
+            if (!contains) {
+                space_dap(&script->space, &block->kite_frame_positions, position);
+            }
+        }
+    }
+
+    space_free_space(&temp_space);
+}
+
+/**
+ * @brief Collects the kites that belong to the given script but are never
+ * referenced by a frame action (orphans). These kites only exist in the
+ * blocks' kite_frame_positions, so they are invisible to the frame-based id
+ * collection that drives script serialization and receiver kite generation.
+ * Transmitting them lets every side generate and display them with the script.
+ *
+ * The result is deduplicated (an orphan is recorded in every block) and keeps
+ * the stored start position/angle of each orphan.
+ *
+ * @param space The allocator used to grow the result.
+ * @param script The script that gets inspected.
+ * @param orphan_positions Receives one entry per orphan kite.
+ */
+void tkbc_collect_script_orphan_kite_positions(Space *space, const Script *script, Kite_Positions *orphan_positions) {
+    if (!script || script->count == 0) {
+        return;
+    }
+
+    // Prefer the original (non-upscaled) blocks: they carry the same orphan
+    // positions but avoid iterating every per-tick slice of a live timeline.
+    const Frames *blocks = script->original_elements ? script->original_elements : script->elements;
+    size_t block_count = script->original_elements ? script->original_count : script->count;
+
+    Space temp_space = {0};
+    Kite_Ids script_kite_ids = {0};
+    tkbc_collect_script_kite_ids(&temp_space, script, &script_kite_ids);
+
+    // Every kite referenced by any frame action is a used kite.
+    Kite_Ids frame_kite_ids = {0};
+    for (size_t bi = 0; bi < block_count; ++bi) {
+        const Frames *block = &blocks[bi];
+        for (size_t fi = 0; fi < block->count; ++fi) {
+            const Frame *frame = &block->elements[fi];
+            for (size_t ki = 0; ki < frame->kite_id_array.count; ++ki) {
+                Id id = frame->kite_id_array.elements[ki];
+                if (!tkbc_contains_id(frame_kite_ids, id)) {
+                    space_dap(&temp_space, &frame_kite_ids, id);
+                }
+            }
+        }
+    }
+
+    // An orphan is a kite owned by this script that no frame action references.
+    // Positions are only read to obtain its stored start geometry.
+    for (size_t si = 0; si < script_kite_ids.count; ++si) {
+        Id id = script_kite_ids.elements[si];
+        if (tkbc_contains_id(frame_kite_ids, id)) {
+            continue;
+        }
+
+        bool found = false;
+        for (size_t bi = 0; bi < block_count && !found; ++bi) {
+            const Frames *block = &blocks[bi];
+            for (size_t pi = 0; pi < block->kite_frame_positions.count; ++pi) {
+                if (block->kite_frame_positions.elements[pi].kite_id == id) {
+                    space_dap(space, orphan_positions, block->kite_frame_positions.elements[pi]);
+                    found = true;
+                    break;
+                }
+            }
+        }
+        (void) found;
+    }
+
+    space_free_space(&temp_space);
 }
 
 /**
@@ -976,15 +1173,29 @@ size_t tkbc_check_finished_frames_count(Env *env) {
  * @param env The global state of the application.
  */
 void tkbc_change_visibility_to_non_script_kites(Env *env) {
+    // Repair script ownership flags: kites referenced by any known script must
+    // never be treated as normal client kites.
+    Space temp_space = {0};
+    Kite_Ids script_kite_ids = {0};
+    for (size_t si = 0; si < env->scripts.count; ++si) {
+        tkbc_collect_script_kite_ids(&temp_space, &env->scripts.elements[si], &script_kite_ids);
+    }
+
     // Enable the normal client kites.
     for (size_t i = 0; i < env->kite_array.count; ++i) {
         Kite_State *kite_state = &env->kite_array.elements[i];
         kite_state->is_kite_input_handler_active = false;
         kite_state->is_active = false;
+        if (tkbc_contains_id(script_kite_ids, kite_state->kite_id)) {
+            kite_state->is_script_kite = true;
+            continue;
+        }
         if (!kite_state->is_script_kite) {
             kite_state->is_active = true;
         }
     }
+
+    space_free_space(&temp_space);
 }
 
 /**
@@ -1005,12 +1216,14 @@ void tkbc_change_visibility_to_script_kites(Env *env, Space *tspace, Script *scr
     //
     // Activate the kites that belong to the script.
     for (size_t i = 0; i < env->kite_array.count; ++i) {
-        env->kite_array.elements[i].is_active = false;
-        env->kite_array.elements[i].is_kite_input_handler_active = false;
+        Kite_State *kite_state = &env->kite_array.elements[i];
+        kite_state->is_active = false;
+        kite_state->is_kite_input_handler_active = false;
 
         for (size_t j = 0; j < current_kite_ids.count; ++j) {
-            if (current_kite_ids.elements[j] == env->kite_array.elements[i].kite_id) {
-                env->kite_array.elements[i].is_active = true;
+            if (current_kite_ids.elements[j] == kite_state->kite_id) {
+                kite_state->is_active = true;
+                kite_state->is_script_kite = true;
                 break;
             }
         }
@@ -1044,33 +1257,69 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
 
     tkbc_clear_ghost_kites(env);
 
-    bool was_baked = false;
-    if (!env->script->original_elements && env->script->original_count == 0) {
+    bool needs_upscale = !env->script->original_elements && env->script->original_count == 0;
+    if (needs_upscale) {
         // Upscale long blocks into per-tick slices so the timeline can scrub
         // continuously at the animation fps, like a video. Already upscaled
         // blocks (durations <= 1/fps) are kept as-is, making this idempotent
-        // for network re-receives.
+        // for network re-receives. Upscaling reads the stored starts, so it has
+        // to happen before a fresh load clears and re-anchors them.
         tkbc_upscale_script(env, &env->scratch_buf_script.space, env->script, TARGET_FPS);
-        tkbc_simulate_script_and_bake_positions(env, &env->scratch_buf_script.space, env->script);
-        was_baked = true;
     }
 
     if (fresh) {
-        // Fresh play (offline selection or server NEXT): start from the
-        // current kite positions and rebake the timeline eagerly, so smooth
-        // scrubbing works immediately without playing the script one time
-        // first. Absolute targets stay fixed while relative offsets shift
-        // with the new start, exactly like a live run would.
+        // Fresh play (offline CONFIRM or server NEXT): clear every previous
+        // kite position and rebuild the timeline from the current live kites.
+        // Absolute targets stay fixed while relative offsets shift with the new
+        // start, exactly like a live run would. This must also run for scripts
+        // that were already upscaled/baked, otherwise loading a script a second
+        // time keeps the orphans and stale positions of the previous run.
         assert(env->script);
         tkbc_restore_script_frame_states(env);
 
-        if (!was_baked) {
-            for (size_t i = 0; i < env->script->count; ++i) {
-                env->script->elements[i].kite_frame_positions.count = 0;
-            }
-            tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
-            tkbc_simulate_script_and_bake_positions(env, &env->scratch_buf_script.space, env->script);
+        // Orphans have no frame action, so their stored position is the only
+        // place their geometry lives. Snapshot it before clearing the blocks.
+        Space orphan_space = {0};
+        Kite_Positions orphan_positions = {0};
+        tkbc_collect_script_orphan_kite_positions(&orphan_space, env->script, &orphan_positions);
+
+        for (size_t i = 0; i < env->script->count; ++i) {
+            env->script->elements[i].kite_frame_positions.count = 0;
         }
+        // tkbc_patch_script_kite_positions() only re-adds kites that are part
+        // of a frame action, which is why orphan kites used to survive a
+        // fresh load with stale positions.
+        tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
+
+        // Re-record the orphans in every block so their start geometry is
+        // preserved through the rebake and they stay part of this script's
+        // view (and get messaged to clients).
+        for (size_t oi = 0; oi < orphan_positions.count; ++oi) {
+            Kite_Position kp = orphan_positions.elements[oi];
+            for (size_t bi = 0; bi < env->script->count; ++bi) {
+                Frames *block = &env->script->elements[bi];
+                bool contains = false;
+                for (size_t pi = 0; pi < block->kite_frame_positions.count; ++pi) {
+                    if (block->kite_frame_positions.elements[pi].kite_id == kp.kite_id) {
+                        contains = true;
+                        break;
+                    }
+                }
+                if (!contains) {
+                    space_dap(&env->script->space, &block->kite_frame_positions, kp);
+                }
+            }
+        }
+        // Restore positions for every owned kite (including orphans) using
+        // the script's own ownership set, never a global heuristic.
+        tkbc_ensure_script_kite_positions(env, env->script);
+        space_free_space(&orphan_space);
+
+        tkbc_simulate_script_and_bake_positions(env, &env->scratch_buf_script.space, env->script);
+    } else if (needs_upscale) {
+        // A non-fresh load keeps the stored starts; it only needs the eager
+        // bake when the script was upscaled on this call.
+        tkbc_simulate_script_and_bake_positions(env, &env->scratch_buf_script.space, env->script);
     }
 
     env->frames = &env->script->elements[0];
@@ -1136,19 +1385,31 @@ int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
                 tkbc_clear_ghost_kites(env);
                 tkbc_change_visibility_to_non_script_kites(env);
             }
-            // TODO: Remove guard TKBC_SERVER, when the client in offline mode also generates kites for each script
-            // separately.
-#ifdef TKBC_SERVER
-            {  // Remove the kites that are used from the kite array.
+            {  // Remove kites owned by this script that are not referenced by any other script.
                 Kite_Ids current_kite_ids = {0};
-                // Use the script space one last time.
                 tkbc_collect_script_kite_ids(&env->scripts.elements[i].space, &env->scripts.elements[i],
                                              &current_kite_ids);
-                for (size_t i = 0; i < current_kite_ids.count; ++i) {
-                    tkbc_remove_unordered_kite_from_list(&env->kite_array, current_kite_ids.elements[i]);
+
+                Space other_temp_space = {0};
+                Kite_Ids other_script_kite_ids = {0};
+                for (size_t j = 0; j < env->scripts.count; ++j) {
+                    if (j == i) continue;
+                    tkbc_collect_script_kite_ids(&other_temp_space, &env->scripts.elements[j], &other_script_kite_ids);
                 }
+
+                for (size_t k = 0; k < current_kite_ids.count; ++k) {
+                    Id id = current_kite_ids.elements[k];
+                    // Client kites can be referenced by a script but are never
+                    // owned by it and must survive script deletion.
+                    if (id >= CLIENT_BASE_ID) {
+                        continue;
+                    }
+                    if (!tkbc_contains_id(other_script_kite_ids, id)) {
+                        tkbc_remove_unordered_kite_from_list(&env->kite_array, id);
+                    }
+                }
+                space_free_space(&other_temp_space);
             }
-#endif
 
             space_free_space(&env->scripts.elements[i].space);
             if (i + 1 < env->scripts.count) {
@@ -2318,6 +2579,12 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
                 tkbc_text_input_init(&s_copy.name_input, &s_copy.space, "");
             }
         }
+
+        // Give every kite owned by this script a start position, including
+        // generated kites that are never used in a frame action. Ownership is
+        // recorded while the script is built; no other script's kites are
+        // touched here.
+        tkbc_ensure_script_kite_positions(env, &s_copy);
 
         // Eagerly bake the true timeline positions right away (this also runs
         // on the server for freshly received scripts): smooth scrubbing works

@@ -28,6 +28,7 @@ void tkbc_render_frame(Env *env, Frame *frame);
 void tkbc_remap_frames_kite_ids(Frames *frames, Kite_Ids current_kite_ids, Kite_Ids kite_ids);
 void tkbc_collect_script_kite_ids(Space *space, const Script *script, Kite_Ids *current_kite_ids);
 void tkbc_collect_frames_kite_ids(Space *space, const Frames *frames, Kite_Ids *current_kite_ids);
+void tkbc_collect_script_orphan_kite_positions(Space *space, const Script *script, Kite_Positions *orphan_positions);
 void tkbc_remap_script_kite_id_arrays_to_kite_ids(Script *script, Kite_Ids current_kite_ids, Kite_Ids kite_ids);
 
 void tkbc_patch_script_kite_positions(Env *env, Script *script, Space *space);

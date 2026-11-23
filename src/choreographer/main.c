@@ -109,9 +109,7 @@ int main(void) {
 
             // Generated kites start hidden; the standalone choreographer
             // flies its working kites manually until a script is loaded.
-            for (size_t i = 0; i < env->kite_array.count; ++i) {
-                env->kite_array.elements[i].is_active = true;
-            }
+            tkbc_change_visibility_to_non_script_kites(env);
 
 #ifndef RELEASE
             tkbc_debug_print_and_export_all_scripts(NULL, env, env->tkbc_dir);

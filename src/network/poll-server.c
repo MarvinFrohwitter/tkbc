@@ -262,16 +262,56 @@ void tkbc_server_clear_client_kite_selections(int fd, bool broadcast, int except
  * clients about the deselections.
  *
  * Used when a script is changed or unloaded/deleted, because the selections
- * refer to kites of the previous script.
+ * refer to kites of the previous script. Every broadcast carries the final
+ * controller count zero, so no client is tricked into sending a last update
+ * for a kite that is about to disappear.
  *
  * @param broadcast True to broadcast the deselections.
  * @param except_fd A socket that should be skipped during the broadcasts, or
  * -1 to send to all.
  */
 void tkbc_server_clear_all_kite_selections(bool broadcast, int except_fd) {
-    for (size_t i = 0; i < clients.count; ++i) {
-        tkbc_server_clear_client_kite_selections(clients.elements[i].socket_id, broadcast, except_fd);
+    typedef struct {
+        size_t kite_id;
+        size_t source_kite_id;
+    } Pending_Deselection;
+    typedef struct {
+        Pending_Deselection *elements;
+        size_t count;
+        size_t capacity;
+    } Pending_Deselections;
+
+    Pending_Deselections deselections = {0};
+
+    // Remove every selection first. Broadcasting while the array is still being
+    // emptied tells the clients that one controller remains after the first
+    // removal. That client then sends a last authoritative update for a kite
+    // whose script is already being unloaded. After the switch that update is
+    // stale, but it can still make the old kite visible in a snapshot.
+    for (size_t client_index = 0; client_index < clients.count; ++client_index) {
+        Client *client = &clients.elements[client_index];
+        while (client->selected_kite_ids.count > 0) {
+            size_t kite_id = client->selected_kite_ids.elements[client->selected_kite_ids.count - 1];
+            client->selected_kite_ids.count -= 1;
+            Pending_Deselection deselection = {
+                .kite_id = kite_id,
+                .source_kite_id = client->kite_id,
+            };
+            tkbc_dap(&deselections, deselection);
+        }
     }
+
+    // All selections are gone now, so every deselection has a final controller
+    // count of zero. Clients clear their ghosts and never push a stale update.
+    if (broadcast) {
+        for (size_t i = 0; i < deselections.count; ++i) {
+            tkbc_server_broadcast_kite_selection(deselections.elements[i].kite_id,
+                                                 (int64_t) deselections.elements[i].source_kite_id, false, 0,
+                                                 except_fd);
+        }
+    }
+
+    free(deselections.elements);
 }
 
 /**
@@ -1325,8 +1365,18 @@ bool tkbc_received_message_handler(Client *client) {
             if ((env->script != NULL) != state->is_script_kite) {
                 is_active = false;
             }
-            tkbc_assign_values_to_kitestate(state, x, y, angle, color, texture_id, is_reversed, is_active,
-                                            is_script_kite);
+            // Pass the real source id through to the ownership check. With
+            // multiple controllers a client can keep sending updates after the
+            // server switched scripts (it has not processed the deselection
+            // yet). Those updates must not revive kites owned by the previous
+            // script: the next CLIENTKITES snapshot would otherwise make them
+            // visible on every client again.
+            // The controller count is only meaningful on clients, where it
+            // decides whether a remote edit becomes a ghost. Passing zero keeps
+            // the server from creating client-side ghost states while still
+            // applying the ownership check above.
+            tkbc_assign_values_to_kitestate_from_source(state, x, y, angle, color, texture_id, is_reversed, is_active,
+                                                       is_script_kite, (ssize_t) claimed_source_kite_id, 0);
 
             if (!tkbc_message_kite_value_write_to_all_send_msg_buffers_except(kite_id, (size_t) client->kite_id,
                                                                               client->socket_id)) {
@@ -1368,6 +1418,10 @@ bool tkbc_received_message_handler(Client *client) {
             // All parsing is already done above.
             tkbc_kite_array_start_position(env, &env->kite_array, env->window_width, env->window_height, true);
 
+            // A hard reset is a full snapshot, not a delta. Send every known
+            // kite (including inactive ones) so the client also clears stale
+            // active flags for kites that are no longer part of the script.
+            // Sending only active kites leaves those stale kites visible.
             tkbc_message_clientkites_write_to_all_send_msg_buffers(true);
 
             tkbc_fprintf(stderr, "MESSAGEHANDLER", "KITES_POSITIONS_RESET\n");

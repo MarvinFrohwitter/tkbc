@@ -52,6 +52,26 @@ void tkbc_assign_values_to_kitestate(Kite_State *state, float x, float y, float 
 }
 
 /**
+ * @brief Returns the id of the script whose view is currently active.
+ *
+ * On the server env->script is authoritative; on the client the script id
+ * received with SCRIPT_META_DATA is. Either way a nil id means no script is
+ * active.
+ */
+static UUID tkbc_active_script_id(void) {
+    if (!env) {
+        return tkbc_uuid_nil();
+    }
+    if (!tkbc_uuid_is_nil(env->server_script_id)) {
+        return env->server_script_id;
+    }
+    if (env->script) {
+        return env->script->id;
+    }
+    return tkbc_uuid_nil();
+}
+
+/**
  * @brief The function assigns the given values to the passed state and routes
  * direct remote edits of script kites into ghost kites.
  *
@@ -112,7 +132,31 @@ void tkbc_assign_values_to_kitestate_from_source(Kite_State *state, float x, flo
     // also protects clients that are still draining updates sent before the
     // unload. env->script is the local source when a script was loaded here,
     // server_script_id covers scripts that arrived from the server.
-    bool script_active = env != NULL && (env->script != NULL || !tkbc_uuid_is_nil(env->server_script_id));
+    UUID active_script_id = tkbc_active_script_id();
+    bool script_active = !tkbc_uuid_is_nil(active_script_id);
+
+    // Kites created from a snapshot have no explicit owner yet. Tag them with
+    // the script that is currently active so later direct edits can be checked
+    // against it.
+    if (is_script_kite && tkbc_uuid_is_nil(state->owner_script_id)) {
+        state->owner_script_id = active_script_id;
+    }
+
+    // A ghost keeps remote SINGLE_KITE_UPDATE messages in flight. When the view
+    // switches to another script those messages can still arrive and would
+    // otherwise reactivate a kite of the previous script. Reject them using
+    // the ownership recorded when the kite was generated.
+    bool stale_script_edit = is_script_kite && source_kite_id >= 0 &&
+                             !tkbc_uuid_is_nil(state->owner_script_id) &&
+                             (tkbc_uuid_is_nil(active_script_id) ||
+                              !tkbc_uuid_equals(state->owner_script_id, active_script_id));
+    if (stale_script_edit) {
+        state->is_active = false;
+        state->is_kite_input_handler_active = false;
+        tkbc_clear_ghost_kites_for_target(env, state->kite_id);
+        return;
+    }
+
     if (source_kite_id >= 0 && is_script_kite != script_active) {
         is_active = false;
     }
@@ -256,6 +300,12 @@ int tkbc_parse_single_kite_value(Message *reader, ssize_t kite_id, size_t *parse
         } else {
             state.kite_id = *parsed_id;
             ok = -1;
+        }
+        // This is the SINGLE_KITE_UPDATE path. A script kite that is unknown
+        // here can only come from a stale edit (e.g. after a script change), so
+        // never let such an edit bring a kite of the old view back to life.
+        if (is_script_kite) {
+            is_active = false;
         }
         tkbc_assign_values_to_kitestate(&state, x, y, angle, color, texture_id, is_reversed, is_active, is_script_kite);
         tkbc_dap(&env->kite_array, state);
@@ -411,6 +461,24 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
         }
 
         tkbc_remove_redirect_script_elements(script);
+
+        // Orphan kites: generated for this script but never referenced by a
+        // frame action. They are not part of any frame's kite_id_array, so the
+        // receiver would never generate them from the frames alone. Transmit
+        // them explicitly (id + start position) so every side creates them,
+        // shows them with the loaded script and deletes them with it.
+        Space orphan_space = {0};
+        Kite_Positions orphan_positions = {0};
+        tkbc_collect_script_orphan_kite_positions(&orphan_space, script, &orphan_positions);
+        tkbc_message_write_u64(message, space, (uint64_t) orphan_positions.count);
+        for (size_t oi = 0; oi < orphan_positions.count; ++oi) {
+            const Kite_Position *kp = &orphan_positions.elements[oi];
+            tkbc_message_write_u64(message, space, (uint64_t) kp->kite_id);
+            tkbc_message_write_f32(message, space, kp->position.x);
+            tkbc_message_write_f32(message, space, kp->position.y);
+            tkbc_message_write_f32(message, space, kp->angle);
+        }
+        space_free_space(&orphan_space);
 
         tkbc_message_write_end(message, payload_offset);
         return true;
