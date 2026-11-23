@@ -44,14 +44,14 @@ LIST_OF_API
 
 // This is manually declared to not inject it to the tcc symbol list and therefore get the new compiled version.
 void tkbc__script_input(Env *env);
-#define tkbc_script_input void tkbc__script_input(Env *env)
-#define tkbc_script_begin(...)                                                                                         \
+#define skystep_script void tkbc__script_input(Env *env)
+#define script_begin(...)                                                                                         \
     do {                                                                                                               \
         tkbc__script_begin(env);                                                                                       \
         char *tmp = space_vstrcat(&env->scratch_buf_script.space, NULL, ##__VA_ARGS__);                                \
         tkbc_set_script_name(&env->scratch_buf_script, tmp);                                                           \
     } while (0)
-#define tkbc_script_end() tkbc__script_end(env)
+#define script_end() tkbc__script_end(env)
 
 // ===========================================================================
 // ========================== SCRIPT HANDLER API =============================

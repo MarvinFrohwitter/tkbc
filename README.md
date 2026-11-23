@@ -114,10 +114,10 @@ Step 2 Set up the script scope
 
 ```C
 // Create the script scope.
-tkbc_script_input {
-  tkbc_script_begin();
+skystep_script {
+  script_begin();
     // Here goes the script.
-  tkbc_script_end();
+  script_end();
 }
 ```
 
@@ -125,14 +125,14 @@ Multiple script can be provided with another begin and end call.
 
 ```C
 // Create more scripts.
-tkbc_script_input {
-  tkbc_script_begin();
+skystep_script {
+  script_begin();
     // Here goes the first script.
-  tkbc_script_end();
+  script_end();
 
-  tkbc_script_begin();
+  script_begin();
     // Here goes the second script.
-  tkbc_script_end();
+  script_end();
 }
 ```
 

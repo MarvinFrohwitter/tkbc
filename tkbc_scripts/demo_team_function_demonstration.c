@@ -9,7 +9,7 @@ void team_function_demonstration(Env *env, Kite_Ids ki) {
     float move_duration = 1;
     float rotation_duration = 1;
 
-    tkbc_script_begin("team function demonstration");
+    script_begin("team function demonstration");
     SET(KITE_MOVE_ADD(ki, 0, 300, 5), KITE_WAIT(1.5), KITE_QUIT(7));
 
     tkbc_script_team_line(env, ki, position, offset, h_padding, move_duration);
@@ -62,5 +62,5 @@ void team_function_demonstration(Env *env, Kite_Ids ki) {
     tkbc_script_team_grid(env, ki, position, offset, v_padding, h_padding, 3, 3, move_duration);
     SET(KITE_WAIT(1));
 
-    tkbc_script_end();
+    script_end();
 }

@@ -29,7 +29,7 @@ void tkbc_script_parser(Env *env) {
     }
     Lexer *l = lexer_new(env->script_file_name, script_file_content.elements, script_file_content.count, 0);
 
-    bool script_begin = false;
+    bool _script_begin = false;
     bool brace = false;
     Kite_Ids destination_kis = {0};
     Kite_Ids ki = {0};
@@ -66,15 +66,15 @@ void tkbc_script_parser(Env *env) {
                 }
                 break;
             } else if (strncmp("BEGIN", t.content, t.size) == 0) {
-                script_begin = true;
-                tkbc_script_begin();
+                _script_begin = true;
+                script_begin();
 
                 break;
             } else if (strncmp("END", t.content, t.size) == 0) {
                 char *base_name = tkbc_get_basename(env->script_file_name);
                 tkbc_set_script_name(&env->scratch_buf_script, base_name);
                 tkbc__script_end(env);
-                script_begin = false;
+                _script_begin = false;
                 break;
             } else if (strncmp("KITES", t.content, t.size) == 0) {
                 if (ki.count > 0) {
@@ -204,7 +204,7 @@ void tkbc_script_parser(Env *env) {
         }
     }
 
-    if (script_begin) {
+    if (_script_begin) {
         tkbc_fprintf(stderr, "ERROR", "Script END is not defined.");
         char *base_name = tkbc_get_basename(env->script_file_name);
         tkbc_set_script_name(&env->scratch_buf_script, base_name);

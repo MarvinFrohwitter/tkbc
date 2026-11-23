@@ -12,8 +12,8 @@ Test read_entire_file_terminates_content(void) {
 
     const char *path = "build/tkbc_read_entire_file_test.tmp";
     const char *prefix = "prefix\n";
-    const char *file_content = "tkbc_script_input {\n}\n";
-    const char *expected = "prefix\ntkbc_script_input {\n}\n";
+    const char *file_content = "skystep_script {\n}\n";
+    const char *expected = "prefix\nskystep_script {\n}\n";
 
     cassert_eq(tkbc_write_file(path, file_content, strlen(file_content)), 0);
 

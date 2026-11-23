@@ -7,7 +7,7 @@ void angle_left_right_rotation(Env *env, Kite_Ids ki) {
     float wait_time = 0.5;
     float move_duration = 1;
     float rotation_duration = 1;
-    tkbc_script_begin("angle left right rotation");
+    script_begin("angle left right rotation");
     SET(KITE_MOVE_ADD(ki, 0, -300, 5));
 
     SET(KITE_ROTATION(ki, -180.f, 2));
@@ -34,5 +34,5 @@ void angle_left_right_rotation(Env *env, Kite_Ids ki) {
     SET(KITE_MOVE_ADD(ki, 0, -300, 9), KITE_WAIT(1.5), KITE_QUIT(7));
 
     SET(KITE_WAIT(wait_time));
-    tkbc_script_end();
+    script_end();
 }

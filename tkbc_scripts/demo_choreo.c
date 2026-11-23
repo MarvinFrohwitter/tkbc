@@ -489,7 +489,7 @@ void choreo(Env *env, Kite_Ids ki) {
     assert(ok);
     (void) ok;
 
-    tkbc_script_begin("My Immortal");
+    script_begin("My Immortal");
     bicycle_start(env, ki);
     diamond_stack_figure(env);
     extreme_window_slide(env);
@@ -518,5 +518,5 @@ void choreo(Env *env, Kite_Ids ki) {
     to_center_slide_in(env);
     pair_change_90(env, ki);
     SET(KITE_WAIT(wait_time));
-    tkbc_script_end();
+    script_end();
 }

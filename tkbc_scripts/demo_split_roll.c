@@ -6,7 +6,7 @@ extern Id one;
 void split_roll_demonstration(Env *env, Kite_Ids ki) {
     float rotation_duration = 1;
 
-    tkbc_script_begin("split roll demonstration");
+    script_begin("split roll demonstration");
     SET(
 
         KITE_MOVE_ADD(ID(zero), -100, -300, rotation_duration), KITE_MOVE_ADD(ID(one), 100, -300, rotation_duration),
@@ -34,5 +34,5 @@ void split_roll_demonstration(Env *env, Kite_Ids ki) {
 
     // tkbc_script_team_roll_down_anti_clockwise(env, ID(one), 1, 0, 360, 1);
     // tkbc_script_team_roll_up_clockwise(env, ID(one), 1, 0, 360, 1);
-    tkbc_script_end();
+    script_end();
 }

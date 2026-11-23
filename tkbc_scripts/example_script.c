@@ -1,4 +1,4 @@
-tkbc_script_input {
+skystep_script {
     Kite kite = *env->vanilla_kite;
 
 #define kite_count 2
@@ -7,7 +7,7 @@ tkbc_script_input {
     Id zero = ki.elements[0];
     Id one = ki.elements[1];
 
-    tkbc_script_begin("example");
+    script_begin("example");
     float rotation_duration = 1;
     SET(
 
@@ -18,7 +18,7 @@ tkbc_script_input {
         KITE_TIP_ROTATION_ADD(ID(one), 180, LEFT_TIP, rotation_duration)
 
     );
-    tkbc_script_end();
+    script_end();
 
     free(ki.elements);
 }

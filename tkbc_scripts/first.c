@@ -10,7 +10,7 @@
 
 // The env of type Env is passed automatically into the scope of the
 // script_input it is not globally available.
-tkbc_script_input {
+skystep_script {
     kite = *env->vanilla_kite;
 
     // NOTE: The fact that sometimes the id is hard-coded to 0 or 1 is just
@@ -35,7 +35,7 @@ tkbc_script_input {
     // center displacement is added to the move offset, and the MOVE_ADD handles
     // the full center animation while the tip rotation only affects the angle.
     //
-    tkbc_script_begin("Combined tip rotation and move adding");
+    script_begin("Combined tip rotation and move adding");
     SET(
 
         KITE_MOVE_ADD(ID(zero), -kite.width, 0, rotation_duration),
@@ -45,7 +45,7 @@ tkbc_script_input {
         KITE_TIP_ROTATION_ADD(ID(one), 180, LEFT_TIP, rotation_duration)
 
     );
-    tkbc_script_end();
+    script_end();
     //////////////////////////////////////////////////////////////////////
 
     free(ki.elements);
