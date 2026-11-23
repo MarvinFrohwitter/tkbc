@@ -51,6 +51,37 @@ make
 ./build/tkbc
 ```
 
+## Networking (IPv4 and IPv6)
+
+The server listens on both IPv4 and IPv6 by default. With no arguments it
+creates one listening socket per address family, so IPv4 and IPv6 clients can
+connect to the same port at the same time:
+
+```Shell
+./build/server          # all interfaces, port 8080 (IPv4 + IPv6)
+./build/server 9000     # all interfaces, port 9000
+```
+
+An optional host restricts the server to one address. IPv6 literals may be
+written with or without brackets:
+
+```Shell
+./build/server 127.0.0.1 9000
+./build/server ::1 9000
+./build/server [::1] 9000
+./build/server example.org 9000
+```
+
+The client accepts IPv4 addresses, IPv6 addresses and hostnames, both on the
+command line and in the connection dialog:
+
+```Shell
+./build/client ::1 9000
+./build/client [::1] 9000
+./build/client 192.168.0.10 9000
+./build/client example.org 9000
+```
+
 ## SCRIPT API in C
 
 To use the direct C functions the file content of the example file has to be

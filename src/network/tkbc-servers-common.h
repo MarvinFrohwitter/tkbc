@@ -21,7 +21,10 @@ extern Env *env;
 extern Assets assets;
 
 #include <ctype.h>
+#include <errno.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -32,14 +35,20 @@ extern Assets assets;
 #define _WINCON_
 #include <windows.h>
 #include <winsock2.h>
+#include <ws2tcpip.h>
 
 #define SHUT_WR SD_SEND
 #define SHUT_RDWR SD_BOTH
 typedef int SOCKLEN;
 
 #else
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <unistd.h>
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 typedef socklen_t SOCKLEN;
@@ -56,7 +65,9 @@ typedef struct {
     Space recv_msg_buffer_space;
 
     int socket_id;
-    SOCKADDR_IN client_address;
+    // sockaddr_storage holds both IPv4 and IPv6 addresses (and any other
+    // family getaddrinfo()/accept() might hand us in the future).
+    struct sockaddr_storage client_address;
     SOCKLEN client_address_length;
 
     size_t script_amount;
@@ -73,6 +84,18 @@ typedef struct {
     size_t count;
     size_t capacity;
 } Clients;
+
+/**
+ * @brief A dynamic array of listening socket descriptors.
+ *
+ * With AF_UNSPEC getaddrinfo() can return both an IPv6 and an IPv4 address,
+ * so the server may own more than one listening socket.
+ */
+typedef struct {
+    int *elements;
+    size_t count;
+    size_t capacity;
+} Sockets;
 
 /**
  * @brief Checks if a message kind may be sent to a client whose handshake has
@@ -160,9 +183,134 @@ static inline bool tkbc_client_may_send_kind(const Client *client, uint8_t kind)
     return client->handshake_passed || tkbc_client_message_kind_allowed_before_handshake(kind);
 }
 
-#define CLIENT_FMT "Index: %zu, Socket: %d, Address: (%s:%hu)"
-#define CLIENT_ARG(c)                                                                                                  \
-    ((c).kite_id), ((c).socket_id), (inet_ntoa((c).client_address.sin_addr)), (ntohs((c).client_address.sin_port))
+/**
+ * @brief Formats a peer address of any supported family including its port.
+ *
+ * @param client The client whose stored address should be formatted.
+ * @return Pointer to a static buffer holding e.g. "127.0.0.1:8080" or
+ * "[::1]:8080". The buffer is overwritten by the next call.
+ */
+static inline const char *tkbc_client_address_string(const Client *client) {
+    static char formatted[NI_MAXHOST + NI_MAXSERV + 4];
+    char host[NI_MAXHOST];
+    char service[NI_MAXSERV];
+
+    int result = getnameinfo((const struct sockaddr *) &client->client_address, client->client_address_length, host,
+                             sizeof(host), service, sizeof(service), NI_NUMERICHOST | NI_NUMERICSERV);
+    if (result != 0) {
+        snprintf(formatted, sizeof(formatted), "<unknown address>");
+        return formatted;
+    }
+
+    if (client->client_address.ss_family == AF_INET6) {
+        snprintf(formatted, sizeof(formatted), "[%s]:%s", host, service);
+    } else {
+        snprintf(formatted, sizeof(formatted), "%s:%s", host, service);
+    }
+    return formatted;
+}
+
+#define CLIENT_FMT "Index: %zu, Socket: %d, Address: %s"
+#define CLIENT_ARG(c) ((c).kite_id), ((c).socket_id), tkbc_client_address_string(&(c))
+
+/**
+ * @brief Logs the last socket error in a cross platform way.
+ *
+ * @param function The name of the call that failed.
+ */
+static inline void tkbc_socket_error(const char *function) {
+#ifdef _WIN32
+    tkbc_fprintf(stderr, "ERROR", "%s: %ld\n", function, WSAGetLastError());
+#else
+    tkbc_fprintf(stderr, "ERROR", "%s: %s\n", function, strerror(errno));
+#endif
+}
+
+/**
+ * @brief Closes a socket in a cross platform way.
+ *
+ * @param socket_id The socket to close.
+ */
+static inline void tkbc_close_socket(int socket_id) {
+#ifdef _WIN32
+    closesocket(socket_id);
+#else
+    close(socket_id);
+#endif
+}
+
+/**
+ * @brief Switches a socket to non-blocking mode.
+ *
+ * @param socket_id The socket to change.
+ * @return True on success, otherwise false.
+ */
+static inline bool tkbc_set_socket_non_blocking(int socket_id) {
+#ifdef _WIN32
+    u_long mode = 1;  // 1 to enable non-blocking socket
+    if (ioctlsocket(socket_id, FIONBIO, &mode) != 0) {
+        tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
+        return false;
+    }
+#else
+    int flags = fcntl(socket_id, F_GETFL, 0);
+    if (flags == -1) {
+        tkbc_fprintf(stderr, "ERROR", "Could not get socket flags: %s\n", strerror(errno));
+        return false;
+    }
+    if (fcntl(socket_id, F_SETFL, flags | O_NONBLOCK) == -1) {
+        tkbc_fprintf(stderr, "ERROR", "Could not set the non-blocking flag: %s\n", strerror(errno));
+        return false;
+    }
+#endif
+    return true;
+}
+
+/**
+ * @brief Removes the brackets around an IPv6 address literal.
+ *
+ * This makes inputs like "[::1]" usable wherever getaddrinfo() expects a
+ * plain numeric host. Non-bracketed hosts are returned unchanged.
+ *
+ * @param host The host string, may be NULL.
+ * @param buffer Storage used when the brackets have to be stripped.
+ * @param buffer_size Size of @c buffer.
+ * @return The normalized host string or NULL if @p host was NULL.
+ */
+static inline const char *tkbc_host_without_brackets(const char *host, char *buffer, size_t buffer_size) {
+    if (host == NULL || buffer_size == 0) {
+        return host;
+    }
+    size_t length = strlen(host);
+    if (length < 2 || host[0] != '[' || host[length - 1] != ']') {
+        return host;
+    }
+    length -= 2;
+    if (length >= buffer_size) {
+        length = buffer_size - 1;
+    }
+    memcpy(buffer, host + 1, length);
+    buffer[length] = '\0';
+    return buffer;
+}
+
+/**
+ * @brief Checks whether the given string consists of digits only.
+ *
+ * @param string The string to check.
+ * @return True if the string is a non-empty port candidate.
+ */
+static inline bool tkbc_is_port_string(const char *string) {
+    if (string == NULL || string[0] == '\0') {
+        return false;
+    }
+    for (size_t i = 0; string[i] != '\0'; ++i) {
+        if (!isdigit((unsigned char) string[i])) {
+            return false;
+        }
+    }
+    return true;
+}
 
 /**
  * @brief The function prints the way the program should be called.
@@ -171,25 +319,26 @@ static inline bool tkbc_client_may_send_kind(const Client *client, uint8_t kind)
  */
 static inline void tkbc_server_usage(const char *program_name) {
     tkbc_fprintf(stderr, "INFO", "Usage:\n");
-    tkbc_fprintf(stderr, "INFO", "      %s <PORT> \n", program_name);
+    tkbc_fprintf(stderr, "INFO", "      %s [HOST] [PORT]\n", program_name);
+    tkbc_fprintf(stderr, "INFO", " HOST  IPv4 address, IPv6 address or hostname. Omit to listen on all interfaces.\n");
+    tkbc_fprintf(stderr, "INFO", " PORT  Port to listen on (default 8080).\n");
 }
 
 /**
- * @brief The function checks if a port is given to that program.
+ * @brief The function checks the amount of commandline arguments.
  *
  * @param argc The commandline argument count.
  * @param program_name The name of the program that is currently executing.
- * @return True if there are enough arguments, otherwise false.
+ * @return True if arguments were provided, otherwise false.
  */
 static inline bool tkbc_server_commandline_check(int argc, const char *program_name) {
-    if (argc > 1) {
+    if (argc > 2) {
         tkbc_fprintf(stderr, "ERROR", "Too may arguments.\n");
         tkbc_server_usage(program_name);
         exit(1);
     }
     if (argc == 0) {
-        tkbc_fprintf(stderr, "ERROR", "No arguments were provided.\n");
-        tkbc_fprintf(stderr, "INFO", "The default port 8080 is used.\n");
+        tkbc_fprintf(stderr, "INFO", "Using all interfaces and the default port 8080.\n");
         return false;
     }
     return true;
@@ -220,84 +369,122 @@ static inline uint16_t tkbc_port_parsing(const char *port_check) {
 }
 
 /**
- * @brief The function creates a new server socket and sets up the bind and
- * listing.
+ * @brief Creates the listening sockets for every address returned for the
+ * given host and sets up bind, listen and non-blocking mode.
  *
- * @param addr The address space that the socket should be bound to.
- * @param port The port where the server is listing for connections.
- * @return The newly creates socket id.
+ * With @p host == NULL and AF_UNSPEC this normally creates one IPv6 and one
+ * IPv4 socket, so the server accepts both families. A concrete IPv4/IPv6
+ * address or hostname restricts the server to that address.
+ *
+ * @param host The address to bind to, or NULL for all interfaces.
+ * @param port The port where the server is listening for connections.
+ * @param sockets The dynamic array the created sockets are appended to.
+ * @return True if at least one listening socket was created, otherwise false.
  */
-static inline int tkbc_server_socket_creation(uint32_t addr, uint16_t port) {
+static inline bool tkbc_server_socket_creation(const char *host, uint16_t port, Sockets *sockets) {
 #ifdef _WIN32
     // MAKEWORD(2, 2) is a version, and wsaData will be filled with initialized
     // library information.
-
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        assert(0 && "ERROR: WSAStartup()");
-    } else {
-        tkbc_fprintf(stderr, "INFO", "Initialization of WSAStartup() succeed.\n");
+        tkbc_fprintf(stderr, "ERROR", "WSAStartup() failed: %ld\n", WSAGetLastError());
+        return false;
     }
+    tkbc_fprintf(stderr, "INFO", "Initialization of WSAStartup() succeed.\n");
 #endif
 
-    int socket_id = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_id == -1) {
-#ifdef _WIN32
-        tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-#else
-        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-#endif
-        exit(1);
-    }
-    int option = 1;
-    int sso = setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (char *) &option, sizeof(option));
-    if (sso == -1) {
-#ifdef _WIN32
-        tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-#else
-        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-#endif
-    }
+    char port_string[16];
+    snprintf(port_string, sizeof(port_string), "%u", (unsigned) port);
 
-    int nodelay = 1;
-    sso = setsockopt(socket_id, IPPROTO_TCP, TCP_NODELAY, (char *) &nodelay, sizeof(nodelay));
-    if (sso == -1) {
-#ifdef _WIN32
-        tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
-#else
-        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-#endif
-    }
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
 
-    struct sockaddr_in server_addr;
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
-    server_addr.sin_addr.s_addr = addr;
-
-    int bind_status = bind(socket_id, (struct sockaddr *) &server_addr, sizeof(server_addr));
-    if (bind_status == -1) {
+    struct addrinfo *servinfo = NULL;
+    int gai = getaddrinfo(host, port_string, &hints, &servinfo);
+    if (gai != 0) {
+        tkbc_fprintf(stderr, "ERROR", "getaddrinfo: %s\n", gai_strerror(gai));
 #ifdef _WIN32
-        tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
         WSACleanup();
-#else
-        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
 #endif
-        exit(1);
+        return false;
     }
 
-    int listen_status = listen(socket_id, SERVER_CONNETCTIONS);
-    if (listen_status == -1) {
+    for (struct addrinfo *rp = servinfo; rp != NULL; rp = rp->ai_next) {
+        int socket_id = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (socket_id == -1) {
+            tkbc_socket_error("socket()");
+            continue;
+        }
+
+        int option = 1;
+        if (setsockopt(socket_id, SOL_SOCKET, SO_REUSEADDR, (const char *) &option, sizeof(option)) == -1) {
+            tkbc_socket_error("setsockopt(SO_REUSEADDR)");
+        }
+
+        int nodelay = 1;
+        if (setsockopt(socket_id, IPPROTO_TCP, TCP_NODELAY, (const char *) &nodelay, sizeof(nodelay)) == -1) {
+            tkbc_socket_error("setsockopt(TCP_NODELAY)");
+        }
+
+#ifdef IPV6_V6ONLY
+        if (rp->ai_family == AF_INET6) {
+            // Keep the families independent. A dual-stack IPv6 wildcard
+            // socket would also claim the IPv4 port and the IPv4 socket could
+            // not bind anymore. Both sockets are polled anyway.
+            int v6only = 1;
+            if (setsockopt(socket_id, IPPROTO_IPV6, IPV6_V6ONLY, (const char *) &v6only, sizeof(v6only)) == -1) {
+                tkbc_socket_error("setsockopt(IPV6_V6ONLY)");
+            }
+        }
+#endif
+
+        if (bind(socket_id, rp->ai_addr, rp->ai_addrlen) == -1) {
+            tkbc_socket_error("bind()");
+            tkbc_close_socket(socket_id);
+            continue;
+        }
+        if (listen(socket_id, SERVER_CONNETCTIONS) == -1) {
+            tkbc_socket_error("listen()");
+            tkbc_close_socket(socket_id);
+            continue;
+        }
+        if (!tkbc_set_socket_non_blocking(socket_id)) {
+            tkbc_close_socket(socket_id);
+            continue;
+        }
+
+        char address[NI_MAXHOST + NI_MAXSERV + 4];
+        char host_string[NI_MAXHOST];
+        char service_string[NI_MAXSERV];
+        if (getnameinfo(rp->ai_addr, rp->ai_addrlen, host_string, sizeof(host_string), service_string,
+                        sizeof(service_string), NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
+            if (rp->ai_family == AF_INET6) {
+                snprintf(address, sizeof(address), "[%s]:%s", host_string, service_string);
+            } else {
+                snprintf(address, sizeof(address), "%s:%s", host_string, service_string);
+            }
+        } else {
+            snprintf(address, sizeof(address), "port %s", port_string);
+        }
+        tkbc_fprintf(stderr, "INFO", "Listening on %s\n", address);
+
+        tkbc_dap(sockets, socket_id);
+    }
+
+    freeaddrinfo(servinfo);
+
+    if (sockets->count == 0) {
+        tkbc_fprintf(stderr, "ERROR", "Could not create a listening socket for %s:%s.\n", host ? host : "*",
+                     port_string);
 #ifdef _WIN32
-        tkbc_fprintf(stderr, "ERROR", "%ld\n", WSAGetLastError());
         WSACleanup();
-#else
-        tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
 #endif
-        exit(1);
+        return false;
     }
-    tkbc_fprintf(stderr, "INFO", "%s: %hu\n", "Listening to port", port);
-
-    return socket_id;
+    return true;
 }
 
 /**

@@ -1319,10 +1319,13 @@ KeyboardKey tkbc_is_port_number_key_down() {
 }
 
 /**
- * @brief Returns the currently pressed key if it is valid for a domain name.
+ * @brief Returns the currently pressed key if it is valid for a host name.
  *
- * @return The pressed digit, letter, period or minus key, or KEY_NULL if none
- * of them was pressed.
+ * In addition to host names this accepts the characters needed for IPv6
+ * literals. Raylib has no key constant for ':' (it is shift + semicolon), so
+ * the shifted semicolon is reported as the character code of ':'.
+ *
+ * @return The pressed key or KEY_NULL if none of them was pressed.
  */
 KeyboardKey tkbc_is_domain_name_key_down() {
     static KeyboardKey keys[] = {
@@ -1332,8 +1335,12 @@ KeyboardKey tkbc_is_domain_name_key_down() {
         KEY_K,      KEY_L,     KEY_M,   KEY_N,     KEY_O,    KEY_P,    KEY_Q,   KEY_R,     KEY_S,     KEY_T,
         KEY_U,      KEY_V,     KEY_W,   KEY_X,     KEY_Y,    KEY_Z,
 
-        KEY_PERIOD, KEY_MINUS,
+        KEY_PERIOD, KEY_MINUS, KEY_LEFT_BRACKET, KEY_RIGHT_BRACKET,
     };
+
+    if ((IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) && IsKeyPressed(KEY_SEMICOLON)) {
+        return (KeyboardKey) ':';
+    }
 
     for (KeyboardKey key = 0; key < ARRAY_LENGTH(keys); ++key) {
         if (IsKeyPressedRepeat(keys[key]) || IsKeyPressed(keys[key])) {

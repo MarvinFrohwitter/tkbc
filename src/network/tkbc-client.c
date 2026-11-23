@@ -83,7 +83,7 @@ static bool received_hello = false;
 
 static Space connection_input_space = {0};
 static Text_Input connection_host_input = {
-    .shadow_text = "127.0.0.1",
+    .shadow_text = "localhost",
     .key_constrained = tkbc_is_domain_name_key_down,
     .max_char = 255,
     .selection_start = SIZE_MAX,
@@ -106,7 +106,9 @@ static Text_Input connection_port_input = {
  */
 void tkbc_client_usage(const char *program_name) {
     tkbc_fprintf(stderr, "INFO", "Usage:\n");
-    tkbc_fprintf(stderr, "INFO", "      %s <HOST> <PORT> \n", program_name);
+    tkbc_fprintf(stderr, "INFO", "      %s [HOST] [PORT] \n", program_name);
+    tkbc_fprintf(stderr, "INFO", " HOST  IPv4 address, IPv6 address or hostname (default localhost).\n");
+    tkbc_fprintf(stderr, "INFO", " PORT  Server port (default 8080).\n");
 }
 
 /**
@@ -149,6 +151,10 @@ int tkbc_client_socket_creation(const char *host, const char *port) {
         tkbc_fprintf(stderr, "INFO", "Initialization of WSAStartup() succeed.\n");
     }
 #endif
+
+    // Accept bracketed IPv6 literals like "[::1]" as well as plain "::1".
+    char host_buffer[256];
+    host = tkbc_host_without_brackets(host, host_buffer, sizeof(host_buffer));
 
     struct addrinfo hints, *servinfo, *rp;
     memset(&hints, 0, sizeof hints);
@@ -1153,11 +1159,13 @@ int main(int argc, char *argv[]) {
     // No host/port buffers are allocated here. The connection inputs own
     // their text directly in their spaces.
     const char *port = "8080";
-    const char *host = "127.0.0.1";
+    const char *host = "localhost";
     char *program_name = tkbc_shift_args(&argc, &argv);
     if (tkbc_client_commandline_check(argc, program_name)) {
         host = tkbc_shift_args(&argc, &argv);
-        port = tkbc_shift_args(&argc, &argv);
+        if (argc > 0) {
+            port = tkbc_shift_args(&argc, &argv);
+        }
     }
 
     const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";

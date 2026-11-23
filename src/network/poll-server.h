@@ -36,7 +36,7 @@ void tkbc_message_kite_designs_write_to_send_msg_buffer(Client *client);
 bool tkbc_message_kiteadd_write_to_all_send_msg_buffers(size_t client_index);
 void tkbc_message_clientkites_write_to_send_msg_buffer(Client *client, bool overwrite_is_active);
 void tkbc_client_prolog(Client *client);
-bool tkbc_server_accept(void);
+bool tkbc_server_accept(int listening_socket);
 bool tkbc_sockets_read(Client *client);
 int tkbc_socket_write(Client *client);
 bool tkbc_server_handle_client(Client *client);

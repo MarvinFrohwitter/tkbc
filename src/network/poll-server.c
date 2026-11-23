@@ -51,7 +51,7 @@
 
 #define MAX_BUFFER_CAPACITY 1024 * 1024
 #define BUFFER_CAPACITY 1024 * 1024
-static int server_socket;
+static Sockets server_sockets;
 static int clients_visited = 0;
 Env *env = {0};
 Clients clients = {0};
@@ -77,6 +77,21 @@ struct pollfd *tkbc_get_pollfd_by_fd(int fd) {
         }
     }
     return NULL;
+}
+
+/**
+ * @brief Checks whether the given descriptor is one of the listening sockets.
+ *
+ * @param fd The descriptor to check.
+ * @return True if it belongs to a listening socket, otherwise false.
+ */
+static bool tkbc_is_server_socket(int fd) {
+    for (size_t i = 0; i < server_sockets.count; ++i) {
+        if (server_sockets.elements[i] == fd) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -717,58 +732,38 @@ void tkbc_client_prolog(Client *client) {
 /**
  * @brief The function handles the accept call of new clients.
  *
+ * @param listening_socket The listening socket that received the connection.
  * @return True if the accept has worked and a new client was registered, false
  * if an error occurred.
  */
-bool tkbc_server_accept(void) {
+bool tkbc_server_accept(int listening_socket) {
 
-    SOCKADDR_IN client_address;
+    struct sockaddr_storage client_address;
     SOCKLEN address_length = sizeof(client_address);
-    int client_socket_id = accept(server_socket, (SOCKADDR *) &client_address, &address_length);
+    int client_socket_id = accept(listening_socket, (struct sockaddr *) &client_address, &address_length);
 
     if (client_socket_id == -1) {
-        if (errno != EAGAIN) {
-            tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
-            return false;
-        }
-    } else {
-
 #ifdef _WIN32
-        // Set the socket to non-blocking
-        u_long mode = 1;  // 1 to enable non-blocking socket
-        if (ioctlsocket(client_socket_id, FIONBIO, &mode) != 0) {
-            tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
-            closesocket(client_socket_id);
+        if (WSAGetLastError() != WSAEWOULDBLOCK) {
+            tkbc_socket_error("accept()");
             return false;
-        }
-
-        int nodelay = 1;
-        int sso = setsockopt(client_socket_id, IPPROTO_TCP, TCP_NODELAY, (char *) &nodelay, sizeof(nodelay));
-        if (sso == -1) {
-            tkbc_fprintf(stderr, "ERROR", "%d\n", WSAGetLastError());
         }
 #else
-        // Set the socket to non-blocking
-        int flags = fcntl(client_socket_id, F_GETFL, 0);
-
-        if (flags == -1) {
-            tkbc_fprintf(stderr, "ERROR", "Could not get socket flags: %s\n", strerror(errno));
-            close(client_socket_id);
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            tkbc_socket_error("accept()");
             return false;
         }
-        flags = fcntl(client_socket_id, F_SETFL, flags | O_NONBLOCK);
-        if (flags == -1) {
-            tkbc_fprintf(stderr, "ERROR", "Could not set the non-blocking: %s\n", strerror(errno));
-            close(client_socket_id);
+#endif
+    } else {
+        if (!tkbc_set_socket_non_blocking(client_socket_id)) {
+            tkbc_close_socket(client_socket_id);
             return false;
         }
 
         int nodelay = 1;
-        int sso = setsockopt(client_socket_id, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay));
-        if (sso == -1) {
-            tkbc_fprintf(stderr, "ERROR", "%s\n", strerror(errno));
+        if (setsockopt(client_socket_id, IPPROTO_TCP, TCP_NODELAY, (const char *) &nodelay, sizeof(nodelay)) == -1) {
+            tkbc_socket_error("setsockopt(TCP_NODELAY)");
         }
-#endif  // _WIN32
 
         clients_visited++;
         struct pollfd client_fd = {
@@ -1052,10 +1047,10 @@ void tkbc_socket_handling(void) {
             continue;
         }
 
-        if ((int) fds.elements[idx].fd == server_socket) {
+        if (tkbc_is_server_socket((int) fds.elements[idx].fd)) {
             // This can cause realloc so it is important to iterate the fds by
             // index.
-            tkbc_server_accept();
+            tkbc_server_accept((int) fds.elements[idx].fd);
         } else {
             int fd = fds.elements[idx].fd;
             Client *client = tkbc_get_client_by_fd(fd);
@@ -1477,37 +1472,24 @@ int main(int argc, char *argv[]) {
 
     char *program_name = tkbc_shift_args(&argc, &argv);
     uint16_t port = 8080;
-    if (tkbc_server_commandline_check(argc, program_name)) {
-        char *port_check = tkbc_shift_args(&argc, &argv);
-        port = tkbc_port_parsing(port_check);
-    }
-    server_socket = tkbc_server_socket_creation(INADDR_ANY, port);
-    tkbc_fprintf(stderr, "INFO", "%s: %d\n", "Server socket", server_socket);
+    char host_buffer[256];
+    const char *host = NULL;  // NULL means all available IPv4 and IPv6 interfaces.
 
-#ifdef _WIN32
-    // Set the socket to non-blocking
-    u_long mode = 1;  // 1 to enable non-blocking socket
-    if (ioctlsocket(server_socket, FIONBIO, &mode) != 0) {
-        tkbc_fprintf(stderr, "ERROR", "ioctlsocket(): %d\n", WSAGetLastError());
-        closesocket(server_socket);
-        WSACleanup();
-        exit(1);
+    if (tkbc_server_commandline_check(argc, program_name)) {
+        const char *first = tkbc_shift_args(&argc, &argv);
+        if (argc > 0) {
+            host = tkbc_host_without_brackets(first, host_buffer, sizeof(host_buffer));
+            port = tkbc_port_parsing(tkbc_shift_args(&argc, &argv));
+        } else if (tkbc_is_port_string(first)) {
+            port = tkbc_port_parsing(first);
+        } else {
+            host = tkbc_host_without_brackets(first, host_buffer, sizeof(host_buffer));
+        }
     }
-#else
-    // Set the socket to non-blocking
-    int flags = fcntl(server_socket, F_GETFL, 0);
-    if (flags == -1) {
-        tkbc_fprintf(stderr, "ERROR", "Could not get server socket flags: %s\n", strerror(errno));
-        close(server_socket);
-        exit(1);
+
+    if (!tkbc_server_socket_creation(host, port, &server_sockets)) {
+        return 1;
     }
-    flags = fcntl(server_socket, F_SETFL, flags | O_NONBLOCK);
-    if (flags == -1) {
-        tkbc_fprintf(stderr, "ERROR", "Could not set the server socket to non-blocking: %s\n", strerror(errno));
-        close(server_socket);
-        exit(1);
-    }
-#endif  // _WIN32
 
     append_assets();
     srand(time(NULL));
@@ -1518,12 +1500,15 @@ int main(int argc, char *argv[]) {
     env->window_width = 1920;
     env->window_height = 1080;
 
-    struct pollfd server_fd = {
-        .fd = server_socket,
-        .events = POLLRDNORM,
-        .revents = 0,
-    };
-    tkbc_dap(&fds, server_fd);
+    // Every address family gets its own listening socket in the poll set.
+    for (size_t i = 0; i < server_sockets.count; ++i) {
+        struct pollfd server_fd = {
+            .fd = server_sockets.elements[i],
+            .events = POLLRDNORM,
+            .revents = 0,
+        };
+        tkbc_dap(&fds, server_fd);
+    }
 
     for (;;) {
         //
@@ -1668,8 +1653,11 @@ void exit_handler() {
         tkbc_server_shutdown_client(clients.elements[i], true);
     }
 
-    shutdown(server_socket, SHUT_RDWR);
-    tkbc_close(server_socket);
+    for (size_t i = 0; i < server_sockets.count; ++i) {
+        shutdown(server_sockets.elements[i], SHUT_RDWR);
+        tkbc_close(server_sockets.elements[i]);
+    }
+    free(server_sockets.elements);
 #ifdef _WIN32
     WSACleanup();
 #endif  // _WIN32
