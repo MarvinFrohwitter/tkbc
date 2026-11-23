@@ -520,7 +520,7 @@ void libtcc1_string(Cmd *cmd) {
     // The runtime archives are embedded so a system tcc installation is not
     // needed when a C script is dragged onto the client/tkbc.
     cb_cmd_push(cmd, "./" BUILD_PATH "libtcc1_2h");
-    cb_cmd_push(cmd, "-o", BUILD_PATH "tkbc-libtcc1-header.h");
+    cb_cmd_push(cmd, "-o", BUILD_PATH "skystep-libtcc1-header.h");
     cb_cmd_push(cmd, "--linux", LIBTCC_LINUX_PATH "libtcc1.a");
     cb_cmd_push(cmd, "--windows", LIBTCC_WINDOWS_PATH "libtcc1.a");
 
@@ -570,7 +570,7 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
         define(cmd, .include_raylib = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_mmap = true,
                .space_memory_layout_method_da = true, .space_debugger = true);
-        cb_cmd_push(cmd, "-o", BUILD_PATH "tkbc");
+        cb_cmd_push(cmd, "-o", BUILD_PATH "skystep");
     } else if (os.WINDOWS) {
         first_o(cmd, .WINDOWS = true);
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
@@ -579,7 +579,7 @@ void tkbc_opt(Cmd *cmd, OS_Opts os) {
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
                .space_memory_layout_method_da = true);
         cflags(cmd, .WINDOWS = true);
-        cb_cmd_push(cmd, "-o", BUILD_PATH "tkbc-win64");
+        cb_cmd_push(cmd, "-o", BUILD_PATH "skystep");
     } else {
         exit(EXIT_FAILURE);
     }
@@ -610,7 +610,7 @@ void client_opt(Cmd *cmd, OS_Opts os) {
         define(cmd, .include_raylib = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_mmap = true,
                .space_memory_layout_method_da = true, .space_debugger = true);
-        cb_cmd_push(cmd, "-o", BUILD_PATH "client");
+        cb_cmd_push(cmd, "-o", BUILD_PATH "skystep-client");
     } else if (os.WINDOWS) {
         first_o(cmd, .WINDOWS = true);
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
@@ -619,7 +619,7 @@ void client_opt(Cmd *cmd, OS_Opts os) {
         define(cmd, .include_raylib = true, .release = true, .ndebug = false);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
                .space_memory_layout_method_da = true);
-        cb_cmd_push(cmd, "-o", BUILD_PATH "client-win64");
+        cb_cmd_push(cmd, "-o", BUILD_PATH "skystep-client");
     } else {
         exit(EXIT_FAILURE);
     }
@@ -649,7 +649,7 @@ void server_opt(Cmd *cmd, OS_Opts os) {
         define(cmd, .include_raylib = true, .tkbc_server = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_mmap = true,
                .space_memory_layout_method_da = true, .space_debugger = true);
-        cb_cmd_push(cmd, "-o", BUILD_PATH "server");
+        cb_cmd_push(cmd, "-o", BUILD_PATH "skystep-server");
     } else if (os.WINDOWS) {
         cb_cmd_push(cmd, "x86_64-w64-mingw32-gcc");
         include(cmd, .tcc = true, .raylib = true, .WINDOWS = true);
@@ -657,7 +657,7 @@ void server_opt(Cmd *cmd, OS_Opts os) {
         define(cmd, .include_raylib = true, .tkbc_server = true, .release = true);
         define(cmd, .space_decl = true, .space_def = true, .space_alloc_method_virtual_alloc = true,
                .space_memory_layout_method_da = true);
-        cb_cmd_push(cmd, "-o", BUILD_PATH "server-win64");
+        cb_cmd_push(cmd, "-o", BUILD_PATH "skystep-server");
     } else {
         exit(EXIT_FAILURE);
     }
@@ -744,9 +744,9 @@ typedef struct {
 #define FLAG_LIBTCC1_STRING "libtcc1_string"
 #define FLAG_TEST_VERBOSE "verbose"
 #define FLAG_TEST_SHORT "short"
-#define FLAG_TKBC "tkbc"
-#define FLAG_CLIENT "client"
-#define FLAG_SERVER "server"
+#define FLAG_TKBC "skystep"
+#define FLAG_CLIENT "skystep-client"
+#define FLAG_SERVER "skystep-server"
 #define FLAG_LIBTCC "libtcc"
 #define FLAG_LINUX "linux"
 #define FLAG_WINDOWS "windows"

@@ -10,7 +10,7 @@
 
 #include "tkbc-libtcc-runtime.h"
 
-#include "tkbc-libtcc1-header.h"
+#include "skystep-libtcc1-header.h"
 
 #include <errno.h>
 #include <stdbool.h>

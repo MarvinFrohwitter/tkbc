@@ -54,7 +54,7 @@ bool offline_mode = true;
  * @return int Returns 0 if no errors occur.
  */
 int main(void) {
-    const char *title = "TEAM KITE BALLETT CHOREOGRAPHER";
+    const char *title = "Sky Step";
 
 #ifdef _WIN32
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);

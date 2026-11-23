@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=SkyStep
+Comment=Choreography in the sky
+Exec=skystep
+Icon=skystep
+StartupWMClass=skystep
+Terminal=false
+Categories=Graphics;2DGraphics;

@@ -102,8 +102,8 @@ Env *tkbc_init_env(void) {
     env->fps = TARGET_FPS;
     env->show_kite_information = true;
 
-#define TKBC_DIR "tkbc"
-#define KEYMAPS_FILE ".tkbc-keymaps"
+#define TKBC_DIR "SkyStep"
+#define KEYMAPS_FILE "." TKBC_DIR "-keymaps"
 #ifdef _WIN32
     env->tkbc_dir = TKBC_DIR "\\";
     env->tkbc_keymaps_path = TKBC_DIR "\\" KEYMAPS_FILE;
@@ -1319,7 +1319,9 @@ bool tkbc_is_domain_name_codepoint(int codepoint) {
  * @param codepoint The typed Unicode codepoint.
  * @return True if the codepoint is in the printable ASCII range.
  */
-bool tkbc_is_any_ascii_codepoint(int codepoint) { return codepoint >= ' ' && codepoint < 127; }
+bool tkbc_is_any_ascii_codepoint(int codepoint) {
+    return codepoint >= ' ' && codepoint < 127;
+}
 
 /**
  * @brief Callback that activates script name editing when the input box is

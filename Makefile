@@ -2,7 +2,7 @@
 # gcc is broken when using a format string that just includes "%s" longer ones are fine like "Hello %s" with NULL.
 # printf("%s", NULL);
 
-all: build tkbc client server tkbc-win64 client-win64 server-win64
+all: build skystep skystep-client skystep-server skystep-win64 skystep-client-win64 skystep-server-win64
 
 build:
 	cc -o cb cb2.c
@@ -25,27 +25,25 @@ first.o: build
 first.o-win64: build
 	./cb first.o windows
 
-tkbc: build
-	./cb client
-	cp ./build/client ./build/tkbc
+skystep:
+	make skystep-client
+	cp build/skystep-client build/skystep
 
-tkbc-win64: build
-	./cb tkbc windows
+skystep-client: build
+	./cb skystep-client
 
+skystep-win64:
+	make skystep-client-win64
+	cp build/skystep-client.exe build/skystep.exe
 
-client: build
-	./cb client
+skystep-client-win64: build
+	./cb skystep-client windows
 
-client-win64: build
-	./cb client windows
+skystep-server: build
+	./cb skystep-server
 
-
-server: build
-	./cb server
-
-server-win64: build
-	./cb server windows
-
+skystep-server-win64: build
+	./cb skystep-server windows
 
 libtcc: build
 	./cb libtcc
@@ -77,15 +75,15 @@ DESKTOP_DIR ?= $(PREFIX)/share/applications
 ICON_DIR ?= $(PREFIX)/share/icons/hicolor/256x256/apps
 
 install: build
-	./cb tkbc
-	./cb client
+	./cb skystep
+	./cb skystep-client
 	$(INSTALL) -d $(BINDIR) $(DESKTOP_DIR) $(ICON_DIR)
-	$(INSTALL) -m 755 build/tkbc $(BINDIR)/tkbc
-	$(INSTALL) -m 755 build/client $(BINDIR)/client
-	$(INSTALL) -m 644 packaging/tkbc.desktop $(DESKTOP_DIR)/
-	$(INSTALL) -m 644 assets/Logos/256x256_Logo.png $(ICON_DIR)/tkbc.png
+	$(INSTALL) -m 755 build/skystep $(BINDIR)/skystep
+	$(INSTALL) -m 755 build/skystep-client $(BINDIR)/skystep-client
+	$(INSTALL) -m 644 packaging/skystep.desktop $(DESKTOP_DIR)/
+	$(INSTALL) -m 644 assets/Logos/256x256_Logo.png $(ICON_DIR)/skystep.png
 	@update-desktop-database $(DESKTOP_DIR) 2>/dev/null || true
 	@gtk-update-icon-cache -f -t $(PREFIX)/share/icons/hicolor 2>/dev/null || true
 
 
-.PHONY: all clean tkbc tkbc.o build client test server poll-server install
+.PHONY: all clean build build-dir assets script_api_string first.o first.o-win64 test test-verbose test-short libtcc libtcc-linux libtcc-windows skystep skystep-win64 skystep-client skystep-client-win64 skystep-server skystep-server-win64 install

@@ -1201,7 +1201,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    const char *title = "TEAM KITE BALLETT CHOREOGRAPHER CLIENT";
+    const char *title = "Sky Step";
     SetTraceLogLevel(LOG_NONE);
 #ifdef _WIN32
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);

@@ -1,13 +1,17 @@
-# Team Kite Ballett Choreographer
+# SkyStep
 
-- The choreography creator.
+### Team Kite Ballett Choreographer
+
+_Choreography in the sky._
+
+SkyStep is a team kite-ballet choreographer. Write figures in C or `.kite` scripts, preview them live, and fly them in sync over the network.
 
 - The dependency is version 6.2:
 - Original Raylib 6.2 Source Code: <https://github.com/raysan5/raylib/releases/tag/6.2>
 
 # Vendored FFmpeg 9.0.2 (static, minimal feature set)
 
-Source: https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz
+Source: <https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz>
 Upstream license: LGPL version 2.1 or later (no GPL components enabled:
 no libx264, no other --enable-gpl libraries).
 
@@ -23,7 +27,7 @@ converted into a C byte array by `metaprogramming/libtcc1_2h.c` during every
 build and written to a private temporary directory on first use. No system TCC
 installation is needed to drag and drop a `.c`/`.h` script.
 
-The generated header lives in `build/tkbc-libtcc1-header.h` and can be
+The generated header lives in `build/skystep-libtcc1-header.h` and can be
 regenerated on its own with `./cb libtcc1_string`. After rebuilding the
 archives with `./cb libtcc`, the next executable build refreshes it
 automatically.
@@ -31,24 +35,29 @@ automatically.
 ### Build with cb
 
 ```Shell
-cc -o cb cb.c
-./cb tkbc
-./cb client
-./cb server
-./cb tkbc windows
-./cb client windows
-./cb server windows
+cc -o cb cb2.c
+./cb skystep
+./cb skystep-client
+./cb skystep-server
+./cb skystep windows
+./cb skystep-client windows
+./cb skystep-server windows
 ./cb test
 
-./build/<tkbc|client|server>
-./build/<tkbc-win64|client-win64|server-win64>
+./build/skystep
+./build/skystep.exe
+./build/skystep-client
+./build/skystep-server
+./build/skystep-win64
+./build/skystep-client.exe
+./build/skystep-server.exe
 ```
 
 ### Build with make
 
 ```Shell
 make
-./build/tkbc
+./build/skystep
 ```
 
 ## Networking (IPv4 and IPv6)
@@ -58,28 +67,28 @@ creates one listening socket per address family, so IPv4 and IPv6 clients can
 connect to the same port at the same time:
 
 ```Shell
-./build/server          # all interfaces, port 8080 (IPv4 + IPv6)
-./build/server 9000     # all interfaces, port 9000
+./build/skystep-server          # all interfaces, port 8080 (IPv4 + IPv6)
+./build/skystep-server 9000     # all interfaces, port 9000
 ```
 
 An optional host restricts the server to one address. IPv6 literals may be
 written with or without brackets:
 
 ```Shell
-./build/server 127.0.0.1 9000
-./build/server ::1 9000
-./build/server [::1] 9000
-./build/server example.org 9000
+./build/skystep-server 127.0.0.1 9000
+./build/skystep-server ::1 9000
+./build/skystep-server [::1] 9000
+./build/skystep-server example.org 9000
 ```
 
 The client accepts IPv4 addresses, IPv6 addresses and hostnames, both on the
 command line and in the connection dialog:
 
 ```Shell
-./build/client ::1 9000
-./build/client [::1] 9000
-./build/client 192.168.0.10 9000
-./build/client example.org 9000
+./build/skystep-client ::1 9000
+./build/skystep-client [::1] 9000
+./build/skystep-client 192.168.0.10 9000
+./build/skystep-client example.org 9000
 ```
 
 ## SCRIPT API in C
