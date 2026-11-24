@@ -102,7 +102,7 @@ Env *tkbc_init_env(void) {
     env->fps = TARGET_FPS;
     env->show_kite_information = true;
 
-#define TKBC_DIR "SkyStep"
+#define TKBC_DIR "Sky-Step"
 #define KEYMAPS_FILE "." TKBC_DIR "-keymaps"
 #ifdef _WIN32
     env->tkbc_dir = TKBC_DIR "\\";
