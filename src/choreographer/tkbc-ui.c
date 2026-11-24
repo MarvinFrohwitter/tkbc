@@ -37,8 +37,9 @@ extern bool offline_mode;
 
 #define TKBC_LIVE_EDITOR_LABEL_GAP_RATIO 0.1f
 
-/* Panel geometry shared by the live editor widgets. */
-#define TKBC_LIVE_EDITOR_PANEL_ROUNDNESS 1.0f
+/* Panel geometry shared by the live editor widgets. Keep the corner radius
+ * small so the backgrounds read as rectangles instead of pills. */
+#define TKBC_LIVE_EDITOR_PANEL_ROUNDNESS 0.5f
 #define TKBC_LIVE_EDITOR_PANEL_CORNER_SEGMENTS 10.0f
 
 /* Initial values used when a new action is started. */
@@ -2538,11 +2539,19 @@ void tkbc_ui_live_script_editor(Env *env) {
     bool esc_consumed_by_input = IsKeyPressed(KEY_ESCAPE) &&
                                  (tkbc_live_editor_inputs_active(editor) || (script && script->name_input.is_active));
 
+    /* The two lists share one quarter of the usable width each and the action
+     * editor takes the other half. Subtract the two gaps first so the three
+     * sections end up perfectly centered and the lists are exactly equal. */
+    const float content_width = width - 2 * padding;
+    const float sections_width = fmaxf(content_width - 2 * padding, 0.0f);
+    const float list_width = sections_width * 0.25f;
+    const float middle_width = sections_width * 0.5f;
+
     if (script) {
         Rectangle name_box = {
-            .x = padding,
+            .x = (width - middle_width) * 0.5f,
             .y = name_box_y,
-            .width = fminf(width * 0.45f, fmaxf(create_box.x - 2 * padding, 0.0f)),
+            .width = middle_width,
             .height = name_box_height,
         };
         char *old_name = malloc(strlen(tkbc_script_name(script)) + 1);
@@ -2598,18 +2607,15 @@ void tkbc_ui_live_script_editor(Env *env) {
     Rectangle content = {
         .x = padding,
         .y = content_y,
-        .width = width - 2 * padding,
+        .width = content_width,
         .height = fmaxf(height - content_y - padding, 0.0f),
     };
-    const float left_width = content.width * 0.24f;
-    const float middle_width = content.width * 0.42f;
-    Rectangle left = {content.x, content.y, left_width, content.height};
+    Rectangle left = {content.x, content.y, list_width, content.height};
     Rectangle middle = {left.x + left.width + padding, content.y, middle_width, content.height};
-    Rectangle right = {middle.x + middle.width + padding, content.y,
-                       content.width - left_width - middle_width - 2 * padding, content.height};
-    DrawRectangleRounded(left, panel_roundness, panel_corner_segments, TKBC_UI_BLACK_ALPHA);
-    DrawRectangleRounded(middle, panel_roundness, panel_corner_segments, TKBC_UI_BLACK_ALPHA);
-    DrawRectangleRounded(right, panel_roundness, panel_corner_segments, TKBC_UI_BLACK_ALPHA);
+    Rectangle right = {middle.x + middle.width + padding, content.y, list_width, content.height};
+    DrawRectangleRounded(left, 0, panel_corner_segments, TKBC_UI_BLACK_ALPHA);
+    DrawRectangleRounded(middle, 0, panel_corner_segments, TKBC_UI_BLACK_ALPHA);
+    DrawRectangleRounded(right, 0, panel_corner_segments, TKBC_UI_BLACK_ALPHA);
 
     /* -------------------------------- kites --------------------------------- */
     const char *kites_title = "KITES";
@@ -2637,7 +2643,7 @@ void tkbc_ui_live_script_editor(Env *env) {
     Rectangle kite_content = {
         kite_list_base.x,
         kite_list_base.y,
-        kite_list_base.width - editor->kite_scrollbar.base.width,
+        fmaxf(kite_list_base.width - editor->kite_scrollbar.base.width - padding, 0.0f),
         kite_list_base.height,
     };
 
@@ -2893,7 +2899,7 @@ void tkbc_ui_live_script_editor(Env *env) {
     Rectangle list_content = {
         list_base.x,
         list_base.y,
-        list_base.width - editor->scrollbar.base.width,
+        fmaxf(list_base.width - editor->scrollbar.base.width - padding, 0.0f),
         list_base.height,
     };
     tkbc_live_editor_update_action_drag(env, list_content, row_height, screen_items, mouse);
