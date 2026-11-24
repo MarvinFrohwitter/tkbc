@@ -324,6 +324,11 @@ void tkbc_destroy_env(Env *env) {
     }
     space_free_space(&env->_id_space);
     space_free_space(&env->scratch_buf_script.space);
+    space_free_space(&env->scratch_buf_script.upscale_space);
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        space_free_space(&env->scripts.elements[i].space);
+        space_free_space(&env->scripts.elements[i].upscale_space);
+    }
     space_free_space(&env->_scripts_space);
     space_free_tspace();
 

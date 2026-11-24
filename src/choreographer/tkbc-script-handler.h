@@ -20,7 +20,7 @@ void tkbc_remove_redirect_script_elements(Script *script);
 
 Frame tkbc_deep_copy_frame(Space *space, Frame *frame);
 Frames tkbc_deep_copy_frames(Space *space, Frames *frames);
-Script tkbc_deep_copy_script(Space *space, Script *script);
+Script tkbc_deep_copy_script(Space *space, Space *upscale_space, Script *script);
 void tkbc_destroy_frames_internal_data(Frames *frames);
 void tkbc_reset_frames_internal_data(Frames *frames);
 void tkbc_render_frame(Env *env, Frame *frame);

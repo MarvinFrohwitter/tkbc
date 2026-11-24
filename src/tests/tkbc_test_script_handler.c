@@ -264,7 +264,8 @@ Test deep_copy_script(void) {
     cassert_dap(&script, frames);
 
     Space space = {.alloc_method = SPACE_METHOD_MALLOC};
-    Script new_script = tkbc_deep_copy_script(&space, &script);
+    Space upscale_space = {.alloc_method = SPACE_METHOD_MALLOC};
+    Script new_script = tkbc_deep_copy_script(&space, &upscale_space, &script);
     cassert_ptr_neq(&script, &new_script);
     cassert_int_eq(script.count, new_script.count);
     cassert_int_eq(script.capacity, new_script.capacity);
@@ -307,6 +308,7 @@ Test deep_copy_script(void) {
     cassert_ptr_eq(new_script.elements, NULL);
 
     space_free_space_internals_without_freeing_data(&space);
+    space_free_space_internals_without_freeing_data(&upscale_space);
     return test;
 }
 
@@ -479,6 +481,7 @@ Test upscale_script_move_absolute(void) {
     cassert_size_t_eq(script.count, (size_t) 60);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     space_free_space(&tspace);
     tkbc_destroy_env(env);
     return test;
@@ -509,6 +512,7 @@ Test upscale_script_move_add(void) {
     cassert_int_eq((int) script.elements[0].elements[0].kind, ACTION_KITE_MOVE_ADD);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     space_free_space(&tspace);
     tkbc_destroy_env(env);
     return test;
@@ -548,6 +552,7 @@ Test upscale_script_rotation_add(void) {
     cassert_bool_eq(fabsf(script.elements[0].elements[0].action.as_rotation_add.angle - 1.5f) < 0.001f, true);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     space_free_space(&tspace);
     tkbc_destroy_env(env);
     return test;
@@ -609,6 +614,7 @@ Test scrub_to_index_stays_in_script_mode(void) {
     cassert_bool_eq(env->kite_array.elements[0].is_active, true);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     tkbc_destroy_env(env);
     return test;
 }
@@ -633,6 +639,7 @@ Test script_update_frames_stays_loaded(void) {
     cassert_ptr_neq(env->frames, NULL);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     tkbc_destroy_env(env);
     return test;
 }
@@ -662,6 +669,7 @@ Test toggle_script_execution_clamps_at_end(void) {
     cassert_size_t_eq(env->frames->frames_index, middle);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     tkbc_destroy_env(env);
     return test;
 }
@@ -732,6 +740,7 @@ Test simulate_script_and_bake_positions_fixes_stale_starts(void) {
     cassert_bool_eq(script.elements[0].elements[0].finished, false);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     tkbc_destroy_env(env);
     return test;
 }
@@ -756,6 +765,7 @@ Test simulate_script_and_bake_positions_repairs_slice_chain(void) {
                     true);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     tkbc_destroy_env(env);
     return test;
 }
@@ -823,6 +833,7 @@ Test upscale_script_quit_mixed_block(void) {
     }
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     tkbc_destroy_env(env);
     return test;
 }
@@ -893,6 +904,7 @@ Test upscale_script_quit_alone_acts_global(void) {
     cassert_ptr_neq(env->frames, NULL);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     tkbc_destroy_env(env);
     return test;
 }
@@ -965,6 +977,7 @@ Test render_frame_duration_guard_finishes_fighting_moves(void) {
     cassert_bool_eq(fabsf(kite->center.x + 100.0f) < 0.01f, false);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     tkbc_destroy_env(env);
     return test;
 }
@@ -1042,13 +1055,16 @@ Test export_script_to_dot_kite_file_from_mem_writes_original(void) {
 
     // Deep copies carry the originals along.
     Space copy_space = {0};
+    Space copy_upscale_space = {0};
     space_init_capacity(&copy_space, 64);
-    Script copy = tkbc_deep_copy_script(&copy_space, &script);
+    Script copy = tkbc_deep_copy_script(&copy_space, &copy_upscale_space, &script);
     cassert_size_t_eq(copy.original_count, (size_t) 1);
     cassert_size_t_eq(copy.count, (size_t) 12);
     space_free_space(&copy_space);
+    space_free_space(&copy_upscale_space);
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     tkbc_destroy_env(env);
     return test;
 }
@@ -1110,6 +1126,7 @@ Test export_script_maps_kite_ids_to_file_indices(void) {
     }
 
     space_free_space(&script.space);
+    space_free_space(&script.upscale_space);
     return test;
 }
 

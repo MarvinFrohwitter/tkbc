@@ -184,6 +184,16 @@ void tkbc_remove_redirect_script_elements(Script *script) {
 }
 
 /**
+ * @brief Returns the arena that owns the currently active (possibly upscaled)
+ * blocks of a script, so position rewrites stay with their blocks and can be
+ * dropped together with them.
+ */
+static Space *tkbc_script_timeline_space(Script *script) {
+    return (script->original_elements && script->original_elements != script->elements) ? &script->upscale_space
+                                                                                        : &script->space;
+}
+
+/**
  * @brief The function copies every single value even the values that are just
  * represented by a pointer of the struct Frames to a new instance. Every
  * internal pointer is a new one in the created representation and points to the
@@ -324,11 +334,12 @@ Frame tkbc_deep_copy_frame(Space *space, Frame *frame) {
  * be used to move a creation of a temporary struct of type script to a
  * permanently stored one.
  *
- * @param space The space where the internal allocation should happen.
+ * @param space The space where authored data and the name should be allocated.
+ * @param upscale_space The space where an existing upscaled timeline is copied to.
  * @param script The pointer that holds the values that should be copied.
  * @return The value ready copy of the script.
  */
-Script tkbc_deep_copy_script(Space *space, Script *script) {
+Script tkbc_deep_copy_script(Space *space, Space *upscale_space, Script *script) {
     Script new_script = {0};
     if (!script) {
         return new_script;
@@ -371,12 +382,14 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
     new_script.name_input.user_data = script->name_input.user_data;
     new_script.name_input.is_active = script->name_input.is_active;
 
+    bool is_upscaled = script->original_elements && script->original_elements != script->elements;
+    Space *frames_space = is_upscaled ? upscale_space : space;
     for (size_t i = 0; i < script->count; ++i) {
-        Frames frames = tkbc_deep_copy_frames(space, &script->elements[i]);
-        space_dap(space, &new_script, frames);
+        Frames frames = tkbc_deep_copy_frames(frames_space, &script->elements[i]);
+        space_dap(frames_space, &new_script, frames);
     }
 
-    if (script->original_elements && script->original_count > 0) {
+    if (is_upscaled) {
         size_t n = script->original_count;
         Frames *new_non_upscaled = space_malloc(space, n * sizeof(*new_non_upscaled));
         if (!new_non_upscaled) {
@@ -384,15 +397,19 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
         }
 
         for (size_t i = 0; i < n; ++i) {
-            Frames frames = tkbc_deep_copy_frames(space, &script->original_elements[i]);
-            new_non_upscaled[i] = frames;
-            // Not possible because alternative names of the dynamic array.
-            // space_dap(space, &new_script.original_elements, frames);
+            new_non_upscaled[i] = tkbc_deep_copy_frames(space, &script->original_elements[i]);
         }
 
         new_script.original_elements = new_non_upscaled;
         new_script.original_count = n;
         new_script.original_capacity = n;
+    } else if (script->original_elements && script->original_count > 0) {
+        // The originals are only an alias of the authored blocks. Keep that
+        // relation instead of duplicating the same frames a second time.
+        new_script.original_elements = new_script.elements;
+        new_script.original_count = new_script.count;
+        new_script.original_capacity = new_script.capacity;
+        new_script.internal_redirect = true;
     }
     return new_script;
 }
@@ -1008,7 +1025,7 @@ static void tkbc_ensure_script_kite_positions(Env *env, Script *script) {
                 }
             }
             if (!contains) {
-                space_dap(&script->space, &block->kite_frame_positions, position);
+                space_dap(tkbc_script_timeline_space(script), &block->kite_frame_positions, position);
             }
         }
     }
@@ -1258,7 +1275,11 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
 
     tkbc_clear_ghost_kites(env);
 
-    bool needs_upscale = !env->script->original_elements && env->script->original_count == 0;
+    // Real originals only exist when they point at a different block array.
+    // After an editor change both pointers alias the freshly authored blocks,
+    // so the next execution upscales them again.
+    bool needs_upscale =
+        !env->script->original_elements || env->script->original_elements == env->script->elements;
     if (needs_upscale) {
         // Upscale long blocks into per-tick slices so the timeline can scrub
         // continuously at the animation fps, like a video. Already upscaled
@@ -1276,6 +1297,7 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
         // that were already upscaled/baked, otherwise loading a script a second
         // time keeps the orphans and stale positions of the previous run.
         assert(env->script);
+        Space *timeline_space = tkbc_script_timeline_space(env->script);
         tkbc_restore_script_frame_states(env);
 
         // Orphans have no frame action, so their stored position is the only
@@ -1290,7 +1312,7 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
         // tkbc_patch_script_kite_positions() only re-adds kites that are part
         // of a frame action, which is why orphan kites used to survive a
         // fresh load with stale positions.
-        tkbc_patch_script_kite_positions(env, env->script, &env->script->space);
+        tkbc_patch_script_kite_positions(env, env->script, timeline_space);
 
         // Re-record the orphans in every block so their start geometry is
         // preserved through the rebake and they stay part of this script's
@@ -1307,7 +1329,7 @@ bool tkbc_load_script_id(Env *env, UUID script_id, bool fresh) {
                     }
                 }
                 if (!contains) {
-                    space_dap(&env->script->space, &block->kite_frame_positions, kp);
+                    space_dap(timeline_space, &block->kite_frame_positions, kp);
                 }
             }
         }
@@ -1413,6 +1435,7 @@ int tkbc_unload_script_from_memory(Env *env, UUID script_id) {
             }
 
             space_free_space(&env->scripts.elements[i].space);
+            space_free_space(&env->scripts.elements[i].upscale_space);
             if (i + 1 < env->scripts.count) {
                 memmove(&env->scripts.elements[i], &env->scripts.elements[i + 1],
                         sizeof(*env->scripts.elements) * (env->scripts.count - i - 1));
@@ -1927,8 +1950,10 @@ static void tkbc_push_frame(Space *space, Frames *frames, Action_Kind kind, Acti
  * would create single-QUIT slices sharing the global countdown and kill the
  * script early.
  *
- * The script is rebuilt in its own Space; old arrays stay allocated in the
- * same Space and are simply orphaned (the Space frees everything at once).
+ * The script is rebuilt in its dedicated upscale_space. Resetting that space
+ * drops the whole upscaled timeline in one step and reuses its memory. The
+ * authored blocks stay in script->space and are always used as the source, so
+ * upscaling is repeatable after an editor change.
  *
  * @param env The global state, used for kite geometry templates.
  * @param tspace A space where temporary allocations can stay.
@@ -1936,15 +1961,27 @@ static void tkbc_push_frame(Space *space, Frames *frames, Action_Kind kind, Acti
  * @param fps The timeline resolution, usually TARGET_FPS.
  */
 void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
-    if (!env || !script || script->count == 0 || fps <= 0) {
+    if (!env || !script || fps <= 0) {
         return;
     }
+
+    // Prefer the authored originals. They live in script->space, so the
+    // upscale arena can be reset before generating the new timeline.
+    Frames *source = script->original_elements ? script->original_elements : script->elements;
+    size_t source_count = script->original_elements ? script->original_count : script->count;
+    size_t source_capacity = script->original_elements ? script->original_capacity : script->capacity;
+    if (source_count == 0) {
+        return;
+    }
+
+    Space *uspace = &script->upscale_space;
+    space_reset_space(uspace);
 
     Script upscaled = {0};
     Upscale_Kites upscale_kites = {0};
 
-    for (size_t b = 0; b < script->count; ++b) {
-        Frames *base_frames = &script->elements[b];
+    for (size_t b = 0; b < source_count; ++b) {
+        Frames *base_frames = &source[b];
 
         float D = tkbc_original_duration_across_frames_collection(base_frames);
 #define UPSACEL_LIMIT 10000
@@ -1985,7 +2022,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
             // Keep as-is, but advance the chain so later blocks start correctly.
             upscale_apply_frames_action_instant(&upscale_kites, base_frames);
 
-            Frames kept = tkbc_deep_copy_frames(&script->space, base_frames);
+            Frames kept = tkbc_deep_copy_frames(uspace, base_frames);
             kept.frames_index = upscaled.count;
 
             // TODO: This is not needed is should stay the same,because nothing has changed in the frames collection.
@@ -1993,7 +2030,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
             //     kept.elements[i].index = i;
             // }
 
-            space_dap(&script->space, &upscaled, kept);
+            space_dap(uspace, &upscaled, kept);
             involved_kids.count = 0;
             continue;
         }
@@ -2081,7 +2118,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                     .position = cursors[k].current_position,
                     .angle = cursors[k].current_angle,
                 };
-                space_dap(&script->space, &new_frames.kite_frame_positions, kp);
+                space_dap(uspace, &new_frames.kite_frame_positions, kp);
                 // The slice is a block of its own in the upscaled script, so
                 // its start is the pivot the tip rotation geometry uses, like
                 // kite->old_center during the playback of the slice.
@@ -2103,7 +2140,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                 }
 
                 if (frame_duration <= 0) {
-                    tkbc_push_frame(&script->space, &new_frames, f->kind, f->action, 0, f->kite_id_array);
+                    tkbc_push_frame(uspace, &new_frames, f->kind, f->action, 0, f->kite_id_array);
                     continue;
                 }
 
@@ -2117,7 +2154,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                     new_duration = step;
                 }
                 if (f->kind == ACTION_KITE_WAIT) {
-                    tkbc_push_frame(&script->space, &new_frames, f->kind, (Action){}, new_duration, (Kite_Ids){0});
+                    tkbc_push_frame(uspace, &new_frames, f->kind, (Action){}, new_duration, (Kite_Ids){0});
                     continue;
                 }
 
@@ -2153,7 +2190,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                         }
                         Vector2 target = Vector2Lerp(start_pos, f->action.as_move.position, t);
                         Action action = {.as_move.position = target};
-                        tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_MOVE, action, new_duration,
+                        tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_MOVE, action, new_duration,
                                                kid);
                         cu->current_position = target;
                     } break;
@@ -2183,13 +2220,13 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                             cu->current_position = slice_end;
                         }
                         Action action = {.as_move_add.position = offset};
-                        tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_MOVE_ADD, action, new_duration,
+                        tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_MOVE_ADD, action, new_duration,
                                                kid);
                     } break;
                     case ACTION_KITE_ROTATION_ADD: {
                         float angle = f->action.as_rotation_add.angle * (new_duration / frame_duration);
                         Action action = {.as_rotation_add.angle = angle};
-                        tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_ROTATION_ADD, action,
+                        tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_ROTATION_ADD, action,
                                                new_duration, kid);
                         cu->current_angle += angle;
                     } break;
@@ -2197,7 +2234,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                         float orig_angle = f->action.as_rotation.angle;
                         if (Ni == 1) {
                             Action action = {.as_rotation.angle = orig_angle};
-                            tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_ROTATION, action,
+                            tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_ROTATION, action,
                                                    new_duration, kid);
                             cu->current_angle = orig_angle;
                         } else if (s < Ni - 1) {
@@ -2212,12 +2249,12 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                             }
                             float angle = delta * (new_duration / frame_duration);
                             Action a = {.as_rotation_add.angle = angle};
-                            tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_ROTATION_ADD, a,
+                            tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_ROTATION_ADD, a,
                                                    new_duration, kid);
                             cu->current_angle += angle;
                         } else {
                             Action action = {.as_rotation.angle = orig_angle};
-                            tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_ROTATION, action,
+                            tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_ROTATION, action,
                                                    new_duration, kid);
                             cu->current_angle = orig_angle;
                         }
@@ -2233,7 +2270,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                             // has_move branch of tkbc_render_frame_with_dt()
                             // does during the playback.
                             Action action = {.as_rotation_add.angle = angle};
-                            tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_ROTATION_ADD, action,
+                            tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_ROTATION_ADD, action,
                                                    new_duration, kid);
                             cu->current_angle += angle;
                         } else {
@@ -2241,7 +2278,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                                 .as_tip_rotation_add.angle = angle,
                                 .as_tip_rotation_add.tip = tip,
                             };
-                            tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_TIP_ROTATION_ADD, action,
+                            tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_TIP_ROTATION_ADD, action,
                                                    new_duration, kid);
 
                             // Advance the cursor via the real tip geometry. The
@@ -2265,7 +2302,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                         if (Ni == 1) {
                             if (angle_only) {
                                 Action a = {.as_rotation.angle = orig_angle};
-                                tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_ROTATION, a,
+                                tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_ROTATION, a,
                                                        new_duration, kid);
                                 cu->current_angle = orig_angle;
                             } else {
@@ -2273,7 +2310,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                                     .as_tip_rotation.angle = orig_angle,
                                     .as_tip_rotation.tip = tip,
                                 };
-                                tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_TIP_ROTATION, a,
+                                tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_TIP_ROTATION, a,
                                                        new_duration, kid);
                                 cu->current_position = upscale_tip_center_at_angle(
                                     &cu->kite, cu->slice_start_pos, cu->slice_start_angle, orig_angle, tip);
@@ -2295,7 +2332,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                             float angle = delta * (new_duration / frame_duration);
                             if (angle_only) {
                                 Action a = {.as_rotation_add.angle = angle};
-                                tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_ROTATION_ADD, a,
+                                tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_ROTATION_ADD, a,
                                                        new_duration, kid);
                                 cu->current_angle += angle;
                             } else {
@@ -2303,7 +2340,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                                     .as_tip_rotation_add.angle = angle,
                                     .as_tip_rotation_add.tip = tip,
                                 };
-                                tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_TIP_ROTATION_ADD,
+                                tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_TIP_ROTATION_ADD,
                                                        action, new_duration, kid);
                                 // The tip angle after the slice, used as
                                 // rotation angle and as rotation target of the
@@ -2316,7 +2353,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                         } else {
                             if (angle_only) {
                                 Action action = {.as_rotation.angle = orig_angle};
-                                tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_ROTATION, action,
+                                tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_ROTATION, action,
                                                        new_duration, kid);
                                 cu->current_angle = orig_angle;
                             } else {
@@ -2324,7 +2361,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
                                     .as_tip_rotation.angle = orig_angle,
                                     .as_tip_rotation.tip = tip,
                                 };
-                                tkbc_push_one_id_frame(&script->space, &new_frames, ACTION_KITE_TIP_ROTATION, action,
+                                tkbc_push_one_id_frame(uspace, &new_frames, ACTION_KITE_TIP_ROTATION, action,
                                                        new_duration, kid);
                                 cu->current_position = upscale_tip_center_at_angle(
                                     &cu->kite, cu->slice_start_pos, cu->slice_start_angle, orig_angle, tip);
@@ -2338,7 +2375,7 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
             }
 
             new_frames.frames_index = upscaled.count;
-            space_dap(&script->space, &upscaled, new_frames);
+            space_dap(uspace, &upscaled, new_frames);
         }
 
         // Commit cursor ends to the chain map.
@@ -2352,9 +2389,10 @@ void tkbc_upscale_script(Env *env, Space *tspace, Script *script, float fps) {
         }
     }
 
-    script->original_elements = script->elements;
-    script->original_count = script->count;
-    script->original_capacity = script->capacity;
+    script->original_elements = source;
+    script->original_count = source_count;
+    script->original_capacity = source_capacity;
+    script->internal_redirect = false;
 
     script->elements = upscaled.elements;
     script->count = upscaled.count;
@@ -2403,7 +2441,7 @@ void tkbc_simulate_script_and_bake_positions(Env *env, Space *tspace, Script *sc
 
         for (size_t k = 0; k < involved_kids.count; ++k) {
             Id id = involved_kids.elements[k];
-            add_upscale_kite_with_current_frame_position(env, &script->space, &upscale_kites, id, frames);
+            add_upscale_kite_with_current_frame_position(env, tspace, &upscale_kites, id, frames);
         }
 
         // Rewrite the stored starts from the simulated chain state, appending
@@ -2495,11 +2533,14 @@ void tkbc_reset_script_scratch_creation(Env *env) {
     memset(&env->scratch_buf_frames, 0, sizeof(env->scratch_buf_frames));
     {
         space_reset_space(&env->scratch_buf_script.space);
-        // Rest only the rest of the fields and not the space inside of the
+        space_reset_space(&env->scratch_buf_script.upscale_space);
+        // Rest only the rest of the fields and not the spaces inside of the
         // scratch_buf_script script to preserve memory for reuse.
         Space saved_space = env->scratch_buf_script.space;
+        Space saved_upscale_space = env->scratch_buf_script.upscale_space;
         memset(&env->scratch_buf_script, 0, sizeof(env->scratch_buf_script));
         env->scratch_buf_script.space = saved_space;
+        env->scratch_buf_script.upscale_space = saved_upscale_space;
     }
 }
 
@@ -2648,6 +2689,7 @@ void tkbc_live_editor_toggle_kite_selection(Env *env, Id kite_id) {
     if (editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
         Live_Action *action = &editor->actions.elements[editor->selected_action];
         live_copy_kite_ids(&editor->kite_selection, &action->kite_ids);
+        editor->actions_changed = true;
         tkbc_live_editor_apply_actions(env);
     }
 }
@@ -2667,6 +2709,7 @@ void tkbc_live_editor_clear_actions(Env *env) {
     live_free_kite_ids(&editor->kite_selection);
     editor->selection_anchor = -1;
     editor->actions_loaded = false;
+    editor->actions_changed = false;
 }
 
 /**
@@ -2834,6 +2877,20 @@ void tkbc_live_editor_apply_actions(Env *env) {
         tkbc_unload_script(env);
     }
 
+    // A real edit invalidates the upscaled timeline. Resetting its own arena
+    // frees the potentially huge per-tick blocks while keeping the arena memory
+    // for the next upscale at execution time.
+    if (editor->actions_changed) {
+        if (script->original_elements && script->original_elements != script->elements) {
+            script->elements = script->original_elements;
+            script->count = script->original_count;
+            script->capacity = script->original_capacity;
+            script->internal_redirect = true;
+        }
+        space_reset_space(&script->upscale_space);
+        editor->actions_changed = false;
+    }
+
     tkbc_reset_script_scratch_creation(env);
     env->script_setup = true;
     env->script_interrupt = true;
@@ -2970,6 +3027,7 @@ void tkbc_live_editor_add_kite(Env *env) {
     }
     free(generated.elements);
     tkbc_reset_script_scratch_creation(env);
+    editor->actions_changed = true;
     tkbc_live_editor_apply_actions(env);
 }
 
@@ -3020,6 +3078,7 @@ void tkbc_live_editor_remove_kite(Env *env, Id kite_id) {
     }
     live_remove_id(&editor->kite_selection, kite_id);
     tkbc_remove_unordered_kite_from_list(&env->kite_array, kite_id);
+    editor->actions_changed = true;
     tkbc_live_editor_apply_actions(env);
 }
 
@@ -3100,18 +3159,23 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
     }
 
     {
-        // NOTE: s_copy.space must survive the deep copy. tkbc_deep_copy_script
-        // allocates into the passed Space but returns a Script with a zeroed
-        // space field, so track allocations in a separate Space and move it
-        // into the copy afterwards. Otherwise the assignment below would
-        // discard the planet bookkeeping.
+        // NOTE: s_copy.space and s_copy.upscale_space must survive the deep
+        // copy. tkbc_deep_copy_script allocates into the passed Spaces but
+        // returns a Script with zeroed space fields, so track allocations in
+        // separate Spaces and move them into the copy afterwards.
         Space s_space = {0};
+        Space u_space = {0};
         Space_Report report = {0};
         if (space_report_allocations(&env->scratch_buf_script.space, &report)) {
             space_init_capacity(&s_space, report.allocated_count);
         }
-        Script s_copy = tkbc_deep_copy_script(&s_space, &script);
+        report = (Space_Report){0};
+        if (space_report_allocations(&env->scratch_buf_script.upscale_space, &report)) {
+            space_init_capacity(&u_space, report.allocated_count);
+        }
+        Script s_copy = tkbc_deep_copy_script(&s_space, &u_space, &script);
         s_copy.space = s_space;
+        s_copy.upscale_space = u_space;
 
         {
             s_copy.name_input.shadow_text = "";

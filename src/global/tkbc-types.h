@@ -447,7 +447,9 @@ typedef struct {
     size_t original_capacity;   // The allocated space of original_elements.
     UUID id;                    // The unique uuid of the script. The nil uuid represents
                                 // the state where no script is loaded.
-    Space space;                // Owner of all frames data and the name_input text.
+    Space space;                // Owner of all authored frames data and the name_input text.
+    Space upscale_space;        // Owner of the upscaled timeline blocks. Can be reset in one
+                                // step when an editor change invalidates the upscaled version.
 
     Text_Input name_input;  // Holds the script name in name_input.text, the single
                             // place the name is stored. The buffer is owned by
@@ -530,6 +532,7 @@ typedef struct {
     bool active;                 // The live editor window is currently open.
     bool initialized;            // The text inputs have been set up with the current font.
     bool actions_loaded;         // The editable actions belong to script_id.
+    bool actions_changed;        // An edit changed the actions; applying them drops the upscaled timeline.
     UUID script_id;              // The script that is being edited. Nil when the editor is closed.
     Live_Actions actions;        // All actions currently in the edited script.
     Action_Kind kind;            // The action kind selected in the palette.

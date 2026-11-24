@@ -55,6 +55,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding);
 void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_radius, float padding);
 void tkbc_draw_circle_with_x(Vector2 center, float radius, Color color);
 void tkbc_draw_circle_with_plus(Vector2 center, float radius, Color color);
+void tkbc_draw_circle_with_pen(Vector2 center, float radius, Color color);
 void tkbc_draw_circle_with_arrow(Vector2 center, float radius, Color color);
 void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled, Color color);
 bool tkbc_activate_script_text_input(Text_Input *input, void *data);

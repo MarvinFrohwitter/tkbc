@@ -1304,6 +1304,7 @@ bool tkbc_ui_script_menu(Env *env) {
     bool double_click_confirm = false;
     bool tooltip_deletion_x = false;
     bool tooltip_new_live_script = false;
+    bool tooltip_edit_script = false;
     bool tooltip_send_scripts = false;
     for (size_t box = env->script_menu_top_interaction_box;
          box < env->screen_items + env->script_menu_top_interaction_box && box < scripts_count; ++box) {
@@ -1341,14 +1342,6 @@ bool tkbc_ui_script_menu(Env *env) {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
                 !CheckCollisionPointCircle(mouse, circle_center, delete_circle_radius)) {
                 tkbc_script_menu_apply_click_selection(env, box);
-                // A live script is not executable. A click opens the editor
-                // where its actions can be filled in before it becomes a real
-                // script. Clicking the name field keeps renaming possible.
-                if (env->scripts.elements[box].is_live &&
-                    !CheckCollisionPointRec(mouse, env->scripts.elements[box].name_input.box)) {
-                    tkbc_script_menu_open_live_editor(env, env->scripts.elements[box].id);
-                    break;
-                }
             }
 
             if (!env->script_menu_mouse_interaction) {
@@ -1360,7 +1353,7 @@ bool tkbc_ui_script_menu(Env *env) {
 
             DrawRectangleRounded(script_box, 1, 10, TKBC_UI_PURPLE_ALPHA);
             if (is_mouse_double_click(MOUSE_LEFT_BUTTON) && (ssize_t) box == is_the_same_box_as_last_double_click &&
-                CheckCollisionPointRec(mouse, script_box) && !env->scripts.elements[box].is_live) {
+                CheckCollisionPointRec(mouse, script_box)) {
                 is_the_same_box_as_last_double_click = -1;
                 double_click_confirm = true;
             } else if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
@@ -1574,23 +1567,17 @@ bool tkbc_ui_script_menu(Env *env) {
             // it if clicked.
 
             Script *target = &env->scripts.elements[env->script_menu_mouse_interaction_box];
-            if (target->is_live) {
-                // Neither the confirm button nor a double click may start a
-                // live script. Both open its editor instead.
-                tkbc_script_menu_open_live_editor(env, target->id);
-            } else {
-                if (offline_mode) {
-                    if (double_click_confirm) {
-                        tkbc_load_script_id(env, target->id, false);
-                    } else {
-                        tkbc_load_script_id(env, target->id, true);
-                    }
+            if (offline_mode) {
+                if (double_click_confirm) {
+                    tkbc_load_script_id(env, target->id, false);
+                } else {
+                    tkbc_load_script_id(env, target->id, true);
                 }
-                env->script_menu_interaction = false;
-                env->keymaps_interaction = false;
-                env->color_picker_interaction = false;
-                env->new_script_selected = true;
             }
+            env->script_menu_interaction = false;
+            env->keymaps_interaction = false;
+            env->color_picker_interaction = false;
+            env->new_script_selected = true;
         }
     }
 
@@ -1604,15 +1591,16 @@ bool tkbc_ui_script_menu(Env *env) {
 
     EndScissorMode();
 
-    /* ------------------- New live script / send buttons -------------------- */
+    /* --------------- New live script / edit / send buttons ------------------ */
 
     const float circle_radius = fminf(env->box_height * 0.2f, 18.0f);
     const float circle_center_y = env->box_height * (float) env->screen_items + env->box_height * 0.25f;
     const float usable_width = env->script_menu_base.width - env->script_menu_scrollbar.base.width;
-    const float pair_center_x = env->script_menu_base.x + usable_width / 2;
-    const float circle_spacing = 3 * circle_radius + padding;
-    const Vector2 plus_center = {pair_center_x - circle_spacing / 2, circle_center_y};
-    const Vector2 send_center = {pair_center_x + circle_spacing / 2, circle_center_y};
+    const float buttons_center_x = env->script_menu_base.x + usable_width / 2;
+    const float circle_spacing = 2 * circle_radius + padding;
+    const Vector2 plus_center = {buttons_center_x - circle_spacing, circle_center_y};
+    const Vector2 edit_center = {buttons_center_x, circle_center_y};
+    const Vector2 send_center = {buttons_center_x + circle_spacing, circle_center_y};
     bool can_send = tkbc_script_menu_has_selected_target(env);
 
     tkbc_draw_circle_with_plus(plus_center, circle_radius,
@@ -1634,6 +1622,27 @@ bool tkbc_ui_script_menu(Env *env) {
                 }
                 is_the_same_box_as_last_double_click = -1;
             }
+        }
+    }
+
+    // Opens the editor for the primary selection, exactly like CONFIRM, and
+    // ignores any additional rows of a multi selection.
+    tkbc_draw_circle_with_pen(edit_center, circle_radius,
+                              !can_send ? TKBC_UI_GRAY_ALPHA
+                                        : (CheckCollisionPointCircle(mouse, edit_center, circle_radius)
+                                               ? TKBC_UI_DARKPURPLE_ALPHA
+                                               : TKBC_UI_TEAL_ALPHA));
+    if (CheckCollisionPointCircle(mouse, edit_center, circle_radius)) {
+        tooltip_edit_script = true;
+        if (can_send && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            DrawCircleV(edit_center, circle_radius, TKBC_UI_PURPLE_ALPHA);
+            tkbc_draw_circle_with_pen(edit_center, circle_radius, TKBC_UI_PURPLE_ALPHA);
+            if (env->script_menu_mouse_interaction_box >= 0 &&
+                (size_t) env->script_menu_mouse_interaction_box < env->scripts.count) {
+                tkbc_script_menu_open_live_editor(
+                    env, env->scripts.elements[env->script_menu_mouse_interaction_box].id);
+            }
+            is_the_same_box_as_last_double_click = -1;
         }
     }
 
@@ -1662,6 +1671,14 @@ bool tkbc_ui_script_menu(Env *env) {
     }
     if (tooltip_new_live_script) {
         const char *tooltip_text = "new live script";
+        const int font_size = 18;
+        const float spacing = 2;
+        Vector2 text_size = MeasureTextEx(env->font, tooltip_text, font_size, spacing);
+        tkbc_draw_tool_tip(env, env->font, mouse, text_size.x + padding, text_size.y, tooltip_text, font_size, spacing,
+                           padding / 2);
+    }
+    if (tooltip_edit_script) {
+        const char *tooltip_text = "edit script";
         const int font_size = 18;
         const float spacing = 2;
         Vector2 text_size = MeasureTextEx(env->font, tooltip_text, font_size, spacing);
@@ -1951,6 +1968,7 @@ static void tkbc_live_editor_store_current_action(Env *env) {
         tkbc_dap(&editor->actions, action);
         editor->selected_action = -1;
     }
+    editor->actions_changed = true;
     tkbc_live_editor_apply_actions(env);
     // Keep an updated row chosen so the fields keep editing that action. A
     // newly added action is not selected unless the user picks it in the list.
@@ -1984,6 +2002,7 @@ static void tkbc_live_editor_remove_action(Env *env, size_t index) {
     } else if ((size_t) editor->selection_anchor > index) {
         editor->selection_anchor -= 1;
     }
+    editor->actions_changed = true;
     tkbc_live_editor_apply_actions(env);
 }
 
@@ -2221,6 +2240,7 @@ static void tkbc_live_editor_move_action(Env *env, size_t from, size_t target, b
     editor->selection_anchor = new_anchor;
     editor->join_set = editor->actions.elements[active].same_set_as_previous;
     tkbc_live_editor_copy_kite_ids(&editor->actions.elements[active].kite_ids, &editor->kite_selection);
+    editor->actions_changed = true;
     tkbc_live_editor_apply_actions(env);
 
     free(indices);
@@ -2676,6 +2696,7 @@ void tkbc_ui_live_script_editor(Env *env) {
         if (editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
             size_t index = (size_t) editor->selected_action;
             editor->actions.elements[index].same_set_as_previous = index > 0 && editor->join_set;
+            editor->actions_changed = true;
             tkbc_live_editor_apply_actions(env);
         }
     }
@@ -5022,6 +5043,25 @@ void tkbc_draw_circle_with_plus(Vector2 center, float radius, Color color) {
     const float inner = radius * 0.4f;
     DrawLineEx((Vector2){center.x - inner, center.y}, (Vector2){center.x + inner, center.y}, 3, TKBC_UI_BLACK);
     DrawLineEx((Vector2){center.x, center.y - inner}, (Vector2){center.x, center.y + inner}, 3, TKBC_UI_BLACK);
+}
+
+/**
+ * @brief Draws a filled circle with a diagonal pen inside it.
+ *
+ * @param center The center of the circle.
+ * @param radius The radius of the circle.
+ * @param color The fill color of the circle.
+ */
+void tkbc_draw_circle_with_pen(Vector2 center, float radius, Color color) {
+    DrawCircleV(center, radius, color);
+    const float inner = radius * 0.42f;
+    const Vector2 nib = {center.x - inner, center.y + inner};
+    const Vector2 end = {center.x + inner, center.y - inner};
+    DrawLineEx(nib, end, 3, TKBC_UI_BLACK);
+    const float nib_size = radius * 0.18f;
+    DrawTriangle((Vector2){nib.x - nib_size, nib.y + nib_size},
+                 (Vector2){nib.x + nib_size, nib.y - nib_size * 0.4f},
+                 (Vector2){nib.x + nib_size * 0.2f, nib.y + nib_size}, TKBC_UI_BLACK);
 }
 
 /**
