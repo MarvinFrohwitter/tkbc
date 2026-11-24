@@ -1905,7 +1905,8 @@ static void tkbc_live_editor_action_from_inputs(Env *env, Live_Action *action) {
                            tkbc_live_editor_input_float(&editor->p3y_input, 0)};
     action->p4 = (Vector2){tkbc_live_editor_input_float(&editor->p4x_input, 0),
                            tkbc_live_editor_input_float(&editor->p4y_input, 0)};
-    action->tip = editor->tip;
+    // TIP has no zero value, so never let a stale editor state reach a frame.
+    action->tip = (editor->tip == LEFT_TIP || editor->tip == RIGHT_TIP) ? editor->tip : LEFT_TIP;
     if (action->duration < 0) {
         action->duration = 0;
     }
@@ -1939,7 +1940,11 @@ static void tkbc_live_editor_inputs_from_action(Env *env, const Live_Action *act
 #undef SET_LIVE_INPUT
 
     tkbc_live_editor_copy_kite_ids(&action->kite_ids, &editor->kite_selection);
-    editor->tip = action->tip;
+    // Non-tip actions carry no meaningful tip (zero), which is not a valid TIP.
+    editor->tip = (action->kind == ACTION_KITE_TIP_ROTATION || action->kind == ACTION_KITE_TIP_ROTATION_ADD) &&
+                          (action->tip == LEFT_TIP || action->tip == RIGHT_TIP)
+                      ? action->tip
+                      : LEFT_TIP;
     editor->kind = action->kind;
     editor->bezier_kind = action->bezier_kind;
     editor->join_set = action->same_set_as_previous;
