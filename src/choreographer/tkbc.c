@@ -304,6 +304,7 @@ void tkbc_destroy_env(Env *env) {
     env->pending_script_updates.elements = NULL;
     env->pending_script_updates.count = 0;
     env->pending_script_updates.capacity = 0;
+    tkbc_live_editor_clear_actions(env);
     free(env->live_editor.actions.elements);
     env->live_editor.actions.elements = NULL;
     env->live_editor.actions.count = 0;
@@ -1334,16 +1335,23 @@ bool tkbc_is_any_ascii_codepoint(int codepoint) {
 
 /**
  * @brief Callback that activates script name editing when the input box is
- * right-clicked.
+ * right-clicked. While the live editor is open, left-clicking the title field
+ * activates it as well.
  *
  * @param input The text input that gets activated.
- * @param data Unused callback data.
- * @return True if the right mouse button was pressed inside the input box,
+ * @param data The global state, used to detect the live editor.
+ * @return True when a click that owns the title was pressed inside the box,
  * otherwise false.
  */
 bool tkbc_activate_script_text_input(Text_Input *input, void *data) {
-    (void) data;
-    // Script names are only editable via right-click. Left-click just
-    // selects the row for CONFIRM/DOWNLOAD and must not start editing.
-    return IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && CheckCollisionPointRec(GetMousePosition(), input->box);
+    if (!input) {
+        return false;
+    }
+    // In the script menu a left click selects the row for CONFIRM/DOWNLOAD and
+    // must not start editing. The modal live editor has no such conflict.
+    const Env *env = data;
+    bool left_click_allowed = env && env->live_editor.active;
+    bool clicked = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) ||
+                   (left_click_allowed && IsMouseButtonPressed(MOUSE_BUTTON_LEFT));
+    return clicked && CheckCollisionPointRec(GetMousePosition(), input->box);
 }

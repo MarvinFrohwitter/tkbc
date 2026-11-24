@@ -1042,6 +1042,55 @@ static bool tkbc_live_editor_number_codepoint(int codepoint) {
 }
 
 /**
+ * @brief Checks whether any numeric field of the live editor owns the current
+ * key input. ESC must then leave the field instead of closing the editor.
+ */
+static bool tkbc_live_editor_inputs_active(const Live_Editor *editor) {
+    const Text_Input *inputs[] = {
+        &editor->duration_input,
+        &editor->x_input,
+        &editor->y_input,
+        &editor->angle_input,
+        &editor->rotation_duration_input,
+        &editor->p1x_input,
+        &editor->p1y_input,
+        &editor->p2x_input,
+        &editor->p2y_input,
+        &editor->p3x_input,
+        &editor->p3y_input,
+        &editor->p4x_input,
+        &editor->p4y_input,
+    };
+    for (size_t i = 0; i < ARRAY_LENGTH(inputs); ++i) {
+        if (inputs[i]->is_active) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Resets all numeric fields to their defaults without changing the
+ * selected action kind.
+ */
+static void tkbc_live_editor_reset_current_inputs(Env *env) {
+    Live_Editor *editor = &env->live_editor;
+    tkbc_text_input_set_text(&editor->duration_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_DURATION);
+    tkbc_text_input_set_text(&editor->x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->angle_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->rotation_duration_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->p1x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->p1y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->p2x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->p2y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->p3x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->p3y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->p4x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_set_text(&editor->p4y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+}
+
+/**
  * @brief Sets up the value text fields of the live editor the first time it is
  * opened. The font is only known after the environment has been initialized.
  */
@@ -1054,12 +1103,30 @@ static void tkbc_live_editor_init_inputs(Env *env) {
     tkbc_text_input_init(&editor->x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
     tkbc_text_input_init(&editor->y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
     tkbc_text_input_init(&editor->angle_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_init(&editor->rotation_duration_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_init(&editor->p1x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_init(&editor->p1y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_init(&editor->p2x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_init(&editor->p2y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_init(&editor->p3x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_init(&editor->p3y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_init(&editor->p4x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+    tkbc_text_input_init(&editor->p4y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
 
     Text_Input *inputs[] = {
         &editor->duration_input,
         &editor->x_input,
         &editor->y_input,
         &editor->angle_input,
+        &editor->rotation_duration_input,
+        &editor->p1x_input,
+        &editor->p1y_input,
+        &editor->p2x_input,
+        &editor->p2y_input,
+        &editor->p3x_input,
+        &editor->p3y_input,
+        &editor->p4x_input,
+        &editor->p4y_input,
     };
     for (size_t i = 0; i < ARRAY_LENGTH(inputs); ++i) {
         Text_Input *input = inputs[i];
@@ -1081,19 +1148,27 @@ static void tkbc_live_editor_init_inputs(Env *env) {
 static void tkbc_script_menu_open_live_editor(Env *env, UUID script_id) {
     tkbc_live_editor_init_inputs(env);
     Live_Editor *editor = &env->live_editor;
+    bool same_script = editor->actions_loaded && tkbc_uuid_equals(editor->script_id, script_id);
     editor->active = true;
     editor->script_id = script_id;
     editor->selected_action = -1;
+    editor->selection_anchor = -1;
     editor->last_clicked_kind = -1;
     editor->top_action = 0;
+    editor->top_kite = 0;
+    editor->kite_scrollbar.interaction = false;
+    editor->drag_action_index = -1;
+    editor->action_drag_active = false;
+    editor->drag_target_index = -1;
     editor->kind = ACTION_KITE_WAIT;
+    editor->bezier_kind = LIVE_BEZIER_NONE;
+    editor->join_set = false;
     editor->tip = LEFT_TIP;
-    tkbc_live_editor_load_actions(env);
+    if (!same_script) {
+        tkbc_live_editor_load_actions(env);
+    }
 
-    tkbc_text_input_set_text(&editor->duration_input, &editor->input_space, "1");
-    tkbc_text_input_set_text(&editor->x_input, &editor->input_space, "0");
-    tkbc_text_input_set_text(&editor->y_input, &editor->input_space, "0");
-    tkbc_text_input_set_text(&editor->angle_input, &editor->input_space, "0");
+    tkbc_live_editor_reset_current_inputs(env);
 
     env->script_menu_interaction = false;
     env->script_menu_mouse_interaction = false;
@@ -1533,8 +1608,11 @@ bool tkbc_ui_script_menu(Env *env) {
 
     const float circle_radius = fminf(env->box_height * 0.2f, 18.0f);
     const float circle_center_y = env->box_height * (float) env->screen_items + env->box_height * 0.25f;
-    const Vector2 plus_center = {env->script_menu_base.x + padding + circle_radius, circle_center_y};
-    const Vector2 send_center = {plus_center.x + 3 * circle_radius + padding, circle_center_y};
+    const float usable_width = env->script_menu_base.width - env->script_menu_scrollbar.base.width;
+    const float pair_center_x = env->script_menu_base.x + usable_width / 2;
+    const float circle_spacing = 3 * circle_radius + padding;
+    const Vector2 plus_center = {pair_center_x - circle_spacing / 2, circle_center_y};
+    const Vector2 send_center = {pair_center_x + circle_spacing / 2, circle_center_y};
     bool can_send = tkbc_script_menu_has_selected_target(env);
 
     tkbc_draw_circle_with_plus(plus_center, circle_radius,
@@ -1699,28 +1777,69 @@ static const char *tkbc_live_editor_action_name(Action_Kind kind) {
 }
 
 /**
+ * @brief Returns the short API name of a Bezier curve action.
+ */
+static const char *tkbc_live_editor_bezier_name(Live_Bezier_Kind kind) {
+    switch (kind) {
+    case LIVE_BEZIER_QUADRATIC: return "BEZIER_QUADRATIC";
+    case LIVE_BEZIER_CUBIC: return "BEZIER_CUBIC";
+    case LIVE_BEZIER_QUADRATIC_ADD: return "BEZIER_QUADRATIC_ADD";
+    case LIVE_BEZIER_CUBIC_ADD: return "BEZIER_CUBIC_ADD";
+    case LIVE_BEZIER_NONE: break;
+    }
+    return "UNKNOWN";
+}
+
+/**
  * @brief Formats one action of the live script for its list row.
  */
 static void tkbc_live_editor_action_text(const Live_Action *action, char *buffer, size_t buffer_size) {
+    const char *set = action->same_set_as_previous ? "SET " : "";
+    size_t kite_count = action->kite_ids.count;
+
+    if (action->bezier_kind != LIVE_BEZIER_NONE) {
+        const char *name = tkbc_live_editor_bezier_name(action->bezier_kind);
+        switch (action->bezier_kind) {
+        case LIVE_BEZIER_QUADRATIC:
+            snprintf(buffer, buffer_size, "%s%s k:%zu p3:(%g,%g) %gs", set, name, kite_count, action->p3.x, action->p3.y,
+                     action->duration);
+            break;
+        case LIVE_BEZIER_CUBIC:
+            snprintf(buffer, buffer_size, "%s%s k:%zu p4:(%g,%g) %gs", set, name, kite_count, action->p4.x, action->p4.y,
+                     action->duration);
+            break;
+        case LIVE_BEZIER_QUADRATIC_ADD:
+            snprintf(buffer, buffer_size, "%s%s k:%zu p3:(%g,%g) %gs", set, name, kite_count, action->p3.x, action->p3.y,
+                     action->duration);
+            break;
+        case LIVE_BEZIER_CUBIC_ADD:
+            snprintf(buffer, buffer_size, "%s%s k:%zu p4:(%g,%g) %gs", set, name, kite_count, action->p4.x, action->p4.y,
+                     action->duration);
+            break;
+        case LIVE_BEZIER_NONE: break;
+        }
+        return;
+    }
+
     switch (action->kind) {
     case ACTION_KITE_MOVE:
     case ACTION_KITE_MOVE_ADD:
-        snprintf(buffer, buffer_size, "%s  x:%g y:%g  %gs", tkbc_live_editor_action_name(action->kind), action->x,
-                 action->y, action->duration);
+        snprintf(buffer, buffer_size, "%s%s k:%zu x:%g y:%g %gs", set, tkbc_live_editor_action_name(action->kind),
+                 kite_count, action->x, action->y, action->duration);
         break;
     case ACTION_KITE_ROTATION:
     case ACTION_KITE_ROTATION_ADD:
-        snprintf(buffer, buffer_size, "%s  %g\u00b0  %gs", tkbc_live_editor_action_name(action->kind), action->angle,
-                 action->duration);
+        snprintf(buffer, buffer_size, "%s%s k:%zu %g\u00b0 %gs", set, tkbc_live_editor_action_name(action->kind),
+                 kite_count, action->angle, action->duration);
         break;
     case ACTION_KITE_TIP_ROTATION:
     case ACTION_KITE_TIP_ROTATION_ADD:
-        snprintf(buffer, buffer_size, "%s  %g\u00b0 %s  %gs", tkbc_live_editor_action_name(action->kind), action->angle,
-                 action->tip == LEFT_TIP ? "left" : "right", action->duration);
+        snprintf(buffer, buffer_size, "%s%s k:%zu %g\u00b0 %s %gs", set, tkbc_live_editor_action_name(action->kind),
+                 kite_count, action->angle, action->tip == LEFT_TIP ? "left" : "right", action->duration);
         break;
     case ACTION_KITE_QUIT:
     case ACTION_KITE_WAIT:
-        snprintf(buffer, buffer_size, "%s  %gs", tkbc_live_editor_action_name(action->kind), action->duration);
+        snprintf(buffer, buffer_size, "%s%s %gs", set, tkbc_live_editor_action_name(action->kind), action->duration);
         break;
     case ACTION_KIND_NULL:
     case ACTION_KIND_COUNT: snprintf(buffer, buffer_size, "UNKNOWN"); break;
@@ -1745,18 +1864,36 @@ static float tkbc_live_editor_input_float(const Text_Input *input, float fallbac
 }
 
 /**
- * @brief Copies the current numeric field values into an action.
+ * @brief Copies the current field values and kite selection into an action.
  */
 static void tkbc_live_editor_action_from_inputs(Env *env, Live_Action *action) {
     Live_Editor *editor = &env->live_editor;
+    tkbc_live_editor_free_kite_ids(&action->kite_ids);
+    tkbc_live_editor_copy_kite_ids(&editor->kite_selection, &action->kite_ids);
     action->kind = editor->kind;
+    action->bezier_kind = editor->bezier_kind;
+    action->same_set_as_previous =
+        editor->join_set && (editor->selected_action > 0 ||
+                             (editor->selected_action < 0 && editor->actions.count > 0));
     action->duration = tkbc_live_editor_input_float(&editor->duration_input, 0);
     action->x = tkbc_live_editor_input_float(&editor->x_input, 0);
     action->y = tkbc_live_editor_input_float(&editor->y_input, 0);
     action->angle = tkbc_live_editor_input_float(&editor->angle_input, 0);
+    action->rotation_duration = tkbc_live_editor_input_float(&editor->rotation_duration_input, 0);
+    action->p1 = (Vector2){tkbc_live_editor_input_float(&editor->p1x_input, 0),
+                           tkbc_live_editor_input_float(&editor->p1y_input, 0)};
+    action->p2 = (Vector2){tkbc_live_editor_input_float(&editor->p2x_input, 0),
+                           tkbc_live_editor_input_float(&editor->p2y_input, 0)};
+    action->p3 = (Vector2){tkbc_live_editor_input_float(&editor->p3x_input, 0),
+                           tkbc_live_editor_input_float(&editor->p3y_input, 0)};
+    action->p4 = (Vector2){tkbc_live_editor_input_float(&editor->p4x_input, 0),
+                           tkbc_live_editor_input_float(&editor->p4y_input, 0)};
     action->tip = editor->tip;
     if (action->duration < 0) {
         action->duration = 0;
+    }
+    if (action->rotation_duration < 0) {
+        action->rotation_duration = 0;
     }
 }
 
@@ -1766,16 +1903,405 @@ static void tkbc_live_editor_action_from_inputs(Env *env, Live_Action *action) {
 static void tkbc_live_editor_inputs_from_action(Env *env, const Live_Action *action) {
     Live_Editor *editor = &env->live_editor;
     char buffer[32];
-    snprintf(buffer, sizeof(buffer), "%.6g", action->duration);
-    tkbc_text_input_set_text(&editor->duration_input, &editor->input_space, buffer);
-    snprintf(buffer, sizeof(buffer), "%.6g", action->x);
-    tkbc_text_input_set_text(&editor->x_input, &editor->input_space, buffer);
-    snprintf(buffer, sizeof(buffer), "%.6g", action->y);
-    tkbc_text_input_set_text(&editor->y_input, &editor->input_space, buffer);
-    snprintf(buffer, sizeof(buffer), "%.6g", action->angle);
-    tkbc_text_input_set_text(&editor->angle_input, &editor->input_space, buffer);
+#define SET_LIVE_INPUT(input, value)                                                                                    \
+    snprintf(buffer, sizeof(buffer), "%.6g", (value));                                                                  \
+    tkbc_text_input_set_text(&(input), &editor->input_space, buffer)
+    SET_LIVE_INPUT(editor->duration_input, action->duration);
+    SET_LIVE_INPUT(editor->x_input, action->x);
+    SET_LIVE_INPUT(editor->y_input, action->y);
+    SET_LIVE_INPUT(editor->angle_input, action->angle);
+    SET_LIVE_INPUT(editor->rotation_duration_input, action->rotation_duration);
+    SET_LIVE_INPUT(editor->p1x_input, action->p1.x);
+    SET_LIVE_INPUT(editor->p1y_input, action->p1.y);
+    SET_LIVE_INPUT(editor->p2x_input, action->p2.x);
+    SET_LIVE_INPUT(editor->p2y_input, action->p2.y);
+    SET_LIVE_INPUT(editor->p3x_input, action->p3.x);
+    SET_LIVE_INPUT(editor->p3y_input, action->p3.y);
+    SET_LIVE_INPUT(editor->p4x_input, action->p4.x);
+    SET_LIVE_INPUT(editor->p4y_input, action->p4.y);
+#undef SET_LIVE_INPUT
+
+    tkbc_live_editor_copy_kite_ids(&action->kite_ids, &editor->kite_selection);
     editor->tip = action->tip;
     editor->kind = action->kind;
+    editor->bezier_kind = action->bezier_kind;
+    editor->join_set = action->same_set_as_previous;
+}
+
+/**
+ * @brief Adds or updates the action currently described by the input fields.
+ */
+static void tkbc_live_editor_store_current_action(Env *env) {
+    Live_Editor *editor = &env->live_editor;
+    Live_Action action = {0};
+    tkbc_live_editor_action_from_inputs(env, &action);
+
+    bool updated_existing = false;
+    if (editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
+        size_t index = (size_t) editor->selected_action;
+        bool was_selected = editor->actions.elements[index].selected;
+        tkbc_live_editor_free_kite_ids(&editor->actions.elements[index].kite_ids);
+        editor->actions.elements[index] = action;
+        editor->actions.elements[index].selected = was_selected;
+        if (index == 0) {
+            editor->actions.elements[index].same_set_as_previous = false;
+        }
+        updated_existing = true;
+    } else {
+        tkbc_dap(&editor->actions, action);
+        editor->selected_action = -1;
+    }
+    tkbc_live_editor_apply_actions(env);
+    // Keep an updated row chosen so the fields keep editing that action. A
+    // newly added action is not selected unless the user picks it in the list.
+    if (updated_existing && editor->selected_action >= 0 &&
+        (size_t) editor->selected_action < editor->actions.count) {
+        editor->join_set = editor->actions.elements[(size_t) editor->selected_action].same_set_as_previous;
+    }
+}
+
+/**
+ * @brief Removes one action and repairs the SET flag of the following one.
+ */
+static void tkbc_live_editor_remove_action(Env *env, size_t index) {
+    Live_Editor *editor = &env->live_editor;
+    if (index >= editor->actions.count) {
+        return;
+    }
+    tkbc_live_editor_free_kite_ids(&editor->actions.elements[index].kite_ids);
+    for (size_t i = index; i + 1 < editor->actions.count; ++i) {
+        editor->actions.elements[i] = editor->actions.elements[i + 1];
+    }
+    editor->actions.count -= 1;
+    if (index == 0 && editor->actions.count > 0) {
+        editor->actions.elements[0].same_set_as_previous = false;
+    }
+    if (editor->selected_action >= (ssize_t) editor->actions.count) {
+        editor->selected_action = -1;
+    }
+    if (editor->selection_anchor < 0 || (size_t) editor->selection_anchor == index) {
+        editor->selection_anchor = -1;
+    } else if ((size_t) editor->selection_anchor > index) {
+        editor->selection_anchor -= 1;
+    }
+    tkbc_live_editor_apply_actions(env);
+}
+
+/**
+ * @brief Applies the script menu click modifiers to the action list. A plain
+ * click starts a new single selection, a ctrl click toggles the clicked row and
+ * a shift click selects the range from the anchor to the clicked row.
+ */
+static void tkbc_live_editor_apply_click_selection(Live_Editor *editor, size_t index) {
+    if (index >= editor->actions.count) {
+        return;
+    }
+    bool ctrl_down = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
+    bool shift_down = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
+
+    if (shift_down) {
+        size_t first = index;
+        size_t last = index;
+        ssize_t anchor = editor->selection_anchor;
+        if (anchor >= 0 && (size_t) anchor < editor->actions.count) {
+            first = (size_t) anchor < index ? (size_t) anchor : index;
+            last = (size_t) anchor < index ? index : (size_t) anchor;
+        }
+        for (size_t i = first; i <= last && i < editor->actions.count; ++i) {
+            editor->actions.elements[i].selected = true;
+        }
+        if (anchor == -1) {
+            editor->selection_anchor = (ssize_t) index;
+        }
+        return;
+    }
+
+    editor->selection_anchor = (ssize_t) index;
+    if (ctrl_down) {
+        editor->actions.elements[index].selected = !editor->actions.elements[index].selected;
+        return;
+    }
+
+    for (size_t i = 0; i < editor->actions.count; ++i) {
+        editor->actions.elements[i].selected = false;
+    }
+    editor->actions.elements[index].selected = true;
+}
+
+/**
+ * @brief Drops the action multi selection and its shift range.
+ */
+static void tkbc_live_editor_clear_selection(Live_Editor *editor) {
+    for (size_t i = 0; i < editor->actions.count; ++i) {
+        editor->actions.elements[i].selected = false;
+    }
+    editor->selection_anchor = -1;
+}
+
+/**
+ * @brief Draws a tooltip for a live editor control under the mouse.
+ */
+static void tkbc_live_editor_control_tooltip(Env *env, Vector2 mouse, float padding, const char *text) {
+    const int font_size = TKBC_LIVE_EDITOR_LABEL_FONT_SIZE;
+    const float spacing = TKBC_LIVE_EDITOR_TEXT_SPACING;
+    Vector2 text_size = MeasureTextEx(env->font, text, font_size, spacing);
+    tkbc_draw_tool_tip(env, env->font, mouse, text_size.x + padding, text_size.y, text, font_size, spacing,
+                       padding / 2);
+}
+
+/**
+ * @brief Checks whether an action is part of the SET group of its predecessor.
+ */
+static bool tkbc_live_editor_joins_previous(const Live_Editor *editor, size_t index) {
+    if (index == 0) {
+        return false;
+    }
+    const Live_Action *action = &editor->actions.elements[index];
+    return action->same_set_as_previous && action->bezier_kind == LIVE_BEZIER_NONE &&
+           editor->actions.elements[index - 1].bezier_kind == LIVE_BEZIER_NONE;
+}
+
+/**
+ * @brief Finds the first action of the SET group containing index.
+ */
+static size_t tkbc_live_editor_group_start(const Live_Editor *editor, size_t index) {
+    while (tkbc_live_editor_joins_previous(editor, index)) {
+        --index;
+    }
+    return index;
+}
+
+/**
+ * @brief Finds the last action of the SET group containing index.
+ */
+static size_t tkbc_live_editor_group_end(const Live_Editor *editor, size_t index) {
+    size_t end = index;
+    while (end + 1 < editor->actions.count && tkbc_live_editor_joins_previous(editor, end + 1)) {
+        ++end;
+    }
+    return end;
+}
+
+/**
+ * @brief Moves the dragged action, or the complete marked selection when the
+ * dragged row belongs to it. Dropping on the middle of a row joins the hovered
+ * SET group; dropping on a row edge only reorders and makes the moved actions
+ * independent.
+ */
+static void tkbc_live_editor_move_action(Env *env, size_t from, size_t target, bool group_target, bool insert_before) {
+    Live_Editor *editor = &env->live_editor;
+    const size_t old_count = editor->actions.count;
+    if (from == target || from >= old_count || target >= old_count) {
+        return;
+    }
+
+    bool move_selection = editor->actions.elements[from].selected;
+    size_t move_count = move_selection ? 0 : 1;
+    if (move_selection) {
+        for (size_t i = 0; i < old_count; ++i) {
+            if (editor->actions.elements[i].selected) {
+                ++move_count;
+            }
+        }
+    }
+    if (move_count == 0) {
+        return;
+    }
+
+    size_t *indices = malloc(move_count * sizeof(*indices));
+    Live_Action *moved = malloc(move_count * sizeof(*moved));
+    if (!indices || !moved) {
+        free(indices);
+        free(moved);
+        return;
+    }
+
+    size_t source_pos = 0;
+    size_t n = 0;
+    if (move_selection) {
+        for (size_t i = 0; i < old_count; ++i) {
+            if (!editor->actions.elements[i].selected) {
+                continue;
+            }
+            if (i == from) {
+                source_pos = n;
+            }
+            indices[n] = i;
+            moved[n] = editor->actions.elements[i];
+            ++n;
+        }
+    } else {
+        indices[0] = from;
+        moved[0] = editor->actions.elements[from];
+    }
+
+    // A drop on a row that is part of the moved block has no effect.
+    for (size_t i = 0; i < move_count; ++i) {
+        if (indices[i] == target) {
+            free(indices);
+            free(moved);
+            return;
+        }
+    }
+
+    size_t removed_before_target = 0;
+    for (size_t i = 0; i < move_count; ++i) {
+        if (indices[i] < target) {
+            ++removed_before_target;
+        }
+    }
+    const size_t target_after_remove = target - removed_before_target;
+    const size_t insert = group_target || !insert_before ? target_after_remove + 1 : target_after_remove;
+    const size_t new_count = old_count - move_count;
+
+    // The shift anchor follows its action when that action is moved. An anchor
+    // outside the selection keeps its relative position in the remaining list.
+    ssize_t new_anchor = -1;
+    ssize_t old_anchor = editor->selection_anchor;
+    if (old_anchor >= 0 && (size_t) old_anchor < old_count) {
+        size_t anchor = (size_t) old_anchor;
+        bool anchor_moved = false;
+        size_t anchor_pos = 0;
+        for (size_t i = 0; i < move_count; ++i) {
+            if (indices[i] == anchor) {
+                anchor_moved = true;
+                anchor_pos = i;
+                break;
+            }
+        }
+        if (anchor_moved) {
+            new_anchor = (ssize_t) (insert + anchor_pos);
+        } else {
+            size_t removed_before_anchor = 0;
+            for (size_t i = 0; i < move_count; ++i) {
+                if (indices[i] < anchor) {
+                    ++removed_before_anchor;
+                }
+            }
+            size_t after_remove = anchor - removed_before_anchor;
+            new_anchor = (ssize_t) (after_remove + (after_remove >= insert ? move_count : 0));
+        }
+    }
+
+    size_t next_moved = 0;
+    size_t write = 0;
+    for (size_t read = 0; read < old_count; ++read) {
+        if (next_moved < move_count && indices[next_moved] == read) {
+            ++next_moved;
+            continue;
+        }
+        if (write != read) {
+            editor->actions.elements[write] = editor->actions.elements[read];
+        }
+        ++write;
+    }
+    editor->actions.count = new_count;
+
+    for (size_t i = new_count; i > insert; --i) {
+        editor->actions.elements[i] = editor->actions.elements[i - 1];
+    }
+    for (size_t i = 0; i < move_count; ++i) {
+        size_t index = insert + i;
+        if (i == 0) {
+            moved[i].same_set_as_previous = group_target && index > 0;
+        } else if (indices[i] != indices[i - 1] + 1) {
+            moved[i].same_set_as_previous = false;
+        }
+        moved[i].selected = true;
+        editor->actions.elements[index] = moved[i];
+    }
+    editor->actions.count = old_count;
+    if (insert + move_count < old_count) {
+        editor->actions.elements[insert + move_count].same_set_as_previous = false;
+    }
+    tkbc_live_editor_normalize_set_flags(editor);
+
+    size_t active = insert + source_pos;
+    editor->selected_action = (ssize_t) active;
+    editor->selection_anchor = new_anchor;
+    editor->join_set = editor->actions.elements[active].same_set_as_previous;
+    tkbc_live_editor_copy_kite_ids(&editor->actions.elements[active].kite_ids, &editor->kite_selection);
+    tkbc_live_editor_apply_actions(env);
+
+    free(indices);
+    free(moved);
+}
+
+/**
+ * @brief Returns the action row under the mouse, or -1 when the pointer is
+ * outside the visible part of the action list.
+ */
+static ssize_t tkbc_live_editor_hovered_action(Rectangle list, float row_height, size_t top, size_t count,
+                                               size_t screen_items, Vector2 mouse) {
+    if (!CheckCollisionPointRec(mouse, list)) {
+        return -1;
+    }
+    size_t visible_row = (size_t) ((mouse.y - list.y) / row_height);
+    if (visible_row >= screen_items) {
+        return -1;
+    }
+    size_t index = top + visible_row;
+    return index < count ? (ssize_t) index : -1;
+}
+
+/**
+ * @brief Advances an in-progress action drag, applying the reorder when the
+ * right mouse button is released.
+ */
+static void tkbc_live_editor_update_action_drag(Env *env, Rectangle list, float row_height, size_t screen_items,
+                                                Vector2 mouse) {
+    Live_Editor *editor = &env->live_editor;
+    if (editor->drag_action_index < 0) {
+        return;
+    }
+
+    if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+        if (!editor->action_drag_active) {
+            Vector2 delta = {mouse.x - editor->drag_start.x, mouse.y - editor->drag_start.y};
+            const float drag_threshold = row_height * 0.2f;
+            if (sqrtf(delta.x * delta.x + delta.y * delta.y) >= drag_threshold) {
+                editor->action_drag_active = true;
+            }
+        }
+        if (!editor->action_drag_active) {
+            return;
+        }
+
+        ssize_t hovered = tkbc_live_editor_hovered_action(list, row_height, editor->top_action, editor->actions.count,
+                                                           screen_items, mouse);
+        bool drag_source_selected =
+            (size_t) editor->drag_action_index < editor->actions.count &&
+            editor->actions.elements[(size_t) editor->drag_action_index].selected;
+        // Dropping a marked block on one of its own rows can never change the
+        // order, so those rows are skipped while looking for a valid target.
+        if (hovered < 0 || (drag_source_selected && editor->actions.elements[(size_t) hovered].selected)) {
+            editor->drag_target_index = -1;
+            editor->drag_group_target = false;
+            return;
+        }
+
+        size_t visible_row = (size_t) hovered - editor->top_action;
+        Rectangle row = {list.x, list.y + visible_row * row_height, list.width, row_height - 4.0f};
+        float row_fraction = (mouse.y - row.y) / row.height;
+        const float group_edge_fraction = 0.25f;
+        editor->drag_target_index = hovered;
+        editor->drag_group_target =
+            row_fraction >= group_edge_fraction && row_fraction <= 1.0f - group_edge_fraction;
+        editor->drag_insert_before = row_fraction < 0.5f;
+        return;
+    }
+
+    if (IsMouseButtonUp(MOUSE_BUTTON_RIGHT)) {
+        if (editor->action_drag_active && editor->drag_target_index >= 0 &&
+            editor->drag_target_index != editor->drag_action_index) {
+            tkbc_live_editor_move_action(env, (size_t) editor->drag_action_index, (size_t) editor->drag_target_index,
+                                         editor->drag_group_target, editor->drag_insert_before);
+        }
+        editor->drag_action_index = -1;
+        editor->action_drag_active = false;
+        editor->drag_target_index = -1;
+        editor->drag_group_target = false;
+    }
 }
 
 /**
@@ -1792,124 +2318,147 @@ void tkbc_ui_live_script_editor(Env *env) {
     tkbc_live_editor_init_inputs(env);
 
     Vector2 mouse = GetMousePosition();
-
-    /* Base layout units and ratios. */
+    // The shared double-click detector advances only when it is called. Poll it
+    // once per frame so a second release over the action list is not missed
+    // just because no palette or script-menu box claimed the click.
+    const bool double_click_left = is_mouse_double_click(MOUSE_LEFT_BUTTON);
     const float padding = 12.0f;
     const float row_height = 40.0f;
-    const float half = 0.5f;
-    const size_t horizontal_edges = 2;
-    const size_t vertical_edges = 2;
     const float overlay_alpha = 0.9f;
     const float panel_roundness = TKBC_LIVE_EDITOR_PANEL_ROUNDNESS;
     const float panel_corner_segments = TKBC_LIVE_EDITOR_PANEL_CORNER_SEGMENTS;
+    const float width = (float) env->window_width;
+    const float height = (float) env->window_height;
 
     /* Header parameters. */
     const char *header_title = "LIVE SCRIPT EDITOR";
-    const float header_height_ratio = 0.7f;
-    const float header_height = env->box_height * header_height_ratio;
-    const float header_title_height =
-        tkbc_live_editor_text_height(env, header_title, TKBC_LIVE_EDITOR_HEADER_FONT_SIZE,
-                                     TKBC_LIVE_EDITOR_TEXT_SPACING);
+    const float header_height = env->box_height * 0.7f;
+    const float header_title_height = tkbc_live_editor_text_height(
+        env, header_title, TKBC_LIVE_EDITOR_HEADER_FONT_SIZE, TKBC_LIVE_EDITOR_TEXT_SPACING);
     const float header_title_offset = header_title_height + padding;
-    const float close_radius_ratio = 0.3f;
-    const float create_width_ratio = 0.2f;
-    const float create_width_max = 220.0f;
-    const float name_box_width_ratio = 0.45f;
+    const float close_radius = header_height * 0.3f;
+    const float create_width = fminf(width * 0.2f, 220.0f);
     const float name_box_height = 30.0f;
+    const float name_box_y = padding + header_title_offset;
+    const float title_section_gap = 2 * padding;
 
     /* Section title parameters. */
     const char *section_title = "ACTIONS";
-    const float section_title_height =
-        tkbc_live_editor_text_height(env, section_title, TKBC_LIVE_EDITOR_SECTION_FONT_SIZE,
-                                     TKBC_LIVE_EDITOR_TEXT_SPACING);
+    const float section_title_height = tkbc_live_editor_text_height(
+        env, section_title, TKBC_LIVE_EDITOR_SECTION_FONT_SIZE, TKBC_LIVE_EDITOR_TEXT_SPACING);
     const float section_title_offset = section_title_height + padding;
 
-    /* Column parameters. */
-    const size_t column_count = 3;
-    const size_t column_gap_count = column_count - 1;
-    const float column_left_ratio = 0.24f;
-    const float column_middle_ratio = 0.42f;
+    /* Palette and value field parameters. */
+    static const Action_Kind palette[] = {
+        ACTION_KITE_QUIT,          ACTION_KITE_WAIT,             ACTION_KITE_MOVE_ADD,
+        ACTION_KITE_MOVE,          ACTION_KITE_ROTATION_ADD,     ACTION_KITE_ROTATION,
+        ACTION_KITE_TIP_ROTATION_ADD, ACTION_KITE_TIP_ROTATION,
+    };
+    static const Live_Bezier_Kind bezier_palette[] = {
+        LIVE_BEZIER_QUADRATIC, LIVE_BEZIER_CUBIC, LIVE_BEZIER_QUADRATIC_ADD, LIVE_BEZIER_CUBIC_ADD,
+    };
+    const size_t palette_entry_count = ARRAY_LENGTH(palette) + ARRAY_LENGTH(bezier_palette);
+    const float palette_button_height = row_height - 4.0f;
+    const float palette_cell_gap = 4.0f;
+    const float palette_row_step = palette_button_height + palette_cell_gap;
+    const size_t palette_rows = (palette_entry_count + 1) / 2;
 
-    /* Row and button parameters. */
-    const float row_inset = 4.0f;
-    const float removal_icon_radius_ratio = 0.4f;
-    const float removal_icon_edge_gap = row_inset;
-    const float ellipsis_text_height =
-        tkbc_live_editor_text_height(env, "...", TKBC_LIVE_EDITOR_TITLE_FONT_SIZE, TKBC_LIVE_EDITOR_TITLE_SPACING);
-
-    const size_t palette_columns = 2;
-    const float palette_button_height = row_height - row_inset;
-    const float palette_cell_gap = row_inset;
-
-    const size_t field_columns = 2;
-    const size_t field_gap_count = field_columns + 1;
-    const size_t label_gap_count = vertical_edges;
-    const size_t move_input_row = 1;
-    const size_t input_rows_before_tip = 2;
-    const size_t action_row_offset = 1;
+    const float field_height = row_height - 2 * 4.0f;
+    const float label_height = tkbc_live_editor_field_label_height(env, "duration");
+    const float label_gap = tkbc_live_editor_label_gap(field_height);
+    const float value_row_step = field_height + label_height + 2 * label_gap;
 
     const size_t kite_label_capacity = 32;
-    const size_t action_label_capacity = 160;
-
-    const float width = (float) env->window_width;
-    const float height = (float) env->window_height;
-    bool esc_consumed_by_input = IsKeyPressed(KEY_ESCAPE) &&
-                                 (editor->duration_input.is_active || editor->x_input.is_active ||
-                                  editor->y_input.is_active || editor->angle_input.is_active);
+    const size_t action_label_capacity = 256;
 
     DrawRectangle(0, 0, width, height, Fade(BLACK, overlay_alpha));
 
     /* ------------------------------- header -------------------------------- */
     DrawTextEx(env->font, header_title, (Vector2){padding, padding}, TKBC_LIVE_EDITOR_HEADER_FONT_SIZE,
                TKBC_LIVE_EDITOR_TEXT_SPACING, TKBC_UI_WHITE);
-    Script *script = tkbc_find_script_by_id(env, editor->script_id);
-    if (script) {
-        int name_font_size = TKBC_LIVE_EDITOR_TITLE_FONT_SIZE;
-        Vector2 name_size = tkbc_reduce_str_to_fit_box(
-            env->font, tkbc_script_name(script), &name_font_size, TKBC_LIVE_EDITOR_TITLE_SPACING,
-            (Rectangle){padding, padding + header_title_offset, width * name_box_width_ratio, name_box_height});
-        DrawTextEx(env->font, tkbc_script_name(script), (Vector2){padding, padding + header_title_offset},
-                   name_font_size, TKBC_LIVE_EDITOR_TITLE_SPACING, TKBC_UI_LIGHTGRAY);
-        (void) name_size;
-    }
 
-    const float close_radius = header_height * close_radius_ratio;
-    const Vector2 close_center = {width - padding - close_radius, padding + header_height * half};
-    const float create_width = fminf(width * create_width_ratio, create_width_max);
-    Rectangle create_box = {
+    const Vector2 close_center = {width - padding - close_radius, padding + header_height / 2};
+    const Rectangle create_box = {
         .x = close_center.x - close_radius - padding - create_width,
-        .y = padding + header_height * half - row_height * half,
+        .y = padding + header_height / 2 - row_height / 2,
         .width = create_width,
         .height = row_height,
     };
+
+    Script *script = tkbc_find_script_by_id(env, editor->script_id);
+    bool esc_consumed_by_input = IsKeyPressed(KEY_ESCAPE) &&
+                                 (tkbc_live_editor_inputs_active(editor) || (script && script->name_input.is_active));
+
+    if (script) {
+        Rectangle name_box = {
+            .x = padding,
+            .y = name_box_y,
+            .width = fminf(width * 0.45f, fmaxf(create_box.x - 2 * padding, 0.0f)),
+            .height = name_box_height,
+        };
+        char *old_name = malloc(strlen(tkbc_script_name(script)) + 1);
+        if (old_name) {
+            strcpy(old_name, tkbc_script_name(script));
+        }
+        int name_font_size = TKBC_LIVE_EDITOR_TITLE_FONT_SIZE;
+        (void) tkbc_reduce_str_to_fit_box(env->font, tkbc_script_name(script), &name_font_size,
+                                          TKBC_LIVE_EDITOR_TITLE_SPACING, name_box);
+        DrawRectangleRounded(name_box, panel_roundness, panel_corner_segments, TKBC_UI_LIGHTGRAY_ALPHA);
+        script->name_input.box = name_box;
+        script->name_input.font_size = name_font_size;
+        script->name_input.spacing = TKBC_LIVE_EDITOR_TITLE_SPACING;
+        script->name_input.font = env->font;
+        script->name_input.text_color = TKBC_UI_BLACK;
+        tkbc_handle_text_input(&script->name_input, &script->space);
+        env->text_input_active |= script->name_input.is_active;
+        if (old_name && strcmp(old_name, tkbc_script_name(script)) != 0) {
+            script->was_send = false;
+        }
+        free(old_name);
+    }
+
     if (tkbc_live_editor_button(env, create_box, "CREATE SCRIPT", script != NULL, false)) {
+        if (script) {
+            script->name_input.is_active = false;
+        }
         tkbc_live_editor_finalize(env);
         return;
     }
+    bool close_hovered = CheckCollisionPointCircle(mouse, close_center, close_radius);
     tkbc_draw_circle_with_x(close_center, close_radius,
-                            CheckCollisionPointCircle(mouse, close_center, close_radius) ? TKBC_UI_PURPLE_ALPHA
-                                                                                         : TKBC_UI_TEAL_ALPHA);
-    if (CheckCollisionPointCircle(mouse, close_center, close_radius) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                            close_hovered ? TKBC_UI_PURPLE_ALPHA : TKBC_UI_TEAL_ALPHA);
+    if (close_hovered && !editor->action_drag_active) {
+        tkbc_live_editor_control_tooltip(env, mouse, padding, "close live editor");
+    }
+    if (close_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         DrawCircleV(close_center, close_radius, TKBC_UI_PURPLE_ALPHA);
         tkbc_draw_circle_with_x(close_center, close_radius, TKBC_UI_PURPLE_ALPHA);
+        if (script) {
+            script->name_input.is_active = false;
+        }
         editor->active = false;
+        editor->drag_action_index = -1;
+        editor->action_drag_active = false;
+        editor->drag_target_index = -1;
+        tkbc_live_editor_clear_selection(editor);
         env->script_menu_interaction = true;
         return;
     }
 
     /* ------------------------------- columns -------------------------------- */
+    const float content_y = name_box_y + name_box_height + title_section_gap;
     Rectangle content = {
         .x = padding,
-        .y = header_height + padding,
-        .width = width - horizontal_edges * padding,
-        .height = height - header_height - vertical_edges * padding,
+        .y = content_y,
+        .width = width - 2 * padding,
+        .height = fmaxf(height - content_y - padding, 0.0f),
     };
-    const float left_width = content.width * column_left_ratio;
-    const float middle_width = content.width * column_middle_ratio;
+    const float left_width = content.width * 0.24f;
+    const float middle_width = content.width * 0.42f;
     Rectangle left = {content.x, content.y, left_width, content.height};
     Rectangle middle = {left.x + left.width + padding, content.y, middle_width, content.height};
     Rectangle right = {middle.x + middle.width + padding, content.y,
-                       content.width - left_width - middle_width - column_gap_count * padding, content.height};
+                       content.width - left_width - middle_width - 2 * padding, content.height};
     DrawRectangleRounded(left, panel_roundness, panel_corner_segments, TKBC_UI_BLACK_ALPHA);
     DrawRectangleRounded(middle, panel_roundness, panel_corner_segments, TKBC_UI_BLACK_ALPHA);
     DrawRectangleRounded(right, panel_roundness, panel_corner_segments, TKBC_UI_BLACK_ALPHA);
@@ -1919,87 +2468,124 @@ void tkbc_ui_live_script_editor(Env *env) {
     DrawTextEx(env->font, kites_title, (Vector2){left.x + padding, left.y + padding},
                TKBC_LIVE_EDITOR_SECTION_FONT_SIZE, TKBC_LIVE_EDITOR_TEXT_SPACING, TKBC_UI_WHITE);
     Rectangle add_kite_box = {left.x + padding, left.y + padding + section_title_offset,
-                              left.width - horizontal_edges * padding, row_height};
+                              left.width - 2 * padding, row_height};
     if (tkbc_live_editor_button(env, add_kite_box, "ADD KITE", script != NULL, false)) {
         tkbc_live_editor_add_kite(env);
         script = tkbc_find_script_by_id(env, editor->script_id);
     }
 
+    const float kite_list_y = add_kite_box.y + add_kite_box.height + padding;
+    Rectangle kite_list_base = {
+        .x = left.x + padding,
+        .y = kite_list_y,
+        .width = left.width - 2 * padding,
+        .height = fmaxf(left.y + left.height - padding - kite_list_y, 0.0f),
+    };
+    size_t kite_screen_items = (size_t) (kite_list_base.height / row_height);
+    size_t kite_count = script ? script->owned_kite_ids.count : 0;
+    tkbc_scrollbar(&editor->kite_scrollbar, kite_list_base, row_height, kite_count, kite_screen_items,
+                   &editor->top_kite);
+    Rectangle kite_content = {
+        kite_list_base.x, kite_list_base.y, kite_list_base.width - editor->kite_scrollbar.base.width,
+        kite_list_base.height,
+    };
+
     if (script) {
-        float kite_y = add_kite_box.y + add_kite_box.height + padding;
-        size_t visible_kites = 0;
-        for (size_t i = 0; i < script->owned_kite_ids.count; ++i) {
-            if (kite_y + row_height > left.y + left.height - padding) {
-                break;
-            }
-            Rectangle kite_box = {left.x + padding, kite_y, left.width - horizontal_edges * padding,
-                                  row_height - row_inset};
+        BeginScissorMode(kite_content.x, kite_content.y, kite_content.width, kite_content.height);
+        for (size_t i = editor->top_kite; i < script->owned_kite_ids.count &&
+                                          i < editor->top_kite + kite_screen_items; ++i) {
+            Rectangle kite_box = {
+                kite_content.x, kite_content.y + (i - editor->top_kite) * row_height, kite_content.width,
+                row_height - 4.0f,
+            };
             DrawRectangleRounded(kite_box, panel_roundness, panel_corner_segments, TKBC_UI_GRAY_ALPHA);
+
+            Id kite_id = script->owned_kite_ids.elements[i];
+            float check_radius = kite_box.height * 0.35f;
+            Vector2 check_center = {kite_box.x + padding + check_radius, kite_box.y + kite_box.height / 2};
+            bool check_hovered = CheckCollisionPointCircle(mouse, check_center, check_radius);
+            tkbc_draw_circle_with_check_box(check_center, check_radius,
+                                            tkbc_contains_id(editor->kite_selection, kite_id), TKBC_UI_WHITE);
+            if (check_hovered && !editor->action_drag_active) {
+                tkbc_live_editor_control_tooltip(env, mouse, padding, "toggle kite for action");
+            }
+            if (check_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                tkbc_live_editor_toggle_kite_selection(env, kite_id);
+            }
+
             char label[kite_label_capacity];
-            snprintf(label, sizeof(label), "Kite %zu", (size_t) script->owned_kite_ids.elements[i]);
+            snprintf(label, sizeof(label), "Kite %zu", (size_t) kite_id);
+            Rectangle label_box = {
+                .x = check_center.x + check_radius + padding,
+                .y = kite_box.y,
+                .width = kite_box.width - 2 * check_radius - 3 * padding,
+                .height = kite_box.height,
+            };
             int kite_font = TKBC_LIVE_EDITOR_BUTTON_FONT_SIZE;
             Vector2 text_size = tkbc_reduce_str_to_fit_box(env->font, label, &kite_font,
-                                                            TKBC_LIVE_EDITOR_TEXT_SPACING, kite_box);
+                                                             TKBC_LIVE_EDITOR_TEXT_SPACING, label_box);
             DrawTextEx(env->font, label,
-                       (Vector2){kite_box.x + padding, kite_box.y + kite_box.height * half - text_size.y * half},
-                       kite_font, TKBC_LIVE_EDITOR_TEXT_SPACING, TKBC_UI_BLACK);
-            const float x_radius = kite_box.height * removal_icon_radius_ratio;
-            Vector2 x_center = {kite_box.x + kite_box.width - x_radius - removal_icon_edge_gap,
-                                kite_box.y + kite_box.height * half};
+                       (Vector2){label_box.x, kite_box.y + kite_box.height / 2 - text_size.y / 2}, kite_font,
+                       TKBC_LIVE_EDITOR_TEXT_SPACING, TKBC_UI_BLACK);
+
+            const float x_radius = kite_box.height * 0.4f;
+            Vector2 x_center = {kite_box.x + kite_box.width - x_radius - 4.0f, kite_box.y + kite_box.height / 2};
+            bool remove_hovered = CheckCollisionPointCircle(mouse, x_center, x_radius);
             tkbc_draw_circle_with_x(x_center, x_radius, TKBC_UI_LIGHTGRAY_ALPHA);
-            if (CheckCollisionPointCircle(mouse, x_center, x_radius) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                Id removed = script->owned_kite_ids.elements[i];
-                tkbc_live_editor_remove_kite(env, removed);
+            if (remove_hovered && !editor->action_drag_active) {
+                tkbc_live_editor_control_tooltip(env, mouse, padding, "remove kite from script");
+            }
+            if (remove_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                tkbc_live_editor_remove_kite(env, kite_id);
                 script = tkbc_find_script_by_id(env, editor->script_id);
                 break;
             }
-            kite_y += row_height;
-            visible_kites += 1;
         }
-        if (script && script->owned_kite_ids.count > visible_kites) {
-            DrawTextEx(env->font, "...",
-                       (Vector2){left.x + padding, left.y + left.height - padding - ellipsis_text_height},
-                       TKBC_LIVE_EDITOR_TITLE_FONT_SIZE, TKBC_LIVE_EDITOR_TITLE_SPACING, TKBC_UI_WHITE);
-        }
+        EndScissorMode();
     }
 
     /* ----------------------------- action palette --------------------------- */
     DrawTextEx(env->font, section_title, (Vector2){middle.x + padding, middle.y + padding},
                TKBC_LIVE_EDITOR_SECTION_FONT_SIZE, TKBC_LIVE_EDITOR_TEXT_SPACING, TKBC_UI_WHITE);
-    static const Action_Kind palette[] = {
-        ACTION_KITE_QUIT,          ACTION_KITE_WAIT,             ACTION_KITE_MOVE_ADD,
-        ACTION_KITE_MOVE,          ACTION_KITE_ROTATION_ADD,     ACTION_KITE_ROTATION,
-        ACTION_KITE_TIP_ROTATION_ADD, ACTION_KITE_TIP_ROTATION,
-    };
-    const float palette_column_width = (middle.width - horizontal_edges * padding) / palette_columns;
-    const float palette_row_step = palette_button_height + palette_cell_gap;
-    const size_t palette_rows = (ARRAY_LENGTH(palette) + palette_columns - 1) / palette_columns;
-    for (size_t i = 0; i < ARRAY_LENGTH(palette); ++i) {
-        size_t column = i % palette_columns;
-        size_t row = i / palette_columns;
+
+    float palette_column_width = 0;
+    if (middle.width > 2 * padding) {
+        palette_column_width = (middle.width - 2 * padding) / 2;
+    }
+    for (size_t i = 0; i < palette_entry_count; ++i) {
+        size_t column = i % 2;
+        size_t row = i / 2;
         Rectangle box = {
             .x = middle.x + padding + column * palette_column_width,
             .y = middle.y + padding + section_title_offset + row * palette_row_step,
             .width = palette_column_width - palette_cell_gap,
             .height = palette_button_height,
         };
-        if (tkbc_live_editor_button(env, box, tkbc_live_editor_action_name(palette[i]), true,
-                                    editor->kind == palette[i])) {
-            editor->kind = palette[i];
+        const char *label;
+        bool active;
+        if (i < ARRAY_LENGTH(palette)) {
+            label = tkbc_live_editor_action_name(palette[i]);
+            active = editor->bezier_kind == LIVE_BEZIER_NONE && editor->kind == palette[i];
+        } else {
+            Live_Bezier_Kind bezier = bezier_palette[i - ARRAY_LENGTH(palette)];
+            label = tkbc_live_editor_bezier_name(bezier);
+            active = editor->bezier_kind == bezier;
+        }
+        if (tkbc_live_editor_button(env, box, label, true, active)) {
             editor->last_clicked_kind = (ssize_t) i;
             editor->selected_action = -1;
-            tkbc_text_input_set_text(&editor->duration_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_DURATION);
-            tkbc_text_input_set_text(&editor->x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
-            tkbc_text_input_set_text(&editor->y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
-            tkbc_text_input_set_text(&editor->angle_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+            if (i < ARRAY_LENGTH(palette)) {
+                editor->kind = palette[i];
+                editor->bezier_kind = LIVE_BEZIER_NONE;
+            } else {
+                editor->bezier_kind = bezier_palette[i - ARRAY_LENGTH(palette)];
+                editor->kind = ACTION_KITE_MOVE;
+            }
+            tkbc_live_editor_reset_current_inputs(env);
         }
-        if ((ssize_t) i == editor->last_clicked_kind && is_mouse_double_click(MOUSE_LEFT_BUTTON) &&
+        if ((ssize_t) i == editor->last_clicked_kind && double_click_left &&
             CheckCollisionPointRec(mouse, box)) {
-            Live_Action action = {0};
-            tkbc_live_editor_action_from_inputs(env, &action);
-            tkbc_dap(&editor->actions, action);
-            tkbc_live_editor_apply_actions(env);
-            editor->selected_action = -1;
+            tkbc_live_editor_store_current_action(env);
             editor->last_clicked_kind = -1;
         }
     }
@@ -2009,134 +2595,256 @@ void tkbc_ui_live_script_editor(Env *env) {
     const float values_title_y =
         middle.y + padding + section_title_offset + palette_rows * palette_row_step + padding;
     const float field_left_x = middle.x + padding;
-    const float field_width = (middle.width - field_gap_count * padding) * half;
-    const float field_height = row_height - vertical_edges * row_inset;
-    const float label_gap = tkbc_live_editor_label_gap(field_height);
-    const float label_height = tkbc_live_editor_field_label_height(env, "duration");
-    const float row_step = field_height + label_height + label_gap_count * label_gap;
+    const float field_width = (middle.width - 3 * padding) / 2;
     const float right_field_x = field_left_x + field_width + padding;
 
-    float values_title_height = tkbc_live_editor_text_height(env, values_title, TKBC_LIVE_EDITOR_TITLE_FONT_SIZE,
-                                                             TKBC_LIVE_EDITOR_TITLE_SPACING);
+    const float values_title_height = tkbc_live_editor_text_height(
+        env, values_title, TKBC_LIVE_EDITOR_TITLE_FONT_SIZE, TKBC_LIVE_EDITOR_TITLE_SPACING);
     DrawTextEx(env->font, values_title, (Vector2){field_left_x, values_title_y}, TKBC_LIVE_EDITOR_TITLE_FONT_SIZE,
                TKBC_LIVE_EDITOR_TITLE_SPACING, TKBC_UI_WHITE);
 
-    float values_y = values_title_y + values_title_height + label_height + label_gap_count * label_gap;
+    const float values_y = values_title_y + values_title_height + label_height + 2 * label_gap;
+    bool is_bezier = editor->bezier_kind != LIVE_BEZIER_NONE;
+    bool is_move = !is_bezier && (editor->kind == ACTION_KITE_MOVE || editor->kind == ACTION_KITE_MOVE_ADD);
+    bool is_rotation = !is_bezier && (editor->kind == ACTION_KITE_ROTATION || editor->kind == ACTION_KITE_ROTATION_ADD ||
+                                      editor->kind == ACTION_KITE_TIP_ROTATION ||
+                                      editor->kind == ACTION_KITE_TIP_ROTATION_ADD);
+    bool is_tip = !is_bezier && (editor->kind == ACTION_KITE_TIP_ROTATION ||
+                                 editor->kind == ACTION_KITE_TIP_ROTATION_ADD);
+    bool show_p1 = is_bezier && (editor->bezier_kind == LIVE_BEZIER_QUADRATIC ||
+                                 editor->bezier_kind == LIVE_BEZIER_CUBIC);
+    bool show_p2 = is_bezier;
+    bool show_p3 = is_bezier;
+    bool show_p4 = is_bezier && (editor->bezier_kind == LIVE_BEZIER_CUBIC ||
+                                 editor->bezier_kind == LIVE_BEZIER_CUBIC_ADD);
+
     tkbc_live_editor_draw_field(env, &editor->duration_input,
                                 (Rectangle){field_left_x, values_y, field_width, field_height}, "duration");
-
-    bool is_move = editor->kind == ACTION_KITE_MOVE || editor->kind == ACTION_KITE_MOVE_ADD;
-    bool is_rotation = editor->kind == ACTION_KITE_ROTATION || editor->kind == ACTION_KITE_ROTATION_ADD ||
-                       editor->kind == ACTION_KITE_TIP_ROTATION || editor->kind == ACTION_KITE_TIP_ROTATION_ADD;
-    bool is_tip = editor->kind == ACTION_KITE_TIP_ROTATION || editor->kind == ACTION_KITE_TIP_ROTATION_ADD;
-
-    if (is_rotation) {
+    if (is_rotation || is_bezier) {
         tkbc_live_editor_draw_field(env, &editor->angle_input,
                                     (Rectangle){right_field_x, values_y, field_width, field_height}, "angle");
     }
     if (is_move) {
-        float xy_y = values_y + row_step * move_input_row;
+        float row_y = values_y + value_row_step;
         tkbc_live_editor_draw_field(env, &editor->x_input,
-                                    (Rectangle){field_left_x, xy_y, field_width, field_height}, "x");
+                                    (Rectangle){field_left_x, row_y, field_width, field_height}, "x");
         tkbc_live_editor_draw_field(env, &editor->y_input,
-                                    (Rectangle){right_field_x, xy_y, field_width, field_height}, "y");
+                                    (Rectangle){right_field_x, row_y, field_width, field_height}, "y");
+    }
+    if (show_p1) {
+        float row_y = values_y + 2 * value_row_step;
+        tkbc_live_editor_draw_field(env, &editor->p1x_input,
+                                    (Rectangle){field_left_x, row_y, field_width, field_height}, "p1x");
+        tkbc_live_editor_draw_field(env, &editor->p1y_input,
+                                    (Rectangle){right_field_x, row_y, field_width, field_height}, "p1y");
+    }
+    if (show_p2) {
+        float row_y = values_y + 3 * value_row_step;
+        tkbc_live_editor_draw_field(env, &editor->p2x_input,
+                                    (Rectangle){field_left_x, row_y, field_width, field_height}, "p2x");
+        tkbc_live_editor_draw_field(env, &editor->p2y_input,
+                                    (Rectangle){right_field_x, row_y, field_width, field_height}, "p2y");
+    }
+    if (show_p3) {
+        float row_y = values_y + 4 * value_row_step;
+        tkbc_live_editor_draw_field(env, &editor->p3x_input,
+                                    (Rectangle){field_left_x, row_y, field_width, field_height}, "p3x");
+        tkbc_live_editor_draw_field(env, &editor->p3y_input,
+                                    (Rectangle){right_field_x, row_y, field_width, field_height}, "p3y");
+    }
+    if (show_p4) {
+        float row_y = values_y + 5 * value_row_step;
+        tkbc_live_editor_draw_field(env, &editor->p4x_input,
+                                    (Rectangle){field_left_x, row_y, field_width, field_height}, "p4x");
+        tkbc_live_editor_draw_field(env, &editor->p4y_input,
+                                    (Rectangle){right_field_x, row_y, field_width, field_height}, "p4y");
+    }
+    if (is_bezier) {
+        float row_y = values_y + 6 * value_row_step;
+        tkbc_live_editor_draw_field(env, &editor->rotation_duration_input,
+                                    (Rectangle){field_left_x, row_y, field_width, field_height},
+                                    "rotation duration");
     }
 
-    /* Reserve the tip row for every action kind so the buttons below never move. */
-    const float tip_row_y = values_y + row_step * input_rows_before_tip;
+    /* Reserve this row for every action kind so the buttons below never move. */
+    const float controls_y = values_y + 7 * value_row_step;
+    Rectangle set_box = {
+        field_left_x, controls_y, is_tip ? field_width : middle.width - 2 * padding, field_height,
+    };
+    if (tkbc_live_editor_button(env, set_box, "SET WITH PREVIOUS", true, editor->join_set)) {
+        editor->join_set = !editor->join_set;
+        if (editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
+            size_t index = (size_t) editor->selected_action;
+            editor->actions.elements[index].same_set_as_previous = index > 0 && editor->join_set;
+            tkbc_live_editor_apply_actions(env);
+        }
+    }
+
     if (is_tip) {
-        Rectangle left_tip = {field_left_x, tip_row_y, field_width, field_height};
-        Rectangle right_tip = {right_field_x, tip_row_y, field_width, field_height};
-        if (tkbc_live_editor_button(env, left_tip, "LEFT TIP", true, editor->tip == LEFT_TIP)) {
+        const float tip_button_width = (field_width - padding) / 2;
+        Rectangle left_tip_box = {right_field_x, controls_y, tip_button_width, field_height};
+        Rectangle right_tip_box = {right_field_x + tip_button_width + padding, controls_y, tip_button_width,
+                                   field_height};
+        if (tkbc_live_editor_button(env, left_tip_box, "LEFT TIP", true, editor->tip == LEFT_TIP)) {
             editor->tip = LEFT_TIP;
         }
-        if (tkbc_live_editor_button(env, right_tip, "RIGHT TIP", true, editor->tip == RIGHT_TIP)) {
+        if (tkbc_live_editor_button(env, right_tip_box, "RIGHT TIP", true, editor->tip == RIGHT_TIP)) {
             editor->tip = RIGHT_TIP;
         }
     }
 
-    const float action_row_y = tip_row_y + row_step * action_row_offset;
+    const float action_row_y = values_y + 8 * value_row_step;
     Rectangle add_action_box = {field_left_x, action_row_y, field_width, field_height};
     Rectangle new_action_box = {right_field_x, action_row_y, field_width, field_height};
     if (tkbc_live_editor_button(env, add_action_box, editor->selected_action >= 0 ? "UPDATE ACTION" : "ADD ACTION",
                                 script != NULL, false)) {
-        Live_Action action = {0};
-        tkbc_live_editor_action_from_inputs(env, &action);
-        if (editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
-            editor->actions.elements[editor->selected_action] = action;
-        } else {
-            tkbc_dap(&editor->actions, action);
-        }
-        tkbc_live_editor_apply_actions(env);
-        editor->selected_action = -1;
+        tkbc_live_editor_store_current_action(env);
         script = tkbc_find_script_by_id(env, editor->script_id);
     }
     if (tkbc_live_editor_button(env, new_action_box, "NEW ACTION", true, false)) {
         editor->selected_action = -1;
-        tkbc_text_input_set_text(&editor->duration_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_DURATION);
-        tkbc_text_input_set_text(&editor->x_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
-        tkbc_text_input_set_text(&editor->y_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
-        tkbc_text_input_set_text(&editor->angle_input, &editor->input_space, TKBC_LIVE_EDITOR_DEFAULT_VALUE);
+        editor->join_set = false;
+        tkbc_live_editor_reset_current_inputs(env);
+    }
+
+    // Ctrl+A marks every action like it does in the script menu. Active text
+    // inputs keep their own select-all shortcut.
+    if (!env->text_input_active && !tkbc_live_editor_inputs_active(editor) &&
+        !(script && script->name_input.is_active) &&
+        (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) && IsKeyPressed(KEY_A)) {
+        for (size_t i = 0; i < editor->actions.count; ++i) {
+            editor->actions.elements[i].selected = true;
+        }
     }
 
     /* ------------------------------ action list ----------------------------- */
     const char *actions_title = "SCRIPT ACTIONS";
     DrawTextEx(env->font, actions_title, (Vector2){right.x + padding, right.y + padding},
                TKBC_LIVE_EDITOR_SECTION_FONT_SIZE, TKBC_LIVE_EDITOR_TEXT_SPACING, TKBC_UI_WHITE);
-    Rectangle list_base = {right.x + padding, right.y + padding + section_title_offset,
-                           right.width - horizontal_edges * padding,
-                           right.height - vertical_edges * padding - section_title_offset};
+    Rectangle list_base = {right.x + padding, right.y + padding + section_title_offset, right.width - 2 * padding,
+                           fmaxf(right.height - 2 * padding - section_title_offset, 0.0f)};
     size_t screen_items = (size_t) (list_base.height / row_height);
     tkbc_scrollbar(&editor->scrollbar, list_base, row_height, editor->actions.count, screen_items,
                    &editor->top_action);
+    Rectangle list_content = {
+        list_base.x, list_base.y, list_base.width - editor->scrollbar.base.width, list_base.height,
+    };
+    tkbc_live_editor_update_action_drag(env, list_content, row_height, screen_items, mouse);
 
-    BeginScissorMode(list_base.x, list_base.y, list_base.width - editor->scrollbar.base.width, list_base.height);
+    BeginScissorMode(list_content.x, list_content.y, list_content.width, list_content.height);
     for (size_t i = editor->top_action; i < editor->actions.count && i < editor->top_action + screen_items; ++i) {
-        Rectangle row = {list_base.x, list_base.y + (i - editor->top_action) * row_height,
-                         list_base.width - editor->scrollbar.base.width, row_height - row_inset};
-        if ((ssize_t) i == editor->selected_action) {
+        Rectangle row = {
+            list_content.x, list_content.y + (i - editor->top_action) * row_height, list_content.width,
+            row_height - 4.0f,
+        };
+        size_t group_start = tkbc_live_editor_group_start(editor, i);
+        size_t group_end = tkbc_live_editor_group_end(editor, i);
+        bool grouped = group_end > group_start;
+        bool drag_source = editor->action_drag_active && editor->drag_action_index == (ssize_t) i;
+        bool drop_target = editor->action_drag_active && editor->drag_target_index == (ssize_t) i;
+        bool row_hovered = CheckCollisionPointRec(mouse, row);
+        bool marked = editor->actions.elements[i].selected;
+        bool active = (ssize_t) i == editor->selected_action;
+
+        if (active) {
             DrawRectangleRounded(row, panel_roundness, panel_corner_segments, TKBC_UI_PURPLE_ALPHA);
-        } else if (CheckCollisionPointRec(mouse, row)) {
+        } else if (drop_target && editor->drag_group_target) {
+            DrawRectangleRounded(row, panel_roundness, panel_corner_segments, TKBC_UI_TEAL_ALPHA);
+        } else if (marked || row_hovered) {
             DrawRectangleRounded(row, panel_roundness, panel_corner_segments, TKBC_UI_DARKPURPLE_ALPHA);
+        } else if (grouped) {
+            DrawRectangleRounded(row, panel_roundness, panel_corner_segments, TKBC_UI_TEAL_ALPHA);
         } else {
             DrawRectangleRounded(row, panel_roundness, panel_corner_segments, TKBC_UI_GRAY_ALPHA);
         }
 
-        const float x_radius = row.height * removal_icon_radius_ratio;
-        Vector2 x_center = {row.x + row.width - x_radius - removal_icon_edge_gap, row.y + row.height * half};
-        if (CheckCollisionPointRec(mouse, row) && !CheckCollisionPointCircle(mouse, x_center, x_radius) &&
-            IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            editor->selected_action = (ssize_t) i;
-            if (is_mouse_double_click(MOUSE_LEFT_BUTTON)) {
-                tkbc_live_editor_inputs_from_action(env, &editor->actions.elements[i]);
+        if (grouped) {
+            const float marker_radius = 3.0f;
+            float marker_x = row.x + padding * 0.5f;
+            float marker_y = row.y + row.height / 2;
+            if (i > group_start) {
+                DrawLineEx((Vector2){marker_x, row.y}, (Vector2){marker_x, marker_y}, 2, TKBC_UI_PURPLE);
+            }
+            if (i < group_end) {
+                DrawLineEx((Vector2){marker_x, marker_y}, (Vector2){marker_x, row.y + row.height}, 2, TKBC_UI_PURPLE);
+            }
+            DrawCircle(marker_x, marker_y, marker_radius, TKBC_UI_PURPLE);
+        }
+        // The outline keeps the wider selection visible even when the active
+        // editing row or a SET group uses a different background color.
+        if (marked && !active) {
+            DrawRectangleRoundedLinesEx(row, panel_roundness, panel_corner_segments, 2, TKBC_UI_PURPLE);
+        }
+        if (drop_target) {
+            if (editor->drag_group_target) {
+                DrawRectangleRoundedLinesEx(row, panel_roundness, panel_corner_segments, 2, TKBC_UI_PURPLE);
+            } else {
+                float line_y = editor->drag_insert_before ? row.y : row.y + row.height;
+                DrawLineEx((Vector2){row.x, line_y}, (Vector2){row.x + row.width, line_y}, 3, TKBC_UI_PURPLE);
             }
         }
+        if (drag_source) {
+            DrawRectangleRoundedLinesEx(row, panel_roundness, panel_corner_segments, 2, TKBC_UI_WHITE);
+        }
+
+        const float x_radius = row.height * 0.4f;
+        Vector2 x_center = {row.x + row.width - x_radius - 4.0f, row.y + row.height / 2};
+        bool remove_hovered = CheckCollisionPointCircle(mouse, x_center, x_radius);
+        if (remove_hovered && !editor->action_drag_active) {
+            tkbc_live_editor_control_tooltip(env, mouse, padding, "remove action");
+        }
+        // Left clicks keep their selection, editing and remove roles. Right
+        // clicks are reserved for dragging the clicked row or, when it is
+        // marked, the complete selection without changing that selection.
+        if (!editor->action_drag_active && row_hovered && !remove_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            tkbc_live_editor_apply_click_selection(editor, i);
+            editor->selected_action = (ssize_t) i;
+            tkbc_live_editor_copy_kite_ids(&editor->actions.elements[i].kite_ids, &editor->kite_selection);
+            editor->join_set = editor->actions.elements[i].same_set_as_previous;
+        }
+        // A single click only selects. The action is loaded back into the
+        // editor fields on the release that completes a double click, so the
+        // UPDATE ACTION button keeps editing that same row.
+        if (!editor->action_drag_active && row_hovered && !remove_hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+            double_click_left && (ssize_t) i == editor->selected_action) {
+            tkbc_live_editor_inputs_from_action(env, &editor->actions.elements[i]);
+        }
+        if (!editor->action_drag_active && row_hovered && !remove_hovered && IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+            editor->drag_action_index = (ssize_t) i;
+            editor->action_drag_active = false;
+            editor->drag_target_index = -1;
+            editor->drag_group_target = false;
+            editor->drag_start = mouse;
+        }
         tkbc_draw_circle_with_x(x_center, x_radius, TKBC_UI_LIGHTGRAY_ALPHA);
-        if (CheckCollisionPointCircle(mouse, x_center, x_radius) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            for (size_t j = i; j + 1 < editor->actions.count; ++j) {
-                editor->actions.elements[j] = editor->actions.elements[j + 1];
-            }
-            editor->actions.count -= 1;
-            editor->selected_action = -1;
-            tkbc_live_editor_apply_actions(env);
+        if (remove_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            tkbc_live_editor_remove_action(env, i);
             break;
         }
 
         char label[action_label_capacity];
         tkbc_live_editor_action_text(&editor->actions.elements[i], label, sizeof(label));
+        float label_x = row.x + padding + (grouped ? padding : 0.0f);
+        Rectangle label_box = {
+            label_x, row.y, row.width - (label_x - row.x) - 2 * x_radius - 2 * 4.0f, row.height,
+        };
         int label_font_size = TKBC_LIVE_EDITOR_LIST_LABEL_FONT_SIZE;
-        Vector2 label_size = tkbc_reduce_str_to_fit_box(
-            env->font, label, &label_font_size, TKBC_LIVE_EDITOR_LABEL_SPACING,
-            (Rectangle){row.x, row.y, row.width - horizontal_edges * x_radius -
-                                           horizontal_edges * removal_icon_edge_gap,
-                        row.height});
-        DrawTextEx(env->font, label, (Vector2){row.x + padding, row.y + row.height * half - label_size.y * half},
-                   label_font_size, TKBC_LIVE_EDITOR_LABEL_SPACING, TKBC_UI_BLACK);
+        Vector2 label_size =
+            tkbc_reduce_str_to_fit_box(env->font, label, &label_font_size, TKBC_LIVE_EDITOR_LABEL_SPACING, label_box);
+        DrawTextEx(env->font, label, (Vector2){label_x, row.y + row.height / 2 - label_size.y / 2}, label_font_size,
+                   TKBC_LIVE_EDITOR_LABEL_SPACING, TKBC_UI_BLACK);
     }
     EndScissorMode();
 
     if (IsKeyPressed(KEY_ESCAPE) && !esc_consumed_by_input) {
+        if (script) {
+            script->name_input.is_active = false;
+        }
         editor->active = false;
+        editor->drag_action_index = -1;
+        editor->action_drag_active = false;
+        editor->drag_target_index = -1;
+        tkbc_live_editor_clear_selection(editor);
         env->script_menu_interaction = true;
     }
 }

@@ -2553,6 +2553,122 @@ UUID tkbc_create_live_script(Env *env) {
     return created->id;
 }
 
+static void live_free_kite_ids(Kite_Ids *ids) {
+    free(ids->elements);
+    ids->elements = NULL;
+    ids->count = 0;
+    ids->capacity = 0;
+}
+
+static void live_copy_kite_ids(const Kite_Ids *source, Kite_Ids *target) {
+    live_free_kite_ids(target);
+    if (!source || !source->count || !source->elements) {
+        return;
+    }
+    target->elements = malloc(source->count * sizeof(*target->elements));
+    if (!target->elements) {
+        return;
+    }
+    memcpy(target->elements, source->elements, source->count * sizeof(*target->elements));
+    target->count = source->count;
+    target->capacity = source->count;
+}
+
+void tkbc_live_editor_free_kite_ids(Kite_Ids *ids) {
+    live_free_kite_ids(ids);
+}
+
+void tkbc_live_editor_copy_kite_ids(const Kite_Ids *source, Kite_Ids *target) {
+    live_copy_kite_ids(source, target);
+}
+
+static void live_set_all_owned_kites(Env *env, Script *script, Kite_Ids *target) {
+    (void) env;
+    live_free_kite_ids(target);
+    if (!script || !script->owned_kite_ids.count) {
+        return;
+    }
+    live_copy_kite_ids(&script->owned_kite_ids, target);
+}
+
+static void live_append_id(Kite_Ids *ids, Id kite_id) {
+    for (size_t i = 0; i < ids->count; ++i) {
+        if (ids->elements[i] == kite_id) {
+            return;
+        }
+    }
+    Id *grown = realloc(ids->elements, (ids->count + 1) * sizeof(*grown));
+    if (!grown) {
+        return;
+    }
+    ids->elements = grown;
+    ids->elements[ids->count++] = kite_id;
+    ids->capacity = ids->count;
+}
+
+static void live_append_target(Live_Action *action, Id kite_id) {
+    if (action->kind == ACTION_KITE_WAIT || action->kind == ACTION_KITE_QUIT) {
+        return;
+    }
+    live_append_id(&action->kite_ids, kite_id);
+}
+
+static void live_remove_id(Kite_Ids *ids, Id kite_id) {
+    for (size_t i = 0; i < ids->count; ++i) {
+        if (ids->elements[i] != kite_id) {
+            continue;
+        }
+        if (i + 1 < ids->count) {
+            memmove(&ids->elements[i], &ids->elements[i + 1], (ids->count - i - 1) * sizeof(*ids->elements));
+        }
+        ids->count -= 1;
+        return;
+    }
+}
+
+static void live_remove_target(Live_Action *action, Id kite_id) {
+    live_remove_id(&action->kite_ids, kite_id);
+}
+
+/**
+ * @brief Enables or disables one kite for the action currently being edited.
+ * When an action row is selected, its targets are updated right away.
+ */
+void tkbc_live_editor_toggle_kite_selection(Env *env, Id kite_id) {
+    if (!env) {
+        return;
+    }
+    Live_Editor *editor = &env->live_editor;
+    if (tkbc_contains_id(editor->kite_selection, kite_id)) {
+        live_remove_id(&editor->kite_selection, kite_id);
+    } else {
+        live_append_id(&editor->kite_selection, kite_id);
+    }
+
+    if (editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
+        Live_Action *action = &editor->actions.elements[editor->selected_action];
+        live_copy_kite_ids(&editor->kite_selection, &action->kite_ids);
+        tkbc_live_editor_apply_actions(env);
+    }
+}
+
+/**
+ * @brief Frees every editable action and the current kite selection.
+ */
+void tkbc_live_editor_clear_actions(Env *env) {
+    if (!env) {
+        return;
+    }
+    Live_Editor *editor = &env->live_editor;
+    for (size_t i = 0; i < editor->actions.count; ++i) {
+        live_free_kite_ids(&editor->actions.elements[i].kite_ids);
+    }
+    editor->actions.count = 0;
+    live_free_kite_ids(&editor->kite_selection);
+    editor->selection_anchor = -1;
+    editor->actions_loaded = false;
+}
+
 /**
  * @brief Restores the editable representation of a live script from the frames
  * that are currently stored in it. This is what makes edits survive closing and
@@ -2565,7 +2681,7 @@ void tkbc_live_editor_load_actions(Env *env) {
         return;
     }
     Live_Editor *editor = &env->live_editor;
-    editor->actions.count = 0;
+    tkbc_live_editor_clear_actions(env);
 
     Script *script = tkbc_find_script_by_id(env, editor->script_id);
     if (!script) {
@@ -2576,10 +2692,11 @@ void tkbc_live_editor_load_actions(Env *env) {
     for (size_t bi = 0; bi < block_count; ++bi) {
         for (size_t fi = 0; fi < blocks[bi].count; ++fi) {
             const Frame *frame = &blocks[bi].elements[fi];
-            Live_Action action = {
-                .kind = frame->kind,
-                .duration = frame->duration,
-            };
+            Live_Action action = {0};
+            action.kind = frame->kind;
+            action.same_set_as_previous = fi > 0;
+            live_copy_kite_ids(&frame->kite_id_array, &action.kite_ids);
+            action.duration = frame->duration;
             switch (frame->kind) {
             case ACTION_KITE_MOVE:
             case ACTION_KITE_MOVE_ADD:
@@ -2603,13 +2720,100 @@ void tkbc_live_editor_load_actions(Env *env) {
             tkbc_dap(&editor->actions, action);
         }
     }
+    live_set_all_owned_kites(env, script, &editor->kite_selection);
+    editor->join_set = false;
+    editor->bezier_kind = LIVE_BEZIER_NONE;
+    editor->actions_loaded = true;
+}
+
+static Frame *live_create_frame(Env *env, const Live_Action *source) {
+    Action action = {0};
+    switch (source->kind) {
+    case ACTION_KITE_MOVE:
+    case ACTION_KITE_MOVE_ADD:
+        action.as_move.position = (Vector2){source->x, source->y};
+        break;
+    case ACTION_KITE_ROTATION:
+    case ACTION_KITE_ROTATION_ADD:
+        action.as_rotation.angle = source->angle;
+        break;
+    case ACTION_KITE_TIP_ROTATION:
+    case ACTION_KITE_TIP_ROTATION_ADD:
+        action.as_tip_rotation.angle = source->angle;
+        action.as_tip_rotation.tip = source->tip;
+        break;
+    case ACTION_KITE_QUIT:
+    case ACTION_KITE_WAIT:
+    case ACTION_KIND_NULL:
+    case ACTION_KIND_COUNT: break;
+    }
+    return tkbc__frame_generate(env, source->kind, source->kite_ids, action, source->duration);
+}
+
+static void live_register_frame_group(Env *env, Frame **frames, size_t count) {
+    if (!count) {
+        return;
+    }
+    tkbc_reset_frames_internal_data(&env->scratch_buf_frames);
+    for (size_t i = 0; i < count; ++i) {
+        Frame copy = tkbc_deep_copy_frame(&env->scratch_buf_script.space, frames[i]);
+        space_dap(&env->scratch_buf_script.space, &env->scratch_buf_frames, copy);
+    }
+    tkbc_register_frames_array(env, &env->scratch_buf_frames);
+}
+
+static void live_emit_bezier(Env *env, const Live_Action *source) {
+    Kite_Ids ids = {0};
+    live_copy_kite_ids(&source->kite_ids, &ids);
+    switch (source->bezier_kind) {
+    case LIVE_BEZIER_QUADRATIC:
+        tkbc_kite_bezier_quadratic(env, ids, source->p1, source->p2, source->p3, source->duration, source->angle,
+                                   source->rotation_duration);
+        break;
+    case LIVE_BEZIER_CUBIC:
+        tkbc_kite_bezier_cubic(env, ids, source->p1, source->p2, source->p3, source->p4, source->duration,
+                               source->angle, source->rotation_duration);
+        break;
+    case LIVE_BEZIER_QUADRATIC_ADD:
+        tkbc_kite_bezier_quadratic_add(env, ids, source->p2, source->p3, source->duration, source->angle,
+                                       source->rotation_duration);
+        break;
+    case LIVE_BEZIER_CUBIC_ADD:
+        tkbc_kite_bezier_cubic_add(env, ids, source->p2, source->p3, source->p4, source->duration, source->angle,
+                                   source->rotation_duration);
+        break;
+    case LIVE_BEZIER_NONE: break;
+    }
+    live_free_kite_ids(&ids);
+}
+
+/**
+ * @brief Keeps SET flags consistent with the current action order. The first
+ * action can never join a previous one, and Bezier steps always form their own
+ * sequential blocks.
+ */
+void tkbc_live_editor_normalize_set_flags(Live_Editor *editor) {
+    if (!editor || editor->actions.count == 0) {
+        return;
+    }
+    editor->actions.elements[0].same_set_as_previous = false;
+    for (size_t i = 1; i < editor->actions.count; ++i) {
+        Live_Action *action = &editor->actions.elements[i];
+        if (!action->same_set_as_previous) {
+            continue;
+        }
+        if (action->bezier_kind != LIVE_BEZIER_NONE ||
+            editor->actions.elements[i - 1].bezier_kind != LIVE_BEZIER_NONE) {
+            action->same_set_as_previous = false;
+        }
+    }
 }
 
 /**
  * @brief Rebuilds the frames of the edited live script from the actions in the
- * editor. The script itself and its kites stay alive, only its frame blocks are
- * replaced. Every change marks the script as unsent so the explicit send button
- * can announce it as a new version.
+ * editor. Consecutive actions marked as a SET are registered as one parallel
+ * frame block. Every change marks the script as unsent so the explicit send
+ * button can announce it as a new version.
  *
  * @param env The global state of the application.
  */
@@ -2618,6 +2822,7 @@ void tkbc_live_editor_apply_actions(Env *env) {
         return;
     }
     Live_Editor *editor = &env->live_editor;
+    tkbc_live_editor_normalize_set_flags(editor);
     Script *script = tkbc_find_script_by_id(env, editor->script_id);
     if (!script) {
         return;
@@ -2633,46 +2838,34 @@ void tkbc_live_editor_apply_actions(Env *env) {
     env->script_setup = true;
     env->script_interrupt = true;
 
+    Frame **group = NULL;
+    if (editor->actions.count) {
+        group = malloc(editor->actions.count * sizeof(*group));
+    }
+    size_t group_count = 0;
+
     for (size_t i = 0; i < editor->actions.count; ++i) {
         const Live_Action *source = &editor->actions.elements[i];
-        Kite_Ids kites = {0};
-        if (source->kind != ACTION_KITE_WAIT && source->kind != ACTION_KITE_QUIT && script->owned_kite_ids.count) {
-            kites.elements = malloc(script->owned_kite_ids.count * sizeof(*kites.elements));
-            if (kites.elements) {
-                memcpy(kites.elements, script->owned_kite_ids.elements,
-                       script->owned_kite_ids.count * sizeof(*kites.elements));
-                kites.count = script->owned_kite_ids.count;
-                kites.capacity = script->owned_kite_ids.count;
-            }
+        if (source->bezier_kind != LIVE_BEZIER_NONE) {
+            live_register_frame_group(env, group, group_count);
+            group_count = 0;
+            live_emit_bezier(env, source);
+            continue;
         }
 
-        Action action = {0};
-        switch (source->kind) {
-        case ACTION_KITE_MOVE:
-        case ACTION_KITE_MOVE_ADD:
-            action.as_move.position = (Vector2){source->x, source->y};
-            break;
-        case ACTION_KITE_ROTATION:
-        case ACTION_KITE_ROTATION_ADD:
-            action.as_rotation.angle = source->angle;
-            break;
-        case ACTION_KITE_TIP_ROTATION:
-        case ACTION_KITE_TIP_ROTATION_ADD:
-            action.as_tip_rotation.angle = source->angle;
-            action.as_tip_rotation.tip = source->tip;
-            break;
-        case ACTION_KITE_QUIT:
-        case ACTION_KITE_WAIT:
-        case ACTION_KIND_NULL:
-        case ACTION_KIND_COUNT: break;
-        }
-
-        Frame *frame = tkbc__frame_generate(env, source->kind, kites, action, source->duration);
-        free(kites.elements);
+        Frame *frame = live_create_frame(env, source);
         if (frame) {
-            SET(frame);
+            group[group_count++] = frame;
+        }
+
+        const Live_Action *next = i + 1 < editor->actions.count ? &editor->actions.elements[i + 1] : NULL;
+        bool continues_set = next && next->same_set_as_previous && next->bezier_kind == LIVE_BEZIER_NONE;
+        if (!continues_set) {
+            live_register_frame_group(env, group, group_count);
+            group_count = 0;
         }
     }
+    free(group);
 
     // Keep every live script a valid script, even with no authored actions.
     if (env->scratch_buf_script.count == 0) {
@@ -2768,7 +2961,12 @@ void tkbc_live_editor_add_kite(Env *env) {
     env->scratch_buf_script.id = saved_scratch_id;
 
     for (size_t i = 0; i < generated.count; ++i) {
-        space_dap(&script->space, &script->owned_kite_ids, generated.elements[i]);
+        Id kite_id = generated.elements[i];
+        space_dap(&script->space, &script->owned_kite_ids, kite_id);
+        for (size_t a = 0; a < editor->actions.count; ++a) {
+            live_append_target(&editor->actions.elements[a], kite_id);
+        }
+        live_append_id(&editor->kite_selection, kite_id);
     }
     free(generated.elements);
     tkbc_reset_script_scratch_creation(env);
@@ -2817,6 +3015,10 @@ void tkbc_live_editor_remove_kite(Env *env, Id kite_id) {
                 sizeof(*script->owned_kite_ids.elements) * (script->owned_kite_ids.count - (size_t) found - 1));
     }
     script->owned_kite_ids.count -= 1;
+    for (size_t a = 0; a < editor->actions.count; ++a) {
+        live_remove_target(&editor->actions.elements[a], kite_id);
+    }
+    live_remove_id(&editor->kite_selection, kite_id);
     tkbc_remove_unordered_kite_from_list(&env->kite_array, kite_id);
     tkbc_live_editor_apply_actions(env);
 }
@@ -2840,6 +3042,12 @@ void tkbc_live_editor_finalize(Env *env) {
         script->was_send = false;
     }
     env->live_editor.active = false;
+    env->live_editor.drag_action_index = -1;
+    env->live_editor.action_drag_active = false;
+    env->live_editor.drag_target_index = -1;
+    env->live_editor.selection_anchor = -1;
+    env->live_editor.kite_scrollbar.interaction = false;
+    env->live_editor.scrollbar.interaction = false;
     env->script_menu_interaction = true;
 }
 
@@ -2911,6 +3119,7 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
             s_copy.name_input.max_char = 255;
             s_copy.name_input.selection_start = SIZE_MAX;
             s_copy.name_input.activate = tkbc_activate_script_text_input;
+            s_copy.name_input.user_data = env;
             s_copy.name_input.is_active = false;
             s_copy.name_input.spacing = 2;
             s_copy.name_input.font = env->font;

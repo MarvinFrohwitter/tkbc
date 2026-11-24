@@ -55,7 +55,12 @@ void tkbc_input_handler_script(Env *env);
 // -------Live script editing-------
 Script *tkbc_find_script_by_id(Env *env, UUID script_id);
 UUID tkbc_create_live_script(Env *env);
+void tkbc_live_editor_free_kite_ids(Kite_Ids *ids);
+void tkbc_live_editor_copy_kite_ids(const Kite_Ids *source, Kite_Ids *target);
+void tkbc_live_editor_toggle_kite_selection(Env *env, Id kite_id);
+void tkbc_live_editor_clear_actions(Env *env);
 void tkbc_live_editor_load_actions(Env *env);
+void tkbc_live_editor_normalize_set_flags(Live_Editor *editor);
 void tkbc_live_editor_apply_actions(Env *env);
 void tkbc_live_editor_add_kite(Env *env);
 void tkbc_live_editor_remove_kite(Env *env, Id kite_id);

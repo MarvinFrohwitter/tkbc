@@ -489,6 +489,14 @@ typedef struct {
                                 // moved.
 } Scrollbar;
 
+typedef enum {
+    LIVE_BEZIER_NONE,
+    LIVE_BEZIER_QUADRATIC,
+    LIVE_BEZIER_CUBIC,
+    LIVE_BEZIER_QUADRATIC_ADD,
+    LIVE_BEZIER_CUBIC_ADD,
+} Live_Bezier_Kind;
+
 /**
  * @brief One authored action of a script that is currently edited in the live
  * editor. The values are kept in plain fields so they can be changed through
@@ -496,11 +504,20 @@ typedef struct {
  */
 typedef struct {
     Action_Kind kind;  // The BASIC API action this entry represents.
-    float duration;    // Seconds the action takes.
-    float x;           // Move target x (MOVE / MOVE_ADD).
-    float y;           // Move target y (MOVE / MOVE_ADD).
-    float angle;       // Rotation angle (all rotation kinds).
-    TIP tip;           // The tip that gets rotated (tip rotation kinds).
+    Live_Bezier_Kind bezier_kind;  // Set for curve actions, otherwise LIVE_BEZIER_NONE.
+    bool same_set_as_previous;     // True when this action runs in the same SET block as the previous one.
+    bool selected;                 // True when this row is part of the current action multi selection.
+    Kite_Ids kite_ids;             // Kites this action is applied to.
+    float duration;                // Seconds the action takes (move duration for curves).
+    float x;                       // Move target x (MOVE / MOVE_ADD).
+    float y;                       // Move target y (MOVE / MOVE_ADD).
+    float angle;                   // Rotation angle (all rotation kinds and curves).
+    float rotation_duration;       // Rotation duration of curve actions.
+    Vector2 p1;                    // First control point (absolute curves).
+    Vector2 p2;                    // Second control point.
+    Vector2 p3;                    // Third control point / end point.
+    Vector2 p4;                    // End point of cubic curves.
+    TIP tip;                       // The tip that gets rotated (tip rotation kinds).
 } Live_Action;
 
 typedef struct {
@@ -512,19 +529,41 @@ typedef struct {
 typedef struct {
     bool active;                 // The live editor window is currently open.
     bool initialized;            // The text inputs have been set up with the current font.
+    bool actions_loaded;         // The editable actions belong to script_id.
     UUID script_id;              // The script that is being edited. Nil when the editor is closed.
     Live_Actions actions;        // All actions currently in the edited script.
     Action_Kind kind;            // The action kind selected in the palette.
+    Live_Bezier_Kind bezier_kind;  // The curve kind selected in the palette.
+    bool join_set;               // The next action is added to the current SET block.
+    Kite_Ids kite_selection;     // Kites enabled for the action currently being edited.
     TIP tip;                     // The tip selected for tip rotations.
     ssize_t selected_action;     // Row of the action list that gets edited, -1 for a new action.
+    ssize_t selection_anchor;    // Origin of the current shift-click range, -1 when unset.
     ssize_t last_clicked_kind;   // Palette entry of the last click, used for double click add.
     size_t top_action;           // First visible row of the action list.
     Scrollbar scrollbar;         // Scrollbar of the action list.
+    size_t top_kite;             // First visible row of the added kites list.
+    Scrollbar kite_scrollbar;    // Scrollbar of the added kites list.
+    ssize_t drag_action_index;   // Action held for reordering, -1 when no drag is in progress.
+    bool action_drag_active;     // The held action moved far enough to count as a drag.
+    ssize_t drag_target_index;   // Action currently hovered as a drop target, -1 when none.
+    bool drag_group_target;      // Drop target joins the hovered action into a SET group.
+    bool drag_insert_before;     // Reorder drop is placed before the hovered row.
+    Vector2 drag_start;          // Mouse position where the current drag started.
     Text_Input duration_input;   // Text field for the action duration.
     Text_Input x_input;          // Text field for the move x value.
     Text_Input y_input;          // Text field for the move y value.
     Text_Input angle_input;      // Text field for the rotation angle.
-    Space input_space;           // Arena that owns all four text field buffers.
+    Text_Input rotation_duration_input;  // Text field for curve rotation duration.
+    Text_Input p1x_input;        // Text field for the first curve point x.
+    Text_Input p1y_input;        // Text field for the first curve point y.
+    Text_Input p2x_input;        // Text field for the second curve point x.
+    Text_Input p2y_input;        // Text field for the second curve point y.
+    Text_Input p3x_input;        // Text field for the third curve point x.
+    Text_Input p3y_input;        // Text field for the third curve point y.
+    Text_Input p4x_input;        // Text field for the fourth curve point x.
+    Text_Input p4y_input;        // Text field for the fourth curve point y.
+    Space input_space;           // Arena that owns all text field buffers.
 } Live_Editor;
 
 typedef struct Process Process;
