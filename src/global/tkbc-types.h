@@ -11,6 +11,7 @@
 #include "raylib.h"
 #include "tkbc-uuid.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 #ifdef __TINYC__
@@ -384,6 +385,16 @@ typedef enum {  // The underlying data type for the protocol is only a u8.
 
     ACTION_KIND_COUNT,
 } Action_Kind;  // A named listing of all the available action kinds.
+
+// Sentinels and wire values are not valid runtime tags. Keep the checks next to
+// the enums so every script boundary uses the same definition of validity.
+static inline bool tkbc_is_valid_action_kind(Action_Kind kind) {
+    return kind > ACTION_KIND_NULL && kind < ACTION_KIND_COUNT;
+}
+
+static inline bool tkbc_is_valid_tip(TIP tip) {
+    return tip == LEFT_TIP || tip == RIGHT_TIP;
+}
 
 typedef struct {
     Id *elements;     // The dynamic array collection for all kite indices.

@@ -2726,6 +2726,11 @@ void tkbc_live_editor_load_actions(Env *env) {
     for (size_t bi = 0; bi < block_count; ++bi) {
         for (size_t fi = 0; fi < blocks[bi].count; ++fi) {
             const Frame *frame = &blocks[bi].elements[fi];
+            // An invalid kind cannot be represented in the editor or regenerated
+            // safely, so drop it instead of letting it survive a later rebuild.
+            if (!tkbc_is_valid_action_kind(frame->kind)) {
+                continue;
+            }
             Live_Action action = {0};
             action.kind = frame->kind;
             action.same_set_as_previous = fi > 0;
@@ -2744,7 +2749,9 @@ void tkbc_live_editor_load_actions(Env *env) {
             case ACTION_KITE_TIP_ROTATION:
             case ACTION_KITE_TIP_ROTATION_ADD:
                 action.angle = frame->action.as_tip_rotation.angle;
-                action.tip = frame->action.as_tip_rotation.tip;
+                action.tip = tkbc_is_valid_tip(frame->action.as_tip_rotation.tip)
+                                 ? frame->action.as_tip_rotation.tip
+                                 : LEFT_TIP;
                 break;
             case ACTION_KITE_QUIT:
             case ACTION_KITE_WAIT:

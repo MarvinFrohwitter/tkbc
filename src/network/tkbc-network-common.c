@@ -442,10 +442,19 @@ bool tkbc_message_append_script(Space *space, Message *message, UUID script_id) 
                 case ACTION_KITE_TIP_ROTATION:
                 case ACTION_KITE_TIP_ROTATION_ADD: {
                     Tip_Rotation_Action action = frame->action.as_tip_rotation;
+                    if (!tkbc_is_valid_tip(action.tip)) {
+                        assert(0 && "INVALID TIP in tkbc_message_append_script()");
+                        tkbc_remove_redirect_script_elements(script);
+                        return false;
+                    }
                     tkbc_message_write_u8(message, space, (uint8_t) action.tip);
                     tkbc_message_write_f32(message, space, action.angle);
                 } break;
-                default: assert(0 && "UNREACHABLE tkbc_message_append_script()");
+                default: {
+                    assert(0 && "UNREACHABLE tkbc_message_append_script()");
+                    tkbc_remove_redirect_script_elements(script);
+                    return false;
+                }
                 }
 
                 tkbc_message_write_f32(message, space, frame->duration);

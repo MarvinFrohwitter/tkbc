@@ -277,8 +277,14 @@ bool tkbc_script_finished(Env *env) {
  * declaration.
  */
 Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids, Action raw_action, float duration) {
-    if (!env || !env->script_setup) {
+    if (!env || !env->script_setup || !tkbc_is_valid_action_kind(kind)) {
         return NULL;
+    }
+    // A TIP has no zero value. Sanitize it here so scripts built through the
+    // API macros can never store a tag that crashes during upscaling/playback.
+    if ((kind == ACTION_KITE_TIP_ROTATION || kind == ACTION_KITE_TIP_ROTATION_ADD) &&
+        !tkbc_is_valid_tip(raw_action.as_tip_rotation.tip)) {
+        raw_action.as_tip_rotation.tip = LEFT_TIP;
     }
 
     Frame *frame = tkbc_init_frame(&env->scratch_buf_script.space);
@@ -875,8 +881,8 @@ void tkbc_print_script(FILE *stream, Script *script) {
             } break;
 
             default: {
-                assert("UNREACHABLE tkbc_print_scipt");
-            }
+                assert(0 && "UNREACHABLE tkbc_print_script");
+            } break;
             }
 
             fprintf(stream, "      }\n");

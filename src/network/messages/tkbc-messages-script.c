@@ -162,6 +162,11 @@ bool tkbc_messages_script(Env *env, Message *reader, Client *client, bool *scrip
                 if (!tkbc_message_read_u8(reader, (uint8_t *) &action.as_tip_rotation.tip)) {
                     check_return(false);
                 }
+                // TIP has no zero value; reject a broken peer instead of storing
+                // a frame that will assert during upscaling or playback.
+                if (!tkbc_is_valid_tip(action.as_tip_rotation.tip)) {
+                    check_return(false);
+                }
                 if (!tkbc_message_read_f32(reader, &action.as_tip_rotation.angle)) {
                     check_return(false);
                 }
