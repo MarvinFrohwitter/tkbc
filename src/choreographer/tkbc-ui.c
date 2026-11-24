@@ -1977,10 +1977,10 @@ static void tkbc_live_editor_store_current_action(Env *env) {
 }
 
 /**
- * @brief Removes one action and repairs the SET flag of the following one.
+ * @brief Removes one action from the editor state without rebuilding the
+ * script. Callers that delete several actions apply the result once afterwards.
  */
-static void tkbc_live_editor_remove_action(Env *env, size_t index) {
-    Live_Editor *editor = &env->live_editor;
+static void tkbc_live_editor_remove_action_at(Live_Editor *editor, size_t index) {
     if (index >= editor->actions.count) {
         return;
     }
@@ -2001,7 +2001,70 @@ static void tkbc_live_editor_remove_action(Env *env, size_t index) {
         editor->selection_anchor -= 1;
     }
     editor->actions_changed = true;
+}
+
+/**
+ * @brief Removes one action and repairs the SET flag of the following one.
+ */
+static void tkbc_live_editor_remove_action(Env *env, size_t index) {
+    tkbc_live_editor_remove_action_at(&env->live_editor, index);
     tkbc_live_editor_apply_actions(env);
+}
+
+/**
+ * @brief Removes every marked action of the action list at once. When nothing
+ * is marked the currently edited row is removed, so Delete/Backspace always act
+ * on a row the user can see. The script is rebuilt only once for the whole
+ * batch instead of once per removed action.
+ *
+ * @param env The global state of the application.
+ * @return The number of actions that got deleted.
+ */
+static size_t tkbc_live_editor_delete_selected_actions(Env *env) {
+    Live_Editor *editor = &env->live_editor;
+    if (editor->actions.count == 0) {
+        return 0;
+    }
+
+    bool any_marked = false;
+    for (size_t i = 0; i < editor->actions.count; ++i) {
+        any_marked = any_marked || editor->actions.elements[i].selected;
+    }
+    if (!any_marked && editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
+        editor->actions.elements[(size_t) editor->selected_action].selected = true;
+    }
+
+    bool removed_active = editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count &&
+                          editor->actions.elements[(size_t) editor->selected_action].selected;
+
+    size_t deleted = 0;
+    for (;;) {
+        ssize_t marked_action = -1;
+        // Search from the start on every round: removing an action shifts all
+        // following rows, so indices saved from an earlier pass go stale.
+        for (size_t i = 0; i < editor->actions.count; ++i) {
+            if (editor->actions.elements[i].selected) {
+                marked_action = (ssize_t) i;
+                break;
+            }
+        }
+        if (marked_action < 0) {
+            break;
+        }
+        tkbc_live_editor_remove_action_at(editor, (size_t) marked_action);
+        deleted += 1;
+    }
+
+    if (deleted > 0) {
+        if (removed_active) {
+            editor->selected_action = -1;
+        }
+        editor->drag_action_index = -1;
+        editor->action_drag_active = false;
+        editor->drag_target_index = -1;
+        tkbc_live_editor_apply_actions(env);
+    }
+    return deleted;
 }
 
 /**
@@ -2321,9 +2384,20 @@ static void tkbc_live_editor_update_action_drag(Env *env, Rectangle list, float 
 }
 
 /**
+ * @brief Compares kite ids for the ascending order of the live editor's kite
+ * list. Sorting by id keeps each kite at a stable row even when the underlying
+ * script or action arrays change their order.
+ */
+static int tkbc_live_editor_compare_kite_ids(const void *lhs, const void *rhs) {
+    Id left = *(const Id *) lhs;
+    Id right = *(const Id *) rhs;
+    return (left > right) - (left < right);
+}
+
+/**
  * @brief Collects the unique ids of the kites owned or referenced by the
- * edited script. Kites that only exist in the global kite array stay hidden
- * unless they are selected for the action currently being edited.
+ * edited script, sorted by id. Kites that only exist in the global kite array
+ * stay hidden unless they are selected for the action currently being edited.
  */
 static Id *tkbc_live_editor_script_kites(const Live_Editor *editor, const Script *script, size_t *count) {
     size_t capacity = editor->kite_selection.count;
@@ -2372,6 +2446,7 @@ static Id *tkbc_live_editor_script_kites(const Live_Editor *editor, const Script
             }
         }
     }
+    qsort(ids.elements, ids.count, sizeof(*ids.elements), tkbc_live_editor_compare_kite_ids);
     *count = ids.count;
     return ids.elements;
 }
@@ -2796,6 +2871,15 @@ void tkbc_ui_live_script_editor(Env *env) {
         for (size_t i = 0; i < editor->actions.count; ++i) {
             editor->actions.elements[i].selected = true;
         }
+    }
+
+    // Delete/Backspace removes all marked actions at once, so a multi selection
+    // no longer has to be cleared row by row through the little X buttons. The
+    // name and value inputs keep their own editing keys.
+    if (!env->text_input_active && !tkbc_live_editor_inputs_active(editor) &&
+        !(script && script->name_input.is_active) && !editor->action_drag_active &&
+        (IsKeyPressed(KEY_DELETE) || IsKeyPressed(KEY_BACKSPACE))) {
+        tkbc_live_editor_delete_selected_actions(env);
     }
 
     /* ------------------------------ action list ----------------------------- */
