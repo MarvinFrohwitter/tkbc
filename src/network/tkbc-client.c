@@ -1063,6 +1063,75 @@ void tkbc_client_send_pending_script_deletes(void) {
 }
 
 /**
+ * @brief Drains the scripts the user explicitly re-sent from the script menu.
+ *
+ * The deletions for scripts the server already knows are queued before this
+ * function runs, so the server receives the MESSAGE_SCRIPT_DELETE frames first,
+ * broadcasts them and then registers the same ids as brand new scripts. The
+ * initial upload at connection start never uses this path, so known default
+ * scripts are still skipped there.
+ */
+void tkbc_client_send_pending_script_updates(void) {
+    if (env->pending_script_updates.count == 0) {
+        return;
+    }
+    if (offline_mode) {
+        // There is no server that could replace a script. Leaving the scripts
+        // marked as unsent means they are uploaded on the next connection.
+        env->pending_script_updates.count = 0;
+        return;
+    }
+    if (!client.handshake_passed) {
+        // Keep the queue until scripts are allowed over the wire again.
+        return;
+    }
+
+    size_t amount = 0;
+    for (size_t i = 0; i < env->pending_script_updates.count; ++i) {
+        if (tkbc_find_script_by_id(env, env->pending_script_updates.elements[i])) {
+            amount += 1;
+        }
+    }
+    if (amount == 0) {
+        env->pending_script_updates.count = 0;
+        return;
+    }
+
+    size_t saved_count = client.send_msg_buffer.count;
+    size_t offset =
+        tkbc_message_write_begin(&client.send_msg_buffer, &client.send_msg_buffer_space, MESSAGE_SCRIPT_AMOUNT);
+    tkbc_message_write_u64(&client.send_msg_buffer, &client.send_msg_buffer_space, (uint64_t) amount);
+    tkbc_message_write_end(&client.send_msg_buffer, offset);
+
+    bool ok = true;
+    for (size_t i = 0; i < env->pending_script_updates.count; ++i) {
+        UUID script_id = env->pending_script_updates.elements[i];
+        Script *script = tkbc_find_script_by_id(env, script_id);
+        if (!script) {
+            continue;
+        }
+        if (!tkbc_message_append_script(&client.send_msg_buffer_space, &client.send_msg_buffer, script_id)) {
+            tkbc_fprintf(stderr, "ERROR", "The updated script could not be appended to the message.\n");
+            ok = false;
+            break;
+        }
+        script->was_send = true;
+    }
+    if (!ok) {
+        client.send_msg_buffer.count = saved_count;
+        // Nothing reached the server, so leave every queued script eligible
+        // for the next explicit send.
+        for (size_t i = 0; i < env->pending_script_updates.count; ++i) {
+            Script *script = tkbc_find_script_by_id(env, env->pending_script_updates.elements[i]);
+            if (script) {
+                script->was_send = false;
+            }
+        }
+    }
+    env->pending_script_updates.count = 0;
+}
+
+/**
  * @brief Sends the queued script selection to the server.
  *
  * This is deliberately separate from the rest of the script input handling so
@@ -1287,16 +1356,20 @@ int main(int argc, char *argv[]) {
         tkbc_ui_post_handler(env);
 
         tkbc_client_file_handler();
-        // Outside of the interaction gate so that script deletions from the
-        // script menu are sent to the server immediately, while the menu is
-        // still open. The queued message is flushed in the next tkbc_run().
+        // Outside of the interaction gate so that script deletions and
+        // explicit re-sends from the script menu are announced to the server
+        // immediately, while the menu is still open. Deletions are drained
+        // first so every server replacement is preceded by its deletion.
+        // The queued messages are flushed in the next tkbc_run().
         tkbc_client_send_pending_script_deletes();
+        tkbc_client_send_pending_script_updates();
         // Deleting the running script sets new_script_selected while the menu
         // is still open. Send that selection now instead of waiting for the UI
         // to close, so the displayed kites switch to the non-script view.
         tkbc_client_send_selected_script();
 
-        if (env->script_menu_interaction || env->text_input_active || env->keymaps_interaction) {
+        if (env->live_editor.active || env->script_menu_interaction || env->text_input_active ||
+            env->keymaps_interaction) {
             continue;
         }
 

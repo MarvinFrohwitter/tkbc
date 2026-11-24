@@ -51,6 +51,15 @@ size_t tkbc_calculate_script_byte_size(Script script);
 void tkbc_add_script(Env *env, Script script, bool evict_when_full);
 void tkbc_reset_script_scratch_creation(Env *env);
 void tkbc_input_handler_script(Env *env);
+
+// -------Live script editing-------
+Script *tkbc_find_script_by_id(Env *env, UUID script_id);
+UUID tkbc_create_live_script(Env *env);
+void tkbc_live_editor_load_actions(Env *env);
+void tkbc_live_editor_apply_actions(Env *env);
+void tkbc_live_editor_add_kite(Env *env);
+void tkbc_live_editor_remove_kite(Env *env, Id kite_id);
+void tkbc_live_editor_finalize(Env *env);
 void tkbc_set_kite_positions_from_kite_frames_positions(Env *env);
 void tkbc_execute_scrub_slide(Env *env, bool drag_left);
 void tkbc_scrub_to_index(Env *env, size_t target_index);

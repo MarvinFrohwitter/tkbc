@@ -19,6 +19,7 @@ bool message_queue_handler(bool *eof);
 void tkbc_client_input_handler_kite(void);
 void tkbc_client_send_kite_selection(size_t kite_id, bool selected);
 void tkbc_client_send_pending_script_deletes(void);
+void tkbc_client_send_pending_script_updates(void);
 void tkbc_client_send_selected_script(void);
 void tkbc_client_file_handler(void);
 void tkbc_client_input_handler_script(void);

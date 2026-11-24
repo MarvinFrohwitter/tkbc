@@ -131,7 +131,8 @@ int main(void) {
         tkbc_ui_post_handler(env);
 
         tkbc_file_handler(env);
-        if (env->keymaps_interaction || env->script_menu_interaction || env->text_input_active) {
+        if (env->live_editor.active || env->keymaps_interaction || env->script_menu_interaction ||
+            env->text_input_active) {
             continue;
         }
 

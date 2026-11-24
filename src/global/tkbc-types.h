@@ -463,6 +463,8 @@ typedef struct {
     bool selected;           // UI only: The script is marked in the script menu (ctrl/shift click) and gets deleted
                              // together with all other marked scripts. tkbc_deep_copy_script does not copy it, so
                              // every registered script starts unmarked.
+    bool is_live;            // UI only: The script is still being assembled in the live editor. Such scripts are never
+                             // executed directly from the script menu; they have to be finalized first.
 } Script;                    // A dynamic array collection that combined multiple frames to a
                              // single kite draw representation.
 
@@ -480,6 +482,51 @@ typedef struct {
                       // the number of collection elements of the array type.
 } UUIDs;              // A dynamic array collection that holds script ids (UUIDs).
 
+typedef struct {
+    Rectangle base;             // The base of the scrollbar..
+    Rectangle inner_scrollbar;  // The indicator inside the scrollbar.
+    bool interaction;           // Checks if the scrollbar is currently
+                                // moved.
+} Scrollbar;
+
+/**
+ * @brief One authored action of a script that is currently edited in the live
+ * editor. The values are kept in plain fields so they can be changed through
+ * text inputs before they are turned into an actual Frame.
+ */
+typedef struct {
+    Action_Kind kind;  // The BASIC API action this entry represents.
+    float duration;    // Seconds the action takes.
+    float x;           // Move target x (MOVE / MOVE_ADD).
+    float y;           // Move target y (MOVE / MOVE_ADD).
+    float angle;       // Rotation angle (all rotation kinds).
+    TIP tip;           // The tip that gets rotated (tip rotation kinds).
+} Live_Action;
+
+typedef struct {
+    Live_Action *elements;
+    size_t count;
+    size_t capacity;
+} Live_Actions;
+
+typedef struct {
+    bool active;                 // The live editor window is currently open.
+    bool initialized;            // The text inputs have been set up with the current font.
+    UUID script_id;              // The script that is being edited. Nil when the editor is closed.
+    Live_Actions actions;        // All actions currently in the edited script.
+    Action_Kind kind;            // The action kind selected in the palette.
+    TIP tip;                     // The tip selected for tip rotations.
+    ssize_t selected_action;     // Row of the action list that gets edited, -1 for a new action.
+    ssize_t last_clicked_kind;   // Palette entry of the last click, used for double click add.
+    size_t top_action;           // First visible row of the action list.
+    Scrollbar scrollbar;         // Scrollbar of the action list.
+    Text_Input duration_input;   // Text field for the action duration.
+    Text_Input x_input;          // Text field for the move x value.
+    Text_Input y_input;          // Text field for the move y value.
+    Text_Input angle_input;      // Text field for the rotation angle.
+    Space input_space;           // Arena that owns all four text field buffers.
+} Live_Editor;
+
 typedef struct Process Process;
 
 typedef struct {
@@ -488,13 +535,6 @@ typedef struct {
     size_t capacity;  // The complete allocated space for the array represented as
                       // the number of collection elements of the array type.
 } Colors;             // A dynamic array collection that holds the type Color.
-
-typedef struct {
-    Rectangle base;             // The base of the scrollbar..
-    Rectangle inner_scrollbar;  // The indicator inside the scrollbar.
-    bool interaction;           // Checks if the scrollbar is currently
-                                // moved.
-} Scrollbar;
 
 typedef struct {
     const char *tkbc_dir;           // The dir where all metadata is saved.
@@ -530,6 +570,9 @@ typedef struct {
                                    // script in the UI.
     UUIDs pending_script_deletes;  // Scripts deleted locally whose deletion still has to be announced to the server via
                                    // MESSAGE_SCRIPT_DELETE.
+    UUIDs pending_script_updates;  // Scripts the user explicitly re-sent from the script menu. The client deletes
+                                   // already known versions on the server before sending these as new scripts.
+    Live_Editor live_editor;       // State of the live script editing window.
 
     bool script_setup;              // The indication if the initial setup run is executed.
     bool script_interrupt;          // The indication if a script is currently going to be

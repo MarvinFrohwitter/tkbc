@@ -14,6 +14,7 @@ void tkbc_display_kite_information(Env *env);
 void tkbc_scrollbar(Scrollbar *scrollbar, Rectangle outer_container, size_t items_height, size_t items_count,
                     size_t screen_items, size_t *top_interaction_box);
 bool tkbc_ui_script_menu(Env *env);
+void tkbc_ui_live_script_editor(Env *env);
 void tkbc_ui_timeline(Env *env, size_t frames_index, size_t frames_index_count);
 void tkbc_ui_music_bar(Env *env);
 
@@ -53,6 +54,8 @@ void tkbc_handle_text_input(Text_Input *input, Space *space);
 bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding);
 void tkbc_display_color_pallet(Env *env, Rectangle display_box, float circle_radius, float padding);
 void tkbc_draw_circle_with_x(Vector2 center, float radius, Color color);
+void tkbc_draw_circle_with_plus(Vector2 center, float radius, Color color);
+void tkbc_draw_circle_with_arrow(Vector2 center, float radius, Color color);
 void tkbc_draw_circle_with_check_box(Vector2 center, float radius, bool enabled, Color color);
 bool tkbc_activate_script_text_input(Text_Input *input, void *data);
 void tkbc_draw_tool_tip(Env *env, Font font, Vector2 mouse, float width, float height, const char *text, int font_size,

@@ -335,6 +335,7 @@ Script tkbc_deep_copy_script(Space *space, Script *script) {
     }
     new_script.id = script->id;
     new_script.was_send = script->was_send;
+    new_script.is_live = script->is_live;
 
     // Owned kite ids live in the script's space and must travel with it.
     if (script->owned_kite_ids.count) {
@@ -2503,6 +2504,346 @@ void tkbc_reset_script_scratch_creation(Env *env) {
 }
 
 /**
+ * @brief Finds a registered script by its UUID.
+ *
+ * @param env The global state of the application.
+ * @param script_id The UUID to look for.
+ * @return The script or NULL if it is not registered. The pointer is invalidated
+ * by every operation that adds or removes a script.
+ */
+Script *tkbc_find_script_by_id(Env *env, UUID script_id) {
+    if (!env) {
+        return NULL;
+    }
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        if (tkbc_uuid_equals(env->scripts.elements[i].id, script_id)) {
+            return &env->scripts.elements[i];
+        }
+    }
+    return NULL;
+}
+
+/**
+ * @brief Creates a new script that is filled with actions in the live editor.
+ *
+ * The script starts with the same zero length WAIT frame every compiled in
+ * script starts with. That makes it a valid (but not yet executed) script, so it
+ * can already be sent to a server and updated later by the explicit send button.
+ *
+ * @param env The global state of the application.
+ * @return The UUID of the new script, or the nil UUID on failure.
+ */
+UUID tkbc_create_live_script(Env *env) {
+    if (!env) {
+        return tkbc_uuid_nil();
+    }
+    tkbc_reset_script_scratch_creation(env);
+    char *name = tkbc_generate_name_with_time_stamp("Live Script: ", NULL);
+    tkbc__script_begin(env);
+    tkbc_set_script_name(&env->scratch_buf_script, name);
+    free(name);
+    tkbc__script_end(env);
+
+    if (env->scripts.count == 0) {
+        return tkbc_uuid_nil();
+    }
+    Script *created = &env->scripts.elements[env->scripts.count - 1];
+    created->is_live = true;
+    created->was_send = false;
+    return created->id;
+}
+
+/**
+ * @brief Restores the editable representation of a live script from the frames
+ * that are currently stored in it. This is what makes edits survive closing and
+ * reopening the live editor.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_live_editor_load_actions(Env *env) {
+    if (!env) {
+        return;
+    }
+    Live_Editor *editor = &env->live_editor;
+    editor->actions.count = 0;
+
+    Script *script = tkbc_find_script_by_id(env, editor->script_id);
+    if (!script) {
+        return;
+    }
+    const Frames *blocks = script->original_elements ? script->original_elements : script->elements;
+    size_t block_count = script->original_elements ? script->original_count : script->count;
+    for (size_t bi = 0; bi < block_count; ++bi) {
+        for (size_t fi = 0; fi < blocks[bi].count; ++fi) {
+            const Frame *frame = &blocks[bi].elements[fi];
+            Live_Action action = {
+                .kind = frame->kind,
+                .duration = frame->duration,
+            };
+            switch (frame->kind) {
+            case ACTION_KITE_MOVE:
+            case ACTION_KITE_MOVE_ADD:
+                action.x = frame->action.as_move.position.x;
+                action.y = frame->action.as_move.position.y;
+                break;
+            case ACTION_KITE_ROTATION:
+            case ACTION_KITE_ROTATION_ADD:
+                action.angle = frame->action.as_rotation.angle;
+                break;
+            case ACTION_KITE_TIP_ROTATION:
+            case ACTION_KITE_TIP_ROTATION_ADD:
+                action.angle = frame->action.as_tip_rotation.angle;
+                action.tip = frame->action.as_tip_rotation.tip;
+                break;
+            case ACTION_KITE_QUIT:
+            case ACTION_KITE_WAIT:
+            case ACTION_KIND_NULL:
+            case ACTION_KIND_COUNT: break;
+            }
+            tkbc_dap(&editor->actions, action);
+        }
+    }
+}
+
+/**
+ * @brief Rebuilds the frames of the edited live script from the actions in the
+ * editor. The script itself and its kites stay alive, only its frame blocks are
+ * replaced. Every change marks the script as unsent so the explicit send button
+ * can announce it as a new version.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_live_editor_apply_actions(Env *env) {
+    if (!env) {
+        return;
+    }
+    Live_Editor *editor = &env->live_editor;
+    Script *script = tkbc_find_script_by_id(env, editor->script_id);
+    if (!script) {
+        return;
+    }
+
+    // A rebuilt script has different Frames pointers. Never leave env->frames
+    // pointing into the old blocks.
+    if (env->script && tkbc_uuid_equals(env->script->id, editor->script_id)) {
+        tkbc_unload_script(env);
+    }
+
+    tkbc_reset_script_scratch_creation(env);
+    env->script_setup = true;
+    env->script_interrupt = true;
+
+    for (size_t i = 0; i < editor->actions.count; ++i) {
+        const Live_Action *source = &editor->actions.elements[i];
+        Kite_Ids kites = {0};
+        if (source->kind != ACTION_KITE_WAIT && source->kind != ACTION_KITE_QUIT && script->owned_kite_ids.count) {
+            kites.elements = malloc(script->owned_kite_ids.count * sizeof(*kites.elements));
+            if (kites.elements) {
+                memcpy(kites.elements, script->owned_kite_ids.elements,
+                       script->owned_kite_ids.count * sizeof(*kites.elements));
+                kites.count = script->owned_kite_ids.count;
+                kites.capacity = script->owned_kite_ids.count;
+            }
+        }
+
+        Action action = {0};
+        switch (source->kind) {
+        case ACTION_KITE_MOVE:
+        case ACTION_KITE_MOVE_ADD:
+            action.as_move.position = (Vector2){source->x, source->y};
+            break;
+        case ACTION_KITE_ROTATION:
+        case ACTION_KITE_ROTATION_ADD:
+            action.as_rotation.angle = source->angle;
+            break;
+        case ACTION_KITE_TIP_ROTATION:
+        case ACTION_KITE_TIP_ROTATION_ADD:
+            action.as_tip_rotation.angle = source->angle;
+            action.as_tip_rotation.tip = source->tip;
+            break;
+        case ACTION_KITE_QUIT:
+        case ACTION_KITE_WAIT:
+        case ACTION_KIND_NULL:
+        case ACTION_KIND_COUNT: break;
+        }
+
+        Frame *frame = tkbc__frame_generate(env, source->kind, kites, action, source->duration);
+        free(kites.elements);
+        if (frame) {
+            SET(frame);
+        }
+    }
+
+    // Keep every live script a valid script, even with no authored actions.
+    if (env->scratch_buf_script.count == 0) {
+        Frame *frame = tkbc__frame_generate(env, ACTION_KITE_WAIT, (Kite_Ids){0}, (Action){0}, 0);
+        if (frame) {
+            SET(frame);
+        }
+    }
+
+    env->script_setup = false;
+    env->script_interrupt = false;
+
+    size_t new_count = env->scratch_buf_script.count;
+    if (new_count == 0) {
+        tkbc_reset_script_scratch_creation(env);
+        return;
+    }
+
+    Frames *blocks = space_malloc(&script->space, sizeof(*blocks) * new_count);
+    if (!blocks) {
+        tkbc_reset_script_scratch_creation(env);
+        return;
+    }
+    for (size_t i = 0; i < new_count; ++i) {
+        blocks[i] = tkbc_deep_copy_frames(&script->space, &env->scratch_buf_script.elements[i]);
+        blocks[i].frames_index = i;
+    }
+
+    script->elements = blocks;
+    script->count = new_count;
+    script->capacity = new_count;
+    script->original_elements = blocks;
+    script->original_count = new_count;
+    script->original_capacity = new_count;
+    script->internal_redirect = true;
+
+    // Owned kites that are not referenced by an action still need a start
+    // position in every block so serialization and deletion can find them.
+    for (size_t bi = 0; bi < new_count; ++bi) {
+        Frames *block = &blocks[bi];
+        for (size_t ki = 0; ki < script->owned_kite_ids.count; ++ki) {
+            Id kite_id = script->owned_kite_ids.elements[ki];
+            bool contains = false;
+            for (size_t pi = 0; pi < block->kite_frame_positions.count; ++pi) {
+                if (block->kite_frame_positions.elements[pi].kite_id == kite_id) {
+                    contains = true;
+                    break;
+                }
+            }
+            if (contains) {
+                continue;
+            }
+            Kite_State *state = tkbc_get_kite_state_by_id(env, kite_id);
+            if (!state) {
+                continue;
+            }
+            Kite_Position position = {
+                .kite_id = kite_id,
+                .position = state->kite->center,
+                .angle = state->kite->angle,
+            };
+            space_dap(&script->space, &block->kite_frame_positions, position);
+        }
+    }
+
+    // The server may already know this id. An explicit send has to delete that
+    // old version first and register this one as a new script.
+    script->was_send = false;
+    tkbc_reset_script_scratch_creation(env);
+}
+
+/**
+ * @brief Adds one new kite to the edited live script and rebuilds its frames so
+ * the new kite is used by all kite actions.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_live_editor_add_kite(Env *env) {
+    if (!env) {
+        return;
+    }
+    Live_Editor *editor = &env->live_editor;
+    Script *script = tkbc_find_script_by_id(env, editor->script_id);
+    if (!script) {
+        return;
+    }
+
+    // tkbc_kite_array_generate() records ownership on the scratch script, so
+    // point it at the edited script while the kite is generated.
+    UUID saved_scratch_id = env->scratch_buf_script.id;
+    env->scratch_buf_script.id = script->id;
+    Kite_Ids generated = tkbc_kite_array_generate(env, 1);
+    env->scratch_buf_script.id = saved_scratch_id;
+
+    for (size_t i = 0; i < generated.count; ++i) {
+        space_dap(&script->space, &script->owned_kite_ids, generated.elements[i]);
+    }
+    free(generated.elements);
+    tkbc_reset_script_scratch_creation(env);
+    tkbc_live_editor_apply_actions(env);
+}
+
+/**
+ * @brief Removes a kite from the edited live script.
+ *
+ * @param env The global state of the application.
+ * @param kite_id The id of the kite to remove.
+ */
+void tkbc_live_editor_remove_kite(Env *env, Id kite_id) {
+    if (!env) {
+        return;
+    }
+    Live_Editor *editor = &env->live_editor;
+    Script *script = tkbc_find_script_by_id(env, editor->script_id);
+    if (!script) {
+        return;
+    }
+
+    ssize_t found = -1;
+    for (size_t i = 0; i < script->owned_kite_ids.count; ++i) {
+        if (script->owned_kite_ids.elements[i] == kite_id) {
+            found = (ssize_t) i;
+            break;
+        }
+    }
+    if (found == -1) {
+        return;
+    }
+    // A kite that another script still owns must stay in the kite array.
+    for (size_t i = 0; i < env->scripts.count; ++i) {
+        Script *other = &env->scripts.elements[i];
+        if (other == script) {
+            continue;
+        }
+        if (tkbc_contains_id(other->owned_kite_ids, kite_id)) {
+            return;
+        }
+    }
+
+    if ((size_t) found + 1 < script->owned_kite_ids.count) {
+        memmove(&script->owned_kite_ids.elements[found], &script->owned_kite_ids.elements[found + 1],
+                sizeof(*script->owned_kite_ids.elements) * (script->owned_kite_ids.count - (size_t) found - 1));
+    }
+    script->owned_kite_ids.count -= 1;
+    tkbc_remove_unordered_kite_from_list(&env->kite_array, kite_id);
+    tkbc_live_editor_apply_actions(env);
+}
+
+/**
+ * @brief Turns the edited live script into a normal script that can be executed
+ * from the script menu, and returns to that menu.
+ *
+ * @param env The global state of the application.
+ */
+void tkbc_live_editor_finalize(Env *env) {
+    if (!env) {
+        return;
+    }
+    tkbc_live_editor_apply_actions(env);
+    Script *script = tkbc_find_script_by_id(env, env->live_editor.script_id);
+    if (script) {
+        script->is_live = false;
+        // Even if this script was sent earlier, its content changed. The next
+        // explicit send replaces the server copy.
+        script->was_send = false;
+    }
+    env->live_editor.active = false;
+    env->script_menu_interaction = true;
+}
+
+/**
  * @brief This function adds a script to the global array located in the env.
  * It is needed to achieve stability for the raw frames and script pointers in
  * the env, they can be invalidated when the scripts array reallocates.
@@ -2627,9 +2968,10 @@ void tkbc_add_script(Env *env, Script script, bool evict_when_full) {
  */
 void tkbc_input_handler_script(Env *env) {
     // Offline (or standalone) mode: there is no server to inform about
-    // script deletions, so drop pending delete requests. The local deletion
-    // already happened in the script menu.
+    // script deletions or explicit re-sends, so drop both queues. The local
+    // deletion already happened in the script menu.
     env->pending_script_deletes.count = 0;
+    env->pending_script_updates.count = 0;
 
     // Hard reset to startposition angel 0
     // KEY_ENTER
