@@ -2623,15 +2623,6 @@ void tkbc_live_editor_copy_kite_ids(const Kite_Ids *source, Kite_Ids *target) {
     live_copy_kite_ids(source, target);
 }
 
-static void live_set_all_owned_kites(Env *env, Script *script, Kite_Ids *target) {
-    (void) env;
-    live_free_kite_ids(target);
-    if (!script || !script->owned_kite_ids.count) {
-        return;
-    }
-    live_copy_kite_ids(&script->owned_kite_ids, target);
-}
-
 static void live_append_id(Kite_Ids *ids, Id kite_id) {
     for (size_t i = 0; i < ids->count; ++i) {
         if (ids->elements[i] == kite_id) {
@@ -2763,7 +2754,11 @@ void tkbc_live_editor_load_actions(Env *env) {
             tkbc_dap(&editor->actions, action);
         }
     }
-    live_set_all_owned_kites(env, script, &editor->kite_selection);
+    // No row is active right after loading, so the first action supplies the
+    // current kite selection (and with it the checked boxes in the kite list).
+    if (editor->actions.count) {
+        live_copy_kite_ids(&editor->actions.elements[0].kite_ids, &editor->kite_selection);
+    }
     editor->join_set = false;
     editor->bezier_kind = LIVE_BEZIER_NONE;
     editor->actions_loaded = true;
