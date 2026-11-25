@@ -1154,6 +1154,7 @@ static void tkbc_script_menu_open_live_editor(Env *env, UUID script_id) {
     editor->script_id = script_id;
     editor->selected_action = -1;
     editor->selection_anchor = -1;
+    tkbc_live_editor_clear_kite_marks(env);
     editor->last_clicked_kind = -1;
     editor->top_action = 0;
     editor->top_kite = 0;
@@ -2125,6 +2126,50 @@ static void tkbc_live_editor_clear_selection(Live_Editor *editor) {
 }
 
 /**
+ * @brief Applies the click modifiers to the kite list. The rows are passed in
+ * display order so shift clicks always mark the visible range between the
+ * anchor and the clicked kite. A plain click starts a new single selection, a
+ * ctrl click toggles only the clicked kite.
+ */
+static void tkbc_live_editor_apply_kite_click_selection(Env *env, const Id *kite_ids, size_t count, size_t index) {
+    if (index >= count) {
+        return;
+    }
+    Live_Editor *editor = &env->live_editor;
+    bool ctrl_down = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
+    bool shift_down = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
+
+    if (shift_down) {
+        size_t first = index;
+        size_t last = index;
+        ssize_t anchor = editor->kite_mark_anchor;
+        if (anchor >= 0 && (size_t) anchor < count) {
+            first = (size_t) anchor < index ? (size_t) anchor : index;
+            last = (size_t) anchor < index ? index : (size_t) anchor;
+        }
+        for (size_t i = first; i <= last && i < count; ++i) {
+            tkbc_live_editor_set_kite_mark(env, kite_ids[i], true);
+        }
+        // Consecutive shift clicks keep extending the same range.
+        if (anchor < 0) {
+            editor->kite_mark_anchor = (ssize_t) index;
+        }
+        return;
+    }
+
+    if (ctrl_down) {
+        bool marked = tkbc_contains_id(editor->marked_kites, kite_ids[index]);
+        editor->kite_mark_anchor = (ssize_t) index;
+        tkbc_live_editor_set_kite_mark(env, kite_ids[index], !marked);
+        return;
+    }
+
+    tkbc_live_editor_clear_kite_marks(env);
+    editor->kite_mark_anchor = (ssize_t) index;
+    tkbc_live_editor_set_kite_mark(env, kite_ids[index], true);
+}
+
+/**
  * @brief Draws a tooltip for a live editor control under the mouse.
  */
 static void tkbc_live_editor_control_tooltip(Env *env, Vector2 mouse, float padding, const char *text) {
@@ -2603,6 +2648,7 @@ void tkbc_ui_live_script_editor(Env *env) {
         editor->action_drag_active = false;
         editor->drag_target_index = -1;
         tkbc_live_editor_clear_selection(editor);
+        tkbc_live_editor_clear_kite_marks(env);
         env->script_menu_interaction = true;
         return;
     }
@@ -2626,10 +2672,19 @@ void tkbc_ui_live_script_editor(Env *env) {
     const char *kites_title = "KITES";
     DrawTextEx(env->font, kites_title, (Vector2){left.x + padding, left.y + padding},
                TKBC_LIVE_EDITOR_SECTION_FONT_SIZE, TKBC_LIVE_EDITOR_TEXT_SPACING, TKBC_UI_WHITE);
-    Rectangle add_kite_box = {left.x + padding, left.y + padding + section_title_offset, left.width - 2 * padding,
+    const float kite_button_gap = padding;
+    const float kite_button_width = fmaxf((left.width - 2 * padding - kite_button_gap) * 0.5f, 0.0f);
+    Rectangle add_kite_box = {left.x + padding, left.y + padding + section_title_offset, kite_button_width,
                               row_height};
     if (tkbc_live_editor_button(env, add_kite_box, "ADD KITE", script != NULL, false)) {
         tkbc_live_editor_add_kite(env);
+        script = tkbc_find_script_by_id(env, editor->script_id);
+    }
+    Rectangle delete_kites_box = {add_kite_box.x + kite_button_width + kite_button_gap, add_kite_box.y,
+                                  kite_button_width, row_height};
+    bool has_marked_kites = script != NULL && editor->marked_kites.count > 0;
+    if (tkbc_live_editor_button(env, delete_kites_box, "DELETE KITES", has_marked_kites, false)) {
+        tkbc_live_editor_delete_marked_kites(env);
         script = tkbc_find_script_by_id(env, editor->script_id);
     }
 
@@ -2661,19 +2716,33 @@ void tkbc_ui_live_script_editor(Env *env) {
                 kite_content.width,
                 row_height - 4.0f,
             };
-            DrawRectangleRounded(kite_box, panel_roundness, panel_corner_segments, TKBC_UI_GRAY_ALPHA);
-
             Id kite_id = kite_ids[i];
+            bool owned = script && tkbc_contains_id(script->owned_kite_ids, kite_id);
+            bool marked = tkbc_contains_id(editor->marked_kites, kite_id);
             float check_radius = kite_box.height * 0.35f;
             Vector2 check_center = {kite_box.x + padding + check_radius, kite_box.y + kite_box.height / 2};
             bool check_hovered = CheckCollisionPointCircle(mouse, check_center, check_radius);
+            const float x_radius = kite_box.height * 0.4f;
+            Vector2 x_center = {kite_box.x + kite_box.width - x_radius - 4.0f, kite_box.y + kite_box.height / 2};
+            bool remove_hovered = owned && CheckCollisionPointCircle(mouse, x_center, x_radius);
+            bool row_hovered = CheckCollisionPointRec(mouse, kite_box);
+
+            if (marked || row_hovered) {
+                DrawRectangleRounded(kite_box, panel_roundness, panel_corner_segments, TKBC_UI_DARKPURPLE_ALPHA);
+            } else {
+                DrawRectangleRounded(kite_box, panel_roundness, panel_corner_segments, TKBC_UI_GRAY_ALPHA);
+            }
+            if (marked) {
+                DrawRectangleRoundedLinesEx(kite_box, panel_roundness, panel_corner_segments, 2, TKBC_UI_PURPLE);
+            }
+
             tkbc_draw_circle_with_check_box(check_center, check_radius,
                                             tkbc_contains_id(editor->kite_selection, kite_id), TKBC_UI_WHITE);
             if (check_hovered && !editor->action_drag_active) {
                 tkbc_live_editor_control_tooltip(env, mouse, padding, "toggle kite for action");
             }
-            if (check_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                tkbc_live_editor_toggle_kite_selection(env, kite_id);
+            if (check_hovered && !editor->action_drag_active && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                tkbc_live_editor_toggle_marked_kite_selection(env, kite_id);
             }
 
             char label[kite_label_capacity];
@@ -2690,11 +2759,15 @@ void tkbc_ui_live_script_editor(Env *env) {
             DrawTextEx(env->font, label, (Vector2){label_box.x, kite_box.y + kite_box.height / 2 - text_size.y / 2},
                        kite_font, TKBC_LIVE_EDITOR_TEXT_SPACING, TKBC_UI_BLACK);
 
+            // A plain row click marks the kite, checkbox and remove clicks keep
+            // their own roles and never change the multi selection.
+            if (!editor->action_drag_active && row_hovered && !check_hovered && !remove_hovered &&
+                IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                tkbc_live_editor_apply_kite_click_selection(env, kite_ids, kite_count, i);
+            }
+
             // Only kites the script owns can be removed from it.
-            if (tkbc_contains_id(script->owned_kite_ids, kite_id)) {
-                const float x_radius = kite_box.height * 0.4f;
-                Vector2 x_center = {kite_box.x + kite_box.width - x_radius - 4.0f, kite_box.y + kite_box.height / 2};
-                bool remove_hovered = CheckCollisionPointCircle(mouse, x_center, x_radius);
+            if (owned) {
                 tkbc_draw_circle_with_x(x_center, x_radius, TKBC_UI_LIGHTGRAY_ALPHA);
                 if (remove_hovered && !editor->action_drag_active) {
                     tkbc_live_editor_control_tooltip(env, mouse, padding, "remove kite from script");
@@ -2884,13 +2957,18 @@ void tkbc_ui_live_script_editor(Env *env) {
         }
     }
 
-    // Delete/Backspace removes all marked actions at once, so a multi selection
-    // no longer has to be cleared row by row through the little X buttons. The
-    // name and value inputs keep their own editing keys.
+    // Delete/Backspace removes the marked kites first. Without a kite multi
+    // selection it keeps removing the marked actions as before. The name and
+    // value inputs keep their own editing keys.
     if (!env->text_input_active && !tkbc_live_editor_inputs_active(editor) &&
         !(script && script->name_input.is_active) && !editor->action_drag_active &&
         (IsKeyPressed(KEY_DELETE) || IsKeyPressed(KEY_BACKSPACE))) {
-        tkbc_live_editor_delete_selected_actions(env);
+        if (editor->marked_kites.count > 0) {
+            tkbc_live_editor_delete_marked_kites(env);
+            script = tkbc_find_script_by_id(env, editor->script_id);
+        } else {
+            tkbc_live_editor_delete_selected_actions(env);
+        }
     }
 
     /* ------------------------------ action list ----------------------------- */
@@ -3028,6 +3106,7 @@ void tkbc_ui_live_script_editor(Env *env) {
         editor->action_drag_active = false;
         editor->drag_target_index = -1;
         tkbc_live_editor_clear_selection(editor);
+        tkbc_live_editor_clear_kite_marks(env);
         env->script_menu_interaction = true;
     }
 }

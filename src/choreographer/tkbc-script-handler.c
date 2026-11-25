@@ -2663,6 +2663,20 @@ static void live_remove_target(Live_Action *action, Id kite_id) {
 }
 
 /**
+ * @brief Writes the current kite checkbox state into the action that is being
+ * edited and rebuilds the script once for the whole change.
+ */
+static void live_sync_selected_action(Env *env) {
+    Live_Editor *editor = &env->live_editor;
+    if (editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
+        Live_Action *action = &editor->actions.elements[editor->selected_action];
+        live_copy_kite_ids(&editor->kite_selection, &action->kite_ids);
+        editor->actions_changed = true;
+        tkbc_live_editor_apply_actions(env);
+    }
+}
+
+/**
  * @brief Enables or disables one kite for the action currently being edited.
  * When an action row is selected, its targets are updated right away.
  */
@@ -2676,13 +2690,65 @@ void tkbc_live_editor_toggle_kite_selection(Env *env, Id kite_id) {
     } else {
         live_append_id(&editor->kite_selection, kite_id);
     }
+    live_sync_selected_action(env);
+}
 
-    if (editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
-        Live_Action *action = &editor->actions.elements[editor->selected_action];
-        live_copy_kite_ids(&editor->kite_selection, &action->kite_ids);
-        editor->actions_changed = true;
-        tkbc_live_editor_apply_actions(env);
+/**
+ * @brief Drops the kite list multi selection and its shift range anchor.
+ */
+void tkbc_live_editor_clear_kite_marks(Env *env) {
+    if (!env) {
+        return;
     }
+    Live_Editor *editor = &env->live_editor;
+    live_free_kite_ids(&editor->marked_kites);
+    editor->kite_mark_anchor = -1;
+}
+
+/**
+ * @brief Adds or removes one kite from the kite list multi selection. The
+ * marked kites are kept separate from the checkbox state so checking a box
+ * never changes which rows are marked.
+ */
+void tkbc_live_editor_set_kite_mark(Env *env, Id kite_id, bool marked) {
+    if (!env) {
+        return;
+    }
+    Kite_Ids *marks = &env->live_editor.marked_kites;
+    if (marked) {
+        live_append_id(marks, kite_id);
+    } else {
+        live_remove_id(marks, kite_id);
+    }
+}
+
+/**
+ * @brief Toggles the checkboxes of all marked kites at once. The clicked box
+ * decides the new state: checking it checks the whole selection, unchecking it
+ * unchecks the whole selection. A click on an unmarked row still toggles only
+ * that one kite.
+ */
+void tkbc_live_editor_toggle_marked_kite_selection(Env *env, Id kite_id) {
+    if (!env) {
+        return;
+    }
+    Live_Editor *editor = &env->live_editor;
+    bool batch = editor->marked_kites.count > 1 && tkbc_contains_id(editor->marked_kites, kite_id);
+    if (!batch) {
+        tkbc_live_editor_toggle_kite_selection(env, kite_id);
+        return;
+    }
+
+    bool enable = !tkbc_contains_id(editor->kite_selection, kite_id);
+    for (size_t i = 0; i < editor->marked_kites.count; ++i) {
+        Id marked_id = editor->marked_kites.elements[i];
+        if (enable) {
+            live_append_id(&editor->kite_selection, marked_id);
+        } else {
+            live_remove_id(&editor->kite_selection, marked_id);
+        }
+    }
+    live_sync_selected_action(env);
 }
 
 /**
@@ -2698,7 +2764,9 @@ void tkbc_live_editor_clear_actions(Env *env) {
     }
     editor->actions.count = 0;
     live_free_kite_ids(&editor->kite_selection);
+    live_free_kite_ids(&editor->marked_kites);
     editor->selection_anchor = -1;
+    editor->kite_mark_anchor = -1;
     editor->actions_loaded = false;
     editor->actions_changed = false;
 }
@@ -3034,20 +3102,13 @@ void tkbc_live_editor_add_kite(Env *env) {
 }
 
 /**
- * @brief Removes a kite from the edited live script.
+ * @brief Removes one kite from the script state without rebuilding the script.
+ * Callers deleting several kites apply the result once afterwards.
  *
- * @param env The global state of the application.
- * @param kite_id The id of the kite to remove.
+ * @return True when the kite was owned by the script and got removed.
  */
-void tkbc_live_editor_remove_kite(Env *env, Id kite_id) {
-    if (!env) {
-        return;
-    }
+static bool live_remove_kite_from_script(Env *env, Script *script, Id kite_id) {
     Live_Editor *editor = &env->live_editor;
-    Script *script = tkbc_find_script_by_id(env, editor->script_id);
-    if (!script) {
-        return;
-    }
 
     ssize_t found = -1;
     for (size_t i = 0; i < script->owned_kite_ids.count; ++i) {
@@ -3057,7 +3118,7 @@ void tkbc_live_editor_remove_kite(Env *env, Id kite_id) {
         }
     }
     if (found == -1) {
-        return;
+        return false;
     }
     // A kite that another script still owns must stay in the kite array.
     for (size_t i = 0; i < env->scripts.count; ++i) {
@@ -3066,7 +3127,7 @@ void tkbc_live_editor_remove_kite(Env *env, Id kite_id) {
             continue;
         }
         if (tkbc_contains_id(other->owned_kite_ids, kite_id)) {
-            return;
+            return false;
         }
     }
 
@@ -3079,9 +3140,61 @@ void tkbc_live_editor_remove_kite(Env *env, Id kite_id) {
         live_remove_target(&editor->actions.elements[a], kite_id);
     }
     live_remove_id(&editor->kite_selection, kite_id);
+    // Kite rows are ordered by id, so removing one invalidates every row index.
+    editor->kite_mark_anchor = -1;
     tkbc_remove_unordered_kite_from_list(&env->kite_array, kite_id);
+    return true;
+}
+
+/**
+ * @brief Removes a kite from the edited live script.
+ *
+ * @param env The global state of the application.
+ * @param kite_id The id of the kite to remove.
+ */
+void tkbc_live_editor_remove_kite(Env *env, Id kite_id) {
+    if (!env) {
+        return;
+    }
+    Live_Editor *editor = &env->live_editor;
+    Script *script = tkbc_find_script_by_id(env, editor->script_id);
+    if (!script || !live_remove_kite_from_script(env, script, kite_id)) {
+        return;
+    }
+    live_remove_id(&editor->marked_kites, kite_id);
     editor->actions_changed = true;
     tkbc_live_editor_apply_actions(env);
+}
+
+/**
+ * @brief Removes every marked kite of the kite list at once. The script is
+ * rebuilt only once for the whole batch instead of once per removed kite.
+ *
+ * @param env The global state of the application.
+ * @return The number of kites that got deleted.
+ */
+size_t tkbc_live_editor_delete_marked_kites(Env *env) {
+    if (!env) {
+        return 0;
+    }
+    Live_Editor *editor = &env->live_editor;
+    Script *script = tkbc_find_script_by_id(env, editor->script_id);
+    if (!script || editor->marked_kites.count == 0) {
+        return 0;
+    }
+
+    size_t deleted = 0;
+    for (size_t i = 0; i < editor->marked_kites.count; ++i) {
+        if (live_remove_kite_from_script(env, script, editor->marked_kites.elements[i])) {
+            deleted += 1;
+        }
+    }
+    tkbc_live_editor_clear_kite_marks(env);
+    if (deleted > 0) {
+        editor->actions_changed = true;
+        tkbc_live_editor_apply_actions(env);
+    }
+    return deleted;
 }
 
 /**
@@ -3107,6 +3220,7 @@ void tkbc_live_editor_finalize(Env *env) {
     env->live_editor.action_drag_active = false;
     env->live_editor.drag_target_index = -1;
     env->live_editor.selection_anchor = -1;
+    tkbc_live_editor_clear_kite_marks(env);
     env->live_editor.kite_scrollbar.interaction = false;
     env->live_editor.scrollbar.interaction = false;
     env->script_menu_interaction = true;

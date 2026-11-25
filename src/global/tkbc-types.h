@@ -550,6 +550,8 @@ typedef struct {
     Live_Bezier_Kind bezier_kind;  // The curve kind selected in the palette.
     bool join_set;               // The next action is added to the current SET block.
     Kite_Ids kite_selection;     // Kites enabled for the action currently being edited.
+    Kite_Ids marked_kites;       // UI only: kites marked in the kite list (ctrl/shift click).
+    ssize_t kite_mark_anchor;    // Row of the kite list that starts a shift range, -1 when unset.
     TIP tip;                     // The tip selected for tip rotations.
     ssize_t selected_action;     // Row of the action list that gets edited, -1 for a new action.
     ssize_t selection_anchor;    // Origin of the current shift-click range, -1 when unset.
