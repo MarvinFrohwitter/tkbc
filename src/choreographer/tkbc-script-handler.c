@@ -3102,7 +3102,8 @@ void tkbc_live_editor_apply_actions(Env *env) {
 
 /**
  * @brief Adds one new kite to the edited live script and rebuilds its frames so
- * the new kite is used by all kite actions.
+ * the new kite is used by all kite actions. Its checkbox starts unchecked, so
+ * it is not automatically part of the checkbox selection being edited.
  *
  * @param env The global state of the application.
  */
@@ -3129,7 +3130,8 @@ void tkbc_live_editor_add_kite(Env *env) {
         for (size_t a = 0; a < editor->actions.count; ++a) {
             live_append_target(&editor->actions.elements[a], kite_id);
         }
-        live_append_id(&editor->kite_selection, kite_id);
+        // The new kite is only added to the script and its actions. Its checkbox
+        // stays off until the user explicitly enables it for an action.
     }
     free(generated.elements);
     tkbc_reset_script_scratch_creation(env);
