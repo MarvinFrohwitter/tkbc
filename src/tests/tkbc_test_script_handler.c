@@ -1292,6 +1292,57 @@ Test script_kite_ownership_is_not_position_based(void) {
     return test;
 }
 
+Test live_editor_apply_keeps_running_script_loaded(void) {
+    Test test = cassert_init_test("tkbc_live_editor_apply_actions(keeps running script)");
+    Env *env = tkbc_init_env();
+
+    Kite_State kite = tkbc_init_kite();
+    kite.kite_id = 0;
+    kite.is_active = true;
+    kite.is_script_kite = true;
+    Vector2 start = {0};
+    tkbc_center_rotation(kite.kite, &start, 0);
+    kite.kite->old_center = kite.kite->center;
+    kite.kite->old_angle = kite.kite->angle;
+    tkbc_dap(&env->kite_array, kite);
+
+    Script *scratch = &env->scratch_buf_script;
+    scratch->id = tkbc_uuid_from_number(1);
+    Action move = {0};
+    move.as_move.position = (Vector2){.x = 60.0f, .y = 0};
+    upscale_test_build_script(scratch, 0, ACTION_KITE_MOVE, move, 1.0f, start, 0);
+    space_dap(&scratch->space, &scratch->owned_kite_ids, (Id) 0);
+    tkbc_add_script(env, *scratch, false);
+
+    UUID script_id = env->scripts.elements[0].id;
+    cassert_bool_eq(tkbc_load_script_id(env, script_id, false), true);
+    size_t loaded_frames_count = env->script->count;
+    env->script_finished = false;
+    env->server_script_id = script_id;
+    env->server_script_frames_count = loaded_frames_count;
+    env->server_script_frames_index = 0;
+
+    // An edit that leaves no authored actions still rebuilds the script. The
+    // loaded script must stay active instead of falling into "no script".
+    Live_Editor *editor = &env->live_editor;
+    editor->script_id = script_id;
+    editor->actions_loaded = true;
+    editor->actions_changed = true;
+    tkbc_live_editor_apply_actions(env);
+
+    cassert_ptr_neq(env->script, NULL);
+    cassert_ptr_neq(env->frames, NULL);
+    cassert_bool_eq(tkbc_uuid_equals(env->script->id, script_id), true);
+    cassert_bool_eq(env->script_finished, false);
+    cassert_bool_eq(tkbc_uuid_equals(env->server_script_id, script_id), true);
+    cassert_size_t_eq(env->server_script_frames_count, loaded_frames_count);
+    cassert_size_t_eq(env->server_script_frames_index, (size_t) 0);
+    cassert_bool_eq(env->kite_array.elements[0].is_active, true);
+
+    tkbc_destroy_env(env);
+    return test;
+}
+
 /**
  * @brief Run all script handler unit tests.
  *
@@ -1323,4 +1374,5 @@ void tkbc_test_script_handler(Tests *tests) {
     cassert_dap(tests, export_script_maps_kite_ids_to_file_indices());
     cassert_dap(tests, script_kite_ownership_is_not_position_based());
     cassert_dap(tests, fresh_load_clears_previous_kite_positions());
+    cassert_dap(tests, live_editor_apply_keeps_running_script_loaded());
 }

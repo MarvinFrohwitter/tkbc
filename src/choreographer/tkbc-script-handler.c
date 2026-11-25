@@ -2953,6 +2953,34 @@ void tkbc_live_editor_normalize_set_flags(Live_Editor *editor) {
 }
 
 /**
+ * @brief Reloads a script that was executing before a live-editor rebuild and
+ * restores the coarse playback state. The rebuild replaces every Frames block,
+ * so keeping the old env->script/env->frames views would leave dangling
+ * pointers and make the app report that no script is executing.
+ */
+static void live_restore_executing_script(Env *env, UUID script_id, bool had_frames, Index frames_index,
+                                          bool script_finished, bool script_loading, UUID server_script_id,
+                                          size_t server_frames_count, size_t server_frames_index) {
+    if (tkbc_load_script_id(env, script_id, false)) {
+        if (had_frames) {
+            // A scrub restores the frame durations and the kite geometry for
+            // the block that was active before the rebuild. The index is
+            // clamped by the helper if the edit made the script shorter.
+            tkbc_scrub_to_index(env, frames_index);
+        }
+        env->script_finished = script_finished;
+        env->script_loading = script_loading;
+    }
+
+    // tkbc_unload_script() also clears the server view. The server is still on
+    // the old script until the user explicitly re-sends this edit, so restore
+    // the values it reported instead of falling back to "no script".
+    env->server_script_id = server_script_id;
+    env->server_script_frames_count = server_frames_count;
+    env->server_script_frames_index = server_frames_index;
+}
+
+/**
  * @brief Rebuilds the frames of the edited live script from the actions in the
  * editor. Consecutive actions marked as a SET are registered as one parallel
  * frame block. Every change marks the script as unsent so the explicit send
@@ -2978,8 +3006,27 @@ void tkbc_live_editor_apply_actions(Env *env) {
     }
 
     // A rebuilt script has different Frames pointers. Never leave env->frames
-    // pointing into the old blocks.
+    // pointing into the old blocks. Remember the execution state so the script
+    // can be loaded again after the new blocks are committed.
+    bool was_executing_edited_script = false;
+    bool had_frames = false;
+    Index frames_index = 0;
+    bool script_finished = false;
+    bool script_loading = false;
+    UUID loaded_script_id = tkbc_uuid_nil();
+    UUID server_script_id = env->server_script_id;
+    size_t server_frames_count = env->server_script_frames_count;
+    size_t server_frames_index = env->server_script_frames_index;
+
     if (env->script && tkbc_uuid_equals(env->script->id, editor->script_id)) {
+        was_executing_edited_script = true;
+        loaded_script_id = env->script->id;
+        had_frames = env->frames != NULL;
+        if (env->frames) {
+            frames_index = env->frames->frames_index;
+        }
+        script_finished = env->script_finished;
+        script_loading = env->script_loading;
         tkbc_unload_script(env);
     }
 
@@ -3044,12 +3091,20 @@ void tkbc_live_editor_apply_actions(Env *env) {
     size_t new_count = env->scratch_buf_script.count;
     if (new_count == 0) {
         tkbc_reset_script_scratch_creation(env);
+        if (was_executing_edited_script) {
+            live_restore_executing_script(env, loaded_script_id, had_frames, frames_index, script_finished,
+                                          script_loading, server_script_id, server_frames_count, server_frames_index);
+        }
         return;
     }
 
     Frames *blocks = space_malloc(&script->space, sizeof(*blocks) * new_count);
     if (!blocks) {
         tkbc_reset_script_scratch_creation(env);
+        if (was_executing_edited_script) {
+            live_restore_executing_script(env, loaded_script_id, had_frames, frames_index, script_finished,
+                                          script_loading, server_script_id, server_frames_count, server_frames_index);
+        }
         return;
     }
     for (size_t i = 0; i < new_count; ++i) {
@@ -3098,6 +3153,11 @@ void tkbc_live_editor_apply_actions(Env *env) {
     // old version first and register this one as a new script.
     script->was_send = false;
     tkbc_reset_script_scratch_creation(env);
+
+    if (was_executing_edited_script) {
+        live_restore_executing_script(env, loaded_script_id, had_frames, frames_index, script_finished, script_loading,
+                                      server_script_id, server_frames_count, server_frames_index);
+    }
 }
 
 /**
