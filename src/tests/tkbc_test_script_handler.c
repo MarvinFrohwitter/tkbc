@@ -1343,6 +1343,90 @@ Test live_editor_apply_keeps_running_script_loaded(void) {
     return test;
 }
 
+Test live_editor_kite_toggle_updates_marked_actions(void) {
+    Test test = cassert_init_test("tkbc_live_editor_toggle_kite_selection(marked actions)");
+    Env *env = tkbc_init_env();
+
+    // The rebuild prunes ids that have no kite, so register kites 0, 1 and 2.
+    for (Id id = 0; id < 3; ++id) {
+        Kite_State kite = tkbc_init_kite();
+        kite.kite_id = id;
+        kite.is_active = true;
+        kite.is_script_kite = true;
+        Vector2 start = {0};
+        tkbc_center_rotation(kite.kite, &start, 0);
+        kite.kite->old_center = kite.kite->center;
+        kite.kite->old_angle = kite.kite->angle;
+        tkbc_dap(&env->kite_array, kite);
+    }
+
+    UUID script_id = tkbc_create_live_script(env);
+    Live_Editor *editor = &env->live_editor;
+    editor->script_id = script_id;
+    editor->actions_loaded = true;
+
+    Live_Action first = {.kind = ACTION_KITE_MOVE, .duration = 1.0f, .selected = true};
+    Live_Action second = {.kind = ACTION_KITE_MOVE, .duration = 1.0f, .selected = true};
+    Id first_ids[] = {0};
+    Id second_ids[] = {1, 0};
+    Kite_Ids source = {.elements = first_ids, .count = 1, .capacity = 1, .script_id_append = false};
+    tkbc_live_editor_copy_kite_ids(&source, &first.kite_ids);
+    source.elements = second_ids;
+    source.count = 2;
+    source.capacity = 2;
+    tkbc_live_editor_copy_kite_ids(&source, &second.kite_ids);
+    tkbc_dap(&editor->actions, first);
+    tkbc_dap(&editor->actions, second);
+    editor->selected_action = 0;
+    tkbc_live_editor_copy_kite_ids(&first.kite_ids, &editor->kite_selection);
+
+    // Checking one of two marked kites checks the whole kite selection and
+    // adds both kites to every marked action without losing their own targets.
+    tkbc_live_editor_set_kite_mark(env, 1, true);
+    tkbc_live_editor_set_kite_mark(env, 2, true);
+    tkbc_live_editor_toggle_marked_kite_selection(env, 1);
+    cassert_bool_eq(tkbc_contains_id(editor->kite_selection, 2), true);
+    cassert_bool_eq(tkbc_contains_id(editor->actions.elements[0].kite_ids, 1), true);
+    cassert_bool_eq(tkbc_contains_id(editor->actions.elements[0].kite_ids, 2), true);
+    cassert_size_t_eq(editor->actions.elements[1].kite_ids.count, (size_t) 3);
+    cassert_bool_eq(tkbc_contains_id(editor->actions.elements[1].kite_ids, 1), true);
+    cassert_bool_eq(tkbc_contains_id(editor->actions.elements[1].kite_ids, 2), true);
+
+    // Unchecking it removes both kites from every marked action again while
+    // kites that were not part of the batch stay intact.
+    tkbc_live_editor_toggle_marked_kite_selection(env, 1);
+    cassert_bool_eq(tkbc_contains_id(editor->kite_selection, 2), false);
+    cassert_size_t_eq(editor->actions.elements[0].kite_ids.count, (size_t) 1);
+    cassert_size_t_eq(editor->actions.elements[1].kite_ids.count, (size_t) 1);
+    cassert_bool_eq(tkbc_contains_id(editor->actions.elements[1].kite_ids, 0), true);
+
+    // A plain checkbox click applies the single kite to the whole action
+    // selection as well.
+    tkbc_live_editor_toggle_kite_selection(env, 2);
+    cassert_bool_eq(tkbc_contains_id(editor->actions.elements[0].kite_ids, 2), true);
+    cassert_size_t_eq(editor->actions.elements[1].kite_ids.count, (size_t) 2);
+    cassert_bool_eq(tkbc_contains_id(editor->actions.elements[1].kite_ids, 2), true);
+
+    // The active row is still updated when it is not part of the multi
+    // selection.
+    editor->actions.elements[0].selected = false;
+    editor->actions.elements[1].selected = false;
+    editor->selected_action = 1;
+    tkbc_live_editor_toggle_kite_selection(env, 1);
+    cassert_bool_eq(tkbc_contains_id(editor->actions.elements[1].kite_ids, 1), true);
+
+    // Removing the last kites of every marked action still rebuilds the script.
+    editor->actions.elements[0].selected = true;
+    editor->actions.elements[1].selected = true;
+    tkbc_live_editor_set_kite_mark(env, 0, true);
+    tkbc_live_editor_toggle_marked_kite_selection(env, 0);
+    cassert_size_t_eq(editor->actions.elements[0].kite_ids.count, (size_t) 0);
+    cassert_size_t_eq(editor->actions.elements[1].kite_ids.count, (size_t) 0);
+
+    tkbc_destroy_env(env);
+    return test;
+}
+
 /**
  * @brief Run all script handler unit tests.
  *
@@ -1375,4 +1459,5 @@ void tkbc_test_script_handler(Tests *tests) {
     cassert_dap(tests, script_kite_ownership_is_not_position_based());
     cassert_dap(tests, fresh_load_clears_previous_kite_positions());
     cassert_dap(tests, live_editor_apply_keeps_running_script_loaded());
+    cassert_dap(tests, live_editor_kite_toggle_updates_marked_actions());
 }

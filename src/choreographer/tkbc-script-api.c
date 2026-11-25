@@ -293,7 +293,13 @@ Frame *tkbc__frame_generate(Env *env, Action_Kind kind, Kite_Ids kite_ids, Actio
     }
 
     if (kind != ACTION_KITE_QUIT && kind != ACTION_KITE_WAIT) {
-        space_dapc(&env->scratch_buf_script.space, &frame->kite_id_array, kite_ids.elements, kite_ids.count);
+        // An empty action has nothing to copy. Passing a zero count to the
+        // dynamic array append would still memcpy into its unallocated buffer.
+        //
+        // Because the live editor can have actions without kites that are is any action this is needed.
+        if (kite_ids.count > 0 && kite_ids.elements) {
+            space_dapc(&env->scratch_buf_script.space, &frame->kite_id_array, kite_ids.elements, kite_ids.count);
+        }
 
         if (kite_ids.script_id_append) {
             frame->kite_id_array.script_id_append = true;

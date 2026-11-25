@@ -2693,14 +2693,39 @@ static void live_prune_kite_ids(Env *env, Kite_Ids *ids) {
 }
 
 /**
- * @brief Writes the current kite checkbox state into the action that is being
- * edited and rebuilds the script once for the whole change.
+ * @brief Writes one checkbox change into every marked action and the active
+ * row, then rebuilds the script once for the whole change. Kites are added or
+ * removed per action so targets the multi selection does not share survive.
+ *
+ * @param env The global state of the application.
+ * @param kite_ids The kites whose checkbox state changed.
+ * @param enable True when the kites were checked, false when they were unchecked.
  */
-static void live_sync_selected_action(Env *env) {
+static void live_sync_kite_selection(Env *env, const Kite_Ids *kite_ids, bool enable) {
+    if (!env || !kite_ids) {
+        return;
+    }
     Live_Editor *editor = &env->live_editor;
-    if (editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
-        Live_Action *action = &editor->actions.elements[editor->selected_action];
-        live_copy_kite_ids(&editor->kite_selection, &action->kite_ids);
+    bool changed = false;
+    for (size_t i = 0; i < editor->actions.count; ++i) {
+        Live_Action *action = &editor->actions.elements[i];
+        bool active = editor->selected_action >= 0 && (size_t) editor->selected_action == i;
+        if (!action->selected && !active) {
+            continue;
+        }
+        for (size_t k = 0; k < kite_ids->count; ++k) {
+            Id kite_id = kite_ids->elements[k];
+            bool has_kite = tkbc_contains_id(action->kite_ids, kite_id);
+            if (enable && !has_kite) {
+                live_append_id(&action->kite_ids, kite_id);
+                changed = true;
+            } else if (!enable && has_kite) {
+                live_remove_id(&action->kite_ids, kite_id);
+                changed = true;
+            }
+        }
+    }
+    if (changed) {
         editor->actions_changed = true;
         tkbc_live_editor_apply_actions(env);
     }
@@ -2708,19 +2733,27 @@ static void live_sync_selected_action(Env *env) {
 
 /**
  * @brief Enables or disables one kite for the action currently being edited.
- * When an action row is selected, its targets are updated right away.
+ * The same change is applied to every marked action of the action list.
  */
 void tkbc_live_editor_toggle_kite_selection(Env *env, Id kite_id) {
     if (!env) {
         return;
     }
     Live_Editor *editor = &env->live_editor;
+    bool enable = false;
     if (tkbc_contains_id(editor->kite_selection, kite_id)) {
         live_remove_id(&editor->kite_selection, kite_id);
     } else {
         live_append_id(&editor->kite_selection, kite_id);
+        enable = true;
     }
-    live_sync_selected_action(env);
+    Kite_Ids changed = {
+        .elements = &kite_id,
+        .count = 1,
+        .capacity = 1,
+        .script_id_append = false,
+    };
+    live_sync_kite_selection(env, &changed, enable);
 }
 
 /**
@@ -2756,7 +2789,8 @@ void tkbc_live_editor_set_kite_mark(Env *env, Id kite_id, bool marked) {
 /**
  * @brief Toggles the checkboxes of all marked kites at once. The clicked box
  * decides the new state: checking it checks the whole selection, unchecking it
- * unchecks the whole selection. A click on an unmarked row still toggles only
+ * unchecks the whole selection. The marked kites are added to or removed from
+ * every marked action as well. A click on an unmarked row still toggles only
  * that one kite.
  */
 void tkbc_live_editor_toggle_marked_kite_selection(Env *env, Id kite_id) {
@@ -2779,7 +2813,7 @@ void tkbc_live_editor_toggle_marked_kite_selection(Env *env, Id kite_id) {
             live_remove_id(&editor->kite_selection, marked_id);
         }
     }
-    live_sync_selected_action(env);
+    live_sync_kite_selection(env, &editor->marked_kites, enable);
 }
 
 /**
