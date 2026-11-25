@@ -2742,6 +2742,7 @@ void tkbc_ui_live_script_editor(Env *env) {
                 tkbc_live_editor_control_tooltip(env, mouse, padding, "toggle kite for action");
             }
             if (check_hovered && !editor->action_drag_active && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                editor->kite_list_focused = true;
                 tkbc_live_editor_toggle_marked_kite_selection(env, kite_id);
             }
 
@@ -2763,6 +2764,7 @@ void tkbc_ui_live_script_editor(Env *env) {
             // their own roles and never change the multi selection.
             if (!editor->action_drag_active && row_hovered && !check_hovered && !remove_hovered &&
                 IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                editor->kite_list_focused = true;
                 tkbc_live_editor_apply_kite_click_selection(env, kite_ids, kite_count, i);
             }
 
@@ -2957,13 +2959,13 @@ void tkbc_ui_live_script_editor(Env *env) {
         }
     }
 
-    // Delete/Backspace removes the marked kites first. Without a kite multi
-    // selection it keeps removing the marked actions as before. The name and
-    // value inputs keep their own editing keys.
+    // Delete/Backspace acts on the list that was clicked last: marked kites in
+    // the kite list, or marked actions in the action list. The name and value
+    // inputs keep their own editing keys.
     if (!env->text_input_active && !tkbc_live_editor_inputs_active(editor) &&
         !(script && script->name_input.is_active) && !editor->action_drag_active &&
         (IsKeyPressed(KEY_DELETE) || IsKeyPressed(KEY_BACKSPACE))) {
-        if (editor->marked_kites.count > 0) {
+        if (editor->kite_list_focused) {
             tkbc_live_editor_delete_marked_kites(env);
             script = tkbc_find_script_by_id(env, editor->script_id);
         } else {
@@ -2989,15 +2991,18 @@ void tkbc_ui_live_script_editor(Env *env) {
 
     BeginScissorMode(list_content.x, list_content.y, list_content.width, list_content.height);
     for (size_t i = editor->top_action; i < editor->actions.count && i < editor->top_action + screen_items; ++i) {
-        Rectangle row = {
-            list_content.x,
-            list_content.y + (i - editor->top_action) * row_height,
-            list_content.width,
-            row_height - 4.0f,
-        };
         size_t group_start = tkbc_live_editor_group_start(editor, i);
         size_t group_end = tkbc_live_editor_group_end(editor, i);
         bool grouped = group_end > group_start;
+        // SET groups are drawn as an indented list. The connector stays in the
+        // gutter at the original left edge so it still links the whole group.
+        const float group_indent = grouped ? padding : 0.0f;
+        Rectangle row = {
+            list_content.x + group_indent,
+            list_content.y + (i - editor->top_action) * row_height,
+            list_content.width - group_indent,
+            row_height - 4.0f,
+        };
         bool drag_source = editor->action_drag_active && editor->drag_action_index == (ssize_t) i;
         bool drop_target = editor->action_drag_active && editor->drag_target_index == (ssize_t) i;
         bool row_hovered = CheckCollisionPointRec(mouse, row);
@@ -3018,7 +3023,7 @@ void tkbc_ui_live_script_editor(Env *env) {
 
         if (grouped) {
             const float marker_radius = 3.0f;
-            float marker_x = row.x + padding * 0.5f;
+            float marker_x = list_content.x + padding * 0.5f;
             float marker_y = row.y + row.height / 2;
             if (i > group_start) {
                 DrawLineEx((Vector2){marker_x, row.y}, (Vector2){marker_x, marker_y}, 2, TKBC_UI_PURPLE);
@@ -3055,6 +3060,7 @@ void tkbc_ui_live_script_editor(Env *env) {
         // clicks are reserved for dragging the clicked row or, when it is
         // marked, the complete selection without changing that selection.
         if (!editor->action_drag_active && row_hovered && !remove_hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            editor->kite_list_focused = false;
             tkbc_live_editor_apply_click_selection(editor, i);
             editor->selected_action = (ssize_t) i;
             tkbc_live_editor_copy_kite_ids(&editor->actions.elements[i].kite_ids, &editor->kite_selection);
@@ -3082,7 +3088,7 @@ void tkbc_ui_live_script_editor(Env *env) {
 
         char label[action_label_capacity];
         tkbc_live_editor_action_text(&editor->actions.elements[i], label, sizeof(label));
-        float label_x = row.x + padding + (grouped ? padding : 0.0f);
+        float label_x = row.x + padding;
         Rectangle label_box = {
             label_x,
             row.y,

@@ -9924,6 +9924,7 @@ static const char* global_api_header_string =
 "    Kite_Ids kite_selection;     // Kites enabled for the action currently being edited.\n"
 "    Kite_Ids marked_kites;       // UI only: kites marked in the kite list (ctrl/shift click).\n"
 "    ssize_t kite_mark_anchor;    // Row of the kite list that starts a shift range, -1 when unset.\n"
+"    bool kite_list_focused;      // Last list clicked; decides what Delete/Backspace removes.\n"
 "    TIP tip;                     // The tip selected for tip rotations.\n"
 "    ssize_t selected_action;     // Row of the action list that gets edited, -1 for a new action.\n"
 "    ssize_t selection_anchor;    // Origin of the current shift-click range, -1 when unset.\n"

@@ -2646,20 +2646,50 @@ static void live_append_target(Live_Action *action, Id kite_id) {
 }
 
 static void live_remove_id(Kite_Ids *ids, Id kite_id) {
-    for (size_t i = 0; i < ids->count; ++i) {
-        if (ids->elements[i] != kite_id) {
+    // Remove every occurrence. Loaded scripts can contain duplicate ids, and
+    // leaving one behind would rebuild frames that reference a deleted kite.
+    size_t write = 0;
+    for (size_t read = 0; read < ids->count; ++read) {
+        if (ids->elements[read] == kite_id) {
             continue;
         }
-        if (i + 1 < ids->count) {
-            memmove(&ids->elements[i], &ids->elements[i + 1], (ids->count - i - 1) * sizeof(*ids->elements));
+        if (write != read) {
+            ids->elements[write] = ids->elements[read];
         }
-        ids->count -= 1;
-        return;
+        ++write;
     }
+    ids->count = write;
 }
 
 static void live_remove_target(Live_Action *action, Id kite_id) {
     live_remove_id(&action->kite_ids, kite_id);
+}
+
+/**
+ * @brief Drops ids that no longer have a kite and any duplicates. Editor state
+ * can be loaded from older scripts, and the frame builder asserts that every
+ * referenced id resolves to a live kite.
+ */
+static void live_prune_kite_ids(Env *env, Kite_Ids *ids) {
+    size_t write = 0;
+    for (size_t read = 0; read < ids->count; ++read) {
+        Id kite_id = ids->elements[read];
+        if (!tkbc_get_kite_state_by_id(env, kite_id)) {
+            continue;
+        }
+        bool duplicate = false;
+        for (size_t i = 0; i < write; ++i) {
+            if (ids->elements[i] == kite_id) {
+                duplicate = true;
+                break;
+            }
+        }
+        if (duplicate) {
+            continue;
+        }
+        ids->elements[write++] = kite_id;
+    }
+    ids->count = write;
 }
 
 /**
@@ -2703,6 +2733,7 @@ void tkbc_live_editor_clear_kite_marks(Env *env) {
     Live_Editor *editor = &env->live_editor;
     live_free_kite_ids(&editor->marked_kites);
     editor->kite_mark_anchor = -1;
+    editor->kite_list_focused = false;
 }
 
 /**
@@ -2764,9 +2795,8 @@ void tkbc_live_editor_clear_actions(Env *env) {
     }
     editor->actions.count = 0;
     live_free_kite_ids(&editor->kite_selection);
-    live_free_kite_ids(&editor->marked_kites);
+    tkbc_live_editor_clear_kite_marks(env);
     editor->selection_anchor = -1;
-    editor->kite_mark_anchor = -1;
     editor->actions_loaded = false;
     editor->actions_changed = false;
 }
@@ -2935,6 +2965,12 @@ void tkbc_live_editor_apply_actions(Env *env) {
         return;
     }
     Live_Editor *editor = &env->live_editor;
+    // Clean up ids left behind by deleted kites or loaded from older scripts
+    // before they reach the frame builder's "every id must exist" assertion.
+    live_prune_kite_ids(env, &editor->kite_selection);
+    for (size_t a = 0; a < editor->actions.count; ++a) {
+        live_prune_kite_ids(env, &editor->actions.elements[a].kite_ids);
+    }
     tkbc_live_editor_normalize_set_flags(editor);
     Script *script = tkbc_find_script_by_id(env, editor->script_id);
     if (!script) {
