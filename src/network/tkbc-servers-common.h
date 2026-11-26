@@ -549,7 +549,7 @@ static inline void tkbc_message_append_image_data(Space *space, Message *message
     tkbc_message_write_bytes(message, space, png_data, (size_t) png_size);
 
     if (!borrowed && png_data != NULL) {
-        MemFree(png_data);
+        free(png_data);
     }
 }
 

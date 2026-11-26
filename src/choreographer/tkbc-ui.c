@@ -362,7 +362,7 @@ void tkbc_update_kite_texture_region(Kite_Texture *kite_texture, Kite_Image kite
     if (region_size >= full_size / 2) {
         UpdateTexture(kite_texture->normal, kite_image.normal.data);
     } else {
-        unsigned char *pixels = (unsigned char *) MemAlloc(region_size);
+        unsigned char *pixels = (unsigned char *) malloc(region_size);
         assert(pixels != NULL && "Out of memory while updating a kite texture region");
         if (pixels == NULL) {
             return;
@@ -374,7 +374,7 @@ void tkbc_update_kite_texture_region(Kite_Texture *kite_texture, Kite_Image kite
         }
         UpdateTextureRec(kite_texture->normal,
                          (Rectangle){(float) x0, (float) y0, (float) region_width, (float) region_height}, pixels);
-        MemFree(pixels);
+        free(pixels);
     }
 
     // UpdateTextureRec()/UpdateTexture() only replace mip level 0.
@@ -4959,7 +4959,7 @@ bool tkbc_display_kite_designs(Env *env, Rectangle display_box, float padding) {
                                     tkbc_load_kite_texture_from_kite_image(upload, new_id);
                                 }
                             }
-                            MemFree(png);
+                            free(png);
                         }
                     }
 

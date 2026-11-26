@@ -970,7 +970,7 @@ static inline __attribute__((always_inline)) void tkbc_png_bits_reserve(Tkbc_Png
         capacity *= 2;
     }
 
-    unsigned char *data = (unsigned char *) MemRealloc(writer->data, (unsigned int) capacity);
+    unsigned char *data = (unsigned char *) realloc(writer->data, (unsigned int) capacity);
     if (data == NULL) {
         writer->failed = true;
         return;
@@ -1059,14 +1059,22 @@ static inline __attribute__((always_inline)) void tkbc_png_adler_state_update(Tk
         if (block > size) block = size;
         size_t i = 0;
         for (; i + 8 <= block; i += 8) {
-            state->a += data[i + 0]; state->b += state->a;
-            state->a += data[i + 1]; state->b += state->a;
-            state->a += data[i + 2]; state->b += state->a;
-            state->a += data[i + 3]; state->b += state->a;
-            state->a += data[i + 4]; state->b += state->a;
-            state->a += data[i + 5]; state->b += state->a;
-            state->a += data[i + 6]; state->b += state->a;
-            state->a += data[i + 7]; state->b += state->a;
+            state->a += data[i + 0];
+            state->b += state->a;
+            state->a += data[i + 1];
+            state->b += state->a;
+            state->a += data[i + 2];
+            state->b += state->a;
+            state->a += data[i + 3];
+            state->b += state->a;
+            state->a += data[i + 4];
+            state->b += state->a;
+            state->a += data[i + 5];
+            state->b += state->a;
+            state->a += data[i + 6];
+            state->b += state->a;
+            state->a += data[i + 7];
+            state->b += state->a;
         }
         for (; i < block; ++i) {
             state->a += data[i];
@@ -1085,8 +1093,10 @@ static inline __attribute__((always_inline)) void tkbc_png_adler_state_update(Tk
 
 // Computes the FNV-1a hash and the PNG Adler32 checksum in the same pass over
 // the pixels. This replaces two separate 84 MB scans when a design is saved.
-static inline __attribute__((always_inline)) uint64_t
-tkbc_fnv1a_and_adler_update(uint64_t hash, Tkbc_Png_Adler_State *adler, const unsigned char *data, size_t size) {
+static inline __attribute__((always_inline)) uint64_t tkbc_fnv1a_and_adler_update(uint64_t hash,
+                                                                                  Tkbc_Png_Adler_State *adler,
+                                                                                  const unsigned char *data,
+                                                                                  size_t size) {
     const uint64_t prime = 1099511628211ULL;
     while (size > 0) {
         size_t block = 4096 - adler->count;
@@ -1095,14 +1105,30 @@ tkbc_fnv1a_and_adler_update(uint64_t hash, Tkbc_Png_Adler_State *adler, const un
         for (; i + 8 <= block; i += 8) {
             uint64_t a = adler->a;
             uint64_t b = adler->b;
-            hash = (hash ^ data[i + 0]) * prime; a += data[i + 0]; b += a;
-            hash = (hash ^ data[i + 1]) * prime; a += data[i + 1]; b += a;
-            hash = (hash ^ data[i + 2]) * prime; a += data[i + 2]; b += a;
-            hash = (hash ^ data[i + 3]) * prime; a += data[i + 3]; b += a;
-            hash = (hash ^ data[i + 4]) * prime; a += data[i + 4]; b += a;
-            hash = (hash ^ data[i + 5]) * prime; a += data[i + 5]; b += a;
-            hash = (hash ^ data[i + 6]) * prime; a += data[i + 6]; b += a;
-            hash = (hash ^ data[i + 7]) * prime; a += data[i + 7]; b += a;
+            hash = (hash ^ data[i + 0]) * prime;
+            a += data[i + 0];
+            b += a;
+            hash = (hash ^ data[i + 1]) * prime;
+            a += data[i + 1];
+            b += a;
+            hash = (hash ^ data[i + 2]) * prime;
+            a += data[i + 2];
+            b += a;
+            hash = (hash ^ data[i + 3]) * prime;
+            a += data[i + 3];
+            b += a;
+            hash = (hash ^ data[i + 4]) * prime;
+            a += data[i + 4];
+            b += a;
+            hash = (hash ^ data[i + 5]) * prime;
+            a += data[i + 5];
+            b += a;
+            hash = (hash ^ data[i + 6]) * prime;
+            a += data[i + 6];
+            b += a;
+            hash = (hash ^ data[i + 7]) * prime;
+            a += data[i + 7];
+            b += a;
             adler->a = a;
             adler->b = b;
         }
@@ -1134,14 +1160,22 @@ static uint32_t tkbc_png_adler32(const unsigned char *data, size_t size) {
         size -= block;
         size_t i = 0;
         for (; i + 8 <= block; i += 8) {
-            a += data[i + 0]; b += a;
-            a += data[i + 1]; b += a;
-            a += data[i + 2]; b += a;
-            a += data[i + 3]; b += a;
-            a += data[i + 4]; b += a;
-            a += data[i + 5]; b += a;
-            a += data[i + 6]; b += a;
-            a += data[i + 7]; b += a;
+            a += data[i + 0];
+            b += a;
+            a += data[i + 1];
+            b += a;
+            a += data[i + 2];
+            b += a;
+            a += data[i + 3];
+            b += a;
+            a += data[i + 4];
+            b += a;
+            a += data[i + 5];
+            b += a;
+            a += data[i + 6];
+            b += a;
+            a += data[i + 7];
+            b += a;
         }
         for (; i < block; ++i) {
             a += data[i];
@@ -1197,7 +1231,7 @@ unsigned char *tkbc_export_image_png_fast_with_hash(Image image, int *data_size,
 
     const size_t row_size = (size_t) image.width * 4;
     const size_t filtered_size = (row_size + 1) * (size_t) image.height;
-    unsigned char *filtered = (unsigned char *) MemAlloc((unsigned int) filtered_size);
+    unsigned char *filtered = malloc((unsigned int) filtered_size);
     if (filtered == NULL) {
         return NULL;
     }
@@ -1243,20 +1277,18 @@ unsigned char *tkbc_export_image_png_fast_with_hash(Image image, int *data_size,
     tkbc_png_bits_put(&writer, 1, 2);  // BTYPE = fixed Huffman
 
     static const unsigned short length_base[] = {
-        3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51,
-        59, 67, 83, 99, 115, 131, 163, 195, 227, 258,
+        3,  4,  5,  6,  7,  8,  9,  10, 11,  13,  15,  17,  19,  23,  27,
+        31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258,
     };
     static const unsigned char length_extra[] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3,
-        3, 4, 4, 4, 4, 5, 5, 5, 5, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0,
     };
     static const unsigned short distance_base[] = {
-        1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385,
-        513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
+        1,   2,   3,   4,   5,   7,    9,    13,   17,   25,   33,   49,   65,    97,    129,
+        193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
     };
     static const unsigned char distance_extra[] = {
-        0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
-        7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13,
+        0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13,
     };
 
     // A short predecessor chain per 3-byte hash keeps the matcher linear in
@@ -1274,8 +1306,7 @@ unsigned char *tkbc_export_image_png_fast_with_hash(Image image, int *data_size,
         int best_distance = 0;
         const size_t max_length = filtered_size - i < 258 ? filtered_size - i : 258;
 
-        for (int chain = 0; chain < 2 && candidate >= 0 && candidate < (int) i &&
-                            (int) i - candidate <= 32768;
+        for (int chain = 0; chain < 2 && candidate >= 0 && candidate < (int) i && (int) i - candidate <= 32768;
              ++chain) {
             const size_t pos = (size_t) candidate;
             const size_t length = tkbc_png_match_length(filtered + pos, filtered + i, max_length);
@@ -1335,17 +1366,17 @@ unsigned char *tkbc_export_image_png_fast_with_hash(Image image, int *data_size,
             writer.data[writer.size++] = (unsigned char) adler32;
         }
     }
-    MemFree(filtered);
+    free(filtered);
 
     if (writer.failed) {
-        MemFree(writer.data);
+        free(writer.data);
         return NULL;
     }
 
     const size_t png_size = 8 + (12 + 13) + (12 + writer.size) + 12;
-    unsigned char *png = (unsigned char *) MemAlloc((unsigned int) png_size);
+    unsigned char *png = malloc((unsigned int) png_size);
     if (png == NULL) {
-        MemFree(writer.data);
+        free(writer.data);
         return NULL;
     }
 
@@ -1362,11 +1393,11 @@ unsigned char *tkbc_export_image_png_fast_with_hash(Image image, int *data_size,
     offset += 4;
     tkbc_png_write_u32(png + offset, (uint32_t) image.height);
     offset += 4;
-    png[offset++] = 8;  // bit depth
-    png[offset++] = 6;  // RGBA
-    png[offset++] = 0;  // compression
-    png[offset++] = 0;  // filtering
-    png[offset++] = 0;  // no interlace
+    png[offset++] = 8;                                    // bit depth
+    png[offset++] = 6;                                    // RGBA
+    png[offset++] = 0;                                    // compression
+    png[offset++] = 0;                                    // filtering
+    png[offset++] = 0;                                    // no interlace
     const unsigned char *ihdr_chunk = png + offset - 17;  // "IHDR" + 13 data bytes
     tkbc_png_write_u32(png + offset, tkbc_png_crc32(ihdr_chunk, 17));
     offset += 4;
@@ -1389,7 +1420,7 @@ unsigned char *tkbc_export_image_png_fast_with_hash(Image image, int *data_size,
     tkbc_png_write_u32(png + offset, tkbc_png_crc32(png + iend_type + 4, 4));
     offset += 4;
 
-    MemFree(writer.data);
+    free(writer.data);
     assert(offset == png_size);
     *data_size = (int) png_size;
     return png;

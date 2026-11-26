@@ -46,7 +46,7 @@ Test fast_png_export_roundtrip(void) {
     const int width = 7;
     const int height = 5;
     const size_t pixel_count = (size_t) width * (size_t) height * 4;
-    unsigned char *pixels = (unsigned char *) MemAlloc((unsigned int) pixel_count);
+    unsigned char *pixels = (unsigned char *) malloc((unsigned int) pixel_count);
     for (size_t i = 0; i < pixel_count; ++i) {
         pixels[i] = (unsigned char) ((i * 37u + (i / 4u) * 11u) & 0xffu);
     }
@@ -72,8 +72,8 @@ Test fast_png_export_roundtrip(void) {
         UnloadImage(decoded);
     }
 
-    MemFree(png);
-    MemFree(pixels);
+    free(png);
+    free(pixels);
     return test;
 }
 
@@ -86,9 +86,8 @@ Test fast_png_export_roundtrip_matches(void) {
     const int width = 64;
     const int height = 32;
     const size_t pixel_count = (size_t) width * (size_t) height * 4;
-    unsigned char *pixels = (unsigned char *) MemAlloc((unsigned int) pixel_count);
-    const unsigned char pattern[16] = {0, 17, 34, 51, 68, 85, 102, 119,
-                                       136, 153, 170, 187, 204, 221, 238, 255};
+    unsigned char *pixels = (unsigned char *) malloc((unsigned int) pixel_count);
+    const unsigned char pattern[16] = {0, 17, 34, 51, 68, 85, 102, 119, 136, 153, 170, 187, 204, 221, 238, 255};
     for (size_t i = 0; i < pixel_count; ++i) {
         pixels[i] = i < pixel_count / 2 ? 0x5a : pattern[i % sizeof(pattern)];
     }
@@ -114,8 +113,8 @@ Test fast_png_export_roundtrip_matches(void) {
         UnloadImage(decoded);
     }
 
-    MemFree(png);
-    MemFree(pixels);
+    free(png);
+    free(pixels);
     return test;
 }
 

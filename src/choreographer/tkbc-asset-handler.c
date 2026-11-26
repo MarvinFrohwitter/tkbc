@@ -319,7 +319,7 @@ static bool tkbc_png_dimensions(const unsigned char *data, int data_size, int *w
  * @return An Image whose data is the PNG file, not decoded pixels.
  */
 static Image tkbc_copy_compressed_image(const unsigned char *data, int data_size, int width, int height) {
-    unsigned char *copy = (unsigned char *) MemAlloc((size_t) data_size);
+    unsigned char *copy = (unsigned char *) malloc((size_t) data_size);
     assert(copy != NULL && "Out of memory while storing a compressed image");
     if (copy == NULL) {
         return (Image){0};
@@ -409,7 +409,7 @@ static void tkbc_panel_mask_build_runs(Panel_Mask *mask) {
         return;
     }
 
-    mask->runs = (uint32_t *) MemAlloc(count * 3 * sizeof(uint32_t));
+    mask->runs = (uint32_t *) malloc(count * 3 * sizeof(uint32_t));
     assert(mask->runs != NULL && "Out of memory while building panel mask runs");
     if (mask->runs == NULL) {
         return;
@@ -450,7 +450,7 @@ void tkbc_panel_mask_unpack(Panel_Mask *mask) {
 
     const size_t pixel_count = (size_t) mask->width * (size_t) mask->height;
     size_t output_size = mask->kind == TKBC_MASK_KIND_BINARY ? (pixel_count + 7) / 8 : pixel_count;
-    mask->bits = (unsigned char *) MemAlloc(output_size);
+    mask->bits = (unsigned char *) malloc(output_size);
     assert(mask->bits != NULL && "Out of memory while unpacking a panel mask");
     if (mask->bits == NULL) {
         return;
@@ -971,11 +971,11 @@ void tkbc_asset_destroy(Asset *asset) {
         // compressed points into a static generated header; only the lazy
         // unpacked buffer and run list are owned by the asset.
         if (asset->as.panel_mask.bits != NULL) {
-            MemFree(asset->as.panel_mask.bits);
+            free(asset->as.panel_mask.bits);
             asset->as.panel_mask.bits = NULL;
         }
         if (asset->as.panel_mask.runs != NULL) {
-            MemFree(asset->as.panel_mask.runs);
+            free(asset->as.panel_mask.runs);
             asset->as.panel_mask.runs = NULL;
         }
         break;
