@@ -2242,8 +2242,7 @@ static void tkbc_live_editor_move_action(Env *env, size_t from, size_t target, b
     size_t *indices = malloc(move_count * sizeof(*indices));
     Live_Action *moved = malloc(move_count * sizeof(*moved));
     if (!indices || !moved) {
-        free(indices);
-        free(moved);
+        goto err;
         return;
     }
 
@@ -2269,8 +2268,7 @@ static void tkbc_live_editor_move_action(Env *env, size_t from, size_t target, b
     // A drop on a row that is part of the moved block has no effect.
     for (size_t i = 0; i < move_count; ++i) {
         if (indices[i] == target) {
-            free(indices);
-            free(moved);
+            goto err;
             return;
         }
     }
@@ -2355,8 +2353,9 @@ static void tkbc_live_editor_move_action(Env *env, size_t from, size_t target, b
     editor->actions_changed = true;
     tkbc_live_editor_apply_actions(env);
 
-    free(indices);
-    free(moved);
+err:
+    if (indices) free(indices);
+    if (moved) free(moved);
 }
 
 /**
@@ -2674,8 +2673,7 @@ void tkbc_ui_live_script_editor(Env *env) {
                TKBC_LIVE_EDITOR_SECTION_FONT_SIZE, TKBC_LIVE_EDITOR_TEXT_SPACING, TKBC_UI_WHITE);
     const float kite_button_gap = padding;
     const float kite_button_width = fmaxf((left.width - 2 * padding - kite_button_gap) * 0.5f, 0.0f);
-    Rectangle add_kite_box = {left.x + padding, left.y + padding + section_title_offset, kite_button_width,
-                              row_height};
+    Rectangle add_kite_box = {left.x + padding, left.y + padding + section_title_offset, kite_button_width, row_height};
     if (tkbc_live_editor_button(env, add_kite_box, "ADD KITE", script != NULL, false)) {
         tkbc_live_editor_add_kite(env);
         script = tkbc_find_script_by_id(env, editor->script_id);
