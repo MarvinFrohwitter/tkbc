@@ -1887,8 +1887,7 @@ static float tkbc_live_editor_input_float(const Text_Input *input, float fallbac
  */
 static void tkbc_live_editor_action_from_inputs(Env *env, Live_Action *action) {
     Live_Editor *editor = &env->live_editor;
-    tkbc_live_editor_free_kite_ids(&action->kite_ids);
-    tkbc_live_editor_copy_kite_ids(&editor->kite_selection, &action->kite_ids);
+    tkbc_live_editor_copy_kite_ids(&editor->actions_space, &editor->kite_selection, &action->kite_ids);
     action->kind = tkbc_is_valid_action_kind(editor->kind) ? editor->kind : ACTION_KITE_WAIT;
     action->bezier_kind = editor->bezier_kind;
     action->same_set_as_previous =
@@ -1940,7 +1939,7 @@ static void tkbc_live_editor_inputs_from_action(Env *env, const Live_Action *act
     SET_LIVE_INPUT(editor->p4y_input, action->p4.y);
 #undef SET_LIVE_INPUT
 
-    tkbc_live_editor_copy_kite_ids(&action->kite_ids, &editor->kite_selection);
+    tkbc_live_editor_copy_kite_ids(&editor->actions_space, &action->kite_ids, &editor->kite_selection);
     editor->kind = tkbc_is_valid_action_kind(action->kind) ? action->kind : ACTION_KITE_WAIT;
     // Non-tip actions carry no meaningful tip (zero), which is not a valid TIP.
     editor->tip = (editor->kind == ACTION_KITE_TIP_ROTATION || editor->kind == ACTION_KITE_TIP_ROTATION_ADD) &&
@@ -1963,7 +1962,6 @@ static void tkbc_live_editor_store_current_action(Env *env) {
     if (editor->selected_action >= 0 && (size_t) editor->selected_action < editor->actions.count) {
         size_t index = (size_t) editor->selected_action;
         bool was_selected = editor->actions.elements[index].selected;
-        tkbc_live_editor_free_kite_ids(&editor->actions.elements[index].kite_ids);
         editor->actions.elements[index] = action;
         editor->actions.elements[index].selected = was_selected;
         if (index == 0) {
@@ -1971,7 +1969,7 @@ static void tkbc_live_editor_store_current_action(Env *env) {
         }
         updated_existing = true;
     } else {
-        tkbc_dap(&editor->actions, action);
+        space_dap(&editor->actions_space, &editor->actions, action);
         editor->selected_action = -1;
     }
     editor->actions_changed = true;
@@ -1991,7 +1989,6 @@ static void tkbc_live_editor_remove_action_at(Live_Editor *editor, size_t index)
     if (index >= editor->actions.count) {
         return;
     }
-    tkbc_live_editor_free_kite_ids(&editor->actions.elements[index].kite_ids);
     for (size_t i = index; i + 1 < editor->actions.count; ++i) {
         editor->actions.elements[i] = editor->actions.elements[i + 1];
     }
@@ -2239,10 +2236,9 @@ static void tkbc_live_editor_move_action(Env *env, size_t from, size_t target, b
         return;
     }
 
-    size_t *indices = malloc(move_count * sizeof(*indices));
-    Live_Action *moved = malloc(move_count * sizeof(*moved));
+    size_t *indices = space_malloc(&editor->actions_space, move_count * sizeof(*indices));
+    Live_Action *moved = space_malloc(&editor->actions_space, move_count * sizeof(*moved));
     if (!indices || !moved) {
-        goto err;
         return;
     }
 
@@ -2268,7 +2264,6 @@ static void tkbc_live_editor_move_action(Env *env, size_t from, size_t target, b
     // A drop on a row that is part of the moved block has no effect.
     for (size_t i = 0; i < move_count; ++i) {
         if (indices[i] == target) {
-            goto err;
             return;
         }
     }
@@ -2349,13 +2344,10 @@ static void tkbc_live_editor_move_action(Env *env, size_t from, size_t target, b
     editor->selected_action = (ssize_t) active;
     editor->selection_anchor = new_anchor;
     editor->join_set = editor->actions.elements[active].same_set_as_previous;
-    tkbc_live_editor_copy_kite_ids(&editor->actions.elements[active].kite_ids, &editor->kite_selection);
+    tkbc_live_editor_copy_kite_ids(&editor->actions_space, &editor->actions.elements[active].kite_ids,
+                                   &editor->kite_selection);
     editor->actions_changed = true;
     tkbc_live_editor_apply_actions(env);
-
-err:
-    if (indices) free(indices);
-    if (moved) free(moved);
 }
 
 /**
@@ -2449,41 +2441,21 @@ static int tkbc_live_editor_compare_kite_ids(const void *lhs, const void *rhs) {
  * edited script, sorted by id. Kites that only exist in the global kite array
  * stay hidden unless they are selected for the action currently being edited.
  */
-static Id *tkbc_live_editor_script_kites(const Live_Editor *editor, const Script *script, size_t *count) {
-    size_t capacity = editor->kite_selection.count;
-    if (script) {
-        capacity += script->owned_kite_ids.count;
-    }
-    for (size_t i = 0; i < editor->actions.count; ++i) {
-        capacity += editor->actions.elements[i].kite_ids.count;
-    }
-    if (!capacity) {
-        *count = 0;
-        return NULL;
-    }
-    Kite_Ids ids = {
-        .elements = malloc(capacity * sizeof(*ids.elements)),
-        .count = 0,
-        .capacity = capacity,
-        .script_id_append = false,
-    };
-    if (!ids.elements) {
-        *count = 0;
-        return NULL;
-    }
+static void tkbc_live_editor_script_kites(Live_Editor *editor, const Script *script, Kite_Ids *result) {
+    *result = (Kite_Ids){0};
     // The current selection belongs to the action being assembled, even before
     // it has been stored as an action row.
     for (size_t i = 0; i < editor->kite_selection.count; ++i) {
         Id kite_id = editor->kite_selection.elements[i];
-        if (!tkbc_contains_id(ids, kite_id)) {
-            ids.elements[ids.count++] = kite_id;
+        if (!tkbc_contains_id(*result, kite_id)) {
+            space_dap(&editor->ui_space, result, kite_id);
         }
     }
     if (script) {
         for (size_t i = 0; i < script->owned_kite_ids.count; ++i) {
             Id kite_id = script->owned_kite_ids.elements[i];
-            if (!tkbc_contains_id(ids, kite_id)) {
-                ids.elements[ids.count++] = kite_id;
+            if (!tkbc_contains_id(*result, kite_id)) {
+                space_dap(&editor->ui_space, result, kite_id);
             }
         }
     }
@@ -2491,14 +2463,14 @@ static Id *tkbc_live_editor_script_kites(const Live_Editor *editor, const Script
         const Kite_Ids *action_ids = &editor->actions.elements[i].kite_ids;
         for (size_t k = 0; k < action_ids->count; ++k) {
             Id kite_id = action_ids->elements[k];
-            if (!tkbc_contains_id(ids, kite_id)) {
-                ids.elements[ids.count++] = kite_id;
+            if (!tkbc_contains_id(*result, kite_id)) {
+                space_dap(&editor->ui_space, result, kite_id);
             }
         }
     }
-    qsort(ids.elements, ids.count, sizeof(*ids.elements), tkbc_live_editor_compare_kite_ids);
-    *count = ids.count;
-    return ids.elements;
+    if (result->count > 1) {
+        qsort(result->elements, result->count, sizeof(*result->elements), tkbc_live_editor_compare_kite_ids);
+    }
 }
 
 /**
@@ -2513,6 +2485,7 @@ void tkbc_ui_live_script_editor(Env *env) {
         return;
     }
     tkbc_live_editor_init_inputs(env);
+    space_reset_space(&editor->ui_space);
 
     Vector2 mouse = GetMousePosition();
     // The shared double-click detector advances only when it is called. Poll it
@@ -2603,7 +2576,7 @@ void tkbc_ui_live_script_editor(Env *env) {
             .width = middle_width,
             .height = name_box_height,
         };
-        char *old_name = malloc(strlen(tkbc_script_name(script)) + 1);
+        char *old_name = space_malloc(&editor->ui_space, strlen(tkbc_script_name(script)) + 1);
         if (old_name) {
             strcpy(old_name, tkbc_script_name(script));
         }
@@ -2621,7 +2594,6 @@ void tkbc_ui_live_script_editor(Env *env) {
         if (old_name && strcmp(old_name, tkbc_script_name(script)) != 0) {
             script->was_send = false;
         }
-        free(old_name);
     }
 
     if (tkbc_live_editor_button(env, create_box, "CREATE SCRIPT", script != NULL, false)) {
@@ -2694,8 +2666,11 @@ void tkbc_ui_live_script_editor(Env *env) {
         .height = fmaxf(left.y + left.height - padding - kite_list_y, 0.0f),
     };
     size_t kite_screen_items = (size_t) (kite_list_base.height / row_height);
-    size_t kite_count = 0;
-    Id *kite_ids = script ? tkbc_live_editor_script_kites(editor, script, &kite_count) : NULL;
+    Kite_Ids kite_ids = {0};
+    if (script) {
+        tkbc_live_editor_script_kites(editor, script, &kite_ids);
+    }
+    size_t kite_count = kite_ids.count;
     tkbc_scrollbar(&editor->kite_scrollbar, kite_list_base, row_height, kite_count, kite_screen_items,
                    &editor->top_kite);
     Rectangle kite_content = {
@@ -2714,7 +2689,7 @@ void tkbc_ui_live_script_editor(Env *env) {
                 kite_content.width,
                 row_height - 4.0f,
             };
-            Id kite_id = kite_ids[i];
+            Id kite_id = kite_ids.elements[i];
             bool owned = script && tkbc_contains_id(script->owned_kite_ids, kite_id);
             bool marked = tkbc_contains_id(editor->marked_kites, kite_id);
             float check_radius = kite_box.height * 0.35f;
@@ -2763,7 +2738,7 @@ void tkbc_ui_live_script_editor(Env *env) {
             if (!editor->action_drag_active && row_hovered && !check_hovered && !remove_hovered &&
                 IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 editor->kite_list_focused = true;
-                tkbc_live_editor_apply_kite_click_selection(env, kite_ids, kite_count, i);
+                tkbc_live_editor_apply_kite_click_selection(env, kite_ids.elements, kite_count, i);
             }
 
             // Only kites the script owns can be removed from it.
@@ -2781,7 +2756,6 @@ void tkbc_ui_live_script_editor(Env *env) {
         }
         EndScissorMode();
     }
-    free(kite_ids);
 
     /* ----------------------------- action palette --------------------------- */
     DrawTextEx(env->font, section_title, (Vector2){middle.x + padding, middle.y + padding},
@@ -3061,7 +3035,8 @@ void tkbc_ui_live_script_editor(Env *env) {
             editor->kite_list_focused = false;
             tkbc_live_editor_apply_click_selection(editor, i);
             editor->selected_action = (ssize_t) i;
-            tkbc_live_editor_copy_kite_ids(&editor->actions.elements[i].kite_ids, &editor->kite_selection);
+            tkbc_live_editor_copy_kite_ids(&editor->actions_space, &editor->actions.elements[i].kite_ids,
+                                           &editor->kite_selection);
             editor->join_set = editor->actions.elements[i].same_set_as_previous;
         }
         // A single click only selects. The action is loaded back into the

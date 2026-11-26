@@ -305,10 +305,8 @@ void tkbc_destroy_env(Env *env) {
     env->pending_script_updates.count = 0;
     env->pending_script_updates.capacity = 0;
     tkbc_live_editor_clear_actions(env);
-    free(env->live_editor.actions.elements);
-    env->live_editor.actions.elements = NULL;
-    env->live_editor.actions.count = 0;
-    env->live_editor.actions.capacity = 0;
+    space_free_space(&env->live_editor.actions_space);
+    space_free_space(&env->live_editor.ui_space);
     space_free_space(&env->live_editor.input_space);
     free(env->sound_file_name);
     env->sound_file_name = NULL;

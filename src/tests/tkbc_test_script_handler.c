@@ -1370,15 +1370,15 @@ Test live_editor_kite_toggle_updates_marked_actions(void) {
     Id first_ids[] = {0};
     Id second_ids[] = {1, 0};
     Kite_Ids source = {.elements = first_ids, .count = 1, .capacity = 1, .script_id_append = false};
-    tkbc_live_editor_copy_kite_ids(&source, &first.kite_ids);
+    tkbc_live_editor_copy_kite_ids(&editor->actions_space, &source, &first.kite_ids);
     source.elements = second_ids;
     source.count = 2;
     source.capacity = 2;
-    tkbc_live_editor_copy_kite_ids(&source, &second.kite_ids);
-    tkbc_dap(&editor->actions, first);
-    tkbc_dap(&editor->actions, second);
+    tkbc_live_editor_copy_kite_ids(&editor->actions_space, &source, &second.kite_ids);
+    space_dap(&editor->actions_space, &editor->actions, first);
+    space_dap(&editor->actions_space, &editor->actions, second);
     editor->selected_action = 0;
-    tkbc_live_editor_copy_kite_ids(&first.kite_ids, &editor->kite_selection);
+    tkbc_live_editor_copy_kite_ids(&editor->actions_space, &first.kite_ids, &editor->kite_selection);
 
     // Checking one of two marked kites checks the whole kite selection and
     // adds both kites to every marked action without losing their own targets.

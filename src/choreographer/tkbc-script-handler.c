@@ -2594,19 +2594,18 @@ UUID tkbc_create_live_script(Env *env) {
     return created->id;
 }
 
-static void live_free_kite_ids(Kite_Ids *ids) {
-    free(ids->elements);
+static void live_clear_kite_ids(Kite_Ids *ids) {
     ids->elements = NULL;
     ids->count = 0;
     ids->capacity = 0;
 }
 
-static void live_copy_kite_ids(const Kite_Ids *source, Kite_Ids *target) {
-    live_free_kite_ids(target);
+static void live_copy_kite_ids(Space *space, const Kite_Ids *source, Kite_Ids *target) {
+    live_clear_kite_ids(target);
     if (!source || !source->count || !source->elements) {
         return;
     }
-    target->elements = malloc(source->count * sizeof(*target->elements));
+    target->elements = space_malloc(space, source->count * sizeof(*target->elements));
     if (!target->elements) {
         return;
     }
@@ -2615,34 +2614,24 @@ static void live_copy_kite_ids(const Kite_Ids *source, Kite_Ids *target) {
     target->capacity = source->count;
 }
 
-void tkbc_live_editor_free_kite_ids(Kite_Ids *ids) {
-    live_free_kite_ids(ids);
+void tkbc_live_editor_copy_kite_ids(Space *space, const Kite_Ids *source, Kite_Ids *target) {
+    live_copy_kite_ids(space, source, target);
 }
 
-void tkbc_live_editor_copy_kite_ids(const Kite_Ids *source, Kite_Ids *target) {
-    live_copy_kite_ids(source, target);
-}
-
-static void live_append_id(Kite_Ids *ids, Id kite_id) {
+static void live_append_id(Space *space, Kite_Ids *ids, Id kite_id) {
     for (size_t i = 0; i < ids->count; ++i) {
         if (ids->elements[i] == kite_id) {
             return;
         }
     }
-    Id *grown = realloc(ids->elements, (ids->count + 1) * sizeof(*grown));
-    if (!grown) {
-        return;
-    }
-    ids->elements = grown;
-    ids->elements[ids->count++] = kite_id;
-    ids->capacity = ids->count;
+    space_dap(space, ids, kite_id);
 }
 
-static void live_append_target(Live_Action *action, Id kite_id) {
+static void live_append_target(Space *space, Live_Action *action, Id kite_id) {
     if (action->kind == ACTION_KITE_WAIT || action->kind == ACTION_KITE_QUIT) {
         return;
     }
-    live_append_id(&action->kite_ids, kite_id);
+    live_append_id(space, &action->kite_ids, kite_id);
 }
 
 static void live_remove_id(Kite_Ids *ids, Id kite_id) {
@@ -2717,7 +2706,7 @@ static void live_sync_kite_selection(Env *env, const Kite_Ids *kite_ids, bool en
             Id kite_id = kite_ids->elements[k];
             bool has_kite = tkbc_contains_id(action->kite_ids, kite_id);
             if (enable && !has_kite) {
-                live_append_id(&action->kite_ids, kite_id);
+                live_append_id(&editor->actions_space, &action->kite_ids, kite_id);
                 changed = true;
             } else if (!enable && has_kite) {
                 live_remove_id(&action->kite_ids, kite_id);
@@ -2744,7 +2733,7 @@ void tkbc_live_editor_toggle_kite_selection(Env *env, Id kite_id) {
     if (tkbc_contains_id(editor->kite_selection, kite_id)) {
         live_remove_id(&editor->kite_selection, kite_id);
     } else {
-        live_append_id(&editor->kite_selection, kite_id);
+        live_append_id(&editor->actions_space, &editor->kite_selection, kite_id);
         enable = true;
     }
     Kite_Ids changed = {
@@ -2764,7 +2753,7 @@ void tkbc_live_editor_clear_kite_marks(Env *env) {
         return;
     }
     Live_Editor *editor = &env->live_editor;
-    live_free_kite_ids(&editor->marked_kites);
+    live_clear_kite_ids(&editor->marked_kites);
     editor->kite_mark_anchor = -1;
     editor->kite_list_focused = false;
 }
@@ -2780,7 +2769,7 @@ void tkbc_live_editor_set_kite_mark(Env *env, Id kite_id, bool marked) {
     }
     Kite_Ids *marks = &env->live_editor.marked_kites;
     if (marked) {
-        live_append_id(marks, kite_id);
+        live_append_id(&env->live_editor.actions_space, marks, kite_id);
     } else {
         live_remove_id(marks, kite_id);
     }
@@ -2808,7 +2797,7 @@ void tkbc_live_editor_toggle_marked_kite_selection(Env *env, Id kite_id) {
     for (size_t i = 0; i < editor->marked_kites.count; ++i) {
         Id marked_id = editor->marked_kites.elements[i];
         if (enable) {
-            live_append_id(&editor->kite_selection, marked_id);
+            live_append_id(&editor->actions_space, &editor->kite_selection, marked_id);
         } else {
             live_remove_id(&editor->kite_selection, marked_id);
         }
@@ -2824,11 +2813,11 @@ void tkbc_live_editor_clear_actions(Env *env) {
         return;
     }
     Live_Editor *editor = &env->live_editor;
-    for (size_t i = 0; i < editor->actions.count; ++i) {
-        live_free_kite_ids(&editor->actions.elements[i].kite_ids);
-    }
+    space_reset_space(&editor->actions_space);
+    editor->actions.elements = NULL;
     editor->actions.count = 0;
-    live_free_kite_ids(&editor->kite_selection);
+    editor->actions.capacity = 0;
+    live_clear_kite_ids(&editor->kite_selection);
     tkbc_live_editor_clear_kite_marks(env);
     editor->selection_anchor = -1;
     editor->actions_loaded = false;
@@ -2866,7 +2855,7 @@ void tkbc_live_editor_load_actions(Env *env) {
             Live_Action action = {0};
             action.kind = frame->kind;
             action.same_set_as_previous = fi > 0;
-            live_copy_kite_ids(&frame->kite_id_array, &action.kite_ids);
+            live_copy_kite_ids(&editor->actions_space, &frame->kite_id_array, &action.kite_ids);
             action.duration = frame->duration;
             switch (frame->kind) {
             case ACTION_KITE_MOVE:
@@ -2890,13 +2879,13 @@ void tkbc_live_editor_load_actions(Env *env) {
             case ACTION_KIND_NULL:
             case ACTION_KIND_COUNT: break;
             }
-            tkbc_dap(&editor->actions, action);
+            space_dap(&editor->actions_space, &editor->actions, action);
         }
     }
     // No row is active right after loading, so the first action supplies the
     // current kite selection (and with it the checked boxes in the kite list).
     if (editor->actions.count) {
-        live_copy_kite_ids(&editor->actions.elements[0].kite_ids, &editor->kite_selection);
+        live_copy_kite_ids(&editor->actions_space, &editor->actions.elements[0].kite_ids, &editor->kite_selection);
     }
     editor->join_set = false;
     editor->bezier_kind = LIVE_BEZIER_NONE;
@@ -2941,7 +2930,7 @@ static void live_register_frame_group(Env *env, Frame **frames, size_t count) {
 
 static void live_emit_bezier(Env *env, const Live_Action *source) {
     Kite_Ids ids = {0};
-    live_copy_kite_ids(&source->kite_ids, &ids);
+    live_copy_kite_ids(&env->scratch_buf_script.space, &source->kite_ids, &ids);
     switch (source->bezier_kind) {
     case LIVE_BEZIER_QUADRATIC:
         tkbc_kite_bezier_quadratic(env, ids, source->p1, source->p2, source->p3, source->duration, source->angle,
@@ -2961,7 +2950,6 @@ static void live_emit_bezier(Env *env, const Live_Action *source) {
         break;
     case LIVE_BEZIER_NONE: break;
     }
-    live_free_kite_ids(&ids);
 }
 
 /**
@@ -3084,7 +3072,7 @@ void tkbc_live_editor_apply_actions(Env *env) {
 
     Frame **group = NULL;
     if (editor->actions.count) {
-        group = malloc(editor->actions.count * sizeof(*group));
+        group = space_malloc(&env->scratch_buf_script.space, editor->actions.count * sizeof(*group));
     }
     size_t group_count = 0;
 
@@ -3109,7 +3097,6 @@ void tkbc_live_editor_apply_actions(Env *env) {
             group_count = 0;
         }
     }
-    free(group);
 
     // Keep every live script a valid script, even with no authored actions.
     if (env->scratch_buf_script.count == 0) {
@@ -3222,7 +3209,7 @@ void tkbc_live_editor_add_kite(Env *env) {
         Id kite_id = generated.elements[i];
         space_dap(&script->space, &script->owned_kite_ids, kite_id);
         for (size_t a = 0; a < editor->actions.count; ++a) {
-            live_append_target(&editor->actions.elements[a], kite_id);
+            live_append_target(&editor->actions_space, &editor->actions.elements[a], kite_id);
         }
         // The new kite is only added to the script and its actions. Its checkbox
         // stays off until the user explicitly enables it for an action.

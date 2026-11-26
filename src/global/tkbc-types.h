@@ -581,6 +581,8 @@ typedef struct {
     Text_Input p4x_input;        // Text field for the fourth curve point x.
     Text_Input p4y_input;        // Text field for the fourth curve point y.
     Space input_space;           // Arena that owns all text field buffers.
+    Space actions_space;         // Arena that owns the editable actions and their kite id lists.
+    Space ui_space;              // Arena for per-frame scratch lists; reset on every draw.
 } Live_Editor;
 
 typedef struct Process Process;

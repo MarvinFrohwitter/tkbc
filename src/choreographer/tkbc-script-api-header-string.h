@@ -9953,6 +9953,8 @@ static const char* global_api_header_string =
 "    Text_Input p4x_input;        // Text field for the fourth curve point x.\n"
 "    Text_Input p4y_input;        // Text field for the fourth curve point y.\n"
 "    Space input_space;           // Arena that owns all text field buffers.\n"
+"    Space actions_space;         // Arena that owns the editable actions and their kite id lists.\n"
+"    Space ui_space;              // Arena for per-frame scratch lists; reset on every draw.\n"
 "} Live_Editor;\n"
 "\n"
 "typedef struct Process Process;\n"
