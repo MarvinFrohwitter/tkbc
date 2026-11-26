@@ -1767,8 +1767,10 @@ static float tkbc_live_editor_label_gap(float field_height) {
 static void tkbc_live_editor_draw_field(Env *env, Text_Input *input, Rectangle box, const char *label) {
     float label_height = tkbc_live_editor_field_label_height(env, label);
     float label_y = box.y - tkbc_live_editor_label_gap(box.height) - label_height;
+    tkbc_BeginScissorMode(box);
     DrawTextEx(env->font, label, (Vector2){box.x, label_y}, TKBC_LIVE_EDITOR_LABEL_FONT_SIZE,
                TKBC_LIVE_EDITOR_LABEL_SPACING, TKBC_UI_WHITE);
+    EndScissorMode();
     DrawRectangleRounded(box, TKBC_LIVE_EDITOR_PANEL_ROUNDNESS, TKBC_LIVE_EDITOR_PANEL_CORNER_SEGMENTS,
                          TKBC_UI_LIGHTGRAY_ALPHA);
     input->box = box;
@@ -2730,8 +2732,10 @@ void tkbc_ui_live_script_editor(Env *env) {
             int kite_font = TKBC_LIVE_EDITOR_BUTTON_FONT_SIZE;
             Vector2 text_size =
                 tkbc_reduce_str_to_fit_box(env->font, label, &kite_font, TKBC_LIVE_EDITOR_TEXT_SPACING, label_box);
+            tkbc_BeginScissorMode(label_box);
             DrawTextEx(env->font, label, (Vector2){label_box.x, kite_box.y + kite_box.height / 2 - text_size.y / 2},
                        kite_font, TKBC_LIVE_EDITOR_TEXT_SPACING, TKBC_UI_BLACK);
+            EndScissorMode();
 
             // A plain row click marks the kite, checkbox and remove clicks keep
             // their own roles and never change the multi selection.
@@ -2961,7 +2965,7 @@ void tkbc_ui_live_script_editor(Env *env) {
     };
     tkbc_live_editor_update_action_drag(env, list_content, row_height, screen_items, mouse);
 
-    BeginScissorMode(list_content.x, list_content.y, list_content.width, list_content.height);
+    tkbc_BeginScissorMode(list_content);
     for (size_t i = editor->top_action; i < editor->actions.count && i < editor->top_action + screen_items; ++i) {
         size_t group_start = tkbc_live_editor_group_start(editor, i);
         size_t group_end = tkbc_live_editor_group_end(editor, i);
@@ -3071,8 +3075,11 @@ void tkbc_ui_live_script_editor(Env *env) {
         int label_font_size = TKBC_LIVE_EDITOR_LIST_LABEL_FONT_SIZE;
         Vector2 label_size =
             tkbc_reduce_str_to_fit_box(env->font, label, &label_font_size, TKBC_LIVE_EDITOR_LABEL_SPACING, label_box);
+
+        tkbc_BeginScissorMode(label_box);
         DrawTextEx(env->font, label, (Vector2){label_x, row.y + row.height / 2 - label_size.y / 2}, label_font_size,
                    TKBC_LIVE_EDITOR_LABEL_SPACING, TKBC_UI_BLACK);
+        EndScissorMode();
     }
     EndScissorMode();
 
@@ -3323,8 +3330,7 @@ void tkbc_ui_color_picker(Env *env) {
 
     // DrawRectangleRec(env->color_picker_base, TKBC_UI_GRAY_ALPHA);
 
-    BeginScissorMode(env->color_picker_base.x, env->color_picker_base.y, env->color_picker_base.width,
-                     env->color_picker_base.height);
+    tkbc_BeginScissorMode(env->color_picker_base);
     {
         const char *description = "Enter a hex color code.";
         text_size = MeasureTextEx(env->font, description, font_size, 2);
